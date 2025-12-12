@@ -38,6 +38,8 @@ export const eventsService = {
       endDate: event.end_date,
       locationType: event.location_type,
       address: event.address,
+      city: event.city,
+      country: event.country,
       longitude: event.longitude,
       latitude: event.latitude,
       onlineUrl: event.online_url,
@@ -73,6 +75,8 @@ export const eventsService = {
       endDate: event.end_date,
       locationType: event.location_type,
       address: event.address,
+      city: event.city,
+      country: event.country,
       longitude: event.longitude,
       latitude: event.latitude,
       onlineUrl: event.online_url,
@@ -109,6 +113,8 @@ export const eventsService = {
       endDate: data.end_date,
       locationType: data.location_type,
       address: data.address,
+      city: data.city,
+      country: data.country,
       longitude: data.longitude,
       latitude: data.latitude,
       onlineUrl: data.online_url,
@@ -132,6 +138,8 @@ export const eventsService = {
         end_date: data.endDate,
         location_type: data.locationType,
         address: data.address,
+        city: data.city,
+        country: data.country,
         longitude: data.longitude,
         latitude: data.latitude,
         online_url: data.onlineUrl,
@@ -149,6 +157,8 @@ export const eventsService = {
       endDate: result.end_date,
       locationType: result.location_type,
       address: result.address,
+      city: result.city,
+      country: result.country,
       longitude: result.longitude,
       latitude: result.latitude,
       onlineUrl: result.online_url,
@@ -169,6 +179,8 @@ export const eventsService = {
     if (data.endDate) updateData.end_date = data.endDate;
     if (data.locationType) updateData.location_type = data.locationType;
     if (data.address !== undefined) updateData.address = data.address;
+    if (data.city !== undefined) updateData.city = data.city;
+    if (data.country !== undefined) updateData.country = data.country;
     if (data.longitude !== undefined) updateData.longitude = data.longitude;
     if (data.latitude !== undefined) updateData.latitude = data.latitude;
     if (data.onlineUrl !== undefined) updateData.online_url = data.onlineUrl;
@@ -185,6 +197,8 @@ export const eventsService = {
       endDate: result.end_date,
       locationType: result.location_type,
       address: result.address,
+      city: result.city,
+      country: result.country,
       longitude: result.longitude,
       latitude: result.latitude,
       onlineUrl: result.online_url,

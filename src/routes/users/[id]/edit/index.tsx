@@ -1,10 +1,12 @@
-import { component$ } from '@builder.io/qwik';
+import { component$, useSignal } from '@builder.io/qwik';
 import { routeLoader$, routeAction$, Form, zod$, z } from '@builder.io/qwik-city';
 import { usersService } from '~/services/users.service';
 import { Card } from '~/components/ui/Card';
 import { Input } from '~/components/ui/Input';
 import { Select } from '~/components/ui/Select';
 import { Button } from '~/components/ui/Button';
+import { LocationAutocomplete } from '~/components/ui/LocationAutocomplete';
+import type { GeocodingResult } from '~/services/geocoding.service';
 
 export const useUser = routeLoader$(async ({ params }) => {
   const user = await usersService.getById(params.id);
@@ -46,6 +48,11 @@ export const useUpdateUser = routeAction$(
 export default component$(() => {
   const user = useUser();
   const action = useUpdateUser();
+  const selectedLocation = useSignal<GeocodingResult | null>(null);
+
+  const initialLocation = user.value.city && user.value.country
+    ? `${user.value.city}, ${user.value.country}`
+    : user.value.city || user.value.country || '';
 
   return (
     <div class="max-w-2xl mx-auto px-4 py-8">
@@ -80,41 +87,34 @@ export default component$(() => {
             error={action.value?.fieldErrors?.email?.[0]}
           />
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Input
-              name="city"
-              label="City"
-              value={action.formData?.get('city') || user.value.city || ''}
-              error={action.value?.fieldErrors?.city?.[0]}
-            />
+          <LocationAutocomplete
+            name="location"
+            label="Location"
+            searchType="city"
+            initialValue={initialLocation}
+            selectedLocation={selectedLocation}
+          />
 
-            <Input
-              name="country"
-              label="Country"
-              value={action.formData?.get('country') || user.value.country || ''}
-              error={action.value?.fieldErrors?.country?.[0]}
-            />
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Input
-              name="latitude"
-              type="number"
-              step="any"
-              label="Latitude"
-              value={action.formData?.get('latitude') || user.value.latitude || ''}
-              error={action.value?.fieldErrors?.latitude?.[0]}
-            />
-
-            <Input
-              name="longitude"
-              type="number"
-              step="any"
-              label="Longitude"
-              value={action.formData?.get('longitude') || user.value.longitude || ''}
-              error={action.value?.fieldErrors?.longitude?.[0]}
-            />
-          </div>
+          <input
+            type="hidden"
+            name="city"
+            value={selectedLocation.value?.city || user.value.city || ''}
+          />
+          <input
+            type="hidden"
+            name="country"
+            value={selectedLocation.value?.country || user.value.country || ''}
+          />
+          <input
+            type="hidden"
+            name="latitude"
+            value={selectedLocation.value?.latitude.toString() || user.value.latitude || ''}
+          />
+          <input
+            type="hidden"
+            name="longitude"
+            value={selectedLocation.value?.longitude.toString() || user.value.longitude || ''}
+          />
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input

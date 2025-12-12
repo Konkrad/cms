@@ -2,11 +2,14 @@ export interface GeocodingResult {
   latitude: number;
   longitude: number;
   displayName: string;
+  city: string | null;
+  country: string | null;
+  fullAddress: string;
 }
 
 export const geocodingService = {
   async forward(query: string): Promise<GeocodingResult[]> {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1`;
 
     const response = await fetch(url, {
       headers: {
@@ -24,11 +27,14 @@ export const geocodingService = {
       latitude: parseFloat(item.lat),
       longitude: parseFloat(item.lon),
       displayName: item.display_name,
+      city: item.address?.city || item.address?.town || item.address?.village || null,
+      country: item.address?.country || null,
+      fullAddress: item.display_name,
     }));
   },
 
   async reverse(latitude: number, longitude: number): Promise<GeocodingResult | null> {
-    const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`;
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`;
 
     const response = await fetch(url, {
       headers: {
@@ -50,6 +56,9 @@ export const geocodingService = {
       latitude: parseFloat(data.lat),
       longitude: parseFloat(data.lon),
       displayName: data.display_name,
+      city: data.address?.city || data.address?.town || data.address?.village || null,
+      country: data.address?.country || null,
+      fullAddress: data.display_name,
     };
   },
 };

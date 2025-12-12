@@ -56,6 +56,8 @@ export interface Event {
   endDate: string;
   locationType: string;
   address: string | null;
+  city: string | null;
+  country: string | null;
   longitude: string | null;
   latitude: string | null;
   onlineUrl: string | null;
@@ -72,6 +74,8 @@ export interface NewEvent {
   endDate: Date | string;
   locationType: string;
   address?: string | null;
+  city?: string | null;
+  country?: string | null;
   longitude?: string | null;
   latitude?: string | null;
   onlineUrl?: string | null;

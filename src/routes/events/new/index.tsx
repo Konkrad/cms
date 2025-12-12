@@ -7,6 +7,8 @@ import { Input } from '~/components/ui/Input';
 import { TextArea } from '~/components/ui/TextArea';
 import { Select } from '~/components/ui/Select';
 import { Button } from '~/components/ui/Button';
+import { LocationAutocomplete } from '~/components/ui/LocationAutocomplete';
+import type { GeocodingResult } from '~/services/geocoding.service';
 
 export const useUsers = routeLoader$(async () => {
   return await usersService.getAll();
@@ -21,6 +23,8 @@ export const useCreateEvent = routeAction$(
       endDate: new Date(data.endDate),
       locationType: data.locationType as 'online' | 'in_person' | 'hybrid',
       address: data.address || undefined,
+      city: data.city || undefined,
+      country: data.country || undefined,
       longitude: data.longitude || undefined,
       latitude: data.latitude || undefined,
       onlineUrl: data.onlineUrl || undefined,
@@ -38,6 +42,8 @@ export const useCreateEvent = routeAction$(
       errorMap: () => ({ message: 'Please select a location type' }),
     }),
     address: z.string().optional(),
+    city: z.string().optional(),
+    country: z.string().optional(),
     longitude: z.string().optional(),
     latitude: z.string().optional(),
     onlineUrl: z.string().optional(),
@@ -49,6 +55,7 @@ export default component$(() => {
   const users = useUsers();
   const action = useCreateEvent();
   const locationType = useSignal('');
+  const selectedLocation = useSignal<GeocodingResult | null>(null);
 
   return (
     <div class="max-w-2xl mx-auto px-4 py-8">
@@ -137,33 +144,18 @@ export default component$(() => {
 
           {(locationType.value === 'in_person' || locationType.value === 'hybrid') && (
             <>
-              <Input
-                name="address"
-                label="Address"
-                placeholder="Street, City, Country"
-                value={action.formData?.get('address') as string}
-                error={action.value?.fieldErrors?.address?.[0]}
+              <LocationAutocomplete
+                name="eventLocation"
+                label="Event Location"
+                searchType="address"
+                selectedLocation={selectedLocation}
               />
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input
-                  name="latitude"
-                  type="number"
-                  step="any"
-                  label="Latitude"
-                  value={action.formData?.get('latitude') as string}
-                  error={action.value?.fieldErrors?.latitude?.[0]}
-                />
-
-                <Input
-                  name="longitude"
-                  type="number"
-                  step="any"
-                  label="Longitude"
-                  value={action.formData?.get('longitude') as string}
-                  error={action.value?.fieldErrors?.longitude?.[0]}
-                />
-              </div>
+              <input type="hidden" name="address" value={selectedLocation.value?.fullAddress || ''} />
+              <input type="hidden" name="city" value={selectedLocation.value?.city || ''} />
+              <input type="hidden" name="country" value={selectedLocation.value?.country || ''} />
+              <input type="hidden" name="latitude" value={selectedLocation.value?.latitude.toString() || ''} />
+              <input type="hidden" name="longitude" value={selectedLocation.value?.longitude.toString() || ''} />
             </>
           )}
 

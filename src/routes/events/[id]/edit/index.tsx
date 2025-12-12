@@ -7,6 +7,8 @@ import { Input } from '~/components/ui/Input';
 import { TextArea } from '~/components/ui/TextArea';
 import { Select } from '~/components/ui/Select';
 import { Button } from '~/components/ui/Button';
+import { LocationAutocomplete } from '~/components/ui/LocationAutocomplete';
+import type { GeocodingResult } from '~/services/geocoding.service';
 
 export const useEvent = routeLoader$(async ({ params }) => {
   const event = await eventsService.getById(params.id);
@@ -29,6 +31,8 @@ export const useUpdateEvent = routeAction$(
       endDate: new Date(data.endDate),
       locationType: data.locationType as 'online' | 'in_person' | 'hybrid',
       address: data.address || undefined,
+      city: data.city || undefined,
+      country: data.country || undefined,
       longitude: data.longitude || undefined,
       latitude: data.latitude || undefined,
       onlineUrl: data.onlineUrl || undefined,
@@ -44,6 +48,8 @@ export const useUpdateEvent = routeAction$(
     endDate: z.string().min(1, 'End date is required'),
     locationType: z.enum(['online', 'in_person', 'hybrid']),
     address: z.string().optional(),
+    city: z.string().optional(),
+    country: z.string().optional(),
     longitude: z.string().optional(),
     latitude: z.string().optional(),
     onlineUrl: z.string().optional(),
@@ -56,6 +62,7 @@ export default component$(() => {
   const users = useUsers();
   const action = useUpdateEvent();
   const locationType = useSignal(event.value.locationType);
+  const selectedLocation = useSignal<GeocodingResult | null>(null);
 
   useTask$(({ track }) => {
     track(() => event.value);
@@ -159,33 +166,39 @@ export default component$(() => {
 
           {(locationType.value === 'in_person' || locationType.value === 'hybrid') && (
             <>
-              <Input
-                name="address"
-                label="Address"
-                placeholder="Street, City, Country"
-                value={action.formData?.get('address') || event.value.address || ''}
-                error={action.value?.fieldErrors?.address?.[0]}
+              <LocationAutocomplete
+                name="eventLocation"
+                label="Event Location"
+                searchType="address"
+                initialValue={event.value.address || ''}
+                selectedLocation={selectedLocation}
               />
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input
-                  name="latitude"
-                  type="number"
-                  step="any"
-                  label="Latitude"
-                  value={action.formData?.get('latitude') || event.value.latitude || ''}
-                  error={action.value?.fieldErrors?.latitude?.[0]}
-                />
-
-                <Input
-                  name="longitude"
-                  type="number"
-                  step="any"
-                  label="Longitude"
-                  value={action.formData?.get('longitude') || event.value.longitude || ''}
-                  error={action.value?.fieldErrors?.longitude?.[0]}
-                />
-              </div>
+              <input
+                type="hidden"
+                name="address"
+                value={selectedLocation.value?.fullAddress || event.value.address || ''}
+              />
+              <input
+                type="hidden"
+                name="city"
+                value={selectedLocation.value?.city || event.value.city || ''}
+              />
+              <input
+                type="hidden"
+                name="country"
+                value={selectedLocation.value?.country || event.value.country || ''}
+              />
+              <input
+                type="hidden"
+                name="latitude"
+                value={selectedLocation.value?.latitude.toString() || event.value.latitude || ''}
+              />
+              <input
+                type="hidden"
+                name="longitude"
+                value={selectedLocation.value?.longitude.toString() || event.value.longitude || ''}
+              />
             </>
           )}
 

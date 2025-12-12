@@ -1,95 +1,114 @@
-import { db } from '~/db/connection';
-import { posts, users, type Post, type NewPost } from '~/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { supabase } from '~/db/connection';
+import type { Post, NewPost } from '~/db/schema';
 
 export type PostWithUser = Post & { user: { displayName: string; email: string } };
 
 export const postsService = {
   async getAll(userId?: string): Promise<PostWithUser[]> {
-    let query = db
-      .select({
-        id: posts.id,
-        title: posts.title,
-        body: posts.body,
-        userId: posts.userId,
-        createdAt: posts.createdAt,
-        updatedAt: posts.updatedAt,
-        user: {
-          displayName: users.displayName,
-          email: users.email,
-        },
-      })
-      .from(posts)
-      .innerJoin(users, eq(posts.userId, users.id))
-      .orderBy(desc(posts.createdAt));
+    let query = supabase
+      .from('posts')
+      .select(
+        `
+        *,
+        user:users!posts_user_id_fkey(display_name, email)
+      `
+      )
+      .order('created_at', { ascending: false });
 
     if (userId) {
-      query = query.where(eq(posts.userId, userId)) as any;
+      query = query.eq('user_id', userId);
     }
 
-    return await query;
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return (data || []).map((post: any) => ({
+      ...post,
+      user: {
+        displayName: post.user.display_name,
+        email: post.user.email,
+      },
+    })) as PostWithUser[];
   },
 
   async getRecent(limit: number = 3): Promise<PostWithUser[]> {
-    return await db
-      .select({
-        id: posts.id,
-        title: posts.title,
-        body: posts.body,
-        userId: posts.userId,
-        createdAt: posts.createdAt,
-        updatedAt: posts.updatedAt,
-        user: {
-          displayName: users.displayName,
-          email: users.email,
-        },
-      })
-      .from(posts)
-      .innerJoin(users, eq(posts.userId, users.id))
-      .orderBy(desc(posts.createdAt))
+    const { data, error } = await supabase
+      .from('posts')
+      .select(
+        `
+        *,
+        user:users!posts_user_id_fkey(display_name, email)
+      `
+      )
+      .order('created_at', { ascending: false })
       .limit(limit);
+
+    if (error) throw error;
+    return (data || []).map((post: any) => ({
+      ...post,
+      user: {
+        displayName: post.user.display_name,
+        email: post.user.email,
+      },
+    })) as PostWithUser[];
   },
 
   async getById(id: string): Promise<PostWithUser | undefined> {
-    const result = await db
-      .select({
-        id: posts.id,
-        title: posts.title,
-        body: posts.body,
-        userId: posts.userId,
-        createdAt: posts.createdAt,
-        updatedAt: posts.updatedAt,
-        user: {
-          displayName: users.displayName,
-          email: users.email,
-        },
-      })
-      .from(posts)
-      .innerJoin(users, eq(posts.userId, users.id))
-      .where(eq(posts.id, id))
-      .limit(1);
+    const { data, error } = await supabase
+      .from('posts')
+      .select(
+        `
+        *,
+        user:users!posts_user_id_fkey(display_name, email)
+      `
+      )
+      .eq('id', id)
+      .maybeSingle();
 
-    return result[0];
+    if (error) throw error;
+    if (!data) return undefined;
+
+    return {
+      ...data,
+      user: {
+        displayName: (data.user as any).display_name,
+        email: (data.user as any).email,
+      },
+    } as PostWithUser;
   },
 
   async create(data: Omit<NewPost, 'id' | 'createdAt' | 'updatedAt'>): Promise<Post> {
-    const result = await db.insert(posts).values(data).returning();
-    return result[0];
+    const { data: result, error } = await supabase
+      .from('posts')
+      .insert({
+        title: data.title,
+        body: data.body,
+        user_id: data.userId,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return result as Post;
   },
 
   async update(id: string, data: Partial<Omit<NewPost, 'id' | 'createdAt'>>): Promise<Post | undefined> {
-    const result = await db
-      .update(posts)
-      .set({
-        ...data,
-        updatedAt: new Date(),
-      })
-      .where(eq(posts.id, id))
-      .returning();
-    return result[0];
+    const updateData: any = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (data.title) updateData.title = data.title;
+    if (data.body) updateData.body = data.body;
+    if (data.userId) updateData.user_id = data.userId;
+
+    const { data: result, error } = await supabase.from('posts').update(updateData).eq('id', id).select().single();
+
+    if (error) throw error;
+    return result as Post;
   },
 
   async delete(id: string): Promise<void> {
-    await db.delete(posts).where(eq(posts.id, id));
+    const { error } = await supabase.from('posts').delete().eq('id', id);
+    if (error) throw error;
   },
 };

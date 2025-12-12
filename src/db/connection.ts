@@ -1,10 +1,14 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import * as schema from './schema';
+import { createClient } from '@supabase/supabase-js';
 
-const connectionString = import.meta.env.VITE_SUPABASE_URL
-  ? `postgresql://postgres:postgres@${new URL(import.meta.env.VITE_SUPABASE_URL).hostname}:5432/postgres`
-  : 'postgresql://postgres:postgres@localhost:5432/postgres';
+let supabase: ReturnType<typeof createClient>;
 
-const client = postgres(connectionString);
-export const db = drizzle(client, { schema });
+if (typeof window === 'undefined') {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL || '';
+  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+  supabase = createClient(supabaseUrl, supabaseKey);
+} else {
+  supabase = null as any;
+}
+
+export { supabase };

@@ -31,7 +31,19 @@ export const eventsService = {
 
     if (error) throw error;
     return (data || []).map((event: any) => ({
-      ...event,
+      id: event.id,
+      title: event.title,
+      body: event.body,
+      startDate: event.start_date,
+      endDate: event.end_date,
+      locationType: event.location_type,
+      address: event.address,
+      longitude: event.longitude,
+      latitude: event.latitude,
+      onlineUrl: event.online_url,
+      userId: event.user_id,
+      createdAt: event.created_at,
+      updatedAt: event.updated_at,
       user: {
         displayName: event.user.display_name,
         email: event.user.email,
@@ -54,7 +66,19 @@ export const eventsService = {
 
     if (error) throw error;
     return (data || []).map((event: any) => ({
-      ...event,
+      id: event.id,
+      title: event.title,
+      body: event.body,
+      startDate: event.start_date,
+      endDate: event.end_date,
+      locationType: event.location_type,
+      address: event.address,
+      longitude: event.longitude,
+      latitude: event.latitude,
+      onlineUrl: event.online_url,
+      userId: event.user_id,
+      createdAt: event.created_at,
+      updatedAt: event.updated_at,
       user: {
         displayName: event.user.display_name,
         email: event.user.email,
@@ -78,7 +102,19 @@ export const eventsService = {
     if (!data) return undefined;
 
     return {
-      ...data,
+      id: data.id,
+      title: data.title,
+      body: data.body,
+      startDate: data.start_date,
+      endDate: data.end_date,
+      locationType: data.location_type,
+      address: data.address,
+      longitude: data.longitude,
+      latitude: data.latitude,
+      onlineUrl: data.online_url,
+      userId: data.user_id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
       user: {
         displayName: (data.user as any).display_name,
         email: (data.user as any).email,
@@ -105,7 +141,21 @@ export const eventsService = {
       .single();
 
     if (error) throw error;
-    return result as Event;
+    return {
+      id: result.id,
+      title: result.title,
+      body: result.body,
+      startDate: result.start_date,
+      endDate: result.end_date,
+      locationType: result.location_type,
+      address: result.address,
+      longitude: result.longitude,
+      latitude: result.latitude,
+      onlineUrl: result.online_url,
+      userId: result.user_id,
+      createdAt: result.created_at,
+      updatedAt: result.updated_at,
+    } as Event;
   },
 
   async update(id: string, data: Partial<Omit<NewEvent, 'id' | 'createdAt'>>): Promise<Event | undefined> {
@@ -127,7 +177,21 @@ export const eventsService = {
     const { data: result, error } = await supabase.from('events').update(updateData).eq('id', id).select().single();
 
     if (error) throw error;
-    return result as Event;
+    return {
+      id: result.id,
+      title: result.title,
+      body: result.body,
+      startDate: result.start_date,
+      endDate: result.end_date,
+      locationType: result.location_type,
+      address: result.address,
+      longitude: result.longitude,
+      latitude: result.latitude,
+      onlineUrl: result.online_url,
+      userId: result.user_id,
+      createdAt: result.created_at,
+      updatedAt: result.updated_at,
+    } as Event;
   },
 
   async delete(id: string): Promise<void> {

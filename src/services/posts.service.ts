@@ -23,7 +23,12 @@ export const postsService = {
 
     if (error) throw error;
     return (data || []).map((post: any) => ({
-      ...post,
+      id: post.id,
+      title: post.title,
+      body: post.body,
+      userId: post.user_id,
+      createdAt: post.created_at,
+      updatedAt: post.updated_at,
       user: {
         displayName: post.user.display_name,
         email: post.user.email,
@@ -45,7 +50,12 @@ export const postsService = {
 
     if (error) throw error;
     return (data || []).map((post: any) => ({
-      ...post,
+      id: post.id,
+      title: post.title,
+      body: post.body,
+      userId: post.user_id,
+      createdAt: post.created_at,
+      updatedAt: post.updated_at,
       user: {
         displayName: post.user.display_name,
         email: post.user.email,
@@ -69,7 +79,12 @@ export const postsService = {
     if (!data) return undefined;
 
     return {
-      ...data,
+      id: data.id,
+      title: data.title,
+      body: data.body,
+      userId: data.user_id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
       user: {
         displayName: (data.user as any).display_name,
         email: (data.user as any).email,
@@ -89,7 +104,14 @@ export const postsService = {
       .single();
 
     if (error) throw error;
-    return result as Post;
+    return {
+      id: result.id,
+      title: result.title,
+      body: result.body,
+      userId: result.user_id,
+      createdAt: result.created_at,
+      updatedAt: result.updated_at,
+    } as Post;
   },
 
   async update(id: string, data: Partial<Omit<NewPost, 'id' | 'createdAt'>>): Promise<Post | undefined> {
@@ -104,7 +126,14 @@ export const postsService = {
     const { data: result, error } = await supabase.from('posts').update(updateData).eq('id', id).select().single();
 
     if (error) throw error;
-    return result as Post;
+    return {
+      id: result.id,
+      title: result.title,
+      body: result.body,
+      userId: result.user_id,
+      createdAt: result.created_at,
+      updatedAt: result.updated_at,
+    } as Post;
   },
 
   async delete(id: string): Promise<void> {

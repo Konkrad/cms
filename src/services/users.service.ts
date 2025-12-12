@@ -6,14 +6,44 @@ export const usersService = {
     const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: true });
 
     if (error) throw error;
-    return (data || []) as User[];
+    return (data || []).map((user: any) => ({
+      id: user.id,
+      name: user.name,
+      familyName: user.family_name,
+      displayName: user.display_name,
+      email: user.email,
+      city: user.city,
+      country: user.country,
+      longitude: user.longitude,
+      latitude: user.latitude,
+      yearOfBirth: user.year_of_birth,
+      sex: user.sex,
+      createdAt: user.created_at,
+      updatedAt: user.updated_at,
+    })) as User[];
   },
 
   async getById(id: string): Promise<User | undefined> {
     const { data, error } = await supabase.from('users').select('*').eq('id', id).maybeSingle();
 
     if (error) throw error;
-    return data as User | undefined;
+    if (!data) return undefined;
+
+    return {
+      id: data.id,
+      name: data.name,
+      familyName: data.family_name,
+      displayName: data.display_name,
+      email: data.email,
+      city: data.city,
+      country: data.country,
+      longitude: data.longitude,
+      latitude: data.latitude,
+      yearOfBirth: data.year_of_birth,
+      sex: data.sex,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    } as User;
   },
 
   async create(data: Omit<NewUser, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
@@ -37,7 +67,21 @@ export const usersService = {
       .single();
 
     if (error) throw error;
-    return result as User;
+    return {
+      id: result.id,
+      name: result.name,
+      familyName: result.family_name,
+      displayName: result.display_name,
+      email: result.email,
+      city: result.city,
+      country: result.country,
+      longitude: result.longitude,
+      latitude: result.latitude,
+      yearOfBirth: result.year_of_birth,
+      sex: result.sex,
+      createdAt: result.created_at,
+      updatedAt: result.updated_at,
+    } as User;
   },
 
   async update(id: string, data: Partial<Omit<NewUser, 'id' | 'createdAt'>>): Promise<User | undefined> {
@@ -67,7 +111,21 @@ export const usersService = {
     const { data: result, error } = await supabase.from('users').update(updateData).eq('id', id).select().single();
 
     if (error) throw error;
-    return result as User;
+    return {
+      id: result.id,
+      name: result.name,
+      familyName: result.family_name,
+      displayName: result.display_name,
+      email: result.email,
+      city: result.city,
+      country: result.country,
+      longitude: result.longitude,
+      latitude: result.latitude,
+      yearOfBirth: result.year_of_birth,
+      sex: result.sex,
+      createdAt: result.created_at,
+      updatedAt: result.updated_at,
+    } as User;
   },
 
   async delete(id: string): Promise<void> {

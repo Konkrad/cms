@@ -1,6 +1,7 @@
 import { supabase } from '~/db/connection';
 import { createClient } from '@supabase/supabase-js';
 import type { Page, NewPage } from '~/db/schema';
+import { menuItemsService } from './menu-items.service';
 
 export type PageWithParent = Page & { parent: { title: string } | null };
 
@@ -29,9 +30,6 @@ const getAuthenticatedClient = async (accessToken?: string, refreshToken?: strin
 const RESERVED_SLUGS = [
   'admin',
   'api',
-  'posts',
-  'events',
-  'users',
   'login',
   'signup',
   'profile',
@@ -174,6 +172,10 @@ export const pagesService = {
   ): Promise<Page | undefined> {
     const client = await getAuthenticatedClient(accessToken, refreshToken);
 
+    const oldPage = await this.getById(id);
+    const wasPublished = oldPage?.status === 'published';
+    const isNowPublished = data.status === 'published';
+
     if (data.slug) {
       const isValid = await this.validateSlug(data.slug, id);
       if (!isValid) {
@@ -199,7 +201,8 @@ export const pagesService = {
       .single();
 
     if (error) throw error;
-    return {
+
+    const updatedPage = {
       id: result.id,
       title: result.title,
       slug: result.slug,
@@ -209,6 +212,31 @@ export const pagesService = {
       createdAt: result.created_at,
       updatedAt: result.updated_at,
     } as Page;
+
+    if (!wasPublished && isNowPublished) {
+      const menuItems = await menuItemsService.getAll('main');
+      const pageUrl = `/${updatedPage.slug}`;
+      const isInMenu = menuItems.some((item) => item.url === pageUrl);
+
+      if (!isInMenu) {
+        const maxPosition = menuItems.reduce((max, item) => Math.max(max, item.position), 0);
+        await menuItemsService.create(
+          {
+            menuName: 'main',
+            label: updatedPage.title,
+            url: pageUrl,
+            parentId: null,
+            position: maxPosition + 1,
+            icon: null,
+            target: '_self',
+          },
+          accessToken,
+          refreshToken
+        );
+      }
+    }
+
+    return updatedPage;
   },
 
   async delete(id: string, accessToken?: string, refreshToken?: string): Promise<void> {

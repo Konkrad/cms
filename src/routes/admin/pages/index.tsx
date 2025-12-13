@@ -3,6 +3,7 @@ import { routeLoader$, routeAction$, Form, z, zod$ } from '@builder.io/qwik-city
 import { Card } from '~/components/ui/Card';
 import { Button } from '~/components/ui/Button';
 import { pagesService } from '~/services/pages.service';
+import { menuItemsService } from '~/services/menu-items.service';
 import { format } from 'date-fns';
 import { requireAdmin } from '~/utils/server-auth';
 
@@ -13,6 +14,10 @@ export const useAdminAuth = routeLoader$(async (event) => {
 
 export const usePages = routeLoader$(async () => {
   return await pagesService.getAll();
+});
+
+export const useMenuItems = routeLoader$(async () => {
+  return await menuItemsService.getAll('main');
 });
 
 export const useDeletePage = routeAction$(
@@ -37,9 +42,60 @@ export const useDeletePage = routeAction$(
   })
 );
 
+export const useAddToMenu = routeAction$(
+  async (data, event) => {
+    await requireAdmin(event);
+
+    const accessToken = event.cookie.get('sb-access-token')?.value;
+    const refreshToken = event.cookie.get('sb-refresh-token')?.value;
+
+    try {
+      const page = await pagesService.getById(data.pageId);
+      if (!page) {
+        return { success: false, error: 'Page not found' };
+      }
+
+      const menuItems = await menuItemsService.getAll('main');
+      const maxPosition = menuItems.reduce((max, item) => Math.max(max, item.position), 0);
+
+      await menuItemsService.create(
+        {
+          menuName: 'main',
+          label: page.title,
+          url: `/${page.slug}`,
+          parentId: null,
+          position: maxPosition + 1,
+          icon: null,
+          target: '_self',
+        },
+        accessToken,
+        refreshToken
+      );
+
+      return { success: true };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to add page to menu',
+      };
+    }
+  },
+  zod$({
+    pageId: z.string(),
+  })
+);
+
 export default component$(() => {
   const pages = usePages();
+  const menuItems = useMenuItems();
   const deletePageAction = useDeletePage();
+  const addToMenuAction = useAddToMenu();
+
+  const isPageInMenu = (pageId: string) => {
+    const page = pages.value.find((p) => p.id === pageId);
+    if (!page) return false;
+    return menuItems.value.some((item) => item.url === `/${page.slug}`);
+  };
 
   return (
     <div>
@@ -59,6 +115,18 @@ export default component$(() => {
       {deletePageAction.value?.error && (
         <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
           {deletePageAction.value.error}
+        </div>
+      )}
+
+      {addToMenuAction.value?.success && (
+        <div class="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+          Page added to menu successfully
+        </div>
+      )}
+
+      {addToMenuAction.value?.error && (
+        <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {addToMenuAction.value.error}
         </div>
       )}
 
@@ -114,7 +182,7 @@ export default component$(() => {
                     {format(new Date(page.createdAt), 'MMM d, yyyy')}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 flex-wrap">
                       {page.status === 'published' && (
                         <a href={`/${page.slug}`} class="text-blue-600 hover:text-blue-900">
                           View
@@ -124,7 +192,7 @@ export default component$(() => {
                         href={`/admin/pages/${page.id}/edit`}
                         class="text-green-600 hover:text-green-900"
                       >
-                        Edit Info
+                        Edit
                       </a>
                       <a
                         href={`/admin/pages/${page.id}/builder`}
@@ -132,6 +200,17 @@ export default component$(() => {
                       >
                         Builder
                       </a>
+                      {!isPageInMenu(page.id) && page.status === 'published' && (
+                        <Form action={addToMenuAction} class="inline">
+                          <input type="hidden" name="pageId" value={page.id} />
+                          <button type="submit" class="text-indigo-600 hover:text-indigo-900">
+                            Add to Menu
+                          </button>
+                        </Form>
+                      )}
+                      {isPageInMenu(page.id) && (
+                        <span class="text-gray-400">In Menu</span>
+                      )}
                       <Form action={deletePageAction} class="inline">
                         <input type="hidden" name="pageId" value={page.id} />
                         <button

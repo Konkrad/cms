@@ -1,9 +1,10 @@
 import { component$, useSignal, $ } from '@builder.io/qwik';
 import { Link } from '@builder.io/qwik-city';
-import { useUserSession } from '~/routes/layout';
+import { useUserSession, useMenuItems } from '~/routes/layout';
 
 export const Navigation = component$(() => {
   const user = useUserSession();
+  const menuItems = useMenuItems();
   const showUserMenu = useSignal(false);
 
   const isAdmin = user.value?.role === 'admin' || user.value?.role === 'moderator';
@@ -22,18 +23,17 @@ export const Navigation = component$(() => {
             </Link>
           </div>
           <div class="flex items-center space-x-4">
-            <Link
-              href="/posts"
-              class="flex items-center px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
-            >
-              Posts
-            </Link>
-            <Link
-              href="/events"
-              class="flex items-center px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
-            >
-              Events
-            </Link>
+            {menuItems.value.map((item) => (
+              <Link
+                key={item.id}
+                href={item.url}
+                target={item.target || '_self'}
+                class="flex items-center px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
+              >
+                {item.icon && <span class="mr-2">{item.icon}</span>}
+                {item.label}
+              </Link>
+            ))}
 
             {isAdmin && (
               <Link

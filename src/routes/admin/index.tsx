@@ -4,16 +4,18 @@ import { Card } from '~/components/ui/Card';
 import { supabase } from '~/db/connection';
 
 export const useDashboardStats = routeLoader$(async () => {
-  const [usersResult, postsResult, eventsResult] = await Promise.all([
+  const [usersResult, postsResult, eventsResult, pagesResult] = await Promise.all([
     supabase.from('users').select('id', { count: 'exact', head: true }),
     supabase.from('posts').select('id', { count: 'exact', head: true }),
     supabase.from('events').select('id', { count: 'exact', head: true }),
+    supabase.from('pages').select('id', { count: 'exact', head: true }),
   ]);
 
   return {
     usersCount: usersResult.count || 0,
     postsCount: postsResult.count || 0,
     eventsCount: eventsResult.count || 0,
+    pagesCount: pagesResult.count || 0,
   };
 });
 
@@ -24,7 +26,7 @@ export default component$(() => {
     <div>
       <h2 class="text-2xl font-bold mb-6">Dashboard Overview</h2>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card>
           <div class="text-center p-4">
             <div class="text-5xl font-bold text-blue-600 mb-3">
@@ -69,11 +71,26 @@ export default component$(() => {
             </a>
           </div>
         </Card>
+
+        <Card>
+          <div class="text-center p-4">
+            <div class="text-5xl font-bold text-purple-600 mb-3">
+              {stats.value.pagesCount}
+            </div>
+            <div class="text-gray-700 text-lg font-medium mb-4">Total Pages</div>
+            <a
+              href="/admin/pages"
+              class="inline-block px-4 py-2 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors font-medium"
+            >
+              Manage Pages →
+            </a>
+          </div>
+        </Card>
       </div>
 
       <Card>
         <h3 class="text-xl font-semibold mb-4">Quick Actions</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <a
             href="/posts/new"
             class="block px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-center font-medium shadow-md hover:shadow-lg"
@@ -87,6 +104,13 @@ export default component$(() => {
           >
             <div class="text-2xl mb-1">+</div>
             Create New Event
+          </a>
+          <a
+            href="/admin/pages/new"
+            class="block px-6 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-center font-medium shadow-md hover:shadow-lg"
+          >
+            <div class="text-2xl mb-1">+</div>
+            Create New Page
           </a>
         </div>
       </Card>

@@ -1,12 +1,23 @@
 import { component$ } from '@builder.io/qwik';
 import { routeLoader$ } from '@builder.io/qwik-city';
-import { getAllEvents } from '~/services/events.service';
+import { eventsService } from '~/services/events.service';
 import { format } from 'date-fns';
 import { Button } from '~/components/ui/Button';
 
 export const useEvents = routeLoader$(async () => {
-  const events = await getAllEvents();
-  return events;
+  const events = await eventsService.getAll();
+  return events.map((event) => ({
+    id: event.id,
+    title: event.title,
+    body: event.body,
+    startDate: event.startDate,
+    endDate: event.endDate,
+    locationType: event.locationType,
+    address: event.address,
+    city: event.city,
+    country: event.country,
+    organizerName: event.user.displayName,
+  }));
 });
 
 export default component$(() => {

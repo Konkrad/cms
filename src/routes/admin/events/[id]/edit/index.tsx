@@ -6,11 +6,7 @@ import {
   z,
   zod$,
 } from '@builder.io/qwik-city';
-import {
-  getEventById,
-  updateEvent,
-  deleteEvent,
-} from '~/services/events.service';
+import { eventsService } from '~/services/events.service';
 import { Input } from '~/components/ui/Input';
 import { TextArea } from '~/components/ui/TextArea';
 import { Button } from '~/components/ui/Button';
@@ -18,7 +14,7 @@ import { Select } from '~/components/ui/Select';
 
 export const useEvent = routeLoader$(async (event) => {
   const eventId = event.params.id;
-  const eventData = await getEventById(eventId);
+  const eventData = await eventsService.getById(eventId);
 
   if (!eventData) {
     throw event.redirect(303, '/admin/events');
@@ -44,39 +40,38 @@ const eventSchema = z.object({
 export const useUpdateEvent = routeAction$(async (data, event) => {
   const eventId = event.params.id;
 
-  const result = await updateEvent(
-    eventId,
-    {
-      title: data.title,
-      body: data.body,
-      startDate: data.startDate,
-      endDate: data.endDate,
-      locationType: data.locationType,
-      address: data.address || null,
-      city: data.city || null,
-      country: data.country || null,
-      latitude: data.latitude ? parseFloat(data.latitude) : null,
-      longitude: data.longitude ? parseFloat(data.longitude) : null,
-      onlineUrl: data.onlineUrl || null,
-    },
-    event
-  );
+  try {
+    await eventsService.update(
+      eventId,
+      {
+        title: data.title,
+        body: data.body,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        locationType: data.locationType,
+        address: data.address || null,
+        city: data.city || null,
+        country: data.country || null,
+        latitude: data.latitude ? parseFloat(data.latitude) : null,
+        longitude: data.longitude ? parseFloat(data.longitude) : null,
+        onlineUrl: data.onlineUrl || null,
+      }
+    );
 
-  if (result.error) {
+    return {
+      success: true,
+    };
+  } catch (error: any) {
     return {
       success: false,
-      error: result.error,
+      error: error.message || 'Failed to update event',
     };
   }
-
-  return {
-    success: true,
-  };
 }, zod$(eventSchema));
 
 export const useDeleteEvent = routeAction$(async (data, event) => {
   const eventId = event.params.id;
-  await deleteEvent(eventId, event);
+  await eventsService.delete(eventId);
   throw event.redirect(303, '/admin/events');
 });
 

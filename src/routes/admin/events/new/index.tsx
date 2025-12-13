@@ -1,6 +1,6 @@
 import { component$, useSignal } from '@builder.io/qwik';
 import { routeAction$, Form, z, zod$ } from '@builder.io/qwik-city';
-import { createEvent } from '~/services/events.service';
+import { eventsService } from '~/services/events.service';
 import { Input } from '~/components/ui/Input';
 import { TextArea } from '~/components/ui/TextArea';
 import { Button } from '~/components/ui/Button';
@@ -21,31 +21,40 @@ const eventSchema = z.object({
 });
 
 export const useCreateEvent = routeAction$(async (data, event) => {
-  const result = await createEvent(
-    {
-      title: data.title,
-      body: data.body,
-      startDate: data.startDate,
-      endDate: data.endDate,
-      locationType: data.locationType,
-      address: data.address || null,
-      city: data.city || null,
-      country: data.country || null,
-      latitude: data.latitude ? parseFloat(data.latitude) : null,
-      longitude: data.longitude ? parseFloat(data.longitude) : null,
-      onlineUrl: data.onlineUrl || null,
-    },
-    event
-  );
+  try {
+    const session = await event.sharedMap.get('session');
+    if (!session?.user?.id) {
+      return {
+        success: false,
+        error: 'Not authenticated',
+      };
+    }
 
-  if (result.error) {
+    await eventsService.create(
+      {
+        title: data.title,
+        body: data.body,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        locationType: data.locationType,
+        address: data.address || null,
+        city: data.city || null,
+        country: data.country || null,
+        latitude: data.latitude ? parseFloat(data.latitude) : null,
+        longitude: data.longitude ? parseFloat(data.longitude) : null,
+        onlineUrl: data.onlineUrl || null,
+        userId: session.user.id,
+      }
+    );
+
+    throw event.redirect(303, '/admin/events');
+  } catch (error: any) {
+    if (error.status === 303) throw error;
     return {
       success: false,
-      error: result.error,
+      error: error.message || 'Failed to create event',
     };
   }
-
-  throw event.redirect(303, '/admin/events');
 }, zod$(eventSchema));
 
 export default component$(() => {

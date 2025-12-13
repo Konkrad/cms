@@ -17,6 +17,12 @@ export interface SignUpData {
   password: string;
   name: string;
   family_name: string;
+  city: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+  year_of_birth: number;
+  sex: string;
 }
 
 export interface SignInData {
@@ -35,6 +41,12 @@ export const authService = {
         data: {
           name: data.name,
           family_name: data.family_name,
+          city: data.city,
+          country: data.country,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          year_of_birth: data.year_of_birth,
+          sex: data.sex,
         },
       },
     });

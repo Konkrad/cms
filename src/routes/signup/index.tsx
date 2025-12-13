@@ -3,8 +3,10 @@ import { routeLoader$, useNavigate } from '@builder.io/qwik-city';
 import { Button } from '~/components/ui/Button';
 import { Input } from '~/components/ui/Input';
 import { Card } from '~/components/ui/Card';
+import { LocationAutocomplete } from '~/components/ui/LocationAutocomplete';
 import { authService } from '~/services/auth.service';
 import { getServerSession } from '~/utils/server-auth';
+import type { GeocodingResult } from '~/services/geocoding.service';
 
 export const useCheckAuth = routeLoader$(async (event) => {
   const user = await getServerSession(event);
@@ -21,12 +23,30 @@ export default component$(() => {
   const email = useSignal('');
   const password = useSignal('');
   const confirmPassword = useSignal('');
+  const selectedLocation = useSignal<GeocodingResult | null>(null);
+  const yearOfBirth = useSignal('');
+  const sex = useSignal('');
   const error = useSignal('');
   const isLoading = useSignal(false);
 
   const handleSubmit = $(async () => {
     if (!name.value || !familyName.value || !email.value || !password.value || !confirmPassword.value) {
-      error.value = 'Please fill in all fields';
+      error.value = 'Please fill in all required fields';
+      return;
+    }
+
+    if (!selectedLocation.value) {
+      error.value = 'Please select your city';
+      return;
+    }
+
+    if (!yearOfBirth.value) {
+      error.value = 'Please enter your year of birth';
+      return;
+    }
+
+    if (!sex.value) {
+      error.value = 'Please select your gender';
       return;
     }
 
@@ -40,6 +60,13 @@ export default component$(() => {
       return;
     }
 
+    const year = parseInt(yearOfBirth.value);
+    const currentYear = new Date().getFullYear();
+    if (year < 1900 || year > currentYear - 13) {
+      error.value = 'Please enter a valid year of birth (must be at least 13 years old)';
+      return;
+    }
+
     isLoading.value = true;
     error.value = '';
 
@@ -49,6 +76,12 @@ export default component$(() => {
         password: password.value,
         name: name.value,
         family_name: familyName.value,
+        city: selectedLocation.value.city,
+        country: selectedLocation.value.country,
+        latitude: selectedLocation.value.latitude,
+        longitude: selectedLocation.value.longitude,
+        year_of_birth: year,
+        sex: sex.value,
       });
 
       if (session?.access_token) {
@@ -65,7 +98,7 @@ export default component$(() => {
   });
 
   return (
-    <div class="container mx-auto px-4 py-8 max-w-md">
+    <div class="container mx-auto px-4 py-8 max-w-2xl">
       <Card>
         <h1 class="text-3xl font-bold mb-6 text-center">Sign Up</h1>
 
@@ -80,23 +113,25 @@ export default component$(() => {
           onSubmit$={handleSubmit}
           class="space-y-4"
         >
-          <Input
-            label="First Name"
-            type="text"
-            value={name.value}
-            onInput$={(e) => (name.value = (e.target as HTMLInputElement).value)}
-            required
-            disabled={isLoading.value}
-          />
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="First Name"
+              type="text"
+              value={name.value}
+              onInput$={(e) => (name.value = (e.target as HTMLInputElement).value)}
+              required
+              disabled={isLoading.value}
+            />
 
-          <Input
-            label="Last Name"
-            type="text"
-            value={familyName.value}
-            onInput$={(e) => (familyName.value = (e.target as HTMLInputElement).value)}
-            required
-            disabled={isLoading.value}
-          />
+            <Input
+              label="Last Name"
+              type="text"
+              value={familyName.value}
+              onInput$={(e) => (familyName.value = (e.target as HTMLInputElement).value)}
+              required
+              disabled={isLoading.value}
+            />
+          </div>
 
           <Input
             label="Email"
@@ -106,6 +141,47 @@ export default component$(() => {
             required
             disabled={isLoading.value}
           />
+
+          <LocationAutocomplete
+            name="city"
+            label="City"
+            searchType="city"
+            selectedLocation={selectedLocation}
+            required
+          />
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Year of Birth"
+              type="number"
+              value={yearOfBirth.value}
+              onInput$={(e) => (yearOfBirth.value = (e.target as HTMLInputElement).value)}
+              required
+              disabled={isLoading.value}
+              min="1900"
+              max={new Date().getFullYear() - 13}
+            />
+
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-gray-700">
+                Gender
+                <span class="text-red-500 ml-1">*</span>
+              </label>
+              <select
+                value={sex.value}
+                onChange$={(e) => (sex.value = (e.target as HTMLSelectElement).value)}
+                required
+                disabled={isLoading.value}
+                class="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white border-gray-300"
+              >
+                <option value="">Select gender...</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+                <option value="prefer_not_to_say">Prefer not to say</option>
+              </select>
+            </div>
+          </div>
 
           <Input
             label="Password"

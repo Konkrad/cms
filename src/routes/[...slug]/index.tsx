@@ -4,7 +4,7 @@ import { pagesService } from '~/services/pages.service';
 import { BlockRenderer } from '~/components/builder/BlockRenderer';
 
 export const usePage = routeLoader$(async ({ params, status }) => {
-  const slug = params.slug;
+  const slug = params.slug || '/';
 
   const page = await pagesService.getBySlug(slug);
 

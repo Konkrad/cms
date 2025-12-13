@@ -59,7 +59,7 @@ export const useUpdatePage = routeAction$(
     slug: z
       .string()
       .min(1, 'Slug is required')
-      .regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens'),
+      .regex(/^(\/|[a-z0-9-]+)$/, 'Slug must be "/" for home page, or contain only lowercase letters, numbers, and hyphens'),
     parentId: z.string().optional(),
     status: z.enum(['draft', 'published']),
   })
@@ -99,7 +99,7 @@ export default component$(() => {
               error={action.value?.fieldErrors?.slug?.[0]}
             />
             <p class="mt-1 text-sm text-gray-500">
-              The URL path for this page. Use lowercase letters, numbers, and hyphens only.
+              The URL path for this page. Use "/" for home page, or lowercase letters, numbers, and hyphens.
             </p>
           </div>
 

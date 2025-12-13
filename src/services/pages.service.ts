@@ -37,14 +37,17 @@ const RESERVED_SLUGS = [
 
 export const pagesService = {
   async getAll(): Promise<PageWithParent[]> {
+    console.log('[PagesService] getAll - starting query');
     const { data, error } = await supabase
       .from('pages')
       .select('*')
       .order('created_at', { ascending: false });
 
+    console.log('[PagesService] getAll - query result:', { hasData: !!data, hasError: !!error });
     if (error) throw error;
 
     const pages = data || [];
+    console.log('[PagesService] getAll - pages count:', pages.length);
     const pageMap = new Map(pages.map((p: any) => [p.id, p]));
 
     return pages.map((page: any) => {

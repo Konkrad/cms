@@ -57,6 +57,7 @@ function buildMenuTree(items: MenuItem[]): MenuItemTree[] {
 
 export const menuItemsService = {
   async getAll(menuName?: string): Promise<MenuItem[]> {
+    console.log('[MenuItemsService] getAll - starting query for menuName:', menuName);
     let query = supabase.from('menu_items').select('*').order('position', { ascending: true });
 
     if (menuName) {
@@ -65,6 +66,7 @@ export const menuItemsService = {
 
     const { data, error } = await query;
 
+    console.log('[MenuItemsService] getAll - query result:', { hasData: !!data, hasError: !!error });
     if (error) throw error;
     return (data || []).map((item: any) => ({
       id: item.id,

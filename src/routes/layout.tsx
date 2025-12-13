@@ -13,27 +13,33 @@ export const onGet: RequestHandler = async ({ cacheControl }) => {
 };
 
 export const useServerTimeLoader = routeLoader$(() => {
+  console.log('[Layout] useServerTimeLoader - loading');
   return {
     date: new Date().toISOString(),
   };
 });
 
 export const useUserSession = routeLoader$(async (event) => {
+  console.log('[Layout] useUserSession - starting');
   const userData = await getCurrentUserData(event);
+  console.log('[Layout] useUserSession - completed, has user:', !!userData);
   return userData;
 });
 
 export const useMenuItems = routeLoader$(async () => {
+  console.log('[Layout] useMenuItems - starting');
   try {
     const menuTree = await menuItemsService.getMenuTree('main');
+    console.log('[Layout] useMenuItems - completed, items count:', menuTree.length);
     return menuTree;
   } catch (error) {
-    console.error('Failed to load menu items:', error);
+    console.error('[Layout] Failed to load menu items:', error);
     return [];
   }
 });
 
 export default component$(() => {
+  console.log('[Layout] Component rendering');
   return (
     <>
       <Navigation />

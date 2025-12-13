@@ -4,20 +4,31 @@ import { Card } from '~/components/ui/Card';
 import { Button } from '~/components/ui/Button';
 import { pagesService } from '~/services/pages.service';
 import { menuItemsService } from '~/services/menu-items.service';
-import { format } from 'date-fns';
 import { requireAdmin } from '~/utils/server-auth';
 
+console.log('[Admin Pages] Module loading - importing date-fns');
+import { format } from 'date-fns';
+console.log('[Admin Pages] Module loading - date-fns format imported, type:', typeof format);
+
 export const useAdminAuth = routeLoader$(async (event) => {
+  console.log('[Admin Pages] useAdminAuth - starting');
   await requireAdmin(event);
+  console.log('[Admin Pages] useAdminAuth - completed');
   return true;
 });
 
 export const usePages = routeLoader$(async () => {
-  return await pagesService.getAll();
+  console.log('[Admin Pages] usePages - starting');
+  const result = await pagesService.getAll();
+  console.log('[Admin Pages] usePages - completed, pages count:', result.length);
+  return result;
 });
 
 export const useMenuItems = routeLoader$(async () => {
-  return await menuItemsService.getAll('main');
+  console.log('[Admin Pages] useMenuItems - starting');
+  const result = await menuItemsService.getAll('main');
+  console.log('[Admin Pages] useMenuItems - completed, items count:', result.length);
+  return result;
 });
 
 export const useDeletePage = routeAction$(
@@ -86,10 +97,12 @@ export const useAddToMenu = routeAction$(
 );
 
 export default component$(() => {
+  console.log('[Admin Pages] Component rendering - start');
   const pages = usePages();
   const menuItems = useMenuItems();
   const deletePageAction = useDeletePage();
   const addToMenuAction = useAddToMenu();
+  console.log('[Admin Pages] Component rendering - loaders initialized');
 
   const isPageInMenu = (pageId: string) => {
     const page = pages.value.find((p) => p.id === pageId);

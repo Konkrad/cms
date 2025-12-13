@@ -1,8 +1,9 @@
-import { component$, useVisibleTask$, useSignal } from '@builder.io/qwik';
-import { Link } from '@builder.io/qwik-city';
+import { component$, useResource$, Resource } from '@builder.io/qwik';
+import { Link, server$ } from '@builder.io/qwik-city';
 import { Card } from '~/components/ui/Card';
 import { format } from 'date-fns';
 import type { BlockDefinition } from '~/db/schema';
+import { eventsService } from '~/services/events.service';
 
 interface EventsListBlockProps {
   limit?: number;
@@ -46,75 +47,76 @@ export const definition: BlockDefinition = {
   },
 };
 
+const fetchEvents = server$(async (limit: number, showPast: boolean, sortOrder: string) => {
+  const events = await eventsService.getAll({ upcoming: !showPast });
+
+  const sortedEvents =
+    sortOrder === 'asc'
+      ? events.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+      : events.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+
+  return sortedEvents.slice(0, limit);
+});
+
 export default component$<EventsListBlockProps>((props) => {
   const { limit = 6, showPast = false, sortOrder = 'asc' } = props;
-  const events = useSignal<any[]>([]);
-  const isLoading = useSignal(true);
 
-  useVisibleTask$(async () => {
-    try {
-      const params = new URLSearchParams();
-      params.set('limit', limit.toString());
-      if (!showPast) {
-        params.set('upcoming', 'true');
-      }
-      params.set('sort', sortOrder);
-
-      const response = await fetch(`/api/events?${params.toString()}`);
-      if (response.ok) {
-        const data = await response.json();
-        events.value = data;
-      }
-    } catch (error) {
-      console.error('Failed to fetch events:', error);
-    } finally {
-      isLoading.value = false;
-    }
+  const eventsResource = useResource$(async () => {
+    return fetchEvents(limit, showPast, sortOrder);
   });
 
   return (
     <div class="max-w-6xl mx-auto px-4 py-12">
-      <h2 class="text-3xl font-bold text-gray-900 mb-8">
-        {showPast ? 'Events' : 'Upcoming Events'}
-      </h2>
+      <h2 class="text-3xl font-bold text-gray-900 mb-8">{showPast ? 'Events' : 'Upcoming Events'}</h2>
 
-      {isLoading.value ? (
-        <div class="text-center py-12">
-          <p class="text-gray-500">Loading events...</p>
-        </div>
-      ) : events.value.length === 0 ? (
-        <Card>
-          <p class="text-gray-500 text-center py-8">No events found.</p>
-        </Card>
-      ) : (
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {events.value.map((event: any) => (
-            <Link key={event.id} href={`/events/${event.id}`}>
-              <Card hover>
-                <div class="flex justify-between items-start mb-3">
-                  <h3 class="text-lg font-semibold text-gray-900 flex-1">{event.title}</h3>
-                  <span
-                    class={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ml-2 ${
-                      event.locationType === 'online'
-                        ? 'bg-blue-100 text-blue-800'
-                        : event.locationType === 'in_person'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-purple-100 text-purple-800'
-                    }`}
-                  >
-                    {event.locationType?.replace('_', ' ')}
-                  </span>
-                </div>
-                <p class="text-gray-600 line-clamp-2 mb-3">{event.body}</p>
-                <div class="text-sm text-gray-500">
-                  <p>{format(new Date(event.startDate), 'PPP p')}</p>
-                  {event.user && <p class="mt-1">{event.user.displayName}</p>}
-                </div>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
+      <Resource
+        value={eventsResource}
+        onPending={() => (
+          <div class="text-center py-12">
+            <p class="text-gray-500">Loading events...</p>
+          </div>
+        )}
+        onRejected={(error) => (
+          <Card>
+            <p class="text-red-500 text-center py-8">Failed to load events: {error.message}</p>
+          </Card>
+        )}
+        onResolved={(events) =>
+          events.length === 0 ? (
+            <Card>
+              <p class="text-gray-500 text-center py-8">No events found.</p>
+            </Card>
+          ) : (
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {events.map((event) => (
+                <Link key={event.id} href={`/events/${event.id}`}>
+                  <Card hover>
+                    <div class="flex justify-between items-start mb-3">
+                      <h3 class="text-lg font-semibold text-gray-900 flex-1">{event.title}</h3>
+                      <span
+                        class={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ml-2 ${
+                          event.locationType === 'online'
+                            ? 'bg-blue-100 text-blue-800'
+                            : event.locationType === 'in_person'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-purple-100 text-purple-800'
+                        }`}
+                      >
+                        {event.locationType?.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <p class="text-gray-600 line-clamp-2 mb-3">{event.body}</p>
+                    <div class="text-sm text-gray-500">
+                      <p>{format(new Date(event.startDate), 'PPP p')}</p>
+                      {event.user && <p class="mt-1">{event.user.displayName}</p>}
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )
+        }
+      />
     </div>
   );
 });

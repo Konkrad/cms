@@ -1,10 +1,11 @@
 import { component$, useSignal, $ } from '@builder.io/qwik';
-import { Link } from '@builder.io/qwik-city';
-import { useUserSession, useMenuItems } from '~/routes/layout';
+import { Link, Form } from '@builder.io/qwik-city';
+import { useUserSession, useMenuItems, useLogoutAction } from '~/routes/layout';
 
 export const Navigation = component$(() => {
   const user = useUserSession();
   const menuItems = useMenuItems();
+  const logoutAction = useLogoutAction();
   const showUserMenu = useSignal(false);
 
   const isAdmin = user.value?.role === 'admin' || user.value?.role === 'moderator';
@@ -74,12 +75,14 @@ export const Navigation = component$(() => {
                     >
                       My Profile
                     </Link>
-                    <a
-                      href="/api/auth/logout"
-                      class="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                    >
-                      Logout
-                    </a>
+                    <Form action={logoutAction}>
+                      <button
+                        type="submit"
+                        class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        Logout
+                      </button>
+                    </Form>
                   </div>
                 )}
               </div>

@@ -1,5 +1,5 @@
 import { component$, Slot } from '@builder.io/qwik';
-import { routeLoader$ } from '@builder.io/qwik-city';
+import { routeLoader$, routeAction$ } from '@builder.io/qwik-city';
 import type { RequestHandler } from '@builder.io/qwik-city';
 import { Navigation } from '~/components/ui/Navigation';
 import { getCurrentUserData } from '~/utils/server-auth';
@@ -36,6 +36,12 @@ export const useMenuItems = routeLoader$(async () => {
     console.error('[Layout] Failed to load menu items:', error);
     return [];
   }
+});
+
+export const useLogoutAction = routeAction$(async (_, { cookie, redirect }) => {
+  cookie.delete('sb-access-token', { path: '/' });
+  cookie.delete('sb-refresh-token', { path: '/' });
+  throw redirect(302, '/');
 });
 
 export default component$(() => {

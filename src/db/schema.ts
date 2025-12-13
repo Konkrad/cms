@@ -85,3 +85,81 @@ export interface NewEvent {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface BlockData {
+  id: string;
+  componentType: string;
+  order: number;
+  data: Record<string, any>;
+}
+
+export interface Page {
+  id: string;
+  title: string;
+  slug: string;
+  parentId: string | null;
+  content: BlockData[];
+  status: 'draft' | 'published';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NewPage {
+  id?: string;
+  title: string;
+  slug: string;
+  parentId?: string | null;
+  content?: BlockData[];
+  status?: 'draft' | 'published';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MenuItem {
+  id: string;
+  menuName: string;
+  label: string;
+  url: string;
+  parentId: string | null;
+  position: number;
+  icon: string | null;
+  target: '_self' | '_blank' | '_parent' | '_top';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NewMenuItem {
+  id?: string;
+  menuName: string;
+  label: string;
+  url: string;
+  parentId?: string | null;
+  position?: number;
+  icon?: string | null;
+  target?: '_self' | '_blank' | '_parent' | '_top';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MenuItemTree extends MenuItem {
+  children?: MenuItemTree[];
+}
+
+export interface FieldDefinition {
+  name: string;
+  label: string;
+  type: 'text' | 'textarea' | 'number' | 'boolean' | 'select' | 'color' | 'url';
+  defaultValue?: any;
+  options?: { label: string; value: string }[];
+  placeholder?: string;
+  required?: boolean;
+}
+
+export interface BlockDefinition {
+  name: string;
+  componentType: string;
+  category: 'content' | 'dynamic';
+  icon: string;
+  configSchema: FieldDefinition[];
+  defaultData: Record<string, any>;
+}

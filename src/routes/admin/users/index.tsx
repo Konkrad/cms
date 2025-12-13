@@ -1,7 +1,6 @@
 import { component$ } from '@builder.io/qwik';
 import { routeLoader$, routeAction$, Form, z, zod$ } from '@builder.io/qwik-city';
 import { Card } from '~/components/ui/Card';
-import { Button } from '~/components/ui/Button';
 import { supabase } from '~/db/connection';
 import { createClient } from '@supabase/supabase-js';
 

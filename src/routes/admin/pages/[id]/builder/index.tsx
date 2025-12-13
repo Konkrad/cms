@@ -1,4 +1,4 @@
-import { component$, useSignal, useTask$, useVisibleTask$, $ } from '@builder.io/qwik';
+import { component$, useSignal, useTask$, $ } from '@builder.io/qwik';
 import { routeLoader$, routeAction$, zod$, z } from '@builder.io/qwik-city';
 import { pagesService } from '~/services/pages.service';
 import { componentLoaderService } from '~/services/component-loader.service';

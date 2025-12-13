@@ -1,4 +1,4 @@
-import type { RequestEventBase } from '@builder.io/qwik-city';
+import type { RequestEventLoader, RequestEventAction, RequestEventCommon } from '@builder.io/qwik-city';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../db/connection';
 import type { User } from '../db/schema';
@@ -6,7 +6,9 @@ import type { User } from '../db/schema';
 const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
 
-export async function getServerSession(event: RequestEventBase) {
+export type RequestEvent = RequestEventLoader | RequestEventAction | RequestEventCommon;
+
+export async function getServerSession(event: RequestEvent) {
   const accessToken = event.cookie.get('sb-access-token')?.value;
 
   if (!accessToken) {
@@ -24,7 +26,7 @@ export async function getServerSession(event: RequestEventBase) {
   return user;
 }
 
-export async function getCurrentUserData(event: RequestEventBase): Promise<User | null> {
+export async function getCurrentUserData(event: RequestEvent): Promise<User | null> {
   const user = await getServerSession(event);
 
   if (!user) {
@@ -41,25 +43,26 @@ export async function getCurrentUserData(event: RequestEventBase): Promise<User 
     return null;
   }
 
+  const userData = data as any;
   return {
-    id: data.id,
-    name: data.name,
-    familyName: data.family_name,
-    displayName: data.display_name,
-    email: data.email,
-    city: data.city,
-    country: data.country,
-    longitude: data.longitude,
-    latitude: data.latitude,
-    yearOfBirth: data.year_of_birth,
-    sex: data.sex,
-    role: data.role,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
+    id: userData.id,
+    name: userData.name,
+    familyName: userData.family_name,
+    displayName: userData.display_name,
+    email: userData.email,
+    city: userData.city,
+    country: userData.country,
+    longitude: userData.longitude,
+    latitude: userData.latitude,
+    yearOfBirth: userData.year_of_birth,
+    sex: userData.sex,
+    role: userData.role,
+    createdAt: userData.created_at,
+    updatedAt: userData.updated_at,
   };
 }
 
-export async function isAdmin(event: RequestEventBase): Promise<boolean> {
+export async function isAdmin(event: RequestEvent): Promise<boolean> {
   const userData = await getCurrentUserData(event);
 
   if (!userData) {
@@ -69,7 +72,7 @@ export async function isAdmin(event: RequestEventBase): Promise<boolean> {
   return userData.role === 'admin' || userData.role === 'moderator';
 }
 
-export async function requireAuth(event: RequestEventBase) {
+export async function requireAuth(event: RequestEvent) {
   const user = await getServerSession(event);
 
   if (!user) {
@@ -79,7 +82,7 @@ export async function requireAuth(event: RequestEventBase) {
   return user;
 }
 
-export async function requireAdmin(event: RequestEventBase) {
+export async function requireAdmin(event: RequestEvent) {
   const user = await requireAuth(event);
   const adminStatus = await isAdmin(event);
 

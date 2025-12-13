@@ -29,20 +29,21 @@ export const usersService = {
     if (error) throw error;
     if (!data) return undefined;
 
+    const userData = data as any;
     return {
-      id: data.id,
-      name: data.name,
-      familyName: data.family_name,
-      displayName: data.display_name,
-      email: data.email,
-      city: data.city,
-      country: data.country,
-      longitude: data.longitude,
-      latitude: data.latitude,
-      yearOfBirth: data.year_of_birth,
-      sex: data.sex,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
+      id: userData.id,
+      name: userData.name,
+      familyName: userData.family_name,
+      displayName: userData.display_name,
+      email: userData.email,
+      city: userData.city,
+      country: userData.country,
+      longitude: userData.longitude,
+      latitude: userData.latitude,
+      yearOfBirth: userData.year_of_birth,
+      sex: userData.sex,
+      createdAt: userData.created_at,
+      updatedAt: userData.updated_at,
     } as User;
   },
 
@@ -67,20 +68,21 @@ export const usersService = {
       .single();
 
     if (error) throw error;
+    const userData = result as any;
     return {
-      id: result.id,
-      name: result.name,
-      familyName: result.family_name,
-      displayName: result.display_name,
-      email: result.email,
-      city: result.city,
-      country: result.country,
-      longitude: result.longitude,
-      latitude: result.latitude,
-      yearOfBirth: result.year_of_birth,
-      sex: result.sex,
-      createdAt: result.created_at,
-      updatedAt: result.updated_at,
+      id: userData.id,
+      name: userData.name,
+      familyName: userData.family_name,
+      displayName: userData.display_name,
+      email: userData.email,
+      city: userData.city,
+      country: userData.country,
+      longitude: userData.longitude,
+      latitude: userData.latitude,
+      yearOfBirth: userData.year_of_birth,
+      sex: userData.sex,
+      createdAt: userData.created_at,
+      updatedAt: userData.updated_at,
     } as User;
   },
 
@@ -111,20 +113,21 @@ export const usersService = {
     const { data: result, error } = await supabase.from('users').update(updateData).eq('id', id).select().single();
 
     if (error) throw error;
+    const userData = result as any;
     return {
-      id: result.id,
-      name: result.name,
-      familyName: result.family_name,
-      displayName: result.display_name,
-      email: result.email,
-      city: result.city,
-      country: result.country,
-      longitude: result.longitude,
-      latitude: result.latitude,
-      yearOfBirth: result.year_of_birth,
-      sex: result.sex,
-      createdAt: result.created_at,
-      updatedAt: result.updated_at,
+      id: userData.id,
+      name: userData.name,
+      familyName: userData.family_name,
+      displayName: userData.display_name,
+      email: userData.email,
+      city: userData.city,
+      country: userData.country,
+      longitude: userData.longitude,
+      latitude: userData.latitude,
+      yearOfBirth: userData.year_of_birth,
+      sex: userData.sex,
+      createdAt: userData.created_at,
+      updatedAt: userData.updated_at,
     } as User;
   },
 

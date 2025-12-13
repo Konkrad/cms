@@ -36,26 +36,6 @@ export default component$(() => {
               Dashboard
             </a>
             <a
-              href="/admin/users"
-              class={`px-4 py-2 rounded transition-colors ${
-                currentPath.startsWith('/admin/users')
-                  ? 'bg-slate-700 text-white'
-                  : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-              }`}
-            >
-              Users
-            </a>
-            <a
-              href="/admin/posts"
-              class={`px-4 py-2 rounded transition-colors ${
-                currentPath.startsWith('/admin/posts')
-                  ? 'bg-slate-700 text-white'
-                  : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-              }`}
-            >
-              Posts
-            </a>
-            <a
               href="/admin/pages"
               class={`px-4 py-2 rounded transition-colors ${
                 currentPath.startsWith('/admin/pages')
@@ -64,16 +44,6 @@ export default component$(() => {
               }`}
             >
               Pages
-            </a>
-            <a
-              href="/admin/events"
-              class={`px-4 py-2 rounded transition-colors ${
-                currentPath.startsWith('/admin/events')
-                  ? 'bg-slate-700 text-white'
-                  : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-              }`}
-            >
-              Events
             </a>
           </nav>
         </div>

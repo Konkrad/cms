@@ -1,7 +1,7 @@
 import { component$ } from '@builder.io/qwik';
 import { routeLoader$ } from '@builder.io/qwik-city';
 import { getAllPosts } from '~/services/posts.service';
-import { format } from 'date-fns/format';
+import { format } from 'date-fns';
 import { Button } from '~/components/ui/Button';
 
 export const usePosts = routeLoader$(async () => {

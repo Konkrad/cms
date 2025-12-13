@@ -1,7 +1,7 @@
 import { component$ } from '@builder.io/qwik';
 import { routeLoader$ } from '@builder.io/qwik-city';
 import { getAllUsers } from '~/services/users.service';
-import { format } from 'date-fns/format';
+import { format } from 'date-fns';
 
 export const useUsers = routeLoader$(async () => {
   const users = await getAllUsers();

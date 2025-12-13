@@ -1,15 +1,23 @@
 import { component$ } from '@builder.io/qwik';
 import { routeLoader$ } from '@builder.io/qwik-city';
-import { getAllUsers } from '~/services/users.service';
+import { usersService } from '~/services/users.service';
+
+console.log('[Admin Users] Module loading - importing date-fns');
 import { format } from 'date-fns';
+console.log('[Admin Users] Module loading - date-fns format imported, type:', typeof format);
 
 export const useUsers = routeLoader$(async () => {
-  const users = await getAllUsers();
+  console.log('[Admin Users] useUsers - starting');
+  const users = await usersService.getAll();
+  console.log('[Admin Users] useUsers - completed, users count:', users.length);
+  console.log('[Admin Users] useUsers - first user created_at type:', users[0] ? typeof users[0].createdAt : 'no users');
   return users;
 });
 
 export default component$(() => {
+  console.log('[Admin Users] Component rendering - start');
   const users = useUsers();
+  console.log('[Admin Users] Component rendering - users value:', users.value.length);
 
   return (
     <div>
@@ -43,7 +51,7 @@ export default component$(() => {
               <tr key={user.id} class="hover:bg-gray-50">
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm font-medium text-gray-900">
-                    {user.full_name}
+                    {user.displayName}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -66,7 +74,19 @@ export default component$(() => {
                     : '-'}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {format(new Date(user.created_at), 'MMM d, yyyy')}
+                  {(() => {
+                    try {
+                      console.log('[Admin Users] Formatting date for user:', user.id, 'createdAt:', user.createdAt, 'type:', typeof user.createdAt);
+                      const date = new Date(user.createdAt);
+                      console.log('[Admin Users] Date object created:', date, 'isValid:', !isNaN(date.getTime()));
+                      const formatted = format(date, 'MMM d, yyyy');
+                      console.log('[Admin Users] Date formatted successfully:', formatted);
+                      return formatted;
+                    } catch (error) {
+                      console.error('[Admin Users] Error formatting date:', error);
+                      return user.createdAt;
+                    }
+                  })()}
                 </td>
               </tr>
             ))}

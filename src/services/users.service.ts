@@ -3,8 +3,10 @@ import type { User, NewUser } from '~/db/schema';
 
 export const usersService = {
   async getAll(): Promise<User[]> {
+    console.log('[UsersService] getAll - starting query');
     const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: true });
 
+    console.log('[UsersService] getAll - query result:', { hasData: !!data, hasError: !!error });
     if (error) throw error;
     return (data || []).map((user: any) => ({
       id: user.id,
@@ -18,6 +20,7 @@ export const usersService = {
       latitude: user.latitude,
       yearOfBirth: user.year_of_birth,
       sex: user.sex,
+      role: user.role || 'user',
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     })) as User[];
@@ -42,6 +45,7 @@ export const usersService = {
       latitude: userData.latitude,
       yearOfBirth: userData.year_of_birth,
       sex: userData.sex,
+      role: userData.role || 'user',
       createdAt: userData.created_at,
       updatedAt: userData.updated_at,
     } as User;
@@ -81,6 +85,7 @@ export const usersService = {
       latitude: userData.latitude,
       yearOfBirth: userData.year_of_birth,
       sex: userData.sex,
+      role: userData.role || 'user',
       createdAt: userData.created_at,
       updatedAt: userData.updated_at,
     } as User;
@@ -126,6 +131,7 @@ export const usersService = {
       latitude: userData.latitude,
       yearOfBirth: userData.year_of_birth,
       sex: userData.sex,
+      role: userData.role || 'user',
       createdAt: userData.created_at,
       updatedAt: userData.updated_at,
     } as User;

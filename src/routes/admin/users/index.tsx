@@ -11,7 +11,7 @@ export const useUsers = routeLoader$(async () => {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as any[];
 });
 
 export const useUpdateRole = routeAction$(
@@ -32,7 +32,7 @@ export const useUpdateRole = routeAction$(
   },
   zod$({
     userId: z.string(),
-    role: z.enum(['admin', 'community_manager', 'user']),
+    role: z.enum(['admin', 'moderator', 'user']),
   })
 );
 
@@ -127,7 +127,7 @@ export default component$(() => {
                         class="border rounded px-2 py-1 text-sm"
                       >
                         <option value="user">User</option>
-                        <option value="community_manager">Community Manager</option>
+                        <option value="moderator">Moderator</option>
                         <option value="admin">Admin</option>
                       </select>
                     </Form>

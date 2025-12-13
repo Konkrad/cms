@@ -41,14 +41,14 @@ export default component$(() => {
               <label class="text-sm font-medium text-gray-700 block mb-1">
                 Last Name
               </label>
-              <p class="text-lg">{profile.value.family_name}</p>
+              <p class="text-lg">{profile.value.familyName}</p>
             </div>
 
             <div>
               <label class="text-sm font-medium text-gray-700 block mb-1">
                 Display Name
               </label>
-              <p class="text-lg">{profile.value.display_name}</p>
+              <p class="text-lg">{profile.value.displayName}</p>
             </div>
 
             <div>
@@ -76,12 +76,12 @@ export default component$(() => {
               </div>
             )}
 
-            {profile.value.year_of_birth && (
+            {profile.value.yearOfBirth && (
               <div>
                 <label class="text-sm font-medium text-gray-700 block mb-1">
                   Year of Birth
                 </label>
-                <p class="text-lg">{profile.value.year_of_birth}</p>
+                <p class="text-lg">{profile.value.yearOfBirth}</p>
               </div>
             )}
 

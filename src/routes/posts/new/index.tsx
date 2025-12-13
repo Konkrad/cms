@@ -22,11 +22,13 @@ export const useCreatePost = routeAction$(
   async (data, event) => {
     await requireAdmin(event);
 
+    const accessToken = event.cookie.get('sb-access-token')?.value;
+
     await postsService.create({
       title: data.title,
       body: data.body,
       userId: data.userId,
-    });
+    }, accessToken);
 
     throw event.redirect(303, '/posts');
   },

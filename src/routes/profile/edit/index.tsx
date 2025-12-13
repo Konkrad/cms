@@ -94,7 +94,7 @@ export default component$(() => {
               label="Last Name"
               name="family_name"
               type="text"
-              value={profile.value.family_name}
+              value={profile.value.familyName}
               required
             />
 
@@ -102,7 +102,7 @@ export default component$(() => {
               label="Display Name"
               name="display_name"
               type="text"
-              value={profile.value.display_name}
+              value={profile.value.displayName}
               required
               class="md:col-span-2"
             />
@@ -125,21 +125,23 @@ export default component$(() => {
               label="Year of Birth"
               name="year_of_birth"
               type="number"
-              value={profile.value.year_of_birth?.toString() || ''}
+              value={profile.value.yearOfBirth?.toString() || ''}
             />
 
-            <Select
-              label="Gender"
-              name="sex"
-              value={profile.value.sex || ''}
-              options={[
-                { value: '', label: 'Select gender' },
-                { value: 'male', label: 'Male' },
-                { value: 'female', label: 'Female' },
-                { value: 'other', label: 'Other' },
-                { value: 'prefer_not_to_say', label: 'Prefer not to say' },
-              ]}
-            />
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+              <select
+                name="sex"
+                value={profile.value.sex || ''}
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+                <option value="prefer_not_to_say">Prefer not to say</option>
+              </select>
+            </div>
           </div>
 
           <div class="flex gap-4 pt-4">

@@ -15,7 +15,7 @@ export const useEvents = routeLoader$(async () => {
     .order('start_date', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as any[];
 });
 
 export const useDeleteEvent = routeAction$(

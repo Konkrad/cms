@@ -15,7 +15,7 @@ export const usePosts = routeLoader$(async () => {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as any[];
 });
 
 export const useDeletePost = routeAction$(

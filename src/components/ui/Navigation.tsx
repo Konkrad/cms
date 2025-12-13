@@ -6,7 +6,7 @@ export const Navigation = component$(() => {
   const user = useUserSession();
   const showUserMenu = useSignal(false);
 
-  const isAdmin = user.value?.role === 'admin' || user.value?.role === 'community_manager';
+  const isAdmin = user.value?.role === 'admin' || user.value?.role === 'moderator';
 
   const toggleUserMenu = $(() => {
     showUserMenu.value = !showUserMenu.value;
@@ -41,7 +41,7 @@ export const Navigation = component$(() => {
                   onClick$={toggleUserMenu}
                   class="flex items-center px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
                 >
-                  {user.value.display_name}
+                  {user.value.displayName}
                   <svg
                     class="ml-2 h-4 w-4"
                     fill="none"

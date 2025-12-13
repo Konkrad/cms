@@ -10,6 +10,7 @@ export interface User {
   latitude: string | null;
   yearOfBirth: number | null;
   sex: string | null;
+  role: 'user' | 'moderator' | 'admin';
   createdAt: string;
   updatedAt: string;
 }
@@ -26,6 +27,7 @@ export interface NewUser {
   latitude?: string | null;
   yearOfBirth?: number | null;
   sex?: string | null;
+  role?: 'user' | 'moderator' | 'admin';
   createdAt?: string;
   updatedAt?: string;
 }

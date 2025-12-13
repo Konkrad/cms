@@ -1,11 +1,28 @@
 import { supabase } from '~/db/connection';
+import { createClient } from '@supabase/supabase-js';
 import type { Event, NewEvent } from '~/db/schema';
 
 export type EventWithUser = Event & { user: { displayName: string; email: string } };
 
+const getSupabaseClient = (accessToken?: string) => {
+  if (accessToken) {
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+    const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
+    return createClient(supabaseUrl, supabaseKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    });
+  }
+  return supabase;
+};
+
 export const eventsService = {
-  async getAll(filters?: { userId?: string; locationType?: string; upcoming?: boolean }): Promise<EventWithUser[]> {
-    let query = supabase
+  async getAll(filters?: { userId?: string; locationType?: string; upcoming?: boolean }, accessToken?: string): Promise<EventWithUser[]> {
+    const client = getSupabaseClient(accessToken);
+    let query = client
       .from('events')
       .select(
         `
@@ -53,8 +70,9 @@ export const eventsService = {
     })) as EventWithUser[];
   },
 
-  async getUpcoming(limit: number = 3): Promise<EventWithUser[]> {
-    const { data, error } = await supabase
+  async getUpcoming(limit: number = 3, accessToken?: string): Promise<EventWithUser[]> {
+    const client = getSupabaseClient(accessToken);
+    const { data, error } = await client
       .from('events')
       .select(
         `
@@ -90,8 +108,9 @@ export const eventsService = {
     })) as EventWithUser[];
   },
 
-  async getById(id: string): Promise<EventWithUser | undefined> {
-    const { data, error } = await supabase
+  async getById(id: string, accessToken?: string): Promise<EventWithUser | undefined> {
+    const client = getSupabaseClient(accessToken);
+    const { data, error } = await client
       .from('events')
       .select(
         `
@@ -128,8 +147,9 @@ export const eventsService = {
     } as EventWithUser;
   },
 
-  async create(data: Omit<NewEvent, 'id' | 'createdAt' | 'updatedAt'>): Promise<Event> {
-    const { data: result, error } = await supabase
+  async create(data: Omit<NewEvent, 'id' | 'createdAt' | 'updatedAt'>, accessToken?: string): Promise<Event> {
+    const client = getSupabaseClient(accessToken);
+    const { data: result, error } = await client
       .from('events')
       .insert({
         title: data.title,
@@ -168,7 +188,8 @@ export const eventsService = {
     } as Event;
   },
 
-  async update(id: string, data: Partial<Omit<NewEvent, 'id' | 'createdAt'>>): Promise<Event | undefined> {
+  async update(id: string, data: Partial<Omit<NewEvent, 'id' | 'createdAt'>>, accessToken?: string): Promise<Event | undefined> {
+    const client = getSupabaseClient(accessToken);
     const updateData: any = {
       updated_at: new Date().toISOString(),
     };
@@ -186,7 +207,7 @@ export const eventsService = {
     if (data.onlineUrl !== undefined) updateData.online_url = data.onlineUrl;
     if (data.userId) updateData.user_id = data.userId;
 
-    const { data: result, error } = await supabase.from('events').update(updateData).eq('id', id).select().single();
+    const { data: result, error } = await client.from('events').update(updateData).eq('id', id).select().single();
 
     if (error) throw error;
     return {
@@ -208,8 +229,9 @@ export const eventsService = {
     } as Event;
   },
 
-  async delete(id: string): Promise<void> {
-    const { error } = await supabase.from('events').delete().eq('id', id);
+  async delete(id: string, accessToken?: string): Promise<void> {
+    const client = getSupabaseClient(accessToken);
+    const { error } = await client.from('events').delete().eq('id', id);
     if (error) throw error;
   },
 };

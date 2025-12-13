@@ -3,6 +3,18 @@ import { routeLoader$, routeAction$, Form, z, zod$ } from '@builder.io/qwik-city
 import { Card } from '~/components/ui/Card';
 import { Button } from '~/components/ui/Button';
 import { supabase } from '~/db/connection';
+import { createClient } from '@supabase/supabase-js';
+
+const getServiceRoleClient = () => {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+};
 
 export const useUsers = routeLoader$(async () => {
   const { data, error } = await supabase
@@ -16,7 +28,8 @@ export const useUsers = routeLoader$(async () => {
 
 export const useUpdateRole = routeAction$(
   async (data) => {
-    const { error } = await supabase
+    const client = getServiceRoleClient();
+    const { error } = await client
       .from('users')
       .update({ role: data.role })
       .eq('id', data.userId);
@@ -38,7 +51,8 @@ export const useUpdateRole = routeAction$(
 
 export const useDeleteUser = routeAction$(
   async (data) => {
-    const { error } = await supabase
+    const client = getServiceRoleClient();
+    const { error } = await client
       .from('users')
       .delete()
       .eq('id', data.userId);

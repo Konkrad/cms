@@ -4,26 +4,23 @@ import type { Event, NewEvent } from '~/db/schema';
 
 export type EventWithUser = Event & { user: { displayName: string; email: string } };
 
-const getSupabaseClient = async (accessToken?: string, refreshToken?: string) => {
-  if (accessToken) {
-    const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-    const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
-    const client = createClient(supabaseUrl, supabaseKey);
-
-    await client.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken || '',
-    });
-
-    return client;
+const getServiceRoleClient = () => {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  if (!serviceRoleKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set');
   }
-  return supabase;
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
 };
 
 export const eventsService = {
-  async getAll(filters?: { userId?: string; locationType?: string; upcoming?: boolean }, accessToken?: string, refreshToken?: string): Promise<EventWithUser[]> {
-    const client = await getSupabaseClient(accessToken, refreshToken);
-    let query = client
+  async getAll(filters?: { userId?: string; locationType?: string; upcoming?: boolean }): Promise<EventWithUser[]> {
+    let query = supabase
       .from('events')
       .select(
         `
@@ -71,9 +68,8 @@ export const eventsService = {
     })) as EventWithUser[];
   },
 
-  async getUpcoming(limit: number = 3, accessToken?: string, refreshToken?: string): Promise<EventWithUser[]> {
-    const client = await getSupabaseClient(accessToken, refreshToken);
-    const { data, error } = await client
+  async getUpcoming(limit: number = 3): Promise<EventWithUser[]> {
+    const { data, error } = await supabase
       .from('events')
       .select(
         `
@@ -109,9 +105,8 @@ export const eventsService = {
     })) as EventWithUser[];
   },
 
-  async getById(id: string, accessToken?: string, refreshToken?: string): Promise<EventWithUser | undefined> {
-    const client = await getSupabaseClient(accessToken, refreshToken);
-    const { data, error } = await client
+  async getById(id: string): Promise<EventWithUser | undefined> {
+    const { data, error } = await supabase
       .from('events')
       .select(
         `
@@ -148,8 +143,8 @@ export const eventsService = {
     } as EventWithUser;
   },
 
-  async create(data: Omit<NewEvent, 'id' | 'createdAt' | 'updatedAt'>, accessToken?: string, refreshToken?: string): Promise<Event> {
-    const client = await getSupabaseClient(accessToken, refreshToken);
+  async create(data: Omit<NewEvent, 'id' | 'createdAt' | 'updatedAt'>): Promise<Event> {
+    const client = getServiceRoleClient();
     const { data: result, error } = await client
       .from('events')
       .insert({
@@ -189,8 +184,8 @@ export const eventsService = {
     } as Event;
   },
 
-  async update(id: string, data: Partial<Omit<NewEvent, 'id' | 'createdAt'>>, accessToken?: string, refreshToken?: string): Promise<Event | undefined> {
-    const client = await getSupabaseClient(accessToken, refreshToken);
+  async update(id: string, data: Partial<Omit<NewEvent, 'id' | 'createdAt'>>): Promise<Event | undefined> {
+    const client = getServiceRoleClient();
     const updateData: any = {
       updated_at: new Date().toISOString(),
     };
@@ -230,8 +225,8 @@ export const eventsService = {
     } as Event;
   },
 
-  async delete(id: string, accessToken?: string, refreshToken?: string): Promise<void> {
-    const client = await getSupabaseClient(accessToken, refreshToken);
+  async delete(id: string): Promise<void> {
+    const client = getServiceRoleClient();
     const { error } = await client.from('events').delete().eq('id', id);
     if (error) throw error;
   },

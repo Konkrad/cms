@@ -16,16 +16,13 @@ export const onGet: RequestHandler = async ({ query, json }) => {
 };
 
 export const onPost: RequestHandler = async (event) => {
-  const { request, json, cookie } = event;
+  const { request, json } = event;
 
   const adminStatus = await isAdmin(event);
   if (!adminStatus) {
     json(403, { error: 'Forbidden: Admin access required' });
     return;
   }
-
-  const accessToken = cookie.get('sb-access-token')?.value;
-  const refreshToken = cookie.get('sb-refresh-token')?.value;
 
   try {
     const body = await request.json();
@@ -35,7 +32,7 @@ export const onPost: RequestHandler = async (event) => {
       title: validated.title,
       body: validated.body,
       userId: validated.userId,
-    }, accessToken, refreshToken);
+    });
 
     json(201, post);
   } catch (error) {

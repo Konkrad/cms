@@ -21,7 +21,7 @@ export const onGet: RequestHandler = async ({ params, json }) => {
 };
 
 export const onPut: RequestHandler = async (event) => {
-  const { params, request, json, cookie } = event;
+  const { params, request, json } = event;
 
   const adminStatus = await isAdmin(event);
   if (!adminStatus) {
@@ -29,14 +29,11 @@ export const onPut: RequestHandler = async (event) => {
     return;
   }
 
-  const accessToken = cookie.get('sb-access-token')?.value;
-  const refreshToken = cookie.get('sb-refresh-token')?.value;
-
   try {
     const body = await request.json();
     const validated = updatePostSchema.parse(body);
 
-    const post = await postsService.update(params.id, validated, accessToken, refreshToken);
+    const post = await postsService.update(params.id, validated);
 
     if (!post) {
       json(404, { error: 'Post not found' });
@@ -54,7 +51,7 @@ export const onPut: RequestHandler = async (event) => {
 };
 
 export const onDelete: RequestHandler = async (event) => {
-  const { params, json, cookie } = event;
+  const { params, json } = event;
 
   const adminStatus = await isAdmin(event);
   if (!adminStatus) {
@@ -62,11 +59,8 @@ export const onDelete: RequestHandler = async (event) => {
     return;
   }
 
-  const accessToken = cookie.get('sb-access-token')?.value;
-  const refreshToken = cookie.get('sb-refresh-token')?.value;
-
   try {
-    await postsService.delete(params.id, accessToken, refreshToken);
+    await postsService.delete(params.id);
     json(204, null);
   } catch (error) {
     json(500, { error: 'Internal server error' });

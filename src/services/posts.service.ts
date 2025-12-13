@@ -4,26 +4,23 @@ import type { Post, NewPost } from '~/db/schema';
 
 export type PostWithUser = Post & { user: { displayName: string; email: string } };
 
-const getSupabaseClient = async (accessToken?: string, refreshToken?: string) => {
-  if (accessToken) {
-    const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-    const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
-    const client = createClient(supabaseUrl, supabaseKey);
-
-    await client.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken || '',
-    });
-
-    return client;
+const getServiceRoleClient = () => {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  if (!serviceRoleKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set');
   }
-  return supabase;
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
 };
 
 export const postsService = {
-  async getAll(userId?: string, accessToken?: string, refreshToken?: string): Promise<PostWithUser[]> {
-    const client = await getSupabaseClient(accessToken, refreshToken);
-    let query = client
+  async getAll(userId?: string): Promise<PostWithUser[]> {
+    let query = supabase
       .from('posts')
       .select(
         `
@@ -54,9 +51,8 @@ export const postsService = {
     })) as PostWithUser[];
   },
 
-  async getRecent(limit: number = 3, accessToken?: string, refreshToken?: string): Promise<PostWithUser[]> {
-    const client = await getSupabaseClient(accessToken, refreshToken);
-    const { data, error } = await client
+  async getRecent(limit: number = 3): Promise<PostWithUser[]> {
+    const { data, error } = await supabase
       .from('posts')
       .select(
         `
@@ -82,9 +78,8 @@ export const postsService = {
     })) as PostWithUser[];
   },
 
-  async getById(id: string, accessToken?: string, refreshToken?: string): Promise<PostWithUser | undefined> {
-    const client = await getSupabaseClient(accessToken, refreshToken);
-    const { data, error } = await client
+  async getById(id: string): Promise<PostWithUser | undefined> {
+    const { data, error } = await supabase
       .from('posts')
       .select(
         `
@@ -112,8 +107,8 @@ export const postsService = {
     } as PostWithUser;
   },
 
-  async create(data: Omit<NewPost, 'id' | 'createdAt' | 'updatedAt'>, accessToken?: string, refreshToken?: string): Promise<Post> {
-    const client = await getSupabaseClient(accessToken, refreshToken);
+  async create(data: Omit<NewPost, 'id' | 'createdAt' | 'updatedAt'>): Promise<Post> {
+    const client = getServiceRoleClient();
     const { data: result, error } = await client
       .from('posts')
       .insert({
@@ -135,8 +130,8 @@ export const postsService = {
     } as Post;
   },
 
-  async update(id: string, data: Partial<Omit<NewPost, 'id' | 'createdAt'>>, accessToken?: string, refreshToken?: string): Promise<Post | undefined> {
-    const client = await getSupabaseClient(accessToken, refreshToken);
+  async update(id: string, data: Partial<Omit<NewPost, 'id' | 'createdAt'>>): Promise<Post | undefined> {
+    const client = getServiceRoleClient();
     const updateData: any = {
       updated_at: new Date().toISOString(),
     };
@@ -158,8 +153,8 @@ export const postsService = {
     } as Post;
   },
 
-  async delete(id: string, accessToken?: string, refreshToken?: string): Promise<void> {
-    const client = await getSupabaseClient(accessToken, refreshToken);
+  async delete(id: string): Promise<void> {
+    const client = getServiceRoleClient();
     const { error } = await client.from('posts').delete().eq('id', id);
     if (error) throw error;
   },

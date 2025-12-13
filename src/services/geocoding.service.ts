@@ -9,7 +9,7 @@ export interface GeocodingResult {
 
 export const geocodingService = {
   async forward(query: string): Promise<GeocodingResult[]> {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1`;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1&accept-language=en`;
 
     const response = await fetch(url, {
       headers: {
@@ -34,7 +34,7 @@ export const geocodingService = {
   },
 
   async reverse(latitude: number, longitude: number): Promise<GeocodingResult | null> {
-    const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`;
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1&accept-language=en`;
 
     const response = await fetch(url, {
       headers: {

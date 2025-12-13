@@ -95,17 +95,18 @@ export const menuItemsService = {
     if (error) throw error;
     if (!data) return undefined;
 
+    const item = data as any;
     return {
-      id: data.id,
-      menuName: data.menu_name,
-      label: data.label,
-      url: data.url,
-      parentId: data.parent_id,
-      position: data.position,
-      icon: data.icon,
-      target: data.target,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
+      id: item.id,
+      menuName: item.menu_name,
+      label: item.label,
+      url: item.url,
+      parentId: item.parent_id,
+      position: item.position,
+      icon: item.icon,
+      target: item.target,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
     } as MenuItem;
   },
 

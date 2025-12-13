@@ -48,21 +48,24 @@ export const Canvas = component$<CanvasProps>((props) => {
           <div class="space-y-4">
             {props.blocks
               .sort((a, b) => a.order - b.order)
-              .map((block, index) => (
-                <BlockWrapper
-                  key={block.id}
-                  block={block}
-                  definition={props.definitionsMap.get(block.componentType)}
-                  isSelected={block.id === props.selectedBlockId}
-                  isFirst={index === 0}
-                  isLast={index === props.blocks.length - 1}
-                  onSelect={() => props.onSelectBlock(block.id)}
-                  onDelete={() => props.onDeleteBlock(block.id)}
-                  onDuplicate={() => props.onDuplicateBlock(block.id)}
-                  onMoveUp={() => handleMoveUp(block.id)}
-                  onMoveDown={() => handleMoveDown(block.id)}
-                />
-              ))}
+              .map((block, index) => {
+                const blockId = block.id;
+                return (
+                  <BlockWrapper
+                    key={blockId}
+                    block={block}
+                    definition={props.definitionsMap.get(block.componentType)}
+                    isSelected={blockId === props.selectedBlockId}
+                    isFirst={index === 0}
+                    isLast={index === props.blocks.length - 1}
+                    onSelect={$(() => props.onSelectBlock(blockId))}
+                    onDelete={$(() => props.onDeleteBlock(blockId))}
+                    onDuplicate={$(() => props.onDuplicateBlock(blockId))}
+                    onMoveUp={$(() => handleMoveUp(blockId))}
+                    onMoveDown={$(() => handleMoveDown(blockId))}
+                  />
+                );
+              })}
           </div>
         )}
       </div>

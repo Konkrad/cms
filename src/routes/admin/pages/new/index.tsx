@@ -98,7 +98,7 @@ export default component$(() => {
           <Select
             name="parentId"
             label="Parent Page"
-            value={action.formData?.get('parentId')}
+            value={(action.formData?.get('parentId') as string) || ''}
             error={action.value?.fieldErrors?.parentId?.[0]}
           >
             <option value="">None (Top Level)</option>
@@ -113,7 +113,7 @@ export default component$(() => {
             name="status"
             label="Status"
             required
-            value={action.formData?.get('status') || 'draft'}
+            value={(action.formData?.get('status') as string) || 'draft'}
             error={action.value?.fieldErrors?.status?.[0]}
           >
             <option value="draft">Draft</option>

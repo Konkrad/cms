@@ -41,26 +41,28 @@ export const pagesService = {
   async getAll(): Promise<PageWithParent[]> {
     const { data, error } = await supabase
       .from('pages')
-      .select(
-        `
-        *,
-        parent:pages!pages_parent_id_fkey(title)
-      `
-      )
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return (data || []).map((page: any) => ({
-      id: page.id,
-      title: page.title,
-      slug: page.slug,
-      parentId: page.parent_id,
-      content: page.content || [],
-      status: page.status,
-      createdAt: page.created_at,
-      updatedAt: page.updated_at,
-      parent: page.parent,
-    })) as PageWithParent[];
+
+    const pages = data || [];
+    const pageMap = new Map(pages.map((p: any) => [p.id, p]));
+
+    return pages.map((page: any) => {
+      const parentPage = page.parent_id ? pageMap.get(page.parent_id) : null;
+      return {
+        id: page.id,
+        title: page.title,
+        slug: page.slug,
+        parentId: page.parent_id,
+        content: page.content || [],
+        status: page.status,
+        createdAt: page.created_at,
+        updatedAt: page.updated_at,
+        parent: parentPage ? { title: parentPage.title } : null,
+      };
+    }) as PageWithParent[];
   },
 
   async getById(id: string): Promise<Page | undefined> {
@@ -73,15 +75,16 @@ export const pagesService = {
     if (error) throw error;
     if (!data) return undefined;
 
+    const page = data as any;
     return {
-      id: data.id,
-      title: data.title,
-      slug: data.slug,
-      parentId: data.parent_id,
-      content: data.content || [],
-      status: data.status,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
+      id: page.id,
+      title: page.title,
+      slug: page.slug,
+      parentId: page.parent_id,
+      content: page.content || [],
+      status: page.status,
+      createdAt: page.created_at,
+      updatedAt: page.updated_at,
     } as Page;
   },
 
@@ -96,15 +99,16 @@ export const pagesService = {
     if (error) throw error;
     if (!data) return undefined;
 
+    const page = data as any;
     return {
-      id: data.id,
-      title: data.title,
-      slug: data.slug,
-      parentId: data.parent_id,
-      content: data.content || [],
-      status: data.status,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
+      id: page.id,
+      title: page.title,
+      slug: page.slug,
+      parentId: page.parent_id,
+      content: page.content || [],
+      status: page.status,
+      createdAt: page.created_at,
+      updatedAt: page.updated_at,
     } as Page;
   },
 

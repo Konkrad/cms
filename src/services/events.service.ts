@@ -247,23 +247,24 @@ export async function getAllEvents() {
       *,
       organizer:users!events_user_id_fkey(display_name)
     `)
-    .order('event_date', { ascending: false });
+    .order('start_date', { ascending: false });
 
   if (error) throw error;
 
   return (data || []).map((event: any) => ({
     id: event.id,
     title: event.title,
-    description: event.description || event.body || '',
-    event_date: event.event_date,
-    event_time: event.event_time,
-    location: event.location || '',
+    body: event.body,
+    startDate: event.start_date,
+    endDate: event.end_date,
+    locationType: event.location_type,
+    address: event.address,
     city: event.city,
     country: event.country,
     latitude: event.latitude,
     longitude: event.longitude,
-    image_url: event.image_url,
-    organizer_name: event.organizer?.display_name || 'Unknown',
+    onlineUrl: event.online_url,
+    organizerName: event.organizer?.display_name || 'Unknown',
   }));
 }
 
@@ -280,15 +281,16 @@ export async function getEventById(id: string) {
   return {
     id: data.id,
     title: data.title,
-    description: data.description || data.body || '',
-    event_date: data.event_date,
-    event_time: data.event_time,
-    location: data.location || '',
+    body: data.body,
+    startDate: data.start_date,
+    endDate: data.end_date,
+    locationType: data.location_type,
+    address: data.address,
     city: data.city,
     country: data.country,
     latitude: data.latitude,
     longitude: data.longitude,
-    image_url: data.image_url,
+    onlineUrl: data.online_url,
   };
 }
 
@@ -303,19 +305,16 @@ export async function createEvent(eventData: any, event: any) {
       .from('events')
       .insert({
         title: eventData.title,
-        description: eventData.description,
-        body: eventData.description,
-        event_date: eventData.event_date,
-        event_time: eventData.event_time,
-        start_date: `${eventData.event_date} ${eventData.event_time}`,
-        end_date: `${eventData.event_date} ${eventData.event_time}`,
-        location: eventData.location,
+        body: eventData.body,
+        start_date: eventData.startDate,
+        end_date: eventData.endDate,
+        location_type: eventData.locationType,
+        address: eventData.address,
         city: eventData.city,
         country: eventData.country,
         latitude: eventData.latitude,
         longitude: eventData.longitude,
-        location_type: 'in_person',
-        image_url: eventData.image_url,
+        online_url: eventData.onlineUrl,
         user_id: session.user.id,
       })
       .select()
@@ -339,18 +338,16 @@ export async function updateEvent(id: string, eventData: any, event: any) {
       .from('events')
       .update({
         title: eventData.title,
-        description: eventData.description,
-        body: eventData.description,
-        event_date: eventData.event_date,
-        event_time: eventData.event_time,
-        start_date: `${eventData.event_date} ${eventData.event_time}`,
-        end_date: `${eventData.event_date} ${eventData.event_time}`,
-        location: eventData.location,
+        body: eventData.body,
+        start_date: eventData.startDate,
+        end_date: eventData.endDate,
+        location_type: eventData.locationType,
+        address: eventData.address,
         city: eventData.city,
         country: eventData.country,
         latitude: eventData.latitude,
         longitude: eventData.longitude,
-        image_url: eventData.image_url,
+        online_url: eventData.onlineUrl,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)

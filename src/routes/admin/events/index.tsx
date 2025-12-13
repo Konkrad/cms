@@ -50,26 +50,33 @@ export default component$(() => {
                     {event.title}
                   </div>
                   <div class="text-sm text-gray-500 line-clamp-1">
-                    {event.description}
+                    {event.body}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900">
-                    {event.city && event.country
+                    {event.locationType === 'online' && 'Online'}
+                    {event.locationType === 'in_person' && event.city && event.country
                       ? `${event.city}, ${event.country}`
-                      : event.location}
+                      : event.locationType === 'in_person' && event.address
+                      ? event.address
+                      : event.locationType === 'hybrid'
+                      ? 'Hybrid'
+                      : 'Not specified'}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900">
-                    {event.organizer_name}
+                    {event.organizerName}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900">
-                    {format(new Date(event.event_date), 'MMM d, yyyy')}
+                    {format(new Date(event.startDate), 'MMM d, yyyy')}
                   </div>
-                  <div class="text-sm text-gray-500">{event.event_time}</div>
+                  <div class="text-sm text-gray-500">
+                    {format(new Date(event.startDate), 'h:mm a')}
+                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <a

@@ -14,7 +14,7 @@ import {
 import { Input } from '~/components/ui/Input';
 import { TextArea } from '~/components/ui/TextArea';
 import { Button } from '~/components/ui/Button';
-import { LocationAutocomplete } from '~/components/ui/LocationAutocomplete';
+import { Select } from '~/components/ui/Select';
 
 export const useEvent = routeLoader$(async (event) => {
   const eventId = event.params.id;
@@ -29,15 +29,16 @@ export const useEvent = routeLoader$(async (event) => {
 
 const eventSchema = z.object({
   title: z.string().min(1, 'Title is required'),
-  description: z.string().min(1, 'Description is required'),
-  event_date: z.string().min(1, 'Date is required'),
-  event_time: z.string().min(1, 'Time is required'),
-  location: z.string().min(1, 'Location is required'),
+  body: z.string().min(1, 'Description is required'),
+  startDate: z.string().min(1, 'Start date is required'),
+  endDate: z.string().min(1, 'End date is required'),
+  locationType: z.enum(['online', 'in_person', 'hybrid']),
+  address: z.string().optional(),
   city: z.string().optional(),
   country: z.string().optional(),
   latitude: z.string().optional(),
   longitude: z.string().optional(),
-  image_url: z.string().optional(),
+  onlineUrl: z.string().optional(),
 });
 
 export const useUpdateEvent = routeAction$(async (data, event) => {
@@ -47,15 +48,16 @@ export const useUpdateEvent = routeAction$(async (data, event) => {
     eventId,
     {
       title: data.title,
-      description: data.description,
-      event_date: data.event_date,
-      event_time: data.event_time,
-      location: data.location,
+      body: data.body,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      locationType: data.locationType,
+      address: data.address || null,
       city: data.city || null,
       country: data.country || null,
       latitude: data.latitude ? parseFloat(data.latitude) : null,
       longitude: data.longitude ? parseFloat(data.longitude) : null,
-      image_url: data.image_url || null,
+      onlineUrl: data.onlineUrl || null,
     },
     event
   );
@@ -83,21 +85,11 @@ export default component$(() => {
   const updateEventAction = useUpdateEvent();
   const deleteEventAction = useDeleteEvent();
   const isSubmitting = useSignal(false);
-  const selectedLocation = useSignal<{
-    city: string;
-    country: string;
-    latitude: number;
-    longitude: number;
-  } | null>(
-    event.value.city && event.value.country
-      ? {
-          city: event.value.city,
-          country: event.value.country,
-          latitude: event.value.latitude || 0,
-          longitude: event.value.longitude || 0,
-        }
-      : null
-  );
+
+  const formatDatetimeLocal = (isoString: string) => {
+    if (!isoString) return '';
+    return isoString.slice(0, 16);
+  };
 
   return (
     <div>
@@ -121,9 +113,9 @@ export default component$(() => {
           />
 
           <TextArea
-            name="description"
+            name="body"
             label="Description"
-            value={event.value.description}
+            value={event.value.body}
             placeholder="Describe your event..."
             rows={4}
             required
@@ -131,67 +123,79 @@ export default component$(() => {
 
           <div class="grid grid-cols-2 gap-4">
             <Input
-              name="event_date"
-              label="Date"
-              type="date"
-              value={event.value.event_date}
+              name="startDate"
+              label="Start Date & Time"
+              type="datetime-local"
+              value={formatDatetimeLocal(event.value.startDate)}
               required
             />
             <Input
-              name="event_time"
-              label="Time"
-              type="time"
-              value={event.value.event_time}
+              name="endDate"
+              label="End Date & Time"
+              type="datetime-local"
+              value={formatDatetimeLocal(event.value.endDate)}
               required
             />
           </div>
 
-          <LocationAutocomplete
-            name="location"
-            label="Location"
+          <Select
+            name="locationType"
+            label="Location Type"
+            value={event.value.locationType}
             required
-            onLocationSelect$={(location) => {
-              selectedLocation.value = location;
-            }}
-          />
+          >
+            <option value="in_person">In Person</option>
+            <option value="online">Online</option>
+            <option value="hybrid">Hybrid</option>
+          </Select>
 
-          <input
-            type="hidden"
-            name="city"
-            value={selectedLocation.value?.city || event.value.city || ''}
-          />
-          <input
-            type="hidden"
-            name="country"
-            value={
-              selectedLocation.value?.country || event.value.country || ''
-            }
-          />
-          <input
-            type="hidden"
-            name="latitude"
-            value={
-              selectedLocation.value?.latitude.toString() ||
-              event.value.latitude?.toString() ||
-              ''
-            }
-          />
-          <input
-            type="hidden"
-            name="longitude"
-            value={
-              selectedLocation.value?.longitude.toString() ||
-              event.value.longitude?.toString() ||
-              ''
-            }
+          <Input
+            name="address"
+            label="Address (for in-person events)"
+            value={event.value.address || ''}
+            placeholder="Enter physical address"
           />
 
           <Input
-            name="image_url"
-            label="Image URL (optional)"
-            value={event.value.image_url || ''}
-            placeholder="https://example.com/image.jpg"
+            name="onlineUrl"
+            label="Online URL (for online events)"
+            value={event.value.onlineUrl || ''}
+            placeholder="https://zoom.us/..."
           />
+
+          <div class="grid grid-cols-2 gap-4">
+            <Input
+              name="city"
+              label="City"
+              value={event.value.city || ''}
+              placeholder="City"
+            />
+            <Input
+              name="country"
+              label="Country"
+              value={event.value.country || ''}
+              placeholder="Country"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <Input
+              name="latitude"
+              label="Latitude"
+              type="number"
+              step="any"
+              value={event.value.latitude?.toString() || ''}
+              placeholder="0.0"
+            />
+            <Input
+              name="longitude"
+              label="Longitude"
+              type="number"
+              step="any"
+              value={event.value.longitude?.toString() || ''}
+              placeholder="0.0"
+            />
+          </div>
 
           {updateEventAction.value?.error && (
             <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">

@@ -167,3 +167,120 @@ export const postsService = {
     if (error) throw error;
   },
 };
+
+export async function getAllPosts() {
+  const { data, error } = await supabase
+    .from('posts')
+    .select(`
+      *,
+      author:users!posts_user_id_fkey(display_name)
+    `)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []).map((post: any) => ({
+    id: post.id,
+    title: post.title,
+    excerpt: post.excerpt || '',
+    content: post.body || '',
+    category: post.category || '',
+    image_url: post.image_url,
+    published_at: post.published_at || post.created_at,
+    author_name: post.author?.display_name || 'Unknown',
+  }));
+}
+
+export async function getPostById(id: string) {
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    title: data.title,
+    excerpt: data.excerpt || '',
+    content: data.body || '',
+    category: data.category || '',
+    image_url: data.image_url,
+  };
+}
+
+export async function createPost(postData: any, event: any) {
+  try {
+    const session = event.sharedMap.get('session');
+    if (!session?.user?.id) {
+      return { error: 'Not authenticated' };
+    }
+
+    const { data, error } = await supabase
+      .from('posts')
+      .insert({
+        title: postData.title,
+        excerpt: postData.excerpt,
+        body: postData.content,
+        category: postData.category,
+        image_url: postData.image_url,
+        user_id: session.user.id,
+      })
+      .select()
+      .single();
+
+    if (error) return { error: error.message };
+    return { data };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function updatePost(id: string, postData: any, event: any) {
+  try {
+    const session = event.sharedMap.get('session');
+    if (!session?.user?.id) {
+      return { error: 'Not authenticated' };
+    }
+
+    const { data, error } = await supabase
+      .from('posts')
+      .update({
+        title: postData.title,
+        excerpt: postData.excerpt,
+        body: postData.content,
+        category: postData.category,
+        image_url: postData.image_url,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) return { error: error.message };
+    return { data };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function deletePost(id: string, event: any) {
+  try {
+    const session = event.sharedMap.get('session');
+    if (!session?.user?.id) {
+      return { error: 'Not authenticated' };
+    }
+
+    const { error } = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', id);
+
+    if (error) return { error: error.message };
+    return { success: true };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}

@@ -239,3 +239,146 @@ export const eventsService = {
     if (error) throw error;
   },
 };
+
+export async function getAllEvents() {
+  const { data, error } = await supabase
+    .from('events')
+    .select(`
+      *,
+      organizer:users!events_user_id_fkey(display_name)
+    `)
+    .order('event_date', { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []).map((event: any) => ({
+    id: event.id,
+    title: event.title,
+    description: event.description || event.body || '',
+    event_date: event.event_date,
+    event_time: event.event_time,
+    location: event.location || '',
+    city: event.city,
+    country: event.country,
+    latitude: event.latitude,
+    longitude: event.longitude,
+    image_url: event.image_url,
+    organizer_name: event.organizer?.display_name || 'Unknown',
+  }));
+}
+
+export async function getEventById(id: string) {
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    title: data.title,
+    description: data.description || data.body || '',
+    event_date: data.event_date,
+    event_time: data.event_time,
+    location: data.location || '',
+    city: data.city,
+    country: data.country,
+    latitude: data.latitude,
+    longitude: data.longitude,
+    image_url: data.image_url,
+  };
+}
+
+export async function createEvent(eventData: any, event: any) {
+  try {
+    const session = event.sharedMap.get('session');
+    if (!session?.user?.id) {
+      return { error: 'Not authenticated' };
+    }
+
+    const { data, error: dbError } = await supabase
+      .from('events')
+      .insert({
+        title: eventData.title,
+        description: eventData.description,
+        body: eventData.description,
+        event_date: eventData.event_date,
+        event_time: eventData.event_time,
+        start_date: `${eventData.event_date} ${eventData.event_time}`,
+        end_date: `${eventData.event_date} ${eventData.event_time}`,
+        location: eventData.location,
+        city: eventData.city,
+        country: eventData.country,
+        latitude: eventData.latitude,
+        longitude: eventData.longitude,
+        location_type: 'in_person',
+        image_url: eventData.image_url,
+        user_id: session.user.id,
+      })
+      .select()
+      .single();
+
+    if (dbError) return { error: dbError.message };
+    return { data };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function updateEvent(id: string, eventData: any, event: any) {
+  try {
+    const session = event.sharedMap.get('session');
+    if (!session?.user?.id) {
+      return { error: 'Not authenticated' };
+    }
+
+    const { data, error: dbError } = await supabase
+      .from('events')
+      .update({
+        title: eventData.title,
+        description: eventData.description,
+        body: eventData.description,
+        event_date: eventData.event_date,
+        event_time: eventData.event_time,
+        start_date: `${eventData.event_date} ${eventData.event_time}`,
+        end_date: `${eventData.event_date} ${eventData.event_time}`,
+        location: eventData.location,
+        city: eventData.city,
+        country: eventData.country,
+        latitude: eventData.latitude,
+        longitude: eventData.longitude,
+        image_url: eventData.image_url,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (dbError) return { error: dbError.message };
+    return { data };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function deleteEvent(id: string, event: any) {
+  try {
+    const session = event.sharedMap.get('session');
+    if (!session?.user?.id) {
+      return { error: 'Not authenticated' };
+    }
+
+    const { error: dbError } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', id);
+
+    if (dbError) return { error: dbError.message };
+    return { success: true };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}

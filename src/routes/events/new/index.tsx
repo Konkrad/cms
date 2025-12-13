@@ -24,6 +24,9 @@ export const useCreateEvent = routeAction$(
   async (data, event) => {
     await requireAdmin(event);
 
+    const accessToken = event.cookie.get('sb-access-token')?.value;
+    const refreshToken = event.cookie.get('sb-refresh-token')?.value;
+
     await eventsService.create({
       title: data.title,
       body: data.body,
@@ -37,7 +40,7 @@ export const useCreateEvent = routeAction$(
       latitude: data.latitude || undefined,
       onlineUrl: data.onlineUrl || undefined,
       userId: data.userId,
-    });
+    }, accessToken, refreshToken);
 
     throw event.redirect(303, '/events');
   },

@@ -4,18 +4,26 @@ import type { Post, NewPost } from '~/db/schema';
 
 export type PostWithUser = Post & { user: { displayName: string; email: string } };
 
-const getServiceRoleClient = () => {
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-  if (!serviceRoleKey) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set');
+const getAuthenticatedClient = async (accessToken?: string, refreshToken?: string) => {
+  if (!accessToken) {
+    return supabase;
   }
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
+
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
+  const client = createClient(supabaseUrl, supabaseKey);
+
+  const { error } = await client.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken || '',
   });
+
+  if (error) {
+    console.error('Error setting session:', error);
+    return supabase;
+  }
+
+  return client;
 };
 
 export const postsService = {
@@ -107,8 +115,8 @@ export const postsService = {
     } as PostWithUser;
   },
 
-  async create(data: Omit<NewPost, 'id' | 'createdAt' | 'updatedAt'>): Promise<Post> {
-    const client = getServiceRoleClient();
+  async create(data: Omit<NewPost, 'id' | 'createdAt' | 'updatedAt'>, accessToken?: string, refreshToken?: string): Promise<Post> {
+    const client = await getAuthenticatedClient(accessToken, refreshToken);
     const { data: result, error } = await client
       .from('posts')
       .insert({
@@ -130,8 +138,8 @@ export const postsService = {
     } as Post;
   },
 
-  async update(id: string, data: Partial<Omit<NewPost, 'id' | 'createdAt'>>): Promise<Post | undefined> {
-    const client = getServiceRoleClient();
+  async update(id: string, data: Partial<Omit<NewPost, 'id' | 'createdAt'>>, accessToken?: string, refreshToken?: string): Promise<Post | undefined> {
+    const client = await getAuthenticatedClient(accessToken, refreshToken);
     const updateData: any = {
       updated_at: new Date().toISOString(),
     };
@@ -153,8 +161,8 @@ export const postsService = {
     } as Post;
   },
 
-  async delete(id: string): Promise<void> {
-    const client = getServiceRoleClient();
+  async delete(id: string, accessToken?: string, refreshToken?: string): Promise<void> {
+    const client = await getAuthenticatedClient(accessToken, refreshToken);
     const { error } = await client.from('posts').delete().eq('id', id);
     if (error) throw error;
   },

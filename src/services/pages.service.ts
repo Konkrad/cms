@@ -218,7 +218,7 @@ export const pagesService = {
 
     if (!wasPublished && isNowPublished) {
       const menuItems = await menuItemsService.getAll('main');
-      const pageUrl = `/${updatedPage.slug}`;
+      const pageUrl = updatedPage.slug === '/' ? '/' : `/${updatedPage.slug}`;
       const isInMenu = menuItems.some((item) => item.url === pageUrl);
 
       if (!isInMenu) {

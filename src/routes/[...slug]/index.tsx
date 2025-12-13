@@ -4,27 +4,27 @@ import { pagesService } from '~/services/pages.service';
 import { BlockRenderer } from '~/components/builder/BlockRenderer';
 
 export const usePage = routeLoader$(async ({ params, status }) => {
-  const slug = params.slug || '/';
+  const slug = params.slug === '' || params.slug === undefined ? '/' : params.slug;
 
   const page = await pagesService.getBySlug(slug);
 
   if (!page) {
     status(404);
-    return null;
+    return { notFound: true, title: '', slug: '', content: [], status: 'draft' as const };
   }
 
   if (page.status !== 'published') {
     status(404);
-    return null;
+    return { notFound: true, title: '', slug: '', content: [], status: 'draft' as const };
   }
 
-  return page;
+  return { ...page, notFound: false };
 });
 
 export default component$(() => {
   const page = usePage();
 
-  if (!page.value) {
+  if (page.value.notFound) {
     return (
       <div class="max-w-4xl mx-auto px-4 py-16 text-center">
         <h1 class="text-4xl font-bold text-gray-900 mb-4">Page Not Found</h1>
@@ -42,7 +42,7 @@ export default component$(() => {
     <div class="min-h-screen">
       {page.value.content && page.value.content.length > 0 ? (
         <div>
-          {page.value.content
+          {(page.value.content as any[])
             .sort((a, b) => a.order - b.order)
             .map((block) => (
               <BlockRenderer key={block.id} block={block} />
@@ -61,7 +61,7 @@ export default component$(() => {
 export const head: DocumentHead = ({ resolveValue }) => {
   const page = resolveValue(usePage);
 
-  if (!page) {
+  if (page.notFound) {
     return {
       title: 'Page Not Found',
     };

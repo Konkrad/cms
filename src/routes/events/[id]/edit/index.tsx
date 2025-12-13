@@ -32,6 +32,9 @@ export const useUpdateEvent = routeAction$(
   async (data, event) => {
     await requireAdmin(event);
 
+    const accessToken = event.cookie.get('sb-access-token')?.value;
+    const refreshToken = event.cookie.get('sb-refresh-token')?.value;
+
     await eventsService.update(event.params.id, {
       title: data.title,
       body: data.body,
@@ -45,9 +48,9 @@ export const useUpdateEvent = routeAction$(
       latitude: data.latitude || undefined,
       onlineUrl: data.onlineUrl || undefined,
       userId: data.userId,
-    });
+    }, accessToken, refreshToken);
 
-    throw event.redirect(303, `/events/${event.params.id}`);
+    throw event.redirect(303, '/admin/events');
   },
   zod$({
     title: z.string().min(1, 'Title is required'),

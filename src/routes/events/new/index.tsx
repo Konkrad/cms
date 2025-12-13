@@ -42,7 +42,7 @@ export const useCreateEvent = routeAction$(
       userId: data.userId,
     }, accessToken, refreshToken);
 
-    throw event.redirect(303, '/events');
+    throw event.redirect(303, '/admin/events');
   },
   zod$({
     title: z.string().min(1, 'Title is required'),

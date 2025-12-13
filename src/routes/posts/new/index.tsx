@@ -31,7 +31,7 @@ export const useCreatePost = routeAction$(
       userId: data.userId,
     }, accessToken, refreshToken);
 
-    throw event.redirect(303, '/posts');
+    throw event.redirect(303, '/admin/posts');
   },
   zod$({
     title: z.string().min(1, 'Title is required'),

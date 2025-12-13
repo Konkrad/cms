@@ -35,6 +35,15 @@ export const Navigation = component$(() => {
               Events
             </Link>
 
+            {isAdmin && (
+              <Link
+                href="/admin"
+                class="flex items-center px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
+              >
+                Admin
+              </Link>
+            )}
+
             {user.value ? (
               <div class="relative">
                 <button
@@ -62,19 +71,9 @@ export const Navigation = component$(() => {
                     <Link
                       href="/profile"
                       class="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                      onClick$={() => showUserMenu.value = false}
                     >
                       My Profile
                     </Link>
-                    {isAdmin && (
-                      <Link
-                        href="/admin"
-                        class="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick$={() => showUserMenu.value = false}
-                      >
-                        Admin Area
-                      </Link>
-                    )}
                     <a
                       href="/api/auth/logout"
                       class="block px-4 py-2 text-gray-700 hover:bg-gray-100"

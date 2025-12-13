@@ -1,6 +1,7 @@
 import type { RequestHandler } from '@builder.io/qwik-city';
 import { eventsService } from '~/services/events.service';
 import { z } from 'zod';
+import { isAdmin } from '~/utils/server-auth';
 
 const createEventSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -24,12 +25,20 @@ export const onGet: RequestHandler = async ({ query, json }) => {
   json(200, events);
 };
 
-export const onPost: RequestHandler = async ({ request, json }) => {
+export const onPost: RequestHandler = async (event) => {
+  const { request, json } = event;
+
+  const adminStatus = await isAdmin(event);
+  if (!adminStatus) {
+    json(403, { error: 'Forbidden: Admin access required' });
+    return;
+  }
+
   try {
     const body = await request.json();
     const validated = createEventSchema.parse(body);
 
-    const event = await eventsService.create({
+    const eventData = await eventsService.create({
       title: validated.title,
       body: validated.body,
       startDate: new Date(validated.startDate),
@@ -42,7 +51,7 @@ export const onPost: RequestHandler = async ({ request, json }) => {
       userId: validated.userId,
     });
 
-    json(201, event);
+    json(201, eventData);
   } catch (error) {
     if (error instanceof z.ZodError) {
       json(400, { error: 'Validation failed', details: error.issues });

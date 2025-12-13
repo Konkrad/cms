@@ -7,20 +7,28 @@ import { Input } from '~/components/ui/Input';
 import { TextArea } from '~/components/ui/TextArea';
 import { Select } from '~/components/ui/Select';
 import { Button } from '~/components/ui/Button';
+import { requireAdmin } from '~/utils/server-auth';
+
+export const useAdminAuth = routeLoader$(async (event) => {
+  await requireAdmin(event);
+  return true;
+});
 
 export const useUsers = routeLoader$(async () => {
   return await usersService.getAll();
 });
 
 export const useCreatePost = routeAction$(
-  async (data, { redirect }) => {
+  async (data, event) => {
+    await requireAdmin(event);
+
     await postsService.create({
       title: data.title,
       body: data.body,
       userId: data.userId,
     });
 
-    throw redirect(303, '/posts');
+    throw event.redirect(303, '/posts');
   },
   zod$({
     title: z.string().min(1, 'Title is required'),

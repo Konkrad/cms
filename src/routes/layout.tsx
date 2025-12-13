@@ -2,6 +2,7 @@ import { component$, Slot } from '@builder.io/qwik';
 import { routeLoader$ } from '@builder.io/qwik-city';
 import type { RequestHandler } from '@builder.io/qwik-city';
 import { Navigation } from '~/components/ui/Navigation';
+import { getCurrentUserData } from '~/utils/server-auth';
 
 export const onGet: RequestHandler = async ({ cacheControl }) => {
   cacheControl({
@@ -14,6 +15,11 @@ export const useServerTimeLoader = routeLoader$(() => {
   return {
     date: new Date().toISOString(),
   };
+});
+
+export const useUserSession = routeLoader$(async (event) => {
+  const userData = await getCurrentUserData(event);
+  return userData;
 });
 
 export default component$(() => {

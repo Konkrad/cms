@@ -1,6 +1,7 @@
 import type { RequestHandler } from '@builder.io/qwik-city';
 import { eventsService } from '~/services/events.service';
 import { z } from 'zod';
+import { isAdmin } from '~/utils/server-auth';
 
 const updateEventSchema = z.object({
   title: z.string().min(1).optional(),
@@ -26,7 +27,15 @@ export const onGet: RequestHandler = async ({ params, json }) => {
   json(200, event);
 };
 
-export const onPut: RequestHandler = async ({ params, request, json }) => {
+export const onPut: RequestHandler = async (event) => {
+  const { params, request, json } = event;
+
+  const adminStatus = await isAdmin(event);
+  if (!adminStatus) {
+    json(403, { error: 'Forbidden: Admin access required' });
+    return;
+  }
+
   try {
     const body = await request.json();
     const validated = updateEventSchema.parse(body);
@@ -44,14 +53,14 @@ export const onPut: RequestHandler = async ({ params, request, json }) => {
       userId: validated.userId,
     };
 
-    const event = await eventsService.update(params.id, updateData);
+    const eventData = await eventsService.update(params.id, updateData);
 
-    if (!event) {
+    if (!eventData) {
       json(404, { error: 'Event not found' });
       return;
     }
 
-    json(200, event);
+    json(200, eventData);
   } catch (error) {
     if (error instanceof z.ZodError) {
       json(400, { error: 'Validation failed', details: error.issues });
@@ -61,7 +70,15 @@ export const onPut: RequestHandler = async ({ params, request, json }) => {
   }
 };
 
-export const onDelete: RequestHandler = async ({ params, json }) => {
+export const onDelete: RequestHandler = async (event) => {
+  const { params, json } = event;
+
+  const adminStatus = await isAdmin(event);
+  if (!adminStatus) {
+    json(403, { error: 'Forbidden: Admin access required' });
+    return;
+  }
+
   try {
     await eventsService.delete(params.id);
     json(204, null);

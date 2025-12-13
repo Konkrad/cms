@@ -9,6 +9,12 @@ import { Select } from '~/components/ui/Select';
 import { Button } from '~/components/ui/Button';
 import { LocationAutocomplete } from '~/components/ui/LocationAutocomplete';
 import type { GeocodingResult } from '~/services/geocoding.service';
+import { requireAdmin } from '~/utils/server-auth';
+
+export const useAdminAuth = routeLoader$(async (event) => {
+  await requireAdmin(event);
+  return true;
+});
 
 export const useEvent = routeLoader$(async ({ params }) => {
   const event = await eventsService.getById(params.id);
@@ -23,8 +29,10 @@ export const useUsers = routeLoader$(async () => {
 });
 
 export const useUpdateEvent = routeAction$(
-  async (data, { params, redirect }) => {
-    await eventsService.update(params.id, {
+  async (data, event) => {
+    await requireAdmin(event);
+
+    await eventsService.update(event.params.id, {
       title: data.title,
       body: data.body,
       startDate: new Date(data.startDate),
@@ -39,7 +47,7 @@ export const useUpdateEvent = routeAction$(
       userId: data.userId,
     });
 
-    throw redirect(303, `/events/${params.id}`);
+    throw event.redirect(303, `/events/${event.params.id}`);
   },
   zod$({
     title: z.string().min(1, 'Title is required'),

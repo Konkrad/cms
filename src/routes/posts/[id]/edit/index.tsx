@@ -7,6 +7,12 @@ import { Input } from '~/components/ui/Input';
 import { TextArea } from '~/components/ui/TextArea';
 import { Select } from '~/components/ui/Select';
 import { Button } from '~/components/ui/Button';
+import { requireAdmin } from '~/utils/server-auth';
+
+export const useAdminAuth = routeLoader$(async (event) => {
+  await requireAdmin(event);
+  return true;
+});
 
 export const usePost = routeLoader$(async ({ params }) => {
   const post = await postsService.getById(params.id);
@@ -21,14 +27,16 @@ export const useUsers = routeLoader$(async () => {
 });
 
 export const useUpdatePost = routeAction$(
-  async (data, { params, redirect }) => {
-    await postsService.update(params.id, {
+  async (data, event) => {
+    await requireAdmin(event);
+
+    await postsService.update(event.params.id, {
       title: data.title,
       body: data.body,
       userId: data.userId,
     });
 
-    throw redirect(303, `/posts/${params.id}`);
+    throw event.redirect(303, `/posts/${event.params.id}`);
   },
   zod$({
     title: z.string().min(1, 'Title is required'),

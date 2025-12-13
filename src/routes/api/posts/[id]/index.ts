@@ -1,6 +1,7 @@
 import type { RequestHandler } from '@builder.io/qwik-city';
 import { postsService } from '~/services/posts.service';
 import { z } from 'zod';
+import { isAdmin } from '~/utils/server-auth';
 
 const updatePostSchema = z.object({
   title: z.string().min(1).optional(),
@@ -19,7 +20,15 @@ export const onGet: RequestHandler = async ({ params, json }) => {
   json(200, post);
 };
 
-export const onPut: RequestHandler = async ({ params, request, json }) => {
+export const onPut: RequestHandler = async (event) => {
+  const { params, request, json } = event;
+
+  const adminStatus = await isAdmin(event);
+  if (!adminStatus) {
+    json(403, { error: 'Forbidden: Admin access required' });
+    return;
+  }
+
   try {
     const body = await request.json();
     const validated = updatePostSchema.parse(body);
@@ -41,7 +50,15 @@ export const onPut: RequestHandler = async ({ params, request, json }) => {
   }
 };
 
-export const onDelete: RequestHandler = async ({ params, json }) => {
+export const onDelete: RequestHandler = async (event) => {
+  const { params, json } = event;
+
+  const adminStatus = await isAdmin(event);
+  if (!adminStatus) {
+    json(403, { error: 'Forbidden: Admin access required' });
+    return;
+  }
+
   try {
     await postsService.delete(params.id);
     json(204, null);

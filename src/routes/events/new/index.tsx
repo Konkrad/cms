@@ -9,13 +9,21 @@ import { Select } from '~/components/ui/Select';
 import { Button } from '~/components/ui/Button';
 import { LocationAutocomplete } from '~/components/ui/LocationAutocomplete';
 import type { GeocodingResult } from '~/services/geocoding.service';
+import { requireAdmin } from '~/utils/server-auth';
+
+export const useAdminAuth = routeLoader$(async (event) => {
+  await requireAdmin(event);
+  return true;
+});
 
 export const useUsers = routeLoader$(async () => {
   return await usersService.getAll();
 });
 
 export const useCreateEvent = routeAction$(
-  async (data, { redirect }) => {
+  async (data, event) => {
+    await requireAdmin(event);
+
     await eventsService.create({
       title: data.title,
       body: data.body,
@@ -31,7 +39,7 @@ export const useCreateEvent = routeAction$(
       userId: data.userId,
     });
 
-    throw redirect(303, '/events');
+    throw event.redirect(303, '/events');
   },
   zod$({
     title: z.string().min(1, 'Title is required'),

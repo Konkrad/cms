@@ -1,6 +1,7 @@
 import type { RequestHandler } from '@builder.io/qwik-city';
 import { postsService } from '~/services/posts.service';
 import { z } from 'zod';
+import { isAdmin } from '~/utils/server-auth';
 
 const createPostSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -14,7 +15,15 @@ export const onGet: RequestHandler = async ({ query, json }) => {
   json(200, posts);
 };
 
-export const onPost: RequestHandler = async ({ request, json }) => {
+export const onPost: RequestHandler = async (event) => {
+  const { request, json } = event;
+
+  const adminStatus = await isAdmin(event);
+  if (!adminStatus) {
+    json(403, { error: 'Forbidden: Admin access required' });
+    return;
+  }
+
   try {
     const body = await request.json();
     const validated = createPostSchema.parse(body);

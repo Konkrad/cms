@@ -10,21 +10,21 @@ export const usePage = routeLoader$(async ({ params, status }) => {
 
   if (!page) {
     status(404);
-    return { notFound: true, title: '', slug: '', content: [], status: 'draft' as const };
+    return null;
   }
 
   if (page.status !== 'published') {
     status(404);
-    return { notFound: true, title: '', slug: '', content: [], status: 'draft' as const };
+    return null;
   }
 
-  return { ...page, notFound: false };
+  return page;
 });
 
 export default component$(() => {
   const page = usePage();
 
-  if (page.value.notFound) {
+  if (!page.value) {
     return (
       <div class="max-w-4xl mx-auto px-4 py-16 text-center">
         <h1 class="text-4xl font-bold text-gray-900 mb-4">Page Not Found</h1>
@@ -42,7 +42,7 @@ export default component$(() => {
     <div class="min-h-screen">
       {page.value.content && page.value.content.length > 0 ? (
         <div>
-          {(page.value.content as any[])
+          {page.value.content
             .sort((a, b) => a.order - b.order)
             .map((block) => (
               <BlockRenderer key={block.id} block={block} />
@@ -61,7 +61,7 @@ export default component$(() => {
 export const head: DocumentHead = ({ resolveValue }) => {
   const page = resolveValue(usePage);
 
-  if (page.notFound) {
+  if (!page) {
     return {
       title: 'Page Not Found',
     };

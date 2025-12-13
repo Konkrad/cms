@@ -1,4 +1,4 @@
-import { component$, useTask$, useSignal } from '@builder.io/qwik';
+import { component$, useVisibleTask$, useSignal } from '@builder.io/qwik';
 import { Link } from '@builder.io/qwik-city';
 import { Card } from '~/components/ui/Card';
 import { format } from 'date-fns';
@@ -43,7 +43,7 @@ export default component$<PostsListBlockProps>((props) => {
   const posts = useSignal<any[]>([]);
   const isLoading = useSignal(true);
 
-  useTask$(async () => {
+  useVisibleTask$(async () => {
     try {
       const params = new URLSearchParams();
       params.set('limit', limit.toString());

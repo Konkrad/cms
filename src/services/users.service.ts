@@ -3,10 +3,8 @@ import type { User, NewUser } from '~/db/schema';
 
 export const usersService = {
   async getAll(): Promise<User[]> {
-    console.log('[UsersService] getAll - starting query');
     const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: true });
 
-    console.log('[UsersService] getAll - query result:', { hasData: !!data, hasError: !!error });
     if (error) throw error;
     return (data || []).map((user: any) => ({
       id: user.id,

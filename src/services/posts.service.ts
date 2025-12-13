@@ -4,24 +4,25 @@ import type { Post, NewPost } from '~/db/schema';
 
 export type PostWithUser = Post & { user: { displayName: string; email: string } };
 
-const getSupabaseClient = (accessToken?: string) => {
+const getSupabaseClient = async (accessToken?: string, refreshToken?: string) => {
   if (accessToken) {
     const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
     const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
-    return createClient(supabaseUrl, supabaseKey, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      },
+    const client = createClient(supabaseUrl, supabaseKey);
+
+    await client.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken || '',
     });
+
+    return client;
   }
   return supabase;
 };
 
 export const postsService = {
-  async getAll(userId?: string, accessToken?: string): Promise<PostWithUser[]> {
-    const client = getSupabaseClient(accessToken);
+  async getAll(userId?: string, accessToken?: string, refreshToken?: string): Promise<PostWithUser[]> {
+    const client = await getSupabaseClient(accessToken, refreshToken);
     let query = client
       .from('posts')
       .select(
@@ -53,8 +54,8 @@ export const postsService = {
     })) as PostWithUser[];
   },
 
-  async getRecent(limit: number = 3, accessToken?: string): Promise<PostWithUser[]> {
-    const client = getSupabaseClient(accessToken);
+  async getRecent(limit: number = 3, accessToken?: string, refreshToken?: string): Promise<PostWithUser[]> {
+    const client = await getSupabaseClient(accessToken, refreshToken);
     const { data, error } = await client
       .from('posts')
       .select(
@@ -81,8 +82,8 @@ export const postsService = {
     })) as PostWithUser[];
   },
 
-  async getById(id: string, accessToken?: string): Promise<PostWithUser | undefined> {
-    const client = getSupabaseClient(accessToken);
+  async getById(id: string, accessToken?: string, refreshToken?: string): Promise<PostWithUser | undefined> {
+    const client = await getSupabaseClient(accessToken, refreshToken);
     const { data, error } = await client
       .from('posts')
       .select(
@@ -111,8 +112,8 @@ export const postsService = {
     } as PostWithUser;
   },
 
-  async create(data: Omit<NewPost, 'id' | 'createdAt' | 'updatedAt'>, accessToken?: string): Promise<Post> {
-    const client = getSupabaseClient(accessToken);
+  async create(data: Omit<NewPost, 'id' | 'createdAt' | 'updatedAt'>, accessToken?: string, refreshToken?: string): Promise<Post> {
+    const client = await getSupabaseClient(accessToken, refreshToken);
     const { data: result, error } = await client
       .from('posts')
       .insert({
@@ -134,8 +135,8 @@ export const postsService = {
     } as Post;
   },
 
-  async update(id: string, data: Partial<Omit<NewPost, 'id' | 'createdAt'>>, accessToken?: string): Promise<Post | undefined> {
-    const client = getSupabaseClient(accessToken);
+  async update(id: string, data: Partial<Omit<NewPost, 'id' | 'createdAt'>>, accessToken?: string, refreshToken?: string): Promise<Post | undefined> {
+    const client = await getSupabaseClient(accessToken, refreshToken);
     const updateData: any = {
       updated_at: new Date().toISOString(),
     };
@@ -157,8 +158,8 @@ export const postsService = {
     } as Post;
   },
 
-  async delete(id: string, accessToken?: string): Promise<void> {
-    const client = getSupabaseClient(accessToken);
+  async delete(id: string, accessToken?: string, refreshToken?: string): Promise<void> {
+    const client = await getSupabaseClient(accessToken, refreshToken);
     const { error } = await client.from('posts').delete().eq('id', id);
     if (error) throw error;
   },

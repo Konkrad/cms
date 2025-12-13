@@ -3,7 +3,6 @@ import { routeLoader$, routeAction$, Form, z, zod$ } from '@builder.io/qwik-city
 import { Card } from '~/components/ui/Card';
 import { Button } from '~/components/ui/Button';
 import { Input } from '~/components/ui/Input';
-import { Select } from '~/components/ui/Select';
 import { getCurrentUserData, requireAuth } from '~/utils/server-auth';
 import { supabase } from '~/db/connection';
 

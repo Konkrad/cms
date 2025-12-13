@@ -28,13 +28,16 @@ export const onGet: RequestHandler = async ({ params, json }) => {
 };
 
 export const onPut: RequestHandler = async (event) => {
-  const { params, request, json } = event;
+  const { params, request, json, cookie } = event;
 
   const adminStatus = await isAdmin(event);
   if (!adminStatus) {
     json(403, { error: 'Forbidden: Admin access required' });
     return;
   }
+
+  const accessToken = cookie.get('sb-access-token')?.value;
+  const refreshToken = cookie.get('sb-refresh-token')?.value;
 
   try {
     const body = await request.json();
@@ -53,7 +56,7 @@ export const onPut: RequestHandler = async (event) => {
       userId: validated.userId,
     };
 
-    const eventData = await eventsService.update(params.id, updateData);
+    const eventData = await eventsService.update(params.id, updateData, accessToken, refreshToken);
 
     if (!eventData) {
       json(404, { error: 'Event not found' });
@@ -71,7 +74,7 @@ export const onPut: RequestHandler = async (event) => {
 };
 
 export const onDelete: RequestHandler = async (event) => {
-  const { params, json } = event;
+  const { params, json, cookie } = event;
 
   const adminStatus = await isAdmin(event);
   if (!adminStatus) {
@@ -79,8 +82,11 @@ export const onDelete: RequestHandler = async (event) => {
     return;
   }
 
+  const accessToken = cookie.get('sb-access-token')?.value;
+  const refreshToken = cookie.get('sb-refresh-token')?.value;
+
   try {
-    await eventsService.delete(params.id);
+    await eventsService.delete(params.id, accessToken, refreshToken);
     json(204, null);
   } catch (error) {
     json(500, { error: 'Internal server error' });

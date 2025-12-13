@@ -4,24 +4,25 @@ import type { Event, NewEvent } from '~/db/schema';
 
 export type EventWithUser = Event & { user: { displayName: string; email: string } };
 
-const getSupabaseClient = (accessToken?: string) => {
+const getSupabaseClient = async (accessToken?: string, refreshToken?: string) => {
   if (accessToken) {
     const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
     const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
-    return createClient(supabaseUrl, supabaseKey, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      },
+    const client = createClient(supabaseUrl, supabaseKey);
+
+    await client.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken || '',
     });
+
+    return client;
   }
   return supabase;
 };
 
 export const eventsService = {
-  async getAll(filters?: { userId?: string; locationType?: string; upcoming?: boolean }, accessToken?: string): Promise<EventWithUser[]> {
-    const client = getSupabaseClient(accessToken);
+  async getAll(filters?: { userId?: string; locationType?: string; upcoming?: boolean }, accessToken?: string, refreshToken?: string): Promise<EventWithUser[]> {
+    const client = await getSupabaseClient(accessToken, refreshToken);
     let query = client
       .from('events')
       .select(
@@ -70,8 +71,8 @@ export const eventsService = {
     })) as EventWithUser[];
   },
 
-  async getUpcoming(limit: number = 3, accessToken?: string): Promise<EventWithUser[]> {
-    const client = getSupabaseClient(accessToken);
+  async getUpcoming(limit: number = 3, accessToken?: string, refreshToken?: string): Promise<EventWithUser[]> {
+    const client = await getSupabaseClient(accessToken, refreshToken);
     const { data, error } = await client
       .from('events')
       .select(
@@ -108,8 +109,8 @@ export const eventsService = {
     })) as EventWithUser[];
   },
 
-  async getById(id: string, accessToken?: string): Promise<EventWithUser | undefined> {
-    const client = getSupabaseClient(accessToken);
+  async getById(id: string, accessToken?: string, refreshToken?: string): Promise<EventWithUser | undefined> {
+    const client = await getSupabaseClient(accessToken, refreshToken);
     const { data, error } = await client
       .from('events')
       .select(
@@ -147,8 +148,8 @@ export const eventsService = {
     } as EventWithUser;
   },
 
-  async create(data: Omit<NewEvent, 'id' | 'createdAt' | 'updatedAt'>, accessToken?: string): Promise<Event> {
-    const client = getSupabaseClient(accessToken);
+  async create(data: Omit<NewEvent, 'id' | 'createdAt' | 'updatedAt'>, accessToken?: string, refreshToken?: string): Promise<Event> {
+    const client = await getSupabaseClient(accessToken, refreshToken);
     const { data: result, error } = await client
       .from('events')
       .insert({
@@ -188,8 +189,8 @@ export const eventsService = {
     } as Event;
   },
 
-  async update(id: string, data: Partial<Omit<NewEvent, 'id' | 'createdAt'>>, accessToken?: string): Promise<Event | undefined> {
-    const client = getSupabaseClient(accessToken);
+  async update(id: string, data: Partial<Omit<NewEvent, 'id' | 'createdAt'>>, accessToken?: string, refreshToken?: string): Promise<Event | undefined> {
+    const client = await getSupabaseClient(accessToken, refreshToken);
     const updateData: any = {
       updated_at: new Date().toISOString(),
     };
@@ -229,8 +230,8 @@ export const eventsService = {
     } as Event;
   },
 
-  async delete(id: string, accessToken?: string): Promise<void> {
-    const client = getSupabaseClient(accessToken);
+  async delete(id: string, accessToken?: string, refreshToken?: string): Promise<void> {
+    const client = await getSupabaseClient(accessToken, refreshToken);
     const { error } = await client.from('events').delete().eq('id', id);
     if (error) throw error;
   },

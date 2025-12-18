@@ -25,16 +25,21 @@
     "lint": "eslint \"src/**/*.ts*\"",
     "preview": "qwik build preview && vite preview --open",
     "start": "vite --open --mode ssr",
-    "qwik": "qwik"
+    "qwik": "qwik",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
   },
   "devDependencies": {
     "@builder.io/qwik": "^1.7.3",
     "@builder.io/qwik-city": "^1.7.3",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/eslint": "^8.56.10",
     "@types/node": "^20.12.7",
     "@typescript-eslint/eslint-plugin": "^7.7.1",
     "@typescript-eslint/parser": "^7.7.1",
     "autoprefixer": "^10.4.22",
+    "drizzle-kit": "^0.31.8",
     "eslint": "^8.57.0",
     "eslint-plugin-qwik": "^1.7.3",
     "postcss": "^8.5.6",
@@ -45,9 +50,10 @@
     "vite-tsconfig-paths": "^4.2.1"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.87.1",
+    "better-sqlite3": "^12.5.0",
     "date-fns": "^3.6.0",
-    "tailwindcss": "^3.4.18",
-    "zod": "^4.1.13"
+    "drizzle-orm": "^0.45.1",
+    "drizzle-zod": "^0.8.3",
+    "tailwindcss": "^3.4.18"
   }
 }

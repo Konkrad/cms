@@ -1,17 +1,19 @@
-/cms/src/utils/email-auth.ts
-
 import bcrypt from "bcryptjs";
-import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "crypto";
+import {
+  createHash,
+  createHmac,
+  randomBytes,
+  randomInt,
+  timingSafeEqual,
+} from "crypto";
+import { env } from "~/env";
 
 /**
  * Utilities for email-based authentication:
  * - OTP generation & hashing (bcrypt)
- * - Magic token generation & hashing (SHA-256 or HMAC-SHA256 if secret is provided)
+ * - Magic token generation & hashing (HMAC-SHA256 if secret is provided)
  * - Encoding/decoding magic link payload (base64 of "email:token")
  * - Session token generation
- *
- * NOTE: OTP hashing uses bcrypt (async), magic token hashing uses HMAC-SHA256
- * when process.env.MAGIC_LINK_SECRET is set, otherwise plain SHA-256.
  */
 
 /** Defaults */
@@ -52,18 +54,18 @@ export function getExpiresAt(minutes = DEFAULT_EXPIRE_MINUTES): Date {
  * Returns hex string.
  */
 export function hashMagicToken(token: string): string {
-  const secret = process.env.MAGIC_LINK_SECRET;
-  if (secret) {
-    return createHmac("sha256", secret).update(token).digest("hex");
-  }
-  return createHash("sha256").update(token).digest("hex");
+  const secret = env.MAGIC_LINK_SECRET;
+  return createHmac("sha256", secret).update(token).digest("hex");
 }
 
 /**
  * Verify a raw magic token against the stored hash (hex).
  * Uses timing-safe comparison.
  */
-export function verifyMagicToken(rawToken: string, storedHash: string): boolean {
+export function verifyMagicToken(
+  rawToken: string,
+  storedHash: string,
+): boolean {
   try {
     const computed = hashMagicToken(rawToken);
     const a = Buffer.from(computed, "hex");
@@ -98,16 +100,19 @@ export function encodeMagicLink(email: string, token: string): string {
   return Buffer.from(raw, "utf8").toString("base64");
 }
 
-/** Decode the base64 magic param; returns { email, hash } or throws */
-export function decodeMagicLink(param: string): { email: string; hash: string } {
+/** Decode the base64 magic param; returns { email, token } or throws */
+export function decodeMagicLink(param: string): {
+  email: string;
+  token: string;
+} {
   try {
     const decoded = Buffer.from(param, "base64").toString("utf8");
     const sep = decoded.indexOf(":");
     if (sep === -1) throw new Error("Invalid token format");
     const email = decoded.slice(0, sep);
-    const hash = decoded.slice(sep + 1);
-    if (!email || !hash) throw new Error("Invalid token content");
-    return { email, hash };
+    const token = decoded.slice(sep + 1);
+    if (!email || !token) throw new Error("Invalid token content");
+    return { email, token };
   } catch (err) {
     throw new Error("Invalid or corrupt token");
   }

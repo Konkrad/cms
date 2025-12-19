@@ -3,7 +3,7 @@
 /lib
 /lib-types
 /server
-
+/data
 # Development
 node_modules
 *.local
@@ -40,3 +40,6 @@ lerna-debug.log*
 # Yarn
 .yarn/*
 !.yarn/releases
+
+.env
+my-database.db

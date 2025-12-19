@@ -4,7 +4,7 @@ import * as React from "react";
 import LoginEmail from "~/emails/LoginEmail";
 import { env } from "~/env";
 
-type MailResult = Awaited<ReturnType<Transporter["sendMail"]>>;
+type MailResult = any;
 
 const SMTP_HOST = env.SMTP_HOST;
 const SMTP_PORT = env.SMTP_PORT;
@@ -53,7 +53,9 @@ export async function sendLoginEmail({
   subject?: string;
 }): Promise<MailResult> {
   const appName = env.APP_NAME;
-  const html = render(React.createElement(LoginEmail, { link, code, appName }));
+  const html = await render(
+    React.createElement(LoginEmail, { link, code, appName }),
+  );
 
   const text = [
     `Sign in to ${appName}`,

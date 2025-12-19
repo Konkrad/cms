@@ -1,11 +1,16 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
-import { routeLoader$, useNavigate } from "@builder.io/qwik-city";
+import { routeLoader$, routeAction$ } from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 // Using email-based auth (magic link + OTP) instead of the old password-based auth
 import { getServerSession } from "~/utils/server-auth";
+import { emailAuthService } from "~/services/email-auth.service";
+import { env } from "~/env";
 
+/**
+ * If already authenticated, redirect away from the login page.
+ */
 export const useCheckAuth = routeLoader$(async (event) => {
   const user = await getServerSession(event);
   if (user) {
@@ -14,14 +19,66 @@ export const useCheckAuth = routeLoader$(async (event) => {
   return null;
 });
 
+/**
+ * Server action: send login email (magic link + OTP)
+ */
+export const useSendAction = routeAction$(async (data: any) => {
+  const email = String(data?.email || "").trim();
+  if (!email || !/\S+@\S+\.\S+/.test(email)) {
+    return { success: false, error: "Invalid email" };
+  }
+
+  await emailAuthService.sendLoginEmail(email);
+  return { success: true };
+});
+
+/**
+ * Server action: verify OTP (POST from the login page)
+ * On success: sets `session` cookie and redirects to / or /profile
+ */
+export const useVerifyAction = routeAction$(async (data: any, event: any) => {
+  const email = String(data?.email || "").trim();
+  const code = String(data?.code || "").trim();
+
+  if (!email || !code) {
+    return { success: false, error: "Missing email or code" };
+  }
+
+  const ip =
+    event.request.headers.get("x-forwarded-for") ||
+    event.request.headers.get("cf-connecting-ip") ||
+    event.request.headers.get("x-real-ip") ||
+    undefined;
+  const userAgent = event.request.headers.get("user-agent") || undefined;
+
+  const result = await emailAuthService.verifyOtp(email, code, {
+    ip,
+    userAgent,
+  });
+
+  // Set HTTP-only session cookie
+  event.cookie.set("session", result.session.token, {
+    httpOnly: true,
+    secure: env.isProduction,
+    sameSite: "Strict",
+    path: "/",
+    expires: new Date(result.session.expiresAt),
+  });
+
+  // Redirect on success (server-side redirect)
+  throw event.redirect(302, result.userCreated ? "/profile" : "/");
+});
+
 export default component$(() => {
-  const nav = useNavigate();
   const email = useSignal("");
   const code = useSignal("");
   const step = useSignal<"send" | "verify">("send");
   const error = useSignal("");
   const info = useSignal("");
   const isLoading = useSignal(false);
+
+  const sendAction = useSendAction();
+  const verifyAction = useVerifyAction();
 
   const handleSend = $(async () => {
     if (!email.value) {
@@ -34,15 +91,12 @@ export default component$(() => {
     info.value = "";
 
     try {
-      const res = await fetch("/api/auth/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.value.trim() }),
-      });
+      const formData = new FormData();
+      formData.set("email", email.value.trim());
+      await sendAction.submit(formData);
 
-      const json = await res.json();
-      if (!res.ok || !json?.success) {
-        error.value = json?.error || "Failed to send login email";
+      if (!sendAction.value?.success) {
+        error.value = sendAction.value?.error || "Failed to send login email";
         return;
       }
 
@@ -67,28 +121,21 @@ export default component$(() => {
     info.value = "";
 
     try {
-      const res = await fetch("/api/auth/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.value.trim(),
-          code: code.value.trim(),
-        }),
-      });
+      const formData = new FormData();
+      formData.set("email", email.value.trim());
+      formData.set("code", code.value.trim());
+      await verifyAction.submit(formData);
 
-      const json = await res.json();
-      if (!res.ok || !json?.success) {
-        error.value = json?.error || "Invalid code or verification failed";
+      // If the action performed a server-side redirect, the client will navigate.
+      // Otherwise, check the returned value for errors.
+      if (verifyAction.value && !verifyAction.value.success) {
+        error.value =
+          verifyAction.value.error || "Invalid code or verification failed";
         return;
       }
-
-      // Server sets session cookie; if it returned a redirect, follow it
-      if (json?.redirect) {
-        await nav(json.redirect);
-      } else {
-        await nav("/");
-      }
     } catch (err: any) {
+      // If a redirect occurred, the code here may never run.
+      // Surface any unexpected errors.
       error.value = err?.message || "Verification failed";
     } finally {
       isLoading.value = false;

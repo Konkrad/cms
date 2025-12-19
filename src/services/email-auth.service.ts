@@ -49,31 +49,63 @@ export const emailAuthService = {
 
     const expiresAt = getExpiresAt().toISOString();
 
-    // Replace any existing login for this email (ensures single row per email)
-    await db.delete(logins).where(eq(logins.email, normalizedEmail));
+    // Upsert login row for this email: update the existing row (preserving its id)
+    // or insert a new one. Keep previous values so we can revert if sending email fails.
+    const existingRows = await db
+      .select()
+      .from(logins)
+      .where(eq(logins.email, normalizedEmail));
+    const existing = existingRows.length ? (existingRows[0] as any) : null;
 
-    // Insert new login row
-    const id = crypto.randomUUID();
-    await db
-      .insert(logins)
-      .values({
-        id,
-        email: normalizedEmail,
-        magicHash,
-        otpHash,
-        expiresAt,
-        otpAttempts: 0,
-        magicUsed: false,
-        otpUsed: false,
-      })
-      .run();
+    const id = existing ? existing.id : crypto.randomUUID();
+
+    // Keep previous values in case we need to revert
+    let prev: any = null;
+    if (existing) {
+      prev = {
+        magicHash: existing.magicHash,
+        otpHash: existing.otpHash,
+        expiresAt: existing.expiresAt,
+        otpAttempts: existing.otpAttempts,
+        magicUsed: existing.magicUsed,
+        otpUsed: existing.otpUsed,
+      };
+
+      // Update the existing login row with the new tokens (preserve email & id)
+      await db
+        .update(logins)
+        .set({
+          magicHash,
+          otpHash,
+          expiresAt,
+          otpAttempts: 0,
+          magicUsed: false,
+          otpUsed: false,
+        })
+        .where(eq(logins.id, id));
+    } else {
+      // Insert new login row
+      await db
+        .insert(logins)
+        .values({
+          id,
+          email: normalizedEmail,
+          magicHash,
+          otpHash,
+          expiresAt,
+          otpAttempts: 0,
+          magicUsed: false,
+          otpUsed: false,
+        })
+        .run();
+    }
 
     // Build magic link (base64 of "email:rawMagic")
     const encoded = encodeMagicLink(normalizedEmail, rawMagic);
-    const appUrl = env.APP_DOMAIN;
+    const appUrl = env.APP_URL;
     const link = `${appUrl}/auth/verify?token=${encodeURIComponent(encoded)}`;
 
-    // Send email (if it fails we remove the created login row to avoid dangling rows)
+    // Send email (if it fails we will revert the login row to its previous state)
     try {
       await sendLoginEmail({
         to: normalizedEmail,
@@ -82,9 +114,23 @@ export const emailAuthService = {
       });
       return { success: true };
     } catch (err) {
-      // cleanup
-      console.error("Failed to send login email, removing login row:", err);
-      await db.delete(logins).where(eq(logins.email, normalizedEmail));
+      // revert or cleanup
+      console.error("Failed to send login email, reverting login row:", err);
+      if (existing && prev) {
+        await db
+          .update(logins)
+          .set({
+            magicHash: prev.magicHash,
+            otpHash: prev.otpHash,
+            expiresAt: prev.expiresAt,
+            otpAttempts: prev.otpAttempts,
+            magicUsed: prev.magicUsed,
+            otpUsed: prev.otpUsed,
+          })
+          .where(eq(logins.id, id));
+      } else {
+        await db.delete(logins).where(eq(logins.email, normalizedEmail));
+      }
       throw err;
     }
   },
@@ -132,8 +178,11 @@ export const emailAuthService = {
       .set({ magicUsed: true })
       .where(eq(logins.id, login.id));
 
-    // Create a pending session that references the login row (user not created yet)
-    const session = await createSessionForLogin(login.id, meta);
+    // Ensure a user exists for this login (create if missing)
+    const { user, created } = await ensureUserForLogin(login.id);
+
+    // Create a session for the (existing or newly created) user
+    const session = await createSessionForUser(user.id, meta);
 
     return {
       success: true,
@@ -141,7 +190,7 @@ export const emailAuthService = {
         token: session.token,
         expiresAt: session.expiresAt,
       },
-      userCreated: false,
+      userCreated: created,
       login: {
         id: login.id,
         email: login.email,
@@ -205,8 +254,11 @@ export const emailAuthService = {
       .set({ otpUsed: true })
       .where(eq(logins.id, login.id));
 
-    // Create a pending session referencing the login (user not created yet)
-    const session = await createSessionForLogin(login.id, meta);
+    // Ensure a user exists for this login (create if missing)
+    const { user, created } = await ensureUserForLogin(login.id);
+
+    // Create a session for the (existing or newly created) user
+    const session = await createSessionForUser(user.id, meta);
 
     return {
       success: true,
@@ -214,7 +266,7 @@ export const emailAuthService = {
         token: session.token,
         expiresAt: session.expiresAt,
       },
-      userCreated: false,
+      userCreated: created,
       login: {
         id: login.id,
         email: login.email,
@@ -244,7 +296,7 @@ async function ensureUserForLogin(loginId: string) {
   // Look up user by loginId
   const found = await db.select().from(users).where(eq(users.loginId, loginId));
   if (found.length > 0) {
-    return found[0] as any;
+    return { user: found[0] as any, created: false };
   }
 
   // create minimal user (name/display names are required in schema -> use empty strings)
@@ -260,9 +312,11 @@ async function ensureUserForLogin(loginId: string) {
     } as any)
     .returning();
   // .returning() returns an array; take the first
-  return Array.isArray(inserted) && inserted.length > 0
-    ? inserted[0]
-    : { id, name: "", familyName: "", displayName: "", loginId };
+  const user =
+    Array.isArray(inserted) && inserted.length > 0
+      ? inserted[0]
+      : { id, name: "", familyName: "", displayName: "", loginId };
+  return { user, created: true };
 }
 
 /**

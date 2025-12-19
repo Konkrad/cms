@@ -34,12 +34,12 @@ export const onGet = async (event: any): Promise<Response | void> => {
       expires: new Date(result.session.expiresAt),
     });
 
-    // If the user hasn't completed their profile yet, redirect to the signup details page.
-    // Otherwise redirect to the profile page.
+    // If a user was created during verification, treat this as a new user and send them to the profile page so they can complete their details.
+    // Otherwise treat this as a normal sign-in and redirect to the homepage.
     if (result.userCreated) {
       throw event.redirect(302, "/profile");
     } else {
-      throw event.redirect(302, "/signup/details");
+      throw event.redirect(302, "/");
     }
   } catch (err: any) {
     console.error("[api/auth/verify:get] error:", err);
@@ -93,7 +93,7 @@ export const onPost = async (event: any): Promise<Response | void> => {
       expires: new Date(result.session.expiresAt),
     });
 
-    const redirectTo = result.userCreated ? "/profile" : "/signup/details";
+    const redirectTo = result.userCreated ? "/profile" : "/";
     return new Response(
       JSON.stringify({ success: true, redirect: redirectTo }),
       {

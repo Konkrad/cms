@@ -36,12 +36,7 @@ export const useSavePage = routeAction$(
 
     try {
       const content = JSON.parse(data.content);
-      await pagesService.update(
-        event.params.id,
-        { content },
-        accessToken,
-        refreshToken,
-      );
+      await pagesService.update(event.params.id, { content });
 
       return { success: true };
     } catch (error: any) {

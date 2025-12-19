@@ -2,6 +2,7 @@ import { and, desc, eq, ne } from "drizzle-orm";
 import { db } from "~/db/connection";
 import type { NewPage, Page } from "~/db/schemas/pages";
 import { pages } from "~/db/schemas/pages";
+import crypto from "crypto";
 
 const RESERVED_SLUGS = ["admin", "api", "login", "profile"];
 
@@ -56,19 +57,23 @@ export const pagesService = {
 
   async create(
     data: Omit<NewPage, "id" | "createdAt" | "updatedAt">,
+    accessToken?: string,
+    refreshToken?: string,
   ): Promise<Page> {
     const isValid = await this.validateSlug(data.slug);
     if (!isValid) {
       throw new Error("Slug is already in use or reserved");
     }
+    const id = crypto.randomUUID();
     const [inserted] = await db
       .insert(pages)
       .values({
+        id,
         ...data,
         parentId: data.parentId || null,
         content: data.content || [],
         status: data.status || "draft",
-      })
+      } as any)
       .returning();
     return inserted;
   },

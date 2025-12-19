@@ -1,286 +1,137 @@
-import { supabase } from '~/db/connection';
-import { createClient } from '@supabase/supabase-js';
-import type { Post, NewPost } from '~/db/schema';
+import { db } from "~/db/connection";
+import { posts } from "~/db/schemas/posts";
+import { users } from "~/db/schemas/users";
+import { eq, desc } from "drizzle-orm";
+import type { Post, NewPost } from "~/db/schemas/posts";
+import type { User } from "~/db/schemas/users";
 
-export type PostWithUser = Post & { user: { displayName: string; email: string } };
-
-const getAuthenticatedClient = async (accessToken?: string, refreshToken?: string) => {
-  if (!accessToken) {
-    return supabase;
-  }
-
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
-  const client = createClient(supabaseUrl, supabaseKey);
-
-  const { error } = await client.auth.setSession({
-    access_token: accessToken,
-    refresh_token: refreshToken || '',
-  });
-
-  if (error) {
-    console.error('Error setting session:', error);
-    return supabase;
-  }
-
-  return client;
+export type PostWithUser = Post & {
+  user: { displayName: string; email: string };
 };
 
 export const postsService = {
   async getAll(userId?: string): Promise<PostWithUser[]> {
-    let query = supabase
-      .from('posts')
-      .select(
-        `
-        *,
-        user:users!posts_user_id_fkey(display_name, email)
-      `
-      )
-      .order('created_at', { ascending: false });
+    let query = db
+      .select({
+        ...posts,
+        user: {
+          displayName: users.displayName,
+          email: users.email,
+        },
+      })
+      .from(posts)
+      .leftJoin(users, eq(posts.userId, users.id))
+      .orderBy(desc(posts.createdAt));
 
     if (userId) {
-      query = query.eq('user_id', userId);
+      query = query.where(eq(posts.userId, userId));
     }
 
-    const { data, error } = await query;
-
-    if (error) throw error;
-    return (data || []).map((post: any) => ({
-      id: post.id,
-      title: post.title,
-      body: post.body,
-      userId: post.user_id,
-      createdAt: post.created_at,
-      updatedAt: post.updated_at,
+    const results = await query;
+    return results.map((row) => ({
+      id: row.id,
+      title: row.title,
+      body: row.body,
+      userId: row.userId,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
       user: {
-        displayName: post.user.display_name,
-        email: post.user.email,
+        displayName: row.user?.displayName ?? "",
+        email: row.user?.email ?? "",
       },
-    })) as PostWithUser[];
+    }));
   },
 
   async getRecent(limit: number = 3): Promise<PostWithUser[]> {
-    const { data, error } = await supabase
-      .from('posts')
-      .select(
-        `
-        *,
-        user:users!posts_user_id_fkey(display_name, email)
-      `
-      )
-      .order('created_at', { ascending: false })
+    const results = await db
+      .select({
+        ...posts,
+        user: {
+          displayName: users.displayName,
+          email: users.email,
+        },
+      })
+      .from(posts)
+      .leftJoin(users, eq(posts.userId, users.id))
+      .orderBy(desc(posts.createdAt))
       .limit(limit);
 
-    if (error) throw error;
-    return (data || []).map((post: any) => ({
-      id: post.id,
-      title: post.title,
-      body: post.body,
-      userId: post.user_id,
-      createdAt: post.created_at,
-      updatedAt: post.updated_at,
+    return results.map((row) => ({
+      id: row.id,
+      title: row.title,
+      body: row.body,
+      userId: row.userId,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
       user: {
-        displayName: post.user.display_name,
-        email: post.user.email,
+        displayName: row.user?.displayName ?? "",
+        email: row.user?.email ?? "",
       },
-    })) as PostWithUser[];
+    }));
   },
 
   async getById(id: string): Promise<PostWithUser | undefined> {
-    const { data, error } = await supabase
-      .from('posts')
-      .select(
-        `
-        *,
-        user:users!posts_user_id_fkey(display_name, email)
-      `
-      )
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) throw error;
-    if (!data) return undefined;
-
-    return {
-      id: data.id,
-      title: data.title,
-      body: data.body,
-      userId: data.user_id,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      user: {
-        displayName: (data.user as any).display_name,
-        email: (data.user as any).email,
-      },
-    } as PostWithUser;
-  },
-
-  async create(data: Omit<NewPost, 'id' | 'createdAt' | 'updatedAt'>, accessToken?: string, refreshToken?: string): Promise<Post> {
-    const client = await getAuthenticatedClient(accessToken, refreshToken);
-    const { data: result, error } = await client
-      .from('posts')
-      .insert({
-        title: data.title,
-        body: data.body,
-        user_id: data.userId,
+    const results = await db
+      .select({
+        ...posts,
+        user: {
+          displayName: users.displayName,
+          email: users.email,
+        },
       })
-      .select()
-      .single();
+      .from(posts)
+      .leftJoin(users, eq(posts.userId, users.id))
+      .where(eq(posts.id, id));
 
-    if (error) throw error;
+    const row = results[0];
+    if (!row) return undefined;
+
     return {
-      id: result.id,
-      title: result.title,
-      body: result.body,
-      userId: result.user_id,
-      createdAt: result.created_at,
-      updatedAt: result.updated_at,
-    } as Post;
-  },
-
-  async update(id: string, data: Partial<Omit<NewPost, 'id' | 'createdAt'>>, accessToken?: string, refreshToken?: string): Promise<Post | undefined> {
-    const client = await getAuthenticatedClient(accessToken, refreshToken);
-    const updateData: any = {
-      updated_at: new Date().toISOString(),
+      id: row.id,
+      title: row.title,
+      body: row.body,
+      userId: row.userId,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      user: {
+        displayName: row.user?.displayName ?? "",
+        email: row.user?.email ?? "",
+      },
     };
-
-    if (data.title) updateData.title = data.title;
-    if (data.body) updateData.body = data.body;
-    if (data.userId) updateData.user_id = data.userId;
-
-    const { data: result, error } = await client.from('posts').update(updateData).eq('id', id).select().single();
-
-    if (error) throw error;
-    return {
-      id: result.id,
-      title: result.title,
-      body: result.body,
-      userId: result.user_id,
-      createdAt: result.created_at,
-      updatedAt: result.updated_at,
-    } as Post;
   },
 
-  async delete(id: string, accessToken?: string, refreshToken?: string): Promise<void> {
-    const client = await getAuthenticatedClient(accessToken, refreshToken);
-    const { error } = await client.from('posts').delete().eq('id', id);
-    if (error) throw error;
+  async create(
+    data: Omit<NewPost, "id" | "createdAt" | "updatedAt">,
+  ): Promise<Post> {
+    const [result] = await db
+      .insert(posts)
+      .values({
+        ...data,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .returning();
+
+    return result as Post;
+  },
+
+  async update(
+    id: string,
+    data: Partial<Omit<NewPost, "id" | "createdAt">>,
+  ): Promise<Post | undefined> {
+    const [result] = await db
+      .update(posts)
+      .set({
+        ...data,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(posts.id, id))
+      .returning();
+
+    return result as Post | undefined;
+  },
+
+  async delete(id: string): Promise<void> {
+    await db.delete(posts).where(eq(posts.id, id));
   },
 };
-
-export async function getAllPosts() {
-  const { data, error } = await supabase
-    .from('posts')
-    .select(`
-      *,
-      author:users!posts_user_id_fkey(display_name)
-    `)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-
-  return (data || []).map((post: any) => ({
-    id: post.id,
-    title: post.title,
-    excerpt: post.excerpt || '',
-    content: post.body || '',
-    category: post.category || '',
-    image_url: post.image_url,
-    published_at: post.published_at || post.created_at,
-    author_name: post.author?.display_name || 'Unknown',
-  }));
-}
-
-export async function getPostById(id: string) {
-  const { data, error } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!data) return null;
-
-  return {
-    id: data.id,
-    title: data.title,
-    excerpt: data.excerpt || '',
-    content: data.body || '',
-    category: data.category || '',
-    image_url: data.image_url,
-  };
-}
-
-export async function createPost(postData: any, event: any) {
-  try {
-    const session = event.sharedMap.get('session');
-    if (!session?.user?.id) {
-      return { error: 'Not authenticated' };
-    }
-
-    const { data, error } = await supabase
-      .from('posts')
-      .insert({
-        title: postData.title,
-        excerpt: postData.excerpt,
-        body: postData.content,
-        category: postData.category,
-        image_url: postData.image_url,
-        user_id: session.user.id,
-      })
-      .select()
-      .single();
-
-    if (error) return { error: error.message };
-    return { data };
-  } catch (err: any) {
-    return { error: err.message };
-  }
-}
-
-export async function updatePost(id: string, postData: any, event: any) {
-  try {
-    const session = event.sharedMap.get('session');
-    if (!session?.user?.id) {
-      return { error: 'Not authenticated' };
-    }
-
-    const { data, error } = await supabase
-      .from('posts')
-      .update({
-        title: postData.title,
-        excerpt: postData.excerpt,
-        body: postData.content,
-        category: postData.category,
-        image_url: postData.image_url,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) return { error: error.message };
-    return { data };
-  } catch (err: any) {
-    return { error: err.message };
-  }
-}
-
-export async function deletePost(id: string, event: any) {
-  try {
-    const session = event.sharedMap.get('session');
-    if (!session?.user?.id) {
-      return { error: 'Not authenticated' };
-    }
-
-    const { error } = await supabase
-      .from('posts')
-      .delete()
-      .eq('id', id);
-
-    if (error) return { error: error.message };
-    return { success: true };
-  } catch (err: any) {
-    return { error: err.message };
-  }
-}

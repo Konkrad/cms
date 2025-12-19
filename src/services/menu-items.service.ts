@@ -1,28 +1,12 @@
-import { supabase } from '~/db/connection';
-import { createClient } from '@supabase/supabase-js';
-import type { MenuItem, NewMenuItem, MenuItemTree } from '~/db/schema';
-
-const getAuthenticatedClient = async (accessToken?: string, refreshToken?: string) => {
-  if (!accessToken) {
-    return supabase;
-  }
-
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
-  const client = createClient(supabaseUrl, supabaseKey);
-
-  const { error } = await client.auth.setSession({
-    access_token: accessToken,
-    refresh_token: refreshToken || '',
-  });
-
-  if (error) {
-    console.error('Error setting session:', error);
-    return supabase;
-  }
-
-  return client;
-};
+import { db } from "~/db/connection";
+import { menuItems } from "~/db/schemas/menu-items";
+import type {
+  MenuItem,
+  NewMenuItem,
+  MenuItemTree,
+} from "~/db/schemas/menu-items";
+import { eq, and, desc, asc } from "drizzle-orm";
+import { randomUUID } from "crypto";
 
 function buildMenuTree(items: MenuItem[]): MenuItemTree[] {
   const itemMap = new Map<string, MenuItemTree>();
@@ -43,7 +27,8 @@ function buildMenuTree(items: MenuItem[]): MenuItemTree[] {
     }
   });
 
-  const sortByPosition = (a: MenuItemTree, b: MenuItemTree) => a.position - b.position;
+  const sortByPosition = (a: MenuItemTree, b: MenuItemTree) =>
+    a.position - b.position;
 
   roots.sort(sortByPosition);
   roots.forEach((root) => {
@@ -57,29 +42,16 @@ function buildMenuTree(items: MenuItem[]): MenuItemTree[] {
 
 export const menuItemsService = {
   async getAll(menuName?: string): Promise<MenuItem[]> {
-    console.log('[MenuItemsService] getAll - starting query for menuName:', menuName);
-    let query = supabase.from('menu_items').select('*').order('position', { ascending: true });
-
+    let query = db.select().from(menuItems).orderBy(asc(menuItems.position));
     if (menuName) {
-      query = query.eq('menu_name', menuName);
+      query = db
+        .select()
+        .from(menuItems)
+        .where(eq(menuItems.menuName, menuName))
+        .orderBy(asc(menuItems.position));
     }
-
-    const { data, error } = await query;
-
-    console.log('[MenuItemsService] getAll - query result:', { hasData: !!data, hasError: !!error });
-    if (error) throw error;
-    return (data || []).map((item: any) => ({
-      id: item.id,
-      menuName: item.menu_name,
-      label: item.label,
-      url: item.url,
-      parentId: item.parent_id,
-      position: item.position,
-      icon: item.icon,
-      target: item.target,
-      createdAt: item.created_at,
-      updatedAt: item.updated_at,
-    })) as MenuItem[];
+    const items = await query;
+    return items as MenuItem[];
   },
 
   async getMenuTree(menuName: string): Promise<MenuItemTree[]> {
@@ -88,145 +60,94 @@ export const menuItemsService = {
   },
 
   async getById(id: string): Promise<MenuItem | undefined> {
-    const { data, error } = await supabase
-      .from('menu_items')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) throw error;
-    if (!data) return undefined;
-
-    const item = data as any;
-    return {
-      id: item.id,
-      menuName: item.menu_name,
-      label: item.label,
-      url: item.url,
-      parentId: item.parent_id,
-      position: item.position,
-      icon: item.icon,
-      target: item.target,
-      createdAt: item.created_at,
-      updatedAt: item.updated_at,
-    } as MenuItem;
+    const items = await db.select().from(menuItems).where(eq(menuItems.id, id));
+    return items.length > 0 ? (items[0] as MenuItem) : undefined;
   },
 
   async create(
-    data: Omit<NewMenuItem, 'id' | 'createdAt' | 'updatedAt'>,
-    accessToken?: string,
-    refreshToken?: string
+    data: Omit<NewMenuItem, "id" | "createdAt" | "updatedAt">,
   ): Promise<MenuItem> {
-    const client = await getAuthenticatedClient(accessToken, refreshToken);
+    // Find the next position for this menu/parent
+    const existingItems = await db
+      .select({ position: menuItems.position })
+      .from(menuItems)
+      .where(
+        and(
+          eq(menuItems.menuName, data.menuName),
+          eq(menuItems.parentId, data.parentId ?? null),
+        ),
+      )
+      .orderBy(desc(menuItems.position));
 
-    const { data: existingItems } = await client
-      .from('menu_items')
-      .select('position')
-      .eq('menu_name', data.menuName)
-      .eq('parent_id', data.parentId || null)
-      .order('position', { ascending: false })
-      .limit(1);
+    const nextPosition =
+      existingItems && existingItems.length > 0
+        ? (existingItems[0].position ?? 0) + 1
+        : 0;
 
-    const nextPosition = existingItems && existingItems.length > 0 ? existingItems[0].position + 1 : 0;
-
-    const { data: result, error } = await client
-      .from('menu_items')
-      .insert({
-        menu_name: data.menuName,
+    const [result] = await db
+      .insert(menuItems)
+      .values({
+        id: randomUUID(),
+        menuName: data.menuName,
         label: data.label,
         url: data.url,
-        parent_id: data.parentId || null,
+        parentId: data.parentId ?? null,
         position: data.position !== undefined ? data.position : nextPosition,
-        icon: data.icon || null,
-        target: data.target || '_self',
+        icon: data.icon ?? null,
+        target: data.target ?? "_self",
       })
-      .select()
-      .single();
+      .returning();
 
-    if (error) throw error;
-    return {
-      id: result.id,
-      menuName: result.menu_name,
-      label: result.label,
-      url: result.url,
-      parentId: result.parent_id,
-      position: result.position,
-      icon: result.icon,
-      target: result.target,
-      createdAt: result.created_at,
-      updatedAt: result.updated_at,
-    } as MenuItem;
+    return result as MenuItem;
   },
 
   async update(
     id: string,
-    data: Partial<Omit<NewMenuItem, 'id' | 'createdAt'>>,
-    accessToken?: string,
-    refreshToken?: string
+    data: Partial<Omit<NewMenuItem, "id" | "createdAt">>,
   ): Promise<MenuItem | undefined> {
-    const client = await getAuthenticatedClient(accessToken, refreshToken);
-
     const updateData: any = {
-      updated_at: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
-    if (data.menuName !== undefined) updateData.menu_name = data.menuName;
+    if (data.menuName !== undefined) updateData.menuName = data.menuName;
     if (data.label !== undefined) updateData.label = data.label;
     if (data.url !== undefined) updateData.url = data.url;
-    if (data.parentId !== undefined) updateData.parent_id = data.parentId;
+    if (data.parentId !== undefined) updateData.parentId = data.parentId;
     if (data.position !== undefined) updateData.position = data.position;
     if (data.icon !== undefined) updateData.icon = data.icon;
     if (data.target !== undefined) updateData.target = data.target;
 
-    const { data: result, error } = await client
-      .from('menu_items')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
+    const [result] = await db
+      .update(menuItems)
+      .set(updateData)
+      .where(eq(menuItems.id, id))
+      .returning();
 
-    if (error) throw error;
-    return {
-      id: result.id,
-      menuName: result.menu_name,
-      label: result.label,
-      url: result.url,
-      parentId: result.parent_id,
-      position: result.position,
-      icon: result.icon,
-      target: result.target,
-      createdAt: result.created_at,
-      updatedAt: result.updated_at,
-    } as MenuItem;
+    return result as MenuItem;
   },
 
-  async delete(id: string, accessToken?: string, refreshToken?: string): Promise<void> {
-    const client = await getAuthenticatedClient(accessToken, refreshToken);
-    const { error } = await client.from('menu_items').delete().eq('id', id);
-    if (error) throw error;
+  async delete(id: string): Promise<void> {
+    await db.delete(menuItems).where(eq(menuItems.id, id));
   },
 
-  async reorderItems(
-    items: { id: string; position: number }[],
-    accessToken?: string,
-    refreshToken?: string
-  ): Promise<void> {
-    const client = await getAuthenticatedClient(accessToken, refreshToken);
-
+  async reorderItems(items: { id: string; position: number }[]): Promise<void> {
     for (const item of items) {
-      await client.from('menu_items').update({ position: item.position }).eq('id', item.id);
+      await db
+        .update(menuItems)
+        .set({ position: item.position })
+        .where(eq(menuItems.id, item.id));
     }
   },
 
   async getMenuNames(): Promise<string[]> {
-    const { data, error } = await supabase
-      .from('menu_items')
-      .select('menu_name')
-      .order('menu_name');
+    const items = await db
+      .select({ menuName: menuItems.menuName })
+      .from(menuItems)
+      .orderBy(asc(menuItems.menuName));
 
-    if (error) throw error;
-
-    const uniqueNames = [...new Set((data || []).map((item: any) => item.menu_name))];
+    const uniqueNames = [
+      ...new Set((items || []).map((item) => item.menuName)),
+    ];
     return uniqueNames;
   },
 };

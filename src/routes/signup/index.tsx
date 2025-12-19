@@ -1,227 +1,207 @@
-import { component$, useSignal, $ } from '@builder.io/qwik';
-import { routeLoader$, useNavigate } from '@builder.io/qwik-city';
-import { Button } from '~/components/ui/Button';
-import { Input } from '~/components/ui/Input';
-import { Card } from '~/components/ui/Card';
-import { LocationAutocomplete } from '~/components/ui/LocationAutocomplete';
-import { authService } from '~/services/auth.service';
-import { getServerSession } from '~/utils/server-auth';
-import type { GeocodingResult } from '~/services/geocoding.service';
+import { $, component$, useSignal } from "@builder.io/qwik";
+import { routeLoader$, useNavigate } from "@builder.io/qwik-city";
+import { Button } from "~/components/ui/Button";
+import { Card } from "~/components/ui/Card";
+import { Input } from "~/components/ui/Input";
+import { getServerSession } from "~/utils/server-auth";
 
 export const useCheckAuth = routeLoader$(async (event) => {
-  const user = await getServerSession(event);
-  if (user) {
-    throw event.redirect(302, '/');
-  }
-  return null;
+	const user = await getServerSession(event);
+	if (user) {
+		throw event.redirect(302, "/");
+	}
+	return null;
 });
 
 export default component$(() => {
-  const nav = useNavigate();
-  const name = useSignal('');
-  const familyName = useSignal('');
-  const email = useSignal('');
-  const password = useSignal('');
-  const confirmPassword = useSignal('');
-  const selectedLocation = useSignal<GeocodingResult | null>(null);
-  const yearOfBirth = useSignal('');
-  const sex = useSignal('');
-  const error = useSignal('');
-  const isLoading = useSignal(false);
+	const nav = useNavigate();
+	const email = useSignal("");
+	const code = useSignal("");
+	const step = useSignal<"send" | "verify">("send");
+	const error = useSignal("");
+	const info = useSignal("");
+	const isLoading = useSignal(false);
 
-  const handleSubmit = $(async () => {
-    if (!name.value || !familyName.value || !email.value || !password.value || !confirmPassword.value) {
-      error.value = 'Please fill in all required fields';
-      return;
-    }
+	const handleSend = $(async () => {
+		if (!email.value) {
+			error.value = "Please enter your email";
+			return;
+		}
 
-    if (!selectedLocation.value) {
-      error.value = 'Please select your city';
-      return;
-    }
+		isLoading.value = true;
+		error.value = "";
+		info.value = "";
 
-    if (!yearOfBirth.value) {
-      error.value = 'Please enter your year of birth';
-      return;
-    }
+		try {
+			const res = await fetch("/api/auth/send", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ email: email.value.trim() }),
+			});
 
-    if (!sex.value) {
-      error.value = 'Please select your gender';
-      return;
-    }
+			const data = await res.json();
+			if (!res.ok || !data?.success) {
+				error.value = data?.error || "Failed to send sign-up email";
+				return;
+			}
 
-    if (password.value !== confirmPassword.value) {
-      error.value = 'Passwords do not match';
-      return;
-    }
+			info.value =
+				"Check your email for the sign-in link and the 6-letter code.";
+			step.value = "verify";
+		} catch (err: any) {
+			console.error("[signup] send error", err);
+			error.value = err?.message || "Failed to send sign-up email";
+		} finally {
+			isLoading.value = false;
+		}
+	});
 
-    if (password.value.length < 6) {
-      error.value = 'Password must be at least 6 characters';
-      return;
-    }
+	const handleVerify = $(async () => {
+		if (!email.value || !code.value) {
+			error.value = "Please enter email and the 6-letter code";
+			return;
+		}
 
-    const year = parseInt(yearOfBirth.value);
-    const currentYear = new Date().getFullYear();
-    if (year < 1900 || year > currentYear - 13) {
-      error.value = 'Please enter a valid year of birth (must be at least 13 years old)';
-      return;
-    }
+		isLoading.value = true;
+		error.value = "";
+		info.value = "";
 
-    isLoading.value = true;
-    error.value = '';
+		try {
+			const res = await fetch("/api/auth/verify", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					email: email.value.trim(),
+					code: code.value.trim(),
+				}),
+			});
 
-    try {
-      const { session } = await authService.signUp({
-        email: email.value,
-        password: password.value,
-        name: name.value,
-        family_name: familyName.value,
-        city: selectedLocation.value.city,
-        country: selectedLocation.value.country,
-        latitude: selectedLocation.value.latitude,
-        longitude: selectedLocation.value.longitude,
-        year_of_birth: year,
-        sex: sex.value,
-      });
+			const data = await res.json();
+			if (!res.ok || !data?.success) {
+				error.value = data?.error || "Verification failed";
+				return;
+			}
 
-      if (session?.access_token) {
-        document.cookie = `sb-access-token=${session.access_token}; path=/; max-age=3600; SameSite=Lax`;
-        document.cookie = `sb-refresh-token=${session.refresh_token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-      }
+			// If server indicates a redirect, follow it (server sets cookie)
+			if (data?.redirect) {
+				window.location.href = data.redirect;
+			} else {
+				await nav("/");
+			}
+		} catch (err: any) {
+			console.error("[signup] verify error", err);
+			error.value = err?.message || "Verification failed";
+		} finally {
+			isLoading.value = false;
+		}
+	});
 
-      await nav('/');
-    } catch (err: any) {
-      error.value = err.message || 'Failed to sign up';
-    } finally {
-      isLoading.value = false;
-    }
-  });
+	return (
+		<div class="container mx-auto px-4 py-8 max-w-md">
+			<Card>
+				<h1 class="text-3xl font-bold mb-6 text-center">Sign Up</h1>
 
-  return (
-    <div class="container mx-auto px-4 py-8 max-w-2xl">
-      <Card>
-        <h1 class="text-3xl font-bold mb-6 text-center">Sign Up</h1>
+				{error.value && (
+					<div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+						{error.value}
+					</div>
+				)}
 
-        {error.value && (
-          <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error.value}
-          </div>
-        )}
+				{info.value && (
+					<div class="mb-4 p-3 bg-green-50 border border-green-400 text-green-700 rounded">
+						{info.value}
+					</div>
+				)}
 
-        <form
-          preventdefault:submit
-          onSubmit$={handleSubmit}
-          class="space-y-4"
-        >
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="First Name"
-              type="text"
-              value={name.value}
-              onInput$={(e) => (name.value = (e.target as HTMLInputElement).value)}
-              required
-              disabled={isLoading.value}
-            />
+				{step.value === "send" ? (
+					<form preventdefault:submit onSubmit$={handleSend} class="space-y-4">
+						<Input
+							label="Email"
+							type="email"
+							value={email.value}
+							onInput$={(e) =>
+								(email.value = (e.target as HTMLInputElement).value)
+							}
+							required
+							disabled={isLoading.value}
+						/>
 
-            <Input
-              label="Last Name"
-              type="text"
-              value={familyName.value}
-              onInput$={(e) => (familyName.value = (e.target as HTMLInputElement).value)}
-              required
-              disabled={isLoading.value}
-            />
-          </div>
+						<div class="flex gap-4">
+							<Button
+								type="submit"
+								variant="primary"
+								disabled={isLoading.value}
+								class="flex-1"
+							>
+								{isLoading.value ? "Sending..." : "Send sign-up email"}
+							</Button>
+						</div>
+					</form>
+				) : (
+					<form
+						preventdefault:submit
+						onSubmit$={handleVerify}
+						class="space-y-4"
+					>
+						<Input
+							label="Email"
+							type="email"
+							value={email.value}
+							onInput$={(e) =>
+								(email.value = (e.target as HTMLInputElement).value)
+							}
+							required
+							disabled
+						/>
 
-          <Input
-            label="Email"
-            type="email"
-            value={email.value}
-            onInput$={(e) => (email.value = (e.target as HTMLInputElement).value)}
-            required
-            disabled={isLoading.value}
-          />
+						<Input
+							label="6-letter code"
+							type="text"
+							value={code.value}
+							onInput$={(e) =>
+								(code.value = (
+									e.target as HTMLInputElement
+								).value.toUpperCase())
+							}
+							maxLength={6}
+							required
+							disabled={isLoading.value}
+						/>
 
-          <LocationAutocomplete
-            name="city"
-            label="City"
-            searchType="city"
-            selectedLocation={selectedLocation}
-            required
-          />
+						<div class="flex gap-4">
+							<Button
+								type="submit"
+								variant="primary"
+								disabled={isLoading.value}
+								class="flex-1"
+							>
+								{isLoading.value ? "Verifying..." : "Verify Code"}
+							</Button>
+						</div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Year of Birth"
-              type="number"
-              value={yearOfBirth.value}
-              onInput$={(e) => (yearOfBirth.value = (e.target as HTMLInputElement).value)}
-              required
-              disabled={isLoading.value}
-              min="1900"
-              max={new Date().getFullYear() - 13}
-            />
+						<div class="mt-3 text-sm text-gray-600">
+							<p>
+								Didn't receive an email?{" "}
+								<a href="#" onClick$={handleSend} class="text-blue-600">
+									Resend
+								</a>
+							</p>
+						</div>
+					</form>
+				)}
 
-            <div class="flex flex-col gap-1">
-              <label class="text-sm font-medium text-gray-700">
-                Gender
-                <span class="text-red-500 ml-1">*</span>
-              </label>
-              <select
-                value={sex.value}
-                onChange$={(e) => (sex.value = (e.target as HTMLSelectElement).value)}
-                required
-                disabled={isLoading.value}
-                class="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white border-gray-300"
-              >
-                <option value="">Select gender...</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-                <option value="prefer_not_to_say">Prefer not to say</option>
-              </select>
-            </div>
-          </div>
-
-          <Input
-            label="Password"
-            type="password"
-            value={password.value}
-            onInput$={(e) => (password.value = (e.target as HTMLInputElement).value)}
-            required
-            disabled={isLoading.value}
-          />
-
-          <Input
-            label="Confirm Password"
-            type="password"
-            value={confirmPassword.value}
-            onInput$={(e) => (confirmPassword.value = (e.target as HTMLInputElement).value)}
-            required
-            disabled={isLoading.value}
-          />
-
-          <div class="flex gap-4">
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={isLoading.value}
-              class="flex-1"
-            >
-              {isLoading.value ? 'Creating account...' : 'Sign Up'}
-            </Button>
-          </div>
-        </form>
-
-        <div class="mt-6 text-center">
-          <p class="text-gray-600">
-            Already have an account?{' '}
-            <a href="/login" class="text-blue-600 hover:text-blue-800 font-medium">
-              Login
-            </a>
-          </p>
-        </div>
-      </Card>
-    </div>
-  );
+				<div class="mt-6 text-center">
+					<p class="text-gray-600">
+						Already have an account?{" "}
+						<a
+							href="/login"
+							class="text-blue-600 hover:text-blue-800 font-medium"
+						>
+							Login
+						</a>
+					</p>
+				</div>
+			</Card>
+		</div>
+	);
 });

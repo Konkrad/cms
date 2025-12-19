@@ -1,142 +1,71 @@
-import { supabase } from '~/db/connection';
-import type { User, NewUser } from '~/db/schema';
+import crypto from "crypto";
+import { eq } from "drizzle-orm";
+import { db } from "~/db/connection";
+import type { NewUser, User } from "~/db/schema";
+import { users } from "~/db/schema";
 
+/**
+ * Replaced Supabase-backed users service with Drizzle (SQLite) based implementation.
+ * Note: `email` is no longer stored on the users table; the canonical email is on the
+ * 'logins' row. If you need to create a user that references a login row, provide
+ * `loginId` in the create payload.
+ */
 export const usersService = {
-  async getAll(): Promise<User[]> {
-    const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: true });
+	async getAll(): Promise<User[]> {
+		const rows = await db.select().from(users);
+		// Ensure a deterministic order (old behavior returned created_at ascending)
+		rows.sort(
+			(a: any, b: any) =>
+				new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+		);
+		return rows as User[];
+	},
 
-    if (error) throw error;
-    return (data || []).map((user: any) => ({
-      id: user.id,
-      name: user.name,
-      familyName: user.family_name,
-      displayName: user.display_name,
-      email: user.email,
-      city: user.city,
-      country: user.country,
-      longitude: user.longitude,
-      latitude: user.latitude,
-      yearOfBirth: user.year_of_birth,
-      sex: user.sex,
-      role: user.role || 'user',
-      createdAt: user.created_at,
-      updatedAt: user.updated_at,
-    })) as User[];
-  },
+	async getById(id: string): Promise<User | undefined> {
+		const rows = await db.select().from(users).where(eq(users.id, id));
+		if (!rows || rows.length === 0) return undefined;
+		return rows[0] as User;
+	},
 
-  async getById(id: string): Promise<User | undefined> {
-    const { data, error } = await supabase.from('users').select('*').eq('id', id).maybeSingle();
+	async create(
+		data: Omit<NewUser, "id" | "createdAt" | "updatedAt"> & {
+			loginId?: string;
+		},
+	): Promise<User> {
+		const id = crypto.randomUUID();
+		await db
+			.insert(users)
+			.values({ id, ...data } as any)
+			.run();
 
-    if (error) throw error;
-    if (!data) return undefined;
+		const rows = await db.select().from(users).where(eq(users.id, id));
+		return rows[0] as User;
+	},
 
-    const userData = data as any;
-    return {
-      id: userData.id,
-      name: userData.name,
-      familyName: userData.family_name,
-      displayName: userData.display_name,
-      email: userData.email,
-      city: userData.city,
-      country: userData.country,
-      longitude: userData.longitude,
-      latitude: userData.latitude,
-      yearOfBirth: userData.year_of_birth,
-      sex: userData.sex,
-      role: userData.role || 'user',
-      createdAt: userData.created_at,
-      updatedAt: userData.updated_at,
-    } as User;
-  },
+	async update(
+		id: string,
+		data: Partial<Omit<NewUser, "id" | "createdAt">>,
+	): Promise<User | undefined> {
+		const updates: any = {
+			updatedAt: new Date().toISOString(),
+		};
 
-  async create(data: Omit<NewUser, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
-    const displayName = `${data.name} ${data.familyName}`;
+		if (data.name !== undefined) updates.name = data.name;
+		if (data.familyName !== undefined) updates.familyName = data.familyName;
+		if (data.displayName !== undefined) updates.displayName = data.displayName;
+		if (data.city !== undefined) updates.city = data.city;
+		if (data.country !== undefined) updates.country = data.country;
+		if (data.longitude !== undefined) updates.longitude = data.longitude;
+		if (data.latitude !== undefined) updates.latitude = data.latitude;
+		if (data.yearOfBirth !== undefined) updates.yearOfBirth = data.yearOfBirth;
+		if (data.sex !== undefined) updates.sex = data.sex;
+		if (data.loginId !== undefined) updates.loginId = data.loginId;
 
-    const { data: result, error } = await supabase
-      .from('users')
-      .insert({
-        name: data.name,
-        family_name: data.familyName,
-        display_name: displayName,
-        email: data.email,
-        city: data.city,
-        country: data.country,
-        longitude: data.longitude,
-        latitude: data.latitude,
-        year_of_birth: data.yearOfBirth,
-        sex: data.sex,
-      })
-      .select()
-      .single();
+		await db.update(users).set(updates).where(eq(users.id, id)).run();
+		return this.getById(id);
+	},
 
-    if (error) throw error;
-    const userData = result as any;
-    return {
-      id: userData.id,
-      name: userData.name,
-      familyName: userData.family_name,
-      displayName: userData.display_name,
-      email: userData.email,
-      city: userData.city,
-      country: userData.country,
-      longitude: userData.longitude,
-      latitude: userData.latitude,
-      yearOfBirth: userData.year_of_birth,
-      sex: userData.sex,
-      role: userData.role || 'user',
-      createdAt: userData.created_at,
-      updatedAt: userData.updated_at,
-    } as User;
-  },
-
-  async update(id: string, data: Partial<Omit<NewUser, 'id' | 'createdAt'>>): Promise<User | undefined> {
-    const updateData: any = {
-      updated_at: new Date().toISOString(),
-    };
-
-    if (data.name) updateData.name = data.name;
-    if (data.familyName) updateData.family_name = data.familyName;
-    if (data.email) updateData.email = data.email;
-    if (data.city !== undefined) updateData.city = data.city;
-    if (data.country !== undefined) updateData.country = data.country;
-    if (data.longitude !== undefined) updateData.longitude = data.longitude;
-    if (data.latitude !== undefined) updateData.latitude = data.latitude;
-    if (data.yearOfBirth !== undefined) updateData.year_of_birth = data.yearOfBirth;
-    if (data.sex !== undefined) updateData.sex = data.sex;
-
-    if (data.name || data.familyName) {
-      const user = await this.getById(id);
-      if (user) {
-        const newName = data.name || user.name;
-        const newFamilyName = data.familyName || user.familyName;
-        updateData.display_name = `${newName} ${newFamilyName}`;
-      }
-    }
-
-    const { data: result, error } = await supabase.from('users').update(updateData).eq('id', id).select().single();
-
-    if (error) throw error;
-    const userData = result as any;
-    return {
-      id: userData.id,
-      name: userData.name,
-      familyName: userData.family_name,
-      displayName: userData.display_name,
-      email: userData.email,
-      city: userData.city,
-      country: userData.country,
-      longitude: userData.longitude,
-      latitude: userData.latitude,
-      yearOfBirth: userData.year_of_birth,
-      sex: userData.sex,
-      role: userData.role || 'user',
-      createdAt: userData.created_at,
-      updatedAt: userData.updated_at,
-    } as User;
-  },
-
-  async delete(id: string): Promise<void> {
-    const { error } = await supabase.from('users').delete().eq('id', id);
-    if (error) throw error;
-  },
+	async delete(id: string): Promise<void> {
+		await db.delete(users).where(eq(users.id, id));
+	},
 };

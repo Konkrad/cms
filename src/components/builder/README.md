@@ -104,7 +104,7 @@ Field types supported by the `PropertiesPanel` UI
 - `color` → color picker
 
 Dynamic blocks
-- For blocks that fetch server data, use `server$` or existing services (see `EventsListBlock` / `PostsListBlock` for examples). Mark the block `category: "dynamic"` in its definition so the UI groups it accordingly.
+- For blocks that fetch server data, use `server$` or existing services (see `UpcomingEventsBlock` / `PostsListBlock` for examples). Mark the block `category: "dynamic"` in its definition so the UI groups it accordingly.
 
 Tips
 - Keep `componentType` unique and in sync with the key you add to `componentModules`.

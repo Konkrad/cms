@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { eq, asc, gt } from "drizzle-orm";
+import { eq, desc, lt } from "drizzle-orm";
 import { db } from "~/db/connection";
 import type { NewUser, User } from "~/db/schema";
 import { users } from "~/db/schema";
@@ -16,27 +16,29 @@ export const usersService = {
     limit: number = 10,
     cursor?: string | null,
   ): Promise<{ items: User[]; nextCursor?: string | null }> {
-    // Simple keyset pagination using createdAt only (ascending)
+    // Cursor-based pagination using createdAt only (newest-first)
     const cursorObj = decodeCursor(cursor ?? null);
 
     let query: any = db.select().from(users);
 
     if (cursorObj && cursorObj.createdAt != null) {
-      // ascending order => get items after the cursor
-      query = query.where(gt(users.createdAt, cursorObj.createdAt));
+      // newest-first => fetch items with createdAt < cursor
+      query = query.where(lt(users.createdAt, cursorObj.createdAt));
     }
 
-    query = query.orderBy(asc(users.createdAt));
+    // Always newest-first (tie-break on id)
+    query = query.orderBy(desc(users.createdAt), desc(users.id));
 
     query = (query as any).limit(limit + 1);
 
     const rows = await query;
 
+    // Determine next cursor and trim to requested page size
     let nextCursor: string | undefined | null = undefined;
     let items = rows as any[];
     if (rows.length > limit) {
       nextCursor = getNextCursorFromRows(rows as any[], ["createdAt"], limit);
-      items = (rows as any[]).slice(0, limit);
+      items = rows.slice(0, limit);
     }
 
     return { items: items as User[], nextCursor: nextCursor ?? null };

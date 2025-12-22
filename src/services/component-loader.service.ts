@@ -5,7 +5,9 @@ const componentModules = {
   TextBlock: () => import("~/components/page-blocks/TextBlock"),
   TitleBlock: () => import("~/components/page-blocks/TitleBlock"),
   ImageBlock: () => import("~/components/page-blocks/ImageBlock"),
-  EventsListBlock: () => import("~/components/page-blocks/EventsListBlock"),
+  UpcomingEventsBlock: () =>
+    import("~/components/page-blocks/UpcomingEventsBlock"),
+  PastEventsBlock: () => import("~/components/page-blocks/PastEventsBlock"),
   PostsListBlock: () => import("~/components/page-blocks/PostsListBlock"),
   SpacerBlock: () => import("~/components/page-blocks/SpacerBlock"),
 };

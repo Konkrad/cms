@@ -5,67 +5,28 @@ import { Card } from "~/components/ui/Card";
 import type { BlockDefinition } from "~/db/schema";
 import type { EventWithUser } from "~/services/events.service";
 
-interface EventsListBlockProps {
-  limit?: number;
-  showPast?: boolean;
-}
-
 export const definition: BlockDefinition = {
-  name: "Events List",
-  componentType: "EventsListBlock",
+  name: "Upcoming Events",
+  componentType: "UpcomingEventsBlock",
   category: "dynamic",
   icon: "📅",
-  configSchema: [
-    {
-      name: "limit",
-      label: "Number of Events",
-      type: "number",
-      defaultValue: 6,
-    },
-    {
-      name: "showPast",
-      label: "Show Past Events",
-      type: "boolean",
-      defaultValue: false,
-    },
-    // sortOrder removed - ordering is now handled by the events service
-  ],
-  defaultData: {
-    limit: 6,
-    showPast: false,
-  },
+  configSchema: [],
+  defaultData: {},
 };
 
-const fetchEvents = server$(
-  async (options: {
-    limit: number;
-    showPast: boolean;
-    cursor?: string | null;
-  }) => {
-    const { eventsService } = (await import(
-      "~/services/events.service"
-    )) as any;
-    const res = await eventsService.getAll(
-      options.limit,
-      !options.showPast,
-      options.cursor ?? null,
-    );
-    return res;
-  },
-);
+const fetchUpcoming = server$(async () => {
+  const { eventsService } = (await import("~/services/events.service")) as any;
+  return eventsService.getUpcoming();
+});
 
-export default component$<EventsListBlockProps>((props) => {
+export default component$(() => {
   const events = useSignal<EventWithUser[]>([]);
   const isLoading = useSignal(true);
   const error = useSignal<string | null>(null);
 
   useTask$(async () => {
     try {
-      const result = await fetchEvents({
-        limit: props.limit ?? 6,
-        showPast: props.showPast ?? false,
-      });
-      events.value = result.items;
+      events.value = await fetchUpcoming();
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to load events";
     } finally {
@@ -77,7 +38,7 @@ export default component$<EventsListBlockProps>((props) => {
     <div class="max-w-6xl mx-auto px-4 py-12">
       {isLoading.value ? (
         <div class="text-center py-12">
-          <p class="text-gray-500">Loading events...</p>
+          <p class="text-gray-500">Loading upcoming events...</p>
         </div>
       ) : error.value ? (
         <Card>
@@ -87,7 +48,7 @@ export default component$<EventsListBlockProps>((props) => {
         </Card>
       ) : events.value.length === 0 ? (
         <Card>
-          <p class="text-gray-500 text-center py-8">No events found.</p>
+          <p class="text-gray-500 text-center py-8">No upcoming events.</p>
         </Card>
       ) : (
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -103,8 +64,8 @@ export default component$<EventsListBlockProps>((props) => {
                       event.locationType === "online"
                         ? "bg-blue-100 text-blue-800"
                         : event.locationType === "in_person"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-purple-100 text-purple-800"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-purple-100 text-purple-800"
                     }`}
                   >
                     {event.locationType?.replace("_", " ")}

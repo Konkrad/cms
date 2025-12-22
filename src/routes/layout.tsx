@@ -74,7 +74,40 @@ export const useLogoutAction = routeAction$(async (_, { cookie, redirect }) => {
 });
 
 export default component$(() => {
-  console.log("[Layout] Component rendering");
+  console.log("[Layout] Component rendering - start");
+
+  // Trigger loaders here so we can inspect their values during SSR
+  const user = useUserSession();
+  const menu = useMenuItems();
+
+  // Safely extract a minimal snapshot of user and menu to avoid capturing
+  const safeUser = user.value
+    ? {
+        id: (user.value as any).id ?? null,
+        role: (user.value as any).role ?? null,
+      }
+    : null;
+
+  let menuCount: number | null = null;
+  let menuSampleIds: any[] = [];
+  try {
+    if (Array.isArray(menu.value)) {
+      menuCount = menu.value.length;
+      menuSampleIds = menu.value.slice(0, 5).map((i: any) => i.id);
+    }
+  } catch (err) {
+    console.error("[Layout] Error reading menu.value:", err);
+  }
+
+  console.log("[Layout] user (safe):", safeUser);
+  console.log(
+    "[Layout] menuCount:",
+    menuCount,
+    "menuSampleIds:",
+    menuSampleIds,
+  );
+  console.log("[Layout] Rendering Navigation (about to mount)");
+
   return (
     <>
       <Navigation />

@@ -1,18 +1,85 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
 import { Form, Link } from "@builder.io/qwik-city";
-import { useLogoutAction, useUserSession } from "~/routes/layout";
+import { useLogoutAction, useUserSession, useMenuItems } from "~/routes/layout";
 
 export const Navigation = component$(() => {
   const user = useUserSession();
+  const menu = useMenuItems();
   // menuItems removed - now only the Login button is shown for unauthenticated users
   const logoutAction = useLogoutAction();
   const showUserMenu = useSignal(false);
 
+  const safeUserSnapshot = (() => {
+    try {
+      const v = user.value;
+      if (v && typeof v === "object") {
+        return {
+          id: (v as any).id ?? null,
+          role: (v as any).role ?? null,
+          displayName: (v as any).displayName ?? null,
+        };
+      }
+      return String(v);
+    } catch (e) {
+      console.error("[Navigation] safeUserSnapshot error", e);
+      return null;
+    }
+  })();
+
+  const menuSnapshot = (() => {
+    try {
+      if (Array.isArray(menu.value)) {
+        return {
+          count: menu.value.length,
+          sampleIds: menu.value.slice(0, 5).map((i: any) => i.id),
+        };
+      }
+      return null;
+    } catch (e) {
+      console.error("[Navigation] menuSnapshot error", e);
+      return null;
+    }
+  })();
+
+  console.log(
+    "[Navigation] rendering - safeUser:",
+    safeUserSnapshot,
+    "menu:",
+    menuSnapshot,
+    "showUserMenu:",
+    showUserMenu.value,
+  );
+
   const isAdmin =
-    user.value?.role === "admin" || user.value?.role === "moderator";
+    typeof user.value === "object" && user.value !== null
+      ? (user.value as any).role === "admin" ||
+        (user.value as any).role === "moderator"
+      : false;
+
+  const displayName = (() => {
+    try {
+      if (user.value && typeof user.value === "object") {
+        return (
+          (user.value as any).displayName ??
+          (user.value as any).email ??
+          (user.value as any).id ??
+          "User"
+        );
+      }
+      return String(user.value ?? "");
+    } catch (e) {
+      console.error("[Navigation] error computing displayName", e);
+      return String(user.value ?? "");
+    }
+  })();
 
   const toggleUserMenu = $(() => {
-    showUserMenu.value = !showUserMenu.value;
+    try {
+      showUserMenu.value = !showUserMenu.value;
+      console.log("[Navigation] toggleUserMenu =>", showUserMenu.value);
+    } catch (e) {
+      console.error("[Navigation] toggleUserMenu error:", e);
+    }
   });
 
   return (
@@ -36,7 +103,7 @@ export const Navigation = component$(() => {
                   onClick$={toggleUserMenu}
                   class="flex items-center px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
                 >
-                  {user.value.displayName}
+                  {displayName}
                   <svg
                     class="ml-2 h-4 w-4"
                     fill="none"

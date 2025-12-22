@@ -8,7 +8,6 @@ import type { EventWithUser } from "~/services/events.service";
 interface EventsListBlockProps {
   limit?: number;
   showPast?: boolean;
-  sortOrder?: "asc" | "desc";
 }
 
 export const definition: BlockDefinition = {
@@ -29,21 +28,11 @@ export const definition: BlockDefinition = {
       type: "boolean",
       defaultValue: false,
     },
-    {
-      name: "sortOrder",
-      label: "Sort Order",
-      type: "select",
-      defaultValue: "asc",
-      options: [
-        { label: "Oldest First", value: "asc" },
-        { label: "Newest First", value: "desc" },
-      ],
-    },
+    // sortOrder removed - ordering is now handled by the events service
   ],
   defaultData: {
     limit: 6,
     showPast: false,
-    sortOrder: "asc",
   },
 };
 
@@ -51,7 +40,6 @@ const fetchEvents = server$(
   async (options: {
     limit: number;
     showPast: boolean;
-    sortOrder: "asc" | "desc";
     cursor?: string | null;
   }) => {
     const { eventsService } = (await import(
@@ -76,7 +64,6 @@ export default component$<EventsListBlockProps>((props) => {
       const result = await fetchEvents({
         limit: props.limit ?? 6,
         showPast: props.showPast ?? false,
-        sortOrder: props.sortOrder ?? "asc",
       });
       events.value = result.items;
     } catch (e) {
@@ -86,14 +73,8 @@ export default component$<EventsListBlockProps>((props) => {
     }
   });
 
-  const showPast = props.showPast ?? false;
-
   return (
     <div class="max-w-6xl mx-auto px-4 py-12">
-      <h2 class="text-3xl font-bold text-gray-900 mb-8">
-        {showPast ? "Events" : "Upcoming Events"}
-      </h2>
-
       {isLoading.value ? (
         <div class="text-center py-12">
           <p class="text-gray-500">Loading events...</p>

@@ -54,8 +54,6 @@ export default component$<PostsListBlockProps>((props) => {
 
   return (
     <div class="max-w-6xl mx-auto px-4 py-12">
-      <h2 class="text-3xl font-bold text-gray-900 mb-8">Latest Posts</h2>
-
       {isLoading.value ? (
         <div class="text-center py-12">
           <p class="text-gray-500">Loading posts...</p>

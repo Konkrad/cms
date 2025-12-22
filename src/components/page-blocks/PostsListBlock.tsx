@@ -7,7 +7,6 @@ import type { PostWithUser } from "~/services/posts.service";
 
 interface PostsListBlockProps {
   limit?: number;
-  sortOrder?: "asc" | "desc";
 }
 
 export const definition: BlockDefinition = {
@@ -22,34 +21,18 @@ export const definition: BlockDefinition = {
       type: "number",
       defaultValue: 6,
     },
-    {
-      name: "sortOrder",
-      label: "Sort Order",
-      type: "select",
-      defaultValue: "desc",
-      options: [
-        { label: "Oldest First", value: "asc" },
-        { label: "Newest First", value: "desc" },
-      ],
-    },
   ],
   defaultData: {
     limit: 6,
-    sortOrder: "desc",
   },
 };
 
-const fetchPosts = server$(
-  async (options: { limit: number; sortOrder: "asc" | "desc" }) => {
-    const { postsService } = await import("~/services/posts.service");
+const fetchPosts = server$(async (options: { limit: number }) => {
+  const { postsService } = await import("~/services/posts.service");
 
-    const res = await postsService.getAll({
-      limit: options.limit,
-      sortOrder: options.sortOrder as "asc" | "desc",
-    });
-    return res;
-  },
-);
+  const res = await postsService.getAll(options.limit);
+  return res;
+});
 
 export default component$<PostsListBlockProps>((props) => {
   const posts = useSignal<PostWithUser[]>([]);
@@ -60,7 +43,6 @@ export default component$<PostsListBlockProps>((props) => {
     try {
       const result = await fetchPosts({
         limit: props.limit ?? 6,
-        sortOrder: props.sortOrder ?? "desc",
       });
       posts.value = result.items;
     } catch (e) {

@@ -1,14 +1,9 @@
 import crypto from "crypto";
-import { eq, asc, desc, and, or, gt, lt } from "drizzle-orm";
+import { eq, asc, gt } from "drizzle-orm";
 import { db } from "~/db/connection";
 import type { NewUser, User } from "~/db/schema";
 import { users } from "~/db/schema";
-import {
-  decodeCursor,
-  getNextCursorFromRows,
-  buildKeysetComparisons,
-  exampleBuildDrizzleWhere,
-} from "~/services/pagination";
+import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
 
 /**
  * Replaced Supabase-backed users service with Drizzle (SQLite) based implementation.
@@ -17,53 +12,31 @@ import {
  * `loginId` in the create payload.
  */
 export const usersService = {
-  async getAll(options?: {
-    limit?: number;
-    sortOrder?: "asc" | "desc";
-    cursor?: string | null;
-  }): Promise<{ items: User[]; nextCursor?: string | null }> {
-    // Keyset pagination using (createdAt, id) as the stable ordering columns.
-    const cursorObj = decodeCursor(options?.cursor ?? null);
-    const chains = buildKeysetComparisons(
-      cursorObj,
-      ["createdAt", "id"],
-      options?.sortOrder ?? "asc",
-    );
-    const keysetWhere = exampleBuildDrizzleWhere(
-      chains,
-      (name: string) => (users as any)[name],
-      { eq, lt, gt, and, or },
-    );
+  async getAll(
+    limit: number = 10,
+    cursor?: string | null,
+  ): Promise<{ items: User[]; nextCursor?: string | null }> {
+    // Simple keyset pagination using createdAt only (ascending)
+    const cursorObj = decodeCursor(cursor ?? null);
 
-    const order = options?.sortOrder ?? "asc";
-    const orderExprs =
-      order === "asc"
-        ? [asc(users.createdAt), asc(users.id)]
-        : [desc(users.createdAt), desc(users.id)];
+    let query: any = db.select().from(users);
 
-    let query: any = db
-      .select()
-      .from(users)
-      .where(keysetWhere ?? undefined)
-      .orderBy(...(orderExprs as any));
-
-    if (typeof options?.limit === "number" && options.limit > 0) {
-      query = (query as any).limit(options.limit + 1);
+    if (cursorObj && cursorObj.createdAt != null) {
+      // ascending order => get items after the cursor
+      query = query.where(gt(users.createdAt, cursorObj.createdAt));
     }
+
+    query = query.orderBy(asc(users.createdAt));
+
+    query = (query as any).limit(limit + 1);
 
     const rows = await query;
 
     let nextCursor: string | undefined | null = undefined;
     let items = rows as any[];
-    if (typeof options?.limit === "number" && options.limit > 0) {
-      if (rows.length > options.limit) {
-        nextCursor = getNextCursorFromRows(
-          rows as any[],
-          ["createdAt", "id"],
-          options.limit,
-        );
-        items = (rows as any[]).slice(0, options.limit);
-      }
+    if (rows.length > limit) {
+      nextCursor = getNextCursorFromRows(rows as any[], ["createdAt"], limit);
+      items = (rows as any[]).slice(0, limit);
     }
 
     return { items: items as User[], nextCursor: nextCursor ?? null };

@@ -1,68 +1,42 @@
-import { and, asc, desc, eq, ne, or, gt, lt } from "drizzle-orm";
+import { and, desc, eq, ne, lt } from "drizzle-orm";
 import { db } from "~/db/connection";
 import type { NewPage, Page } from "~/db/schemas/pages";
 import { pages } from "~/db/schemas/pages";
 import crypto from "crypto";
-import {
-  decodeCursor,
-  getNextCursorFromRows,
-  buildKeysetComparisons,
-  exampleBuildDrizzleWhere,
-} from "~/services/pagination";
+import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
 
 const RESERVED_SLUGS = ["admin", "api", "login", "profile"];
 
 export type PageWithParent = Page & { parent: { title: string } | null };
 
 export const pagesService = {
-  async getAll(options?: {
-    limit?: number;
-    sortOrder?: "asc" | "desc";
-    cursor?: string | null;
-  }): Promise<{ items: PageWithParent[]; nextCursor?: string | null }> {
-    // Keyset pagination: decode cursor and build keyset comparisons on createdAt + id
-    const cursorObj = decodeCursor(options?.cursor ?? null);
-    const chains = buildKeysetComparisons(
-      cursorObj,
-      ["createdAt", "id"],
-      options?.sortOrder ?? "desc",
-    );
-    const keysetWhere = exampleBuildDrizzleWhere(
-      chains,
-      (name: string) => (pages as any)[name],
-      { eq, lt, gt, and, or },
-    );
+  async getAll(
+    limit: number = 10,
+    cursor?: string | null,
+  ): Promise<{ items: PageWithParent[]; nextCursor?: string | null }> {
+    // Cursor-based pagination using createdAt only (newest-first)
+    const cursorObj = decodeCursor(cursor ?? null);
 
-    const order = options?.sortOrder ?? "desc";
-    const orderExprs =
-      order === "asc"
-        ? [asc(pages.createdAt), asc(pages.id)]
-        : [desc(pages.createdAt), desc(pages.id)];
+    let query: any = db.select().from(pages);
 
-    let query: any = db
-      .select()
-      .from(pages)
-      .where(keysetWhere ?? undefined)
-      .orderBy(...(orderExprs as any));
-
-    if (typeof options?.limit === "number" && options.limit > 0) {
-      query = query.limit(options.limit + 1);
+    if (cursorObj && cursorObj.createdAt != null) {
+      // newest-first => fetch items with createdAt < cursor
+      query = query.where(lt(pages.createdAt, cursorObj.createdAt));
     }
+
+    // Always newest-first (tie-break on id)
+    query = query.orderBy(desc(pages.createdAt), desc(pages.id));
+
+    query = query.limit(limit + 1);
 
     const rows = await query;
 
     // Determine next cursor and trim to requested page size
     let nextCursor: string | undefined | null = undefined;
     let items = rows as any[];
-    if (typeof options?.limit === "number" && options.limit > 0) {
-      if (rows.length > options.limit) {
-        nextCursor = getNextCursorFromRows(
-          rows as any[],
-          ["createdAt", "id"],
-          options.limit,
-        );
-        items = rows.slice(0, options.limit);
-      }
+    if (rows.length > limit) {
+      nextCursor = getNextCursorFromRows(rows as any[], ["createdAt"], limit);
+      items = rows.slice(0, limit);
     }
 
     // Fetch parent titles for returned pages (parents may be outside the page window)

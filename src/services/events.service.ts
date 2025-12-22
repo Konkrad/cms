@@ -76,21 +76,20 @@ export const eventsService = {
       .where(whereClause.length ? and(...whereClause) : undefined)
       .orderBy(...(orderExprs as any));
 
-    const take = typeof limit === "number" && limit > 0 ? limit : 10;
-    query = (query as any).limit(take + 1);
+    query = (query as any).limit(limit + 1);
 
     const eventRows = await query;
 
     // Determine next cursor and trim items to the requested limit
     let nextCursor: string | null | undefined = undefined;
     let items = eventRows as any[];
-    if (eventRows.length > take) {
+    if (eventRows.length > limit) {
       nextCursor = getNextCursorFromRows(
         eventRows as any[],
         ["startDate", "id"],
-        take,
+        limit,
       );
-      items = (eventRows as any[]).slice(0, take);
+      items = (eventRows as any[]).slice(0, limit);
     }
 
     // Fetch users for the returned events

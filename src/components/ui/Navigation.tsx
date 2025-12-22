@@ -95,7 +95,42 @@ export const Navigation = component$(() => {
             </Link>
           </div>
           <div class="flex items-center space-x-4">
-            {/* menu items removed - only login button shown */}
+            {Array.isArray(menu.value) && menu.value.length > 0 && (
+              <div class="hidden md:flex items-center space-x-2">
+                {menu.value.map((item) =>
+                  item.children && item.children.length > 0 ? (
+                    <div key={item.id} class="relative group">
+                      <Link
+                        href={item.url || "#"}
+                        class="px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
+                      >
+                        {item.label}
+                      </Link>
+
+                      <div class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden group-hover:block">
+                        {item.children.map((child) => (
+                          <Link
+                            key={child.id}
+                            href={child.url}
+                            class="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                          >
+                            {child.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <Link
+                      key={item.id}
+                      href={item.url}
+                      class="px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
+                    >
+                      {item.label}
+                    </Link>
+                  ),
+                )}
+              </div>
+            )}
 
             {user.value ? (
               <div class="relative">

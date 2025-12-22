@@ -41,27 +41,25 @@ function buildMenuTree(items: MenuItem[]): MenuItemTree[] {
 }
 
 export const menuItemsService = {
+  // Return all menu items for the given menu name (no pagination)
   async getAll(menuName?: string): Promise<MenuItem[]> {
-    console.log("[menuItemsService] getAll - starting, menuName:", menuName);
-    let query = db.select().from(menuItems).orderBy(asc(menuItems.position));
+    const whereClause: any[] = [];
     if (menuName) {
-      query = db
-        .select()
-        .from(menuItems)
-        .where(eq(menuItems.menuName, menuName))
-        .orderBy(asc(menuItems.position));
+      whereClause.push(eq(menuItems.menuName, menuName));
     }
-    try {
-      const items = await query;
-      console.log(
-        "[menuItemsService] getAll - completed, items count:",
-        (items || []).length,
-      );
-      return items as MenuItem[];
-    } catch (err) {
-      console.error("[menuItemsService] getAll - error:", err);
-      throw err;
-    }
+
+    const rows = await db
+      .select()
+      .from(menuItems)
+      .where(whereClause.length ? and(...whereClause) : undefined)
+      .orderBy(asc(menuItems.position), asc(menuItems.id));
+
+    console.log(
+      "[menuItemsService] getAll - completed, items count:",
+      (rows || []).length,
+    );
+
+    return rows as MenuItem[];
   },
 
   async getMenuTree(menuName: string): Promise<MenuItemTree[]> {
@@ -98,7 +96,7 @@ export const menuItemsService = {
       .where(
         and(
           eq(menuItems.menuName, data.menuName),
-          eq(menuItems.parentId, data.parentId ?? null),
+          eq(menuItems.parentId, data.parentId ?? (null as any)),
         ),
       )
       .orderBy(desc(menuItems.position));

@@ -1,28 +1,91 @@
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, asc, desc, eq, ne, or, gt, lt } from "drizzle-orm";
 import { db } from "~/db/connection";
 import type { NewPage, Page } from "~/db/schemas/pages";
 import { pages } from "~/db/schemas/pages";
 import crypto from "crypto";
+import {
+  decodeCursor,
+  getNextCursorFromRows,
+  buildKeysetComparisons,
+  exampleBuildDrizzleWhere,
+} from "~/services/pagination";
 
 const RESERVED_SLUGS = ["admin", "api", "login", "profile"];
 
 export type PageWithParent = Page & { parent: { title: string } | null };
 
 export const pagesService = {
-  async getAll(): Promise<PageWithParent[]> {
-    const allPages = await db
+  async getAll(options?: {
+    limit?: number;
+    sortOrder?: "asc" | "desc";
+    cursor?: string | null;
+  }): Promise<{ items: PageWithParent[]; nextCursor?: string | null }> {
+    // Keyset pagination: decode cursor and build keyset comparisons on createdAt + id
+    const cursorObj = decodeCursor(options?.cursor ?? null);
+    const chains = buildKeysetComparisons(
+      cursorObj,
+      ["createdAt", "id"],
+      options?.sortOrder ?? "desc",
+    );
+    const keysetWhere = exampleBuildDrizzleWhere(
+      chains,
+      (name: string) => (pages as any)[name],
+      { eq, lt, gt, and, or },
+    );
+
+    const order = options?.sortOrder ?? "desc";
+    const orderExprs =
+      order === "asc"
+        ? [asc(pages.createdAt), asc(pages.id)]
+        : [desc(pages.createdAt), desc(pages.id)];
+
+    let query: any = db
       .select()
       .from(pages)
-      .orderBy(desc(pages.createdAt));
-    // Build a map for parent lookup
-    const pageMap = new Map(allPages.map((p) => [p.id, p]));
-    return allPages.map((page) => {
-      const parentPage = page.parentId ? pageMap.get(page.parentId) : null;
+      .where(keysetWhere ?? undefined)
+      .orderBy(...(orderExprs as any));
+
+    if (typeof options?.limit === "number" && options.limit > 0) {
+      query = query.limit(options.limit + 1);
+    }
+
+    const rows = await query;
+
+    // Determine next cursor and trim to requested page size
+    let nextCursor: string | undefined | null = undefined;
+    let items = rows as any[];
+    if (typeof options?.limit === "number" && options.limit > 0) {
+      if (rows.length > options.limit) {
+        nextCursor = getNextCursorFromRows(
+          rows as any[],
+          ["createdAt", "id"],
+          options.limit,
+        );
+        items = rows.slice(0, options.limit);
+      }
+    }
+
+    // Fetch parent titles for returned pages (parents may be outside the page window)
+    const parentIds = Array.from(
+      new Set((items || []).map((p) => p.parentId).filter(Boolean)),
+    );
+    const parentRows = parentIds.length
+      ? await db
+          .select()
+          .from(pages)
+          .where((pages.id as any).in(parentIds))
+      : [];
+    const parentMap = new Map(parentRows.map((p) => [p.id, p]));
+
+    const mapped = items.map((page: any) => {
+      const parentPage = page.parentId ? parentMap.get(page.parentId) : null;
       return {
         ...page,
         parent: parentPage ? { title: parentPage.title } : null,
-      };
-    }) as PageWithParent[];
+      } as PageWithParent;
+    });
+
+    return { items: mapped, nextCursor: nextCursor ?? null };
   },
 
   async getById(id: string): Promise<Page | undefined> {
@@ -128,6 +191,8 @@ export const pagesService = {
   },
 
   async getHierarchy(): Promise<PageWithParent[]> {
-    return this.getAll();
+    // Keep previous behavior (return list) while getAll now supports pagination
+    const res = await this.getAll();
+    return res.items;
   },
 };

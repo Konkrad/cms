@@ -67,12 +67,7 @@ export default component$(() => {
   );
 
   if (!page.value) {
-    console.log(
-      "[Page route] Rendering page - content length:",
-      page.value?.content?.length ?? 0,
-      "title:",
-      page.value?.title,
-    );
+    console.log("[Page route] Rendering page - page not found");
     return (
       <div class="max-w-4xl mx-auto px-4 py-16 text-center">
         <h1 class="text-4xl font-bold text-gray-900 mb-4">Page Not Found</h1>

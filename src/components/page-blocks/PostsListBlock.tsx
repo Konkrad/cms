@@ -40,22 +40,14 @@ export const definition: BlockDefinition = {
 };
 
 const fetchPosts = server$(
-  async (options: { limit: number; sortOrder: string }) => {
+  async (options: { limit: number; sortOrder: "asc" | "desc" }) => {
     const { postsService } = await import("~/services/posts.service");
-    const posts = await postsService.getAll();
 
-    const sortedPosts =
-      options.sortOrder === "asc"
-        ? posts.sort(
-            (a, b) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-          )
-        : posts.sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-          );
-
-    return sortedPosts.slice(0, options.limit);
+    const res = await postsService.getAll({
+      limit: options.limit,
+      sortOrder: options.sortOrder as "asc" | "desc",
+    });
+    return res;
   },
 );
 
@@ -70,7 +62,7 @@ export default component$<PostsListBlockProps>((props) => {
         limit: props.limit ?? 6,
         sortOrder: props.sortOrder ?? "desc",
       });
-      posts.value = result;
+      posts.value = result.items;
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to load posts";
     } finally {

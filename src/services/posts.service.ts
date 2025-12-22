@@ -1,17 +1,28 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, asc, and, or, gt, lt } from "drizzle-orm";
 import { db } from "~/db/connection";
 import type { NewPost, Post } from "~/db/schemas/posts";
 import { posts } from "~/db/schemas/posts";
 import type { User } from "~/db/schemas/users";
 import { users } from "~/db/schemas/users";
 import crypto from "crypto";
+import {
+  decodeCursor,
+  getNextCursorFromRows,
+  buildKeysetComparisons,
+  exampleBuildDrizzleWhere,
+} from "~/services/pagination";
 
 export type PostWithUser = Post & {
   user: { displayName: string; email?: string | null };
 };
 
 export const postsService = {
-  async getAll(userId?: string): Promise<PostWithUser[]> {
+  async getAll(options?: {
+    userId?: string;
+    limit?: number;
+    sortOrder?: "asc" | "desc";
+    cursor?: string | null;
+  }): Promise<{ items: PostWithUser[]; nextCursor?: string | null }> {
     // Note: cast the select object to `any` to avoid strict SelectedFields typing issues
     let query: any = db
       .select({
@@ -23,54 +34,72 @@ export const postsService = {
       .from(posts)
       .leftJoin(users, eq(posts.userId, users.id));
 
-    if (userId) {
-      query = query.where(eq(posts.userId, userId));
+    if (options?.userId) {
+      query = query.where(eq(posts.userId, options.userId));
     }
 
-    // Apply ordering after potential `where` to avoid typing issues with the query builder
-    query = query.orderBy(desc(posts.createdAt));
+    // Keyset pagination
+    const cursorObj = decodeCursor(options?.cursor ?? null);
+    const chains = buildKeysetComparisons(
+      cursorObj,
+      ["createdAt", "id"],
+      options?.sortOrder ?? "desc",
+    );
+    const keysetWhere = exampleBuildDrizzleWhere(
+      chains,
+      (name: string) => (posts as any)[name],
+      { eq, lt, gt, and, or },
+    );
+    if (keysetWhere) query = query.where(keysetWhere);
+
+    // Apply ordering
+    const order = options?.sortOrder ?? "desc";
+    const orderExprs =
+      order === "asc"
+        ? [asc(posts.createdAt), asc(posts.id)]
+        : [desc(posts.createdAt), desc(posts.id)];
+    query = query.orderBy(...(orderExprs as any));
+
+    if (typeof options?.limit === "number" && options.limit > 0) {
+      query = query.limit(options.limit + 1);
+    }
 
     const results = (await query) as any[];
-    return results.map((row: any) => ({
-      id: row.id as string,
-      title: row.title as string,
-      body: row.body as string,
-      userId: row.userId as string,
-      createdAt: row.createdAt as string,
-      updatedAt: row.updatedAt as string,
-      user: {
-        displayName: row.user?.displayName ?? "",
-        // We no longer select `email` from the users table; keep value nullable for compatibility
-        email: null,
-      },
-    }));
+
+    // nextCursor handling
+    let nextCursor: string | undefined | null = undefined;
+    let items = results;
+    if (typeof options?.limit === "number" && options.limit > 0) {
+      if (results.length > options.limit) {
+        nextCursor = getNextCursorFromRows(
+          results as any[],
+          ["createdAt", "id"],
+          options.limit,
+        );
+        items = results.slice(0, options.limit);
+      }
+    }
+
+    return {
+      items: items.map((row: any) => ({
+        id: row.id as string,
+        title: row.title as string,
+        body: row.body as string,
+        userId: row.userId as string,
+        createdAt: row.createdAt as string,
+        updatedAt: row.updatedAt as string,
+        user: {
+          displayName: row.user?.displayName ?? "",
+          email: null,
+        },
+      })),
+      nextCursor: nextCursor ?? null,
+    };
   },
 
   async getRecent(limit: number = 3): Promise<PostWithUser[]> {
-    const results = (await db
-      .select({
-        ...posts,
-        user: {
-          displayName: users.displayName,
-        },
-      } as any)
-      .from(posts)
-      .leftJoin(users, eq(posts.userId, users.id))
-      .orderBy(desc(posts.createdAt))
-      .limit(limit)) as any[];
-
-    return results.map((row: any) => ({
-      id: row.id as string,
-      title: row.title as string,
-      body: row.body as string,
-      userId: row.userId as string,
-      createdAt: row.createdAt as string,
-      updatedAt: row.updatedAt as string,
-      user: {
-        displayName: row.user?.displayName ?? "",
-        email: null,
-      },
-    }));
+    const res = await this.getAll({ limit, sortOrder: "desc" });
+    return res.items;
   },
 
   async getById(id: string): Promise<PostWithUser | undefined> {
@@ -160,7 +189,8 @@ const generateExcerpt = (body: string) => {
 };
 
 export async function getAllPosts(): Promise<AdminPost[]> {
-  const rows = await postsService.getAll();
+  const rowsRes = await postsService.getAll();
+  const rows = rowsRes.items;
   return rows.map((r) => ({
     id: r.id,
     title: r.title,

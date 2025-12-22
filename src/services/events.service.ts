@@ -1,119 +1,161 @@
-import { and, asc, desc, eq, gte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, or, gt, lt } from "drizzle-orm";
 import { db } from "~/db/connection";
 import type { Event, NewEvent } from "~/db/schemas/events";
 import { events } from "~/db/schemas/events";
 import type { User } from "~/db/schemas/users";
 import { users } from "~/db/schemas/users";
+import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
 
 export type EventWithUser = Event & {
-	user: { displayName: string; email: string };
+  user: { displayName: string; email: string };
 };
 
 function mapEventWithUser(event: any, user: any): EventWithUser {
-	return {
-		...event,
-		user: {
-			displayName: user?.displayName ?? "",
-			email: user?.email ?? "",
-		},
-	};
+  return {
+    ...event,
+    user: {
+      displayName: user?.displayName ?? "",
+      email: user?.email ?? "",
+    },
+  };
 }
 
 export const eventsService = {
-	async getAll(filters?: {
-		userId?: string;
-		locationType?: string;
-		upcoming?: boolean;
-	}): Promise<EventWithUser[]> {
-		const whereClause = [];
-		if (filters?.userId) {
-			whereClause.push(eq(events.userId, filters.userId));
-		}
-		if (filters?.locationType) {
-			whereClause.push(eq(events.locationType, filters.locationType));
-		}
-		if (filters?.upcoming) {
-			whereClause.push(gte(events.startDate, new Date().toISOString()));
-		}
+  async getAll(
+    limit: number = 10,
+    upcoming: boolean = false,
+    cursor?: string | null,
+  ): Promise<{ items: EventWithUser[]; nextCursor?: string | null }> {
+    const whereClause: any[] = [];
+    const now = new Date().toISOString();
 
-		const eventRows = await db
-			.select()
-			.from(events)
-			.where(whereClause.length ? and(...whereClause) : undefined)
-			.orderBy(desc(events.startDate));
+    // Filter upcoming vs past
+    if (upcoming) {
+      whereClause.push(gte(events.startDate, now));
+    } else {
+      whereClause.push(lt(events.startDate, now));
+    }
 
-		// Fetch users for all events in one go
-		const userIds = Array.from(new Set(eventRows.map((e) => e.userId)));
-		const userRows = userIds.length
-			? await db.select().from(users).where(users.id.in(userIds))
-			: [];
+    // Keyset pagination: decode cursor and build inline keyset WHERE for (startDate, id)
+    const order = upcoming ? "asc" : "desc";
+    const cursorObj = decodeCursor(cursor ?? null);
+    if (cursorObj && cursorObj.startDate != null && cursorObj.id != null) {
+      if (order === "asc") {
+        // (startDate > cursor.startDate) OR (startDate = cursor.startDate AND id > cursor.id)
+        whereClause.push(
+          or(
+            gt(events.startDate, cursorObj.startDate),
+            and(
+              eq(events.startDate, cursorObj.startDate),
+              gt(events.id, cursorObj.id),
+            ),
+          ),
+        );
+      } else {
+        // (startDate < cursor.startDate) OR (startDate = cursor.startDate AND id < cursor.id)
+        whereClause.push(
+          or(
+            lt(events.startDate, cursorObj.startDate),
+            and(
+              eq(events.startDate, cursorObj.startDate),
+              lt(events.id, cursorObj.id),
+            ),
+          ),
+        );
+      }
+    }
 
-		const userMap = new Map(userRows.map((u) => [u.id, u]));
+    const orderExprs =
+      order === "asc"
+        ? [asc(events.startDate), asc(events.id)]
+        : [desc(events.startDate), desc(events.id)];
 
-		return eventRows.map((event) =>
-			mapEventWithUser(event, userMap.get(event.userId)),
-		);
-	},
+    let query = db
+      .select()
+      .from(events)
+      .where(whereClause.length ? and(...whereClause) : undefined)
+      .orderBy(...(orderExprs as any));
 
-	async getUpcoming(limit: number = 3): Promise<EventWithUser[]> {
-		const eventRows = await db
-			.select()
-			.from(events)
-			.where(gte(events.startDate, new Date().toISOString()))
-			.orderBy(asc(events.startDate))
-			.limit(limit);
+    const take = typeof limit === "number" && limit > 0 ? limit : 10;
+    query = (query as any).limit(take + 1);
 
-		const userIds = Array.from(new Set(eventRows.map((e) => e.userId)));
-		const userRows = userIds.length
-			? await db.select().from(users).where(users.id.in(userIds))
-			: [];
+    const eventRows = await query;
 
-		const userMap = new Map(userRows.map((u) => [u.id, u]));
+    // Determine next cursor and trim items to the requested limit
+    let nextCursor: string | null | undefined = undefined;
+    let items = eventRows as any[];
+    if (eventRows.length > take) {
+      nextCursor = getNextCursorFromRows(
+        eventRows as any[],
+        ["startDate", "id"],
+        take,
+      );
+      items = (eventRows as any[]).slice(0, take);
+    }
 
-		return eventRows.map((event) =>
-			mapEventWithUser(event, userMap.get(event.userId)),
-		);
-	},
+    // Fetch users for the returned events
+    const userIds = Array.from(new Set((items || []).map((e) => e.userId)));
+    const userRows = userIds.length
+      ? await db
+          .select()
+          .from(users)
+          .where((users.id as any).in(userIds))
+      : [];
 
-	async getById(id: string): Promise<EventWithUser | undefined> {
-		const event = (await db.select().from(events).where(eq(events.id, id)))[0];
-		if (!event) return undefined;
-		const user = (
-			await db.select().from(users).where(eq(users.id, event.userId))
-		)[0];
-		return mapEventWithUser(event, user);
-	},
+    const userMap = new Map(userRows.map((u) => [u.id, u]));
 
-	async create(
-		data: Omit<NewEvent, "id" | "createdAt" | "updatedAt">,
-	): Promise<Event> {
-		const [inserted] = await db
-			.insert(events)
-			.values({
-				...data,
-				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
-			} as any)
-			.returning();
-		return inserted;
-	},
+    return {
+      items: items.map((event) =>
+        mapEventWithUser(event, userMap.get(event.userId)),
+      ),
+      nextCursor: nextCursor ?? null,
+    };
+  },
 
-	async update(
-		id: string,
-		data: Partial<Omit<NewEvent, "id" | "createdAt">>,
-	): Promise<Event | undefined> {
-		const [updated] = await db
-			.update(events)
-			.set({
-				...data,
-				updatedAt: new Date().toISOString(),
-			} as any)
-			.where(eq(events.id, id))
-			.returning();
-		return updated;
-	},
+  async getUpcoming(limit: number = 3): Promise<EventWithUser[]> {
+    const res = await this.getAll(limit, true);
+    return res.items;
+  },
 
-	async delete(id: string): Promise<void> {
-		await db.delete(events).where(eq(events.id, id));
-	},
+  async getById(id: string): Promise<EventWithUser | undefined> {
+    const event = (await db.select().from(events).where(eq(events.id, id)))[0];
+    if (!event) return undefined;
+    const user = (
+      await db.select().from(users).where(eq(users.id, event.userId))
+    )[0];
+    return mapEventWithUser(event, user);
+  },
+
+  async create(
+    data: Omit<NewEvent, "id" | "createdAt" | "updatedAt">,
+  ): Promise<Event> {
+    const [inserted] = await db
+      .insert(events)
+      .values({
+        ...data,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as any)
+      .returning();
+    return inserted;
+  },
+
+  async update(
+    id: string,
+    data: Partial<Omit<NewEvent, "id" | "createdAt">>,
+  ): Promise<Event | undefined> {
+    const [updated] = await db
+      .update(events)
+      .set({
+        ...data,
+        updatedAt: new Date().toISOString(),
+      } as any)
+      .where(eq(events.id, id))
+      .returning();
+    return updated;
+  },
+
+  async delete(id: string): Promise<void> {
+    await db.delete(events).where(eq(events.id, id));
+  },
 };

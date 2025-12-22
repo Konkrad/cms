@@ -48,22 +48,21 @@ export const definition: BlockDefinition = {
 };
 
 const fetchEvents = server$(
-  async (options: { limit: number; showPast: boolean; sortOrder: string }) => {
-    const { eventsService } = await import("~/services/events.service");
-    const events = await eventsService.getAll({ upcoming: !options.showPast });
-
-    const sortedEvents =
-      options.sortOrder === "asc"
-        ? events.sort(
-            (a, b) =>
-              new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-          )
-        : events.sort(
-            (a, b) =>
-              new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
-          );
-
-    return sortedEvents.slice(0, options.limit);
+  async (options: {
+    limit: number;
+    showPast: boolean;
+    sortOrder: "asc" | "desc";
+    cursor?: string | null;
+  }) => {
+    const { eventsService } = (await import(
+      "~/services/events.service"
+    )) as any;
+    const res = await eventsService.getAll(
+      options.limit,
+      !options.showPast,
+      options.cursor ?? null,
+    );
+    return res;
   },
 );
 
@@ -79,7 +78,7 @@ export default component$<EventsListBlockProps>((props) => {
         showPast: props.showPast ?? false,
         sortOrder: props.sortOrder ?? "asc",
       });
-      events.value = result;
+      events.value = result.items;
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to load events";
     } finally {

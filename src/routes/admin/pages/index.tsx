@@ -92,7 +92,7 @@ export const useAddToMenu = routeAction$(
       await menuItemsService.create({
         menuName: "main",
         label: page.title,
-        url: `/${page.slug}`,
+        url: `${page.slug}`,
         parentId: null,
         position: maxPosition + 1,
         icon: null,
@@ -123,7 +123,7 @@ export default component$(() => {
   const isPageInMenu = (pageId: string) => {
     const page = pages.value.find((p) => p.id === pageId);
     if (!page) return false;
-    return menuItems.value.some((item) => item.url === `/${page.slug}`);
+    return menuItems.value.some((item) => item.url === `${page.slug}`);
   };
 
   return (
@@ -194,7 +194,7 @@ export default component$(() => {
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <code class="text-sm bg-gray-100 px-2 py-1 rounded">
-                      /{page.slug}
+                      {page.slug}
                     </code>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -218,7 +218,7 @@ export default component$(() => {
                     <div class="flex gap-2 flex-wrap">
                       {page.status === "published" && (
                         <a
-                          href={`/${page.slug}`}
+                          href={`${page.slug}`}
                           class="text-blue-600 hover:text-blue-900"
                         >
                           View

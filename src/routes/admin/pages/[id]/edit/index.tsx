@@ -1,11 +1,6 @@
 import { component$ } from "@builder.io/qwik";
-import {
-  Form,
-  routeAction$,
-  routeLoader$,
-  z,
-  zod$,
-} from "@builder.io/qwik-city";
+import { Form, routeAction$, routeLoader$, zod$ } from "@builder.io/qwik-city";
+import { insertPageSchema } from "~/db/schemas/pages";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
@@ -56,18 +51,14 @@ export const useUpdatePage = routeAction$(
       };
     }
   },
-  zod$({
-    title: z.string().min(1, "Title is required"),
-    slug: z
-      .string()
-      .min(1, "Slug is required")
-      .regex(
-        /^(\/|[a-z0-9-]+)$/,
-        'Slug must be "/" for home page, or contain only lowercase letters, numbers, and hyphens',
-      ),
-    parentId: z.string().optional(),
-    status: z.enum(["draft", "published"]),
-  }),
+  zod$(
+    insertPageSchema.omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      content: true,
+    }),
+  ),
 );
 
 export default component$(() => {

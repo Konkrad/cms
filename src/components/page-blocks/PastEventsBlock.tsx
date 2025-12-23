@@ -1,4 +1,4 @@
-import { component$, useSignal, useTask$ } from "@builder.io/qwik";
+import { component$, useSignal, useTask$, $ } from "@builder.io/qwik";
 import { Link, server$ } from "@builder.io/qwik-city";
 import { format } from "date-fns";
 import { Card } from "~/components/ui/Card";
@@ -49,7 +49,7 @@ export default component$(() => {
     }
   });
 
-  const toggleYear = async (year: number) => {
+  const toggleYear = $(async (year: number) => {
     const sel = [...selectedYears.value];
     const idx = sel.indexOf(year);
     if (idx >= 0) {
@@ -78,7 +78,7 @@ export default component$(() => {
         isLoadingEvents.value = false;
       }
     }
-  };
+  });
 
   return (
     <div class="max-w-6xl mx-auto px-4 py-12">
@@ -88,7 +88,9 @@ export default component$(() => {
         </div>
       ) : error.value ? (
         <Card>
-          <p class="text-red-500 text-center py-8">Failed to load: {error.value}</p>
+          <p class="text-red-500 text-center py-8">
+            Failed to load: {error.value}
+          </p>
         </Card>
       ) : years.value.length === 0 ? (
         <Card>
@@ -97,14 +99,19 @@ export default component$(() => {
       ) : (
         <div>
           <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700">Filter by year</label>
+            <label class="block text-sm font-medium text-gray-700">
+              Filter by year
+            </label>
             <div class="flex gap-4 mt-3 flex-wrap">
               {years.value.map((year) => (
-                <label key={year} class="inline-flex items-center space-x-2 text-sm">
+                <label
+                  key={year}
+                  class="inline-flex items-center space-x-2 text-sm"
+                >
                   <input
                     type="checkbox"
                     checked={selectedYears.value.includes(year)}
-                    onChange$={async () => await toggleYear(year)}
+                    onChange$={() => toggleYear(year)}
                     class="h-4 w-4 text-blue-600 border-gray-300 rounded"
                   />
                   <span class="ml-1">{year}</span>
@@ -115,7 +122,9 @@ export default component$(() => {
 
           {selectedYears.value.length === 0 ? (
             <Card>
-              <p class="text-gray-500 text-center py-8">Select one or more years to view events.</p>
+              <p class="text-gray-500 text-center py-8">
+                Select one or more years to view events.
+              </p>
             </Card>
           ) : isLoadingEvents.value ? (
             <div class="text-center py-8">
@@ -126,7 +135,8 @@ export default component$(() => {
               {selectedYears.value.map((year) => (
                 <div key={year}>
                   <h3 class="text-xl font-semibold mb-4">{year}</h3>
-                  {eventsByYear.value[year] && eventsByYear.value[year].length > 0 ? (
+                  {eventsByYear.value[year] &&
+                  eventsByYear.value[year].length > 0 ? (
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {eventsByYear.value[year].map((event) => (
                         <Link key={event.id} href={`/events/${event.id}`}>
@@ -140,17 +150,23 @@ export default component$(() => {
                                   event.locationType === "online"
                                     ? "bg-blue-100 text-blue-800"
                                     : event.locationType === "in_person"
-                                    ? "bg-green-100 text-green-800"
-                                    : "bg-purple-100 text-purple-800"
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-purple-100 text-purple-800"
                                 }`}
                               >
                                 {event.locationType?.replace("_", " ")}
                               </span>
                             </div>
-                            <p class="text-gray-600 line-clamp-2 mb-3">{event.body}</p>
+                            <p class="text-gray-600 line-clamp-2 mb-3">
+                              {event.body}
+                            </p>
                             <div class="text-sm text-gray-500">
-                              <p>{format(new Date(event.startDate), "PPP p")}</p>
-                              {event.user && <p class="mt-1">{event.user.displayName}</p>}
+                              <p>
+                                {format(new Date(event.startDate), "PPP p")}
+                              </p>
+                              {event.user && (
+                                <p class="mt-1">{event.user.displayName}</p>
+                              )}
                             </div>
                           </Card>
                         </Link>
@@ -158,7 +174,9 @@ export default component$(() => {
                     </div>
                   ) : (
                     <Card>
-                      <p class="text-gray-500 text-center py-8">No events for {year}.</p>
+                      <p class="text-gray-500 text-center py-8">
+                        No events for {year}.
+                      </p>
                     </Card>
                   )}
                 </div>

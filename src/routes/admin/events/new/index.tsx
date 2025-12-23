@@ -5,6 +5,7 @@ import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { TextArea } from "~/components/ui/TextArea";
 import { AddressAutocomplete } from "~/components/ui/AddressAutocomplete";
+import { SmartDatePicker } from "~/components/ui/SmartDatePicker";
 import { eventsService } from "~/services/events.service";
 
 const eventSchema = z
@@ -64,7 +65,7 @@ export const useCreateEvent = routeAction$(async (data, event) => {
     longitude: data.longitude || null,
     onlineUrl: data.onlineUrl || null,
     userId: user.id,
-  });
+  } as any);
 
   throw event.redirect(303, "/admin/events");
 }, zod$(eventSchema));
@@ -119,20 +120,12 @@ export default component$(() => {
             required
           />
 
-          <div class="grid grid-cols-2 gap-4">
-            <Input
-              name="startDate"
-              label="Start Date & Time"
-              type="datetime-local"
-              required
-            />
-            <Input
-              name="endDate"
-              label="End Date & Time"
-              type="datetime-local"
-              required
-            />
-          </div>
+          <SmartDatePicker
+            startDateName="startDate"
+            endDateName="endDate"
+            label="Date & Time"
+            required
+          />
 
           <Select
             name="locationType"

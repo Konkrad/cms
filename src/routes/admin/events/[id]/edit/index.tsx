@@ -16,6 +16,7 @@ import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { TextArea } from "~/components/ui/TextArea";
 import { AddressAutocomplete } from "~/components/ui/AddressAutocomplete";
+import { SmartDatePicker } from "~/components/ui/SmartDatePicker";
 import { eventsService } from "~/services/events.service";
 
 export const useEvent = routeLoader$(async (event) => {
@@ -84,7 +85,7 @@ export const useUpdateEvent = routeAction$(async (data, event) => {
     latitude: data.latitude || null,
     longitude: data.longitude || null,
     onlineUrl: data.onlineUrl || null,
-  });
+  } as any);
 
   return {
     success: true,
@@ -165,22 +166,14 @@ export default component$(() => {
             required
           />
 
-          <div class="grid grid-cols-2 gap-4">
-            <Input
-              name="startDate"
-              label="Start Date & Time"
-              type="datetime-local"
-              value={formatDatetimeLocal(event.value.startDate)}
-              required
-            />
-            <Input
-              name="endDate"
-              label="End Date & Time"
-              type="datetime-local"
-              value={formatDatetimeLocal(event.value.endDate)}
-              required
-            />
-          </div>
+          <SmartDatePicker
+            startDateName="startDate"
+            endDateName="endDate"
+            label="Date & Time"
+            required
+            startValue={event.value.startDate}
+            endValue={event.value.endDate}
+          />
 
           <Select
             name="locationType"

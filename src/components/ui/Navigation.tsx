@@ -1,10 +1,11 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
-import { Form, Link } from "@builder.io/qwik-city";
+import { Form, Link, useLocation } from "@builder.io/qwik-city";
 import { useLogoutAction, useUserSession, useMenuItems } from "~/routes/layout";
 
 export const Navigation = component$(() => {
   const user = useUserSession();
   const menu = useMenuItems();
+  const location = useLocation();
   // menuItems removed - now only the Login button is shown for unauthenticated users
   const logoutAction = useLogoutAction();
   const showUserMenu = useSignal(false);
@@ -100,33 +101,33 @@ export const Navigation = component$(() => {
                 {menu.value.map((item) =>
                   item.children && item.children.length > 0 ? (
                     <div key={item.id} class="relative group">
-                      <Link
+                      <a
                         href={item.url || "#"}
                         class="px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
                       >
                         {item.label}
-                      </Link>
+                      </a>
 
                       <div class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden group-hover:block">
                         {item.children.map((child) => (
-                          <Link
+                          <a
                             key={child.id}
                             href={child.url}
                             class="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                           >
                             {child.label}
-                          </Link>
+                          </a>
                         ))}
                       </div>
                     </div>
                   ) : (
-                    <Link
+                    <a
                       key={item.id}
                       href={item.url}
                       class="px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
                     >
                       {item.label}
-                    </Link>
+                    </a>
                   ),
                 )}
               </div>

@@ -5,8 +5,7 @@ import { pagesService } from "~/services/pages.service";
 
 export const usePage = routeLoader$(async ({ params, status }) => {
   console.log("[Page route] usePage - starting with params:", params);
-  const slug =
-    params.slug === "" || params.slug === undefined ? "/" : params.slug;
+  const slug = params.slug;
   console.log("[Page route] usePage - resolved slug:", slug);
 
   const page = await pagesService.getBySlug(slug);

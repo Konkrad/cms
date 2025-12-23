@@ -1,161 +1,209 @@
-import { component$, useSignal } from "@builder.io/qwik";
+import { component$, useSignal, useComputed$ } from "@builder.io/qwik";
 import { Form, routeAction$, z, zod$ } from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { TextArea } from "~/components/ui/TextArea";
+import { AddressAutocomplete } from "~/components/ui/AddressAutocomplete";
 import { eventsService } from "~/services/events.service";
 
-const eventSchema = z.object({
-	title: z.string().min(1, "Title is required"),
-	body: z.string().min(1, "Description is required"),
-	startDate: z.string().min(1, "Start date is required"),
-	endDate: z.string().min(1, "End date is required"),
-	locationType: z.enum(["online", "in_person", "hybrid"]),
-	address: z.string().optional(),
-	city: z.string().optional(),
-	country: z.string().optional(),
-	latitude: z.string().optional(),
-	longitude: z.string().optional(),
-	onlineUrl: z.string().optional(),
-});
+const eventSchema = z
+  .object({
+    title: z.string().min(1, "Title is required"),
+    body: z.string().min(1, "Description is required"),
+    startDate: z.string().min(1, "Start date is required"),
+    endDate: z.string().min(1, "End date is required"),
+    locationType: z.enum(["online", "in_person", "hybrid"]),
+    address: z.string().optional(),
+    city: z.string().optional(),
+    country: z.string().optional(),
+    latitude: z.string().optional(),
+    longitude: z.string().optional(),
+    onlineUrl: z.string().url("Please enter a valid URL").optional(),
+  })
+  .superRefine((data, ctx) => {
+    // Validate address is provided for in_person or hybrid events
+    if (
+      (data.locationType === "in_person" || data.locationType === "hybrid") &&
+      !data.address
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Address is required for in-person and hybrid events",
+        path: ["address"],
+      });
+    }
+
+    // Validate online URL is provided for online or hybrid events
+    if (
+      (data.locationType === "online" || data.locationType === "hybrid") &&
+      !data.onlineUrl
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Online URL is required for online and hybrid events",
+        path: ["onlineUrl"],
+      });
+    }
+  });
 
 export const useCreateEvent = routeAction$(async (data, event) => {
-	try {
-		const session = await event.sharedMap.get("session");
-		if (!session?.user?.id) {
-			return {
-				success: false,
-				error: "Not authenticated",
-			};
-		}
+  const session = await event.sharedMap.get("session");
+  if (!session?.user?.id) {
+    return {
+      success: false,
+      error: "Not authenticated",
+    };
+  }
 
-		await eventsService.create({
-			title: data.title,
-			body: data.body,
-			startDate: data.startDate,
-			endDate: data.endDate,
-			locationType: data.locationType,
-			address: data.address || null,
-			city: data.city || null,
-			country: data.country || null,
-			latitude: data.latitude ? parseFloat(data.latitude) : null,
-			longitude: data.longitude ? parseFloat(data.longitude) : null,
-			onlineUrl: data.onlineUrl || null,
-			userId: session.user.id,
-		});
+  await eventsService.create({
+    title: data.title,
+    body: data.body,
+    startDate: new Date(data.startDate),
+    endDate: new Date(data.endDate),
+    locationType: data.locationType,
+    address: data.address || null,
+    city: data.city || null,
+    country: data.country || null,
+    latitude: data.latitude || null,
+    longitude: data.longitude || null,
+    onlineUrl: data.onlineUrl || null,
+    userId: session.user.id,
+  });
 
-		throw event.redirect(303, "/admin/events");
-	} catch (error: any) {
-		if (error.status === 303) throw error;
-		return {
-			success: false,
-			error: error.message || "Failed to create event",
-		};
-	}
+  throw event.redirect(303, "/admin/events");
 }, zod$(eventSchema));
 
 export default component$(() => {
-	const createEventAction = useCreateEvent();
-	const isSubmitting = useSignal(false);
+  const createEventAction = useCreateEvent();
+  const isSubmitting = useSignal(false);
+  const locationType = useSignal<"online" | "in_person" | "hybrid">(
+    "in_person",
+  );
 
-	return (
-		<div>
-			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-2xl font-bold text-gray-800">Create New Event</h2>
-				<a href="/admin/events">
-					<Button variant="secondary">Back to Events</Button>
-				</a>
-			</div>
+  // Geocoding state
+  const latitude = useSignal("");
+  const longitude = useSignal("");
+  const city = useSignal("");
+  const country = useSignal("");
 
-			<div class="bg-white rounded-lg shadow p-6">
-				<Form action={createEventAction} class="space-y-6">
-					<Input
-						name="title"
-						label="Title"
-						placeholder="Enter event title"
-						required
-					/>
+  // Computed visibility flags
+  const showAddress = useComputed$(() => {
+    return (
+      locationType.value === "in_person" || locationType.value === "hybrid"
+    );
+  });
 
-					<TextArea
-						name="body"
-						label="Description"
-						placeholder="Describe your event..."
-						rows={4}
-						required
-					/>
+  const showOnlineUrl = useComputed$(() => {
+    return locationType.value === "online" || locationType.value === "hybrid";
+  });
 
-					<div class="grid grid-cols-2 gap-4">
-						<Input
-							name="startDate"
-							label="Start Date & Time"
-							type="datetime-local"
-							required
-						/>
-						<Input
-							name="endDate"
-							label="End Date & Time"
-							type="datetime-local"
-							required
-						/>
-					</div>
+  return (
+    <div>
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">Create New Event</h2>
+        <a href="/admin/events">
+          <Button variant="secondary">Back to Events</Button>
+        </a>
+      </div>
 
-					<Select name="locationType" label="Location Type" required>
-						<option value="in_person">In Person</option>
-						<option value="online">Online</option>
-						<option value="hybrid">Hybrid</option>
-					</Select>
+      <div class="bg-white rounded-lg shadow p-6">
+        <Form action={createEventAction} class="space-y-6">
+          <Input
+            name="title"
+            label="Title"
+            placeholder="Enter event title"
+            required
+          />
 
-					<Input
-						name="address"
-						label="Address (for in-person events)"
-						placeholder="Enter physical address"
-					/>
+          <TextArea
+            name="body"
+            label="Description"
+            placeholder="Describe your event..."
+            rows={4}
+            required
+          />
 
-					<Input
-						name="onlineUrl"
-						label="Online URL (for online events)"
-						placeholder="https://zoom.us/..."
-					/>
+          <div class="grid grid-cols-2 gap-4">
+            <Input
+              name="startDate"
+              label="Start Date & Time"
+              type="datetime-local"
+              required
+            />
+            <Input
+              name="endDate"
+              label="End Date & Time"
+              type="datetime-local"
+              required
+            />
+          </div>
 
-					<div class="grid grid-cols-2 gap-4">
-						<Input name="city" label="City" placeholder="City" />
-						<Input name="country" label="Country" placeholder="Country" />
-					</div>
+          <Select
+            name="locationType"
+            label="Location Type"
+            required
+            onChange$={(e) => {
+              locationType.value = (e.target as HTMLSelectElement).value as any;
+            }}
+          >
+            <option value="in_person">In Person</option>
+            <option value="online">Online</option>
+            <option value="hybrid">Hybrid</option>
+          </Select>
 
-					<div class="grid grid-cols-2 gap-4">
-						<Input
-							name="latitude"
-							label="Latitude"
-							type="number"
-							step="any"
-							placeholder="0.0"
-						/>
-						<Input
-							name="longitude"
-							label="Longitude"
-							type="number"
-							step="any"
-							placeholder="0.0"
-						/>
-					</div>
+          {showAddress.value && (
+            <AddressAutocomplete
+              name="address"
+              label="Address"
+              placeholder="Start typing an address..."
+              required={locationType.value !== "online"}
+              latitudeSignal={latitude}
+              longitudeSignal={longitude}
+              citySignal={city}
+              countrySignal={country}
+            />
+          )}
 
-					{createEventAction.value?.error && (
-						<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-							{createEventAction.value.error}
-						</div>
-					)}
+          {showOnlineUrl.value && (
+            <Input
+              name="onlineUrl"
+              label="Online URL"
+              type="url"
+              placeholder="https://zoom.us/j/123456789"
+              required={locationType.value !== "in_person"}
+            />
+          )}
 
-					<div class="flex gap-4">
-						<Button type="submit" disabled={isSubmitting.value}>
-							{isSubmitting.value ? "Creating..." : "Create Event"}
-						</Button>
-						<a href="/admin/events">
-							<Button variant="secondary">Cancel</Button>
-						</a>
-					</div>
-				</Form>
-			</div>
-		</div>
-	);
+          {createEventAction.value?.fieldErrors && (
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {Object.entries(createEventAction.value.fieldErrors).map(
+                ([field, errors]) => (
+                  <div key={field}>
+                    <strong>{field}:</strong>{" "}
+                    {Array.isArray(errors) ? errors.join(", ") : errors}
+                  </div>
+                ),
+              )}
+            </div>
+          )}
+
+          {createEventAction.value?.error && (
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {createEventAction.value.error}
+            </div>
+          )}
+
+          <div class="flex gap-4">
+            <Button type="submit" disabled={isSubmitting.value}>
+              {isSubmitting.value ? "Creating..." : "Create Event"}
+            </Button>
+            <a href="/admin/events">
+              <Button variant="secondary">Cancel</Button>
+            </a>
+          </div>
+        </Form>
+      </div>
+    </div>
+  );
 });

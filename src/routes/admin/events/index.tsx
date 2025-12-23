@@ -1,5 +1,5 @@
 import { component$ } from "@builder.io/qwik";
-import { routeLoader$ } from "@builder.io/qwik-city";
+import { Link, routeLoader$ } from "@builder.io/qwik-city";
 import { format } from "date-fns";
 import { Button } from "~/components/ui/Button";
 import { eventsService } from "~/services/events.service";
@@ -27,9 +27,9 @@ export default component$(() => {
     <div>
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Events</h2>
-        <a href="/admin/events/new">
+        <Link href="/admin/events/new">
           <Button>Create New Event</Button>
-        </a>
+        </Link>
       </div>
 
       <div class="bg-white rounded-lg shadow overflow-hidden">

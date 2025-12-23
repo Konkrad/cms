@@ -1,6 +1,7 @@
 import { component$ } from "@builder.io/qwik";
 import {
   Form,
+  Link,
   routeAction$,
   routeLoader$,
   z,
@@ -217,12 +218,12 @@ export default component$(() => {
                   <td class="px-6 py-4 whitespace-nowrap text-sm">
                     <div class="flex gap-2 flex-wrap">
                       {page.status === "published" && (
-                        <a
+                        <Link
                           href={`${page.slug}`}
                           class="text-blue-600 hover:text-blue-900"
                         >
                           View
-                        </a>
+                        </Link>
                       )}
                       <a
                         href={`/admin/pages/${page.id}/edit`}

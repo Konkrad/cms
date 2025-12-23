@@ -1,5 +1,5 @@
 import { component$ } from "@builder.io/qwik";
-import { type DocumentHead, routeLoader$ } from "@builder.io/qwik-city";
+import { Link, type DocumentHead, routeLoader$ } from "@builder.io/qwik-city";
 import { format } from "date-fns";
 import { eventsService } from "~/services/events.service";
 
@@ -24,9 +24,12 @@ export default component$(() => {
         <p class="text-gray-600 mb-8">
           The event you're looking for doesn't exist or has been removed.
         </p>
-        <a href="/events" class="text-blue-600 hover:text-blue-800 font-medium">
+        <Link
+          href="/events"
+          class="text-blue-600 hover:text-blue-800 font-medium"
+        >
           Back to Events
-        </a>
+        </Link>
       </div>
     );
   }
@@ -41,12 +44,12 @@ export default component$(() => {
       <div class="max-w-4xl mx-auto px-4 py-12">
         {/* Header */}
         <div class="mb-6">
-          <a
+          <Link
             href="/events"
             class="text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-2 mb-4"
           >
             ← Back to Events
-          </a>
+          </Link>
           <h1 class="text-4xl font-bold text-gray-900 mb-4">
             {event.value.title}
           </h1>

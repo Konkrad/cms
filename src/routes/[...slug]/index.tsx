@@ -1,5 +1,5 @@
 import { component$ } from "@builder.io/qwik";
-import { type DocumentHead, routeLoader$ } from "@builder.io/qwik-city";
+import { Link, type DocumentHead, routeLoader$ } from "@builder.io/qwik-city";
 import { BlockRenderer } from "~/components/builder/BlockRenderer";
 import { pagesService } from "~/services/pages.service";
 
@@ -74,9 +74,9 @@ export default component$(() => {
         <p class="text-gray-600 mb-8">
           The page you're looking for doesn't exist or has been removed.
         </p>
-        <a href="/" class="text-blue-600 hover:text-blue-800 font-medium">
+        <Link href="/" class="text-blue-600 hover:text-blue-800 font-medium">
           Go back home
-        </a>
+        </Link>
       </div>
     );
   }

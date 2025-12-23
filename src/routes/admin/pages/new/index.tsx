@@ -1,3 +1,4 @@
+import { component$ } from "@builder.io/qwik";
 import { Form, routeAction$, routeLoader$, zod$ } from "@builder.io/qwik-city";
 import { insertPageSchema } from "~/db/schemas/pages";
 import { Button } from "~/components/ui/Button";

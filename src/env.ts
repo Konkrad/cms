@@ -54,6 +54,13 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().email(),
+
+  // S3 / Storage
+  AWS_REGION: z.string().default("us-east-1"),
+  AWS_ACCESS_KEY_ID: z.string(),
+  AWS_SECRET_ACCESS_KEY: z.string(),
+  S3_BUCKET: z.string(),
+  S3_UPLOAD_PATH: z.string().default("uploads"),
 });
 
 /**
@@ -88,6 +95,11 @@ export const env = {
   SMTP_USER: _env.SMTP_USER,
   SMTP_PASS: _env.SMTP_PASS,
   SMTP_FROM: _env.SMTP_FROM,
+  AWS_REGION: _env.AWS_REGION,
+  AWS_ACCESS_KEY_ID: _env.AWS_ACCESS_KEY_ID,
+  AWS_SECRET_ACCESS_KEY: _env.AWS_SECRET_ACCESS_KEY,
+  S3_BUCKET: _env.S3_BUCKET,
+  S3_UPLOAD_PATH: _env.S3_UPLOAD_PATH,
 
   // helpful booleans
   isProduction: _env.NODE_ENV === "production",

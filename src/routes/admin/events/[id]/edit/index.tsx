@@ -92,16 +92,10 @@ export const useUpdateEvent = routeAction$(async (data, event) => {
   };
 }, zod$(eventSchema));
 
-export const useDeleteEvent = routeAction$(async (data, event) => {
-  const eventId = event.params.id;
-  await eventsService.delete(eventId);
-  throw event.redirect(303, "/admin/events");
-});
-
 export default component$(() => {
   const event = useEvent();
   const updateEventAction = useUpdateEvent();
-  const deleteEventAction = useDeleteEvent();
+
   const isSubmitting = useSignal(false);
   const locationType = useSignal<"online" | "in_person" | "hybrid">(
     event.value.locationType as "online" | "in_person" | "hybrid",
@@ -239,30 +233,13 @@ export default component$(() => {
             </div>
           )}
 
-          <div class="flex justify-between">
-            <div class="flex gap-4">
-              <Button type="submit" disabled={isSubmitting.value}>
-                {isSubmitting.value ? "Saving..." : "Save Changes"}
-              </Button>
-              <a href="/admin/events">
-                <Button variant="secondary">Cancel</Button>
-              </a>
-            </div>
-
-            <Form action={deleteEventAction}>
-              <Button
-                type="submit"
-                variant="secondary"
-                class="text-red-600 hover:bg-red-50"
-                onClick$={(e) => {
-                  if (!confirm("Are you sure you want to delete this event?")) {
-                    e.preventDefault();
-                  }
-                }}
-              >
-                Delete Event
-              </Button>
-            </Form>
+          <div class="flex gap-4">
+            <Button type="submit" disabled={isSubmitting.value}>
+              {isSubmitting.value ? "Saving..." : "Save Changes"}
+            </Button>
+            <a href="/admin/events">
+              <Button variant="secondary">Cancel</Button>
+            </a>
           </div>
         </Form>
       </div>

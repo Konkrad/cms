@@ -144,9 +144,11 @@ export const eventsService = {
   async create(
     data: Omit<NewEvent, "id" | "createdAt" | "updatedAt">,
   ): Promise<Event> {
+    const id = crypto.randomUUID();
     const [inserted] = await db
       .insert(events)
       .values({
+        id,
         ...data,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

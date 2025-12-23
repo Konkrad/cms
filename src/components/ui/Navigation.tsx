@@ -163,6 +163,14 @@ export const Navigation = component$(() => {
                     >
                       My Profile
                     </Link>
+                    {isAdmin && (
+                      <Link
+                        href="/admin"
+                        class="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        Admin Area
+                      </Link>
+                    )}
                     <Form action={logoutAction}>
                       <button
                         type="submit"

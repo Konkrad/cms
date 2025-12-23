@@ -48,19 +48,14 @@ const eventSchema = z
   });
 
 export const useCreateEvent = routeAction$(async (data, event) => {
-  const session = await event.sharedMap.get("session");
-  if (!session?.user?.id) {
-    return {
-      success: false,
-      error: "Not authenticated",
-    };
-  }
+  const { requireAdmin } = await import("~/utils/server-auth");
+  const user = await requireAdmin(event);
 
   await eventsService.create({
     title: data.title,
     body: data.body,
-    startDate: new Date(data.startDate),
-    endDate: new Date(data.endDate),
+    startDate: new Date(data.startDate).toISOString(),
+    endDate: new Date(data.endDate).toISOString(),
     locationType: data.locationType,
     address: data.address || null,
     city: data.city || null,
@@ -68,7 +63,7 @@ export const useCreateEvent = routeAction$(async (data, event) => {
     latitude: data.latitude || null,
     longitude: data.longitude || null,
     onlineUrl: data.onlineUrl || null,
-    userId: session.user.id,
+    userId: user.id,
   });
 
   throw event.redirect(303, "/admin/events");
@@ -188,9 +183,9 @@ export default component$(() => {
             </div>
           )}
 
-          {createEventAction.value?.error && (
+          {createEventAction.value?.formErrors && (
             <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {createEventAction.value.error}
+              {createEventAction.value.formErrors.join(", ")}
             </div>
           )}
 

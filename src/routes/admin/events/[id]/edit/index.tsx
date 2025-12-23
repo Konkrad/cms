@@ -75,8 +75,8 @@ export const useUpdateEvent = routeAction$(async (data, event) => {
   await eventsService.update(eventId, {
     title: data.title,
     body: data.body,
-    startDate: new Date(data.startDate),
-    endDate: new Date(data.endDate),
+    startDate: new Date(data.startDate).toISOString(),
+    endDate: new Date(data.endDate).toISOString(),
     locationType: data.locationType,
     address: data.address || null,
     city: data.city || null,

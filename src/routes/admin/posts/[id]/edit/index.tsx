@@ -1,4 +1,4 @@
-import { component$, useSignal } from "@builder.io/qwik";
+import { component$, useSignal, $ } from "@builder.io/qwik";
 import {
   Form,
   routeAction$,
@@ -9,7 +9,7 @@ import {
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
-import { TextArea } from "~/components/ui/TextArea";
+import { KoenigEditor } from "~/components/editor";
 import { deletePost, getPostById, updatePost } from "~/services/posts.service";
 
 export const usePost = routeLoader$(async (event) => {
@@ -25,9 +25,10 @@ export const usePost = routeLoader$(async (event) => {
 
 const postSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  excerpt: z.string().min(1, "Excerpt is required"),
+  excerpt: z.string().optional(),
   content: z.string().min(1, "Content is required"),
-  category: z.string().min(1, "Category is required"),
+  editorState: z.string().optional(),
+  category: z.string().optional(),
   image_url: z.string().optional(),
 });
 
@@ -38,9 +39,10 @@ export const useUpdatePost = routeAction$(async (data, event) => {
     postId,
     {
       title: data.title,
-      excerpt: data.excerpt,
+      excerpt: data.excerpt || "",
       content: data.content,
-      category: data.category,
+      editorState: data.editorState || null,
+      category: data.category || "",
       image_url: data.image_url || null,
     },
     event,
@@ -69,6 +71,13 @@ export default component$(() => {
   const updatePostAction = useUpdatePost();
   const deletePostAction = useDeletePost();
   const isSubmitting = useSignal(false);
+  const content = useSignal(post.value.content || "");
+  const editorState = useSignal(post.value.editorState || null);
+
+  const handleEditorChange$ = $((htmlContent: string, state: string) => {
+    content.value = htmlContent;
+    editorState.value = state;
+  });
 
   return (
     <div>
@@ -94,14 +103,13 @@ export default component$(() => {
             label="Excerpt"
             value={post.value.excerpt}
             placeholder="Brief summary of the post"
-            required
           />
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
               Category
             </label>
-            <Select name="category" value={post.value.category} required>
+            <Select name="category" value={post.value.category || ""}>
               <option value="">Select a category</option>
               <option value="Announcements">Announcements</option>
               <option value="Events">Events</option>
@@ -118,13 +126,25 @@ export default component$(() => {
             placeholder="https://example.com/image.jpg"
           />
 
-          <TextArea
-            name="content"
-            label="Content"
-            value={post.value.content}
-            placeholder="Write your post content here..."
-            rows={12}
-            required
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Content
+            </label>
+            <div class="border border-gray-300 rounded-lg overflow-hidden">
+              <KoenigEditor
+                content={post.value.content || ""}
+                editorState={post.value.editorState}
+                onChange$={handleEditorChange$}
+                uploadUrl="/api/images"
+              />
+            </div>
+          </div>
+
+          <input type="hidden" name="content" value={content.value} />
+          <input
+            type="hidden"
+            name="editorState"
+            value={editorState.value || ""}
           />
 
           {updatePostAction.value?.error && (

@@ -5,12 +5,12 @@
  * Supports multiple processing pipelines for different use cases.
  */
 
-import sharp from 'sharp';
+import sharp from "sharp";
 import { S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
-import { PassThrough } from 'stream';
-import { Readable } from 'stream';
-import { env } from '~/env';
+import { PassThrough } from "stream";
+import { Readable } from "stream";
+import { env } from "~/env";
 
 /**
  * Processing pipeline configuration
@@ -18,7 +18,7 @@ import { env } from '~/env';
 export interface ImageProcessingPipeline {
   name: string;
   transform: (transformer: sharp.Sharp) => sharp.Sharp;
-  outputFormat: 'webp' | 'jpeg' | 'png';
+  outputFormat: "webp" | "jpeg" | "png";
   quality?: number;
 }
 
@@ -28,45 +28,45 @@ export interface ImageProcessingPipeline {
 export const PROCESSING_PIPELINES = {
   // Standard web image - 1000x1000 webp with good quality
   standard: {
-    name: 'standard',
+    name: "standard",
     transform: (transformer) =>
       transformer.resize(1000, 1000, {
-        fit: 'cover',
-        position: 'entropy'
+        fit: "cover",
+        position: "entropy",
       }),
-    outputFormat: 'webp' as const,
+    outputFormat: "webp" as const,
     quality: 80,
   },
 
   // Thumbnail - 300x300 webp for previews
   thumbnail: {
-    name: 'thumbnail',
+    name: "thumbnail",
     transform: (transformer) =>
       transformer.resize(300, 300, {
-        fit: 'cover',
-        position: 'entropy'
+        fit: "cover",
+        position: "entropy",
       }),
-    outputFormat: 'webp' as const,
+    outputFormat: "webp" as const,
     quality: 75,
   },
 
   // Hero image - 1920x1080 webp for banners/headers
   hero: {
-    name: 'hero',
+    name: "hero",
     transform: (transformer) =>
       transformer.resize(1920, 1080, {
-        fit: 'cover',
-        position: 'entropy'
+        fit: "cover",
+        position: "entropy",
       }),
-    outputFormat: 'webp' as const,
+    outputFormat: "webp" as const,
     quality: 85,
   },
 
   // Original - minimal processing, just format conversion
   original: {
-    name: 'original',
+    name: "original",
     transform: (transformer) => transformer,
-    outputFormat: 'webp' as const,
+    outputFormat: "webp" as const,
     quality: 90,
   },
 } satisfies Record<string, ImageProcessingPipeline>;
@@ -85,8 +85,20 @@ export interface ImageUploadResult {
  * Initialize S3 client with credentials from environment
  */
 function createS3Client(): S3Client {
+  // eslint-disable-next-line no-console
+  console.log("Creating S3 Client with:", {
+    region: env.AWS_REGION,
+    endpoint: env.AWS_ENDPOINT,
+    bucket: env.S3_BUCKET,
+    accessKeyId: env.AWS_ACCESS_KEY_ID
+      ? `${env.AWS_ACCESS_KEY_ID.substring(0, 5)}...`
+      : undefined,
+  });
+
   return new S3Client({
     region: env.AWS_REGION,
+    endpoint: env.AWS_ENDPOINT,
+    forcePathStyle: !!env.AWS_ENDPOINT,
     credentials: {
       accessKeyId: env.AWS_ACCESS_KEY_ID,
       secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
@@ -105,7 +117,7 @@ function createS3Client(): S3Client {
 export async function processAndUploadImage(
   bodyStream: ReadableStream,
   pipeline: ImageProcessingPipeline = PROCESSING_PIPELINES.standard,
-  filename?: string
+  filename?: string,
 ): Promise<ImageUploadResult> {
   // Generate filename if not provided
   const fileKey = filename || `${Date.now()}.${pipeline.outputFormat}`;
@@ -117,13 +129,13 @@ export async function processAndUploadImage(
 
   // Apply format and quality
   switch (pipeline.outputFormat) {
-    case 'webp':
+    case "webp":
       transformedSharp.webp({ quality: pipeline.quality || 80 });
       break;
-    case 'jpeg':
+    case "jpeg":
       transformedSharp.jpeg({ quality: pipeline.quality || 80 });
       break;
-    case 'png':
+    case "png":
       transformedSharp.png({ quality: pipeline.quality || 80 });
       break;
   }
@@ -150,7 +162,9 @@ export async function processAndUploadImage(
   const result = await upload.done();
 
   // Construct the public URL (adjust based on your S3 configuration)
-  const url = `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${s3Key}`;
+  const url = env.AWS_ENDPOINT
+    ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${s3Key}`
+    : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${s3Key}`;
 
   return {
     key: s3Key,
@@ -163,9 +177,12 @@ export async function processAndUploadImage(
  * Get a processing pipeline by name
  */
 export function getPipeline(name: string): ImageProcessingPipeline {
-  const pipeline = PROCESSING_PIPELINES[name as keyof typeof PROCESSING_PIPELINES];
+  const pipeline =
+    PROCESSING_PIPELINES[name as keyof typeof PROCESSING_PIPELINES];
   if (!pipeline) {
-    throw new Error(`Unknown pipeline: ${name}. Available: ${Object.keys(PROCESSING_PIPELINES).join(', ')}`);
+    throw new Error(
+      `Unknown pipeline: ${name}. Available: ${Object.keys(PROCESSING_PIPELINES).join(", ")}`,
+    );
   }
   return pipeline;
 }

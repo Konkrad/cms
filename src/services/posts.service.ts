@@ -58,6 +58,7 @@ export const postsService = {
         id: row.id as string,
         title: row.title as string,
         body: row.body as string,
+        editorState: row.editorState || null,
         userId: row.userId as string,
         createdAt: row.createdAt as string,
         updatedAt: row.updatedAt as string,
@@ -94,6 +95,7 @@ export const postsService = {
       id: row.id as string,
       title: row.title as string,
       body: row.body as string,
+      editorState: row.editorState || null,
       userId: row.userId as string,
       createdAt: row.createdAt as string,
       updatedAt: row.updatedAt as string,
@@ -152,6 +154,7 @@ export type AdminPost = {
   published_at: string;
   image_url?: string | null;
   content?: string;
+  editorState?: any;
 };
 
 const generateExcerpt = (body: string) => {
@@ -173,6 +176,7 @@ export async function getAllPosts(): Promise<AdminPost[]> {
     published_at: r.createdAt,
     image_url: null,
     content: r.body,
+    editorState: (r as any).editorState || null,
   }));
 }
 
@@ -188,6 +192,7 @@ export async function getPostById(id: string): Promise<AdminPost | undefined> {
     published_at: r.createdAt,
     image_url: null,
     content: r.body,
+    editorState: (r as any).editorState || null,
   };
 }
 
@@ -196,6 +201,7 @@ export async function createPost(
     title: string;
     excerpt?: string;
     content: string;
+    editorState?: string | null;
     category?: string;
     image_url?: string | null;
   },
@@ -207,6 +213,7 @@ export async function createPost(
     await postsService.create({
       title: data.title,
       body: data.content,
+      editorState: data.editorState || null,
       userId: user.id,
     } as any);
     return undefined;
@@ -221,6 +228,7 @@ export async function updatePost(
     title: string;
     excerpt?: string;
     content: string;
+    editorState?: string | null;
     category?: string;
     image_url?: string | null;
   },
@@ -232,6 +240,7 @@ export async function updatePost(
     const updated = await postsService.update(id, {
       title: data.title,
       body: data.content,
+      editorState: data.editorState || null,
     } as any);
     if (!updated) return { error: "Post not found" };
     return undefined;

@@ -23,12 +23,16 @@ errorOnDuplicatesPkgDeps(devDependencies, dependencies);
 export default defineConfig(({ command, mode }): UserConfig => {
   return {
     plugins: [qwikCity(), qwikVite(), tsconfigPaths()],
+    resolve: {
+      dedupe: ["react", "react-dom"],
+    },
     // This tells Vite which dependencies to pre-build in dev mode.
     optimizeDeps: {
       // Put problematic deps that break bundling here, mostly those with binaries.
       // For example ['better-sqlite3'] if you use that in server functions.
       // Exclude native binary deps to prevent Vite from pre-bundling them in dev.
       exclude: ["better-sqlite3"],
+      include: ["react", "react-dom", "react/jsx-runtime", "react-dom/client"],
     },
 
     /**
@@ -36,6 +40,7 @@ export default defineConfig(({ command, mode }): UserConfig => {
      */
     ssr: {
       noExternal: ["date-fns"],
+      external: ["@tryghost/koenig-lexical", "@lexical/react"],
     },
 
     server: {

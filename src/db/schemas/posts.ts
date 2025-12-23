@@ -5,14 +5,19 @@ import type { z } from "zod";
 import { users } from "./users";
 
 export const posts = sqliteTable("posts", {
-	id: text("id").primaryKey(),
-	title: text("title").notNull(),
-	body: text("body").notNull(),
-	userId: text("user_id")
-		.notNull()
-		.references(() => users.id),
-	createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-	updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  editorState: text("editor_state", { mode: "json" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const insertPostSchema = createInsertSchema(posts);

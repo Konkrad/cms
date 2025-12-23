@@ -57,6 +57,7 @@ const envSchema = z.object({
 
   // S3 / Storage
   AWS_REGION: z.string().default("us-east-1"),
+  AWS_ENDPOINT: z.string().optional(),
   AWS_ACCESS_KEY_ID: z.string(),
   AWS_SECRET_ACCESS_KEY: z.string(),
   S3_BUCKET: z.string(),
@@ -96,6 +97,7 @@ export const env = {
   SMTP_PASS: _env.SMTP_PASS,
   SMTP_FROM: _env.SMTP_FROM,
   AWS_REGION: _env.AWS_REGION,
+  AWS_ENDPOINT: _env.AWS_ENDPOINT,
   AWS_ACCESS_KEY_ID: _env.AWS_ACCESS_KEY_ID,
   AWS_SECRET_ACCESS_KEY: _env.AWS_SECRET_ACCESS_KEY,
   S3_BUCKET: _env.S3_BUCKET,

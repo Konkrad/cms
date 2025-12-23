@@ -1,4 +1,4 @@
-import { desc, eq, lt, gte } from "drizzle-orm";
+import { desc, eq, lt, gte, inArray } from "drizzle-orm";
 import { db } from "~/db/connection";
 import type { Event, NewEvent } from "~/db/schemas/events";
 import { events } from "~/db/schemas/events";
@@ -53,10 +53,7 @@ export const eventsService = {
     // Fetch users for the returned events
     const userIds = Array.from(new Set((items || []).map((e) => e.userId)));
     const userRows = userIds.length
-      ? await db
-          .select()
-          .from(users)
-          .where((users.id as any).in(userIds))
+      ? await db.select().from(users).where(inArray(users.id, userIds))
       : [];
 
     const userMap = new Map(userRows.map((u) => [u.id, u]));
@@ -84,10 +81,7 @@ export const eventsService = {
 
     const userIds = Array.from(new Set((rows || []).map((e) => e.userId)));
     const userRows = userIds.length
-      ? await db
-          .select()
-          .from(users)
-          .where((users.id as any).in(userIds))
+      ? await db.select().from(users).where(inArray(users.id, userIds))
       : [];
     const userMap = new Map(userRows.map((u) => [u.id, u]));
 
@@ -129,10 +123,7 @@ export const eventsService = {
 
     const userIds = Array.from(new Set(filtered.map((e: any) => e.userId)));
     const userRows = userIds.length
-      ? await db
-          .select()
-          .from(users)
-          .where((users.id as any).in(userIds))
+      ? await db.select().from(users).where(inArray(users.id, userIds))
       : [];
     const userMap = new Map(userRows.map((u) => [u.id, u]));
 

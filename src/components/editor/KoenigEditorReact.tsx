@@ -6,12 +6,12 @@ import React, {
   useImperativeHandle,
   forwardRef,
   useRef,
-  useEffect,
   type ReactElement,
 } from "react";
 import {
   KoenigComposer,
   KoenigEditor as KoenigEditorComponent,
+  type EditorAPI,
 } from "@tryghost/koenig-lexical";
 
 interface KoenigEditorProps {
@@ -107,12 +107,16 @@ const KoenigEditorReact = (
   }: KoenigEditorProps,
   ref: React.ForwardedRef<KoenigEditorRef>,
 ): ReactElement => {
-  const editorStateRef = useRef<string>("");
+  const editorAPIRef = useRef<EditorAPI | null>(null);
   const lastStateRef = useRef<string>("");
-  const isInitializedRef = useRef(false);
 
   useImperativeHandle(ref, () => ({
-    getEditorState: () => editorStateRef.current,
+    getEditorState: () => {
+      if (editorAPIRef.current) {
+        return editorAPIRef.current.serialize();
+      }
+      return "";
+    },
     getHtmlContent: () => "",
   }));
 
@@ -135,46 +139,28 @@ const KoenigEditorReact = (
     };
   }, [uploadUrl]);
 
-  const handleEditorChange = useCallback((editorState: any) => {
-    if (!editorState) {
-      return;
-    }
-
-    if (editorState && typeof editorState === "object") {
-      editorStateRef.current = JSON.stringify(editorState);
-    }
+  const handleRegisterAPI = useCallback((api: EditorAPI) => {
+    editorAPIRef.current = api;
   }, []);
 
-  useEffect(() => {
-    const captureState = () => {
-      const composerElement = document.querySelector(".koenig-editor-wrapper");
-      if (composerElement && isInitializedRef.current) {
-        try {
-          const editorElement = composerElement.querySelector(
-            '[contenteditable="true"]',
-          );
-          if (editorElement && (editorElement as any).__lexicalEditor) {
-            const editor = (editorElement as any).__lexicalEditor;
-            const state = editor.getEditorState();
-            const stateJson = JSON.stringify(state.toJSON());
-            editorStateRef.current = stateJson;
-
-            if (stateJson !== lastStateRef.current) {
-              lastStateRef.current = stateJson;
-              onChange("", stateJson);
-            }
-          }
-        } catch (error) {
-          console.error("Error capturing editor state:", error);
-        }
-      } else if (composerElement) {
-        isInitializedRef.current = true;
+  const handleEditorChange = useCallback(
+    (editorStateJson: any) => {
+      if (!editorStateJson) {
+        return;
       }
-    };
 
-    const interval = setInterval(captureState, 500);
-    return () => clearInterval(interval);
-  }, [onChange]);
+      const stateString =
+        typeof editorStateJson === "string"
+          ? editorStateJson
+          : JSON.stringify(editorStateJson);
+
+      if (stateString !== lastStateRef.current) {
+        lastStateRef.current = stateString;
+        onChange("", stateString);
+      }
+    },
+    [onChange],
+  );
 
   const initialEditorState = useMemo(() => {
     if (!editorState) return undefined;
@@ -192,6 +178,7 @@ const KoenigEditorReact = (
       >
         <KoenigEditorComponent
           onChange={handleEditorChange}
+          registerAPI={handleRegisterAPI}
           className="kg-editor"
         />
       </KoenigComposer>

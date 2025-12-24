@@ -108,12 +108,12 @@ const KoenigEditorReact = (
   ref: React.ForwardedRef<KoenigEditorRef>,
 ): ReactElement => {
   const editorStateRef = useRef<string>("");
-  const lastHtmlRef = useRef<string>("");
+  const lastStateRef = useRef<string>("");
   const isInitializedRef = useRef(false);
 
   useImperativeHandle(ref, () => ({
     getEditorState: () => editorStateRef.current,
-    getHtmlContent: () => lastHtmlRef.current,
+    getHtmlContent: () => "",
   }));
 
   const fileUploader = useMemo(() => {
@@ -159,10 +159,9 @@ const KoenigEditorReact = (
             const stateJson = JSON.stringify(state.toJSON());
             editorStateRef.current = stateJson;
 
-            const htmlContent = editorElement.innerHTML || "";
-            if (htmlContent !== lastHtmlRef.current) {
-              lastHtmlRef.current = htmlContent;
-              onChange(htmlContent, stateJson);
+            if (stateJson !== lastStateRef.current) {
+              lastStateRef.current = stateJson;
+              onChange("", stateJson);
             }
           }
         } catch (error) {

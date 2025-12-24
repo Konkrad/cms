@@ -26,39 +26,42 @@ export const usePost = routeLoader$(async (event) => {
 const postSchema = z.object({
   title: z.string().min(1, "Title is required"),
   excerpt: z.string().optional(),
-  content: z.string().min(1, "Content is required"),
+  content: z.string().optional(),
   editorState: z.string().optional(),
   category: z.string().optional(),
   image_url: z.string().optional(),
 });
 
-export const useUpdatePost = routeAction$(async (data, event) => {
-  const postId = event.params.id;
+export const useUpdatePost = routeAction$(
+  async (data, event) => {
+    const postId = event.params.id;
 
-  const result = await updatePost(
-    postId,
-    {
-      title: data.title,
-      excerpt: data.excerpt || "",
-      content: data.content,
-      editorState: data.editorState || null,
-      category: data.category || "",
-      image_url: data.image_url || null,
-    },
-    event,
-  );
+    const result = await updatePost(
+      postId,
+      {
+        title: data.title,
+        excerpt: data.excerpt || "",
+        content: data.content || "",
+        editorState: data.editorState || null,
+        category: data.category || "",
+        image_url: data.image_url || null,
+      },
+      event,
+    );
 
-  if (result?.error) {
+    if (result?.error) {
+      return {
+        success: false,
+        error: result?.error,
+      };
+    }
+
     return {
-      success: false,
-      error: result?.error,
+      success: true,
     };
-  }
-
-  return {
-    success: true,
-  };
-}, zod$(postSchema));
+  },
+  { ...zod$(postSchema), form: { limit: "10mb" } },
+);
 
 export const useDeletePost = routeAction$(async (data, event) => {
   const postId = event.params.id;

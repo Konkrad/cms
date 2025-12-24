@@ -9,34 +9,37 @@ import { createPost } from "~/services/posts.service";
 const postSchema = z.object({
   title: z.string().min(1, "Title is required"),
   excerpt: z.string().optional(),
-  content: z.string().min(1, "Content is required"),
+  content: z.string().optional(),
   editorState: z.string().optional(),
   category: z.string().optional(),
   image_url: z.string().optional(),
 });
 
-export const useCreatePost = routeAction$(async (data, event) => {
-  const result = await createPost(
-    {
-      title: data.title,
-      excerpt: data.excerpt || "",
-      content: data.content,
-      editorState: data.editorState || null,
-      category: data.category || "",
-      image_url: data.image_url || null,
-    },
-    event,
-  );
+export const useCreatePost = routeAction$(
+  async (data, event) => {
+    const result = await createPost(
+      {
+        title: data.title,
+        excerpt: data.excerpt || "",
+        content: data.content || "",
+        editorState: data.editorState || null,
+        category: data.category || "",
+        image_url: data.image_url || null,
+      },
+      event,
+    );
 
-  if (result?.error) {
-    return {
-      success: false,
-      error: result?.error,
-    };
-  }
+    if (result?.error) {
+      return {
+        success: false,
+        error: result?.error,
+      };
+    }
 
-  throw event.redirect(303, "/admin/posts");
-}, zod$(postSchema));
+    throw event.redirect(303, "/admin/posts");
+  },
+  { ...zod$(postSchema), form: { limit: "10mb" } },
+);
 
 export default component$(() => {
   const createPostAction = useCreatePost();

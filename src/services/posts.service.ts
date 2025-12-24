@@ -6,6 +6,12 @@ import type { User } from "~/db/schemas/users";
 import { users } from "~/db/schemas/users";
 import crypto from "crypto";
 import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
+import KgLexicalHtmlRenderer from "@tryghost/kg-lexical-html-renderer";
+import { DEFAULT_NODES } from "@tryghost/kg-default-nodes";
+
+// Handle CommonJS import compatibility
+const LexicalHtmlRenderer =
+  (KgLexicalHtmlRenderer as any).LexicalHtmlRenderer || KgLexicalHtmlRenderer;
 
 export type PostWithUser = Post & {
   user: { displayName: string; email?: string | null };
@@ -196,6 +202,16 @@ export async function getPostById(id: string): Promise<AdminPost | undefined> {
   };
 }
 
+async function renderEditorStateToHtml(editorState: string): Promise<string> {
+  try {
+    const renderer = new LexicalHtmlRenderer({ nodes: DEFAULT_NODES });
+    return await renderer.render(editorState, {});
+  } catch (e) {
+    console.error("Failed to render editor state", e);
+    return "";
+  }
+}
+
 export async function createPost(
   data: {
     title: string;
@@ -210,9 +226,15 @@ export async function createPost(
   try {
     const { requireAdmin } = await import("~/utils/server-auth");
     const user = await requireAdmin(event);
+
+    let body = data.content;
+    if (data.editorState) {
+      body = await renderEditorStateToHtml(data.editorState);
+    }
+
     await postsService.create({
       title: data.title,
-      body: data.content,
+      body,
       editorState: data.editorState || null,
       userId: user.id,
     } as any);
@@ -237,9 +259,15 @@ export async function updatePost(
   try {
     const { requireAdmin } = await import("~/utils/server-auth");
     await requireAdmin(event);
+
+    let body = data.content;
+    if (data.editorState) {
+      body = await renderEditorStateToHtml(data.editorState);
+    }
+
     const updated = await postsService.update(id, {
       title: data.title,
-      body: data.content,
+      body,
       editorState: data.editorState || null,
     } as any);
     if (!updated) return { error: "Post not found" };

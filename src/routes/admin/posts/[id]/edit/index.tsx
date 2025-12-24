@@ -59,19 +59,9 @@ export const useUpdatePost = routeAction$(async (data, event) => {
   }
 }, zod$(updateSchema));
 
-export const useDeletePost = routeAction$(async (data, event) => {
-  const { requireAdmin } = await import("~/utils/server-auth");
-  await requireAdmin(event);
-
-  const postId = event.params.id;
-  await postsService.delete(postId);
-  throw event.redirect(303, "/admin/posts");
-});
-
 export default component$(() => {
   const post = usePost();
   const updatePostAction = useUpdatePost();
-  const deletePostAction = useDeletePost();
   const isSubmitting = useSignal(false);
   const content = useSignal(post.value.body || "");
   const editorState = useSignal(post.value.editorState || null);
@@ -132,30 +122,13 @@ export default component$(() => {
             </div>
           )}
 
-          <div class="flex justify-between">
-            <div class="flex gap-4">
-              <Button type="submit" disabled={isSubmitting.value}>
-                {isSubmitting.value ? "Saving..." : "Save Changes"}
-              </Button>
-              <a href="/admin/posts">
-                <Button variant="secondary">Cancel</Button>
-              </a>
-            </div>
-
-            <Form action={deletePostAction}>
-              <Button
-                type="submit"
-                variant="secondary"
-                class="text-red-600 hover:bg-red-50"
-                onClick$={(e) => {
-                  if (!confirm("Are you sure you want to delete this post?")) {
-                    e.preventDefault();
-                  }
-                }}
-              >
-                Delete Post
-              </Button>
-            </Form>
+          <div class="flex gap-4">
+            <Button type="submit" disabled={isSubmitting.value}>
+              {isSubmitting.value ? "Saving..." : "Save Changes"}
+            </Button>
+            <a href="/admin/posts">
+              <Button variant="secondary">Cancel</Button>
+            </a>
           </div>
         </Form>
       </div>

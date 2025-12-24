@@ -1,5 +1,5 @@
 import { component$ } from "@builder.io/qwik";
-import { routeLoader$ } from "@builder.io/qwik-city";
+import { Form, routeLoader$, routeAction$ } from "@builder.io/qwik-city";
 import { format } from "date-fns";
 import { Button } from "~/components/ui/Button";
 import { postsService } from "~/services/posts.service";
@@ -9,8 +9,15 @@ export const usePosts = routeLoader$(async () => {
   return result.items;
 });
 
+export const useDeletePost = routeAction$(async (data, event) => {
+  const postId = data.postId as string;
+  await postsService.delete(postId);
+  return { success: true };
+});
+
 export default component$(() => {
   const posts = usePosts();
+  const deletePostAction = useDeletePost();
 
   return (
     <div>
@@ -59,12 +66,32 @@ export default component$(() => {
                   {format(new Date(post.createdAt), "MMM d, yyyy")}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <a
-                    href={`/admin/posts/${post.id}/edit`}
-                    class="text-blue-600 hover:text-blue-900 mr-4"
-                  >
-                    Edit
-                  </a>
+                  <div class="flex items-center gap-4">
+                    <a
+                      href={`/admin/posts/${post.id}/edit`}
+                      class="text-blue-600 hover:text-blue-900"
+                    >
+                      Edit
+                    </a>
+                    <Form action={deletePostAction}>
+                      <input type="hidden" name="postId" value={post.id} />
+                      <button
+                        type="submit"
+                        class="text-red-600 hover:text-red-900"
+                        onClick$={(e) => {
+                          if (
+                            !confirm(
+                              "Are you sure you want to delete this post?",
+                            )
+                          ) {
+                            e.preventDefault();
+                          }
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </Form>
+                  </div>
                 </td>
               </tr>
             ))}

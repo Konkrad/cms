@@ -160,7 +160,7 @@ export type AdminPost = {
   published_at: string;
   image_url?: string | null;
   content?: string;
-  editorState?: any;
+  editorState: string | null;
 };
 
 const generateExcerpt = (body: string) => {

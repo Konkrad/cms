@@ -16,14 +16,13 @@ import {
 
 interface KoenigEditorProps {
   content: string;
-  editorState?: string | object | null;
+  editorState: string | null;
   onChange: (content: string, editorState: string) => void;
   uploadUrl?: string;
 }
 
 export interface KoenigEditorRef {
   getEditorState: () => string;
-  getHtmlContent: () => string;
 }
 
 function createFileUploadHook(uploadUrl: string) {
@@ -36,7 +35,6 @@ function createFileUploadHook(uploadUrl: string) {
     const [filesNumber, setFilesNumber] = useState(0);
 
     const upload = useCallback(async (files: File[]) => {
-      console.log("Upload function called with", files.length, "files");
       setFilesNumber(files.length);
       setIsLoading(true);
       setProgress(30);
@@ -46,7 +44,6 @@ function createFileUploadHook(uploadUrl: string) {
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        console.log("Processing file:", file.name);
 
         if (i === 0) {
           setProgress(60);
@@ -70,7 +67,6 @@ function createFileUploadHook(uploadUrl: string) {
           const result = await response.json();
 
           if (result.success) {
-            console.log("Upload successful:", result.data.url);
             results.push({
               url: result.data.url,
               src: result.data.url,
@@ -80,7 +76,6 @@ function createFileUploadHook(uploadUrl: string) {
             throw new Error(result.error || "Upload failed");
           }
         } catch (error) {
-          console.error("Upload exception:", error);
           setErrors((prev) => [
             ...prev,
             { fileName: file.name, message: String(error) },
@@ -90,7 +85,6 @@ function createFileUploadHook(uploadUrl: string) {
 
       setIsLoading(false);
       setProgress(100);
-      console.log("All uploads complete:", results);
       return results;
     }, []);
 
@@ -111,17 +105,11 @@ const KoenigEditorReact = (
   const lastStateRef = useRef<string>("");
 
   useImperativeHandle(ref, () => ({
-    getEditorState: () => {
-      if (editorAPIRef.current) {
-        return editorAPIRef.current.serialize();
-      }
-      return "";
-    },
-    getHtmlContent: () => "",
+    getEditorState: () => editorAPIRef.current?.serialize() ?? "",
   }));
 
-  const fileUploader = useMemo(() => {
-    return {
+  const fileUploader = useMemo(
+    () => ({
       useFileUpload: createFileUploadHook(uploadUrl),
       fileTypes: {
         image: {
@@ -136,8 +124,9 @@ const KoenigEditorReact = (
           extensions: ["gif", "jpg", "jpeg", "png", "svg", "svgz", "webp"],
         },
       },
-    };
-  }, [uploadUrl]);
+    }),
+    [uploadUrl],
+  );
 
   const handleRegisterAPI = useCallback((api: EditorAPI) => {
     editorAPIRef.current = api;
@@ -145,14 +134,9 @@ const KoenigEditorReact = (
 
   const handleEditorChange = useCallback(
     (editorStateJson: any) => {
-      if (!editorStateJson) {
-        return;
-      }
+      if (!editorStateJson) return;
 
-      const stateString =
-        typeof editorStateJson === "string"
-          ? editorStateJson
-          : JSON.stringify(editorStateJson);
+      const stateString = JSON.stringify(editorStateJson);
 
       if (stateString !== lastStateRef.current) {
         lastStateRef.current = stateString;
@@ -162,17 +146,11 @@ const KoenigEditorReact = (
     [onChange],
   );
 
-  const initialEditorState = useMemo(() => {
-    if (!editorState) return undefined;
-    if (typeof editorState === "string") return editorState;
-    return JSON.stringify(editorState);
-  }, [editorState]);
-
   return (
     <div className="koenig-editor-wrapper" style={{ padding: "2rem" }}>
       <KoenigComposer
-        initialHtml={!initialEditorState ? content : undefined}
-        initialEditorState={initialEditorState}
+        initialHtml={editorState ? undefined : content}
+        initialEditorState={editorState ?? undefined}
         fileUploader={fileUploader}
         onError={(error: Error) => console.error("Koenig error:", error)}
       >

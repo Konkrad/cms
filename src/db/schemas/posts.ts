@@ -8,7 +8,7 @@ export const posts = sqliteTable("posts", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   body: text("body").notNull(),
-  editorState: text("editor_state", { mode: "json" }),
+  editorState: text("editor_state"),
   userId: text("user_id")
     .notNull()
     .references(() => users.id),

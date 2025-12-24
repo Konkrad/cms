@@ -1,7 +1,9 @@
-import { sql } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import type { z } from "zod";
+import { z } from "zod";
+import { users } from "./users";
+import crypto from "crypto";
 
 /**
  * Sessions stored in DB for server-side session verification.
@@ -12,18 +14,42 @@ import type { z } from "zod";
  * - `ip` and `user_agent` are optional metadata useful for auditing and session invalidation.
  */
 export const sessions = sqliteTable("sessions", {
-	id: text("id").primaryKey(),
-	userId: text("user_id"),
-	loginId: text("login_id"),
-	token: text("token").notNull().unique(),
-	expiresAt: text("expires_at").notNull(),
-	ip: text("ip"),
-	userAgent: text("user_agent"),
-	createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  id: text("id").primaryKey(),
+  userId: text("user_id").references(() => users.id),
+  loginId: text("login_id"),
+  token: text("token").notNull().unique(),
+  expiresAt: text("expires_at").notNull(),
+  ip: text("ip"),
+  userAgent: text("user_agent"),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const insertSessionSchema = createInsertSchema(sessions);
-export const selectSessionSchema = createSelectSchema(sessions);
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
+
+const baseInsertSchema = createInsertSchema(sessions);
+const baseSelectSchema = createSelectSchema(sessions);
+
+export const insertSessionSchema = baseInsertSchema
+  .extend({
+    id: z
+      .string()
+      .uuid()
+      .default(() => crypto.randomUUID()),
+    createdAt: z.string().default(() => new Date().toISOString()),
+  })
+  .partial({
+    id: true,
+    createdAt: true,
+  });
+
+export const selectSessionSchema = baseSelectSchema;
 
 export type Session = z.infer<typeof selectSessionSchema>;
-export type NewSession = z.infer<typeof insertSessionSchema>;
+export type InsertSession = z.infer<typeof insertSessionSchema>;

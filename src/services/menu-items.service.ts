@@ -4,7 +4,8 @@ import { db } from "~/db/connection";
 import type {
   MenuItem,
   MenuItemTree,
-  NewMenuItem,
+  InsertMenuItem,
+  UpdateMenuItem,
 } from "~/db/schemas/menu-items";
 import { menuItems } from "~/db/schemas/menu-items";
 
@@ -86,9 +87,7 @@ export const menuItemsService = {
     return items.length > 0 ? (items[0] as MenuItem) : undefined;
   },
 
-  async create(
-    data: Omit<NewMenuItem, "id" | "createdAt" | "updatedAt">,
-  ): Promise<MenuItem> {
+  async create(data: InsertMenuItem): Promise<MenuItem> {
     // Find the next position for this menu/parent
     const existingItems = await db
       .select({ position: menuItems.position })
@@ -125,7 +124,7 @@ export const menuItemsService = {
 
   async update(
     id: string,
-    data: Partial<Omit<NewMenuItem, "id" | "createdAt">>,
+    data: UpdateMenuItem,
   ): Promise<MenuItem | undefined> {
     const updateData: any = {
       updatedAt: new Date().toISOString(),

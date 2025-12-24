@@ -9,12 +9,17 @@ import {
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { KoenigEditor } from "~/components/editor";
-import { deletePost, getPostById, updatePost } from "~/services/posts.service";
-import { updatePostSchema } from "~/db/schemas/posts";
+import { postsService } from "~/services/posts.service";
+
+const updateSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  content: z.string(),
+  editorState: z.string().optional(),
+});
 
 export const usePost = routeLoader$(async (event) => {
   const postId = event.params.id;
-  const post = await getPostById(postId);
+  const post = await postsService.getById(postId);
 
   if (!post) {
     throw event.redirect(303, "/admin/posts");
@@ -23,38 +28,43 @@ export const usePost = routeLoader$(async (event) => {
   return post;
 });
 
-export const useUpdatePost = routeAction$(
-  async (data, event) => {
-    const postId = event.params.id;
+export const useUpdatePost = routeAction$(async (data, event) => {
+  const { requireAdmin } = await import("~/utils/server-auth");
+  await requireAdmin(event);
 
-    const result = await updatePost(
-      postId,
-      {
-        title: data.title,
-        content: data.content || "",
-        editorState: data.editorState || null,
-        category: data.category || "",
-      },
-      event,
-    );
+  const postId = event.params.id;
 
-    if (result?.error) {
+  try {
+    const updated = await postsService.update(postId, {
+      title: data.title,
+      body: data.content,
+      editorState: data.editorState || null,
+    });
+
+    if (!updated) {
       return {
         success: false,
-        error: result?.error,
+        error: "Post not found",
       };
     }
 
     return {
       success: true,
     };
-  },
-  { ...updatePostSchema },
-);
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error?.message || "Failed to update post",
+    };
+  }
+}, zod$(updateSchema));
 
 export const useDeletePost = routeAction$(async (data, event) => {
+  const { requireAdmin } = await import("~/utils/server-auth");
+  await requireAdmin(event);
+
   const postId = event.params.id;
-  await deletePost(postId, event);
+  await postsService.delete(postId);
   throw event.redirect(303, "/admin/posts");
 });
 
@@ -63,7 +73,7 @@ export default component$(() => {
   const updatePostAction = useUpdatePost();
   const deletePostAction = useDeletePost();
   const isSubmitting = useSignal(false);
-  const content = useSignal(post.value.content || "");
+  const content = useSignal(post.value.body || "");
   const editorState = useSignal(post.value.editorState || null);
 
   const handleEditorChange$ = $((htmlContent: string, state: string) => {

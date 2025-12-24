@@ -1,12 +1,9 @@
-import { sql } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
-import {
-  createInsertSchema,
-  createSelectSchema,
-  createUpdateSchema,
-} from "drizzle-zod";
-import type { z } from "zod";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { z } from "zod";
 import { users } from "./users";
+import crypto from "crypto";
 
 export const posts = sqliteTable("posts", {
   id: text("id").primaryKey(),
@@ -24,10 +21,46 @@ export const posts = sqliteTable("posts", {
     .default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const insertPostSchema = createInsertSchema(posts);
-export const selectPostSchema = createSelectSchema(posts);
-export const updatePostSchema = createUpdateSchema(posts);
+export const postsRelations = relations(posts, ({ one }) => ({
+  user: one(users, {
+    fields: [posts.userId],
+    references: [users.id],
+  }),
+}));
+
+const baseInsertSchema = createInsertSchema(posts);
+const baseSelectSchema = createSelectSchema(posts);
+
+export const insertPostSchema = baseInsertSchema
+  .extend({
+    id: z
+      .string()
+      .uuid()
+      .default(() => crypto.randomUUID()),
+    createdAt: z.string().default(() => new Date().toISOString()),
+    updatedAt: z.string().default(() => new Date().toISOString()),
+  })
+  .partial({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  });
+
+export const updatePostSchema = baseInsertSchema
+  .omit({
+    id: true,
+    createdAt: true,
+  })
+  .partial()
+  .extend({
+    updatedAt: z
+      .string()
+      .default(() => new Date().toISOString())
+      .optional(),
+  });
+
+export const selectPostSchema = baseSelectSchema;
 
 export type Post = z.infer<typeof selectPostSchema>;
-export type NewPost = z.infer<typeof insertPostSchema>;
-export type UpdatedPost = z.infer<typeof updatePostSchema>;
+export type InsertPost = z.infer<typeof insertPostSchema>;
+export type UpdatePost = z.infer<typeof updatePostSchema>;

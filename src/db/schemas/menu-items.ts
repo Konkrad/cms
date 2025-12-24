@@ -1,7 +1,8 @@
 import { sql } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import type { z } from "zod";
+import { z } from "zod";
+import crypto from "crypto";
 
 export const menuItems = sqliteTable("menu_items", {
   id: text("id").primaryKey(),
@@ -22,11 +23,44 @@ export const menuItems = sqliteTable("menu_items", {
     .default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const insertMenuItemSchema = createInsertSchema(menuItems);
-export const selectMenuItemSchema = createSelectSchema(menuItems);
+const baseInsertSchema = createInsertSchema(menuItems);
+const baseSelectSchema = createSelectSchema(menuItems);
+
+export const insertMenuItemSchema = baseInsertSchema
+  .extend({
+    id: z
+      .string()
+      .uuid()
+      .default(() => crypto.randomUUID()),
+    createdAt: z.string().default(() => new Date().toISOString()),
+    updatedAt: z.string().default(() => new Date().toISOString()),
+  })
+  .partial({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    position: true,
+    target: true,
+  });
+
+export const updateMenuItemSchema = baseInsertSchema
+  .omit({
+    id: true,
+    createdAt: true,
+  })
+  .partial()
+  .extend({
+    updatedAt: z
+      .string()
+      .default(() => new Date().toISOString())
+      .optional(),
+  });
+
+export const selectMenuItemSchema = baseSelectSchema;
 
 export type MenuItem = z.infer<typeof selectMenuItemSchema>;
-export type NewMenuItem = z.infer<typeof insertMenuItemSchema>;
+export type InsertMenuItem = z.infer<typeof insertMenuItemSchema>;
+export type UpdateMenuItem = z.infer<typeof updateMenuItemSchema>;
 
 export interface MenuItemTree extends MenuItem {
   children?: MenuItemTree[];

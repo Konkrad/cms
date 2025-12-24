@@ -1,6 +1,6 @@
 import { and, desc, eq, ne, lt } from "drizzle-orm";
 import { db } from "~/db/connection";
-import type { NewPage, Page } from "~/db/schemas/pages";
+import type { InsertPage, UpdatePage, Page } from "~/db/schemas/pages";
 import { pages } from "~/db/schemas/pages";
 import crypto from "crypto";
 import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
@@ -93,7 +93,7 @@ export const pagesService = {
   },
 
   async create(
-    data: Omit<NewPage, "id" | "createdAt" | "updatedAt">,
+    data: InsertPage,
     accessToken?: string,
     refreshToken?: string,
   ): Promise<Page> {
@@ -101,11 +101,9 @@ export const pagesService = {
     if (!isValid) {
       throw new Error("Slug is already in use or reserved");
     }
-    const id = crypto.randomUUID();
     const [inserted] = await db
       .insert(pages)
       .values({
-        id,
         ...data,
         parentId: data.parentId || null,
         content: data.content || [],
@@ -115,10 +113,7 @@ export const pagesService = {
     return inserted;
   },
 
-  async update(
-    id: string,
-    data: Partial<Omit<NewPage, "id" | "createdAt">>,
-  ): Promise<Page | undefined> {
+  async update(id: string, data: UpdatePage): Promise<Page | undefined> {
     const oldPage = await this.getById(id);
     const wasPublished = oldPage?.status === "published";
     const isNowPublished = data.status === "published";
@@ -130,19 +125,9 @@ export const pagesService = {
       }
     }
 
-    const updateData: Partial<NewPage> = {
-      updatedAt: new Date().toISOString(),
-    };
-
-    if (data.title !== undefined) updateData.title = data.title;
-    if (data.slug !== undefined) updateData.slug = data.slug;
-    if (data.parentId !== undefined) updateData.parentId = data.parentId;
-    if (data.content !== undefined) updateData.content = data.content;
-    if (data.status !== undefined) updateData.status = data.status;
-
     const [updated] = await db
       .update(pages)
-      .set(updateData)
+      .set(data)
       .where(eq(pages.id, id))
       .returning();
 

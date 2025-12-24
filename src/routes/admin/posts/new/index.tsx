@@ -2,44 +2,36 @@ import { component$, useSignal, $ } from "@builder.io/qwik";
 import { Form, routeAction$, z, zod$ } from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
-import { Select } from "~/components/ui/Select";
 import { KoenigEditor } from "~/components/editor";
-import { createPost } from "~/services/posts.service";
+import { postsService } from "~/services/posts.service";
 
 const postSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  excerpt: z.string().optional(),
-  content: z.string().optional(),
+  content: z.string(),
   editorState: z.string().optional(),
-  category: z.string().optional(),
-  image_url: z.string().optional(),
 });
 
-export const useCreatePost = routeAction$(
-  async (data, event) => {
-    const result = await createPost(
-      {
-        title: data.title,
-        excerpt: data.excerpt || "",
-        content: data.content || "",
-        editorState: data.editorState || null,
-        category: data.category || "",
-        image_url: data.image_url || null,
-      },
-      event,
-    );
+export const useCreatePost = routeAction$(async (data, event) => {
+  const { requireAdmin } = await import("~/utils/server-auth");
+  const user = await requireAdmin(event);
 
-    if (result?.error) {
-      return {
-        success: false,
-        error: result?.error,
-      };
-    }
+  try {
+    await postsService.create({
+      title: data.title,
+      body: data.content,
+      editorState: data.editorState || null,
+      userId: user.id,
+    });
 
     throw event.redirect(303, "/admin/posts");
-  },
-  { ...zod$(postSchema), form: { limit: "10mb" } },
-);
+  } catch (error: any) {
+    if (error.status === 303) throw error;
+    return {
+      success: false,
+      error: error?.message || "Failed to create post",
+    };
+  }
+}, zod$(postSchema));
 
 export default component$(() => {
   const createPostAction = useCreatePost();
@@ -70,39 +62,12 @@ export default component$(() => {
             required
           />
 
-          <Input
-            name="excerpt"
-            label="Excerpt"
-            placeholder="Brief summary of the post"
-          />
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Category
-            </label>
-            <Select name="category">
-              <option value="">Select a category</option>
-              <option value="Announcements">Announcements</option>
-              <option value="Events">Events</option>
-              <option value="Community">Community</option>
-              <option value="Resources">Resources</option>
-              <option value="News">News</option>
-            </Select>
-          </div>
-
-          <Input
-            name="image_url"
-            label="Image URL (optional)"
-            placeholder="https://example.com/image.jpg"
-          />
-
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
               Content
             </label>
             <div class="border border-gray-300 rounded-lg overflow-hidden">
               <KoenigEditor
-                content=""
                 editorState={null}
                 onChange$={handleEditorChange$}
                 uploadUrl="/api/images"

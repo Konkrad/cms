@@ -1,7 +1,8 @@
 import { sql } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import type { z } from "zod";
+import { z } from "zod";
+import crypto from "crypto";
 
 /**
  * 'logins' table
@@ -17,26 +18,46 @@ import type { z } from "zod";
  * - It's recommended to store hashed values for both `magicHash` and `otpHash`.
  */
 export const logins = sqliteTable("logins", {
-	id: text("id").primaryKey(),
-	email: text("email").notNull().unique(),
-	// Hash of the magic link token (store a secure hash, not the raw token)
-	magicHash: text("magic_hash"),
-	// Hash of the OTP code (store a secure hash, not the raw code)
-	otpHash: text("otp_hash"),
-	// Single expiry timestamp used for both magic link and OTP in the current flow
-	expiresAt: text("expires_at").notNull(),
-	// Counter for OTP verification attempts (increment on each invalid OTP)
-	otpAttempts: integer("otp_attempts").notNull().default(0),
-	// Flags to mark if a method has been used/consumed
-	magicUsed: integer("magic_used", { mode: "boolean" })
-		.notNull()
-		.default(false),
-	otpUsed: integer("otp_used", { mode: "boolean" }).notNull().default(false),
-	createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  id: text("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  // Hash of the magic link token (store a secure hash, not the raw token)
+  magicHash: text("magic_hash"),
+  // Hash of the OTP code (store a secure hash, not the raw code)
+  otpHash: text("otp_hash"),
+  // Single expiry timestamp used for both magic link and OTP in the current flow
+  expiresAt: text("expires_at").notNull(),
+  // Counter for OTP verification attempts (increment on each invalid OTP)
+  otpAttempts: integer("otp_attempts").notNull().default(0),
+  // Flags to mark if a method has been used/consumed
+  magicUsed: integer("magic_used", { mode: "boolean" })
+    .notNull()
+    .default(false),
+  otpUsed: integer("otp_used", { mode: "boolean" }).notNull().default(false),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const insertLoginSchema = createInsertSchema(logins);
-export const selectLoginSchema = createSelectSchema(logins);
+const baseInsertSchema = createInsertSchema(logins);
+const baseSelectSchema = createSelectSchema(logins);
+
+export const insertLoginSchema = baseInsertSchema
+  .extend({
+    id: z
+      .string()
+      .uuid()
+      .default(() => crypto.randomUUID()),
+    createdAt: z.string().default(() => new Date().toISOString()),
+  })
+  .partial({
+    id: true,
+    createdAt: true,
+    otpAttempts: true,
+    magicUsed: true,
+    otpUsed: true,
+  });
+
+export const selectLoginSchema = baseSelectSchema;
 
 export type Login = z.infer<typeof selectLoginSchema>;
-export type NewLogin = z.infer<typeof insertLoginSchema>;
+export type InsertLogin = z.infer<typeof insertLoginSchema>;

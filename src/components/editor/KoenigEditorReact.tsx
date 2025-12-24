@@ -73,6 +73,7 @@ function createFileUploadHook(uploadUrl: string) {
             console.log("Upload successful:", result.data.url);
             results.push({
               url: result.data.url,
+              src: result.data.url,
               fileName: file.name,
             });
           } else {

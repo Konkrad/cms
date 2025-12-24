@@ -60,7 +60,7 @@ export default component$(() => {
       </header>
 
       <div class="prose prose-lg max-w-none">
-        <div class="whitespace-pre-wrap text-gray-800">{post.value.body}</div>
+        <div class="text-gray-800" dangerouslySetInnerHTML={post.value.body} />
       </div>
 
       <footer class="mt-12 pt-8 border-t border-gray-200">

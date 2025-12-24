@@ -33,7 +33,7 @@ const QwikKoenigEditor = qwikify$(ReactLoader, {
 
 interface KoenigEditorProps {
   content: string;
-  editorState?: string | null;
+  editorState?: string | object | null;
   onChange$: QRL<(content: string, editorState: string) => void>;
   uploadUrl?: string;
 }

@@ -16,7 +16,7 @@ import {
 
 interface KoenigEditorProps {
   content: string;
-  editorState?: string | null;
+  editorState?: string | object | null;
   onChange: (content: string, editorState: string) => void;
   uploadUrl?: string;
 }
@@ -177,7 +177,11 @@ const KoenigEditorReact = (
     return () => clearInterval(interval);
   }, [onChange]);
 
-  const initialEditorState = editorState ? editorState : undefined;
+  const initialEditorState = useMemo(() => {
+    if (!editorState) return undefined;
+    if (typeof editorState === "string") return editorState;
+    return JSON.stringify(editorState);
+  }, [editorState]);
 
   return (
     <div className="koenig-editor-wrapper" style={{ padding: "2rem" }}>

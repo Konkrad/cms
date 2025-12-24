@@ -10,13 +10,13 @@ import React, {
 } from "react";
 import {
   KoenigComposer,
-  KoenigEditor as KoenigEditorComponent,
+  KoenigEditor,
   type EditorAPI,
 } from "@tryghost/koenig-lexical";
 
 interface KoenigEditorProps {
   content: string;
-  editorState: string | null;
+  editorState: string;
   onChange: (content: string, editorState: string) => void;
   uploadUrl?: string;
 }
@@ -149,12 +149,11 @@ const KoenigEditorReact = (
   return (
     <div className="koenig-editor-wrapper" style={{ padding: "2rem" }}>
       <KoenigComposer
-        initialHtml={editorState ? undefined : content}
-        initialEditorState={editorState ?? undefined}
+        initialEditorState={editorState}
         fileUploader={fileUploader}
         onError={(error: Error) => console.error("Koenig error:", error)}
       >
-        <KoenigEditorComponent
+        <KoenigEditor
           onChange={handleEditorChange}
           registerAPI={handleRegisterAPI}
           className="kg-editor"

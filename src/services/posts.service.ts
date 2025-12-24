@@ -10,6 +10,22 @@ export type PostWithUser = Post & {
 
 import type { User } from "~/db/schemas/users";
 
+const LexicalHTMLRenderer = require("@tryghost/kg-lexical-html-renderer");
+const renderer = new LexicalHTMLRenderer.Renderer();
+
+async function renderEditorState(editorState: string | null): Promise<string> {
+  if (!editorState) {
+    return "";
+  }
+
+  try {
+    return await renderer.render(editorState);
+  } catch (error) {
+    console.error("Error rendering editor state:", error);
+    return "";
+  }
+}
+
 export const postsService = {
   async getAll(
     limit: number = 10,
@@ -59,6 +75,13 @@ export const postsService = {
 
   async create(data: InsertPost): Promise<Post> {
     const parsed = insertPostSchema.parse(data);
+
+    // Render HTML from editor state if provided
+    if (parsed.editorState) {
+      const html = await renderEditorState(parsed.editorState);
+      parsed.body = html;
+    }
+
     const [result] = await db
       .insert(posts)
       .values(parsed as any)
@@ -69,6 +92,13 @@ export const postsService = {
 
   async update(id: string, data: UpdatePost): Promise<Post | undefined> {
     const parsed = updatePostSchema.parse(data);
+
+    // Render HTML from editor state if provided
+    if (parsed.editorState) {
+      const html = await renderEditorState(parsed.editorState);
+      parsed.body = html;
+    }
+
     const [result] = await db
       .update(posts)
       .set(parsed as any)

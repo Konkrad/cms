@@ -32,18 +32,16 @@ const QwikKoenigEditor = qwikify$(ReactLoader, {
 });
 
 interface KoenigEditorProps {
-  content: string;
   editorState: string | null;
   onChange$: QRL<(content: string, editorState: string) => void>;
   uploadUrl?: string;
 }
 
 export const KoenigEditor = component$<KoenigEditorProps>(
-  ({ content, editorState, onChange$, uploadUrl }) => {
+  ({ editorState, onChange$, uploadUrl }) => {
     return (
       <div class="koenig-editor-container">
         <QwikKoenigEditor
-          content={content}
           editorState={editorState}
           onChange$={onChange$}
           uploadUrl={uploadUrl}

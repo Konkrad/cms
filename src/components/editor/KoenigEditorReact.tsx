@@ -37,7 +37,7 @@ function createFileUploadHook(uploadUrl: string) {
     const upload = useCallback(async (files: File[]) => {
       setFilesNumber(files.length);
       setIsLoading(true);
-      setProgress(30);
+      setProgress(0);
       setErrors([]);
 
       const results = [];
@@ -45,11 +45,7 @@ function createFileUploadHook(uploadUrl: string) {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
 
-        if (i === 0) {
-          setProgress(60);
-        } else if (i === Math.floor(files.length / 2)) {
-          setProgress(80);
-        }
+        setProgress(files.length / i);
 
         try {
           const response = await fetch(`${uploadUrl}?pipeline=original`, {

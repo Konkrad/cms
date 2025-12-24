@@ -8,9 +8,9 @@ import {
 } from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
-import { Select } from "~/components/ui/Select";
 import { KoenigEditor } from "~/components/editor";
 import { deletePost, getPostById, updatePost } from "~/services/posts.service";
+import { updatePostSchema } from "~/db/schemas/posts";
 
 export const usePost = routeLoader$(async (event) => {
   const postId = event.params.id;
@@ -23,15 +23,6 @@ export const usePost = routeLoader$(async (event) => {
   return post;
 });
 
-const postSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  excerpt: z.string().optional(),
-  content: z.string().optional(),
-  editorState: z.string().optional(),
-  category: z.string().optional(),
-  image_url: z.string().optional(),
-});
-
 export const useUpdatePost = routeAction$(
   async (data, event) => {
     const postId = event.params.id;
@@ -40,11 +31,9 @@ export const useUpdatePost = routeAction$(
       postId,
       {
         title: data.title,
-        excerpt: data.excerpt || "",
         content: data.content || "",
         editorState: data.editorState || null,
         category: data.category || "",
-        image_url: data.image_url || null,
       },
       event,
     );
@@ -60,7 +49,7 @@ export const useUpdatePost = routeAction$(
       success: true,
     };
   },
-  { ...zod$(postSchema), form: { limit: "10mb" } },
+  { ...updatePostSchema },
 );
 
 export const useDeletePost = routeAction$(async (data, event) => {
@@ -101,41 +90,12 @@ export default component$(() => {
             required
           />
 
-          <Input
-            name="excerpt"
-            label="Excerpt"
-            value={post.value.excerpt}
-            placeholder="Brief summary of the post"
-          />
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Category
-            </label>
-            <Select name="category" value={post.value.category || ""}>
-              <option value="">Select a category</option>
-              <option value="Announcements">Announcements</option>
-              <option value="Events">Events</option>
-              <option value="Community">Community</option>
-              <option value="Resources">Resources</option>
-              <option value="News">News</option>
-            </Select>
-          </div>
-
-          <Input
-            name="image_url"
-            label="Image URL (optional)"
-            value={post.value.image_url || ""}
-            placeholder="https://example.com/image.jpg"
-          />
-
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
               Content
             </label>
             <div class="border border-gray-300 rounded-lg overflow-hidden">
               <KoenigEditor
-                content={post.value.content || ""}
                 editorState={post.value.editorState}
                 onChange$={handleEditorChange$}
                 uploadUrl="/api/images"

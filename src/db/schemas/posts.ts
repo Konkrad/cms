@@ -1,6 +1,10 @@
 import { sql } from "drizzle-orm";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import {
+  createInsertSchema,
+  createSelectSchema,
+  createUpdateSchema,
+} from "drizzle-zod";
 import type { z } from "zod";
 import { users } from "./users";
 
@@ -22,6 +26,8 @@ export const posts = sqliteTable("posts", {
 
 export const insertPostSchema = createInsertSchema(posts);
 export const selectPostSchema = createSelectSchema(posts);
+export const updatePostSchema = createUpdateSchema(posts);
 
 export type Post = z.infer<typeof selectPostSchema>;
 export type NewPost = z.infer<typeof insertPostSchema>;
+export type UpdatedPost = z.infer<typeof updatePostSchema>;

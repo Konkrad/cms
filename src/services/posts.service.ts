@@ -7,7 +7,6 @@ import { users } from "~/db/schemas/users";
 import crypto from "crypto";
 import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
 import KgLexicalHtmlRenderer from "@tryghost/kg-lexical-html-renderer";
-import { DEFAULT_NODES } from "@tryghost/kg-default-nodes";
 
 // Handle CommonJS import compatibility
 const LexicalHtmlRenderer =
@@ -204,7 +203,7 @@ export async function getPostById(id: string): Promise<AdminPost | undefined> {
 
 async function renderEditorStateToHtml(editorState: string): Promise<string> {
   try {
-    const renderer = new LexicalHtmlRenderer({ nodes: DEFAULT_NODES });
+    const renderer = new LexicalHtmlRenderer();
     return await renderer.render(editorState, {});
   } catch (e) {
     console.error("Failed to render editor state", e);

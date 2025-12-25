@@ -1,4 +1,4 @@
-import { component$, useSignal } from "@builder.io/qwik";
+import { component$, useSignal, type QRL } from "@builder.io/qwik";
 import { Form } from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
@@ -7,7 +7,7 @@ interface ProductFormProps {
   action: any;
   inventoryGroups: Array<{ id: string; name: string }>;
   selectedGroupId?: string;
-  onCancel: () => void;
+  onCancel: QRL<() => void>;
 }
 
 export const ProductForm = component$<ProductFormProps>(

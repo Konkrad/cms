@@ -1,11 +1,11 @@
-import { component$ } from "@builder.io/qwik";
+import { component$, type QRL } from "@builder.io/qwik";
 import { Form, type ActionStore } from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 
 interface InventoryGroupFormProps {
   action: any;
-  onCancel: () => void;
+  onCancel: QRL<() => void>;
 }
 
 export const InventoryGroupForm = component$<InventoryGroupFormProps>(

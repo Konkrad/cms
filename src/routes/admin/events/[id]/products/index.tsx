@@ -1,4 +1,4 @@
-import { component$, useSignal, useTask$ } from "@builder.io/qwik";
+import { component$, useSignal, useTask$, $ } from "@builder.io/qwik";
 import {
   Form,
   routeAction$,
@@ -168,7 +168,7 @@ export default component$(() => {
         {showGroupForm.value && (
           <InventoryGroupForm
             action={createGroup}
-            onCancel={() => (showGroupForm.value = false)}
+            onCancel={$(function(): void { showGroupForm.value = false; })}
           />
         )}
 
@@ -248,7 +248,7 @@ export default component$(() => {
             name: g.name,
           }))}
           selectedGroupId={selectedGroupId.value}
-          onCancel={() => (showProductForm.value = false)}
+          onCancel={$(function(): void { showProductForm.value = false; })}
         />
       )}
     </div>

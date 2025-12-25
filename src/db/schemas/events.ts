@@ -3,6 +3,10 @@ import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./users";
+import { inventoryGroups } from "./inventory-groups";
+import { products } from "./products";
+import { transactions } from "./transactions";
+import { tickets } from "./tickets";
 import crypto from "crypto";
 
 export const events = sqliteTable("events", {
@@ -29,11 +33,15 @@ export const events = sqliteTable("events", {
     .default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const eventsRelations = relations(events, ({ one }) => ({
+export const eventsRelations = relations(events, ({ one, many }) => ({
   user: one(users, {
     fields: [events.userId],
     references: [users.id],
   }),
+  inventoryGroups: many(inventoryGroups),
+  products: many(products),
+  transactions: many(transactions),
+  tickets: many(tickets),
 }));
 
 const baseInsertSchema = createInsertSchema(events);

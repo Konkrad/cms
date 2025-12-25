@@ -1,0 +1,130 @@
+import { component$, useSignal } from "@builder.io/qwik";
+import { Form } from "@builder.io/qwik-city";
+import { Button } from "~/components/ui/Button";
+import { Input } from "~/components/ui/Input";
+
+interface ProductFormProps {
+  action: any;
+  inventoryGroups: Array<{ id: string; name: string }>;
+  selectedGroupId?: string;
+  onCancel: () => void;
+}
+
+export const ProductForm = component$<ProductFormProps>(
+  ({ action, inventoryGroups, selectedGroupId, onCancel }) => {
+    const imageUrl = useSignal("");
+    const imageFile = useSignal<File | null>(null);
+
+    return (
+      <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white p-6 rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <Form action={action}>
+            <h3 class="font-bold mb-4 text-lg">New Product</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">
+                  Inventory Group *
+                </label>
+                <select
+                  name="inventoryGroupId"
+                  class="w-full border rounded px-3 py-2"
+                  required
+                >
+                  {inventoryGroups.map((group) => (
+                    <option
+                      key={group.id}
+                      value={group.id}
+                      selected={group.id === selectedGroupId}
+                    >
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <Input name="name" label="Product Name" required />
+
+              <Input
+                name="price"
+                label="Price (EUR)"
+                type="number"
+                step="0.01"
+                min="0"
+                required
+              />
+
+              <Input
+                name="maxQuantity"
+                label="Max Quantity per Purchase"
+                type="number"
+                min="0"
+                placeholder="0 = unlimited"
+                required
+              />
+
+              <div>
+                <label class="block text-sm font-medium mb-1">
+                  Features (comma-separated)
+                </label>
+                <textarea
+                  name="features"
+                  class="w-full border rounded px-3 py-2"
+                  rows={3}
+                  placeholder="Feature 1, Feature 2, Feature 3"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">
+                  Product Image
+                </label>
+                <div class="space-y-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    class="w-full text-sm"
+                    onChange$={(e) => {
+                      const target = e.target as HTMLInputElement;
+                      const file = target.files?.[0];
+                      if (file) {
+                        imageFile.value = file;
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          imageUrl.value = event.target?.result as string;
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                  <Input
+                    name="imageUrl"
+                    label="Or enter image URL"
+                    placeholder="https://example.com/image.jpg"
+                    value={imageUrl.value}
+                    onInput$={(e, el) => (imageUrl.value = el.value)}
+                  />
+                  {imageUrl.value && (
+                    <div class="mt-2">
+                      <img
+                        src={imageUrl.value}
+                        alt="Preview"
+                        class="w-32 h-32 object-cover rounded border"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div class="flex gap-2 pt-2">
+                <Button type="submit">Create Product</Button>
+                <Button type="button" onClick$={onCancel}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </Form>
+        </div>
+      </div>
+    );
+  },
+);

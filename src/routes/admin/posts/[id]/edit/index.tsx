@@ -37,7 +37,6 @@ export const useUpdatePost = routeAction$(async (data, event) => {
   try {
     const updated = await postsService.update(postId, {
       title: data.title,
-      body: data.content,
       editorState: data.editorState || null,
     });
 

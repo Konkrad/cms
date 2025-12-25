@@ -18,7 +18,6 @@ export const useCreatePost = routeAction$(async (data, event) => {
   try {
     await postsService.create({
       title: data.title,
-      body: data.content,
       editorState: data.editorState || null,
       userId: user.id,
     });

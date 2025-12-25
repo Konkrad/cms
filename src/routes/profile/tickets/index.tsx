@@ -4,14 +4,18 @@ import { transactionsService } from "~/services/transactions.service";
 import { ticketsService } from "~/services/tickets.service";
 import TransactionsList from "~/components/profile/TransactionsList";
 import UserTickets from "~/components/profile/UserTickets";
+import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 
 export const useUserDashboard = routeLoader$(async (event) => {
-  const session = event.sharedMap.get("session");
-  const userId = session?.userId;
+  // Use centralized server auth helpers to ensure consistency with other profile routes
+  await requireAuth(event);
+  const userData = await getCurrentUserData(event);
 
-  if (!userId) {
+  if (!userData) {
     throw event.redirect(302, "/login");
   }
+
+  const userId = userData.id;
 
   const [transactions, tickets] = await Promise.all([
     transactionsService.getByUserId(userId),

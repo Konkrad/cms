@@ -123,7 +123,7 @@ An event administrator views the Transactions tab to see all payments received f
 - **FR-011**: System MUST store Stripe product ID with local product record
 
 #### Payment Processing
-- **FR-012**: System MUST display available products grouped by inventory group with remaining capacity
+- **FR-012**: System MUST display available products grouped by inventory group
 - **FR-013**: System MUST enforce product max quantity limits during selection
 - **FR-014**: System MUST enforce remaining inventory limits during selection
 - **FR-015**: System MUST display Stripe payment methods at checkout

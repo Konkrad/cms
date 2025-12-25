@@ -57,15 +57,14 @@ This is a single Qwik project with the following structure:
 - [ ] T014 [P] Create tickets schema in src/db/schemas/tickets.ts with table, relations, Zod schemas, and types
 - [ ] T015 Update events schema relations in src/db/schemas/events.ts to include inventoryGroups, products, transactions, and tickets
 - [ ] T016 Export new schemas from src/db/schema.ts aggregator
-- [ ] T017 Generate database migration with `npm run db:generate`
-- [ ] T018 Apply database migration with `npm run db:migrate`
+- [ ] T017 Sync database schema to SQLite with `npx drizzle-kit push --force`
 
 ### Utility Services
 
-- [ ] T019 [P] Create Stripe service in src/services/stripe.service.ts with product creation and checkout session methods
-- [ ] T020 [P] Create QR code service in src/services/qrcode.service.ts with PNG generation method
-- [ ] T021 [P] Create Telegram service in src/services/telegram.service.ts with notification method
-- [ ] T022 [P] Create iCal service in src/services/ical.service.ts with event ICS generation method
+- [ ] T018 [P] Create Stripe service in src/services/stripe.service.ts with product creation and checkout session methods
+- [ ] T019 [P] Create QR code service in src/services/qrcode.service.ts with PNG generation method
+- [ ] T020 [P] Create Telegram service in src/services/telegram.service.ts with notification method
+- [ ] T021 [P] Create iCal service in src/services/ical.service.ts with event ICS generation method
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -79,15 +78,15 @@ This is a single Qwik project with the following structure:
 
 ### Implementation for User Story 2
 
-- [ ] T023 [P] [US2] Create inventory groups service in src/services/inventory-groups.service.ts with getByEventId, create, update, and validatePurchase methods
-- [ ] T024 [P] [US2] Create products service in src/services/products.service.ts with getByEventId, create, update, incrementSold methods and Stripe product creation
-- [ ] T025 [US2] Create admin products page loader in src/routes/admin/events/[id]/products/index.tsx with routeLoader$ to fetch inventory groups and products
-- [ ] T026 [US2] Create admin products page actions in src/routes/admin/events/[id]/products/index.tsx with routeAction$ for createInventoryGroup, createProduct, updateProduct, deleteProduct
-- [ ] T027 [US2] Create inventory group form component in src/components/admin/InventoryGroupForm.tsx with name, maxCapacity, and needsTicket fields
-- [ ] T028 [US2] Create product form component in src/components/admin/ProductForm.tsx with name, price, maxQuantity, features, inventory group selector, and image upload
-- [ ] T029 [US2] Integrate existing image cropper into product form for image upload in src/components/admin/ProductForm.tsx
-- [ ] T030 [US2] Create admin products UI in src/routes/admin/events/[id]/products/index.tsx displaying inventory groups with nested products list
-- [ ] T031 [US2] Add validation and error handling for product creation in src/routes/admin/events/[id]/products/index.tsx
+- [ ] T022 [P] [US2] Create inventory groups service in src/services/inventory-groups.service.ts with getByEventId, create, update, and validatePurchase methods
+- [ ] T023 [P] [US2] Create products service in src/services/products.service.ts with getByEventId, create, update, incrementSold methods and Stripe product creation
+- [ ] T024 [US2] Create admin products page loader in src/routes/admin/events/[id]/products/index.tsx with routeLoader$ to fetch inventory groups and products
+- [ ] T025 [US2] Create admin products page actions in src/routes/admin/events/[id]/products/index.tsx with routeAction$ for createInventoryGroup, createProduct, updateProduct, deleteProduct
+- [ ] T026 [US2] Create inventory group form component in src/components/admin/InventoryGroupForm.tsx with name, maxCapacity, and needsTicket fields
+- [ ] T027 [US2] Create product form component in src/components/admin/ProductForm.tsx with name, price, maxQuantity, features, inventory group selector, and image upload
+- [ ] T028 [US2] Integrate existing image cropper into product form for image upload in src/components/admin/ProductForm.tsx
+- [ ] T029 [US2] Create admin products UI in src/routes/admin/events/[id]/products/index.tsx displaying inventory groups with nested products list
+- [ ] T030 [US2] Add validation and error handling for product creation in src/routes/admin/events/[id]/products/index.tsx
 
 **Checkpoint**: At this point, admins can fully configure event products. This enables User Story 1 (purchase flow).
 
@@ -101,24 +100,24 @@ This is a single Qwik project with the following structure:
 
 ### Implementation for User Story 1
 
-- [ ] T032 [P] [US1] Create transactions service in src/services/transactions.service.ts with create, findBySessionId, processCheckout, and getByEventId methods
-- [ ] T033 [P] [US1] Create transaction items service in src/services/transaction-items.service.ts with createBulk method
-- [ ] T034 [P] [US1] Create tickets service in src/services/tickets.service.ts with create, createBulk, getById, and getByEventId methods
-- [ ] T035 [US1] Create checkout service in src/services/checkout.service.ts with createSession and validateInventory methods integrating inventory groups and Stripe
-- [ ] T036 [US1] Create public products page loader in src/routes/events/[id]/products/index.tsx with routeLoader$ to fetch inventory groups, products, and remaining capacity
-- [ ] T037 [US1] Create public products page UI in src/routes/events/[id]/products/index.tsx displaying products grouped by inventory group with radio selection per group
-- [ ] T038 [US1] Create initiate checkout action in src/routes/events/[id]/products/index.tsx with routeAction$ validating one product per group and inventory availability
-- [ ] T039 [US1] Create checkout page loader in src/routes/events/[id]/checkout/index.tsx with routeLoader$ to verify Stripe session exists
-- [ ] T040 [US1] Create checkout status polling action in src/routes/events/[id]/checkout/index.tsx with routeAction$ to check transaction completion
-- [ ] T041 [US1] Create checkout page UI in src/routes/events/[id]/checkout/index.tsx with Stripe embedded components and polling logic for transaction status
-- [ ] T042 [US1] Create Stripe webhook handler in src/routes/api/webhooks/stripe/index.ts with signature verification and checkout.session.completed event processing
-- [ ] T043 [US1] Implement webhook transaction processing in src/routes/api/webhooks/stripe/index.ts with idempotency check, transaction creation, inventory updates, and ticket generation
-- [ ] T044 [US1] Create ticket confirmation email template in src/emails/ticket-confirmation.tsx with event details, products summary, and conditional ticket section
-- [ ] T045 [US1] Create ticket links section component in src/emails/components/TicketLinksSection.tsx displaying QR code images for each ticket
-- [ ] T046 [US1] Create transaction products summary component in src/emails/components/TransactionProductsSummary.tsx displaying purchased items with quantities and prices
-- [ ] T047 [US1] Integrate email sending in webhook handler in src/routes/api/webhooks/stripe/index.ts with ticket-confirmation template and iCal attachment
-- [ ] T048 [US1] Integrate Telegram notification in webhook handler in src/routes/api/webhooks/stripe/index.ts sending one message per product with amount and remaining inventory
-- [ ] T049 [US1] Add error handling and logging for payment failures in src/routes/events/[id]/checkout/index.tsx
+- [ ] T031 [P] [US1] Create transactions service in src/services/transactions.service.ts with create, findBySessionId, processCheckout, and getByEventId methods
+- [ ] T032 [P] [US1] Create transaction items service in src/services/transaction-items.service.ts with createBulk method
+- [ ] T033 [P] [US1] Create tickets service in src/services/tickets.service.ts with create, createBulk, getById, and getByEventId methods
+- [ ] T034 [US1] Create checkout service in src/services/checkout.service.ts with createSession and validateInventory methods integrating inventory groups and Stripe
+- [ ] T035 [US1] Create public products page loader in src/routes/events/[id]/products/index.tsx with routeLoader$ to fetch inventory groups, products, and remaining capacity
+- [ ] T036 [US1] Create public products page UI in src/routes/events/[id]/products/index.tsx displaying products grouped by inventory group with radio selection per group
+- [ ] T037 [US1] Create initiate checkout action in src/routes/events/[id]/products/index.tsx with routeAction$ validating one product per group and inventory availability
+- [ ] T038 [US1] Create checkout page loader in src/routes/events/[id]/checkout/index.tsx with routeLoader$ to verify Stripe session exists
+- [ ] T039 [US1] Create checkout status polling action in src/routes/events/[id]/checkout/index.tsx with routeAction$ to check transaction completion
+- [ ] T040 [US1] Create checkout page UI in src/routes/events/[id]/checkout/index.tsx with Stripe embedded components and polling logic for transaction status
+- [ ] T041 [US1] Create Stripe webhook handler in src/routes/api/webhooks/stripe/index.ts with signature verification and checkout.session.completed event processing
+- [ ] T042 [US1] Implement webhook transaction processing in src/routes/api/webhooks/stripe/index.ts with idempotency check, transaction creation, inventory updates, and ticket generation
+- [ ] T043 [US1] Create ticket confirmation email template in src/emails/ticket-confirmation.tsx with event details, products summary, and conditional ticket section
+- [ ] T044 [US1] Create ticket links section component in src/emails/components/TicketLinksSection.tsx displaying QR code images for each ticket
+- [ ] T045 [US1] Create transaction products summary component in src/emails/components/TransactionProductsSummary.tsx displaying purchased items with quantities and prices
+- [ ] T046 [US1] Integrate email sending in webhook handler in src/routes/api/webhooks/stripe/index.ts with ticket-confirmation template and iCal attachment
+- [ ] T047 [US1] Integrate Telegram notification in webhook handler in src/routes/api/webhooks/stripe/index.ts sending one message per product with amount and remaining inventory
+- [ ] T048 [US1] Add error handling and logging for payment failures in src/routes/events/[id]/checkout/index.tsx
 
 **Checkpoint**: At this point, customers can purchase tickets end-to-end with payment processing, email delivery, and notifications. This is the MVP core functionality.
 
@@ -132,17 +131,17 @@ This is a single Qwik project with the following structure:
 
 ### Implementation for User Story 3
 
-- [ ] T050 [P] [US3] Add scanTicket method to tickets service in src/services/tickets.service.ts marking scannedAt timestamp
-- [ ] T051 [P] [US3] Add getByQrCodeUuid method to tickets service in src/services/tickets.service.ts for QR code lookup
-- [ ] T052 [US3] Create QR code image generation endpoint in src/routes/admin/events/[id]/tickets/[ticket-id]/qr-code.png/index.ts with infinite cache headers
-- [ ] T053 [US3] Create admin tickets page loader in src/routes/admin/events/[id]/tickets/index.tsx with routeLoader$ to fetch all tickets with buyer info and scan status
-- [ ] T054 [US3] Create scan ticket action in src/routes/admin/events/[id]/tickets/index.tsx with routeAction$ processing QR code UUID
-- [ ] T055 [US3] Create ticket scanner component in src/components/admin/TicketScanner.tsx integrating html5-qrcode with pause/resume logic
-- [ ] T056 [US3] Add scan result feedback in src/components/admin/TicketScanner.tsx with success/failure overlays and vibration
-- [ ] T057 [US3] Create ticket search component in src/components/admin/TicketSearch.tsx integrating fuse.js for fuzzy name search
-- [ ] T058 [US3] Create tickets list component in src/components/admin/TicketsList.tsx displaying tickets with scan status and manual scan button
-- [ ] T059 [US3] Create admin tickets page UI in src/routes/admin/events/[id]/tickets/index.tsx combining scanner, search, and list components
-- [ ] T060 [US3] Add duplicate scan warning logic in scan action in src/routes/admin/events/[id]/tickets/index.tsx
+- [ ] T049 [P] [US3] Add scanTicket method to tickets service in src/services/tickets.service.ts marking scannedAt timestamp
+- [ ] T050 [P] [US3] Add getByQrCodeUuid method to tickets service in src/services/tickets.service.ts for QR code lookup
+- [ ] T051 [US3] Create QR code image generation endpoint in src/routes/admin/events/[id]/tickets/[ticket-id]/qr-code.png/index.ts with infinite cache headers
+- [ ] T052 [US3] Create admin tickets page loader in src/routes/admin/events/[id]/tickets/index.tsx with routeLoader$ to fetch all tickets with buyer info and scan status
+- [ ] T053 [US3] Create scan ticket action in src/routes/admin/events/[id]/tickets/index.tsx with routeAction$ processing QR code UUID
+- [ ] T054 [US3] Create ticket scanner component in src/components/admin/TicketScanner.tsx integrating html5-qrcode with pause/resume logic
+- [ ] T055 [US3] Add scan result feedback in src/components/admin/TicketScanner.tsx with success/failure overlays and vibration
+- [ ] T056 [US3] Create ticket search component in src/components/admin/TicketSearch.tsx integrating fuse.js for fuzzy name search
+- [ ] T057 [US3] Create tickets list component in src/components/admin/TicketsList.tsx displaying tickets with scan status and manual scan button
+- [ ] T058 [US3] Create admin tickets page UI in src/routes/admin/events/[id]/tickets/index.tsx combining scanner, search, and list components
+- [ ] T059 [US3] Add duplicate scan warning logic in scan action in src/routes/admin/events/[id]/tickets/index.tsx
 
 **Checkpoint**: Event staff can now scan and validate tickets at entry with real-time feedback and search capability.
 
@@ -156,13 +155,13 @@ This is a single Qwik project with the following structure:
 
 ### Implementation for User Story 4
 
-- [ ] T061 [P] [US4] Add getByUserId method to transactions service in src/services/transactions.service.ts fetching user's transactions with products
-- [ ] T062 [P] [US4] Add getByBuyerId method to tickets service in src/services/tickets.service.ts fetching user's tickets with event info
-- [ ] T063 [US4] Create user dashboard loader in src/routes/profile/tickets/index.tsx with routeLoader$ to fetch user transactions and tickets
-- [ ] T064 [US4] Create transactions list component in src/components/profile/TransactionsList.tsx displaying past purchases with dates and totals
-- [ ] T065 [US4] Create user tickets component in src/components/profile/UserTickets.tsx displaying tickets grouped by event with QR code links
-- [ ] T066 [US4] Create user dashboard page in src/routes/profile/tickets/index.tsx combining transactions and tickets with upcoming/past event separation
-- [ ] T067 [US4] Add QR code display modal in src/components/profile/UserTickets.tsx for full-screen ticket viewing
+- [ ] T060 [P] [US4] Add getByUserId method to transactions service in src/services/transactions.service.ts fetching user's transactions with products
+- [ ] T061 [P] [US4] Add getByBuyerId method to tickets service in src/services/tickets.service.ts fetching user's tickets with event info
+- [ ] T062 [US4] Create user dashboard loader in src/routes/profile/tickets/index.tsx with routeLoader$ to fetch user transactions and tickets
+- [ ] T063 [US4] Create transactions list component in src/components/profile/TransactionsList.tsx displaying past purchases with dates and totals
+- [ ] T064 [US4] Create user tickets component in src/components/profile/UserTickets.tsx displaying tickets grouped by event with QR code links
+- [ ] T065 [US4] Create user dashboard page in src/routes/profile/tickets/index.tsx combining transactions and tickets with upcoming/past event separation
+- [ ] T066 [US4] Add QR code display modal in src/components/profile/UserTickets.tsx for full-screen ticket viewing
 
 **Checkpoint**: Customers can now access their complete purchase history and tickets through the dashboard.
 
@@ -176,12 +175,12 @@ This is a single Qwik project with the following structure:
 
 ### Implementation for User Story 5
 
-- [ ] T068 [P] [US5] Add getByEventIdWithDetails method to transactions service in src/services/transactions.service.ts fetching transactions with items and buyer info
-- [ ] T069 [US5] Create admin transactions page loader in src/routes/admin/events/[id]/transactions/index.tsx with routeLoader$ supporting cursor-based pagination
-- [ ] T070 [US5] Create transaction card component in src/components/admin/TransactionCard.tsx displaying summary with expandable details
-- [ ] T071 [US5] Create transactions list component in src/components/admin/TransactionsList.tsx with pagination controls
-- [ ] T072 [US5] Create admin transactions page UI in src/routes/admin/events/[id]/transactions/index.tsx displaying sorted transaction list with totals summary
-- [ ] T073 [US5] Add financial summary section in src/routes/admin/events/[id]/transactions/index.tsx showing total revenue and fees
+- [ ] T067 [P] [US5] Add getByEventIdWithDetails method to transactions service in src/services/transactions.service.ts fetching transactions with items and buyer info
+- [ ] T068 [US5] Create admin transactions page loader in src/routes/admin/events/[id]/transactions/index.tsx with routeLoader$ supporting cursor-based pagination
+- [ ] T069 [US5] Create transaction card component in src/components/admin/TransactionCard.tsx displaying summary with expandable details
+- [ ] T070 [US5] Create transactions list component in src/components/admin/TransactionsList.tsx with pagination controls
+- [ ] T071 [US5] Create admin transactions page UI in src/routes/admin/events/[id]/transactions/index.tsx displaying sorted transaction list with totals summary
+- [ ] T072 [US5] Add financial summary section in src/routes/admin/events/[id]/transactions/index.tsx showing total revenue and fees
 
 **Checkpoint**: Administrators now have complete financial reporting for each event.
 
@@ -191,9 +190,9 @@ This is a single Qwik project with the following structure:
 
 **Purpose**: Create navigation structure and layout for admin event management
 
-- [ ] T074 Create admin event layout in src/routes/admin/events/[id]/layout.tsx with tab navigation for Details, Products, Transactions, and Tickets
-- [ ] T075 Style tab navigation in src/routes/admin/events/[id]/layout.tsx with active state indicators
-- [ ] T076 Ensure existing Details tab integration in src/routes/admin/events/[id]/details/index.tsx works with new layout
+- [ ] T073 Create admin event layout in src/routes/admin/events/[id]/layout.tsx with tab navigation for Details, Products, Transactions, and Tickets
+- [ ] T074 Style tab navigation in src/routes/admin/events/[id]/layout.tsx with active state indicators
+- [ ] T075 Ensure existing Details tab integration in src/routes/admin/events/[id]/details/index.tsx works with new layout
 
 ---
 
@@ -201,18 +200,18 @@ This is a single Qwik project with the following structure:
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T077 [P] Add loading states to all form submissions across admin and public pages
-- [ ] T078 [P] Add success/error toast notifications across application using existing notification system
-- [ ] T079 Add inventory validation edge case handling in checkout service for concurrent purchase conflicts in src/services/checkout.service.ts
-- [ ] T080 Add webhook retry logging and alerting in src/routes/api/webhooks/stripe/index.ts for failed email or ticket generation
-- [ ] T081 Optimize QR code generation performance with error correction level tuning in src/services/qrcode.service.ts
-- [ ] T082 Add proper TypeScript error handling throughout services following constitution guidelines
-- [ ] T083 Add product image validation and upload error handling in product form
-- [ ] T084 Test complete purchase flow following quickstart.md validation scenarios
-- [ ] T085 Verify Stripe webhook signature verification works with test webhooks
-- [ ] T086 Test concurrent purchase edge cases with same inventory group
-- [ ] T087 Verify email delivery with all attachment types (iCal, QR codes)
-- [ ] T088 Test QR scanner in different lighting conditions and devices
+- [ ] T076 [P] Add loading states to all form submissions across admin and public pages
+- [ ] T077 [P] Add success/error toast notifications across application using existing notification system
+- [ ] T078 Add inventory validation edge case handling in checkout service for concurrent purchase conflicts in src/services/checkout.service.ts
+- [ ] T079 Add webhook retry logging and alerting in src/routes/api/webhooks/stripe/index.ts for failed email or ticket generation
+- [ ] T080 Optimize QR code generation performance with error correction level tuning in src/services/qrcode.service.ts
+- [ ] T081 Add proper TypeScript error handling throughout services following constitution guidelines
+- [ ] T082 Add product image validation and upload error handling in product form
+- [ ] T083 Test complete purchase flow following quickstart.md validation scenarios
+- [ ] T084 Verify Stripe webhook signature verification works with test webhooks
+- [ ] T085 Test concurrent purchase edge cases with same inventory group
+- [ ] T086 Verify email delivery with all attachment types (iCal, QR codes)
+- [ ] T087 Test QR scanner in different lighting conditions and devices
 
 ---
 
@@ -260,18 +259,18 @@ Setup (Phase 1)
 - **Phase 1 (Setup)**: All npm install tasks (T001-T006) can run in parallel
 - **Phase 2 (Foundational)**: 
   - Schema creation (T011-T014) can run in parallel after T010
-  - Utility services (T019-T022) can run in parallel after schema migration (T018)
+  - Utility services (T018-T021) can run in parallel after schema sync (T017)
 - **Phase 3 (US2)**: 
-  - Services (T023-T024) can run in parallel
-  - Form components (T027-T028) can run in parallel after actions complete
+  - Services (T022-T023) can run in parallel
+  - Form components (T026-T027) can run in parallel after actions complete
 - **Phase 4 (US1)**:
-  - Services (T032-T034) can run in parallel
-  - Email components (T045-T046) can run in parallel
+  - Services (T031-T033) can run in parallel
+  - Email components (T044-T045) can run in parallel
 - **Phase 5 (US3)**:
-  - Service methods (T050-T051) can run in parallel
-  - Components (T055, T057, T058) can be built in parallel after actions complete
+  - Service methods (T049-T050) can run in parallel
+  - Components (T054, T056, T057) can be built in parallel after actions complete
 - **Phase 6-7 (US4-US5)**: Can work on these user stories in parallel once US1 is complete
-- **Phase 9 (Polish)**: Most tasks (T077-T078, T081-T082) can run in parallel
+- **Phase 9 (Polish)**: Most tasks (T076-T077, T080-T081) can run in parallel
 
 ---
 
@@ -279,13 +278,13 @@ Setup (Phase 1)
 
 ```bash
 # Launch core services together:
-Task T032: "Create transactions service"
-Task T033: "Create transaction items service"
-Task T034: "Create tickets service"
+Task T031: "Create transactions service"
+Task T032: "Create transaction items service"
+Task T033: "Create tickets service"
 
-# Launch email components together (after email template T044):
-Task T045: "Create ticket links section component"
-Task T046: "Create transaction products summary component"
+# Launch email components together (after email template T043):
+Task T044: "Create ticket links section component"
+Task T045: "Create transaction products summary component"
 ```
 
 ---
@@ -294,13 +293,13 @@ Task T046: "Create transaction products summary component"
 
 ```bash
 # Launch service methods together:
-Task T050: "Add scanTicket method to tickets service"
-Task T051: "Add getByQrCodeUuid method to tickets service"
+Task T049: "Add scanTicket method to tickets service"
+Task T050: "Add getByQrCodeUuid method to tickets service"
 
 # Launch UI components together (after actions complete):
-Task T055: "Create ticket scanner component"
-Task T057: "Create ticket search component"
-Task T058: "Create tickets list component"
+Task T054: "Create ticket scanner component"
+Task T056: "Create ticket search component"
+Task T057: "Create tickets list component"
 ```
 
 ---

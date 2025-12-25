@@ -23,7 +23,7 @@ export const InventoryGroupForm = component$<InventoryGroupFormProps>(
             required
           />
           <label class="flex items-center gap-2">
-            <input type="checkbox" name="needsTicket" checked />
+            <input type="checkbox" name="needsTicket" value="true" />
             <span class="text-sm">
               Needs Ticket (Generate QR codes for entry)
             </span>

@@ -63,6 +63,29 @@ export const insertProductSchema = baseInsertSchema
     updatedAt: true,
   });
 
+// Form-compatible version that handles HTML form string inputs
+export const formProductSchema = insertProductSchema
+  .omit({ 
+    id: true, 
+    eventId: true, 
+    stripeProductId: true, 
+    soldQuantity: true, 
+    createdAt: true, 
+    updatedAt: true 
+  })
+  .extend({
+    price: z.union([
+      z.string().transform(val => parseFloat(val)),
+      z.number()
+    ]).pipe(z.number().positive("Price must be greater than 0")),
+    maxQuantity: z.union([
+      z.string().transform(val => parseInt(val, 10)),
+      z.number().int()
+    ]).pipe(z.number().int().min(0, "Max quantity cannot be negative")),
+    features: z.string().default(""),
+    imageUrl: z.string().url("Invalid image URL").optional().or(z.literal("")),
+  });
+
 export const updateProductSchema = baseInsertSchema
   .omit({ id: true, createdAt: true, soldQuantity: true })
   .partial()

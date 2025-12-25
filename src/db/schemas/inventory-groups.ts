@@ -40,6 +40,20 @@ export const insertInventoryGroupSchema = baseInsertSchema
     createdAt: true,
   });
 
+// Form-compatible version that handles HTML form string inputs
+export const formInventoryGroupSchema = insertInventoryGroupSchema
+  .omit({ id: true, eventId: true, createdAt: true })
+  .extend({
+    maxCapacity: z.union([
+      z.string().transform(val => parseInt(val, 10)),
+      z.number().int()
+    ]).pipe(z.number().int().positive("Max capacity must be greater than 0")),
+    needsTicket: z.union([
+      z.string().transform(val => val === 'on' || val === 'true'),
+      z.boolean()
+    ]).default(true),
+  });
+
 export const updateInventoryGroupSchema = baseInsertSchema
   .omit({ id: true, createdAt: true })
   .partial();

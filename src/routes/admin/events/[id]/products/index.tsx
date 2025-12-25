@@ -12,6 +12,8 @@ import { inventoryGroupsService } from "~/services/inventory-groups.service";
 import { productsService } from "~/services/products.service";
 import { InventoryGroupForm } from "~/components/admin/InventoryGroupForm";
 import { ProductForm } from "~/components/admin/ProductForm";
+import { insertInventoryGroupSchema } from "~/db/schemas/inventory-groups";
+import { insertProductSchema } from "~/db/schemas/products";
 
 export const useInventoryGroupsAndProducts = routeLoader$(async (event) => {
   const eventId = event.params.id;
@@ -35,19 +37,15 @@ export const useCreateInventoryGroup = routeAction$(
     try {
       const eventId = event.params.id;
       
-      if (!data.name || data.name.trim().length === 0) {
-        return event.fail(400, { message: "Group name is required" });
-      }
-      
-      if (data.maxCapacity <= 0) {
-        return event.fail(400, { message: "Max capacity must be greater than 0" });
-      }
+      // Validate and transform form data
+      // Note: We don't need explicit validation here since zod$ handles it
+      const validatedData = data;
       
       await inventoryGroupsService.create({
         eventId,
-        name: data.name.trim(),
-        maxCapacity: data.maxCapacity,
-        needsTicket: data.needsTicket,
+        name: validatedData.name.trim(),
+        maxCapacity: validatedData.maxCapacity,
+        needsTicket: validatedData.needsTicket,
       });
       return { success: true };
     } catch (error) {
@@ -55,11 +53,17 @@ export const useCreateInventoryGroup = routeAction$(
       return event.fail(500, { message: "Failed to create inventory group" });
     }
   },
-  zod$({
+  zod$(zod => zod.object({
     name: z.string().min(1, "Group name is required"),
-    maxCapacity: z.number().int().positive("Max capacity must be greater than 0"),
-    needsTicket: z.boolean().default(true),
-  }),
+    maxCapacity: z.union([
+      z.string().transform(val => parseInt(val, 10)),
+      z.number().int()
+    ]).pipe(z.number().int().positive("Max capacity must be greater than 0")),
+    needsTicket: z.union([
+      z.string().transform(val => val === 'on' || val === 'true'),
+      z.boolean()
+    ]).default(true),
+  })),
 );
 
 export const useCreateProduct = routeAction$(
@@ -67,30 +71,23 @@ export const useCreateProduct = routeAction$(
     try {
       const eventId = event.params.id;
       
-      if (!data.name || data.name.trim().length === 0) {
-        return event.fail(400, { message: "Product name is required" });
-      }
+      // Validate and transform form data
+      // Note: We don't need explicit validation here since zod$ handles it
+      const validatedData = data;
       
-      if (data.price <= 0) {
-        return event.fail(400, { message: "Price must be greater than 0" });
-      }
-      
-      if (data.maxQuantity < 0) {
-        return event.fail(400, { message: "Max quantity cannot be negative" });
-      }
-      
-      const features = data.features
-        ? data.features.split(",").map((f) => f.trim()).filter((f) => f.length > 0)
+      // Convert features string to array
+      const features = validatedData.features
+        ? validatedData.features.split(",").map((f: string) => f.trim()).filter((f: string) => f.length > 0)
         : [];
       
       await productsService.create({
         eventId,
-        inventoryGroupId: data.inventoryGroupId,
-        name: data.name.trim(),
-        price: data.price,
-        maxQuantity: data.maxQuantity,
+        inventoryGroupId: validatedData.inventoryGroupId,
+        name: validatedData.name.trim(),
+        price: validatedData.price,
+        maxQuantity: validatedData.maxQuantity,
         features,
-        imageUrl: data.imageUrl || undefined,
+        imageUrl: validatedData.imageUrl || undefined,
       });
       return { success: true };
     } catch (error) {
@@ -98,14 +95,20 @@ export const useCreateProduct = routeAction$(
       return event.fail(500, { message: "Failed to create product. Please try again." });
     }
   },
-  zod$({
+  zod$(zod => zod.object({
     inventoryGroupId: z.string().uuid("Invalid inventory group"),
     name: z.string().min(1, "Product name is required"),
-    price: z.number().positive("Price must be greater than 0"),
-    maxQuantity: z.number().int().min(0, "Max quantity cannot be negative"),
+    price: z.union([
+      z.string().transform(val => parseFloat(val)),
+      z.number()
+    ]).pipe(z.number().positive("Price must be greater than 0")),
+    maxQuantity: z.union([
+      z.string().transform(val => parseInt(val, 10)),
+      z.number().int()
+    ]).pipe(z.number().int().min(0, "Max quantity cannot be negative")),
     features: z.string().default(""),
     imageUrl: z.string().url("Invalid image URL").optional().or(z.literal("")),
-  }),
+  })),
 );
 
 export default component$(() => {

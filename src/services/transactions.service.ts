@@ -14,15 +14,31 @@ import { eq, desc, and } from "drizzle-orm";
 export const transactionsService = {
   async create(data: InsertTransaction): Promise<Transaction> {
     const validated = insertTransactionSchema.parse(data);
-    const [transaction] = await db.insert(transactions).values(validated as any).returning();
+    const [transaction] = await db
+      .insert(transactions)
+      .values(validated as any)
+      .returning();
     return transaction;
   },
 
-  async findBySessionId(stripeSessionId: string): Promise<Transaction | undefined> {
+  async findBySessionId(
+    stripeSessionId: string,
+  ): Promise<Transaction | undefined> {
     const [transaction] = await db
       .select()
       .from(transactions)
       .where(eq(transactions.stripeSessionId, stripeSessionId))
+      .limit(1);
+    return transaction;
+  },
+
+  async findByPaymentId(
+    stripePaymentId: string,
+  ): Promise<Transaction | undefined> {
+    const [transaction] = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.stripePaymentId, stripePaymentId))
       .limit(1);
     return transaction;
   },

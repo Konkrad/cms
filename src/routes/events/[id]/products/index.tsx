@@ -1,4 +1,4 @@
-import { component$, useSignal } from "@builder.io/qwik";
+import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import {
   routeLoader$,
   routeAction$,
@@ -10,22 +10,24 @@ import { Button } from "~/components/ui/Button";
 import { inventoryGroupsService } from "~/services/inventory-groups.service";
 import { productsService } from "~/services/products.service";
 import { checkoutService } from "~/services/checkout.service";
+import { getServerSession } from "~/utils/server-auth";
 
 export const useProductsData = routeLoader$(async (event) => {
   const eventId = event.params.id;
-  
+
   // Get all inventory groups with products
   const groups = await inventoryGroupsService.getByEventId(eventId);
-  
+
   // Calculate remaining capacity for each group
   const groupsWithCapacity = await Promise.all(
     groups.map(async (group: any) => {
-      const soldQuantity = group.products?.reduce(
-        (sum: number, p: any) => sum + (p.soldQuantity || 0),
-        0,
-      ) || 0;
+      const soldQuantity =
+        group.products?.reduce(
+          (sum: number, p: any) => sum + (p.soldQuantity || 0),
+          0,
+        ) || 0;
       const remainingCapacity = group.maxCapacity - soldQuantity;
-      
+
       return {
         ...group,
         remainingCapacity,
@@ -33,7 +35,7 @@ export const useProductsData = routeLoader$(async (event) => {
       };
     }),
   );
-  
+
   return {
     eventId,
     groups: groupsWithCapacity,
@@ -43,12 +45,16 @@ export const useProductsData = routeLoader$(async (event) => {
 export const useInitiateCheckout = routeAction$(
   async (data, event) => {
     const eventId = event.params.id;
-    const userId = event.sharedMap.get("session")?.userId;
-    
-    if (!userId) {
+
+    // Check authentication for checkout
+    const user = await getServerSession(event);
+
+    if (!user) {
       return event.fail(401, { message: "Please log in to purchase tickets" });
     }
-    
+
+    const userId = user.id;
+
     // Parse selected products
     const items = Object.entries(data)
       .filter(([key]) => key.startsWith("product_"))
@@ -56,31 +62,32 @@ export const useInitiateCheckout = routeAction$(
         const productId = key.replace("product_", "");
         return {
           productId,
-          quantity: typeof value === "number" ? value : parseInt(value as string, 10),
+          quantity:
+            typeof value === "number" ? value : parseInt(value as string, 10),
         };
       })
       .filter((item) => item.quantity > 0);
-    
+
     if (items.length === 0) {
       return event.fail(400, { message: "Please select at least one product" });
     }
-    
+
     // Validate inventory rules: one product per inventory group
     const productIds = items.map((i) => i.productId);
     const products = await Promise.all(
       productIds.map((id) => productsService.getById(id)),
     );
-    
+
     const inventoryGroupIds = new Set(
       products.filter((p) => p).map((p) => p!.inventoryGroupId),
     );
-    
+
     if (inventoryGroupIds.size !== items.length) {
       return event.fail(400, {
         message: "You can only select one product per inventory group",
       });
     }
-    
+
     // Create checkout session
     const baseUrl = event.url.origin;
     const result = await checkoutService.createSession({
@@ -90,11 +97,11 @@ export const useInitiateCheckout = routeAction$(
       successUrl: `${baseUrl}/events/${eventId}/checkout?session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${baseUrl}/events/${eventId}/products`,
     });
-    
+
     if ("error" in result) {
       return event.fail(400, { message: result.error });
     }
-    
+
     // Redirect to Stripe checkout
     throw event.redirect(303, result.url);
   },
@@ -104,13 +111,30 @@ export const useInitiateCheckout = routeAction$(
 export default component$(() => {
   const data = useProductsData();
   const initiateCheckout = useInitiateCheckout();
-  
+
   const selectedProducts = useSignal<Record<string, number>>({});
   const errorMessage = useSignal("");
-  
+
+  // Keep hidden inputs in sync with selected products (client-side only)
+  useVisibleTask$(({ track }) => {
+    track(() => selectedProducts.value);
+
+    // Update all hidden inputs to match current selection
+    const hiddenInputs = document.querySelectorAll(
+      'input[type="hidden"][name^="product_"]',
+    );
+
+    hiddenInputs.forEach((input: HTMLInputElement) => {
+      const productId = input.name.replace("product_", "");
+      input.value = String(selectedProducts.value[productId] || 0);
+    });
+  });
+
   const calculateTotal = () => {
     let total = 0;
-    for (const [productId, quantity] of Object.entries(selectedProducts.value)) {
+    for (const [productId, quantity] of Object.entries(
+      selectedProducts.value,
+    )) {
       const product = data.value.groups
         .flatMap((g) => g.products || [])
         .find((p) => p.id === productId);
@@ -120,23 +144,23 @@ export default component$(() => {
     }
     return total;
   };
-  
+
   return (
     <div class="max-w-4xl mx-auto p-6">
       <h1 class="text-3xl font-bold mb-6">Select Tickets</h1>
-      
+
       {errorMessage.value && (
         <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded mb-6">
           {errorMessage.value}
         </div>
       )}
-      
+
       {initiateCheckout.value?.failed && (
         <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded mb-6">
           {initiateCheckout.value.message}
         </div>
       )}
-      
+
       <Form action={initiateCheckout} class="space-y-8">
         {data.value.groups.map((group) => (
           <div key={group.id} class="border rounded-lg p-6 bg-white">
@@ -146,17 +170,17 @@ export default component$(() => {
                 {group.remainingCapacity} of {group.maxCapacity} spots remaining
               </p>
             </div>
-            
+
             {group.remainingCapacity === 0 ? (
               <div class="p-4 bg-gray-100 text-gray-600 rounded text-center">
                 Sold Out
               </div>
             ) : (
               <div class="space-y-4">
-                {(group.products as any[] || []).map((product: any) => {
+                {((group.products as any[]) || []).map((product: any) => {
                   const remaining = group.remainingCapacity;
                   const available = remaining > 0;
-                  
+
                   return (
                     <label
                       key={product.id}
@@ -174,28 +198,33 @@ export default component$(() => {
                           if (el.checked) {
                             // Clear other products in the same group
                             const newSelection = { ...selectedProducts.value };
-                            (group.products as any[] || []).forEach((p: any) => {
-                              if (p.id !== product.id) {
-                                delete newSelection[p.id];
-                              }
-                            });
+                            ((group.products as any[]) || []).forEach(
+                              (p: any) => {
+                                if (p.id !== product.id) {
+                                  delete newSelection[p.id];
+                                }
+                              },
+                            );
                             newSelection[product.id] = 1;
                             selectedProducts.value = newSelection;
                           }
                         }}
                       />
-                      
+
                       <div class="flex-1">
                         <div class="flex justify-between items-start">
                           <div>
                             <h3 class="font-semibold">{product.name}</h3>
-                            {product.features && product.features.length > 0 && (
-                              <ul class="text-sm text-gray-600 mt-1 space-y-1">
-                                {product.features.map((feature: string, idx: number) => (
-                                  <li key={idx}>• {feature}</li>
-                                ))}
-                              </ul>
-                            )}
+                            {product.features &&
+                              product.features.length > 0 && (
+                                <ul class="text-sm text-gray-600 mt-1 space-y-1">
+                                  {product.features.map(
+                                    (feature: string, idx: number) => (
+                                      <li key={idx}>• {feature}</li>
+                                    ),
+                                  )}
+                                </ul>
+                              )}
                           </div>
                           {product.imageUrl && (
                             <img
@@ -205,14 +234,16 @@ export default component$(() => {
                             />
                           )}
                         </div>
-                        <p class="text-lg font-bold mt-2">€{product.price.toFixed(2)}</p>
+                        <p class="text-lg font-bold mt-2">
+                          €{product.price.toFixed(2)}
+                        </p>
                         {product.maxQuantity > 0 && (
                           <p class="text-xs text-gray-500">
                             Max {product.maxQuantity} per purchase
                           </p>
                         )}
                       </div>
-                      
+
                       <input
                         type="hidden"
                         name={`product_${product.id}`}
@@ -225,11 +256,13 @@ export default component$(() => {
             )}
           </div>
         ))}
-        
+
         <div class="sticky bottom-0 bg-white border-t pt-4 pb-2">
           <div class="flex justify-between items-center mb-4">
             <span class="text-xl font-bold">Total:</span>
-            <span class="text-2xl font-bold">€{calculateTotal().toFixed(2)}</span>
+            <span class="text-2xl font-bold">
+              €{calculateTotal().toFixed(2)}
+            </span>
           </div>
           <Button
             type="submit"

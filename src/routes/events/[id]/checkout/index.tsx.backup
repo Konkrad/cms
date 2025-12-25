@@ -210,7 +210,8 @@ export default component$(() => {
                   {((group.products as any[]) || []).map((product: any) => {
                     const remaining = group.remainingCapacity;
                     const available = remaining > 0;
-                    const isSelected = selectedProducts.value[product.id] > 0;
+                    const isSelected =
+                      selectedProducts.value[product.id] > 0;
 
                     return (
                       <label
@@ -240,10 +241,6 @@ export default component$(() => {
                                 },
                               );
                               newSelection[product.id] = 1;
-                              console.log(
-                                "[Checkout] Selected product:",
-                                product.id,
-                              );
                               selectedProducts.value = newSelection;
                             }
                           }}
@@ -301,13 +298,13 @@ export default component$(() => {
               disabled={Object.keys(selectedProducts.value).length === 0}
               onClick$={() => {
                 console.log(
-                  "[Checkout] Proceeding to payment step with selection:",
+                  "[Products] Proceeding to payment step with selection:",
                   selectedProducts.value,
                 );
                 currentStep.value = 2;
               }}
             >
-              Proceed to Payment
+              Proceed to Checkout
             </Button>
           </div>
         </div>
@@ -373,30 +370,4 @@ export default component$(() => {
 
               {/* TODO: Add Stripe Elements here */}
               <div class="p-8 bg-gray-50 border-2 border-dashed border-gray-300 rounded text-center text-gray-600">
-                <p class="mb-2 font-medium">Stripe Payment Integration</p>
-                <p class="text-sm">Payment form will be integrated here</p>
-              </div>
-
-              <div class="flex gap-4">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  class="flex-1"
-                  onClick$={() => {
-                    console.log("[Checkout] Going back to product selection");
-                    currentStep.value = 1;
-                  }}
-                >
-                  Back
-                </Button>
-                <Button type="submit" class="flex-1">
-                  Complete Payment
-                </Button>
-              </div>
-            </Form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-});
+                <p class="mb-2

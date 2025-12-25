@@ -5,7 +5,8 @@ import TransactionsList from "~/components/admin/TransactionsList";
 
 export const useTransactions = routeLoader$(async (event) => {
   const eventId = event.params.id;
-  const transactions = await transactionsService.getByEventIdWithDetails(eventId);
+  const transactions =
+    await transactionsService.getByEventIdWithDetails(eventId);
   return { eventId, transactions };
 });
 
@@ -13,21 +14,17 @@ export default component$(() => {
   const data = useTransactions();
   const transactions = data.value.transactions;
 
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat("en-US", {
+  // Amounts are stored in EUR (floats). Don't divide by 100 here.
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-GB", {
       style: "currency",
-      currency: "USD",
-    }).format(cents / 100);
+      currency: "EUR",
+      minimumFractionDigits: 2,
+    }).format(amount);
   };
 
-  const totalRevenue = transactions.reduce(
-    (sum, t) => sum + t.totalAmount,
-    0
-  );
-  const totalFees = transactions.reduce(
-    (sum, t) => sum + t.transactionFee,
-    0
-  );
+  const totalRevenue = transactions.reduce((sum, t) => sum + t.totalAmount, 0);
+  const totalFees = transactions.reduce((sum, t) => sum + t.transactionFee, 0);
   const netRevenue = totalRevenue - totalFees;
 
   return (
@@ -55,9 +52,7 @@ export default component$(() => {
           <p class="text-3xl font-bold text-red-600">
             {formatCurrency(totalFees)}
           </p>
-          <p class="text-sm text-gray-500 mt-1">
-            Processing costs
-          </p>
+          <p class="text-sm text-gray-500 mt-1">Processing costs</p>
         </div>
 
         <div class="bg-white rounded-lg shadow-md p-6">
@@ -65,9 +60,7 @@ export default component$(() => {
           <p class="text-3xl font-bold text-green-600">
             {formatCurrency(netRevenue)}
           </p>
-          <p class="text-sm text-gray-500 mt-1">
-            After fees
-          </p>
+          <p class="text-sm text-gray-500 mt-1">After fees</p>
         </div>
       </div>
 

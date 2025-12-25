@@ -30,11 +30,12 @@ export default component$<TransactionCardProps>(({ transaction }) => {
     });
   };
 
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat("en-US", {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-GB", {
       style: "currency",
-      currency: "USD",
-    }).format(cents / 100);
+      currency: "EUR",
+      minimumFractionDigits: 2,
+    }).format(amount);
   };
 
   const toggleExpanded = $(() => {
@@ -43,10 +44,7 @@ export default component$<TransactionCardProps>(({ transaction }) => {
 
   return (
     <div class="border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
-      <div
-        class="p-4 cursor-pointer"
-        onClick$={toggleExpanded}
-      >
+      <div class="p-4 cursor-pointer" onClick$={toggleExpanded}>
         <div class="flex items-start justify-between">
           <div class="flex-1">
             <div class="flex items-center gap-3 mb-2">
@@ -72,7 +70,10 @@ export default component$<TransactionCardProps>(({ transaction }) => {
               Fee: {formatCurrency(transaction.transactionFee)}
             </p>
             <p class="text-xs text-gray-600 mt-1">
-              Net: {formatCurrency(transaction.totalAmount - transaction.transactionFee)}
+              Net:{" "}
+              {formatCurrency(
+                transaction.totalAmount - transaction.transactionFee,
+              )}
             </p>
           </div>
         </div>
@@ -88,12 +89,8 @@ export default component$<TransactionCardProps>(({ transaction }) => {
                 class="flex items-center justify-between text-sm"
               >
                 <div>
-                  <p class="font-medium text-gray-900">
-                    {item.product.name}
-                  </p>
-                  <p class="text-gray-600">
-                    Quantity: {item.quantity}
-                  </p>
+                  <p class="font-medium text-gray-900">{item.product.name}</p>
+                  <p class="text-gray-600">Quantity: {item.quantity}</p>
                 </div>
                 <div class="text-right">
                   <p class="text-gray-900">

@@ -26,11 +26,13 @@ export default component$<TransactionsListProps>(({ transactions }) => {
     });
   };
 
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat("en-US", {
+  // Amounts are stored in EUR (floats). Don't divide by 100 here.
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-GB", {
       style: "currency",
-      currency: "USD",
-    }).format(cents / 100);
+      currency: "EUR",
+      minimumFractionDigits: 2,
+    }).format(amount);
   };
 
   return (

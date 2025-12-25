@@ -8,4 +8,8 @@ export const qrcodeService = {
       errorCorrectionLevel: "H",
     });
   },
+
+  async generateQRCode(data: string): Promise<Buffer> {
+    return this.generatePNG(data);
+  },
 };

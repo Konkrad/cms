@@ -12,8 +12,7 @@ import { inventoryGroupsService } from "~/services/inventory-groups.service";
 import { productsService } from "~/services/products.service";
 import { InventoryGroupForm } from "~/components/admin/InventoryGroupForm";
 import { ProductForm } from "~/components/admin/ProductForm";
-import { insertInventoryGroupSchema } from "~/db/schemas/inventory-groups";
-import { insertProductSchema } from "~/db/schemas/products";
+
 
 export const useInventoryGroupsAndProducts = routeLoader$(async (event) => {
   const eventId = event.params.id;

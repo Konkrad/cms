@@ -1,4 +1,10 @@
-import { component$, useSignal, useComputed$ } from "@builder.io/qwik";
+import {
+  component$,
+  useSignal,
+  useComputed$,
+  useVisibleTask$,
+  $,
+} from "@builder.io/qwik";
 import {
   routeLoader$,
   routeAction$,
@@ -10,7 +16,9 @@ import { Button } from "~/components/ui/Button";
 import { inventoryGroupsService } from "~/services/inventory-groups.service";
 import { productsService } from "~/services/products.service";
 import { checkoutService } from "~/services/checkout.service";
+import { stripeService } from "~/services/stripe.service";
 import { getServerSession } from "~/utils/server-auth";
+import { env } from "~/env";
 
 export const useProductsData = routeLoader$(async (event) => {
   const eventId = event.params.id;
@@ -39,8 +47,65 @@ export const useProductsData = routeLoader$(async (event) => {
   return {
     eventId,
     groups: groupsWithCapacity,
+    stripePublishableKey: env.STRIPE_PUBLISHABLE_KEY,
   };
 });
+
+export const useCreatePaymentIntent = routeAction$(
+  async (data, event) => {
+    console.log("[Server] useCreatePaymentIntent called");
+    const eventId = event.params.id;
+
+    // Check authentication for checkout
+    const user = await getServerSession(event);
+    if (!user) {
+      return event.fail(401, { message: "Please log in to purchase tickets" });
+    }
+
+    // Parse selected products
+    const items = JSON.parse(data.items as string);
+    console.log("[Server] Creating payment intent for items:", items);
+
+    // Validate inventory
+    const validation = await checkoutService.validateInventory(eventId, items);
+    if (!validation.valid) {
+      return event.fail(400, { message: validation.errors.join("; ") });
+    }
+
+    // Get product details to calculate amount
+    const products = await Promise.all(
+      items.map(async (item: any) => {
+        const product = await productsService.getById(item.productId);
+        return { ...item, product };
+      }),
+    );
+
+    const totalAmount = products.reduce((sum, p) => {
+      return sum + p.product!.price * p.quantity * 100; // Convert to cents
+    }, 0);
+
+    // Create Stripe payment intent
+    const paymentIntent = await stripeService.stripe.paymentIntents.create({
+      amount: Math.round(totalAmount),
+      currency: "eur",
+      metadata: {
+        eventId,
+        userId: user.id,
+        items: JSON.stringify(items),
+      },
+      automatic_payment_methods: {
+        enabled: true,
+      },
+    });
+
+    console.log("[Server] Payment intent created:", paymentIntent.id);
+
+    return {
+      clientSecret: paymentIntent.client_secret,
+    };
+  },
+  zod$({ items: z.string() }),
+);
 
 export const useProcessPayment = routeAction$(
   async (data, event) => {
@@ -57,19 +122,8 @@ export const useProcessPayment = routeAction$(
 
     const userId = user.id;
 
-    // Parse selected products
-    const items = Object.entries(data)
-      .filter(([key]) => key.startsWith("product_"))
-      .map(([key, value]) => {
-        const productId = key.replace("product_", "");
-        return {
-          productId,
-          quantity:
-            typeof value === "number" ? value : parseInt(value as string, 10),
-        };
-      })
-      .filter((item) => item.quantity > 0);
-
+    // Parse selected products from items JSON
+    const items = JSON.parse(data.items as string);
     console.log("[Server] Parsed items:", items);
 
     if (items.length === 0) {
@@ -78,9 +132,9 @@ export const useProcessPayment = routeAction$(
     }
 
     // Validate inventory rules: one product per inventory group
-    const productIds = items.map((i) => i.productId);
+    const productIds = items.map((i: any) => i.productId);
     const products = await Promise.all(
-      productIds.map((id) => productsService.getById(id)),
+      productIds.map((id: string) => productsService.getById(id)),
     );
 
     const inventoryGroupIds = new Set(
@@ -101,23 +155,50 @@ export const useProcessPayment = routeAction$(
       return event.fail(400, { message: validation.errors.join("; ") });
     }
 
-    // TODO: Process payment with Stripe
-    console.log("[Server] Payment processing would happen here");
+    // Retrieve and verify payment intent from Stripe
+    const paymentIntentId = data.payment_intent_id as string;
+    console.log("[Server] Retrieving payment intent:", paymentIntentId);
 
-    return {
-      success: true,
-      message: "Payment processed successfully",
-    };
+    try {
+      const paymentIntent =
+        await stripeService.stripe.paymentIntents.retrieve(paymentIntentId);
+
+      console.log("[Server] Payment intent status:", paymentIntent.status);
+
+      if (paymentIntent.status !== "succeeded") {
+        return event.fail(400, {
+          message: "Payment has not been completed",
+        });
+      }
+
+      // TODO: Create transaction record and tickets
+      console.log("[Server] Payment verified, would create transaction here");
+
+      return {
+        success: true,
+        message: "Payment processed successfully",
+        paymentIntentId: paymentIntent.id,
+      };
+    } catch (error) {
+      console.error("[Server] Error retrieving payment intent:", error);
+      return event.fail(500, {
+        message: "Failed to verify payment",
+      });
+    }
   },
-  zod$(z.record(z.union([z.string(), z.number()]))),
+  zod$({ payment_intent_id: z.string(), items: z.string() }),
 );
 
 export default component$(() => {
   const data = useProductsData();
+  const createPaymentIntent = useCreatePaymentIntent();
   const processPayment = useProcessPayment();
 
   const currentStep = useSignal<1 | 2>(1);
   const selectedProducts = useSignal<Record<string, number>>({});
+  const clientSecret = useSignal<string>("");
+  const stripeLoaded = useSignal(false);
+  const paymentElementMounted = useSignal(false);
 
   const calculateTotal = useComputed$(() => {
     let total = 0;
@@ -143,6 +224,123 @@ export default component$(() => {
         return product ? { ...product, quantity } : null;
       })
       .filter((p) => p !== null);
+  });
+
+  // Load Stripe.js and create payment intent when reaching step 2
+  useVisibleTask$(async ({ track }) => {
+    track(() => currentStep.value);
+
+    if (currentStep.value === 2 && !stripeLoaded.value) {
+      console.log("[Checkout] Loading Stripe.js");
+
+      // Load Stripe.js script
+      if (!document.querySelector('script[src*="stripe.com/v3"]')) {
+        const script = document.createElement("script");
+        script.src = "https://js.stripe.com/v3/";
+        script.async = true;
+        document.head.appendChild(script);
+
+        await new Promise((resolve) => {
+          script.onload = resolve;
+        });
+      }
+
+      stripeLoaded.value = true;
+      console.log("[Checkout] Stripe.js loaded");
+
+      // Create payment intent using action
+      console.log("[Checkout] Creating payment intent");
+      const items = Object.entries(selectedProducts.value).map(
+        ([productId, quantity]) => ({
+          productId,
+          quantity,
+        }),
+      );
+
+      const result = await createPaymentIntent.submit({
+        items: JSON.stringify(items),
+      });
+
+      console.log("[Checkout] Payment intent result:", result);
+
+      if (result.value?.clientSecret) {
+        clientSecret.value = result.value.clientSecret;
+      }
+    }
+  });
+
+  // Mount Stripe Payment Element when client secret is available
+  useVisibleTask$(async ({ track, cleanup }) => {
+    track(() => clientSecret.value);
+
+    if (
+      clientSecret.value &&
+      !paymentElementMounted.value &&
+      typeof window !== "undefined" &&
+      (window as any).Stripe
+    ) {
+      console.log("[Checkout] Mounting Stripe Payment Element");
+
+      const stripe = (window as any).Stripe(data.value.stripePublishableKey);
+      const elements = stripe.elements({ clientSecret: clientSecret.value });
+      const paymentElement = elements.create("payment");
+
+      const container = document.getElementById("payment-element");
+      if (container) {
+        paymentElement.mount("#payment-element");
+        paymentElementMounted.value = true;
+
+        // Store stripe and elements for form submission
+        (window as any).__stripeCheckout = { stripe, elements };
+
+        cleanup(() => {
+          paymentElement.unmount();
+          paymentElementMounted.value = false;
+        });
+      }
+    }
+  });
+
+  const handlePaymentSubmit = $(async (e: Event) => {
+    e.preventDefault();
+    console.log("[Checkout] Handling payment submission");
+
+    if (!(window as any).__stripeCheckout) {
+      console.error("[Checkout] Stripe not initialized");
+      return;
+    }
+
+    const { stripe, elements } = (window as any).__stripeCheckout;
+
+    // Submit the payment to Stripe
+    const { error: submitError } = await elements.submit();
+    if (submitError) {
+      console.error("[Checkout] Payment submission error:", submitError);
+      alert(submitError.message);
+      return;
+    }
+
+    // Confirm payment on server side
+    const items = Object.entries(selectedProducts.value).map(
+      ([productId, quantity]) => ({
+        productId,
+        quantity,
+      }),
+    );
+
+    const result = await processPayment.submit({
+      payment_intent_id: clientSecret.value.split("_secret_")[0],
+      items: JSON.stringify(items),
+    });
+
+    if (result.value?.failed) {
+      console.error("[Checkout] Payment failed:", result.value.message);
+      alert(result.value.message);
+    } else if (result.value?.success) {
+      console.log("[Checkout] Payment successful");
+      // TODO: Show success message or redirect
+      alert("Payment successful!");
+    }
   });
 
   return (
@@ -358,23 +556,20 @@ export default component$(() => {
               </div>
             )}
 
-            <Form action={processPayment} class="space-y-4">
-              {/* Hidden inputs for selected products */}
-              {Object.entries(selectedProducts.value).map(
-                ([productId, quantity]) => (
-                  <input
-                    key={productId}
-                    type="hidden"
-                    name={`product_${productId}`}
-                    value={quantity}
-                  />
-                ),
-              )}
+            <div class="space-y-4">
+              {/* Stripe Payment Element */}
+              <div class="space-y-4">
+                {!clientSecret.value && (
+                  <div class="p-8 text-center">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p class="text-sm text-gray-600">Loading payment form...</p>
+                  </div>
+                )}
 
-              {/* TODO: Add Stripe Elements here */}
-              <div class="p-8 bg-gray-50 border-2 border-dashed border-gray-300 rounded text-center text-gray-600">
-                <p class="mb-2 font-medium">Stripe Payment Integration</p>
-                <p class="text-sm">Payment form will be integrated here</p>
+                <div
+                  id="payment-element"
+                  class={clientSecret.value ? "" : "hidden"}
+                ></div>
               </div>
 
               <div class="flex gap-4">
@@ -385,15 +580,22 @@ export default component$(() => {
                   onClick$={() => {
                     console.log("[Checkout] Going back to product selection");
                     currentStep.value = 1;
+                    clientSecret.value = "";
+                    paymentElementMounted.value = false;
                   }}
                 >
                   Back
                 </Button>
-                <Button type="submit" class="flex-1">
+                <Button
+                  type="button"
+                  class="flex-1"
+                  disabled={!clientSecret.value}
+                  onClick$={handlePaymentSubmit}
+                >
                   Complete Payment
                 </Button>
               </div>
-            </Form>
+            </div>
           </div>
         </div>
       )}

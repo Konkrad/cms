@@ -62,6 +62,15 @@ const envSchema = z.object({
   AWS_SECRET_ACCESS_KEY: z.string(),
   S3_BUCKET: z.string(),
   S3_UPLOAD_PATH: z.string().default("uploads"),
+
+  // Stripe
+  STRIPE_SECRET_KEY: z.string(),
+  STRIPE_PUBLISHABLE_KEY: z.string(),
+  STRIPE_WEBHOOK_SECRET: z.string(),
+
+  // Telegram
+  TELEGRAM_BOT_TOKEN: z.string(),
+  TELEGRAM_CHANNEL_ID: z.string(),
 });
 
 /**
@@ -102,6 +111,11 @@ export const env = {
   AWS_SECRET_ACCESS_KEY: _env.AWS_SECRET_ACCESS_KEY,
   S3_BUCKET: _env.S3_BUCKET,
   S3_UPLOAD_PATH: _env.S3_UPLOAD_PATH,
+  STRIPE_SECRET_KEY: _env.STRIPE_SECRET_KEY,
+  STRIPE_PUBLISHABLE_KEY: _env.STRIPE_PUBLISHABLE_KEY,
+  STRIPE_WEBHOOK_SECRET: _env.STRIPE_WEBHOOK_SECRET,
+  TELEGRAM_BOT_TOKEN: _env.TELEGRAM_BOT_TOKEN,
+  TELEGRAM_CHANNEL_ID: _env.TELEGRAM_CHANNEL_ID,
 
   // helpful booleans
   isProduction: _env.NODE_ENV === "production",

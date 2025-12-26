@@ -6,3 +6,8 @@ export * from "./schemas/posts";
 export * from "./schemas/sessions";
 export * from "./schemas/shared";
 export * from "./schemas/users";
+export * from "./schemas/inventory-groups";
+export * from "./schemas/products";
+export * from "./schemas/transactions";
+export * from "./schemas/transaction-items";
+export * from "./schemas/tickets";

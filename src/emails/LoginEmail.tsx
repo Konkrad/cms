@@ -1,21 +1,13 @@
 /** @jsxImportSource react */
-import {
-  Body,
-  Button,
-  Container,
-  Head,
-  Hr,
-  Html,
-  Preview,
-  Section,
-  Text,
-} from "@react-email/components";
-import type * as React from "react";
+import React from "react";
+import { Text, Section, Button, Hr } from "@react-email/components";
+import EmailLayout from "./components/EmailLayout";
 
 export interface LoginEmailProps {
   link: string;
   code: string;
   appName?: string;
+  baseUrl: string;
   expiresInMinutes?: number;
 }
 
@@ -23,117 +15,125 @@ export interface LoginEmailProps {
  * LoginEmail
  *
  * Email template that contains both a magic link and a 6-letter OTP.
- * This is intentionally minimal and compatible with most email clients.
  */
 export default function LoginEmail({
   link,
   code,
-  appName = "Your App",
+  appName = "EIT Digital Alumni",
+  baseUrl,
   expiresInMinutes = 15,
 }: LoginEmailProps) {
   return (
-    <Html>
-      <Head />
-      <Preview>{`Sign in to ${appName}`}</Preview>
-      <Body style={bodyStyle}>
-        <Container style={containerStyle}>
-          <Section style={{ padding: "12px 0" }}>
-            <Text style={headingStyle}>Sign in to {appName}</Text>
-            <Text style={leadStyle}>
-              Use the button below to sign in, or copy the 6-letter code into
-              the site.
-            </Text>
-          </Section>
+    <EmailLayout
+      title={`Sign in to ${appName}`}
+      subtitle="Authentication Request"
+      baseUrl={baseUrl}
+    >
+      {/* Greeting */}
+      <Text
+        style={{ fontSize: "16px", marginBottom: "16px", color: "#1f2937" }}
+      >
+        Use the button below to sign in, or copy the 6-letter code into the
+        site.
+      </Text>
 
-          <Section style={{ textAlign: "center", padding: "8px 0" }}>
-            <Button
-              pX={22}
-              pY={12}
-              style={{
-                backgroundColor: "#0b74de",
-                color: "white",
-                textDecoration: "none",
-                borderRadius: 8,
-                display: "inline-block",
-                fontWeight: 600,
-              }}
-              href={link}
-            >
-              Sign in
-            </Button>
-          </Section>
+      {/* Sign In Button */}
+      <Section style={{ textAlign: "center", marginBottom: "24px" }}>
+        <Button
+          href={link}
+          style={{
+            backgroundColor: "#075de6",
+            color: "white",
+            textDecoration: "none",
+            borderRadius: "6px",
+            display: "inline-block",
+            fontWeight: "600",
+            fontSize: "16px",
+            padding: "12px 24px",
+            border: "none",
+          }}
+        >
+          Sign in to {appName}
+        </Button>
+      </Section>
 
-          <Section style={{ padding: "12px 0", textAlign: "center" }}>
-            <Text style={{ fontSize: 14, marginBottom: 6 }}>
-              Or enter this code
-            </Text>
-            <Text style={codeStyle}>{code}</Text>
-            <Text style={{ fontSize: 12, color: "#888", marginTop: 8 }}>
-              The link and code expire in {expiresInMinutes} minutes.
-            </Text>
-          </Section>
+      {/* Code Section */}
+      <Section
+        style={{
+          textAlign: "center",
+          padding: "20px",
+          backgroundColor: "#f9fafb",
+          borderRadius: "8px",
+          marginBottom: "24px",
+        }}
+      >
+        <Text
+          style={{
+            fontSize: "14px",
+            color: "#4b5563",
+            marginBottom: "12px",
+          }}
+        >
+          Or enter this code:
+        </Text>
+        <Text
+          style={{
+            display: "inline-block",
+            padding: "12px 20px",
+            backgroundColor: "#ffffff",
+            border: "2px solid #e5e7eb",
+            borderRadius: "6px",
+            fontSize: "24px",
+            fontWeight: "700",
+            letterSpacing: "4px",
+            color: "#1f2937",
+            fontFamily: "monospace",
+          }}
+        >
+          {code}
+        </Text>
+        <Text
+          style={{
+            fontSize: "13px",
+            color: "#6b7280",
+            marginTop: "12px",
+          }}
+        >
+          The link and code expire in {expiresInMinutes} minutes.
+        </Text>
+      </Section>
 
-          <Hr style={{ borderColor: "#eee", margin: "20px 0" }} />
+      <Hr style={{ borderColor: "#e5e7eb", margin: "24px 0" }} />
 
-          <Section style={{ padding: "6px 0" }}>
-            <Text style={{ fontSize: 13, color: "#555", marginBottom: 6 }}>
-              If you didn't request this, you can safely ignore this email.
-            </Text>
-            <Text style={{ fontSize: 12, color: "#999" }}>
-              For security reasons, do not share your code or sign-in link with
-              anyone.
-            </Text>
-          </Section>
-
-          <Section style={{ paddingTop: 18 }}>
-            <Text style={{ fontSize: 12, color: "#999" }}>
-              {appName} · {new Date().getFullYear()}
-            </Text>
-          </Section>
-        </Container>
-      </Body>
-    </Html>
+      {/* Security Notice */}
+      <Section>
+        <Text
+          style={{
+            fontSize: "14px",
+            color: "#4b5563",
+            marginBottom: "8px",
+          }}
+        >
+          If you didn't request this, you can safely ignore this email.
+        </Text>
+        <Text
+          style={{
+            fontSize: "13px",
+            color: "#6b7280",
+          }}
+        >
+          For security reasons, do not share your code or sign-in link with
+          anyone.
+        </Text>
+      </Section>
+    </EmailLayout>
   );
 }
 
-/* Styles */
-const bodyStyle: React.CSSProperties = {
-  backgroundColor: "#f6f9fc",
-  fontFamily:
-    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial',
-  margin: 0,
-  padding: 0,
-  lineHeight: 1.4,
-  color: "#111",
-};
-
-const containerStyle: React.CSSProperties = {
-  backgroundColor: "white",
-  borderRadius: 8,
-  padding: "24px",
-  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-};
-
-const headingStyle: React.CSSProperties = {
-  fontSize: 20,
-  fontWeight: 700,
-  margin: 0,
-  marginBottom: 8,
-};
-
-const leadStyle: React.CSSProperties = {
-  fontSize: 14,
-  color: "#444",
-  marginTop: 0,
-  marginBottom: 12,
-};
-
-const codeStyle: React.CSSProperties = {
-  display: "inline-block",
-  padding: "10px 16px",
-  backgroundColor: "#f3f6fb",
-  borderRadius: 6,
-  fontSize: 18,
-  fontWeight: 700,
-  letterSpacing: 2,
-};
+LoginEmail.PreviewProps = {
+  baseUrl: "http://localhost:3000",
+  link: "http://localhost:3000/auth/verify?token=abc123def456",
+  code: "XYZ123",
+  appName: "EIT Digital Alumni",
+  expiresInMinutes: 15,
+} as LoginEmailProps;

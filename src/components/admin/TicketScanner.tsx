@@ -107,9 +107,32 @@ export default component$<TicketScannerProps>(({ action }) => {
                     : "bg-red-500 text-white"
               }`}
             >
-              {scanResult.value.success
-                ? scanResult.value.message
-                : scanResult.value.error}
+              {scanResult.value.success ? (
+                scanResult.value.message
+              ) : (
+                <div class="flex flex-col items-center">
+                  <div>{scanResult.value.error}</div>
+
+                  {scanResult.value.alreadyScanned &&
+                    scanResult.value.scannedAt && (
+                      <div class="text-xs mt-1">
+                        Scanned at: {scanResult.value.scannedAt}
+                      </div>
+                    )}
+
+                  {scanResult.value.reason && (
+                    <div class="text-xs mt-1">
+                      Reason: {scanResult.value.reason}
+                    </div>
+                  )}
+
+                  {scanResult.value.ticketId && (
+                    <div class="text-xs mt-1">
+                      Ticket ID: {scanResult.value.ticketId}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -21,12 +21,7 @@ export default component$<TicketSearchProps>(({ tickets }) => {
     }
 
     const fuse = new Fuse(tickets, {
-      keys: [
-        "buyer.firstName",
-        "buyer.lastName",
-        "buyer.email",
-        "product.name",
-      ],
+      keys: ["buyer.name", "buyer.familyName", "buyer.loginId", "product.name"],
       threshold: 0.3,
       includeScore: true,
     });
@@ -38,7 +33,7 @@ export default component$<TicketSearchProps>(({ tickets }) => {
   return (
     <div class="bg-white rounded-lg shadow-md p-6">
       <h3 class="text-xl font-semibold mb-4">Search Tickets</h3>
-      
+
       <div class="mb-4">
         <input
           type="text"

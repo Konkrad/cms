@@ -1,4 +1,4 @@
-import { component$, $ } from "@builder.io/qwik";
+import { component$, $, useSignal } from "@builder.io/qwik";
 import type { ActionStore } from "@builder.io/qwik-city";
 import type { Ticket } from "~/db/schemas/tickets";
 import type { users, products } from "~/db/schema";
@@ -17,8 +17,34 @@ export default component$<TicketsListProps>(({ tickets, scanAction }) => {
   const scannedTickets = tickets.filter((t) => t.scannedAt);
   const unscannedTickets = tickets.filter((t) => !t.scannedAt);
 
-  const handleManualScan = $(async (qrCodeUuid: string) => {
-    await scanAction.submit({ qrCodeUuid });
+  const scanningTicketId = useSignal<string | null>(null);
+
+  const handleManualScan = $(async (ticket: TicketWithRelations) => {
+    // Access the correct property name from the database (snake_case)
+    // The database returns snake_case properties, but TypeScript expects camelCase
+    const dbTicket = ticket as any;
+    const qrCodeUuid = dbTicket.qr_code_uuid || ticket.qrCodeUuid;
+    if (qrCodeUuid) {
+      scanningTicketId.value = ticket.id;
+      try {
+        const result = await scanAction.submit({ qrCodeUuid });
+        if (result.value?.success) {
+          console.log("Scan successful:", result.value.message);
+          // The ticket list should automatically update when the data refreshes
+        } else {
+          console.error("Scan failed:", result.value?.error);
+          alert(`Scan failed: ${result.value?.error || "Unknown error"}`);
+        }
+      } catch (error) {
+        console.error("Scan error:", error);
+        alert("An error occurred during scanning");
+      } finally {
+        scanningTicketId.value = null;
+      }
+    } else {
+      console.error("QR code UUID not found on ticket:", ticket);
+      alert("QR code UUID not found on ticket");
+    }
   });
 
   const formatDateTime = (dateString: string | null) => {
@@ -37,8 +63,10 @@ export default component$<TicketsListProps>(({ tickets, scanAction }) => {
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-xl font-semibold">All Tickets</h3>
         <div class="text-sm text-gray-600">
-          <span class="font-medium text-green-600">{scannedTickets.length}</span> scanned / 
-          <span class="font-medium"> {tickets.length}</span> total
+          <span class="font-medium text-green-600">
+            {scannedTickets.length}
+          </span>{" "}
+          scanned /<span class="font-medium"> {tickets.length}</span> total
         </div>
       </div>
 
@@ -69,11 +97,16 @@ export default component$<TicketsListProps>(({ tickets, scanAction }) => {
                     </span>
                     <button
                       type="button"
-                      onClick$={() => handleManualScan(ticket.qrCodeUuid)}
-                      disabled={scanAction.isRunning}
+                      onClick$={() => handleManualScan(ticket)}
+                      disabled={
+                        scanningTicketId.value === ticket.id ||
+                        scanAction.isRunning
+                      }
                       class="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
                     >
-                      Manual Scan
+                      {scanningTicketId.value === ticket.id
+                        ? "Scanning..."
+                        : "Manual Scan"}
                     </button>
                   </div>
                 </div>

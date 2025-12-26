@@ -15,8 +15,6 @@ export default component$<TicketScannerProps>(({ action }) => {
     error?: string;
     alreadyScanned?: boolean;
   } | null>(null);
-  const scanner = useSignal<Html5QrcodeScanner | null>(null);
-
   const handleScan = $(async (decodedText: string) => {
     if (action.isRunning) return;
 
@@ -43,8 +41,6 @@ export default component$<TicketScannerProps>(({ action }) => {
 
   const toggleScanner = $(() => {
     if (isScanning.value) {
-      scanner.value?.clear();
-      scanner.value = null;
       isScanning.value = false;
     } else {
       isScanning.value = true;
@@ -62,7 +58,7 @@ export default component$<TicketScannerProps>(({ action }) => {
           qrbox: { width: 250, height: 250 },
           aspectRatio: 1.0,
         },
-        false
+        false,
       );
 
       html5QrcodeScanner.render(
@@ -71,10 +67,8 @@ export default component$<TicketScannerProps>(({ action }) => {
         },
         (error) => {
           // Ignore scanning errors
-        }
+        },
       );
-
-      scanner.value = html5QrcodeScanner;
 
       cleanup(() => {
         html5QrcodeScanner.clear().catch(() => {});
@@ -102,15 +96,15 @@ export default component$<TicketScannerProps>(({ action }) => {
       {isScanning.value && (
         <div class="relative">
           <div id="qr-reader" ref={scannerRef}></div>
-          
+
           {scanResult.value && (
             <div
               class={`absolute top-0 left-0 right-0 p-4 rounded-lg text-center font-semibold ${
                 scanResult.value.success
                   ? "bg-green-500 text-white"
                   : scanResult.value.alreadyScanned
-                  ? "bg-yellow-500 text-white"
-                  : "bg-red-500 text-white"
+                    ? "bg-yellow-500 text-white"
+                    : "bg-red-500 text-white"
               }`}
             >
               {scanResult.value.success

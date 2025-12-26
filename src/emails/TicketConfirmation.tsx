@@ -21,7 +21,6 @@ export interface TicketConfirmationEmailProps {
       quantity: number;
     }[];
     totalAmount: number;
-    transactionFee: number;
   };
   hasTickets: boolean;
   ticketIds: string[];
@@ -114,7 +113,6 @@ const TicketConfirmationEmail = ({
       <TransactionProductsSummary
         products={transaction.products}
         totalAmount={transaction.totalAmount}
-        transactionFee={transaction.transactionFee}
       />
 
       {/* Tickets Section */}
@@ -230,7 +228,6 @@ TicketConfirmationEmail.PreviewProps = {
       { name: "VIP Pass", amount: 199.0, quantity: 1 },
     ],
     totalAmount: 377.0,
-    transactionFee: 12.5,
   },
   hasTickets: true,
   ticketIds: [

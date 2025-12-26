@@ -12,14 +12,12 @@ export interface TransactionProduct {
 export interface TransactionProductsSummaryProps {
   products: TransactionProduct[];
   totalAmount?: number;
-  transactionFee?: number;
   showTotal?: boolean;
 }
 
 export default function TransactionProductsSummary({
   products,
   totalAmount,
-  transactionFee = 0,
   showTotal = true,
 }: TransactionProductsSummaryProps) {
   // Calculate total if not provided
@@ -56,34 +54,14 @@ export default function TransactionProductsSummary({
             );
           })}
           {showTotal && (
-            <>
-              <tr style={totalRowStyle}>
-                <td colSpan={3} style={totalLabelCellStyle}>
-                  Subtotal
-                </td>
-                <td style={totalValueCellStyle}>
-                  €{calculatedTotal.toFixed(2)}
-                </td>
-              </tr>
-              {transactionFee > 0 && (
-                <tr style={totalRowStyle}>
-                  <td colSpan={3} style={totalLabelCellStyle}>
-                    Processing Fee
-                  </td>
-                  <td style={totalValueCellStyle}>
-                    €{transactionFee.toFixed(2)}
-                  </td>
-                </tr>
-              )}
-              <tr style={finalTotalRowStyle}>
-                <td colSpan={3} style={finalTotalLabelCellStyle}>
-                  Total Paid
-                </td>
-                <td style={finalTotalValueCellStyle}>
-                  €{(calculatedTotal + transactionFee).toFixed(2)}
-                </td>
-              </tr>
-            </>
+            <tr style={finalTotalRowStyle}>
+              <td colSpan={3} style={finalTotalLabelCellStyle}>
+                Total Paid
+              </td>
+              <td style={finalTotalValueCellStyle}>
+                €{calculatedTotal.toFixed(2)}
+              </td>
+            </tr>
           )}
         </tbody>
       </table>

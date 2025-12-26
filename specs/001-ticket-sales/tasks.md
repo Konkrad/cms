@@ -104,10 +104,10 @@ This is a single Qwik project with the following structure:
 - [X] T032 [P] [US1] Create transaction items service in src/services/transaction-items.service.ts with createBulk method
 - [X] T033 [P] [US1] Create tickets service in src/services/tickets.service.ts with create, createBulk, getById, and getByEventId methods
 - [X] T034 [US1] Create checkout service in src/services/checkout.service.ts with createSession and validateInventory methods integrating inventory groups and Stripe
-- [X] T035 [US1] Create public products page loader in src/routes/events/[id]/products/index.tsx with routeLoader$ to fetch inventory groups, products, and remaining capacity
-- [X] T036 [US1] Create public products page UI in src/routes/events/[id]/products/index.tsx displaying products grouped by inventory group with radio selection per group
-- [X] T037 [US1] Create initiate checkout action in src/routes/events/[id]/products/index.tsx with routeAction$ validating one product per group and inventory availability
-- [X] T038 [US1] Create checkout page loader in src/routes/events/[id]/checkout/index.tsx with routeLoader$ to verify Stripe session exists
+- [X] T035 [US1] Create checkout page loader in src/routes/events/[id]/checkout/index.tsx with routeLoader$ to fetch inventory groups, products, and remaining capacity (login required)
+- [X] T036 [US1] Create checkout page UI in src/routes/events/[id]/checkout/index.tsx displaying products grouped by inventory group with radio selection per group
+- [X] T037 [US1] Create initiate checkout action in src/routes/events/[id]/checkout/index.tsx with routeAction$ validating one product per group and inventory availability
+- [X] T038 [US1] Create checkout completion page loader in src/routes/events/[id]/checkout/index.tsx with routeLoader$ to verify Stripe session exists
 - [X] T039 [US1] Create checkout status polling action in src/routes/events/[id]/checkout/index.tsx with routeAction$ to check transaction completion
 - [X] T040 [US1] Create checkout page UI in src/routes/events/[id]/checkout/index.tsx with Stripe embedded components and polling logic for transaction status
 - [X] T041 [US1] Create Stripe webhook handler in src/routes/api/webhooks/stripe/index.ts with signature verification and checkout.session.completed event processing
@@ -133,7 +133,7 @@ This is a single Qwik project with the following structure:
 
 - [X] T049 [P] [US3] Add scanTicket method to tickets service in src/services/tickets.service.ts marking scannedAt timestamp
 - [X] T050 [P] [US3] Add getByQrCodeUuid method to tickets service in src/services/tickets.service.ts for QR code lookup
-- [X] T051 [US3] Create QR code image generation endpoint in src/routes/admin/events/[id]/tickets/[ticket-id]/qr-code.png/index.ts with infinite cache headers
+- [X] T051 [US3] Create QR code image generation endpoint in src/routes/profile/tickets/[id].png/index.ts with infinite cache headers (publicly accessible)
 - [X] T052 [US3] Create admin tickets page loader in src/routes/admin/events/[id]/tickets/index.tsx with routeLoader$ to fetch all tickets with buyer info and scan status
 - [X] T053 [US3] Create scan ticket action in src/routes/admin/events/[id]/tickets/index.tsx with routeAction$ processing QR code UUID
 - [X] T054 [US3] Create ticket scanner component in src/components/admin/TicketScanner.tsx integrating html5-qrcode with pause/resume logic

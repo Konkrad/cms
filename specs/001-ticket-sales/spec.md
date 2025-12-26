@@ -144,7 +144,7 @@ An event administrator views the Transactions tab to see all payments received f
 - **FR-026**: System MUST assign each ticket a unique database identifier
 - **FR-027**: System MUST assign each ticket a separate unique identifier for QR code
 - **FR-028**: System MUST store scannedAt timestamp for each ticket (null by default)
-- **FR-029**: System MUST provide publicly accessible endpoint `/tickets/[ticket_id]/qr_code.png` that generates QR code on-the-fly
+- **FR-029**: System MUST provide publicly accessible endpoint `/profile/tickets/[ticket_id].png` that generates QR code on-the-fly
 - **FR-030**: System MUST encode QR code separate UUID in QR code image (not database ID)
 
 #### Ticket Scanning

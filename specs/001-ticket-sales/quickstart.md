@@ -442,7 +442,10 @@ Admin routes follow pattern: `/src/routes/admin/events/[id]/`
 - `products/` - Products management tab
 - `transactions/` - Transaction history tab  
 - `tickets/` - Tickets list and scanning tab
-- `tickets/[ticket-id]/qr-code.png` - QR code image generation
+
+Public routes:
+- `/events/[id]/checkout` - Customer checkout page (login required)
+- `/profile/tickets/[id].png` - QR code image generation (public)
 
 ### Tab Layout: `/src/routes/admin/events/[id]/layout.tsx`
 
@@ -480,7 +483,7 @@ export default component$(() => {
 });
 ```
 
-### QR Code Image Generation: `/src/routes/admin/events/[id]/tickets/[ticket-id]/qr-code.png/index.ts`
+### QR Code Image Generation: `/src/routes/profile/tickets/[id].png/index.ts`
 
 ```typescript
 import type { RequestHandler } from '@builder.io/qwik-city';
@@ -628,10 +631,9 @@ Implement child routes:
 
 User purchase routes: `/src/routes/events/[id]/`
 
-- `products/` - Product selection page
-- `checkout/` - Payment page (Stripe embedded, handles success/failure on same page)
+- `checkout/` - Checkout page with ticket selection and payment (login required)
 
-### Product Selection: `/src/routes/events/[id]/products/index.tsx`
+### Checkout Page: `/src/routes/events/[id]/checkout/index.tsx`
 
 ```typescript
 import { component$ } from '@builder.io/qwik';

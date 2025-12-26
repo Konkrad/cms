@@ -1,258 +1,243 @@
 /** @jsxImportSource react */
-import {
-  Body,
-  Container,
-  Head,
-  Hr,
-  Html,
-  Preview,
-  Section,
-  Text,
-} from "@react-email/components";
-import type * as React from "react";
+import React from "react";
+import { Text, Section, Heading, Hr } from "@react-email/components";
+import EmailLayout from "./components/EmailLayout";
 import TicketLinksSection from "./components/TicketLinksSection";
 import TransactionProductsSummary from "./components/TransactionProductsSummary";
 
 export interface TicketConfirmationEmailProps {
-  eventTitle: string;
-  eventDate: string;
-  eventLocation?: string;
-  buyerName: string;
-  transactionId: string;
-  products: Array<{
-    name: string;
-    quantity: number;
-    unitPrice: number;
-  }>;
-  tickets: Array<{
-    id: string;
-    qrCodeUuid: string;
-    productName: string;
-  }>;
-  totalAmount: number;
-  transactionFee: number;
   baseUrl: string;
+  event: {
+    title: string;
+    date: string;
+    location?: string;
+  };
+  transaction: {
+    buyerName: string;
+    transactionId: string;
+    products: {
+      name: string;
+      amount: number;
+      quantity: number;
+    }[];
+    totalAmount: number;
+    transactionFee: number;
+  };
+  hasTickets: boolean;
+  ticketIds: string[];
 }
 
-export default function TicketConfirmationEmail({
-  eventTitle,
-  eventDate,
-  eventLocation,
-  buyerName,
-  transactionId,
-  products,
-  tickets,
-  totalAmount,
-  transactionFee,
+const TicketConfirmationEmail = ({
   baseUrl,
-}: TicketConfirmationEmailProps) {
-  const hasTickets = tickets.length > 0;
-
+  event,
+  transaction,
+  hasTickets,
+  ticketIds,
+}: TicketConfirmationEmailProps) => {
   return (
-    <Html>
-      <Head />
-      <Preview>Your tickets for {eventTitle}</Preview>
-      <Body style={bodyStyle}>
-        <Container style={containerStyle}>
-          {/* Header */}
-          <Section style={headerStyle}>
-            <Text style={titleStyle}>✓ Purchase Confirmed</Text>
-            <Text style={subtitleStyle}>Thank you for your purchase!</Text>
-          </Section>
+    <EmailLayout
+      title={event.title}
+      subtitle="Purchase Confirmation & Tickets"
+      baseUrl={baseUrl}
+    >
+      {/* Success Message */}
+      <Section
+        style={{
+          textAlign: "center",
+          padding: "20px",
+          backgroundColor: "#d1fae5",
+          borderRadius: "8px",
+          marginBottom: "24px",
+        }}
+      >
+        <Text
+          style={{
+            fontSize: "24px",
+            fontWeight: "bold",
+            color: "#065f46",
+            marginBottom: "8px",
+          }}
+        >
+          ✓ Purchase Confirmed
+        </Text>
+        <Text style={{ fontSize: "16px", color: "#047857", margin: "0" }}>
+          Thank you for your purchase!
+        </Text>
+      </Section>
 
-          {/* Event Details */}
-          <Section style={eventDetailsStyle}>
-            <Text style={eventTitleStyle}>{eventTitle}</Text>
-            <Text style={eventInfoStyle}>📅 {eventDate}</Text>
-            {eventLocation && (
-              <Text style={eventInfoStyle}>📍 {eventLocation}</Text>
-            )}
-          </Section>
+      {/* Greeting */}
+      <Text
+        style={{ fontSize: "18px", marginBottom: "16px", color: "#1f2937" }}
+      >
+        Hello {transaction.buyerName}!
+      </Text>
+      <Text style={{ color: "#4b5563", marginBottom: "24px" }}>
+        Your purchase for <strong>{event.title}</strong> has been confirmed.
+        {hasTickets && " Your tickets are ready below."}
+      </Text>
 
-          <Hr style={hrStyle} />
+      {/* Event Details */}
+      <Section
+        style={{
+          marginBottom: "24px",
+          padding: "16px",
+          backgroundColor: "#f9fafb",
+          borderRadius: "8px",
+        }}
+      >
+        <Heading
+          as="h2"
+          style={{
+            fontSize: "20px",
+            fontWeight: "bold",
+            color: "#1f2937",
+            marginBottom: "12px",
+            marginTop: "0",
+          }}
+        >
+          Event Details
+        </Heading>
+        <Text style={{ color: "#4b5563", marginBottom: "8px" }}>
+          <strong>Event:</strong> {event.title}
+        </Text>
+        <Text style={{ color: "#4b5563", marginBottom: "8px" }}>
+          <strong>Date:</strong> {event.date}
+        </Text>
+        {event.location && (
+          <Text style={{ color: "#4b5563", marginBottom: "0" }}>
+            <strong>Location:</strong> {event.location}
+          </Text>
+        )}
+      </Section>
 
-          {/* Greeting */}
-          <Section>
-            <Text style={greetingStyle}>Hi {buyerName},</Text>
-            <Text style={bodyTextStyle}>
-              Your purchase for <strong>{eventTitle}</strong> has been confirmed. 
-              {hasTickets && " Your tickets are attached below."}
-            </Text>
-          </Section>
+      {/* Purchase Summary */}
+      <TransactionProductsSummary
+        products={transaction.products}
+        totalAmount={transaction.totalAmount}
+        transactionFee={transaction.transactionFee}
+      />
 
-          {/* Transaction Summary */}
-          <TransactionProductsSummary
-            products={products}
-            totalAmount={totalAmount}
-            transactionFee={transactionFee}
+      {/* Tickets Section */}
+      {hasTickets && (
+        <>
+          <Hr style={{ borderColor: "#e5e7eb", margin: "24px 0" }} />
+          <TicketLinksSection
+            ticketIds={ticketIds}
+            baseUrl={baseUrl}
+            heading="Your Tickets"
+            description="Please save these ticket QR codes. You'll need to present them at the event:"
+            ticketLabelPrefix="Ticket"
           />
+        </>
+      )}
 
-          {/* Tickets Section */}
+      <Hr style={{ borderColor: "#e5e7eb", margin: "24px 0" }} />
+
+      {/* Instructions */}
+      <Section style={{ marginBottom: "24px" }}>
+        <Heading
+          as="h3"
+          style={{
+            fontSize: "18px",
+            fontWeight: "700",
+            color: "#1f2937",
+            marginBottom: "12px",
+            marginTop: "0",
+          }}
+        >
+          What's Next?
+        </Heading>
+        <ul style={{ paddingLeft: "20px", margin: "0" }}>
           {hasTickets && (
             <>
-              <Hr style={hrStyle} />
-              <TicketLinksSection tickets={tickets} baseUrl={baseUrl} />
+              <li
+                style={{
+                  fontSize: "14px",
+                  color: "#4b5563",
+                  lineHeight: "1.6",
+                  marginBottom: "8px",
+                }}
+              >
+                <strong>Save your tickets:</strong> Download or screenshot the
+                QR codes above
+              </li>
+              <li
+                style={{
+                  fontSize: "14px",
+                  color: "#4b5563",
+                  lineHeight: "1.6",
+                  marginBottom: "8px",
+                }}
+              >
+                <strong>At the event:</strong> Present your QR code at the
+                entrance for scanning
+              </li>
             </>
           )}
+          <li
+            style={{
+              fontSize: "14px",
+              color: "#4b5563",
+              lineHeight: "1.6",
+              marginBottom: "0",
+            }}
+          >
+            <strong>Need help?</strong> Contact support with your transaction
+            ID:{" "}
+            <code
+              style={{
+                backgroundColor: "#f3f4f6",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                fontFamily: "monospace",
+                fontSize: "13px",
+              }}
+            >
+              {transaction.transactionId}
+            </code>
+          </li>
+        </ul>
+      </Section>
 
-          <Hr style={hrStyle} />
-
-          {/* Instructions */}
-          <Section style={instructionsStyle}>
-            <Text style={instructionsTitleStyle}>What's Next?</Text>
-            <ul style={listStyle}>
-              {hasTickets && (
-                <>
-                  <li style={listItemStyle}>
-                    <strong>Save your tickets:</strong> Download the attached QR codes or 
-                    access them anytime in your account
-                  </li>
-                  <li style={listItemStyle}>
-                    <strong>Add to calendar:</strong> Import the attached .ics file to 
-                    your calendar app
-                  </li>
-                  <li style={listItemStyle}>
-                    <strong>At the event:</strong> Present your QR code at the entrance 
-                    for scanning
-                  </li>
-                </>
-              )}
-              <li style={listItemStyle}>
-                <strong>Need help?</strong> Contact support with your transaction ID: {" "}
-                <code style={codeStyle}>{transactionId}</code>
-              </li>
-            </ul>
-          </Section>
-
-          {/* Footer */}
-          <Section style={footerStyle}>
-            <Text style={footerTextStyle}>
-              This is a confirmation of your purchase. Please keep this email for your records.
-            </Text>
-            <Text style={footerTextStyle}>
-              Transaction ID: {transactionId}
-            </Text>
-          </Section>
-        </Container>
-      </Body>
-    </Html>
+      {/* Footer Note */}
+      <Text
+        style={{
+          color: "#6b7280",
+          fontSize: "14px",
+          lineHeight: "1.5",
+          marginBottom: "0",
+        }}
+      >
+        This is a confirmation of your purchase. Please keep this email for your
+        records.
+      </Text>
+    </EmailLayout>
   );
-}
-
-// Styles
-const bodyStyle: React.CSSProperties = {
-  backgroundColor: "#f6f9fc",
-  fontFamily:
-    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
 };
 
-const containerStyle: React.CSSProperties = {
-  backgroundColor: "#ffffff",
-  margin: "40px auto",
-  padding: "20px",
-  maxWidth: "600px",
-  borderRadius: "8px",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-};
+TicketConfirmationEmail.PreviewProps = {
+  baseUrl: "http://localhost:3000",
+  event: {
+    title: "Tech Conference 2024",
+    date: "Saturday, March 15, 2024 at 9:00 AM",
+    location: "Convention Center, Main Hall, Berlin",
+  },
+  transaction: {
+    buyerName: "John Doe",
+    transactionId: "TXN-123456789",
+    products: [
+      { name: "General Admission", amount: 89.0, quantity: 2 },
+      { name: "VIP Pass", amount: 199.0, quantity: 1 },
+    ],
+    totalAmount: 377.0,
+    transactionFee: 12.5,
+  },
+  hasTickets: true,
+  ticketIds: [
+    "ticket-uuid-001-abc123",
+    "ticket-uuid-002-def456",
+    "ticket-uuid-003-ghi789",
+  ],
+} as TicketConfirmationEmailProps;
 
-const headerStyle: React.CSSProperties = {
-  textAlign: "center",
-  padding: "20px 0",
-};
-
-const titleStyle: React.CSSProperties = {
-  fontSize: "32px",
-  fontWeight: "bold",
-  color: "#10b981",
-  marginBottom: "8px",
-};
-
-const subtitleStyle: React.CSSProperties = {
-  fontSize: "18px",
-  color: "#6b7280",
-};
-
-const eventDetailsStyle: React.CSSProperties = {
-  backgroundColor: "#f3f4f6",
-  padding: "20px",
-  borderRadius: "8px",
-  textAlign: "center",
-  marginTop: "20px",
-  marginBottom: "20px",
-};
-
-const eventTitleStyle: React.CSSProperties = {
-  fontSize: "24px",
-  fontWeight: "700",
-  color: "#111827",
-  marginBottom: "12px",
-};
-
-const eventInfoStyle: React.CSSProperties = {
-  fontSize: "16px",
-  color: "#4b5563",
-  marginBottom: "4px",
-};
-
-const greetingStyle: React.CSSProperties = {
-  fontSize: "18px",
-  fontWeight: "600",
-  color: "#111827",
-  marginBottom: "8px",
-};
-
-const bodyTextStyle: React.CSSProperties = {
-  fontSize: "16px",
-  color: "#4b5563",
-  lineHeight: "1.6",
-  marginBottom: "16px",
-};
-
-const hrStyle: React.CSSProperties = {
-  borderColor: "#e5e7eb",
-  margin: "24px 0",
-};
-
-const instructionsStyle: React.CSSProperties = {
-  marginTop: "24px",
-};
-
-const instructionsTitleStyle: React.CSSProperties = {
-  fontSize: "20px",
-  fontWeight: "700",
-  color: "#111827",
-  marginBottom: "16px",
-};
-
-const listStyle: React.CSSProperties = {
-  paddingLeft: "20px",
-  margin: "0",
-};
-
-const listItemStyle: React.CSSProperties = {
-  fontSize: "14px",
-  color: "#4b5563",
-  lineHeight: "1.6",
-  marginBottom: "12px",
-};
-
-const codeStyle: React.CSSProperties = {
-  backgroundColor: "#f3f4f6",
-  padding: "2px 6px",
-  borderRadius: "4px",
-  fontFamily: "monospace",
-  fontSize: "13px",
-};
-
-const footerStyle: React.CSSProperties = {
-  marginTop: "32px",
-  paddingTop: "24px",
-  borderTop: "1px solid #e5e7eb",
-  textAlign: "center",
-};
-
-const footerTextStyle: React.CSSProperties = {
-  fontSize: "12px",
-  color: "#9ca3af",
-  marginBottom: "4px",
-};
+export default TicketConfirmationEmail;

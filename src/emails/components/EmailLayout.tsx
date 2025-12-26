@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import React from "react";
 import { Html, Head, Body, Container, Tailwind } from "@react-email/components";
 import Header from "./Header";
@@ -10,7 +11,12 @@ interface EmailLayoutProps {
   children: React.ReactNode;
 }
 
-const EmailLayout = ({ title, subtitle, baseUrl, children }: EmailLayoutProps) => {
+const EmailLayout = ({
+  title,
+  subtitle,
+  baseUrl,
+  children,
+}: EmailLayoutProps) => {
   return (
     <Html>
       <Head />

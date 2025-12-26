@@ -1,3 +1,7 @@
+/** @jsxImportSource react */
+import React from "react";
+import { Img, Heading, Text } from "@react-email/components";
+
 interface HeaderProps {
   title: string;
   subtitle: string;
@@ -8,37 +12,41 @@ const Header = ({ title, subtitle, baseUrl }: HeaderProps) => {
   return (
     <div
       style={{
-        padding: "16px",
+        padding: "24px",
         textAlign: "center",
         backgroundColor: "#075de6",
       }}
     >
-      <img
+      <Img
         src={`${baseUrl}/static/logo.svg`}
         alt="EIT Digital Alumni Logo"
         style={{
           maxWidth: "150px",
-          marginBottom: "16px",
+          margin: "0 auto 16px auto",
+          display: "block",
         }}
       />
-      <h1
+      <Heading
+        as="h1"
         style={{
           fontSize: "24px",
           fontWeight: "bold",
-          color: "#1f2937",
+          color: "#ffffff",
           marginBottom: "8px",
+          marginTop: "0",
         }}
       >
         {title}
-      </h1>
-      <p
+      </Heading>
+      <Text
         style={{
           fontSize: "16px",
-          color: "#4b5563",
+          color: "#e0e7ff",
+          margin: "0",
         }}
       >
         {subtitle}
-      </p>
+      </Text>
     </div>
   );
 };

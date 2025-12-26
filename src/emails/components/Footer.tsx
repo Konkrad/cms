@@ -1,3 +1,5 @@
+/** @jsxImportSource react */
+import React from "react";
 import { Section, Text } from "@react-email/components";
 
 const Footer = () => {
@@ -10,7 +12,9 @@ const Footer = () => {
         backgroundColor: "#f3f4f6",
       }}
     >
-      <Text>© {new Date().getFullYear()} EIT Digital Alumni.</Text>
+      <Text style={{ margin: "0", color: "#6b7280", fontSize: "14px" }}>
+        © {new Date().getFullYear()} EIT Digital Alumni. All rights reserved.
+      </Text>
     </Section>
   );
 };

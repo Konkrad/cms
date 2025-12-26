@@ -1,10 +1,4 @@
-import {
-  component$,
-  $,
-  useSignal,
-  useComputed$,
-  type Signal,
-} from "@builder.io/qwik";
+import { component$, $, useSignal, type Signal } from "@builder.io/qwik";
 import type { ActionStore } from "@builder.io/qwik-city";
 import Fuse from "fuse.js";
 import type { Ticket } from "~/db/schemas/tickets";
@@ -25,11 +19,9 @@ export default component$<TicketsListProps>(
   ({ tickets, scanAction, searchQuery }) => {
     const scanningTicketId = useSignal<string | null>(null);
 
-    const filteredTickets = useComputed$(() => {
-      if (!searchQuery.value.trim()) {
-        return tickets;
-      }
-
+    // Filter tickets using Fuse.js during render
+    let filteredTickets = tickets;
+    if (searchQuery.value.trim()) {
       const fuse = new Fuse(tickets, {
         keys: [
           "buyer.name",
@@ -38,20 +30,13 @@ export default component$<TicketsListProps>(
           "product.name",
         ],
         threshold: 0.3,
-        includeScore: true,
       });
-
       const results = fuse.search(searchQuery.value);
-      return results.map((result) => result.item);
-    });
+      filteredTickets = results.map((result) => result.item);
+    }
 
-    const scannedTickets = useComputed$(() =>
-      filteredTickets.value.filter((t) => t.scannedAt),
-    );
-
-    const unscannedTickets = useComputed$(() =>
-      filteredTickets.value.filter((t) => !t.scannedAt),
-    );
+    const scannedTickets = filteredTickets.filter((t) => t.scannedAt);
+    const unscannedTickets = filteredTickets.filter((t) => !t.scannedAt);
 
     const handleManualScan = $(async (ticket: TicketWithRelations) => {
       const dbTicket = ticket as any;
@@ -117,20 +102,20 @@ export default component$<TicketsListProps>(
             scanned /<span class="font-medium"> {tickets.length}</span> total
             {searchQuery.value.trim() && (
               <span class="ml-2 text-gray-500">
-                ({filteredTickets.value.length} filtered)
+                ({filteredTickets.length} filtered)
               </span>
             )}
           </div>
         </div>
 
         <div class="space-y-6">
-          {unscannedTickets.value.length > 0 && (
+          {unscannedTickets.length > 0 && (
             <div>
               <h4 class="text-lg font-medium mb-3 text-gray-700">
-                Pending ({unscannedTickets.value.length})
+                Pending ({unscannedTickets.length})
               </h4>
               <div class="space-y-2">
-                {unscannedTickets.value.map((ticket) => (
+                {unscannedTickets.map((ticket) => (
                   <div
                     key={ticket.id}
                     class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
@@ -168,13 +153,13 @@ export default component$<TicketsListProps>(
             </div>
           )}
 
-          {scannedTickets.value.length > 0 && (
+          {scannedTickets.length > 0 && (
             <div>
               <h4 class="text-lg font-medium mb-3 text-gray-700">
-                Scanned ({scannedTickets.value.length})
+                Scanned ({scannedTickets.length})
               </h4>
               <div class="space-y-2">
-                {scannedTickets.value.map((ticket) => (
+                {scannedTickets.map((ticket) => (
                   <div
                     key={ticket.id}
                     class="flex items-center justify-between p-4 border border-green-200 bg-green-50 rounded-lg"
@@ -197,7 +182,7 @@ export default component$<TicketsListProps>(
             </div>
           )}
 
-          {filteredTickets.value.length === 0 && searchQuery.value.trim() && (
+          {filteredTickets.length === 0 && searchQuery.value.trim() && (
             <p class="text-gray-500 text-center py-8">
               No tickets found matching "{searchQuery.value}"
             </p>

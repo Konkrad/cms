@@ -16,7 +16,7 @@ export default component$<UserTicketsProps>(({ tickets }) => {
 
   const now = new Date();
   const upcomingTickets = tickets.filter(
-    (t) => new Date(t.event.startDate) >= now
+    (t) => new Date(t.event.startDate) >= now,
   );
   const pastTickets = tickets.filter((t) => new Date(t.event.startDate) < now);
 
@@ -39,39 +39,41 @@ export default component$<UserTicketsProps>(({ tickets }) => {
     selectedTicket.value = null;
   });
 
-  const renderTicketGroup = (
-    tickets: TicketWithRelations[],
-    title: string
-  ) => {
+  const renderTicketGroup = (tickets: TicketWithRelations[], title: string) => {
     if (tickets.length === 0) return null;
 
-    const ticketsByEvent = tickets.reduce((acc, ticket) => {
-      const eventId = ticket.eventId;
-      if (!acc[eventId]) {
-        acc[eventId] = {
-          event: ticket.event,
-          tickets: [],
-        };
-      }
-      acc[eventId].tickets.push(ticket);
-      return acc;
-    }, {} as Record<string, { event: typeof events.$inferSelect; tickets: TicketWithRelations[] }>);
+    const ticketsByEvent = tickets.reduce(
+      (acc, ticket) => {
+        const eventId = ticket.eventId;
+        if (!acc[eventId]) {
+          acc[eventId] = {
+            event: ticket.event,
+            tickets: [],
+          };
+        }
+        acc[eventId].tickets.push(ticket);
+        return acc;
+      },
+      {} as Record<
+        string,
+        { event: typeof events.$inferSelect; tickets: TicketWithRelations[] }
+      >,
+    );
 
     return (
       <div class="mb-8">
         <h4 class="text-lg font-semibold text-gray-700 mb-3">{title}</h4>
         <div class="space-y-4">
           {Object.values(ticketsByEvent).map(({ event, tickets }) => (
-            <div
-              key={event.id}
-              class="border border-gray-200 rounded-lg p-4"
-            >
+            <div key={event.id} class="border border-gray-200 rounded-lg p-4">
               <div class="mb-3">
                 <h5 class="font-semibold text-gray-900">{event.title}</h5>
                 <p class="text-sm text-gray-600">
                   {formatDate(event.startDate)}
                 </p>
-                <p class="text-sm text-gray-500">{event.address || event.city || ""}</p>
+                <p class="text-sm text-gray-500">
+                  {event.address || event.city || ""}
+                </p>
               </div>
 
               <div class="space-y-2">
@@ -117,11 +119,11 @@ export default component$<UserTicketsProps>(({ tickets }) => {
         <>
           {renderTicketGroup(
             upcomingTickets,
-            `Upcoming Events (${upcomingTickets.length})`
+            `Upcoming Events (${upcomingTickets.length})`,
           )}
           {renderTicketGroup(
             pastTickets,
-            `Past Events (${pastTickets.length})`
+            `Past Events (${pastTickets.length})`,
           )}
         </>
       )}
@@ -149,7 +151,7 @@ export default component$<UserTicketsProps>(({ tickets }) => {
             <div class="text-center space-y-4">
               <div class="bg-white p-4 rounded-lg">
                 <img
-                  src={`/admin/events/${selectedTicket.value.eventId}/tickets/${selectedTicket.value.id}/qr-code.png`}
+                  src={`/profile/tickets/${selectedTicket.value.id}.png`}
                   alt="Ticket QR Code"
                   class="w-full max-w-sm mx-auto"
                 />
@@ -166,9 +168,7 @@ export default component$<UserTicketsProps>(({ tickets }) => {
                   {formatDate(selectedTicket.value.event.startDate)}
                 </p>
                 {selectedTicket.value.scannedAt && (
-                  <p class="text-sm text-green-600 mt-2">
-                    ✓ Already scanned
-                  </p>
+                  <p class="text-sm text-green-600 mt-2">✓ Already scanned</p>
                 )}
               </div>
             </div>

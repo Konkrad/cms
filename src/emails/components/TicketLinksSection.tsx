@@ -33,7 +33,7 @@ export default function TicketLinksSection({
             Ticket {index + 1}: {ticket.productName}
           </Text>
           <Img
-            src={`${baseUrl}/admin/events/[id]/tickets/${ticket.id}/qr-code.png`}
+            src={`${baseUrl}/profile/tickets/${ticket.id}.png`}
             alt={`QR Code for ${ticket.productName}`}
             width="200"
             height="200"

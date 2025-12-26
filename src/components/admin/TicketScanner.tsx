@@ -14,6 +14,9 @@ export default component$<TicketScannerProps>(({ action }) => {
     message?: string;
     error?: string;
     alreadyScanned?: boolean;
+    scannedAt?: string;
+    reason?: string;
+    ticketId?: string;
   } | null>(null);
   const handleScan = $(async (decodedText: string) => {
     if (action.isRunning) return;
@@ -28,9 +31,15 @@ export default component$<TicketScannerProps>(({ action }) => {
         navigator.vibrate([100, 50, 100]);
       }
 
-      setTimeout(() => {
-        scanResult.value = null;
-      }, 3000);
+      if (result.value?.success) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        setTimeout(() => {
+          scanResult.value = null;
+        }, 3000);
+      }
     } catch (error) {
       scanResult.value = {
         success: false,

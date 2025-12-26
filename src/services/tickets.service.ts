@@ -9,12 +9,15 @@ import {
 import { users } from "~/db/schemas/users";
 import { products } from "~/db/schemas/products";
 import { events } from "~/db/schemas/events";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 
 export const ticketsService = {
   async create(data: InsertTicket): Promise<Ticket> {
     const validated = insertTicketSchema.parse(data);
-    const [ticket] = await db.insert(tickets).values(validated as any).returning();
+    const [ticket] = await db
+      .insert(tickets)
+      .values(validated as any)
+      .returning();
     return ticket;
   },
 
@@ -22,7 +25,10 @@ export const ticketsService = {
     ticketData: Array<Omit<InsertTicket, "id" | "qrCodeUuid" | "createdAt">>,
   ): Promise<Ticket[]> {
     const validated = ticketData.map((data) => insertTicketSchema.parse(data));
-    const result = await db.insert(tickets).values(validated as any).returning();
+    const result = await db
+      .insert(tickets)
+      .values(validated as any)
+      .returning();
     return result;
   },
 
@@ -101,11 +107,46 @@ export const ticketsService = {
   },
 
   async scanTicket(qrCodeUuid: string): Promise<Ticket | undefined> {
+    // First, check the current state of the ticket
+    const currentTicket = await db.query.tickets.findFirst({
+      where: eq(tickets.qrCodeUuid, qrCodeUuid),
+    });
+
+    console.log("scanTicket - Current ticket state:", {
+      found: !!currentTicket,
+      qrCodeUuid,
+      currentScannedAt: currentTicket?.scannedAt,
+      scannedAtType: typeof currentTicket?.scannedAt,
+      scannedAtValue:
+        currentTicket?.scannedAt === null
+          ? "NULL"
+          : currentTicket?.scannedAt === ""
+            ? "EMPTY_STRING"
+            : currentTicket?.scannedAt,
+    });
+
+    if (!currentTicket) {
+      console.error("scanTicket - Ticket not found");
+      return undefined;
+    }
+
+    if (currentTicket.scannedAt) {
+      console.error("scanTicket - Ticket already scanned");
+      return undefined;
+    }
+
+    // Try to update the ticket
     const [ticket] = await db
       .update(tickets)
       .set({ scannedAt: new Date().toISOString() })
-      .where(and(eq(tickets.qrCodeUuid, qrCodeUuid), eq(tickets.scannedAt, null as any)))
+      .where(and(eq(tickets.qrCodeUuid, qrCodeUuid), isNull(tickets.scannedAt)))
       .returning();
+
+    console.log("scanTicket - Update result:", {
+      updated: !!ticket,
+      ticketId: ticket?.id,
+    });
+
     return ticket;
   },
 };

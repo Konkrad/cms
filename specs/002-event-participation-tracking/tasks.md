@@ -22,9 +22,9 @@ description: "Task list for Event Participation Tracking & Enhanced Features"
 
 **Purpose**: Project initialization and dependencies
 
-- [ ] T001 Install QR code dependencies: `npm install qrcode html5-qrcode @types/qrcode`
-- [ ] T002 [P] Install Uppy.io v5 dependencies: `npm install @uppy/core @uppy/dashboard @uppy/xhr-upload`
-- [ ] T003 [P] Verify environment configuration in src/env.ts includes photo secret support
+- [X] T001 Install QR code dependencies: `npm install qrcode html5-qrcode @types/qrcode`
+- [X] T002 [P] Install Uppy.io v5 dependencies: `npm install @uppy/core @uppy/dashboard @uppy/xhr-upload`
+- [X] T003 [P] Verify environment configuration in src/env.ts includes photo secret support
 
 ---
 
@@ -36,20 +36,20 @@ description: "Task list for Event Participation Tracking & Enhanced Features"
 
 ### Database Schema
 
-- [ ] T004 Create ticket-participants schema in src/db/schemas/ticket-participants.ts
-- [ ] T005 [P] Create participation-status schema in src/db/schemas/participation-status.ts
-- [ ] T006 [P] Create event-photos schema in src/db/schemas/event-photos.ts
-- [ ] T007 [P] Extend events schema with salesStartDate and salesEndDate in src/db/schemas/events.ts
-- [ ] T008 [P] Extend products schema with participantCapacity field in src/db/schemas/products.ts
-- [ ] T009 [P] Extend tickets schema with isFree field and scannedAt index in src/db/schemas/tickets.ts
-- [ ] T010 Export new schemas in src/db/schema.ts
-- [ ] T011 Generate Drizzle migrations with `npx drizzle-kit generate`
-- [ ] T012 Apply database migrations with `npx drizzle-kit migrate`
+- [X] T004 Create ticket-participants schema in src/db/schemas/ticket-participants.ts
+- [X] T005 [P] Create participation-status schema in src/db/schemas/participation-status.ts
+- [X] T006 [P] Create event-photos schema in src/db/schemas/event-photos.ts
+- [X] T007 [P] Extend events schema with salesStartDate and salesEndDate in src/db/schemas/events.ts
+- [X] T008 [P] Extend products schema with participantCapacity field in src/db/schemas/products.ts
+- [X] T009 [P] Extend tickets schema with isFree field and scannedAt index in src/db/schemas/tickets.ts
+- [X] T010 Export new schemas in src/db/schema.ts
+- [X] T011 Generate Drizzle migrations with `npx drizzle-kit generate`
+- [X] T012 Apply database migrations with `npx drizzle-kit migrate`
 
 ### Core Utilities
 
-- [ ] T013 [P] Create QR code utility in src/utils/qr-code.ts with generation and validation functions
-- [ ] T014 [P] Create secure URL utility in src/utils/secure-urls.ts with HMAC signing functions
+- [X] T013 [P] Create QR code utility in src/utils/qr-code.ts with generation and validation functions
+- [X] T014 [P] Create secure URL utility in src/utils/secure-urls.ts with HMAC signing functions
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -63,7 +63,7 @@ description: "Task list for Event Participation Tracking & Enhanced Features"
 
 ### Implementation for User Story 1
 
-- [ ] T015 [US1] Extend tickets service with scanTicket method in src/services/tickets.service.ts
+- [X] T015 [US1] Extend tickets service with scanTicket method in src/services/tickets.service.ts
 - [ ] T016 [US1] Create TicketScanner component in src/components/events/TicketScanner.tsx using html5-qrcode
 - [ ] T017 [US1] Create admin scan route with routeAction$ in src/routes/admin/events/[id]/scan/index.tsx
 - [ ] T018 [US1] Add QR code generation to ticket creation flow in existing ticket service

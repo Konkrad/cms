@@ -18,6 +18,7 @@ export const products = sqliteTable("products", {
   name: text("name").notNull(),
   price: real("price").notNull(),
   maxQuantity: integer("max_quantity").notNull().default(0),
+  participantCapacity: integer("participant_capacity").notNull().default(1),
   features: text("features", { mode: "json" }).notNull().$type<string[]>(),
   imageUrl: text("image_url"),
   stripeProductId: text("stripe_product_id"),
@@ -50,12 +51,14 @@ export const insertProductSchema = baseInsertSchema
     id: z.string().uuid().default(() => crypto.randomUUID()),
     price: z.number().positive(),
     maxQuantity: z.number().int().min(0),
+    participantCapacity: z.number().int().min(1).default(1),
     features: z.array(z.string()).default([]),
     createdAt: z.string().default(() => new Date().toISOString()),
     updatedAt: z.string().default(() => new Date().toISOString()),
   })
   .partial({
     id: true,
+    participantCapacity: true,
     imageUrl: true,
     stripeProductId: true,
     soldQuantity: true,
@@ -82,6 +85,10 @@ export const formProductSchema = insertProductSchema
       z.string().transform(val => parseInt(val, 10)),
       z.number().int()
     ]).pipe(z.number().int().min(0, "Max quantity cannot be negative")),
+    participantCapacity: z.union([
+      z.string().transform(val => parseInt(val, 10)),
+      z.number().int()
+    ]).pipe(z.number().int().min(1, "Participant capacity must be at least 1")).default(1),
     features: z.string().default(""),
     imageUrl: z.string().url("Invalid image URL").optional().or(z.literal("")),
   });

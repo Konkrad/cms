@@ -11,3 +11,6 @@ export * from "./schemas/products";
 export * from "./schemas/transactions";
 export * from "./schemas/transaction-items";
 export * from "./schemas/tickets";
+export * from "./schemas/ticket-participants";
+export * from "./schemas/participation-status";
+export * from "./schemas/event-photos";

@@ -5,6 +5,12 @@
 **Status**: Draft  
 **Input**: User description: "I want to enhance the events system with the following features: 1. Participation Tracking, 2. Sales Period, 3. Private Event Photos, 4. Free Tickets, 5. Ticket Scanning for Attendance Verification"
 
+## Clarifications
+
+### Session 2025-12-29
+
+- Q: What is the offline behavior for ticket scanning? → A: Tickets are scanned online, it fails if offline, it is not possible to rescan an already scanned ticket. Already implemented correctly.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Ticket Scanning for Attendance Verification (Priority: P1)
@@ -135,9 +141,10 @@ After an event concludes, the organizer uploads 100 photos to a private storage 
 
 - **FR-001**: System MUST allow event organizers to scan ticket QR codes to verify attendance
 - **FR-002**: System MUST mark a ticket as "attended" with timestamp when successfully scanned
-- **FR-003**: System MUST prevent duplicate scans by displaying previous scan information when a ticket is scanned again
+- **FR-003**: System MUST prevent duplicate scans by rejecting rescanning attempts on already-scanned tickets and displaying previous scan information
 - **FR-004**: System MUST validate ticket authenticity and event association before marking attendance
 - **FR-005**: System MUST provide real-time feedback (success/error) during ticket scanning
+- **FR-005a**: System MUST require active internet connection for ticket scanning; offline scans MUST fail with clear error message
 
 #### Free Tickets
 
@@ -207,6 +214,6 @@ After an event concludes, the organizer uploads 100 photos to a private storage 
 - **SC-006**: Private photos are accessible only to verified attendees with 100% accuracy (no false positives allowing non-attendees)
 - **SC-007**: Secure photo URLs expire correctly within the defined time window with zero access after expiration
 - **SC-008**: Participation status tracking provides organizers with planning data at least 48 hours before event start
-- **SC-009**: Ticket scanning requires real-time internet connection for validation
+- **SC-009**: Ticket scanning requires real-time internet connection for validation; offline scanning is not supported and results in failure
 - **SC-010**: Attendance reports show accurate differentiation between ticket holders, actual attendees, and participation responses with 100% accuracy
 - **SC-011**: Participant information is correctly associated with tickets with 100% accuracy across all capacity configurations

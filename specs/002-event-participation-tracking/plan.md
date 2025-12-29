@@ -7,73 +7,37 @@
 
 ## Summary
 
-Enhance the events system with ticket scanning for attendance verification, participation tracking (yes/no/maybe/verified status), sales period configuration per inventory, private event photos accessible only to verified attendees, and support for free tickets at both event and individual ticket levels. Key changes include: moving sales periods to inventory level, making participants independent entities that map users to events, merging participation status into participants table, simplifying event photos schema, and removing participant capacity requirements.
+Enhance the existing event management system with participation tracking, sales periods, private event photos, free tickets, and ticket scanning for attendance verification. The system already has a ticket scanning mechanism in place - we will adapt it slightly rather than rebuild. This feature extends the existing Qwik/SQLite/Drizzle stack with minimal new dependencies.
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.4+, Node.js 20+  
-**Primary Dependencies**: Qwik 1.7+, Drizzle ORM 0.45+, Zod 4.2+  
-**Storage**: SQLite (development), Turso/libSQL (production consideration)  
-**Testing**: Vitest (existing in project)  
-**Target Platform**: Web application (SSR + client-side)
-**Project Type**: Web - monolithic Qwik application  
-**Performance Goals**: <100ms server response for ticket scanning, <2s photo URL generation  
-**Constraints**: Mobile-friendly ticket scanning UI, secure photo access, real-time attendance updates  
-**Scale/Scope**: ~100 events/month, ~1000 attendees/event, ~100 photos/event
-
-**Existing Schema Context**:
-- Events table: id, title, body, startDate, endDate, location fields, userId (organizer)
-- Inventory groups: id, eventId, name, maxCapacity, needsTicket
-- Products: id, eventId, inventoryGroupId, name, price, maxQuantity, features, soldQuantity
-- Tickets: id, qrCodeUuid, transactionId, productId, eventId, buyerId, scannedAt
-- Users: id, name, email (normal system users)
+**Language/Version**: TypeScript 5.4+ (strict mode), Node.js runtime  
+**Primary Dependencies**: Qwik 1.7+, Qwik City (routing/SSR), Drizzle ORM 0.45+, Zod 4.2+ (validation)  
+**Storage**: SQLite (development), potential Turso/libSQL (production), Drizzle migrations  
+**Testing**: Existing test framework (to be determined from codebase)  
+**Target Platform**: Web application (SSR + client hydration)
+**Project Type**: Web application (Qwik-based monolith)  
+**Performance Goals**: <200ms page load, real-time ticket scanning feedback (<1s), photo URL generation <500ms  
+**Constraints**: Reuse existing ticket scanning system, secure photo storage with time-limited URLs, sales period validation  
+**Scale/Scope**: Multiple events, hundreds of attendees per event, potentially thousands of private photos per event
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-### Principle I: Centralized Configuration
-- ✅ PASS: All environment variables (e.g., S3/storage credentials for photos) will be added to `src/env.ts` with Zod validation
-- ✅ PASS: No direct `process.env` access outside env.ts
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| **I. Centralized Configuration** | ✅ PASS | Will add photo storage config to `src/env.ts` |
+| **II. Schema-Driven Database Design** | ✅ PASS | New schemas follow Drizzle + Zod pattern |
+| **III. Service Layer Pattern** | ✅ PASS | Will create services for participants, photos, adapt existing tickets.service |
+| **IV. Qwik Framework Conventions** | ✅ PASS | Using routeLoader$, routeAction$, component$ patterns |
+| **V. Component Organization** | ✅ PASS | Components in `src/components/`, feature-specific if needed |
+| **VI. Type Safety Without Redundancy** | ✅ PASS | Types generated from Zod schemas, no manual duplication |
+| **VII. Fail Fast, Handle Gracefully** | ✅ PASS | Validate at boundaries, let unexpected errors bubble |
 
-### Principle II: Schema-Driven Database Design
-- ✅ PASS: New tables (participants, event_photos, photo_access_urls) will be defined in `src/db/schemas/`
-- ✅ PASS: Drizzle-zod integration for insert/select/update schemas
-- ✅ PASS: Modified tables (events, inventory_groups) follow existing patterns
+**Breaking Changes**: Yes - inventory table will gain sales period fields, events table may gain `isFree` flag. Existing ticket scanning system will be adapted.
 
-### Principle III: Service Layer Pattern
-- ✅ PASS: New services created: `participants.service.ts`, `event-photos.service.ts`, `ticket-scanning.service.ts`
-- ✅ PASS: Services defined in quickstart.md with proper patterns
-- ✅ PASS: All validation through Zod schemas, all DB access through Drizzle
-
-### Principle IV: Qwik Framework Conventions
-- ✅ PASS: Ticket scanning UI will use `component$()` and `useSignal()` for reactive state
-- ✅ PASS: Photo galleries will use `routeLoader$()` for server-side photo list loading
-- ✅ PASS: Participation status updates will use `routeAction$()` with `zod$()`
-- ✅ PASS: QR code scanning will leverage client-side camera APIs with server validation
-
-### Principle V: Component Organization
-- ✅ PASS: New components in appropriate directories:
-  - `src/components/events/` - TicketScanner, ParticipationButton, PhotoGallery
-  - `src/components/ui/` - QRCodeDisplay (if needed)
-
-### Principle VI: Type Safety Without Redundancy
-- ✅ PASS: Will use existing `@aws-sdk/client-s3` types for R2 operations
-- ✅ PASS: All types generated from Zod schemas via `z.infer`
-- ✅ PASS: No manual type duplication
-
-### Principle VII: Fail Fast, Handle Gracefully
-- ✅ PASS: Expected errors (invalid QR, duplicate scan, unauthorized photo access) handled in services
-- ✅ PASS: Unexpected errors (DB failures, S3 failures) will bubble up
-- ✅ PASS: Input validation at service layer before any side effects
-
-**GATE STATUS**: ✅ ALL CHECKS PASSED (Initial + Post-Design)
-
-**Post-Design Validation**:
-- Data model reviewed: 2 modified tables, 3 new tables, all following Drizzle patterns ✅
-- API contracts reviewed: 5 endpoints with proper validation and error handling ✅
-- Services designed: Follow single responsibility, use transactions appropriately ✅
-- No constitution violations introduced during design phase ✅
+**Constitution Compliance**: ✅ All principles aligned
 
 ## Project Structure
 
@@ -93,53 +57,55 @@ specs/[###-feature]/
 
 ```text
 src/
+├── components/
+│   ├── ui/                   # Existing UI primitives
+│   └── events/               # Event-specific components (if needed)
 ├── db/
-│   ├── schemas/
-│   │   ├── events.ts              # Modified: add isFree field
-│   │   ├── inventory-groups.ts    # Modified: add salesStartDate, salesEndDate
-│   │   ├── tickets.ts             # Existing: already has scannedAt
-│   │   ├── participants.ts        # NEW: user-event mappings with status
-│   │   ├── event-photos.ts        # NEW: private photo storage references
-│   │   └── photo-access-urls.ts   # NEW: time-limited secure URLs
-│   └── connection.ts
-│
-├── services/
-│   ├── events.service.ts          # Modified: handle free events
-│   ├── tickets.service.ts         # Modified: ticket scanning logic
-│   ├── participants.service.ts    # NEW: participation status management
-│   ├── event-photos.service.ts    # NEW: photo upload/access control
-│   └── photo-urls.service.ts      # NEW: secure URL generation
-│
+│   ├── connection.ts         # Existing database connection
+│   ├── schema.ts             # Existing schema aggregator (update)
+│   └── schemas/
+│       ├── events.ts         # Update: add isFree field
+│       ├── inventory-groups.ts  # Update: add salesStartDate, salesEndDate
+│       ├── products.ts       # Update: add participantCapacity field
+│       ├── tickets.ts        # Existing (already has scannedAt)
+│       ├── participants.ts   # NEW: participant details (user-event mapping)
+│       └── event-photos.ts   # NEW: private photos storage
 ├── routes/
 │   ├── admin/
 │   │   └── events/
-│   │       └── [eventId]/
-│   │           ├── scan/          # NEW: ticket scanning interface
-│   │           └── photos/        # NEW: photo upload interface
+│   │       └── [id]/
+│   │           ├── photos/   # NEW: photo upload/management routes
+│   │           └── participants/  # NEW: participant management
+│   ├── api/
+│   │   └── events/
+│   │       └── [id]/
+│   │           └── photos/   # NEW: secure photo URL generation
 │   └── events/
-│       └── [eventId]/
-│           ├── index.tsx          # Modified: participation buttons
-│           └── photos/            # NEW: attendee photo gallery
-│
-└── components/
-    └── events/
-        ├── TicketScanner.tsx      # NEW: QR scanner component
-        ├── ParticipationButton.tsx # NEW: yes/no/maybe UI
-        └── PhotoGallery.tsx       # NEW: private photo display
+│       └── [id]/
+│           ├── index.tsx     # Update: add participation status UI
+│           └── photos/       # NEW: attendee photo gallery
+├── services/
+│   ├── tickets.service.ts    # Existing (adapt scanTicket)
+│   ├── participants.service.ts  # NEW: participant CRUD + status tracking
+│   └── event-photos.service.ts  # NEW: photo upload, access control, URL generation
+├── utils/
+│   └── photo-storage.ts      # NEW: secure storage helpers (time-limited URLs)
+└── env.ts                    # Update: add photo storage config
 
 tests/
-├── services/
-│   ├── participants.service.test.ts
-│   ├── event-photos.service.test.ts
-│   └── ticket-scanning.test.ts
-└── integration/
-    └── ticket-scanning-flow.test.ts
+├── integration/
+│   ├── ticket-scanning.test.ts      # Update existing
+│   ├── participation-status.test.ts  # NEW
+│   ├── sales-period.test.ts         # NEW
+│   └── private-photos.test.ts       # NEW
+└── unit/
+    └── services/
+        ├── participants.service.test.ts  # NEW
+        └── event-photos.service.test.ts  # NEW
 ```
 
-**Structure Decision**: Web application structure with feature modules organized by domain (events, tickets, participants, photos). Services encapsulate business logic, routes handle HTTP interface, components provide UI. Testing focuses on service layer and critical user flows.
+**Structure Decision**: Monolithic Qwik application structure. All features live in `src/` with domain-organized subdirectories. Tests mirror source structure. This follows the existing CMS architecture and constitution principles.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-No violations detected. All features align with existing constitution principles.
+No constitution violations. All changes follow existing patterns.

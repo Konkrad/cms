@@ -38,13 +38,13 @@ export const PhotoUploader = component$<PhotoUploaderProps>(
         inline: true,
         target: "#uppy-dashboard",
         height: 400,
-        showProgressDetails: true,
+        hideProgressDetails: false,
         note: "Images only, up to 10MB each, max 10 files",
       });
 
       uppy.use(XHRUpload, {
-        endpoint: "/api/upload",
-        formData: true,
+        endpoint: `/api/images?pipeline=gallery`,
+        formData: false,
         fieldName: "file",
         headers: {
           "x-upload-path": `/private/events/${eventId}/photos/`,
@@ -69,7 +69,7 @@ export const PhotoUploader = component$<PhotoUploaderProps>(
       uploaderReady.value = true;
 
       cleanup(() => {
-        uppy.close();
+        (uppy as any).close?.();
       });
     });
 
@@ -77,7 +77,7 @@ export const PhotoUploader = component$<PhotoUploaderProps>(
       <div class="space-y-4">
         <div class="border rounded-lg p-4 bg-white">
           <h3 class="text-lg font-semibold mb-4">Upload Event Photos</h3>
-          
+
           <div id="uppy-dashboard"></div>
 
           <div class="mt-4 text-sm text-gray-600">
@@ -92,5 +92,5 @@ export const PhotoUploader = component$<PhotoUploaderProps>(
         </div>
       </div>
     );
-  }
+  },
 );

@@ -1,9 +1,4 @@
-import {
-  component$,
-  useSignal,
-  $,
-  type Signal,
-} from "@builder.io/qwik";
+import { component$, useSignal, $, type Signal } from "@builder.io/qwik";
 import { Button } from "~/components/ui/Button";
 
 interface PhotoData {
@@ -89,7 +84,6 @@ export const PhotoGallery = component$<PhotoGalleryProps>(
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                       ) : (
                         <Button
-                          size="sm"
                           onClick$={async () => {
                             await loadPhotoUrl(photo.id);
                           }}
@@ -152,5 +146,5 @@ export const PhotoGallery = component$<PhotoGalleryProps>(
         )}
       </div>
     );
-  }
+  },
 );

@@ -28,7 +28,7 @@ export const photosService = {
 
   async getByEventId(
     eventId: string,
-    options?: { limit?: number; offset?: number }
+    options?: { limit?: number; offset?: number },
   ): Promise<EventPhoto[]> {
     const { limit = 20, offset = 0 } = options || {};
     const results = await db.query.eventPhotos.findMany({
@@ -51,15 +51,12 @@ export const photosService = {
     await db.delete(eventPhotos).where(eq(eventPhotos.id, id));
   },
 
-  async checkUserAttendance(
-    userId: string,
-    eventId: string
-  ): Promise<boolean> {
+  async checkUserAttendance(userId: string, eventId: string): Promise<boolean> {
     const attendedTicket = await db.query.tickets.findFirst({
       where: and(
         eq(tickets.buyerId, userId),
         eq(tickets.eventId, eventId),
-        isNotNull(tickets.scannedAt)
+        isNotNull(tickets.scannedAt),
       ),
     });
     return !!attendedTicket;
@@ -67,7 +64,7 @@ export const photosService = {
 
   async generateSecureUrl(
     photoId: string,
-    userId: string
+    userId: string,
   ): Promise<{ url: string; expiresAt: string } | null> {
     const photo = await this.getById(photoId);
     if (!photo) {
@@ -83,8 +80,8 @@ export const photosService = {
     // Generate secure URL valid for 1 hour
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
     const expUnix = Math.floor(Date.parse(expiresAt) / 1000);
-    
-    const url = generateSecurePhotoUrl(photo.filePath, userId, expUnix);
+
+    const url = await generateSecurePhotoUrl(photo.filePath, userId, expUnix);
 
     return {
       url,
@@ -92,10 +89,7 @@ export const photosService = {
     };
   },
 
-  async validatePhotoAccess(
-    photoId: string,
-    userId: string
-  ): Promise<boolean> {
+  async validatePhotoAccess(photoId: string, userId: string): Promise<boolean> {
     const photo = await this.getById(photoId);
     if (!photo) {
       return false;

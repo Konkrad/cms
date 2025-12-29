@@ -60,18 +60,19 @@ An event organizer is planning a conference 6 months in advance. They want to op
 
 ### User Story 4 - Participation Status Tracking (Priority: P4)
 
-An event organizer sends invitations to 50 people for an event. Recipients can respond with "yes", "no", or "maybe" to indicate their participation intent. This is separate from ticket purchases - someone can indicate "yes" even if they haven't purchased a ticket yet (for free events or before paying). The organizer can view all responses to gauge interest and plan accordingly.
+Users can view an event on the website and indicate their participation intent. For paid events, the "Yes" status is coupled with a ticket purchase (the UI may label the "Yes" action as "Buy Ticket"), while for free events, "Yes" acts as a standard RSVP. Users who are interested but have not yet purchased a ticket can select "Maybe" to signal intent. This ensures that a "Yes" always represents a confirmed attendee, while "Maybe" represents the potential audience.
 
-**Why this priority**: Provides event planning insights beyond just ticket sales. Helps organizers estimate attendance for catering, venue capacity, and other logistics before tickets are purchased.
+**Why this priority**: Provides a clear distinction between confirmed attendees ("Yes") and leads ("Maybe"). This helps organizers distinguish between guaranteed headcount for logistics and potential interest for marketing follow-ups.
 
-**Independent Test**: Can be fully tested by creating an event, sending invitations, collecting yes/no/maybe responses, and viewing participation summaries. Delivers value by providing RSVP functionality independent of ticketing.
+**Independent Test**: Can be fully tested by creating both a free and a paid event. For the free event, selecting "Yes" should register immediately. For the paid event, "Yes" should only be recorded upon successful checkout, while "Maybe" can be selected without payment. Organizers can then verify the accuracy of the participation summary.
 
 **Acceptance Scenarios**:
 
-1. **Given** an invited user, **When** they respond to an event invitation, **Then** they can select yes/no/maybe and the system records their response
-2. **Given** a user who already responded, **When** they change their participation status, **Then** the system updates to the new status
-3. **Given** an event organizer, **When** they view participation data, **Then** they see counts and lists of yes/no/maybe responses
-4. **Given** a user who responded "yes" and later purchases a ticket, **When** viewing their event relationship, **Then** both participation status and ticket purchase are tracked independently
+1. **Given** a user viewing a **paid** event, **When** they attempt to select "Yes," **Then** the UI initiates the "Buy Ticket" flow and only records a "Yes" status once the transaction is complete.
+2. **Given** a user viewing a **paid** event, **When** they are interested but have not purchased a ticket, **Then** they can select "Maybe" to record their intent in the system.
+3. **Given** a user viewing a **free** event, **When** they select "Yes," **Then** the system records their status immediately as a confirmed participant.
+4. **Given** a user who previously responded "Maybe," **When** they later complete a ticket purchase, **Then** the system updates their participation status from "Maybe" to "Yes."
+5. **Given** an event organizer, **When** they view participation data, **Then** they see "Yes" as the count of confirmed/ticketed attendees and "Maybe/No" as the count of unconfirmed or declining leads.
 
 ---
 

@@ -1,141 +1,91 @@
-# API Contracts: Ticket Scanning
+# Server Function Contracts: Ticket Scanning
 
-**Base Path**: `/api/tickets`
+**Implementation**: Qwik server functions in route files (NOT REST APIs)
 
-## POST /api/tickets/scan
+## scanTicketAction
 
-Scan a ticket QR code to mark attendance.
+**Location**: `src/routes/admin/events/[id]/scan/index.tsx`  
+**Type**: `routeAction$()` with `zod$()` validation
 
-### Request
+### Input Schema (Zod)
 
-**Headers**:
-```
-Content-Type: application/json
-```
-
-**Body**:
-```json
+```typescript
 {
-  "qrData": "string (required)",
-  "eventId": "string (required, UUID)",
-  "scannedBy": "string (required, UUID - organizer userId)"
+  qrData: z.string().min(1),
+  eventId: z.string().uuid(),
 }
 ```
 
 **Validation**:
 - `qrData`: Must be valid JSON containing `{ticketId, eventId, signature}`
-- `eventId`: Must match the eventId in qrData
-- `scannedBy`: Must be the event organizer (event.userId)
+- `eventId`: Must match the eventId in qrData and route parameter
+- Current user must be event organizer (event.userId)
 - QR signature must validate using HMAC-SHA256
 
-### Response
+### Return Type
 
-**Success (200)**:
-```json
+**Success (first scan)**:
+```typescript
 {
-  "success": true,
-  "data": {
-    "ticketId": "string (UUID)",
-    "buyerName": "string",
-    "scannedAt": "string (ISO 8601 timestamp)",
-    "isFirstScan": true
-  }
+  success: true,
+  ticketId: string,
+  buyerName: string,
+  scannedAt: string, // ISO 8601
+  isFirstScan: true
 }
 ```
 
-**Already Scanned (200)**:
-```json
+**Success (already scanned)**:
+```typescript
 {
-  "success": true,
-  "data": {
-    "ticketId": "string (UUID)",
-    "buyerName": "string",
-    "scannedAt": "string (original scan timestamp)",
-    "isFirstScan": false
-  }
+  success: true,
+  ticketId: string,
+  buyerName: string,
+  scannedAt: string, // Original scan timestamp
+  isFirstScan: false
 }
 ```
 
-**Error (400)**: Invalid QR code
-```json
+**Error**:
+```typescript
 {
-  "success": false,
-  "error": "Invalid QR code signature"
-}
-```
-
-**Error (404)**: Ticket not found
-```json
-{
-  "success": false,
-  "error": "Ticket not found"
-}
-```
-
-**Error (403)**: Not authorized
-```json
-{
-  "success": false,
-  "error": "Only event organizer can scan tickets"
+  success: false,
+  error: string // "Invalid QR code signature" | "Ticket not found" | "Not authorized"
 }
 ```
 
 ---
 
-## GET /api/tickets/:ticketId
+## getTicketDetailsLoader
 
-Get ticket details including participants.
+**Location**: `src/routes/profile/tickets/[ticketId]/index.tsx`  
+**Type**: `routeLoader$()`
 
-### Request
+### Input
 
-**Path Parameters**:
-- `ticketId`: string (UUID, required)
+- Route parameter: `ticketId` (UUID)
+- Session: Current user must own ticket or be event organizer
 
-**Headers**:
-```
-Authorization: Bearer <token>
-```
+### Return Type
 
-### Response
-
-**Success (200)**:
-```json
+```typescript
 {
-  "success": true,
-  "data": {
-    "id": "string (UUID)",
-    "qrCodeUuid": "string (UUID)",
-    "eventId": "string (UUID)",
-    "eventTitle": "string",
-    "productName": "string",
-    "buyerName": "string",
-    "isFree": false,
-    "scannedAt": "string (ISO 8601) or null",
-    "createdAt": "string (ISO 8601)",
-    "participants": [
-      {
-        "participantOrder": 1,
-        "name": "string",
-        "email": "string",
-        "phone": "string or null"
-      }
-    ]
-  }
+  id: string,
+  qrCodeUuid: string,
+  eventId: string,
+  eventTitle: string,
+  productName: string,
+  buyerName: string,
+  isFree: boolean,
+  scannedAt: string | null, // ISO 8601
+  createdAt: string,
+  participants: Array<{
+    participantOrder: number,
+    name: string,
+    email: string,
+    phone: string | null
+  }>
 }
 ```
 
-**Error (404)**:
-```json
-{
-  "success": false,
-  "error": "Ticket not found"
-}
-```
-
-**Error (403)**:
-```json
-{
-  "success": false,
-  "error": "Not authorized to view this ticket"
-}
-```
+**Error**: Throws Qwik error (404 if not found, 403 if not authorized)

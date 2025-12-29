@@ -1,171 +1,107 @@
-# API Contracts: Event Extensions
+# Server Function Contracts: Event Extensions
 
-**Base Path**: `/api/events`
+**Implementation**: Qwik server functions in admin event routes (NOT REST APIs)
 
-## PATCH /api/events/:eventId
+## updateEventAction
 
-Update event including sales period fields.
+**Location**: `src/routes/admin/events/[id]/edit/index.tsx` (EXTEND EXISTING)  
+**Type**: `routeAction$()` with `zod$()` validation
 
-### Request
+### Input Schema (Zod) - NEW FIELDS ONLY
 
-**Path Parameters**:
-- `eventId`: string (UUID, required)
-
-**Headers**:
-```
-Content-Type: application/json
-Authorization: Bearer <token>
-```
-
-**Body** (all fields optional):
-```json
+```typescript
 {
-  "title": "string",
-  "body": "string",
-  "startDate": "string (ISO 8601)",
-  "endDate": "string (ISO 8601)",
-  "salesStartDate": "string (ISO 8601) or null",
-  "salesEndDate": "string (ISO 8601) or null",
-  "locationType": "physical" | "online" | "hybrid",
-  "address": "string",
-  "city": "string",
-  "country": "string",
-  "onlineUrl": "string"
+  // Existing fields: title, body, startDate, endDate, etc.
+  salesStartDate: z.string().datetime().nullable().optional(),
+  salesEndDate: z.string().datetime().nullable().optional(),
 }
 ```
 
 **Validation**:
-- User must be event organizer (event.userId)
 - If `salesStartDate` set: must be before `salesEndDate`
 - If `salesEndDate` set: must be before or equal to `endDate`
-- Cannot change dates if tickets already sold (business rule)
+- Current user must be event organizer
 
-### Response
+### Return Type
 
-**Success (200)**:
-```json
+```typescript
 {
-  "success": true,
-  "data": {
-    "id": "string (UUID)",
-    "title": "string",
-    "salesStartDate": "string (ISO 8601) or null",
-    "salesEndDate": "string (ISO 8601) or null",
-    "updatedAt": "string (ISO 8601)"
-  }
+  success: true,
+  id: string,
+  title: string,
+  salesStartDate: string | null,
+  salesEndDate: string | null,
+  updatedAt: string
 }
 ```
 
-**Error (400)**: Invalid sales period
-```json
+**Error**:
+```typescript
 {
-  "success": false,
-  "error": "Sales end date must be before event end date"
-}
-```
-
-**Error (403)**:
-```json
-{
-  "success": false,
-  "error": "Only event organizer can update event"
+  success: false,
+  error: string // "Invalid sales period" | "Not authorized"
 }
 ```
 
 ---
 
-## GET /api/events/:eventId/sales-status
+## getSalesStatusLoader
 
-Check if event is currently accepting ticket sales.
+**Location**: `src/routes/events/[id]/checkout/index.tsx`  
+**Type**: `routeLoader$()`
 
-### Request
+### Input
 
-**Path Parameters**:
-- `eventId`: string (UUID, required)
+- Route parameter: `eventId` (UUID)
 
-### Response
+### Return Type
 
-**Success (200)**: Sales active
-```json
+**Sales active**:
+```typescript
 {
-  "success": true,
-  "data": {
-    "salesActive": true,
-    "salesStartDate": "string (ISO 8601) or null",
-    "salesEndDate": "string (ISO 8601) or null"
-  }
+  salesActive: true,
+  salesStartDate: string | null,
+  salesEndDate: string | null
 }
 ```
 
-**Success (200)**: Sales not yet started
-```json
+**Sales not active**:
+```typescript
 {
-  "success": true,
-  "data": {
-    "salesActive": false,
-    "reason": "Sales open on 2025-01-15T10:00:00Z",
-    "salesStartDate": "string (ISO 8601)",
-    "salesEndDate": "string (ISO 8601) or null"
-  }
-}
-```
-
-**Success (200)**: Sales closed
-```json
-{
-  "success": true,
-  "data": {
-    "salesActive": false,
-    "reason": "Sales have closed",
-    "salesStartDate": "string (ISO 8601) or null",
-    "salesEndDate": "string (ISO 8601)"
-  }
+  salesActive: false,
+  reason: string, // "Sales open on ..." | "Sales have closed"
+  salesStartDate: string | null,
+  salesEndDate: string | null
 }
 ```
 
 ---
 
-## GET /api/events/:eventId/stats
+## getEventStatsLoader
 
-Get event statistics (organizer only).
+**Location**: `src/routes/admin/events/[id]/details/index.tsx` (EXTEND EXISTING)  
+**Type**: `routeLoader$()`
 
-### Request
+### Input
 
-**Path Parameters**:
-- `eventId`: string (UUID, required)
+- Route parameter: `eventId` (UUID)
+- Session: Current user must be event organizer
 
-**Headers**:
-```
-Authorization: Bearer <token>
-```
+### Return Type - EXTENDED
 
-**Authorization**:
-- User must be event organizer (event.userId)
-
-### Response
-
-**Success (200)**:
-```json
+```typescript
 {
-  "success": true,
-  "data": {
-    "totalTickets": 150,
-    "freeTickets": 10,
-    "paidTickets": 140,
-    "attendedCount": 120,
-    "attendanceRate": 80.0,
-    "participationYes": 140,
-    "participationMaybe": 25,
-    "participationNo": 8,
-    "totalPhotos": 87
-  }
+  // Existing stats...
+  totalTickets: number,
+  freeTickets: number,        // NEW
+  paidTickets: number,        // NEW
+  attendedCount: number,      // NEW
+  attendanceRate: number,     // NEW (percentage)
+  participationYes: number,   // NEW
+  participationMaybe: number, // NEW
+  participationNo: number,    // NEW
+  totalPhotos: number         // NEW
 }
 ```
 
-**Error (403)**:
-```json
-{
-  "success": false,
-  "error": "Only event organizer can view statistics"
-}
-```
+**Error**: Throws Qwik error (403 if not organizer)

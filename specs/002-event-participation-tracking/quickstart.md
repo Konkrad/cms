@@ -13,6 +13,8 @@ This feature adds six enhancements to the existing events system:
 5. Participation status tracking (yes/no/maybe)
 6. Private event photos with secure access (using Uppy.io v5, existing upload endpoint, /private/ storage)
 
+**IMPORTANT**: Most functionality uses **Qwik server functions** (`routeAction$` / `routeLoader$`), NOT REST APIs. Only one true REST endpoint is needed: `/api/photos/serve` for secure file serving with signed URLs.
+
 ## Technology Stack
 
 - **QR Generation**: `qrcode` package for server-side QR code creation
@@ -21,6 +23,26 @@ This feature adds six enhancements to the existing events system:
 - **Photo Storage**: File system under `/private/events/{eventId}/photos/`
 - **Secure URLs**: Node crypto HMAC-SHA256 signing (1-hour expiry)
 - **Database**: Drizzle ORM with SQLite, 3 new schemas + 3 extended schemas
+- **Communication Pattern**: Qwik server functions (`routeAction$` / `routeLoader$`) for all client-server interactions except photo serving
+
+### Architecture: Server Functions vs REST APIs
+
+**This feature uses Qwik's server functions, NOT REST APIs for most operations:**
+
+| Feature | Implementation | Why |
+|---------|---------------|-----|
+| Ticket Scanning | `routeAction$` in scan route | Form submission with Zod validation |
+| Participation Status | `routeAction$` + `routeLoader$` | State management with session context |
+| Photo Upload Metadata | `routeAction$` | Form data after Uppy upload completes |
+| Photo Gallery Loading | `routeLoader$` | SSR data loading with attendee validation |
+| Secure URL Generation | `routeAction$` | User-specific URL generation |
+| **Photo File Serving** | **REST API** `/api/photos/serve` | **Binary file serving with HMAC validation** |
+
+**Key Distinction**:
+- **Server Functions**: TypeScript functions that run on the server, called like normal functions from Qwik components. Auto-serialize results, integrate with Qwik's session/context.
+- **REST API**: Only needed for `/api/photos/serve` because it must serve binary image data, work with standard `<img>` tags, and validate HMAC signatures without session state.
+
+**Current Ticket System**: Already uses server functions (checkout flow, ticket generation). This feature extends that pattern.
 
 ## Prerequisites
 
@@ -312,23 +334,120 @@ Yes/No/Maybe buttons with API integration.
 
 Lazy-loading photo grid with secure URL generation.
 
-### Phase 4: Routes
+### Phase 4: Routes and Server Functions
 
-#### 1. Admin Routes
+#### 1. Admin Routes with Server Functions
 
-- `src/routes/admin/events/[eventId]/photos/upload/index.tsx`: Photo upload interface
-- `src/routes/admin/events/[eventId]/scan/index.tsx`: Ticket scanning interface
+**`src/routes/admin/events/[id]/scan/index.tsx`**:
+```typescript
+import { routeAction$, zod$ } from '@builder.io/qwik-city';
+import { z } from 'zod';
+import { ticketsService } from '~/services/tickets.service';
 
-#### 2. Public Routes
+export const useScanTicket = routeAction$(async (data, { params, sharedMap }) => {
+  const session = sharedMap.get('session');
+  // Validate user is organizer, scan ticket
+  return ticketsService.scanTicket(data.qrData, params.id, session.userId);
+}, zod$({
+  qrData: z.string().min(1),
+}));
+```
 
-- `src/routes/events/[eventId]/photos/index.tsx`: Photo gallery (attendees only)
+**`src/routes/admin/events/[id]/photos/index.tsx`**:
+```typescript
+import { routeAction$, zod$ } from '@builder.io/qwik-city';
+import { z } from 'zod';
+import { photosService } from '~/services/photos.service';
 
-#### 3. API Routes
+export const useCreatePhoto = routeAction$(async (data, { params, sharedMap }) => {
+  const session = sharedMap.get('session');
+  return photosService.createPhoto(params.id, data.filePath, session.userId);
+}, zod$({
+  filePath: z.string().startsWith('/private/events/').endsWith('.webp'),
+  thumbnailPath: z.string().optional(),
+}));
+```
 
-- `src/routes/api/tickets/scan/index.ts`: Ticket scanning endpoint
-- `src/routes/api/photos/[photoId]/secure-url/index.ts`: Generate signed URL
-- `src/routes/api/photos/serve/index.ts`: Serve photo with validation
-- `src/routes/api/events/[eventId]/participation/index.ts`: Update participation status
+#### 2. Public Routes with Loaders and Actions
+
+**`src/routes/events/[id]/index.tsx`** (EXTEND EXISTING):
+```typescript
+import { routeAction$, routeLoader$, zod$ } from '@builder.io/qwik-city';
+import { z } from 'zod';
+import { participationService } from '~/services/participation.service';
+
+// NEW: Load participation status
+export const useParticipationStatus = routeLoader$(async ({ params, sharedMap }) => {
+  const session = sharedMap.get('session');
+  if (!session) return null;
+  return participationService.getStatus(session.userId, params.id);
+});
+
+// NEW: Update participation
+export const useUpdateParticipation = routeAction$(async (data, { params, sharedMap }) => {
+  const session = sharedMap.get('session');
+  return participationService.updateStatus(session.userId, params.id, data.status);
+}, zod$({
+  status: z.enum(['yes', 'no', 'maybe']),
+}));
+```
+
+**`src/routes/events/[id]/photos/index.tsx`** (NEW):
+```typescript
+import { routeLoader$, routeAction$, zod$ } from '@builder.io/qwik-city';
+import { z } from 'zod';
+import { photosService } from '~/services/photos.service';
+
+// Load photos (attendees only)
+export const useEventPhotos = routeLoader$(async ({ params, sharedMap, query }) => {
+  const session = sharedMap.get('session');
+  const page = parseInt(query.get('page') || '1');
+  return photosService.getPhotosForAttendee(params.id, session.userId, page);
+});
+
+// Generate secure URL
+export const useGeneratePhotoUrl = routeAction$(async (data, { sharedMap }) => {
+  const session = sharedMap.get('session');
+  return photosService.generateSecureUrl(data.photoId, session.userId);
+}, zod$({
+  photoId: z.string().uuid(),
+}));
+```
+
+#### 3. API Routes (ONLY ONE NEEDED)
+
+**`src/routes/api/photos/serve/index.ts`** (TRUE REST ENDPOINT):
+```typescript
+import type { RequestHandler } from '@builder.io/qwik-city';
+import { validateSecureUrl } from '~/utils/secure-urls';
+import fs from 'fs/promises';
+import path from 'path';
+
+export const onGet: RequestHandler = async ({ query, send }) => {
+  const filePath = query.get('path');
+  const exp = query.get('exp');
+  const sig = query.get('sig');
+  const uid = query.get('uid');
+  
+  if (!filePath || !exp || !sig || !uid) {
+    return send(403, { success: false, error: 'Missing parameters' });
+  }
+  
+  if (!validateSecureUrl(filePath, exp, sig, uid)) {
+    return send(403, { success: false, error: 'Invalid or expired signature' });
+  }
+  
+  const fullPath = path.join(process.cwd(), 'public', filePath);
+  const fileBuffer = await fs.readFile(fullPath);
+  
+  return send(200, fileBuffer, {
+    'Content-Type': 'image/webp',
+    'Cache-Control': 'public, max-age=3600',
+  });
+};
+```
+
+**No other API endpoints needed** - everything else uses Qwik server functions!
 
 ## Testing
 

@@ -1,139 +1,104 @@
-# API Contracts: Product Extensions
+# Server Function Contracts: Product Extensions
 
-**Base Path**: `/api/products`
+**Implementation**: Qwik server functions in admin product routes (NOT REST APIs)
 
-## POST /api/products
+## createProductAction
 
-Create product with participant capacity.
+**Location**: `src/routes/admin/events/[id]/products/index.tsx` (EXTEND EXISTING)  
+**Type**: `routeAction$()` with `zod$()` validation
 
-### Request
+### Input Schema (Zod) - NEW FIELD ONLY
 
-**Headers**:
-```
-Content-Type: application/json
-Authorization: Bearer <token>
-```
-
-**Body**:
-```json
+```typescript
 {
-  "eventId": "string (UUID, required)",
-  "inventoryGroupId": "string (UUID, required)",
-  "name": "string (required)",
-  "price": number (required, >= 0),
-  "maxQuantity": number (required, >= 0),
-  "features": ["string"],
-  "imageUrl": "string (optional)",
-  "participantCapacity": number (optional, default 1, >= 1)
+  // Existing fields: eventId, inventoryGroupId, name, price, maxQuantity, features, imageUrl
+  participantCapacity: z.number().int().min(1).default(1).optional(),
 }
 ```
 
 **Validation**:
-- User must be event organizer
-- `participantCapacity` must be positive integer >= 1
-- If `participantCapacity` > 1, product requires participant data collection
+- Current user must be event organizer
+- `participantCapacity` defaults to 1 if not provided
 
-### Response
+### Return Type
 
-**Success (201)**:
-```json
+```typescript
 {
-  "success": true,
-  "data": {
-    "id": "string (UUID)",
-    "name": "string",
-    "price": number,
-    "participantCapacity": number,
-    "createdAt": "string (ISO 8601)"
-  }
+  success: true,
+  id: string,
+  name: string,
+  price: number,
+  participantCapacity: number,
+  createdAt: string
 }
 ```
 
 ---
 
-## PATCH /api/products/:productId
+## updateProductAction
 
-Update product including participant capacity.
+**Location**: `src/routes/admin/events/[id]/products/index.tsx` (EXTEND EXISTING)  
+**Type**: `routeAction$()` with `zod$()` validation
 
-### Request
+### Input Schema (Zod) - NEW FIELD ONLY
 
-**Path Parameters**:
-- `productId`: string (UUID, required)
-
-**Headers**:
-```
-Content-Type: application/json
-Authorization: Bearer <token>
-```
-
-**Body** (all fields optional):
-```json
+```typescript
 {
-  "name": "string",
-  "price": number,
-  "maxQuantity": number,
-  "features": ["string"],
-  "imageUrl": "string",
-  "participantCapacity": number
+  // Existing fields: name, price, maxQuantity, features, imageUrl
+  participantCapacity: z.number().int().min(1).optional(),
 }
 ```
 
 **Validation**:
-- User must be event organizer
-- Cannot decrease `participantCapacity` below existing ticket participant counts
+- Current user must be event organizer
+- Cannot decrease capacity below existing ticket participant counts
 
-### Response
+### Return Type
 
-**Success (200)**:
-```json
+```typescript
 {
-  "success": true,
-  "data": {
-    "id": "string (UUID)",
-    "name": "string",
-    "participantCapacity": number,
-    "updatedAt": "string (ISO 8601)"
-  }
+  success: true,
+  id: string,
+  name: string,
+  participantCapacity: number,
+  updatedAt: string
 }
 ```
 
-**Error (400)**:
-```json
+**Error**:
+```typescript
 {
-  "success": false,
-  "error": "Cannot reduce capacity below existing participant count"
+  success: false,
+  error: "Cannot reduce capacity below existing participant count"
 }
 ```
 
 ---
 
-## GET /api/products/:productId
+## getProductLoader
 
-Get product details.
+**Location**: `src/routes/events/[id]/checkout/index.tsx` (EXTEND EXISTING)  
+**Type**: `routeLoader$()`
 
-### Request
+### Input
 
-**Path Parameters**:
-- `productId`: string (UUID, required)
+- Route parameter: `eventId` (UUID)
+- Query parameter: `productId` (UUID)
 
-### Response
+### Return Type - EXTENDED
 
-**Success (200)**:
-```json
+```typescript
 {
-  "success": true,
-  "data": {
-    "id": "string (UUID)",
-    "eventId": "string (UUID)",
-    "name": "string",
-    "price": number,
-    "maxQuantity": number,
-    "soldQuantity": number,
-    "availableQuantity": number,
-    "features": ["string"],
-    "imageUrl": "string or null",
-    "participantCapacity": number,
-    "requiresParticipantData": boolean
-  }
+  id: string,
+  eventId: string,
+  name: string,
+  price: number,
+  maxQuantity: number,
+  soldQuantity: number,
+  availableQuantity: number,
+  features: string[],
+  imageUrl: string | null,
+  participantCapacity: number,          // NEW
+  requiresParticipantData: boolean      // NEW (computed: participantCapacity > 1)
 }
 ```

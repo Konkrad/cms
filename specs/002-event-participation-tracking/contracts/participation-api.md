@@ -1,132 +1,95 @@
-# API Contracts: Participation Status
+# Server Function Contracts: Participation Status
 
-**Base Path**: `/api/participation`
+**Implementation**: Qwik server functions in route files (NOT REST APIs)
 
-## POST /api/events/:eventId/participation
+## updateParticipationAction
 
-Update user's participation status for an event.
+**Location**: `src/routes/events/[id]/index.tsx`  
+**Type**: `routeAction$()` with `zod$()` validation
 
-### Request
+### Input Schema (Zod)
 
-**Path Parameters**:
-- `eventId`: string (UUID, required)
-
-**Headers**:
-```
-Content-Type: application/json
-Authorization: Bearer <token>
-```
-
-**Body**:
-```json
+```typescript
 {
-  "status": "yes" | "no" | "maybe"
+  status: z.enum(['yes', 'no', 'maybe'])
 }
 ```
 
 **Validation**:
-- `status` must be exactly 'yes', 'no', or 'maybe'
+- Current user must be authenticated (from session)
+- `eventId` from route parameter
 - For paid events: 'yes' only allowed if user has purchased ticket
 - For free events: 'yes' creates free ticket automatically
 
-### Response
+### Return Type
 
-**Success (200)**:
-```json
+**Success**:
+```typescript
 {
-  "success": true,
-  "data": {
-    "userId": "string (UUID)",
-    "eventId": "string (UUID)",
-    "status": "yes" | "no" | "maybe",
-    "updatedAt": "string (ISO 8601)"
-  }
+  success: true,
+  userId: string,
+  eventId: string,
+  status: 'yes' | 'no' | 'maybe',
+  updatedAt: string // ISO 8601
 }
 ```
 
-**Error (400)**: Cannot set 'yes' for paid event without ticket
-```json
+**Error (paid event without ticket)**:
+```typescript
 {
-  "success": false,
-  "error": "Cannot indicate 'yes' for paid event without ticket purchase"
-}
-```
-
----
-
-## GET /api/events/:eventId/participation
-
-Get participation status for current user.
-
-### Request
-
-**Path Parameters**:
-- `eventId`: string (UUID, required)
-
-**Headers**:
-```
-Authorization: Bearer <token>
-```
-
-### Response
-
-**Success (200)**: Status exists
-```json
-{
-  "success": true,
-  "data": {
-    "status": "yes" | "no" | "maybe",
-    "updatedAt": "string (ISO 8601)"
-  }
-}
-```
-
-**Success (200)**: No status set
-```json
-{
-  "success": true,
-  "data": null
+  success: false,
+  error: "Cannot indicate 'yes' for paid event without ticket purchase"
 }
 ```
 
 ---
 
-## GET /api/events/:eventId/participation/summary
+## getParticipationStatusLoader
 
-Get participation summary for event (organizer only).
+**Location**: `src/routes/events/[id]/index.tsx`  
+**Type**: `routeLoader$()`
 
-### Request
+### Input
 
-**Path Parameters**:
-- `eventId`: string (UUID, required)
+- Route parameter: `eventId` (UUID)
+- Session: Current user ID
 
-**Headers**:
-```
-Authorization: Bearer <token>
-```
+### Return Type
 
-**Authorization**:
-- User must be event organizer (event.userId)
-
-### Response
-
-**Success (200)**:
-```json
+**Status exists**:
+```typescript
 {
-  "success": true,
-  "data": {
-    "yes": 45,
-    "no": 12,
-    "maybe": 23,
-    "total": 80
-  }
+  status: 'yes' | 'no' | 'maybe',
+  updatedAt: string // ISO 8601
 }
 ```
 
-**Error (403)**:
-```json
+**No status set**:
+```typescript
+null
+```
+
+---
+
+## getParticipationSummaryLoader
+
+**Location**: `src/routes/admin/events/[id]/details/index.tsx`  
+**Type**: `routeLoader$()`
+
+### Input
+
+- Route parameter: `eventId` (UUID)
+- Session: Current user must be event organizer
+
+### Return Type
+
+```typescript
 {
-  "success": false,
-  "error": "Only event organizer can view participation summary"
+  yes: number,
+  no: number,
+  maybe: number,
+  total: number
 }
 ```
+
+**Error**: Throws Qwik error (403 if not organizer)

@@ -227,14 +227,35 @@ export function validateSalesPeriod(event: Event): {valid: boolean, reason?: str
 
 ## Technology Stack Summary
 
-| Component | Technology | Version | Rationale |
-|-----------|-----------|---------|-----------|
-| QR Generation | qrcode | ^1.5.3 | Server-side generation, Qwik SSR compatible |
-| QR Scanning | html5-qrcode | ^2.3.8 | Browser-based camera access, mobile friendly |
-| Photo Upload UI | @uppy/core + plugins | ^5.0.0 | Framework-agnostic, feature-rich, existing endpoint integration |
-| Secure URLs | Node crypto (built-in) | - | HMAC-SHA256 signing, no dependencies |
-| Testing | Vitest | (existing) | Qwik native, fast unit/integration tests |
-| Storage | File system + DB refs | - | Leverages existing upload infrastructure |
+| Component | Technology | Version | Implementation Pattern |
+|-----------|-----------|---------|------------------------|
+| QR Generation | qrcode | ^1.5.3 | Server-side generation in ticket creation |
+| QR Scanning | html5-qrcode | ^2.3.8 | Browser-based camera access |
+| Photo Upload UI | @uppy/core + plugins | ^5.0.0 | Client-side component → existing /api/upload |
+| Secure URLs | Node crypto (built-in) | - | HMAC-SHA256 signing via server function |
+| Testing | Vitest | (existing) | Unit/integration tests |
+| Storage | File system + DB refs | - | /private/ directory with DB metadata |
+| **Client-Server Communication** | **Qwik Server Functions** | - | **routeAction$/routeLoader$ (NOT REST APIs)** |
+| **Photo File Serving** | **REST API** | - | **/api/photos/serve (ONLY REST endpoint)** |
+
+### Architecture Clarification: Server Functions vs REST APIs
+
+**This feature follows Qwik's server function pattern:**
+
+- **Ticket Scanning**: `routeAction$()` in `/admin/events/[id]/scan/` - NOT `/api/tickets/scan`
+- **Participation Status**: `routeAction$()` + `routeLoader$()` in event route - NOT `/api/events/:id/participation`
+- **Photo Metadata Creation**: `routeAction$()` in photos route - NOT `/api/events/:id/photos`
+- **Photo Gallery Loading**: `routeLoader$()` with attendance validation - NOT `/api/events/:id/photos` GET
+- **Secure URL Generation**: `routeAction$()` returning signed URL - NOT `/api/photos/:id/secure-url`
+
+**ONLY ONE REST API ENDPOINT**:
+- `/api/photos/serve?path=...&exp=...&sig=...` - Serves binary image data with HMAC validation
+
+**Rationale**: 
+- Qwik server functions provide type safety, automatic serialization, session integration, and simpler code
+- REST APIs only needed for non-JSON responses (binary files) or external integrations
+- Current ticket system already uses this pattern (checkout via `routeAction$`)
+- Reduces API surface area and improves maintainability
 
 ## Best Practices Applied
 

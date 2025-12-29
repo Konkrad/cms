@@ -1,9 +1,11 @@
 import { component$ } from "@builder.io/qwik";
-import { Link, type DocumentHead, routeLoader$ } from "@builder.io/qwik-city";
+import { Link, type DocumentHead, routeLoader$, routeAction$, z, zod$, Form } from "@builder.io/qwik-city";
 import { format } from "date-fns";
 import { eventsService } from "~/services/events.service";
+import { participationService } from "~/services/participation.service";
+import { ParticipationToggle } from "~/components/events/ParticipationToggle";
 
-export const useEvent = routeLoader$(async ({ params, status }) => {
+export const useEvent = routeLoader$(async ({ params, status, sharedMap }) => {
   const event = await eventsService.getById(params.id);
 
   if (!event) {
@@ -11,11 +13,49 @@ export const useEvent = routeLoader$(async ({ params, status }) => {
     return null;
   }
 
-  return event;
+  // Check sales period status
+  const salesValidation = await eventsService.validateSalesPeriod(event);
+
+  // Get participation status if user is logged in
+  const session = sharedMap.get("session");
+  let participationStatus = null;
+  if (session?.userId) {
+    participationStatus = await participationService.getStatus(
+      session.userId,
+      params.id,
+    );
+  }
+
+  return {
+    ...event,
+    salesStatus: salesValidation,
+    userParticipation: participationStatus,
+  };
 });
+
+export const useUpdateParticipation = routeAction$(
+  async (data, event) => {
+    const session = event.sharedMap.get("session");
+    if (!session?.userId) {
+      return event.fail(401, { message: "Please log in to RSVP" });
+    }
+
+    await participationService.upsert(
+      session.userId,
+      event.params.id,
+      data.status,
+    );
+
+    return { success: true };
+  },
+  zod$({
+    status: z.enum(["yes", "no", "maybe"]),
+  }),
+);
 
 export default component$(() => {
   const event = useEvent();
+  const updateParticipation = useUpdateParticipation();
 
   if (!event.value) {
     return (
@@ -53,6 +93,19 @@ export default component$(() => {
           <h1 class="text-4xl font-bold text-gray-900 mb-4">
             {event.value.title}
           </h1>
+        </div>
+
+        {/* Participation Toggle */}
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h3 class="text-lg font-semibold mb-4">Will you attend?</h3>
+          <Form action={updateParticipation}>
+            <ParticipationToggle
+              currentStatus={event.value.userParticipation?.status || null}
+              onStatusChange={(status) => {
+                updateParticipation.submit({ status });
+              }}
+            />
+          </Form>
         </div>
 
         {/* Event Details Card */}
@@ -165,6 +218,32 @@ export default component$(() => {
             </div>
           </div>
         </div>
+
+        {/* Sales Period Status */}
+        {!event.value.salesStatus.valid && (
+          <div class={`rounded-lg p-6 mb-8 ${
+            event.value.salesStatus.reason?.includes('open on') 
+              ? 'bg-yellow-50 border border-yellow-200' 
+              : 'bg-red-50 border border-red-200'
+          }`}>
+            <h3 class={`text-lg font-semibold mb-2 ${
+              event.value.salesStatus.reason?.includes('open on')
+                ? 'text-yellow-900'
+                : 'text-red-900'
+            }`}>
+              {event.value.salesStatus.reason?.includes('open on') 
+                ? '🕒 Sales Not Yet Open' 
+                : '🔒 Sales Closed'}
+            </h3>
+            <p class={
+              event.value.salesStatus.reason?.includes('open on')
+                ? 'text-yellow-800'
+                : 'text-red-800'
+            }>
+              {event.value.salesStatus.reason}
+            </p>
+          </div>
+        )}
 
         {/* Additional Info */}
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">

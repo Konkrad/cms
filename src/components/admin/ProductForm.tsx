@@ -62,6 +62,16 @@ export const ProductForm = component$<ProductFormProps>(
                 required
               />
 
+              <Input
+                name="participantCapacity"
+                label="Participant Capacity"
+                type="number"
+                min="1"
+                value="1"
+                placeholder="Number of participants per product unit"
+                required
+              />
+
               <div>
                 <label class="block text-sm font-medium mb-1">
                   Features (comma-separated)

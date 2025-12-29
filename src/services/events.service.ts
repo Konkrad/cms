@@ -6,6 +6,7 @@ import {
   insertEventSchema,
   updateEventSchema,
 } from "~/db/schemas/events";
+import { products } from "~/db/schemas/products";
 import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
 
 export type EventWithUser = Event & {
@@ -126,5 +127,49 @@ export const eventsService = {
 
   async delete(id: string): Promise<void> {
     await db.delete(events).where(eq(events.id, id));
+  },
+
+  async isFreeEvent(eventId: string): Promise<boolean> {
+    const event = await this.getById(eventId);
+    if (!event) return false;
+    
+    // Get all products for the event
+    const eventProducts = await db.query.products.findMany({
+      where: eq(products.eventId, eventId),
+    });
+    
+    // Event is free if all products have price 0
+    return eventProducts.length > 0 && eventProducts.every(p => p.price === 0);
+  },
+
+  async validateSalesPeriod(event: Event): Promise<{
+    valid: boolean;
+    reason?: string;
+  }> {
+    const now = new Date();
+
+    // Check if sales haven't started yet
+    if (event.salesStartDate) {
+      const salesStart = new Date(event.salesStartDate);
+      if (salesStart > now) {
+        return {
+          valid: false,
+          reason: `Sales open on ${salesStart.toLocaleDateString()} at ${salesStart.toLocaleTimeString()}`,
+        };
+      }
+    }
+
+    // Check if sales have ended
+    if (event.salesEndDate) {
+      const salesEnd = new Date(event.salesEndDate);
+      if (salesEnd < now) {
+        return {
+          valid: false,
+          reason: "Sales have closed for this event",
+        };
+      }
+    }
+
+    return { valid: true };
   },
 };

@@ -62,6 +62,21 @@ export const useCreateCheckoutSession = routeAction$(
       return event.fail(401, { message: "Please log in to purchase tickets" });
     }
 
+    // Get event and validate sales period
+    const { eventsService } = await import("~/services/events.service");
+    const eventData = await eventsService.getById(eventId);
+    if (!eventData) {
+      return event.fail(404, { message: "Event not found" });
+    }
+
+    // Validate sales period
+    const salesValidation = await eventsService.validateSalesPeriod(eventData);
+    if (!salesValidation.valid) {
+      return event.fail(400, { 
+        message: salesValidation.reason || "Sales are not currently available" 
+      });
+    }
+
     // Parse selected products
     const items = JSON.parse(data.items as string);
     console.log("[Server] Creating checkout session for items:", items);
@@ -80,6 +95,34 @@ export const useCreateCheckoutSession = routeAction$(
       }),
     );
 
+    // Calculate total amount
+    const totalAmount = products.reduce((sum, p) => {
+      return sum + p.product!.price * p.quantity * 100; // Convert to cents
+    }, 0);
+
+    // Handle free tickets - skip payment
+    if (totalAmount === 0) {
+      const { ticketsService } = await import("~/services/tickets.service");
+      
+      // Create free tickets directly
+      const createdTickets = [];
+      for (const item of items) {
+        for (let i = 0; i < item.quantity; i++) {
+          const ticket = await ticketsService.createFreeTicket({
+            productId: item.productId,
+            eventId,
+            buyerId: user.id,
+          });
+          createdTickets.push(ticket);
+        }
+      }
+
+      return {
+        isFree: true,
+        tickets: createdTickets,
+      };
+    }
+
     // Build line items for Stripe
     const lineItems = products
       .filter((p) => p.product)
@@ -95,11 +138,6 @@ export const useCreateCheckoutSession = routeAction$(
         },
         quantity: p.quantity,
       }));
-
-    // Calculate total amount
-    const totalAmount = products.reduce((sum, p) => {
-      return sum + p.product!.price * p.quantity * 100; // Convert to cents
-    }, 0);
 
     // Create Payment Intent directly
     const paymentIntent = await stripeService.stripe.paymentIntents.create({
@@ -196,25 +234,9 @@ export default component$(() => {
     track(() => currentStep.value);
 
     if (currentStep.value === 2 && !stripeLoaded.value) {
-      console.log("[Checkout] Loading Stripe.js");
-
-      // Load Stripe.js script
-      if (!document.querySelector('script[src*="stripe.com/v3"]')) {
-        const script = document.createElement("script");
-        script.src = "https://js.stripe.com/v3/";
-        script.async = true;
-        document.head.appendChild(script);
-
-        await new Promise((resolve) => {
-          script.onload = resolve;
-        });
-      }
-
-      stripeLoaded.value = true;
-      console.log("[Checkout] Stripe.js loaded");
-
-      // Create checkout session using action
       console.log("[Checkout] Creating checkout session");
+      
+      // Create checkout session using action
       const items = Object.entries(selectedProducts.value).map(
         ([productId, quantity]) => ({
           productId,
@@ -228,7 +250,32 @@ export default component$(() => {
 
       console.log("[Checkout] Checkout session result:", result);
 
+      // Handle free tickets
+      if (result.value?.isFree) {
+        console.log("[Checkout] Free tickets created, skipping to success");
+        currentStep.value = 3;
+        return;
+      }
+
+      // Handle paid tickets - load Stripe
       if (result.value?.clientSecret && result.value?.paymentIntentId) {
+        console.log("[Checkout] Loading Stripe.js for paid tickets");
+
+        // Load Stripe.js script
+        if (!document.querySelector('script[src*="stripe.com/v3"]')) {
+          const script = document.createElement("script");
+          script.src = "https://js.stripe.com/v3/";
+          script.async = true;
+          document.head.appendChild(script);
+
+          await new Promise((resolve) => {
+            script.onload = resolve;
+          });
+        }
+
+        stripeLoaded.value = true;
+        console.log("[Checkout] Stripe.js loaded");
+
         clientSecret.value = result.value.clientSecret;
         paymentIntentId.value = result.value.paymentIntentId;
       }

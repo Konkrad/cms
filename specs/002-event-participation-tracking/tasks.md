@@ -64,12 +64,12 @@ description: "Task list for Event Participation Tracking & Enhanced Features"
 ### Implementation for User Story 1
 
 - [X] T015 [US1] Extend tickets service with scanTicket method in src/services/tickets.service.ts
-- [ ] T016 [US1] Create TicketScanner component in src/components/events/TicketScanner.tsx using html5-qrcode
-- [ ] T017 [US1] Create admin scan route with routeAction$ in src/routes/admin/events/[id]/scan/index.tsx
-- [ ] T018 [US1] Add QR code generation to ticket creation flow in existing ticket service
-- [ ] T019 [US1] Update ticket display to show QR code and scan status in ticket detail views
-- [ ] T020 [US1] Add validation for duplicate scans and invalid QR codes in scan action
-- [ ] T021 [US1] Create attendance report view in src/routes/admin/events/[id]/attendance/index.tsx
+- [X] T016 [US1] Create TicketScanner component in src/components/events/TicketScanner.tsx using html5-qrcode
+- [X] T017 [US1] Create admin scan route with routeAction$ in src/routes/admin/events/[id]/scan/index.tsx
+- [X] T018 [US1] Add QR code generation to ticket creation flow in existing ticket service
+- [X] T019 [US1] Update ticket display to show QR code and scan status in ticket detail views
+- [X] T020 [US1] Add validation for duplicate scans and invalid QR codes in scan action
+- [X] T021 [US1] Create attendance report view in src/routes/admin/events/[id]/attendance/index.tsx
 
 **Checkpoint**: Ticket scanning complete - organizers can scan tickets and verify attendance independently
 
@@ -83,12 +83,12 @@ description: "Task list for Event Participation Tracking & Enhanced Features"
 
 ### Implementation for User Story 2
 
-- [ ] T022 [P] [US2] Update event service to support free event configuration in src/services/events.service.ts
-- [ ] T023 [P] [US2] Update ticket service to handle free ticket creation in src/services/tickets.service.ts
-- [ ] T024 [US2] Modify checkout flow to skip payment for free tickets in existing checkout routes
-- [ ] T025 [US2] Add UI for marking event as free in event creation/edit forms
-- [ ] T026 [US2] Add admin function to issue complimentary tickets in src/routes/admin/events/[id]/comp-tickets/index.tsx
-- [ ] T027 [US2] Update attendance reports to distinguish free vs paid tickets
+- [X] T022 [P] [US2] Update event service to support free event configuration in src/services/events.service.ts
+- [X] T023 [P] [US2] Update ticket service to handle free ticket creation in src/services/tickets.service.ts
+- [X] T024 [US2] Modify checkout flow to skip payment for free tickets in existing checkout routes
+- [X] T025 [US2] Add UI for marking event as free in event creation/edit forms
+- [X] T026 [US2] Add admin function to issue complimentary tickets in src/routes/admin/events/[id]/comp-tickets/index.tsx
+- [X] T027 [US2] Update attendance reports to distinguish free vs paid tickets
 
 **Checkpoint**: Free tickets complete - can create free events and comp tickets independently
 
@@ -102,10 +102,10 @@ description: "Task list for Event Participation Tracking & Enhanced Features"
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] Create participant service in src/services/participants.service.ts with CRUD operations
-- [ ] T029 [US3] Update product creation UI to include participant capacity field in admin product forms
+- [X] T028 [US3] Create participant service in src/services/participants.service.ts with CRUD operations
+- [X] T029 [US3] Update product creation UI to include participant capacity field in admin product forms
 - [ ] T030 [US3] Modify checkout flow to collect participant details based on capacity in existing checkout route
-- [ ] T031 [US3] Create ParticipantForm component in src/components/events/ParticipantForm.tsx
+- [X] T031 [US3] Create ParticipantForm component in src/components/events/ParticipantForm.tsx
 - [ ] T032 [US3] Add participant detail validation in checkout routeAction$
 - [ ] T033 [US3] Update ticket display to show all associated participants in ticket views
 - [ ] T034 [US3] Extend ticket scanner to display participant information when scanning
@@ -122,10 +122,10 @@ description: "Task list for Event Participation Tracking & Enhanced Features"
 
 ### Implementation for User Story 4
 
-- [ ] T035 [P] [US4] Add sales period validation to events service in src/services/events.service.ts
+- [X] T035 [P] [US4] Add sales period validation to events service in src/services/events.service.ts
 - [ ] T036 [US4] Update event creation/edit forms to include sales period fields in admin event forms
-- [ ] T037 [US4] Add sales period validation to checkout flow routeAction$
-- [ ] T038 [US4] Create UI messaging for pre-sale and post-sale states in event detail views
+- [X] T037 [US4] Add sales period validation to checkout flow routeAction$
+- [X] T038 [US4] Create UI messaging for pre-sale and post-sale states in event detail views
 - [ ] T039 [US4] Add sales period validation to product purchase endpoints
 
 **Checkpoint**: Sales period control complete - can restrict ticket sales by time window independently
@@ -140,11 +140,11 @@ description: "Task list for Event Participation Tracking & Enhanced Features"
 
 ### Implementation for User Story 5
 
-- [ ] T040 [US5] Create participation service in src/services/participation.service.ts
-- [ ] T041 [US5] Create ParticipationToggle component in src/components/events/ParticipationToggle.tsx
-- [ ] T042 [US5] Add participation routeAction$ and routeLoader$ to event detail route in src/routes/events/[id]/index.tsx
+- [X] T040 [US5] Create participation service in src/services/participation.service.ts
+- [X] T041 [US5] Create ParticipationToggle component in src/components/events/ParticipationToggle.tsx
+- [X] T042 [US5] Add participation routeAction$ and routeLoader$ to event detail route in src/routes/events/[id]/index.tsx
 - [ ] T043 [US5] Implement auto-upgrade from "maybe" to "yes" on ticket purchase in transaction completion
-- [ ] T044 [US5] Create participation summary view for organizers in src/routes/admin/events/[id]/participation/index.tsx
+- [X] T044 [US5] Create participation summary view for organizers in src/routes/admin/events/[id]/participation/index.tsx
 - [ ] T045 [US5] Add participation counts to event overview displays
 
 **Checkpoint**: Participation tracking complete - users can indicate intent and organizers see summary independently

@@ -12,6 +12,7 @@ import { events } from "~/db/schemas/events";
 import { ticketParticipants } from "~/db/schemas/ticket-participants";
 import { eq, and, isNull, isNotNull } from "drizzle-orm";
 import { parseAndValidateQR } from "~/utils/qr-code";
+import crypto from "crypto";
 
 export const ticketsService = {
   async create(data: InsertTicket): Promise<Ticket> {
@@ -214,5 +215,32 @@ export const ticketsService = {
       },
     });
     return results as any;
+  },
+
+  async createFreeTicket(data: {
+    productId: string;
+    eventId: string;
+    buyerId: string;
+  }): Promise<Ticket> {
+    // Create a dummy transaction for free tickets
+    const { transactionsService } = await import("./transactions.service");
+    const transaction = await transactionsService.create({
+      userId: data.buyerId,
+      eventId: data.eventId,
+      status: "completed",
+      totalAmount: 0,
+      paymentIntentId: `free_${crypto.randomUUID()}`,
+    });
+
+    // Create the ticket with isFree flag
+    const ticket = await this.create({
+      transactionId: transaction.id,
+      productId: data.productId,
+      eventId: data.eventId,
+      buyerId: data.buyerId,
+      isFree: true,
+    });
+
+    return ticket;
   },
 };

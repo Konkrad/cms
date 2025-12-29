@@ -85,6 +85,7 @@ export const useCreateProduct = routeAction$(
         name: validatedData.name.trim(),
         price: validatedData.price,
         maxQuantity: validatedData.maxQuantity,
+        participantCapacity: validatedData.participantCapacity,
         features,
         imageUrl: validatedData.imageUrl || undefined,
       });
@@ -105,6 +106,10 @@ export const useCreateProduct = routeAction$(
       z.string().transform(val => parseInt(val, 10)),
       z.number().int()
     ]).pipe(z.number().int().min(0, "Max quantity cannot be negative")),
+    participantCapacity: z.union([
+      z.string().transform(val => parseInt(val, 10)),
+      z.number().int()
+    ]).pipe(z.number().int().min(1, "Participant capacity must be at least 1")).default(1),
     features: z.string().default(""),
     imageUrl: z.string().url("Invalid image URL").optional().or(z.literal("")),
   })),

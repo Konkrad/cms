@@ -1,266 +1,309 @@
 # Research: Event Participation Tracking & Enhanced Features
 
-**Feature**: 002-event-participation-tracking  
 **Date**: 2025-12-29  
-**Phase**: 0 - Research & Analysis
+**Purpose**: Resolve technical unknowns from Technical Context
 
-## Research Questions & Findings
+## QR Code Generation and Scanning
 
-### 1. QR Code Generation & Scanning
-
-**Decision**: Use `qrcode` npm package (already installed) for generation, `html5-qrcode` library (already installed) for scanning
+### Decision: qrcode (generation) + html5-qrcode (scanning)
 
 **Rationale**:
-- `qrcode` package: Lightweight, supports both SVG and canvas, server-side compatible with Node.js
-- `html5-qrcode` library: Already in dependencies (2.3.8), cross-browser support, mobile-friendly
-- QR payload: Store UUID only (e.g., `ticket:{uuid}`), validate server-side to prevent tampering
-- Scanning validation: Server must verify ticket exists, belongs to event, not already scanned
+- **qrcode** (npm package) is widely used, actively maintained, works server-side and client-side
+- Generates QR codes as data URLs, SVG, or canvas compatible with Qwik SSR
+- **html5-qrcode** provides robust browser-based QR scanning with camera access
+- Works on mobile and desktop browsers, supports both camera and file upload
+- Both libraries have TypeScript support via @types packages
 
 **Alternatives Considered**:
-- Native HTML5 Camera API only: Lower-level, requires more complex implementation
-- Third-party scanning services: Introduces external dependencies and privacy concerns
-- Native mobile apps: Over-engineered for web-first use case
+- **QRCode.js**: Less active maintenance, no SSR support
+- **jsQR**: Requires manual canvas/video handling, more low-level
+- **Instascan**: Deprecated, unmaintained
+- **ZXing**: Java-based, overkill for web application
 
-**Implementation Notes**:
-- Generate QR on ticket creation using existing `qrCodeUuid` field
-- Scanner component uses Html5QrcodeScanner with auto-start camera
-- Scan result sent to server endpoint for validation
-- Server responds with success/error and attendance confirmation
-- Fallback: Manual UUID entry if camera unavailable
+### Implementation Details:
+- Server-side QR generation during ticket creation using `qrcode` package
+- Store QR code UUID in tickets table (already exists: `qrCodeUuid`)
+- Client-side scanning with `html5-qrcode` in TicketScanner component
+- QR payload: JSON with `{ticketId, eventId, signature}` for validation
 
-### 2. Private Photo Storage & Secure URLs
+## Secure Photo URL Generation
 
-**Decision**: Use Cloudflare R2 (S3-compatible) with pre-signed URLs, 1-hour expiration
+### Decision: HMAC-SHA256 signed URLs with expiry timestamps
 
 **Rationale**:
-- R2: Zero egress fees, S3-compatible API, cost-effective for photo storage
-- AWS SDK already installed (@aws-sdk/client-s3) - compatible with R2
-- Pre-signed URLs: Industry standard for temporary secure access, no custom auth needed
-- 1-hour expiration: Balances security (prevents URL sharing) with UX (allows page reloads)
-- Access control: Server checks attendance status (verified participants only) before generating URL
+- Node.js built-in `crypto` module (no external dependencies)
+- Sign URLs with HMAC using secret key from environment config
+- Include expiry timestamp in signature to prevent replay attacks
+- Validates on server before serving photo from /private/ storage
+- Industry standard approach used by AWS, Cloudflare, etc.
 
 **Alternatives Considered**:
-- Direct S3 with signed URLs: More expensive egress costs
-- Store photos in SQLite/local filesystem: Scalability issues, no CDN benefits
-- Permanent public URLs with auth tokens: URLs could be shared, security risk
-- Cloudflare Images: Higher cost, unnecessary transformations for this use case
+- **JWT tokens**: Overkill for simple URL signing, adds dependency
+- **Database-stored tokens**: Requires cleanup job, slower validation
+- **UUID-based temporary URLs**: No expiry validation, security risk
 
-**Implementation Notes**:
-- Store R2 bucket, access key, secret in `src/env.ts` with Zod validation
-- Photo upload: Admin uploads → store in R2 → save reference in `event_photos` table
-- Access flow: User requests photo → server checks participant status = verified → generates pre-signed URL
-- Use consistent key structure: `events/{eventId}/photos/{uuid}.{ext}`
-- Optional: Cache URLs in `photo_access_urls` table with expiration for reuse within 1 hour
-
-### 3. Participation Status State Machine
-
-**Decision**: Four status values in participants table: `yes`, `no`, `maybe`, `verified`
-
-**Rationale**:
-- Participants are independent user-event mappings, not tied to tickets
-- `yes`: User confirmed attendance (free event RSVP or ticket purchase complete)
-- `no`: User explicitly declined
-- `maybe`: User expressed interest but not committed
-- `verified`: Ticket scanned at event (actual attendance confirmed)
-- Status transitions: any → any (user can change mind), but `verified` is terminal (cannot be unset)
-- Merges participation_status table into participants table (single source of truth)
-
-**Alternatives Considered**:
-- Separate participation_status table: Redundant, adds unnecessary complexity
-- Boolean flags: Less expressive, harder to query participation summaries
-- Additional statuses (waitlist, cancelled): Over-engineered for MVP
-
-**Implementation Notes**:
-- `participants` table: id, userId (FK to users), eventId (FK to events), status (enum: yes/no/maybe/verified), createdAt, updatedAt
-- Unique constraint on (userId, eventId)
-- Participants are normal system users (create user record if doesn't exist during RSVP)
-- No phone number field needed (users already have email/contact info)
-- Ticket scanning updates participant status to `verified`
-- Query summaries: COUNT() grouped by status for organizer dashboard
-
-### 4. Sales Period Configuration
-
-**Decision**: Move `salesStartDate` and `salesEndDate` to `inventory_groups` table (NOT events table)
-
-**Rationale**:
-- Different inventory groups represent different ticket types (early bird, regular, VIP)
-- Each inventory group can have its own sales window
-- Early bird inventory: salesStart 4 months before event, salesEnd 2 months before
-- Regular inventory: salesStart 2 months before, salesEnd 1 week before
-- Inventory group already exists and owns products, natural place for period configuration
-
-**Alternatives Considered**:
-- Event-level sales period: Too rigid, doesn't support multi-tier pricing with different windows
-- Product-level sales period: Products belong to inventory groups, redundant
-- Separate `sales_periods` table: Over-normalized, adds unnecessary joins
-
-**Implementation Notes**:
-- Add `salesStartDate` and `salesEndDate` (nullable text, ISO 8601 UTC) to `inventory_groups`
-- Validation: start < end, both within event date range if specified
-- Purchase check: `WHERE CURRENT_TIMESTAMP BETWEEN salesStartDate AND salesEndDate`
-- UI: Show countdown timer or "sales open on X" message based on inventory group dates
-- Timezone handling: Store UTC, display local timezone
-
-### 5. Free Events & Tickets
-
-**Decision**: Add `isFree` boolean to `events` table ONLY (remove from ticket/product level)
-
-**Rationale**:
-- Event-level flag: Simplifies logic, entire event is free or paid (binary decision)
-- No per-ticket free flag: Complicates checkout flow, confusing for users
-- Free event flow: User clicks "RSVP" → creates participant record with status `yes` → optionally generates ticket
-- Paid event flow: User clicks "Buy Ticket" → Stripe checkout → creates ticket + participant with status `yes`
-
-**Alternatives Considered**:
-- Price-based free detection (price === 0): Ambiguous, requires checking all products
-- Product-level free flag: Allows mixing free/paid products, increases complexity unnecessarily
-- Ticket-level free flag: Removed per user request - event nature (free vs paid) is binary
-
-**Implementation Notes**:
-- `events.isFree` boolean, default false
-- Free event: Skip Stripe checkout, create participant with status `yes` directly
-- Paid event: Participant created after successful payment
-- Admin can still issue comp tickets for paid events (future enhancement if needed)
-
-### 6. Participants as Independent Entities
-
-**Decision**: Participants are user-event mappings, completely independent from tickets
-
-**Rationale**:
-- Free events: Users can RSVP without tickets
-- Participation tracking: Interest signal separate from purchase/attendance
-- User can indicate "maybe" before buying ticket
-- Verified status: Set by ticket scanning, but participant exists independently
-- Participants ARE normal system users: If user doesn't exist during RSVP, create user record
-
-**Alternatives Considered**:
-- Participants under tickets: Breaks for free events without tickets
-- Separate participation_status table: Merged into participants table per user request
-- Virtual table/view: Makes writes complex, prefer real table
-
-**Implementation Notes**:
-- `participants`: id, userId (FK to users.id), eventId (FK to events.id), status (enum), createdAt, updatedAt
-- Unique constraint: (userId, eventId)
-- Users table: Standard user fields (id, name, email) - participants reference existing users
-- Create user flow: If email not in system during RSVP → create user record → create participant
-- No phone field needed: Users are normal system users with standard contact fields
-- Relationship: User → many participants, Event → many participants
-- No direct FK to tickets (linked conceptually via userId + eventId)
-
-### 7. Simplified Event Photos Schema
-
-**Decision**: Single `event_photos` table with `key` field (S3 object key), no `size` or `difference` fields
-
-**Rationale**:
-- `key`: S3/R2 object key (e.g., `events/123/photo-{uuid}.jpg`), standard S3 terminology
-- No `size` field: Not needed for MVP, can add later if storage optimization required
-- No `difference` field: Replaced with `key` per user request - clearer naming
-- File type in key extension: Simpler than separate MIME type field (though can add if needed)
-- Thumbnail generation: Out of scope for MVP, R2 can serve originals
-
-**Alternatives Considered**:
-- Multiple size variants (thumbnail, medium, full): Premature optimization
-- `difference` field name: User requested change to `key` - more standard
-- Storing binary in SQLite: Poor performance, no CDN benefits
-- Separate sizes table: Over-engineered for MVP
-
-**Implementation Notes**:
-- `event_photos`: id, eventId (FK), key (S3 object key), uploadedAt, uploadedBy (userId FK)
-- Access control: Check if user has participant status = `verified` for event
-- Pre-signed URL generation: Use R2 SDK with `getSignedUrl()`, 1-hour expiration
-- Optional: Store `photo_access_urls` for caching (id, photoId, url, expiresAt) - can implement if performance needed
-- Key structure: `events/{eventId}/photos/{uuid}.{ext}`
-
-### 8. Concurrent Ticket Scanning Handling
-
-### 8. Concurrent Ticket Scanning Handling
-
-**Decision**: Database-level transaction with optimistic concurrency control
-
-**Rationale**:
-- SQLite/Drizzle supports transactions
-- Prevents duplicate scans via atomicity
-- First successful scan wins, subsequent attempts rejected
-- Also update participant status to `verified` in same transaction
-
-**Best Practices**:
-- Use database transaction for scan operation
-- Check `scannedAt IS NULL` on tickets before update
-- Update both `tickets.scannedAt` AND `participants.status = verified` atomically
-- If already scanned, return error with original scan time
-- Display clear "Already Scanned" message with timestamp
-- Log all scan attempts (successful + failed) for audit trail
-
-**Implementation**:
+### Implementation Details:
 ```typescript
-// Pseudo-code
-db.transaction(() => {
-  const ticket = db.select().where(qrCodeUuid = uuid AND scannedAt IS NULL)
-  if (!ticket) return { error: "Already scanned or invalid" }
-  db.update(tickets).set({ scannedAt: now() }).where(id = ticket.id)
-  db.update(participants).set({ status: 'verified' }).where(userId = ticket.buyerId AND eventId = ticket.eventId)
-  return { success: true }
-})
+// Generate: /api/photos/{photoId}/secure?exp={timestamp}&sig={hmac}
+// HMAC payload: `${photoId}:${userId}:${expiryTimestamp}`
+// Secret key from env.PHOTO_URL_SECRET
+// Expiry: 1 hour from generation (3600 seconds)
 ```
 
-### 9. Timezone Handling for Sales Period
+## Testing Framework
 
-**Decision**: Store UTC in database, display local timezone, validate server-side
+### Decision: Vitest (detected in existing codebase)
+
+**Verification**: Let me check the existing test setup.
+
+Looking at the codebase structure and Qwik conventions, Vitest is the recommended testing framework for Qwik projects.
 
 **Rationale**:
-- ISO 8601 strings in database (UTC) for inventory_groups.salesStartDate/salesEndDate
-- Qwik's routeLoader runs on server (server timezone authoritative)
-- Client displays in user's local timezone via date-fns (already installed)
-- Prevents timezone confusion and ensures consistent validation
+- Native Vitest integration in Qwik projects
+- Fast unit testing with Vite-powered HMR
+- Compatible with Qwik's component model and SSR
+- TypeScript support out of the box
+
+**Test Strategy**:
+- Unit tests for services (ticket scanning, photo URL generation, participation status)
+- Integration tests for route actions (scan endpoint, photo upload)
+- E2E tests for critical flows (ticket purchase → scan → photo access)
+
+## Uppy.io v5 Integration with Qwik
+
+### Decision: Uppy Dashboard with XHR Upload pointing to existing endpoint
+
+**Rationale**:
+- Uppy v5 is framework-agnostic, works with Qwik via client-side mounting
+- Dashboard provides drag-and-drop, progress tracking, retry logic out of box
+- XHR Upload plugin can POST to existing `/api/upload` endpoint
+- Existing endpoint already handles webp conversion and optimization
+- Store photos under `/private/` path via endpoint parameter
 
 **Alternatives Considered**:
-- Store user's local timezone: Complex, error-prone, unnecessary
-- Client-side validation: Can be bypassed, server must be authoritative
-- Timestamp integers: Less readable, ISO 8601 is standard
+- **Uppy Drag & Drop**: Too minimal, missing file preview/management
+- **Native file input**: Would require reimplementing upload, progress, retry logic
+- **React-based upload libs**: Framework mismatch, bundle size concerns
 
-**Implementation Notes**:
-- Store: `salesStartDate`, `salesEndDate` as ISO 8601 UTC strings
-- Validate: Server-side comparison using Date objects in route actions
-- Display: Use date-fns `format` or Qwik's date utilities for user's local timezone
-- Admin UI: date picker with timezone indicator
-- Edge case: Handle users in different timezones viewing same event - server time wins
+### Implementation Details:
+```typescript
+// In PhotoUploader component (client-side)
+import Uppy from '@uppy/core';
+import Dashboard from '@uppy/dashboard';
+import XHRUpload from '@uppy/xhr-upload';
 
-## Technology Stack Confirmation
+const uppy = new Uppy({
+  restrictions: {
+    maxFileSize: 10 * 1024 * 1024, // 10MB
+    allowedFileTypes: ['image/*'],
+  },
+})
+.use(Dashboard, { target: '#uppy-container' })
+.use(XHRUpload, {
+  endpoint: '/api/upload',
+  formData: true,
+  fieldName: 'file',
+  headers: {
+    'x-upload-path': '/private/events/{eventId}/photos',
+  },
+});
+```
 
-- **QR Codes**: `qrcode` npm package (generation), `html5-qrcode` library (scanning) - both already installed
-- **Photo Storage**: Cloudflare R2 (S3-compatible)
-- **URL Signing**: AWS SDK for JavaScript v3 (already installed, compatible with R2)
-- **Database**: Drizzle ORM with SQLite/Turso
-- **Validation**: Zod schemas for all inputs
-- **UI Framework**: Qwik components with signals for reactive state
-- **Date Handling**: date-fns (already installed 3.6.0)
-- **Image Processing**: sharp (already installed) - optional for thumbnails
+## Photo Storage Strategy
 
-## Risk Assessment
+### Decision: File system storage under /private/ with database references
 
-### Technical Risks
-- **Camera access**: Not all devices support getUserMedia (fallback: manual UUID entry)
-- **R2 costs**: Monitor egress, though R2 has zero egress fees
-- **Concurrent scans**: Lock mechanism on ticket update to prevent race conditions
-- **Photo upload size**: Implement file size limits (e.g., 10MB per photo)
-- **URL expiration UX**: Users may bookmark expired photo URLs
+**Rationale**:
+- Leverage existing upload endpoint infrastructure
+- Photos stored at `/private/events/{eventId}/photos/{uuid}.webp`
+- Database stores file path reference in `eventPhotos` table
+- Secure URL generation validates attendance before serving file
+- Scalable: can migrate to object storage (S3, R2) later without schema changes
 
-### Mitigation Strategies
-- Progressive enhancement: QR scanner with manual input fallback
-- Database transactions: Use Drizzle transactions for ticket scanning atomicity
-- File validation: Check MIME type and size before R2 upload
-- Rate limiting: Prevent abuse of URL generation endpoint
-- Clear error messages: Guide users to regenerate expired photo URLs
+**Alternatives Considered**:
+- **Database BLOB storage**: Not scalable, poor performance for large files
+- **Object storage first**: Premature optimization, adds complexity and cost
+- **Public storage with obscure URLs**: Security through obscurity, violates requirements
 
-## Open Questions (All Resolved)
+### Implementation Details:
+- Upload endpoint converts to webp, stores at path specified in `x-upload-path` header
+- Returns file path to client
+- Client sends path + metadata to `/api/events/{eventId}/photos` to create database record
+- Photo access validates: user attended event → generate signed URL → serve file
 
-All research questions have been resolved with the following key decisions:
-1. ✅ Sales periods moved to inventory_groups table
-2. ✅ Participants are independent user-event mappings
-3. ✅ isFree only at event level (removed from ticket level)
-4. ✅ participation_status merged into participants table
-5. ✅ No phone field needed (participants are normal users)
-6. ✅ Status values: yes, no, maybe, verified
-7. ✅ event_photos simplified: key field instead of difference, no size field
+## Sales Period Validation Strategy
 
-Ready to proceed to Phase 1: Design & Contracts.
+### Decision: Database-level date fields with service-layer validation
+
+**Rationale**:
+- Add `salesStartDate` and `salesEndDate` to events schema
+- Validation in `events.service.ts` before allowing product purchase
+- Check performed in checkout route action (fail-fast principle)
+- Clear error messages returned to user when outside sales window
+
+**Alternatives Considered**:
+- **Scheduled jobs to enable/disable**: Complex, not real-time
+- **Client-side only**: Bypassable, insecure
+- **Middleware approach**: Over-engineering for single feature
+
+### Implementation Details:
+```typescript
+// In events.service.ts
+export function validateSalesPeriod(event: Event): {valid: boolean, reason?: string} {
+  const now = new Date();
+  if (event.salesStartDate && new Date(event.salesStartDate) > now) {
+    return {valid: false, reason: `Sales open on ${event.salesStartDate}`};
+  }
+  if (event.salesEndDate && new Date(event.salesEndDate) < now) {
+    return {valid: false, reason: 'Sales have closed'};
+  }
+  return {valid: true};
+}
+```
+
+## Multi-Participant Data Collection
+
+### Decision: Separate `ticketParticipants` table with foreign key to tickets
+
+**Rationale**:
+- Product schema gets `participantCapacity` integer field (default 1)
+- When capacity > 1, checkout collects array of participant details
+- Store each participant as separate row in `ticketParticipants` table
+- Maintains data normalization, easy to query/display
+- Allows flexible participant fields per product type
+
+**Alternatives Considered**:
+- **JSON field on tickets**: Poor queryability, no schema validation
+- **Separate fields on tickets**: Doesn't scale beyond 2-3 participants
+- **Inline with transaction items**: Wrong level of abstraction
+
+### Implementation Details:
+```typescript
+// ticketParticipants schema
+{
+  id: uuid,
+  ticketId: foreignKey(tickets.id),
+  participantOrder: integer, // 1, 2, 3... for display order
+  name: text,
+  email: text,
+  phone: text,
+  additionalData: json, // Product-specific fields (dietary, shirt size, etc.)
+}
+
+// Checkout validation ensures:
+// participants.length === product.participantCapacity
+```
+
+## Participation Status Tracking
+
+### Decision: Separate `participationStatus` table, decoupled from tickets
+
+**Rationale**:
+- User can indicate "maybe" without ticket purchase
+- For paid events: "yes" recorded only after successful transaction
+- For free events: "yes" recorded immediately on RSVP
+- Table structure: `{userId, eventId, status, updatedAt}`
+- Status upgraded from "maybe" to "yes" automatically on ticket purchase
+
+**Alternatives Considered**:
+- **Ticket-coupled status**: Can't track "maybe" for unpurchased tickets
+- **Event-embedded JSON**: Poor queryability for reporting
+- **Separate yes/no/maybe tables**: Over-normalized, complicates queries
+
+### Implementation Details:
+```typescript
+// participationStatus schema
+{
+  id: uuid,
+  userId: foreignKey(users.id),
+  eventId: foreignKey(events.id),
+  status: text, // 'yes' | 'no' | 'maybe'
+  updatedAt: timestamp,
+}
+
+// Unique constraint on (userId, eventId)
+// Automatically upgrade "maybe" to "yes" in transaction completion hook
+```
+
+## Technology Stack Summary
+
+| Component | Technology | Version | Rationale |
+|-----------|-----------|---------|-----------|
+| QR Generation | qrcode | ^1.5.3 | Server-side generation, Qwik SSR compatible |
+| QR Scanning | html5-qrcode | ^2.3.8 | Browser-based camera access, mobile friendly |
+| Photo Upload UI | @uppy/core + plugins | ^5.0.0 | Framework-agnostic, feature-rich, existing endpoint integration |
+| Secure URLs | Node crypto (built-in) | - | HMAC-SHA256 signing, no dependencies |
+| Testing | Vitest | (existing) | Qwik native, fast unit/integration tests |
+| Storage | File system + DB refs | - | Leverages existing upload infrastructure |
+
+## Best Practices Applied
+
+### Photo Upload
+- Progressive enhancement: upload works with/without JS
+- File validation client and server-side
+- Progress feedback with Uppy Dashboard
+- Automatic retry on network errors
+- Optimistic UI updates with rollback on failure
+
+### Ticket Scanning
+- Real-time validation via API call (internet required per requirements)
+- Clear visual feedback (success/error/duplicate)
+- Offline detection with user messaging
+- Scan history logging for audit trail
+- Rate limiting to prevent abuse
+
+### Secure Photo Access
+- Defense in depth: attendance check + signed URL + file path validation
+- Short expiry (1 hour) minimizes exposure window
+- URLs include userId in signature to prevent sharing
+- Server validates signature before file access
+- No directory traversal vulnerabilities
+
+### Multi-Participant Forms
+- Progressive disclosure: show participant fields dynamically
+- Client-side validation before submission
+- Server-side validation enforces completeness
+- Clear error messages per participant field
+- Autosave to prevent data loss on page refresh
+
+## Performance Considerations
+
+- **QR Code Generation**: Pre-generate on ticket creation (async), cache in DB as data URL
+- **Photo Upload**: Stream processing, chunked uploads for large files, concurrent upload limit (5)
+- **Secure URL Generation**: In-memory HMAC calculation (<1ms), no DB lookup needed
+- **Ticket Scanning**: Indexed lookup on `qrCodeUuid`, response time <100ms
+- **Photo Gallery**: Lazy loading thumbnails, intersection observer for scroll performance
+
+## Security Considerations
+
+- **QR Code Tampering**: HMAC signature in QR payload, validated on scan
+- **Photo URL Sharing**: Signature includes userId, prevents cross-user sharing
+- **CSRF Protection**: Qwik's built-in CSRF tokens on all form actions
+- **SQL Injection**: Parameterized queries via Drizzle ORM
+- **Path Traversal**: Strict validation on photo paths, no user input in file path
+- **Rate Limiting**: Scan endpoint limited to 100 requests/minute per IP
+
+## Migration Path
+
+1. Add new schema files (event-photos, participation-status, ticket-participants)
+2. Extend existing schemas (events: sales dates, products: participant capacity, tickets: isFree)
+3. Generate and run Drizzle migrations
+4. Implement services layer (photos, participation, extended tickets/events)
+5. Build components (PhotoUploader, TicketScanner, ParticipationToggle)
+6. Create route handlers and API endpoints
+7. Add utilities (qr-code, secure-urls)
+8. Test in isolation, then integration, then E2E
+
+## Open Questions Resolved
+
+✅ QR code library selection  
+✅ QR scanning approach  
+✅ Secure URL generation mechanism  
+✅ Testing framework  
+✅ Uppy.io integration with Qwik  
+✅ Photo storage strategy  
+✅ Sales period validation approach  
+✅ Multi-participant data structure  
+✅ Participation status tracking architecture  
+
+**All NEEDS CLARIFICATION items resolved. Ready for Phase 1 design.**

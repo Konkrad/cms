@@ -1,504 +1,418 @@
 # Data Model: Event Participation Tracking & Enhanced Features
 
-**Feature**: 002-event-participation-tracking  
 **Date**: 2025-12-29  
-**Phase**: 1 - Design
+**Source**: Feature spec + research decisions
 
 ## Entity Overview
 
-This feature introduces 2 new tables and modifies 3 existing tables:
+```
+┌────────────┐         ┌──────────────────┐
+│   Events   │◄────────│ParticipationStatus│
+│            │         │                  │
+│ +salesStart│         │  +status         │
+│ +salesEnd  │         │  +updatedAt      │
+└─────┬──────┘         └──────────────────┘
+      │                          ▲
+      │                          │
+      │ 1:N                      │ N:1
+      │                          │
+      ▼                          │
+┌────────────┐         ┌──────────────┐
+│  Products  │         │    Users     │
+│            │         │              │
+│+participantCap│      └──────────────┘
+└─────┬──────┘                │
+      │                        │
+      │ 1:N                    │ 1:N
+      │                        │
+      ▼                        │
+┌────────────┐                 │
+│  Tickets   │◄────────────────┘
+│            │
+│  +isFree   │
+│+scannedAt  │
+└─────┬──────┘
+      │
+      │ 1:N
+      │
+      ▼
+┌─────────────────┐
+│TicketParticipants│
+│                  │
+│ +participantOrder│
+│ +name            │
+│ +email           │
+│ +phone           │
+│+additionalData   │
+└──────────────────┘
 
-**New Tables**:
-- `participants` - User-event mappings with participation status
-- `event_photos` - Private photos accessible only to verified attendees
+      ┌────────────┐
+      │  Events    │
+      └─────┬──────┘
+            │
+            │ 1:N
+            │
+            ▼
+      ┌─────────────┐
+      │EventPhotos   │
+      │              │
+      │ +filePath    │
+      │ +uploadedAt  │
+      │ +uploadedBy  │
+      └──────────────┘
+```
 
-**Modified Tables**:
-- `events` - Add `isFree` flag
-- `inventory_groups` - Add `salesStartDate`, `salesEndDate` 
-- `products` - Add `participantCapacity`
+## Schema Definitions
 
-## Entity Definitions
+### Extended: Events
 
-### 1. Participants (NEW)
+**Purpose**: Add sales period control to event scheduling
 
-User-event mappings tracking participation intent and attendance verification.
+**Fields (NEW)**:
+- `salesStartDate` (text, ISO 8601, nullable): Date/time when ticket sales open
+- `salesEndDate` (text, ISO 8601, nullable): Date/time when ticket sales close
 
-**Table**: `participants`
+**Existing Fields**: id, title, body, startDate, endDate, locationType, address, city, country, longitude, latitude, onlineUrl, userId, createdAt, updatedAt
 
-| Field | Type | Constraints | Description |
-|-------|------|-------------|-------------|
-| id | text (UUID) | PRIMARY KEY | Unique identifier |
-| userId | text (UUID) | NOT NULL, FK → users.id | System user reference |
-| eventId | text (UUID) | NOT NULL, FK → events.id | Event reference |
-| status | text (enum) | NOT NULL | Participation status: `yes`, `no`, `maybe`, `verified` |
-| createdAt | text (ISO 8601) | NOT NULL, default CURRENT_TIMESTAMP | Record creation time |
-| updatedAt | text (ISO 8601) | NOT NULL, default CURRENT_TIMESTAMP | Last status update time |
+**Validation Rules**:
+- `salesStartDate` must be before `salesEndDate` if both set
+- `salesEndDate` must be before or equal to `endDate`
+- Both fields optional (null = no sales period restriction)
+
+**Relations**:
+- Existing: one-to-many with products, tickets, transactions, inventoryGroups
+- NEW: one-to-many with eventPhotos
+- NEW: one-to-many with participationStatus
 
 **Indexes**:
-- Unique constraint: `(userId, eventId)` - one participation record per user per event
-- Index: `(eventId, status)` - fast aggregation for organizer dashboard
-- Index: `(userId)` - fast lookup for user's event list
-
-**Relationships**:
-- `userId` → `users.id` (many-to-one)
-- `eventId` → `events.id` (many-to-one)
-
-**Validation Rules**:
-- Status must be one of: `yes`, `no`, `maybe`, `verified`
-- User must exist in users table
-- Event must exist in events table
-- Once status is `verified`, cannot be changed back (terminal state)
-
-**State Transitions**:
-```
-null → yes/no/maybe (user RSVP or ticket purchase)
-yes/no/maybe ↔ yes/no/maybe (user changes mind)
-yes → verified (ticket scanned at event)
-verified → verified (terminal state, no changes allowed)
-```
+- Existing: userId
+- NEW: salesStartDate, salesEndDate (for filtering active sales)
 
 ---
 
-### 2. Event Photos (NEW)
+### Extended: Products
 
-Private photos uploaded by organizers, accessible only to verified attendees.
+**Purpose**: Support multi-participant products (hotel rooms, group packages)
 
-**Table**: `event_photos`
+**Fields (NEW)**:
+- `participantCapacity` (integer, default 1, min 1): Number of participants per product unit
 
-| Field | Type | Constraints | Description |
-|-------|------|-------------|-------------|
-| id | text (UUID) | PRIMARY KEY | Unique identifier |
-| eventId | text (UUID) | NOT NULL, FK → events.id | Event reference |
-| key | text | NOT NULL, UNIQUE | Storage key (e.g., `events/{eventId}/photos/{uuid}.jpg`) |
-| uploadedAt | text (ISO 8601) | NOT NULL, default CURRENT_TIMESTAMP | Upload timestamp |
-| uploadedBy | text (UUID) | NOT NULL, FK → users.id | Organizer who uploaded |
+**Existing Fields**: id, eventId, inventoryGroupId, name, price, maxQuantity, features, imageUrl, stripeProductId, soldQuantity, createdAt, updatedAt
+
+**Validation Rules**:
+- `participantCapacity` must be positive integer >= 1
+- Default to 1 if not specified
+- Cannot decrease capacity below number of participants already registered on existing tickets
+
+**Relations**:
+- Existing: many-to-one with events, inventoryGroups; one-to-many with transactionItems
+- No direct relation to ticketParticipants (indirectly via tickets)
 
 **Indexes**:
-- Index: `(eventId)` - fast lookup of all photos for an event
-- Unique: `(key)` - ensures no duplicate storage keys
+- Existing: eventId, inventoryGroupId
 
-**Relationships**:
-- `eventId` → `events.id` (many-to-one)
-- `uploadedBy` → `users.id` (many-to-one)
+---
+
+### Extended: Tickets
+
+**Purpose**: Support free tickets and attendance verification
+
+**Fields (NEW)**:
+- `isFree` (integer as boolean, 0 or 1, default 0): Whether ticket was issued for free
+
+**Existing Fields**: id, qrCodeUuid, transactionId, productId, eventId, buyerId, scannedAt, createdAt
+
+**Note**: `scannedAt` field already exists for attendance tracking - no schema change needed
 
 **Validation Rules**:
-- Key must follow pattern: `events/{eventId}/photos/{uuid}.{ext}`
-- Event must exist
-- Uploader must be event organizer (checked in service layer)
-- File extension must be valid image type: jpg, jpeg, png, heic, webp
+- `isFree` is 0 (paid) or 1 (free)
+- `scannedAt` is null until ticket scanned, then set to ISO 8601 timestamp
+- Cannot change `isFree` after ticket creation
 
-**Access Control**:
-- Photos visible ONLY to users with participant status = `verified` for the event
-- Service layer checks attendance before generating pre-signed URL
-- URLs expire after 1 hour
+**Relations**:
+- Existing: many-to-one with transactions, products, events, users (buyer)
+- NEW: one-to-many with ticketParticipants
 
----
-
-### 3. Events (MODIFIED)
-
-Add free event flag to existing events table.
-
-**New Field**: `isFree`
-
-| Field | Type | Constraints | Description |
-|-------|------|-------------|-------------|
-| isFree | integer (boolean) | NOT NULL, default false | Whether event is free (no payment required) |
-
-**Impact**:
-- Determines checkout flow (skip Stripe for free events)
-- Free events: RSVP creates participant with status `yes` directly
-- Paid events: Participant created after successful payment
-- All other event fields remain unchanged
-
-**Migration**:
-- Default existing events to `isFree = false` (assume paid unless configured)
+**Indexes**:
+- Existing: qrCodeUuid (unique), transactionId, productId, eventId, buyerId
+- NEW: scannedAt (for filtering attended tickets)
+- NEW: (eventId, scannedAt) composite for photo access queries
 
 ---
 
-### 4. Inventory Groups (MODIFIED)
+### NEW: TicketParticipants
 
-Add sales period dates to control when products in the group are available for purchase.
+**Purpose**: Store details for each participant associated with a ticket
 
-**New Fields**: `salesStartDate`, `salesEndDate`
-
-| Field | Type | Constraints | Description |
-|-------|------|-------------|-------------|
-| salesStartDate | text (ISO 8601) | NULLABLE | Sales open timestamp (UTC) |
-| salesEndDate | text (ISO 8601) | NULLABLE | Sales close timestamp (UTC) |
+**Fields**:
+- `id` (text, UUID, primary key): Unique participant record ID
+- `ticketId` (text, UUID, foreign key → tickets.id): Associated ticket
+- `participantOrder` (integer, >= 1): Order/position (1st, 2nd, 3rd participant)
+- `name` (text, not null): Participant full name
+- `email` (text, not null): Participant email
+- `phone` (text, nullable): Participant phone number
+- `additionalData` (text as JSON, nullable): Product-specific fields (dietary, shirt size, etc.)
+- `createdAt` (text, ISO 8601, default CURRENT_TIMESTAMP): Record creation time
 
 **Validation Rules**:
-- If both set: `salesStartDate < salesEndDate`
-- If set: Both dates should be within event date range (optional warning)
-- Null means no restriction (always available)
+- `participantOrder` must be positive integer >= 1
+- `email` must be valid email format
+- Number of participants per ticket must match product.participantCapacity
+- Unique constraint on (ticketId, participantOrder) - no duplicate orders
 
-**Impact**:
-- Products in this inventory group only purchasable within sales period
-- Early bird inventory: separate group with earlier start/end dates
-- Regular inventory: separate group with later start/end dates
-- Checkout validates current time is within period
+**Relations**:
+- Many-to-one with tickets
 
-**Examples**:
+**Indexes**:
+- Primary: id
+- Foreign key: ticketId
+- Unique: (ticketId, participantOrder)
+
+**Schema (Drizzle)**:
+```typescript
+export const ticketParticipants = sqliteTable("ticket_participants", {
+  id: text("id").primaryKey(),
+  ticketId: text("ticket_id").notNull().references(() => tickets.id, { onDelete: "cascade" }),
+  participantOrder: integer("participant_order").notNull(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  additionalData: text("additional_data", { mode: "json" }).$type<Record<string, any>>(),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => ({
+  uniqueTicketOrder: unique().on(table.ticketId, table.participantOrder),
+}));
 ```
-Early Bird Inventory:
-- salesStartDate: 2025-09-01T00:00:00Z (4 months before event)
-- salesEndDate: 2025-11-01T00:00:00Z (2 months before event)
-
-Regular Inventory:
-- salesStartDate: 2025-11-01T00:00:00Z (2 months before event)
-- salesEndDate: 2025-12-24T00:00:00Z (1 week before event)
-```
-
-**Migration**:
-- Existing inventory groups: set both fields to null (no restrictions)
 
 ---
 
-### 5. Products (MODIFIED)
+### NEW: ParticipationStatus
 
-Add participant capacity to support products requiring multiple participant details.
+**Purpose**: Track user participation intent independent of ticket purchases
 
-**New Field**: `participantCapacity`
-
-| Field | Type | Constraints | Description |
-|-------|------|-------------|-------------|
-| participantCapacity | integer | NOT NULL, default 1 | Number of participants per product unit |
+**Fields**:
+- `id` (text, UUID, primary key): Unique status record ID
+- `userId` (text, UUID, foreign key → users.id): User indicating participation
+- `eventId` (text, UUID, foreign key → events.id): Event for participation
+- `status` (text, enum: 'yes' | 'no' | 'maybe', not null): Participation intent
+- `updatedAt` (text, ISO 8601, not null): Last status change timestamp
 
 **Validation Rules**:
-- Must be >= 1
-- Default: 1 (buyer only)
-- Capacity > 1: Checkout collects details for all capacity slots
+- `status` must be exactly 'yes', 'no', or 'maybe'
+- Unique constraint on (userId, eventId) - one status per user per event
+- For paid events: 'yes' only allowed after ticket purchase
+- Auto-upgrade 'maybe' to 'yes' on ticket purchase
 
-**Impact**:
-- Single product purchase → N participant records
-- Hotel room with capacity 2 → 2 participants linked to 1 ticket
-- Checkout validates all capacity slots have complete details before payment
+**Relations**:
+- Many-to-one with users
+- Many-to-one with events
 
-**Examples**:
-```
-Single Ticket Product:
-- participantCapacity: 1
-- Checkout collects buyer info only
+**Indexes**:
+- Primary: id
+- Unique: (userId, eventId)
+- Index on eventId for aggregation queries
 
-Hotel Room Product:
-- participantCapacity: 2
-- Checkout collects info for 2 participants (names, emails, dietary requirements)
-
-Group Package:
-- participantCapacity: 4
-- Checkout collects info for 4 participants
-```
-
-**Participant Linking**:
-- Participants linked to ticket via `(userId, eventId)` matching ticket's `(buyerId, eventId)`
-- One ticket can have multiple associated participants
-- Participants table stores individual details for each capacity slot
-
-**Migration**:
-- Existing products: set `participantCapacity = 1` (single participant per ticket)
-
----
-
-### 6. Tickets (UNCHANGED - Reference)
-
-Existing ticket table already has `scannedAt` field for attendance tracking. No schema changes needed.
-
-**Relevant Fields**:
-| Field | Type | Constraints | Description |
-|-------|------|-------------|-------------|
-| id | text (UUID) | PRIMARY KEY | Unique identifier |
-| qrCodeUuid | text (UUID) | NOT NULL, UNIQUE | QR code payload |
-| transactionId | text (UUID) | NOT NULL, FK → transactions.id | Purchase transaction |
-| productId | text (UUID) | NOT NULL, FK → products.id | Product purchased |
-| eventId | text (UUID) | NOT NULL, FK → events.id | Event reference |
-| buyerId | text (UUID) | NOT NULL, FK → users.id | Ticket purchaser |
-| scannedAt | text (ISO 8601) | NULLABLE | Timestamp when ticket scanned |
-| createdAt | text (ISO 8601) | NOT NULL | Ticket creation time |
-
-**Behavior Changes**:
-- Scanning now also updates participant status to `verified`
-- Existing scanTicket service method extended to update participants table
-
----
-
-## Relationship Diagram
-
-```
-users
-  ├── participants (1:N) - user's event participations
-  ├── tickets (1:N) - user's purchased tickets
-  └── event_photos (1:N) - photos uploaded by user
-
-events
-  ├── participants (1:N) - event's participants
-  ├── tickets (1:N) - event's tickets
-  ├── event_photos (1:N) - event's private photos
-  ├── inventory_groups (1:N) - event's inventory groups
-  └── products (1:N) - event's products
-
-inventory_groups
-  ├── products (1:N) - products in group
-  ├── NEW: salesStartDate - sales window start
-  └── NEW: salesEndDate - sales window end
-
-products
-  ├── tickets (1:N) - tickets from product
-  └── NEW: participantCapacity - participants per unit
-
-tickets
-  ├── buyer (N:1 → users) - who purchased
-  ├── product (N:1 → products) - what was purchased
-  ├── event (N:1 → events) - which event
-  └── scannedAt - attendance verification
-
-participants (NEW)
-  ├── user (N:1 → users) - who is participating
-  ├── event (N:1 → events) - which event
-  └── status - participation/attendance status
-
-event_photos (NEW)
-  ├── event (N:1 → events) - which event
-  ├── uploadedBy (N:1 → users) - who uploaded
-  └── key - storage reference
-```
-
----
-
-## Data Flows
-
-### Free Event RSVP
-```
-1. User clicks "RSVP" for free event
-2. Create/update participant record (status = `yes`)
-3. Optionally generate free ticket (scannedAt = null)
-4. Display confirmation
-```
-
-### Paid Event Ticket Purchase
-```
-1. User selects product (checks inventory_groups.salesStartDate/salesEndDate)
-2. If product.participantCapacity > 1: collect participant details
-3. Stripe checkout
-4. On success: create ticket + create/update participant (status = `yes`)
-5. Generate QR code from ticket.qrCodeUuid
-```
-
-### Ticket Scanning
-```
-1. Scanner scans QR code (reads qrCodeUuid)
-2. Server validates ticket exists, belongs to event
-3. If not scanned: update tickets.scannedAt = now()
-4. Update participants.status = `verified` (where userId = ticket.buyerId, eventId = ticket.eventId)
-5. Return success with buyer details
-6. If already scanned: return error with original scan timestamp
-```
-
-### Private Photo Access
-```
-1. User views past event
-2. Server checks: participant exists with status = `verified`?
-3. If yes: fetch event_photos for eventId
-4. Generate pre-signed URLs (1 hour expiration) for each photo
-5. Return photo list with URLs
-6. If no: return empty list or access denied
-```
-
-### Sales Period Validation
-```
-1. User browses event products
-2. For each product: fetch inventory_groups.salesStartDate/salesEndDate
-3. If current_time < salesStartDate: show "Sales open on {date}"
-4. If salesStartDate <= current_time <= salesEndDate: show "Buy" button
-5. If current_time > salesEndDate: show "Sales closed"
-6. Server validates again during checkout (prevent client-side bypass)
-```
-
----
-
-## Migration Scripts (Drizzle)
-
-### Migration 1: Add `isFree` to events
-```sql
-ALTER TABLE events ADD COLUMN is_free INTEGER NOT NULL DEFAULT 0;
-```
-
-### Migration 2: Add sales period to inventory_groups
-```sql
-ALTER TABLE inventory_groups ADD COLUMN sales_start_date TEXT;
-ALTER TABLE inventory_groups ADD COLUMN sales_end_date TEXT;
-```
-
-### Migration 3: Add participantCapacity to products
-```sql
-ALTER TABLE products ADD COLUMN participant_capacity INTEGER NOT NULL DEFAULT 1;
-```
-
-### Migration 4: Create participants table
-```sql
-CREATE TABLE participants (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id),
-  event_id TEXT NOT NULL REFERENCES events(id),
-  status TEXT NOT NULL CHECK(status IN ('yes', 'no', 'maybe', 'verified')),
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(user_id, event_id)
-);
-
-CREATE INDEX idx_participants_event_status ON participants(event_id, status);
-CREATE INDEX idx_participants_user ON participants(user_id);
-```
-
-### Migration 5: Create event_photos table
-```sql
-CREATE TABLE event_photos (
-  id TEXT PRIMARY KEY,
-  event_id TEXT NOT NULL REFERENCES events(id),
-  key TEXT NOT NULL UNIQUE,
-  uploaded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  uploaded_by TEXT NOT NULL REFERENCES users(id)
-);
-
-CREATE INDEX idx_event_photos_event ON event_photos(event_id);
-```
-
----
-
-## Query Patterns
-
-### Get participation summary for event
+**Schema (Drizzle)**:
 ```typescript
-// Count by status for organizer dashboard
-const summary = await db
-  .select({ status: participants.status, count: sql`COUNT(*)` })
-  .from(participants)
-  .where(eq(participants.eventId, eventId))
-  .groupBy(participants.status);
-// Returns: [{ status: 'yes', count: 45 }, { status: 'maybe', count: 12 }, ...]
+export const participationStatus = sqliteTable("participation_status", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  eventId: text("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
+  status: text("status", { enum: ["yes", "no", "maybe"] }).notNull(),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => ({
+  uniqueUserEvent: unique().on(table.userId, table.eventId),
+}));
 ```
 
-### Check if user can access photos
+---
+
+### NEW: EventPhotos
+
+**Purpose**: Store references to private event photos with metadata
+
+**Fields**:
+- `id` (text, UUID, primary key): Unique photo record ID
+- `eventId` (text, UUID, foreign key → events.id): Associated event
+- `filePath` (text, not null): File system path to photo (e.g., `/private/events/{eventId}/photos/{uuid}.webp`)
+- `uploadedBy` (text, UUID, foreign key → users.id): User who uploaded photo (organizer)
+- `uploadedAt` (text, ISO 8601, default CURRENT_TIMESTAMP): Upload timestamp
+- `thumbnailPath` (text, nullable): Optional thumbnail path for gallery view
+
+**Validation Rules**:
+- `filePath` must start with `/private/events/`
+- `filePath` must end with `.webp` (after optimization)
+- Cannot upload photos for events that haven't started yet
+- Only event organizer (event.userId) can upload photos
+
+**Relations**:
+- Many-to-one with events
+- Many-to-one with users (uploader)
+
+**Indexes**:
+- Primary: id
+- Foreign key: eventId, uploadedBy
+- Index on eventId for gallery queries
+
+**Schema (Drizzle)**:
 ```typescript
-const participant = await db.query.participants.findFirst({
-  where: and(
-    eq(participants.userId, userId),
-    eq(participants.eventId, eventId),
-    eq(participants.status, 'verified')
-  )
+export const eventPhotos = sqliteTable("event_photos", {
+  id: text("id").primaryKey(),
+  eventId: text("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
+  filePath: text("file_path").notNull(),
+  uploadedBy: text("uploaded_by").notNull().references(() => users.id),
+  uploadedAt: text("uploaded_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  thumbnailPath: text("thumbnail_path"),
 });
-const canAccess = !!participant;
-```
-
-### Get tickets with buyer and participant info
-```typescript
-const ticketsWithDetails = await db.query.tickets.findMany({
-  where: eq(tickets.eventId, eventId),
-  with: {
-    buyer: true,
-    product: true,
-  }
-});
-// Then join with participants on (buyerId, eventId)
-```
-
-### Check if product is available for purchase
-```typescript
-const product = await db.query.products.findFirst({
-  where: eq(products.id, productId),
-  with: { inventoryGroup: true }
-});
-
-const now = new Date();
-const salesStart = product.inventoryGroup.salesStartDate ? new Date(product.inventoryGroup.salesStartDate) : null;
-const salesEnd = product.inventoryGroup.salesEndDate ? new Date(product.inventoryGroup.salesEndDate) : null;
-
-const isAvailable = 
-  (!salesStart || now >= salesStart) &&
-  (!salesEnd || now <= salesEnd);
 ```
 
 ---
 
-## Validation Summary
+## State Transitions
 
-### Participants
-- Status enum validation (yes/no/maybe/verified)
-- Unique per user-event pair
-- Verified status is terminal (no changes after set)
+### Ticket Lifecycle
+```
+┌─────────┐  Purchase   ┌─────────┐  Scan QR   ┌──────────┐
+│ Created │────────────►│ Issued  │───────────►│ Attended │
+└─────────┘             └─────────┘            └──────────┘
+  isFree: 0/1          scannedAt: null       scannedAt: timestamp
+```
 
-### Event Photos
-- Key format validation (events/{eventId}/photos/{uuid}.{ext})
-- File extension whitelist (jpg, jpeg, png, heic, webp)
-- Access control: verified participants only
+### Participation Status Flow
+```
+                   ┌──────────┐
+           ┌───────│  Maybe   │◄──────┐
+           │       └──────────┘       │
+           │                          │
+    Update │                          │ Update
+           │                          │
+           ▼                          │
+     ┌─────────┐              ┌─────────┐
+     │   Yes   │              │   No    │
+     └─────────┘              └─────────┘
+           ▲                          ▲
+           │                          │
+           └─── Ticket Purchase ──────┘
+           (auto-upgrade to Yes)
+```
 
-### Sales Period
-- Start < End if both set
-- Server-side validation during checkout
-- Nullable = no restrictions
+### Sales Period States
+```
+┌───────────────┐  salesStartDate   ┌─────────────┐  salesEndDate   ┌──────────────┐
+│ Pre-Sale      │─────────────────►│   Active    │────────────────►│ Sales Closed │
+└───────────────┘                   └─────────────┘                 └──────────────┘
+  Can view event                     Can purchase                    Can view only
+  Cannot purchase                    tickets                         Cannot purchase
+```
 
-### Participant Capacity
-- Integer >= 1
-- Checkout collects N participant details
-- Validates all slots complete before payment
+### Photo Access Workflow
+```
+1. User requests photo
+2. System checks: tickets.eventId = eventId AND scannedAt IS NOT NULL
+3. If attended: generate signed URL (exp = now + 1 hour)
+4. Return URL to client
+5. Client requests photo with signed URL
+6. Server validates signature + expiry
+7. If valid: serve file from /private/ storage
+8. If invalid/expired: return 403 Forbidden
+```
 
 ---
 
-## Performance Considerations
+## Aggregate Queries
+
+### Event Statistics
+```typescript
+interface EventStats {
+  totalTickets: number;           // Count of all tickets
+  freeTickets: number;            // Count where isFree = 1
+  paidTickets: number;            // Count where isFree = 0
+  attendedCount: number;          // Count where scannedAt IS NOT NULL
+  attendanceRate: number;         // (attendedCount / totalTickets) * 100
+  participationYes: number;       // Count of 'yes' in participationStatus
+  participationMaybe: number;     // Count of 'maybe'
+  participationNo: number;        // Count of 'no'
+  totalPhotos: number;            // Count of eventPhotos
+}
+```
+
+### Query Examples
+```sql
+-- Get attended users for photo access
+SELECT DISTINCT t.buyerId 
+FROM tickets t 
+WHERE t.eventId = ? AND t.scannedAt IS NOT NULL;
+
+-- Get participation summary
+SELECT status, COUNT(*) as count 
+FROM participation_status 
+WHERE eventId = ? 
+GROUP BY status;
+
+-- Get all participants for a ticket
+SELECT * FROM ticket_participants 
+WHERE ticketId = ? 
+ORDER BY participantOrder ASC;
+
+-- Check if sales are active
+SELECT * FROM events 
+WHERE id = ? 
+  AND (salesStartDate IS NULL OR salesStartDate <= datetime('now'))
+  AND (salesEndDate IS NULL OR salesEndDate >= datetime('now'));
+```
+
+---
+
+## Migration Order
+
+1. **events**: Add salesStartDate, salesEndDate columns (nullable)
+2. **products**: Add participantCapacity column (default 1)
+3. **tickets**: Add isFree column (default 0), add index on scannedAt
+4. **ticket_participants**: Create table with foreign key to tickets
+5. **participation_status**: Create table with unique constraint
+6. **event_photos**: Create table with foreign keys to events and users
+
+**Rollback Strategy**: Each migration is reversible via Drizzle's down migrations. Data loss risk only if dropping tables (not applicable for extensions).
+
+---
+
+## Data Integrity Constraints
+
+### Referential Integrity
+- All foreign keys use `onDelete: "cascade"` to maintain consistency
+- Deleting event cascades to products, tickets, participations, photos
+- Deleting ticket cascades to ticketParticipants
+
+### Business Logic Constraints
+- Participant count validation at application layer (service)
+- Sales period validation at application layer (service)
+- Photo access validation at application layer (service)
+- QR code signature validation at application layer (utility)
+
+### Database Constraints
+- Unique constraints: (userId, eventId) in participationStatus
+- Unique constraints: (ticketId, participantOrder) in ticketParticipants
+- Unique constraints: qrCodeUuid in tickets (existing)
+- Check constraints: N/A (SQLite limited, use Zod validation)
+
+---
+
+## Performance Optimization
 
 ### Indexes
-- `participants(eventId, status)` - fast aggregation for dashboards
-- `participants(userId, eventId)` - unique constraint, also speeds lookups
-- `event_photos(eventId)` - fast photo listing
-- `event_photos(key)` - unique constraint for storage
+- `tickets.scannedAt`: For attendance queries
+- `tickets(eventId, scannedAt)`: Composite for photo access checks
+- `participationStatus(eventId)`: For aggregation queries
+- `eventPhotos(eventId)`: For gallery loading
 
-### Potential Optimizations
-- Cache participation counts (denormalize if query becomes slow)
-- Cache pre-signed URLs (1 hour TTL) to reduce S3 API calls
-- Paginate photo galleries (cursor-based, 20-50 per page)
-- Consider read replicas if query load increases
+### Caching Strategy
+- Event sales period state: Cache in memory for 5 minutes
+- Participation counts: Cache for 1 minute (acceptable staleness)
+- Photo access validation: No caching (security-critical)
+- Ticket scan status: No caching (real-time requirement)
 
----
-
-## Security Considerations
-
-### Access Control
-- Photos: Check participant.status = verified before URL generation
-- Ticket scanning: Validate qrCodeUuid authenticity, check for duplicate
-- Sales period: Server-side validation only (client checks are hints)
-
-### Data Validation
-- All inputs validated via Zod schemas (insertParticipantSchema, etc.)
-- Status enum enforced at database level
-- Foreign keys prevent orphaned records
-
-### Audit Trail
-- All tables have createdAt/updatedAt timestamps
-- Ticket scannedAt provides attendance audit
-- Photo uploadedBy tracks who uploaded what
-
----
-
-## Testing Strategy
-
-### Unit Tests (Service Layer)
-- participantsService.create/update/getStatus
-- eventPhotosService.upload/generateUrl/checkAccess
-- ticketsService.scanTicket (extended)
-
-### Integration Tests (Full Flows)
-- Free event RSVP → participant creation → ticket generation
-- Paid event purchase → payment → participant + ticket creation
-- Ticket scanning → scannedAt update → participant status = verified
-- Photo access → check verified status → generate URL
-
-### Contract Tests (API)
-- POST /api/events/:id/participants (RSVP)
-- GET /api/events/:id/participants (summary)
-- POST /api/tickets/scan (scan QR code)
-- GET /api/events/:id/photos (photo list with URLs)
-- POST /api/events/:id/photos (upload)
-
----
-
-## Open Questions
-
-None - all data model decisions finalized based on research phase and user corrections.
+### Query Optimization
+- Use `SELECT DISTINCT` for attended user lists
+- Batch insert for multiple ticketParticipants
+- Eager load participants with tickets via Drizzle relations
+- Lazy load photos in gallery (pagination)

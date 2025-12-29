@@ -1,437 +1,402 @@
 # Quickstart: Event Participation Tracking & Enhanced Features
 
-**Feature**: 002-event-participation-tracking  
 **Date**: 2025-12-29  
-**Phase**: 1 - Design
+**Target Audience**: Developers implementing the feature
 
-This guide provides a high-level overview of the feature and technology choices for developers joining the implementation.
+## Overview
 
----
-
-## Feature Overview
-
-This feature enhances the CMS event management system with:
-
-1. **Participation Tracking** - Users can RSVP (yes/no/maybe) independent of ticket purchases
-2. **Sales Periods** - Time-bound ticket availability (early bird, regular sales, etc.)
-3. **Free Events** - Events without payment requirements
-4. **Ticket Scanning** - Attendance verification via QR codes (adapts existing system)
-5. **Private Event Photos** - Photos accessible only to verified attendees
-
----
+This feature adds six enhancements to the existing events system:
+1. Ticket scanning for attendance verification
+2. Free tickets (no payment required)
+3. Multi-participant product capacity
+4. Sales period configuration
+5. Participation status tracking (yes/no/maybe)
+6. Private event photos with secure access (using Uppy.io v5, existing upload endpoint, /private/ storage)
 
 ## Technology Stack
 
-### Core Technologies (Existing)
-- **Framework**: Qwik 1.7+ (SSR + client hydration)
-- **Database**: SQLite (dev) / Turso (prod) via Drizzle ORM 0.45+
-- **Validation**: Zod 4.2+ for schemas and API inputs
-- **Styling**: Tailwind CSS 3.4+
-- **Auth**: Session-based (existing)
+- **QR Generation**: `qrcode` package for server-side QR code creation
+- **QR Scanning**: `html5-qrcode` for browser-based camera scanning
+- **Photo Upload**: Uppy.io v5 with existing `/api/upload` endpoint
+- **Photo Storage**: File system under `/private/events/{eventId}/photos/`
+- **Secure URLs**: Node crypto HMAC-SHA256 signing (1-hour expiry)
+- **Database**: Drizzle ORM with SQLite, 3 new schemas + 3 extended schemas
 
-### New Dependencies
-- **Photo Storage**: Cloudflare R2 (S3-compatible, zero egress fees)
-- **R2 SDK**: AWS SDK for JavaScript v3 (already installed, R2 compatible)
-- **QR Scanning**: html5-qrcode 2.3.8 (already installed)
-- **Date Handling**: date-fns 3.6.0 (already installed)
+## Prerequisites
 
-**No new npm packages required!** All necessary dependencies already installed.
+1. Node.js 18+ installed
+2. Existing CMS running with events system
+3. Database access (SQLite development)
+4. Environment variables configured in `src/env.ts`
 
----
+## Installation
 
-## Architecture Overview
-
-### Database Changes
-
-**New Tables**:
-1. `participants` - User-event mappings with status (yes/no/maybe/verified)
-2. `event_photos` - Photo metadata with storage keys
-
-**Modified Tables**:
-1. `events` - Add `isFree` boolean
-2. `inventory_groups` - Add `salesStartDate`, `salesEndDate`
-3. `products` - Add `participantCapacity` integer
-
-### Service Layer
-
-**New Services**:
-- `src/services/participants.service.ts` - Participation CRUD + status tracking
-- `src/services/event-photos.service.ts` - Photo upload, access control, URL generation
-
-**Modified Services**:
-- `src/services/tickets.service.ts` - Extend `scanTicket()` to update participant status
-
-### Routes
-
-**New Routes**:
-- `src/routes/api/events/[id]/participants/` - Participation API
-- `src/routes/api/events/[id]/photos/` - Photo upload/list/delete
-- `src/routes/events/[id]/photos/` - Attendee photo gallery UI
-- `src/routes/admin/events/[id]/photos/` - Organizer photo management
-
-**Modified Routes**:
-- `src/routes/events/[id]/` - Add RSVP UI
-- `src/routes/admin/events/[id]/` - Add participant dashboard
-
----
-
-## Key Design Decisions
-
-### 1. Participants as Independent Entities
-
-**Why**: Decouples participation intent from ticket purchases. Users can RSVP "maybe" before buying tickets, or attend free events without payment flow.
-
-**Implementation**:
-- `participants` table: unique (userId, eventId) mapping
-- Status: `yes` (confirmed), `no` (declined), `maybe` (interested), `verified` (ticket scanned)
-- Participants are system users (create user if doesn't exist during RSVP)
-
-### 2. Sales Periods on Inventory Groups (Not Events/Products)
-
-**Why**: Enables multiple pricing tiers with different sales windows (early bird, regular, VIP).
-
-**Implementation**:
-- Add `salesStartDate`, `salesEndDate` to `inventory_groups` table
-- Early bird inventory: separate group with earlier start/end dates
-- Regular inventory: separate group with later start/end dates
-- Null dates = no restrictions
-
-### 3. Event-Level `isFree` Flag (Not Ticket-Level)
-
-**Why**: Simplifies checkout logic. Event is either free or paid (binary decision).
-
-**Implementation**:
-- Free events: Skip Stripe, create participant with status `yes` directly
-- Paid events: Participant created after successful payment
-- All tickets generated with QR codes (free or paid)
-
-### 4. Reuse Existing Ticket Scanning
-
-**Why**: System already has `tickets.scannedAt` and `ticketsService.scanTicket()`. Don't reinvent.
-
-**Implementation**:
-- Extend `scanTicket()` to also update `participants.status = verified`
-- Keep existing validation (duplicate scan prevention, ticket authenticity)
-- UI feedback mechanisms already in place
-
-### 5. Simplified Photo Schema with `key` Field
-
-**Why**: Storage key (S3 object key) is sufficient identifier. No size variants or complex metadata.
-
-**Implementation**:
-- `event_photos`: id, eventId, key, uploadedAt, uploadedBy
-- Key format: `events/{eventId}/photos/{uuid}.{ext}`
-- Pre-signed URLs generated on-demand (1 hour expiration)
-- Access control: Check `participants.status = verified` before generating URL
-
----
-
-## Data Flow Examples
-
-### Free Event RSVP
-```
-User → Click "RSVP" 
-     → POST /api/events/:id/participants { status: "yes" }
-     → participantsService.create({ userId, eventId, status: "yes" })
-     → DB INSERT into participants
-     → Response: { success: true, data: participant }
-```
-
-### Paid Event Ticket Purchase
-```
-User → Select product (check sales period)
-     → Collect participant details (if capacity > 1)
-     → Stripe checkout
-     → Webhook success
-     → ticketsService.create() + participantsService.create({ status: "yes" })
-     → Generate QR code
-     → Email ticket
-```
-
-### Ticket Scanning
-```
-Scanner → Scan QR code (get qrCodeUuid)
-        → POST /api/tickets/scan { qrCodeUuid }
-        → ticketsService.scanTicket(qrCodeUuid)
-          ├─ UPDATE tickets SET scannedAt = now() WHERE qrCodeUuid = :uuid AND scannedAt IS NULL
-          └─ UPDATE participants SET status = 'verified' WHERE userId = :buyerId AND eventId = :eventId
-        → Response: { ticket, participant } or { error: "Already scanned" }
-```
-
-### Private Photo Access
-```
-User → View event/:id/photos
-     → routeLoader$ checks: participants.status = 'verified'?
-     → If yes: fetch event_photos for eventId
-     → Generate pre-signed URLs (1 hour expiration) for each photo
-     → Render gallery with URLs
-     → If no: 403 Forbidden
-```
-
----
-
-## Environment Configuration
-
-Add to `src/env.ts`:
-
-```typescript
-export const env = z.object({
-  // Existing env vars...
-  
-  // Cloudflare R2 Configuration
-  R2_ACCOUNT_ID: z.string().min(1),
-  R2_ACCESS_KEY_ID: z.string().min(1),
-  R2_SECRET_ACCESS_KEY: z.string().min(1),
-  R2_BUCKET_NAME: z.string().default("event-photos"),
-  R2_PUBLIC_URL: z.string().url().optional(),
-  
-  // Photo URL expiration (seconds)
-  PHOTO_URL_EXPIRATION: z.coerce.number().int().positive().default(3600),  // 1 hour
-}).parse(process.env);
-```
-
-Add to `.env.example`:
-```
-R2_ACCOUNT_ID=your_cloudflare_account_id
-R2_ACCESS_KEY_ID=your_r2_access_key
-R2_SECRET_ACCESS_KEY=your_r2_secret_key
-R2_BUCKET_NAME=event-photos
-PHOTO_URL_EXPIRATION=3600
-```
-
----
-
-## Database Migrations
-
-Run in order:
+### 1. Install Dependencies
 
 ```bash
-# Generate migration files
-npm run db:generate
-
-# Apply migrations
-npm run db:migrate
+npm install qrcode html5-qrcode @uppy/core @uppy/dashboard @uppy/xhr-upload
+npm install --save-dev @types/qrcode
 ```
 
-**Migration sequence**:
-1. Add `isFree` to events
-2. Add `salesStartDate`, `salesEndDate` to inventory_groups
-3. Add `participantCapacity` to products
-4. Create `participants` table
-5. Create `event_photos` table
+### 2. Add Environment Variables
 
-See `specs/002-event-participation-tracking/data-model.md` for SQL.
+No new environment variables needed for core functionality. Optional: add `PHOTO_URL_SECRET` for custom signing key (defaults to general app secret).
 
----
+### 3. Database Migration
 
-## Development Workflow
+#### Create New Schema Files
 
-### 1. Setup R2 Bucket
-```bash
-# Using Cloudflare CLI (wrangler)
-wrangler r2 bucket create event-photos
-
-# Or via Cloudflare dashboard:
-# 1. Navigate to R2 → Create bucket
-# 2. Name: event-photos
-# 3. Copy credentials to .env
-```
-
-### 2. Create Schemas
+1. **ticket-participants.ts**:
 ```typescript
-// src/db/schemas/participants.ts
-export const participants = sqliteTable("participants", {
+// Path: src/db/schemas/ticket-participants.ts
+import { relations, sql } from "drizzle-orm";
+import { sqliteTable, text, integer, unique } from "drizzle-orm/sqlite-core";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { z } from "zod";
+import { tickets } from "./tickets";
+import crypto from "crypto";
+
+export const ticketParticipants = sqliteTable("ticket_participants", {
   id: text("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id),
-  eventId: text("event_id").notNull().references(() => events.id),
-  status: text("status").notNull(),  // CHECK constraint in migration
+  ticketId: text("ticket_id").notNull().references(() => tickets.id, { onDelete: "cascade" }),
+  participantOrder: integer("participant_order").notNull(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  additionalData: text("additional_data", { mode: "json" }).$type<Record<string, any>>(),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-});
+}, (table) => ({
+  uniqueTicketOrder: unique().on(table.ticketId, table.participantOrder),
+}));
 
-// Export Zod schemas
-export const insertParticipantSchema = createInsertSchema(participants).extend({
-  id: z.string().uuid().default(() => crypto.randomUUID()),
-  status: z.enum(["yes", "no", "maybe", "verified"]),
-  // ...
-});
+export const ticketParticipantsRelations = relations(ticketParticipants, ({ one }) => ({
+  ticket: one(tickets, {
+    fields: [ticketParticipants.ticketId],
+    references: [tickets.id],
+  }),
+}));
+
+const baseInsertSchema = createInsertSchema(ticketParticipants);
+const baseSelectSchema = createSelectSchema(ticketParticipants);
+
+export const insertTicketParticipantSchema = baseInsertSchema
+  .extend({
+    id: z.string().uuid().default(() => crypto.randomUUID()),
+    email: z.string().email(),
+    participantOrder: z.number().int().min(1),
+    createdAt: z.string().default(() => new Date().toISOString()),
+  })
+  .partial({ id: true, phone: true, additionalData: true, createdAt: true });
+
+export const selectTicketParticipantSchema = baseSelectSchema;
+
+export type TicketParticipant = z.infer<typeof selectTicketParticipantSchema>;
+export type InsertTicketParticipant = z.infer<typeof insertTicketParticipantSchema>;
 ```
 
-### 3. Create Services
+2. **participation-status.ts**: Similar pattern for participation tracking
+3. **event-photos.ts**: Similar pattern for photo storage
+
+#### Extend Existing Schemas
+
+**events.ts** - Add sales period fields:
 ```typescript
-// src/services/participants.service.ts
-export const participantsService = {
-  async create(data: InsertParticipant): Promise<Participant> {
-    const validated = insertParticipantSchema.parse(data);
-    const [participant] = await db.insert(participants).values(validated).returning();
-    return participant;
-  },
-  
-  async updateStatus(userId: string, eventId: string, status: string): Promise<Participant | undefined> {
-    // Validate status, prevent changing from "verified"
-    const [participant] = await db.update(participants)
-      .set({ status, updatedAt: new Date().toISOString() })
-      .where(and(eq(participants.userId, userId), eq(participants.eventId, eventId)))
-      .returning();
-    return participant;
-  },
-  
-  // More methods...
-};
+// Add to events table definition
+salesStartDate: text("sales_start_date"),
+salesEndDate: text("sales_end_date"),
+
+// Update insertEventSchema to handle date transformations
+salesStartDate: z.coerce.date().transform((d) => d.toISOString()).optional(),
+salesEndDate: z.coerce.date().transform((d) => d.toISOString()).optional(),
 ```
 
-### 4. Create Route Actions
+**products.ts** - Add participant capacity:
 ```typescript
-// src/routes/api/events/[id]/participants/index.ts
-export const onPost = routeAction$(async ({ params, request }, { cookie }) => {
-  const session = await getSession(cookie);
-  if (!session) return fail(401, { error: "Unauthorized" });
+// Add to products table definition
+participantCapacity: integer("participant_capacity").notNull().default(1),
+
+// Update insertProductSchema
+participantCapacity: z.number().int().min(1).default(1),
+```
+
+**tickets.ts** - Add free ticket flag:
+```typescript
+// Add to tickets table definition
+isFree: integer("is_free", { mode: "boolean" }).notNull().default(false),
+
+// Update insertTicketSchema
+isFree: z.boolean().default(false),
+```
+
+#### Generate and Run Migrations
+
+```bash
+# Generate migration SQL
+npx drizzle-kit generate
+
+# Review the generated migration in drizzle/migrations/
+
+# Apply migration
+npx drizzle-kit migrate
+```
+
+### 4. Update Schema Aggregator
+
+Add new schemas to `src/db/schema.ts`:
+```typescript
+export * from "./schemas/ticket-participants";
+export * from "./schemas/participation-status";
+export * from "./schemas/event-photos";
+```
+
+## Implementation Guide
+
+### Phase 1: Services Layer
+
+#### 1. Create `src/services/tickets.service.ts`
+
+Key methods:
+- `scanTicket(qrData, eventId, scannedBy)`: Validate QR and mark attendance
+- `getTicketWithParticipants(ticketId)`: Fetch ticket with participant details
+- `validateQRSignature(qrData)`: HMAC validation
+
+#### 2. Create `src/services/photos.service.ts`
+
+Key methods:
+- `createPhotoRecord(eventId, filePath, uploadedBy)`: Store photo metadata
+- `getEventPhotos(eventId, userId)`: List photos for attended users
+- `generateSecureUrl(photoId, userId)`: Create signed URL
+- `validateSecureUrl(path, exp, sig)`: Verify signature and expiry
+
+#### 3. Create `src/services/participation.service.ts`
+
+Key methods:
+- `updateParticipation(userId, eventId, status)`: Set yes/no/maybe
+- `getParticipationSummary(eventId)`: Aggregate counts
+
+#### 4. Extend `src/services/events.service.ts`
+
+Add method:
+- `validateSalesPeriod(event)`: Check if sales are active
+
+### Phase 2: Utilities
+
+#### 1. Create `src/utils/qr-code.ts`
+
+```typescript
+import QRCode from 'qrcode';
+import crypto from 'crypto';
+
+export async function generateTicketQR(ticketId: string, eventId: string): Promise<string> {
+  const signature = generateQRSignature(ticketId, eventId);
+  const qrData = JSON.stringify({ ticketId, eventId, signature });
+  return await QRCode.toDataURL(qrData);
+}
+
+export function generateQRSignature(ticketId: string, eventId: string): string {
+  const secret = process.env.QR_SECRET || 'default-secret';
+  return crypto.createHmac('sha256', secret)
+    .update(`${ticketId}:${eventId}`)
+    .digest('hex');
+}
+
+export function validateQRSignature(qrData: any): boolean {
+  const expectedSig = generateQRSignature(qrData.ticketId, qrData.eventId);
+  return crypto.timingSafeEqual(
+    Buffer.from(qrData.signature),
+    Buffer.from(expectedSig)
+  );
+}
+```
+
+#### 2. Create `src/utils/secure-urls.ts`
+
+```typescript
+import crypto from 'crypto';
+
+export function generateSecurePhotoUrl(
+  photoId: string,
+  userId: string,
+  filePath: string
+): { url: string; expiresAt: string } {
+  const expiryTime = Date.now() + 3600000; // 1 hour
+  const signature = generateUrlSignature(photoId, userId, expiryTime);
   
-  const body = await request.json();
-  const { status } = createParticipantSchema.parse(body);
+  return {
+    url: `/api/photos/serve?path=${encodeURIComponent(filePath)}&exp=${expiryTime}&sig=${signature}`,
+    expiresAt: new Date(expiryTime).toISOString(),
+  };
+}
+
+function generateUrlSignature(photoId: string, userId: string, expiryTime: number): string {
+  const secret = process.env.PHOTO_URL_SECRET || 'default-secret';
+  return crypto.createHmac('sha256', secret)
+    .update(`${photoId}:${userId}:${expiryTime}`)
+    .digest('hex');
+}
+
+export function validateSecureUrl(
+  path: string,
+  exp: string,
+  sig: string,
+  userId: string
+): boolean {
+  const expiryTime = parseInt(exp);
+  if (Date.now() > expiryTime) return false;
   
-  const participant = await participantsService.create({
-    userId: session.userId,
-    eventId: params.id,
-    status,
+  // Extract photoId from path (implementation depends on path structure)
+  const photoId = extractPhotoIdFromPath(path);
+  const expectedSig = generateUrlSignature(photoId, userId, expiryTime);
+  
+  return crypto.timingSafeEqual(
+    Buffer.from(sig),
+    Buffer.from(expectedSig)
+  );
+}
+```
+
+### Phase 3: Components
+
+#### 1. Create `src/components/events/PhotoUploader.tsx`
+
+```typescript
+import { component$, useSignal, $ } from '@builder.io/qwik';
+import Uppy from '@uppy/core';
+import Dashboard from '@uppy/dashboard';
+import XHRUpload from '@uppy/xhr-upload';
+
+export const PhotoUploader = component$<{ eventId: string }>(({ eventId }) => {
+  const uploadComplete = useSignal(false);
+  
+  const initUppy = $(() => {
+    const uppy = new Uppy({
+      restrictions: {
+        maxFileSize: 10 * 1024 * 1024,
+        allowedFileTypes: ['image/*'],
+      },
+    })
+    .use(Dashboard, { target: '#uppy-dashboard' })
+    .use(XHRUpload, {
+      endpoint: '/api/upload',
+      formData: true,
+      fieldName: 'file',
+      headers: {
+        'x-upload-path': `/private/events/${eventId}/photos`,
+      },
+    });
+    
+    uppy.on('complete', (result) => {
+      uploadComplete.value = true;
+      // Send metadata to /api/events/:eventId/photos
+    });
   });
   
-  return { success: true, data: participant };
-}, zod$(createParticipantSchema));
+  return (
+    <div>
+      <div id="uppy-dashboard"></div>
+      <button onClick$={initUppy}>Start Upload</button>
+    </div>
+  );
+});
 ```
 
----
+#### 2. Create `src/components/events/TicketScanner.tsx`
 
-## Testing Strategy
+Browser-based QR scanner using html5-qrcode.
+
+#### 3. Create `src/components/events/ParticipationToggle.tsx`
+
+Yes/No/Maybe buttons with API integration.
+
+#### 4. Create `src/components/events/PhotoGallery.tsx`
+
+Lazy-loading photo grid with secure URL generation.
+
+### Phase 4: Routes
+
+#### 1. Admin Routes
+
+- `src/routes/admin/events/[eventId]/photos/upload/index.tsx`: Photo upload interface
+- `src/routes/admin/events/[eventId]/scan/index.tsx`: Ticket scanning interface
+
+#### 2. Public Routes
+
+- `src/routes/events/[eventId]/photos/index.tsx`: Photo gallery (attendees only)
+
+#### 3. API Routes
+
+- `src/routes/api/tickets/scan/index.ts`: Ticket scanning endpoint
+- `src/routes/api/photos/[photoId]/secure-url/index.ts`: Generate signed URL
+- `src/routes/api/photos/serve/index.ts`: Serve photo with validation
+- `src/routes/api/events/[eventId]/participation/index.ts`: Update participation status
+
+## Testing
 
 ### Unit Tests
-```typescript
-// tests/unit/services/participants.service.test.ts
-describe("participantsService", () => {
-  it("creates participant with valid status", async () => {
-    const result = await participantsService.create({
-      userId: "user-123",
-      eventId: "event-456",
-      status: "yes",
-    });
-    expect(result.status).toBe("yes");
-  });
-  
-  it("prevents setting status to verified manually", async () => {
-    await expect(participantsService.create({
-      userId: "user-123",
-      eventId: "event-456",
-      status: "verified",
-    })).rejects.toThrow();
-  });
-});
+
+```bash
+# Test services
+npm test src/services/tickets.service.test.ts
+npm test src/services/photos.service.test.ts
+
+# Test utilities
+npm test src/utils/qr-code.test.ts
+npm test src/utils/secure-urls.test.ts
 ```
 
 ### Integration Tests
-```typescript
-// tests/integration/ticket-scanning.test.ts
-describe("Ticket Scanning", () => {
-  it("updates participant status to verified on scan", async () => {
-    const ticket = await createTestTicket();
-    const response = await fetch("/api/tickets/scan", {
-      method: "POST",
-      body: JSON.stringify({ qrCodeUuid: ticket.qrCodeUuid }),
-    });
-    
-    expect(response.ok).toBe(true);
-    const data = await response.json();
-    expect(data.participant.status).toBe("verified");
-  });
-});
+
+```bash
+# Test API endpoints
+npm test src/routes/api/tickets/scan/index.test.ts
+npm test src/routes/api/photos/serve/index.test.ts
 ```
 
----
+### E2E Tests
 
-## Security Checklist
-
-- ✅ Photos: Check `participants.status = verified` before URL generation
-- ✅ Uploads: Validate file type, size, user is organizer
-- ✅ Scanning: Prevent duplicate scans via transaction
-- ✅ Sales period: Server-side validation (not just client)
-- ✅ Status updates: Prevent manual setting of "verified"
-- ✅ Foreign keys: Prevent orphaned records
-- ✅ Pre-signed URLs: 1 hour expiration, no caching beyond window
-
----
-
-## Performance Optimizations
-
-### Indexes
-```sql
-CREATE INDEX idx_participants_event_status ON participants(event_id, status);
-CREATE INDEX idx_participants_user ON participants(user_id);
-CREATE INDEX idx_event_photos_event ON event_photos(event_id);
+```bash
+# Test full flows
+npm run test:e2e
 ```
 
-### Caching Opportunities
-- Photo URL generation (cache URLs for 1 hour)
-- Participation counts (denormalize if queries slow)
-- Sales period checks (cache inventory group data)
+## Deployment Checklist
 
-### Pagination
-- Photo galleries: Cursor-based, 50 per page
-- Participant lists: Cursor-based, 100 per page
+- [ ] Database migrations applied to production
+- [ ] Environment variables configured
+- [ ] `/private/` directory created with proper permissions
+- [ ] QR signing secret configured
+- [ ] Photo URL signing secret configured
+- [ ] Uppy.io CDN assets loaded (if not bundled)
+- [ ] Test ticket scanning on mobile devices
+- [ ] Test photo upload with large files
+- [ ] Verify secure URL expiry works correctly
 
----
+## Common Issues
 
-## Common Pitfalls
+### Issue: QR codes not scanning
+**Solution**: Ensure QR payload is valid JSON and signature matches server-side generation.
 
-### ❌ Don't: Store full photo URLs in database
-**Why**: URLs change when credentials rotate. Store keys, generate URLs on-demand.
+### Issue: Photos not accessible
+**Solution**: Verify user has `scannedAt` timestamp for the event. Check file permissions on `/private/` directory.
 
-### ❌ Don't: Allow manual setting of "verified" status
-**Why**: Only ticket scanning should mark attendance. Prevents fraud.
+### Issue: Secure URLs expiring too quickly
+**Solution**: Check server clock synchronization. Verify expiry calculation is using consistent timestamp format.
 
-### ❌ Don't: Validate sales period client-side only
-**Why**: Easy to bypass. Always validate server-side before checkout.
-
-### ❌ Don't: Create separate participant records for multi-capacity products
-**Why**: Participants are user-event mappings (one per user per event). Capacity is product metadata.
-
-### ✅ Do: Use transactions for ticket scanning
-**Why**: Prevents race conditions when multiple devices scan same ticket.
-
-### ✅ Do: Check event.isFree before Stripe checkout
-**Why**: Free events skip payment flow entirely.
-
-### ✅ Do: Generate pre-signed URLs with expiration
-**Why**: Prevents URL sharing and unauthorized access.
-
----
+### Issue: Uppy upload fails
+**Solution**: Verify `/api/upload` endpoint accepts `x-upload-path` header. Check file size limits.
 
 ## Next Steps
 
-1. **Phase 1 Complete**: Review data-model.md and contracts
-2. **Phase 2**: Break down into implementation tasks (`/speckit.tasks`)
-3. **Phase 3**: Implement schemas, services, routes
-4. **Phase 4**: Write tests, deploy
+After core implementation:
+1. Add thumbnail generation for photo gallery
+2. Implement bulk ticket scanning mode
+3. Add email notifications for attendance confirmation
+4. Create analytics dashboard for participation trends
+5. Add export functionality for attendee lists
 
----
-
-## Resources
-
-- **Feature Spec**: `specs/002-event-participation-tracking/spec.md`
-- **Research**: `specs/002-event-participation-tracking/research.md`
-- **Data Model**: `specs/002-event-participation-tracking/data-model.md`
-- **API Contracts**: `specs/002-event-participation-tracking/contracts/api-contracts.md`
-- **Constitution**: `.specify/memory/constitution.md`
-- **Cloudflare R2 Docs**: https://developers.cloudflare.com/r2/
-- **Drizzle ORM Docs**: https://orm.drizzle.team/
-- **Qwik Docs**: https://qwik.builder.io/
-
----
-
-## Questions?
+## Support
 
 Refer to:
-1. Constitution for coding patterns
-2. Data model for schema details
-3. API contracts for endpoint specs
-4. Research doc for technology rationale
-
-If stuck: Ask in team chat or review existing similar features (events, tickets).
+- `/specs/002-event-participation-tracking/data-model.md` for schema details
+- `/specs/002-event-participation-tracking/contracts/` for API contracts
+- `/specs/002-event-participation-tracking/research.md` for technology decisions

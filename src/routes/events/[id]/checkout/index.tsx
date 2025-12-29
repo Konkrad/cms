@@ -117,6 +117,17 @@ export const useCreateCheckoutSession = routeAction$(
         }
       }
 
+      // Auto-upgrade participation status from "maybe" to "yes" for free tickets
+      if (createdTickets.length > 0) {
+        const { participationService } = await import("~/services/participation.service");
+        try {
+          await participationService.autoUpgradeToYes(user.id, eventId);
+        } catch (error) {
+          console.error("Failed to auto-upgrade participation status:", error);
+          // Don't fail the transaction if participation update fails
+        }
+      }
+
       return {
         isFree: true,
         tickets: createdTickets,

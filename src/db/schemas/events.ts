@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./users";
@@ -35,7 +35,10 @@ export const events = sqliteTable("events", {
   updatedAt: text("updated_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
-});
+}, (table) => ({
+  salesStartIdx: index("events_sales_start_idx").on(table.salesStartDate),
+  salesEndIdx: index("events_sales_end_idx").on(table.salesEndDate),
+}));
 
 export const eventsRelations = relations(events, ({ one, many }) => ({
   user: one(users, {

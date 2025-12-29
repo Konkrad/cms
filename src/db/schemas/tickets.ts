@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { transactions } from "./transactions";
@@ -29,7 +29,10 @@ export const tickets = sqliteTable("tickets", {
   createdAt: text("created_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
-});
+}, (table) => ({
+  scannedAtIdx: index("tickets_scanned_at_idx").on(table.scannedAt),
+  eventScannedIdx: index("tickets_event_scanned_idx").on(table.eventId, table.scannedAt),
+}));
 
 export const ticketsRelations = relations(tickets, ({ one, many }) => ({
   transaction: one(transactions, {

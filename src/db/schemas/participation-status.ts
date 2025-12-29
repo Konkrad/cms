@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, unique, index } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { events } from "./events";
@@ -23,6 +23,7 @@ export const participationStatus = sqliteTable(
   },
   (table) => ({
     uniqueUserEvent: unique().on(table.userId, table.eventId),
+    eventIdIdx: index("participation_status_event_id_idx").on(table.eventId),
   }),
 );
 

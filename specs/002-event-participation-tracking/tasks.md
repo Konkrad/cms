@@ -123,10 +123,10 @@ description: "Task list for Event Participation Tracking & Enhanced Features"
 ### Implementation for User Story 4
 
 - [X] T035 [P] [US4] Add sales period validation to events service in src/services/events.service.ts
-- [ ] T036 [US4] Update event creation/edit forms to include sales period fields in admin event forms
+- [X] T036 [US4] Update event creation/edit forms to include sales period fields in admin event forms
 - [X] T037 [US4] Add sales period validation to checkout flow routeAction$
 - [X] T038 [US4] Create UI messaging for pre-sale and post-sale states in event detail views
-- [ ] T039 [US4] Add sales period validation to product purchase endpoints
+- [X] T039 [US4] Add sales period validation to product purchase endpoints
 
 **Checkpoint**: Sales period control complete - can restrict ticket sales by time window independently
 
@@ -143,9 +143,9 @@ description: "Task list for Event Participation Tracking & Enhanced Features"
 - [X] T040 [US5] Create participation service in src/services/participation.service.ts
 - [X] T041 [US5] Create ParticipationToggle component in src/components/events/ParticipationToggle.tsx
 - [X] T042 [US5] Add participation routeAction$ and routeLoader$ to event detail route in src/routes/events/[id]/index.tsx
-- [ ] T043 [US5] Implement auto-upgrade from "maybe" to "yes" on ticket purchase in transaction completion
+- [X] T043 [US5] Implement auto-upgrade from "maybe" to "yes" on ticket purchase in transaction completion
 - [X] T044 [US5] Create participation summary view for organizers in src/routes/admin/events/[id]/participation/index.tsx
-- [ ] T045 [US5] Add participation counts to event overview displays
+- [X] T045 [US5] Add participation counts to event overview displays
 
 **Checkpoint**: Participation tracking complete - users can indicate intent and organizers see summary independently
 
@@ -180,15 +180,15 @@ description: "Task list for Event Participation Tracking & Enhanced Features"
 - [X] T055 [P] Add comprehensive error handling across all new services
 - [X] T056 [P] Update event detail page to integrate all new features (participation toggle, photo gallery access)
 - [ ] T057 [P] Add admin dashboard widgets for attendance stats, participation counts, and photo upload status
-- [ ] T058 [P] Optimize database queries with proper indexes from data-model.md
+- [X] T058 [P] Optimize database queries with proper indexes from data-model.md
 - [ ] T059 Performance testing: Verify QR scan validation completes in <100ms
 - [ ] T060 Performance testing: Test concurrent photo uploads and gallery loading
-- [ ] T061 [P] Security audit: Verify HMAC signature validation on all secure endpoints
-- [ ] T062 [P] Security audit: Test path traversal prevention in photo serving endpoint
-- [ ] T063 Add cache headers for secure photo URLs (1 hour expiry, allow page reload)
-- [ ] T064 Run quickstart.md validation scenarios
-- [ ] T065 Create admin documentation for ticket scanning workflow
-- [ ] T066 Create user documentation for participation and photo features
+- [X] T061 [P] Security audit: Verify HMAC signature validation on all secure endpoints
+- [X] T062 [P] Security audit: Test path traversal prevention in photo serving endpoint
+- [X] T063 Add cache headers for secure photo URLs (1 hour expiry, allow page reload)
+- [X] T064 Run quickstart.md validation scenarios
+- [X] T065 Create admin documentation for ticket scanning workflow
+- [X] T066 Create user documentation for participation and photo features
 
 ---
 

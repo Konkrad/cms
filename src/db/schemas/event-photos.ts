@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { events } from "./events";
@@ -19,7 +19,9 @@ export const eventPhotos = sqliteTable("event_photos", {
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
   thumbnailPath: text("thumbnail_path"),
-});
+}, (table) => ({
+  eventIdIdx: index("event_photos_event_id_idx").on(table.eventId),
+}));
 
 export const eventPhotosRelations = relations(eventPhotos, ({ one }) => ({
   event: one(events, {

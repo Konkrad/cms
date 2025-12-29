@@ -5,19 +5,30 @@ import { Button } from "~/components/ui/Button";
 import { eventsService } from "~/services/events.service";
 
 export const useEvents = routeLoader$(async () => {
+  const { participationService } = await import("~/services/participation.service");
   const { items } = await eventsService.getAll();
-  return items.map((event) => ({
-    id: event.id,
-    title: event.title,
-    body: event.body,
-    startDate: event.startDate,
-    endDate: event.endDate,
-    locationType: event.locationType,
-    address: event.address,
-    city: event.city,
-    country: event.country,
-    organizerName: event.user.displayName,
-  }));
+  
+  // Fetch participation counts for all events
+  const eventsWithParticipation = await Promise.all(
+    items.map(async (event) => {
+      const participationSummary = await participationService.getSummary(event.id);
+      return {
+        id: event.id,
+        title: event.title,
+        body: event.body,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        locationType: event.locationType,
+        address: event.address,
+        city: event.city,
+        country: event.country,
+        organizerName: event.user.displayName,
+        participationCounts: participationSummary,
+      };
+    })
+  );
+  
+  return eventsWithParticipation;
 });
 
 export const useDeleteEvent = routeAction$(async (data, event) => {
@@ -54,6 +65,9 @@ export default component$(() => {
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Date
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Participation
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
@@ -94,6 +108,19 @@ export default component$(() => {
                   </div>
                   <div class="text-sm text-gray-500">
                     {format(new Date(event.startDate), "h:mm a")}
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex gap-2 text-xs">
+                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded" title="Going">
+                      ✓ {event.participationCounts.yes}
+                    </span>
+                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded" title="Maybe">
+                      ? {event.participationCounts.maybe}
+                    </span>
+                    <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded" title="Not Going">
+                      ✗ {event.participationCounts.no}
+                    </span>
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">

@@ -245,6 +245,42 @@ export default component$(() => {
           </div>
         )}
 
+        {/* Photo Gallery Access (for past events) */}
+        {new Date() > endDate && (
+          <div class="bg-purple-50 border border-purple-200 rounded-lg p-6 mb-8">
+            <div class="flex items-start gap-4">
+              <svg
+                class="w-8 h-8 text-purple-600 flex-shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              <div class="flex-1">
+                <h3 class="text-lg font-semibold text-purple-900 mb-2">
+                  📸 Event Photos
+                </h3>
+                <p class="text-purple-800 mb-4">
+                  Photos from this event are available to verified attendees.
+                  If your ticket was scanned at the event, you can view the photo gallery.
+                </p>
+                <Link
+                  href={`/events/${event.value.id}/photos`}
+                  class="inline-block bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 rounded-lg transition-colors"
+                >
+                  View Photo Gallery
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Additional Info */}
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
           <h3 class="text-lg font-semibold text-blue-900 mb-2">

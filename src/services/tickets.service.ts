@@ -119,7 +119,11 @@ export const ticketsService = {
     qrDataString: string,
     eventId: string,
   ): Promise<
-    | { success: true; ticket: Ticket }
+    | { 
+        success: true; 
+        ticket: Ticket;
+        participants: Array<typeof ticketParticipants.$inferSelect>;
+      }
     | { success: false; error: string }
   > {
     // Parse and validate QR code
@@ -135,9 +139,16 @@ export const ticketsService = {
       return { success: false, error: "QR code is for a different event" };
     }
 
-    // Find the ticket
+    // Find the ticket with participants
     const currentTicket = await db.query.tickets.findFirst({
       where: eq(tickets.id, ticketId),
+      with: {
+        participants: {
+          orderBy: (participants, { asc }) => [
+            asc(participants.participantOrder),
+          ],
+        },
+      },
     });
 
     if (!currentTicket) {
@@ -163,7 +174,11 @@ export const ticketsService = {
       return { success: false, error: "Failed to scan ticket" };
     }
 
-    return { success: true, ticket };
+    return { 
+      success: true, 
+      ticket,
+      participants: currentTicket.participants as any,
+    };
   },
 
   async getAttendanceStats(eventId: string): Promise<{

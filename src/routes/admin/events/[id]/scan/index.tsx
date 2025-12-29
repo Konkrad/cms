@@ -34,6 +34,7 @@ export const useScanTicket = routeAction$(
       message: "Ticket scanned successfully!",
       ticketId: result.ticket.id,
       scannedAt: result.ticket.scannedAt,
+      participants: result.participants,
     };
   },
   zod$({
@@ -67,6 +68,7 @@ export default component$(() => {
             message: result.value.message,
             ticketId: result.value.ticketId,
             scannedAt: result.value.scannedAt,
+            participants: result.value.participants,
           };
         }}
       />

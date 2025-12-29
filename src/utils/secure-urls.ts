@@ -3,42 +3,36 @@ import { env } from "~/env";
 
 /**
  * Generate a secure URL with HMAC signature for photo access
- * URL expires in 1 hour by default
  */
 export function generateSecurePhotoUrl(
-  photoId: string,
-  userId: string,
   filePath: string,
-  expiryHours = 1,
-): { url: string; expiresAt: string } {
-  const expiryTime = Date.now() + expiryHours * 3600000;
-  const signature = generateUrlSignature(photoId, userId, expiryTime);
+  userId: string,
+  expUnix: number,
+): string {
+  const signature = generateUrlSignature(filePath, userId, expUnix);
 
   const params = new URLSearchParams({
     path: filePath,
     uid: userId,
-    exp: expiryTime.toString(),
+    exp: expUnix.toString(),
     sig: signature,
   });
 
-  return {
-    url: `/api/photos/serve?${params.toString()}`,
-    expiresAt: new Date(expiryTime).toISOString(),
-  };
+  return `/api/photos/serve?${params.toString()}`;
 }
 
 /**
  * Generate HMAC signature for URL validation
  */
 function generateUrlSignature(
-  photoId: string,
+  filePath: string,
   userId: string,
-  expiryTime: number,
+  expUnix: number,
 ): string {
   const secret = env.PHOTO_URL_SECRET;
   return crypto
     .createHmac("sha256", secret)
-    .update(`${photoId}:${userId}:${expiryTime}`)
+    .update(`${filePath}:${userId}:${expUnix}`)
     .digest("hex");
 }
 
@@ -46,23 +40,24 @@ function generateUrlSignature(
  * Validate secure URL signature and expiry
  */
 export function validateSecureUrl(
-  photoId: string,
+  filePath: string,
   userId: string,
   exp: string,
   sig: string,
 ): { valid: boolean; error?: string } {
   try {
-    const expiryTime = Number.parseInt(exp);
+    const expUnix = Number.parseInt(exp);
 
-    if (Number.isNaN(expiryTime)) {
+    if (Number.isNaN(expUnix)) {
       return { valid: false, error: "Invalid expiry timestamp" };
     }
 
-    if (Date.now() > expiryTime) {
+    const nowUnix = Math.floor(Date.now() / 1000);
+    if (nowUnix > expUnix) {
       return { valid: false, error: "URL has expired" };
     }
 
-    const expectedSig = generateUrlSignature(photoId, userId, expiryTime);
+    const expectedSig = generateUrlSignature(filePath, userId, expUnix);
 
     const isValid = crypto.timingSafeEqual(
       Buffer.from(sig),

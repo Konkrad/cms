@@ -14,6 +14,12 @@ type ScanResult = {
   message: string;
   ticketId?: string;
   scannedAt?: string;
+  participants?: Array<{
+    participantOrder: number;
+    name: string;
+    email: string;
+    phone?: string | null;
+  }>;
 };
 
 type TicketScannerProps = {
@@ -203,6 +209,17 @@ export const TicketScanner = component$<TicketScannerProps>(
                       <p class="mt-1 text-xs text-green-700">
                         Scanned at: {new Date(scanResult.value.scannedAt).toLocaleString()}
                       </p>
+                    )}
+                    {scanResult.value.participants && scanResult.value.participants.length > 0 && (
+                      <div class="mt-2 space-y-1">
+                        <p class="text-xs font-semibold text-green-800">Participants:</p>
+                        {scanResult.value.participants.map((p) => (
+                          <div key={p.participantOrder} class="text-xs text-green-700 ml-2">
+                            {p.participantOrder}. {p.name} ({p.email})
+                            {p.phone && ` - ${p.phone}`}
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>

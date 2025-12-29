@@ -104,11 +104,11 @@ description: "Task list for Event Participation Tracking & Enhanced Features"
 
 - [X] T028 [US3] Create participant service in src/services/participants.service.ts with CRUD operations
 - [X] T029 [US3] Update product creation UI to include participant capacity field in admin product forms
-- [ ] T030 [US3] Modify checkout flow to collect participant details based on capacity in existing checkout route
+- [X] T030 [US3] Modify checkout flow to collect participant details based on capacity in existing checkout route
 - [X] T031 [US3] Create ParticipantForm component in src/components/events/ParticipantForm.tsx
-- [ ] T032 [US3] Add participant detail validation in checkout routeAction$
-- [ ] T033 [US3] Update ticket display to show all associated participants in ticket views
-- [ ] T034 [US3] Extend ticket scanner to display participant information when scanning
+- [X] T032 [US3] Add participant detail validation in checkout routeAction$
+- [X] T033 [US3] Update ticket display to show all associated participants in ticket views
+- [X] T034 [US3] Extend ticket scanner to display participant information when scanning
 
 **Checkpoint**: Multi-participant products complete - can configure capacity and collect participant data independently
 
@@ -159,15 +159,15 @@ description: "Task list for Event Participation Tracking & Enhanced Features"
 
 ### Implementation for User Story 6
 
-- [ ] T046 [US6] Create photos service in src/services/photos.service.ts with upload, access control, and URL generation
-- [ ] T047 [US6] Create PhotoUploader component in src/components/events/PhotoUploader.tsx using Uppy.io
-- [ ] T048 [US6] Create PhotoGallery component in src/components/events/PhotoGallery.tsx with lazy loading
-- [ ] T049 [US6] Create photo upload admin route in src/routes/admin/events/[id]/photos/index.tsx with routeAction$
-- [ ] T050 [US6] Create photo gallery route in src/routes/events/[id]/photos/index.tsx with routeLoader$ for attendance validation
-- [ ] T051 [US6] Create secure photo serving REST API endpoint in src/routes/api/photos/serve/index.ts
-- [ ] T052 [US6] Add secure URL generation routeAction$ in photo gallery route
-- [ ] T053 [US6] Configure Uppy to use existing /api/upload endpoint with private path headers
-- [ ] T054 [US6] Create /private/events/ directory structure with proper permissions
+- [X] T046 [US6] Create photos service in src/services/photos.service.ts with upload, access control, and URL generation
+- [X] T047 [US6] Create PhotoUploader component in src/components/events/PhotoUploader.tsx using Uppy.io
+- [X] T048 [US6] Create PhotoGallery component in src/components/events/PhotoGallery.tsx with lazy loading
+- [X] T049 [US6] Create photo upload admin route in src/routes/admin/events/[id]/photos/index.tsx with routeAction$
+- [X] T050 [US6] Create photo gallery route in src/routes/events/[id]/photos/index.tsx with routeLoader$ for attendance validation
+- [X] T051 [US6] Create secure photo serving REST API endpoint in src/routes/api/photos/serve/index.ts
+- [X] T052 [US6] Add secure URL generation routeAction$ in photo gallery route
+- [X] T053 [US6] Configure Uppy to use existing /api/upload endpoint with private path headers
+- [X] T054 [US6] Create /private/events/ directory structure with proper permissions
 
 **Checkpoint**: Private photos complete - organizers can upload and attendees can securely view photos independently
 
@@ -177,8 +177,8 @@ description: "Task list for Event Participation Tracking & Enhanced Features"
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T055 [P] Add comprehensive error handling across all new services
-- [ ] T056 [P] Update event detail page to integrate all new features (participation toggle, photo gallery access)
+- [X] T055 [P] Add comprehensive error handling across all new services
+- [X] T056 [P] Update event detail page to integrate all new features (participation toggle, photo gallery access)
 - [ ] T057 [P] Add admin dashboard widgets for attendance stats, participation counts, and photo upload status
 - [ ] T058 [P] Optimize database queries with proper indexes from data-model.md
 - [ ] T059 Performance testing: Verify QR scan validation completes in <100ms

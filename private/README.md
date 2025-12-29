@@ -1,0 +1,1 @@
+# Private Files Directory\n\nThis directory stores private event photos that are served via secure, time-limited URLs.\n\n**Access Control**: Only authenticated attendees who were scanned at the event can access these files via signed URLs.\n\n**Structure**: /private/events/{eventId}/photos/{photoId}.webp

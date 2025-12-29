@@ -41,7 +41,25 @@ An event organizer creates a completely free community event and wants to track 
 
 ---
 
-### User Story 3 - Sales Period Configuration (Priority: P3)
+### User Story 3 - Product Participant Capacity (Priority: P2)
+
+An event organizer creates a hotel room product that can accommodate 2 people but is sold as a single unit. They configure the product with a participant capacity of 2. When a customer purchases this product, even though only one person is buying, the checkout process prompts them to provide details for both participants (e.g., names, emails, dietary requirements). The system validates that all participant information is complete before allowing the purchase. Staff can later view all participant details when scanning tickets or reviewing attendance.
+
+**Why this priority**: Essential for products where multiple people share a single purchase unit (hotel rooms, group packages, meal plans). Ensures organizers have complete participant information for catering, accommodation, and logistics planning.
+
+**Independent Test**: Can be fully tested by creating a product with participant capacity > 1, purchasing it through the checkout flow while providing multiple participant details, and verifying all participant data is captured and accessible. Delivers value by enabling proper data collection for shared-capacity products.
+
+**Acceptance Scenarios**:
+
+1. **Given** an admin creates a product, **When** they set participant capacity to a value greater than 1, **Then** the system saves the capacity configuration
+2. **Given** a customer selects a product with participant capacity of 2, **When** they proceed to checkout, **Then** they are prompted to provide details for 2 participants
+3. **Given** a customer is entering participant details, **When** they attempt to checkout with incomplete information, **Then** the system prevents checkout and displays validation errors
+4. **Given** a product has participant capacity of 1, **When** a customer purchases it, **Then** no additional participant details are requested beyond the buyer information
+5. **Given** staff view ticket details, **When** they access a ticket from a multi-capacity product, **Then** they can see all associated participant information
+
+---
+
+### User Story 4 - Sales Period Configuration (Priority: P3)
 
 An event organizer is planning a conference 6 months in advance. They want to open ticket sales 4 months before the event (for early-bird pricing) and close sales 1 week before the event date. They configure the sales start date to 4 months before and sales end date to 1 week before. During this window, tickets are available for purchase. Outside this window, the purchase option is disabled but event information remains visible.
 
@@ -58,7 +76,7 @@ An event organizer is planning a conference 6 months in advance. They want to op
 
 ---
 
-### User Story 4 - Participation Status Tracking (Priority: P4)
+### User Story 5 - Participation Status Tracking (Priority: P4)
 
 Users can view an event on the website and indicate their participation intent. For paid events, the "Yes" status is coupled with a ticket purchase (the UI may label the "Yes" action as "Buy Ticket"), while for free events, "Yes" acts as a standard RSVP. Users who are interested but have not yet purchased a ticket can select "Maybe" to signal intent. This ensures that a "Yes" always represents a confirmed attendee, while "Maybe" represents the potential audience.
 
@@ -76,7 +94,7 @@ Users can view an event on the website and indicate their participation intent. 
 
 ---
 
-### User Story 5 - Private Event Photos (Priority: P5)
+### User Story 6 - Private Event Photos (Priority: P5)
 
 After an event concludes, the organizer uploads 100 photos to a private storage area. These photos are only accessible to attendees who actually attended the event (verified through ticket scanning). When an attendee who was scanned at the event logs in and views the past event, they see a private photo gallery with thumbnail images. When they click a photo, the system generates a time-limited secure URL to view the full-resolution image. Users who purchased tickets but didn't attend cannot see these photos.
 
@@ -104,6 +122,10 @@ After an event concludes, the organizer uploads 100 photos to a private storage 
 - How does the system handle timezone differences for sales period start/end times across global events?
 - What happens if an attendee loses access to their account after attending but wants to view private photos?
 - How does the system handle expired secure photo URLs being shared or bookmarked?
+- What happens when a customer purchases a product with participant capacity but provides incomplete participant details? (System should validate all required participant fields before allowing checkout)
+- What happens when a product has participant capacity of 1? (System should not prompt for additional participant details beyond the buyer)
+- What happens when admin changes participant capacity after tickets are already sold? (Existing tickets retain their original participant data, new purchases use updated capacity)
+- How does the system handle participant data for free tickets with capacity requirements?
 
 ## Requirements *(mandatory)*
 
@@ -125,37 +147,50 @@ After an event concludes, the organizer uploads 100 photos to a private storage 
 - **FR-009**: System MUST clearly distinguish free tickets from paid tickets in reporting and administration
 - **FR-010**: System MUST process free ticket attendance scanning identically to paid tickets
 
+#### Product Participant Capacity
+
+- **FR-011**: System MUST allow admins to configure participant capacity for products (number of participants per product unit)
+- **FR-012**: System MUST default participant capacity to 1 if not specified
+- **FR-013**: System MUST prompt customers to provide participant details for all capacity slots when participant capacity > 1
+- **FR-014**: System MUST collect participant information (name, email, phone, etc.) for each capacity slot
+- **FR-015**: System MUST validate that all required participant details are provided before allowing checkout
+- **FR-016**: System MUST associate participant information with each ticket generated from the product
+- **FR-017**: System MUST display participant details in ticket views and admin interfaces
+- **FR-018**: System MUST not prompt for additional participant details when capacity equals 1
+
 #### Sales Period
 
-- **FR-011**: System MUST allow organizers to define a sales start date/time for ticket availability
-- **FR-012**: System MUST allow organizers to define a sales end date/time for ticket availability
-- **FR-013**: System MUST validate that sales start date is before sales end date
-- **FR-014**: System MUST validate that sales period is within the event's start and end dates
-- **FR-015**: System MUST prevent ticket purchases outside the defined sales period
-- **FR-016**: System MUST display appropriate messaging when sales haven't started or have ended
+- **FR-019**: System MUST allow organizers to define a sales start date/time for ticket availability
+- **FR-020**: System MUST allow organizers to define a sales end date/time for ticket availability
+- **FR-021**: System MUST validate that sales start date is before sales end date
+- **FR-022**: System MUST validate that sales period is within the event's start and end dates
+- **FR-023**: System MUST prevent ticket purchases outside the defined sales period
+- **FR-024**: System MUST display appropriate messaging when sales haven't started or have ended
 
 #### Participation Tracking
 
-- **FR-017**: System MUST allow users to indicate participation intent (yes/no/maybe) for events
-- **FR-018**: System MUST track participation status independently from ticket purchases
-- **FR-019**: System MUST allow users to change their participation status at any time before the event
-- **FR-020**: System MUST provide organizers with participation summaries (count of yes/no/maybe responses)
-- **FR-021**: System MUST distinguish between participation intent and actual attendance (verified by ticket scan)
+- **FR-025**: System MUST allow users to indicate participation intent (yes/no/maybe) for events
+- **FR-026**: System MUST track participation status independently from ticket purchases
+- **FR-027**: System MUST allow users to change their participation status at any time before the event
+- **FR-028**: System MUST provide organizers with participation summaries (count of yes/no/maybe responses)
+- **FR-029**: System MUST distinguish between participation intent and actual attendance (verified by ticket scan)
 
 #### Private Event Photos
 
-- **FR-022**: System MUST allow organizers to upload photos after an event concludes
-- **FR-023**: System MUST store uploaded photos in a private storage location requiring authentication
-- **FR-024**: System MUST restrict photo viewing to users who attended the event (verified attendance status)
-- **FR-025**: System MUST generate time-limited secure URLs for photo access
-- **FR-026**: System MUST set secure URL expiration to 1 hour with cache headers allowing URL reuse on page reload
-- **FR-027**: System MUST prevent photo access for ticket holders who did not attend
-- **FR-028**: System MUST support multiple photo formats (JPEG, PNG, HEIC, etc.)
+- **FR-030**: System MUST allow organizers to upload photos after an event concludes
+- **FR-031**: System MUST store uploaded photos in a private storage location requiring authentication
+- **FR-032**: System MUST restrict photo viewing to users who attended the event (verified attendance status)
+- **FR-033**: System MUST generate time-limited secure URLs for photo access
+- **FR-034**: System MUST set secure URL expiration to 1 hour with cache headers allowing URL reuse on page reload
+- **FR-035**: System MUST prevent photo access for ticket holders who did not attend
+- **FR-036**: System MUST support multiple photo formats (JPEG, PNG, HEIC, etc.)
 
 ### Key Entities
 
 - **Event**: Represents a scheduled event with start date, end date, sales period (start/end), privacy settings, and ticket configuration (free/paid)
-- **Ticket**: Represents a ticket issued to a user, includes QR code data, ticket type (free/paid), attendance status (attended/not attended), and scan timestamp if attended
+- **Ticket**: Represents a ticket issued to a user, includes QR code data, ticket type (free/paid), attendance status (attended/not attended), scan timestamp if attended, and associated participant details
+- **Product**: Extended from ticket sales system to include participantCapacity (integer, default 1) specifying how many participant details are required per product unit
+- **Participant**: Represents details of a person associated with a ticket/product. Contains name (string), email (string), phone (string), and any additional fields configured for the product. Each product unit can have multiple participants based on participantCapacity setting
 - **Participation Status**: Represents a user's intent to participate, includes status (yes/no/maybe), timestamp of last update, and relationship to user and event
 - **Event Photo**: Represents a photo uploaded by an organizer, includes storage reference, upload timestamp, and association with an event
 - **Photo Access URL**: Represents a time-limited secure URL for viewing a specific photo, includes expiration timestamp and generation timestamp
@@ -166,9 +201,12 @@ After an event concludes, the organizer uploads 100 photos to a private storage 
 
 - **SC-001**: Event organizers can scan 100 tickets in under 5 minutes with clear visual/audio feedback per scan
 - **SC-002**: Users can register for free events in under 1 minute from landing page to ticket confirmation
-- **SC-003**: Sales period configuration prevents 100% of out-of-window purchases automatically
-- **SC-004**: Private photos are accessible only to verified attendees with 100% accuracy (no false positives allowing non-attendees)
-- **SC-005**: Secure photo URLs expire correctly within the defined time window with zero access after expiration
-- **SC-006**: Participation status tracking provides organizers with planning data at least 48 hours before event start
-- **SC-007**: Ticket scanning requires real-time internet connection for validation
-- **SC-008**: Attendance reports show accurate differentiation between ticket holders, actual attendees, and participation responses with 100% accuracy
+- **SC-003**: Customers can complete participant detail entry for multi-capacity products in under 2 minutes per product
+- **SC-004**: System validates 100% of participant detail requirements before allowing checkout
+- **SC-005**: Sales period configuration prevents 100% of out-of-window purchases automatically
+- **SC-006**: Private photos are accessible only to verified attendees with 100% accuracy (no false positives allowing non-attendees)
+- **SC-007**: Secure photo URLs expire correctly within the defined time window with zero access after expiration
+- **SC-008**: Participation status tracking provides organizers with planning data at least 48 hours before event start
+- **SC-009**: Ticket scanning requires real-time internet connection for validation
+- **SC-010**: Attendance reports show accurate differentiation between ticket holders, actual attendees, and participation responses with 100% accuracy
+- **SC-011**: Participant information is correctly associated with tickets with 100% accuracy across all capacity configurations

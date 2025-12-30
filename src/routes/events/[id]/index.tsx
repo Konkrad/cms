@@ -203,8 +203,11 @@ export default component$(() => {
     format(startDate, "yyyy-MM-dd") !== format(endDate, "yyyy-MM-dd");
 
   // Determine what to show for tickets/RSVP
+  const hasProducts = event.value.products.length > 0;
+
   const showFreeRSVP =
     !event.value.isEventPast &&
+    hasProducts &&
     event.value.isFreeEvent &&
     event.value.hasSingleProduct &&
     event.value.activeSalesPeriod &&
@@ -213,18 +216,19 @@ export default component$(() => {
   const showWaitlist =
     !event.value.isEventPast &&
     event.value.isEventFuture &&
-    !event.value.activeSalesPeriod &&
-    event.value.futureSalesPeriod &&
+    (!event.value.activeSalesPeriod || !hasProducts) &&
     !event.value.soldOut;
 
   const showBuyTickets =
     !event.value.isEventPast &&
+    hasProducts &&
     event.value.activeSalesPeriod &&
     !event.value.soldOut &&
     (!event.value.isFreeEvent || !event.value.hasSingleProduct);
 
   const showSalesClosed =
     !event.value.isEventPast &&
+    hasProducts &&
     event.value.pastSalesPeriod &&
     !event.value.activeSalesPeriod &&
     event.value.isEventFuture;

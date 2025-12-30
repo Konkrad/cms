@@ -3,6 +3,8 @@ import {
   useSignal,
   useVisibleTask$,
   $,
+  noSerialize,
+  type NoSerialize,
   type Signal,
 } from "@builder.io/qwik";
 import Uppy from "@uppy/core";
@@ -20,7 +22,7 @@ interface PhotoUploaderProps {
 
 export const PhotoUploader = component$<PhotoUploaderProps>(
   ({ eventId, onUploadSuccess, onUploadError }) => {
-    const uppyRef = useSignal<Uppy | null>(null);
+    const uppyRef = useSignal<NoSerialize<Uppy> | null>(null);
     const uploaderReady = useSignal(false);
 
     useVisibleTask$(({ cleanup }) => {
@@ -29,7 +31,6 @@ export const PhotoUploader = component$<PhotoUploaderProps>(
         restrictions: {
           maxFileSize: 10 * 1024 * 1024, // 10MB
           allowedFileTypes: ["image/jpeg", "image/png", "image/webp"],
-          maxNumberOfFiles: 10,
         },
         autoProceed: false,
       });
@@ -39,7 +40,7 @@ export const PhotoUploader = component$<PhotoUploaderProps>(
         target: "#uppy-dashboard",
         height: 400,
         hideProgressDetails: false,
-        note: "Images only, up to 10MB each, max 10 files",
+        note: "Images only, up to 10MB each",
       });
 
       uppy.use(XHRUpload, {
@@ -65,7 +66,7 @@ export const PhotoUploader = component$<PhotoUploaderProps>(
         }
       });
 
-      uppyRef.value = uppy;
+      uppyRef.value = noSerialize(uppy);
       uploaderReady.value = true;
 
       cleanup(() => {

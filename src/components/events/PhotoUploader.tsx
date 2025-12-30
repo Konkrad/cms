@@ -16,7 +16,7 @@ import { Button } from "~/components/ui/Button";
 
 interface PhotoUploaderProps {
   eventId: string;
-  onUploadSuccess?: (filePath: string) => void;
+  onUploadSuccess?: (filePath: string, thumbnailPath?: string) => void;
   onUploadError?: (error: string) => void;
 }
 
@@ -54,16 +54,26 @@ export const PhotoUploader = component$<PhotoUploaderProps>(
 
       // Handle upload events
       uppy.on("upload-success", (file, response) => {
+        console.log("Upload success:", response);
         const filePath = (response.body as any)?.filePath;
+        const thumbnailPath = (response.body as any)?.thumbnailPath;
+        console.log("Extracted paths:", { filePath, thumbnailPath });
         if (filePath && onUploadSuccess) {
-          onUploadSuccess(filePath);
+          onUploadSuccess(filePath, thumbnailPath);
+        } else {
+          console.error("No filePath in response:", response.body);
         }
       });
 
       uppy.on("upload-error", (file, error) => {
+        console.error("Upload error:", error);
         if (onUploadError) {
           onUploadError(error.message || "Upload failed");
         }
+      });
+
+      uppy.on("complete", (result) => {
+        console.log("Upload complete:", result);
       });
 
       uppyRef.value = noSerialize(uppy);

@@ -11,6 +11,7 @@ import { Card } from "~/components/ui/Card";
 import { photosService } from "~/services/photos.service";
 import { eventsService } from "~/services/events.service";
 import { getServerSession } from "~/utils/server-auth";
+import { generatePresignedGetUrl } from "~/utils/secure-urls";
 
 export const useEvent = routeLoader$(async ({ params }) => {
   const event = await eventsService.getById(params.id);
@@ -21,12 +22,37 @@ export const useEvent = routeLoader$(async ({ params }) => {
 });
 
 export const usePhotos = routeLoader$(async ({ params }) => {
-  return photosService.getByEventId(params.id);
+  const photos = await photosService.getByEventId(params.id);
+
+  // Generate presigned URLs for each photo
+  const photosWithUrls = await Promise.all(
+    photos.map(async (photo) => {
+      const thumbnailUrl = photo.thumbnailPath
+        ? await generatePresignedGetUrl(
+            photo.thumbnailPath.replace(/^\//, ""),
+            60 * 60,
+          )
+        : null;
+      const fullUrl = await generatePresignedGetUrl(
+        photo.filePath.replace(/^\//, ""),
+        60 * 60,
+      );
+
+      return {
+        ...photo,
+        thumbnailUrl,
+        fullUrl,
+      };
+    }),
+  );
+
+  return photosWithUrls;
 });
 
 export const useCreatePhoto = routeAction$(
-  async (data, { params, fail }) => {
-    const user = await getServerSession({ params } as any);
+  async (data, requestEvent) => {
+    const { params, fail } = requestEvent;
+    const user = await getServerSession(requestEvent);
     if (!user) {
       return fail(401, { message: "Not authenticated" });
     }
@@ -89,25 +115,40 @@ export default component$(() => {
       <Card class="mb-8">
         <PhotoUploader
           eventId={event.value.id}
-          onUploadSuccess={$(async (filePath: string) => {
-            // Register the photo in database
-            const result = await createPhotoAction.submit({
-              filePath,
-              thumbnailPath: undefined,
-            });
+          onUploadSuccess={$(
+            async (filePath: string, thumbnailPath?: string) => {
+              console.log("Submitting photo to database:", {
+                filePath,
+                thumbnailPath,
+              });
 
-            if (result.value?.success) {
-              uploadSuccess.value = "Photo uploaded successfully!";
-              uploadError.value = null;
-              // Reload photos list
-              window.location.reload();
-            } else {
-              uploadError.value =
-                result.value?.message || "Failed to register photo";
-              uploadSuccess.value = null;
-            }
-          })}
+              // Register the photo in database
+              const result = await createPhotoAction.submit({
+                filePath,
+                thumbnailPath,
+              });
+
+              console.log("Photo submission result:", result.value);
+
+              if (result.value?.success) {
+                uploadSuccess.value = "Photo uploaded successfully!";
+                uploadError.value = null;
+                // Reload photos list
+                window.location.reload();
+              } else {
+                const errorMsg =
+                  result.value?.message ||
+                  (result.value?.fieldErrors
+                    ? JSON.stringify(result.value.fieldErrors)
+                    : "Failed to register photo");
+                console.error("Photo submission failed:", result.value);
+                uploadError.value = errorMsg;
+                uploadSuccess.value = null;
+              }
+            },
+          )}
           onUploadError={$((error: string) => {
+            console.error("Upload error:", error);
             uploadError.value = error;
             uploadSuccess.value = null;
           })}
@@ -122,6 +163,15 @@ export default component$(() => {
         {uploadError.value && (
           <div class="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
             {uploadError.value}
+          </div>
+        )}
+
+        {createPhotoAction.value?.fieldErrors && (
+          <div class="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            <strong>Validation errors:</strong>
+            <pre class="mt-2 text-sm">
+              {JSON.stringify(createPhotoAction.value.fieldErrors, null, 2)}
+            </pre>
           </div>
         )}
       </Card>
@@ -141,24 +191,15 @@ export default component$(() => {
             {photos.value.map((photo) => (
               <div
                 key={photo.id}
-                class="relative aspect-square bg-gray-100 rounded-lg overflow-hidden"
+                class="relative aspect-square bg-gray-100 rounded-lg overflow-hidden group cursor-pointer"
               >
-                <div class="w-full h-full flex items-center justify-center text-gray-400">
-                  <svg
-                    class="w-12 h-12"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                <img
+                  src={photo.thumbnailUrl || photo.fullUrl}
+                  alt={photo.filePath.split("/").pop()}
+                  class="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <p class="text-xs text-white truncate" title={photo.filePath}>
                     {photo.filePath.split("/").pop()}
                   </p>

@@ -26,7 +26,9 @@ export const useProductsData = routeLoader$(async (event) => {
   // Get all inventory groups with products
   const groups = await inventoryGroupsService.getByEventId(eventId);
 
-  // Calculate remaining capacity for each group
+  const now = new Date();
+
+  // Calculate remaining capacity, sales window and available products for each group
   const groupsWithCapacity = await Promise.all(
     groups.map(async (group: any) => {
       const soldQuantity =
@@ -36,10 +38,31 @@ export const useProductsData = routeLoader$(async (event) => {
         ) || 0;
       const remainingCapacity = group.maxCapacity - soldQuantity;
 
+      const salesStart = group.salesStartDate
+        ? new Date(group.salesStartDate)
+        : null;
+      const salesEnd = group.salesEndDate ? new Date(group.salesEndDate) : null;
+      const isSalesOpen =
+        (!salesStart || salesStart <= now) && (!salesEnd || salesEnd >= now);
+
+      // Determine which products are currently available:
+      // - group sales window must be open
+      // - group must have remaining capacity
+      // - product must have remaining quantity (or unlimited if maxQuantity === 0)
+      const availableProducts = (group.products || []).filter((p: any) => {
+        const productRemaining =
+          p.maxQuantity && p.maxQuantity > 0
+            ? p.maxQuantity - (p.soldQuantity || 0)
+            : Infinity;
+        return isSalesOpen && remainingCapacity > 0 && productRemaining > 0;
+      });
+
       return {
         ...group,
         remainingCapacity,
         soldQuantity,
+        isSalesOpen,
+        availableProducts,
       };
     }),
   );
@@ -72,8 +95,8 @@ export const useCreateCheckoutSession = routeAction$(
     // Validate sales period
     const salesValidation = await eventsService.validateSalesPeriod(eventData);
     if (!salesValidation.valid) {
-      return event.fail(400, { 
-        message: salesValidation.reason || "Sales are not currently available" 
+      return event.fail(400, {
+        message: salesValidation.reason || "Sales are not currently available",
       });
     }
 
@@ -103,7 +126,7 @@ export const useCreateCheckoutSession = routeAction$(
     // Handle free tickets - skip payment
     if (totalAmount === 0) {
       const { ticketsService } = await import("~/services/tickets.service");
-      
+
       // Create free tickets directly
       const createdTickets = [];
       for (const item of items) {
@@ -119,7 +142,8 @@ export const useCreateCheckoutSession = routeAction$(
 
       // Auto-upgrade participation status from "maybe" to "yes" for free tickets
       if (createdTickets.length > 0) {
-        const { participationService } = await import("~/services/participation.service");
+        const { participationService } =
+          await import("~/services/participation.service");
         try {
           await participationService.autoUpgradeToYes(user.id, eventId);
         } catch (error) {
@@ -246,7 +270,7 @@ export default component$(() => {
 
     if (currentStep.value === 2 && !stripeLoaded.value) {
       console.log("[Checkout] Creating checkout session");
-      
+
       // Create checkout session using action
       const items = Object.entries(selectedProducts.value).map(
         ([productId, quantity]) => ({
@@ -453,85 +477,121 @@ export default component$(() => {
                 <div class="p-4 bg-gray-100 text-gray-600 rounded text-center">
                   Sold Out
                 </div>
+              ) : !group.isSalesOpen ? (
+                <div
+                  class={`rounded-lg p-4 mb-4 ${
+                    group.salesStartDate &&
+                    new Date(group.salesStartDate) > new Date()
+                      ? "bg-yellow-50 border border-yellow-200 text-yellow-700"
+                      : "bg-red-50 border border-red-200 text-red-700"
+                  }`}
+                >
+                  <div
+                    class={`text-lg font-semibold mb-2 ${
+                      group.salesStartDate &&
+                      new Date(group.salesStartDate) > new Date()
+                        ? "text-yellow-900"
+                        : "text-red-900"
+                    }`}
+                  >
+                    {group.salesStartDate &&
+                    new Date(group.salesStartDate) > new Date()
+                      ? "🕒 Sales Not Yet Open"
+                      : "🔒 Sales Closed"}
+                  </div>
+                  <p
+                    class={
+                      group.salesStartDate &&
+                      new Date(group.salesStartDate) > new Date()
+                        ? "text-yellow-800"
+                        : "text-red-800"
+                    }
+                  >
+                    {group.salesStartDate &&
+                    new Date(group.salesStartDate) > new Date()
+                      ? `Opens ${new Date(group.salesStartDate).toLocaleString()}`
+                      : group.salesEndDate
+                        ? `Closed ${new Date(group.salesEndDate).toLocaleString()}`
+                        : "Sales are not available for this group"}
+                  </p>
+                </div>
+              ) : ((group.availableProducts as any[]) || []).length === 0 ? (
+                <div class="p-4 bg-gray-100 text-gray-600 rounded text-center">
+                  No products available
+                </div>
               ) : (
                 <div class="space-y-4">
-                  {((group.products as any[]) || []).map((product: any) => {
-                    const remaining = group.remainingCapacity;
-                    const available = remaining > 0;
-                    const isSelected = selectedProducts.value[product.id] > 0;
+                  {((group.availableProducts as any[]) || []).map(
+                    (product: any) => {
+                      const isSelected = selectedProducts.value[product.id] > 0;
 
-                    return (
-                      <label
-                        key={product.id}
-                        class={`flex items-start gap-4 p-4 border rounded cursor-pointer hover:bg-gray-50 ${
-                          !available ? "opacity-50 cursor-not-allowed" : ""
-                        } ${isSelected ? "border-blue-500 bg-blue-50" : ""}`}
-                      >
-                        <input
-                          type="radio"
-                          name={`group_${group.id}`}
-                          value={product.id}
-                          disabled={!available}
-                          checked={isSelected}
-                          class="mt-1"
-                          onChange$={(e, el) => {
-                            if (el.checked) {
-                              // Clear other products in the same group
-                              const newSelection = {
-                                ...selectedProducts.value,
-                              };
-                              ((group.products as any[]) || []).forEach(
-                                (p: any) => {
-                                  if (p.id !== product.id) {
-                                    delete newSelection[p.id];
-                                  }
-                                },
-                              );
-                              newSelection[product.id] = 1;
-                              console.log(
-                                "[Checkout] Selected product:",
-                                product.id,
-                              );
-                              selectedProducts.value = newSelection;
-                            }
-                          }}
-                        />
+                      return (
+                        <label
+                          key={product.id}
+                          class={`flex items-start gap-4 p-4 border rounded cursor-pointer hover:bg-gray-50 ${isSelected ? "border-blue-500 bg-blue-50" : ""}`}
+                        >
+                          <input
+                            type="radio"
+                            name={`group_${group.id}`}
+                            value={product.id}
+                            checked={isSelected}
+                            class="mt-1"
+                            onChange$={(e, el) => {
+                              if (el.checked) {
+                                // Clear other products in the same group (iterate all products to ensure cleanup)
+                                const newSelection = {
+                                  ...selectedProducts.value,
+                                };
+                                ((group.products as any[]) || []).forEach(
+                                  (p: any) => {
+                                    if (p.id !== product.id) {
+                                      delete newSelection[p.id];
+                                    }
+                                  },
+                                );
+                                newSelection[product.id] = 1;
+                                console.log(
+                                  "[Checkout] Selected product:",
+                                  product.id,
+                                );
+                                selectedProducts.value = newSelection;
+                              }
+                            }}
+                          />
 
-                        <div class="flex-1">
-                          <div class="flex justify-between items-start">
-                            <div>
-                              <h3 class="font-semibold">{product.name}</h3>
-                              {product.features &&
-                                product.features.length > 0 && (
-                                  <ul class="text-sm text-gray-600 mt-1 space-y-1">
-                                    {product.features.map(
-                                      (feature: string, idx: number) => (
-                                        <li key={idx}>• {feature}</li>
-                                      ),
-                                    )}
-                                  </ul>
-                                )}
+                          <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                              <div>
+                                <h3 class="font-semibold">{product.name}</h3>
+                                {product.features &&
+                                  product.features.length > 0 && (
+                                    <ul class="text-sm text-gray-600 mt-1 space-y-1">
+                                      {product.features.map(
+                                        (feature: string, idx: number) => (
+                                          <li key={idx}>• {feature}</li>
+                                        ),
+                                      )}
+                                    </ul>
+                                  )}
+                              </div>
+                              {product.imageUrl && (
+                                <img
+                                  src={product.imageUrl}
+                                  alt={product.name}
+                                  class="w-20 h-20 object-cover rounded ml-4"
+                                />
+                              )}
                             </div>
-                            {product.imageUrl && (
-                              <img
-                                src={product.imageUrl}
-                                alt={product.name}
-                                class="w-20 h-20 object-cover rounded ml-4"
-                              />
-                            )}
-                          </div>
-                          <p class="text-lg font-bold mt-2">
-                            €{product.price.toFixed(2)}
-                          </p>
-                          {product.maxQuantity > 0 && (
-                            <p class="text-xs text-gray-500">
-                              Max {product.maxQuantity} per purchase
+                            <p class="text-sm text-gray-600 mt-2">
+                              €{product.price.toFixed(2)} | Sold:{" "}
+                              {product.soldQuantity} /{" "}
+                              {product.maxQuantity || "∞"}
                             </p>
-                          )}
-                        </div>
-                      </label>
-                    );
-                  })}
+                          </div>
+                        </label>
+                      );
+                    },
+                  )}
                 </div>
               )}
             </div>

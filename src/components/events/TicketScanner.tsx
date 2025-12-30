@@ -3,7 +3,7 @@ import {
   useSignal,
   useVisibleTask$,
   $,
-  type Signal,
+  type PropFunction,
 } from "@builder.io/qwik";
 import { Html5Qrcode } from "html5-qrcode";
 import { Button } from "~/components/ui/Button";
@@ -24,7 +24,7 @@ type ScanResult = {
 
 type TicketScannerProps = {
   eventId: string;
-  onScan: (qrData: string) => Promise<ScanResult>;
+  onScan: PropFunction<(qrData: string) => Promise<ScanResult>>;
 };
 
 export const TicketScanner = component$<TicketScannerProps>(
@@ -96,9 +96,7 @@ export const TicketScanner = component$<TicketScannerProps>(
         scanResult.value = {
           success: false,
           message:
-            error instanceof Error
-              ? error.message
-              : "Failed to start camera",
+            error instanceof Error ? error.message : "Failed to start camera",
         };
       }
     });
@@ -140,11 +138,7 @@ export const TicketScanner = component$<TicketScannerProps>(
                   Start Camera
                 </Button>
               ) : (
-                <Button
-                  onClick$={stopScanner}
-                  variant="danger"
-                  class="w-full"
-                >
+                <Button onClick$={stopScanner} variant="danger" class="w-full">
                   Stop Camera
                 </Button>
               )}
@@ -207,20 +201,27 @@ export const TicketScanner = component$<TicketScannerProps>(
                     </p>
                     {scanResult.value.scannedAt && (
                       <p class="mt-1 text-xs text-green-700">
-                        Scanned at: {new Date(scanResult.value.scannedAt).toLocaleString()}
+                        Scanned at:{" "}
+                        {new Date(scanResult.value.scannedAt).toLocaleString()}
                       </p>
                     )}
-                    {scanResult.value.participants && scanResult.value.participants.length > 0 && (
-                      <div class="mt-2 space-y-1">
-                        <p class="text-xs font-semibold text-green-800">Participants:</p>
-                        {scanResult.value.participants.map((p) => (
-                          <div key={p.participantOrder} class="text-xs text-green-700 ml-2">
-                            {p.participantOrder}. {p.name} ({p.email})
-                            {p.phone && ` - ${p.phone}`}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    {scanResult.value.participants &&
+                      scanResult.value.participants.length > 0 && (
+                        <div class="mt-2 space-y-1">
+                          <p class="text-xs font-semibold text-green-800">
+                            Participants:
+                          </p>
+                          {scanResult.value.participants.map((p) => (
+                            <div
+                              key={p.participantOrder}
+                              class="text-xs text-green-700 ml-2"
+                            >
+                              {p.participantOrder}. {p.name} ({p.email})
+                              {p.phone && ` - ${p.phone}`}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                   </div>
                 </div>
               </div>

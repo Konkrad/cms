@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { sqliteTable, text, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./users";
@@ -17,8 +17,7 @@ export const events = sqliteTable("events", {
   body: text("body").notNull(),
   startDate: text("start_date").notNull(),
   endDate: text("end_date").notNull(),
-  salesStartDate: text("sales_start_date"),
-  salesEndDate: text("sales_end_date"),
+
   locationType: text("location_type").notNull(),
   address: text("address"),
   city: text("city"),
@@ -35,10 +34,7 @@ export const events = sqliteTable("events", {
   updatedAt: text("updated_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
-}, (table) => ({
-  salesStartIdx: index("events_sales_start_idx").on(table.salesStartDate),
-  salesEndIdx: index("events_sales_end_idx").on(table.salesEndDate),
-}));
+});
 
 export const eventsRelations = relations(events, ({ one, many }) => ({
   user: one(users, {
@@ -64,21 +60,13 @@ export const insertEventSchema = baseInsertSchema
       .default(() => crypto.randomUUID()),
     startDate: z.coerce.date().transform((d) => d.toISOString()),
     endDate: z.coerce.date().transform((d) => d.toISOString()),
-    salesStartDate: z.coerce
-      .date()
-      .transform((d) => d.toISOString())
-      .optional(),
-    salesEndDate: z.coerce
-      .date()
-      .transform((d) => d.toISOString())
-      .optional(),
+
     createdAt: z.string().default(() => new Date().toISOString()),
     updatedAt: z.string().default(() => new Date().toISOString()),
   })
   .partial({
     id: true,
-    salesStartDate: true,
-    salesEndDate: true,
+
     createdAt: true,
     updatedAt: true,
   });
@@ -98,14 +86,7 @@ export const updateEventSchema = baseInsertSchema
       .date()
       .transform((d) => d.toISOString())
       .optional(),
-    salesStartDate: z.coerce
-      .date()
-      .transform((d) => d.toISOString())
-      .optional(),
-    salesEndDate: z.coerce
-      .date()
-      .transform((d) => d.toISOString())
-      .optional(),
+
     updatedAt: z
       .string()
       .default(() => new Date().toISOString())

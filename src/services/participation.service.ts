@@ -6,11 +6,10 @@ import {
   type InsertParticipationStatus,
 } from "~/db/schemas/participation-status";
 import { eq, and } from "drizzle-orm";
+import { logins } from "~/db/schemas/logins";
 
 export const participationService = {
-  async create(
-    data: InsertParticipationStatus,
-  ): Promise<ParticipationStatus> {
+  async create(data: InsertParticipationStatus): Promise<ParticipationStatus> {
     const validated = insertParticipationStatusSchema.parse(data);
     const [result] = await db
       .insert(participationStatus)
@@ -108,6 +107,27 @@ export const participationService = {
         user: true,
       },
     });
+
+    // Resolve and attach user email (from the logins table) where available.
+    // We do this here so callers (e.g. admin pages) can display organiser / participant emails
+    // without having to run additional queries.
+    for (const participation of results) {
+      try {
+        if (participation.user?.loginId) {
+          const [loginRow] = await db
+            .select()
+            .from(logins)
+            .where(eq(logins.id, participation.user.loginId));
+          if (loginRow?.email) {
+            (participation.user as any).email = loginRow.email;
+          }
+        }
+      } catch {
+        // If resolving the login/email fails for any reason, don't fail the entire response.
+        // We simply skip attaching the email for that user.
+      }
+    }
+
     return results as any;
   },
 

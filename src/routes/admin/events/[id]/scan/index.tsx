@@ -1,4 +1,4 @@
-import { component$ } from "@builder.io/qwik";
+import { component$, $ } from "@builder.io/qwik";
 import {
   routeAction$,
   routeLoader$,
@@ -50,17 +50,20 @@ export default component$(() => {
     <div class="container mx-auto px-4 py-8 max-w-4xl">
       <div class="mb-6">
         <h1 class="text-3xl font-bold text-gray-900">{event.value.title}</h1>
-        <p class="mt-2 text-gray-600">Scan tickets for attendance verification</p>
+        <p class="mt-2 text-gray-600">
+          Scan tickets for attendance verification
+        </p>
       </div>
 
       <TicketScanner
         eventId={event.value.id}
-        onScan={async (qrData: string) => {
+        onScan={$(async (qrData: string) => {
           const result = await scanAction.submit({ qrData });
           if (!result.value || result.value.failed) {
             return {
               success: false,
-              message: result.value?.fieldErrors?.qrData || "Failed to process scan",
+              message:
+                result.value?.fieldErrors?.qrData || "Failed to process scan",
             };
           }
           return {
@@ -70,7 +73,7 @@ export default component$(() => {
             scannedAt: result.value.scannedAt,
             participants: result.value.participants,
           };
-        }}
+        })}
       />
 
       <div class="mt-8">

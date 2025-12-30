@@ -42,20 +42,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "sales_start_date": {
-          "name": "sales_start_date",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "sales_end_date": {
-          "name": "sales_end_date",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+
         "location_type": {
           "name": "location_type",
           "type": "text",
@@ -129,33 +116,14 @@
           "default": "CURRENT_TIMESTAMP"
         }
       },
-      "indexes": {
-        "events_sales_start_idx": {
-          "name": "events_sales_start_idx",
-          "columns": [
-            "sales_start_date"
-          ],
-          "isUnique": false
-        },
-        "events_sales_end_idx": {
-          "name": "events_sales_end_idx",
-          "columns": [
-            "sales_end_date"
-          ],
-          "isUnique": false
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
         "events_user_id_users_id_fk": {
           "name": "events_user_id_users_id_fk",
           "tableFrom": "events",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -238,9 +206,7 @@
       "indexes": {
         "logins_email_unique": {
           "name": "logins_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         }
       },
@@ -399,9 +365,7 @@
       "indexes": {
         "pages_slug_unique": {
           "name": "pages_slug_unique",
-          "columns": [
-            "slug"
-          ],
+          "columns": ["slug"],
           "isUnique": true
         }
       },
@@ -471,12 +435,8 @@
           "name": "posts_user_id_users_id_fk",
           "tableFrom": "posts",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -549,9 +509,7 @@
       "indexes": {
         "sessions_token_unique": {
           "name": "sessions_token_unique",
-          "columns": [
-            "token"
-          ],
+          "columns": ["token"],
           "isUnique": true
         }
       },
@@ -560,12 +518,8 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -724,6 +678,20 @@
           "autoincrement": false,
           "default": true
         },
+        "sales_start_date": {
+          "name": "sales_start_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sales_end_date": {
+          "name": "sales_end_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -733,18 +701,25 @@
           "default": "CURRENT_TIMESTAMP"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "inventory_groups_sales_start_idx": {
+          "name": "inventory_groups_sales_start_idx",
+          "columns": ["sales_start_date"],
+          "isUnique": false
+        },
+        "inventory_groups_sales_end_idx": {
+          "name": "inventory_groups_sales_end_idx",
+          "columns": ["sales_end_date"],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "inventory_groups_event_id_events_id_fk": {
           "name": "inventory_groups_event_id_events_id_fk",
           "tableFrom": "inventory_groups",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -859,12 +834,8 @@
           "name": "products_event_id_events_id_fk",
           "tableFrom": "products",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -872,12 +843,8 @@
           "name": "products_inventory_group_id_inventory_groups_id_fk",
           "tableFrom": "products",
           "tableTo": "inventory_groups",
-          "columnsFrom": [
-            "inventory_group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inventory_group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -959,9 +926,7 @@
       "indexes": {
         "transactions_stripe_session_id_unique": {
           "name": "transactions_stripe_session_id_unique",
-          "columns": [
-            "stripe_session_id"
-          ],
+          "columns": ["stripe_session_id"],
           "isUnique": true
         }
       },
@@ -970,12 +935,8 @@
           "name": "transactions_event_id_events_id_fk",
           "tableFrom": "transactions",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -983,12 +944,8 @@
           "name": "transactions_user_id_users_id_fk",
           "tableFrom": "transactions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1050,12 +1007,8 @@
           "name": "transaction_items_transaction_id_transactions_id_fk",
           "tableFrom": "transaction_items",
           "tableTo": "transactions",
-          "columnsFrom": [
-            "transaction_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["transaction_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1063,12 +1016,8 @@
           "name": "transaction_items_product_id_products_id_fk",
           "tableFrom": "transaction_items",
           "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["product_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1149,24 +1098,17 @@
       "indexes": {
         "tickets_qr_code_uuid_unique": {
           "name": "tickets_qr_code_uuid_unique",
-          "columns": [
-            "qr_code_uuid"
-          ],
+          "columns": ["qr_code_uuid"],
           "isUnique": true
         },
         "tickets_scanned_at_idx": {
           "name": "tickets_scanned_at_idx",
-          "columns": [
-            "scanned_at"
-          ],
+          "columns": ["scanned_at"],
           "isUnique": false
         },
         "tickets_event_scanned_idx": {
           "name": "tickets_event_scanned_idx",
-          "columns": [
-            "event_id",
-            "scanned_at"
-          ],
+          "columns": ["event_id", "scanned_at"],
           "isUnique": false
         }
       },
@@ -1175,12 +1117,8 @@
           "name": "tickets_transaction_id_transactions_id_fk",
           "tableFrom": "tickets",
           "tableTo": "transactions",
-          "columnsFrom": [
-            "transaction_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["transaction_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1188,12 +1126,8 @@
           "name": "tickets_product_id_products_id_fk",
           "tableFrom": "tickets",
           "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["product_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1201,12 +1135,8 @@
           "name": "tickets_event_id_events_id_fk",
           "tableFrom": "tickets",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1214,12 +1144,8 @@
           "name": "tickets_buyer_id_users_id_fk",
           "tableFrom": "tickets",
           "tableTo": "users",
-          "columnsFrom": [
-            "buyer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["buyer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1292,10 +1218,7 @@
       "indexes": {
         "ticket_participants_ticket_id_participant_order_unique": {
           "name": "ticket_participants_ticket_id_participant_order_unique",
-          "columns": [
-            "ticket_id",
-            "participant_order"
-          ],
+          "columns": ["ticket_id", "participant_order"],
           "isUnique": true
         }
       },
@@ -1304,12 +1227,8 @@
           "name": "ticket_participants_ticket_id_tickets_id_fk",
           "tableFrom": "ticket_participants",
           "tableTo": "tickets",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1361,17 +1280,12 @@
       "indexes": {
         "participation_status_event_id_idx": {
           "name": "participation_status_event_id_idx",
-          "columns": [
-            "event_id"
-          ],
+          "columns": ["event_id"],
           "isUnique": false
         },
         "participation_status_user_id_event_id_unique": {
           "name": "participation_status_user_id_event_id_unique",
-          "columns": [
-            "user_id",
-            "event_id"
-          ],
+          "columns": ["user_id", "event_id"],
           "isUnique": true
         }
       },
@@ -1380,12 +1294,8 @@
           "name": "participation_status_user_id_users_id_fk",
           "tableFrom": "participation_status",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1393,12 +1303,8 @@
           "name": "participation_status_event_id_events_id_fk",
           "tableFrom": "participation_status",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1457,9 +1363,7 @@
       "indexes": {
         "event_photos_event_id_idx": {
           "name": "event_photos_event_id_idx",
-          "columns": [
-            "event_id"
-          ],
+          "columns": ["event_id"],
           "isUnique": false
         }
       },
@@ -1468,12 +1372,8 @@
           "name": "event_photos_event_id_events_id_fk",
           "tableFrom": "event_photos",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1481,12 +1381,8 @@
           "name": "event_photos_uploaded_by_users_id_fk",
           "tableFrom": "event_photos",
           "tableTo": "users",
-          "columnsFrom": [
-            "uploaded_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["uploaded_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

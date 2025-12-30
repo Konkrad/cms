@@ -1,5 +1,13 @@
-import { component$ } from "@builder.io/qwik";
-import { Link, type DocumentHead, routeLoader$, routeAction$, z, zod$, Form } from "@builder.io/qwik-city";
+import { component$, $ } from "@builder.io/qwik";
+import {
+  Link,
+  type DocumentHead,
+  routeLoader$,
+  routeAction$,
+  z,
+  zod$,
+  Form,
+} from "@builder.io/qwik-city";
 import { format } from "date-fns";
 import { eventsService } from "~/services/events.service";
 import { participationService } from "~/services/participation.service";
@@ -101,9 +109,9 @@ export default component$(() => {
           <Form action={updateParticipation}>
             <ParticipationToggle
               currentStatus={event.value.userParticipation?.status || null}
-              onStatusChange={(status) => {
+              onStatusChange={$((status: "yes" | "no" | "maybe") => {
                 updateParticipation.submit({ status });
-              }}
+              })}
             />
           </Form>
         </div>
@@ -221,25 +229,31 @@ export default component$(() => {
 
         {/* Sales Period Status */}
         {!event.value.salesStatus.valid && (
-          <div class={`rounded-lg p-6 mb-8 ${
-            event.value.salesStatus.reason?.includes('open on') 
-              ? 'bg-yellow-50 border border-yellow-200' 
-              : 'bg-red-50 border border-red-200'
-          }`}>
-            <h3 class={`text-lg font-semibold mb-2 ${
-              event.value.salesStatus.reason?.includes('open on')
-                ? 'text-yellow-900'
-                : 'text-red-900'
-            }`}>
-              {event.value.salesStatus.reason?.includes('open on') 
-                ? '🕒 Sales Not Yet Open' 
-                : '🔒 Sales Closed'}
+          <div
+            class={`rounded-lg p-6 mb-8 ${
+              event.value.salesStatus.reason?.includes("open on")
+                ? "bg-yellow-50 border border-yellow-200"
+                : "bg-red-50 border border-red-200"
+            }`}
+          >
+            <h3
+              class={`text-lg font-semibold mb-2 ${
+                event.value.salesStatus.reason?.includes("open on")
+                  ? "text-yellow-900"
+                  : "text-red-900"
+              }`}
+            >
+              {event.value.salesStatus.reason?.includes("open on")
+                ? "🕒 Sales Not Yet Open"
+                : "🔒 Sales Closed"}
             </h3>
-            <p class={
-              event.value.salesStatus.reason?.includes('open on')
-                ? 'text-yellow-800'
-                : 'text-red-800'
-            }>
+            <p
+              class={
+                event.value.salesStatus.reason?.includes("open on")
+                  ? "text-yellow-800"
+                  : "text-red-800"
+              }
+            >
               {event.value.salesStatus.reason}
             </p>
           </div>
@@ -267,8 +281,9 @@ export default component$(() => {
                   📸 Event Photos
                 </h3>
                 <p class="text-purple-800 mb-4">
-                  Photos from this event are available to verified attendees.
-                  If your ticket was scanned at the event, you can view the photo gallery.
+                  Photos from this event are available to verified attendees. If
+                  your ticket was scanned at the event, you can view the photo
+                  gallery.
                 </p>
                 <Link
                   href={`/events/${event.value.id}/photos`}

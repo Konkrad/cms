@@ -64,6 +64,29 @@ export const inventoryGroupsService = {
       };
     }
 
+    // Block purchases outside the group's sales window
+    const now = new Date();
+    if (group.salesStartDate) {
+      const start = new Date(group.salesStartDate);
+      if (!isNaN(start.getTime()) && start > now) {
+        return {
+          allowed: false,
+          remainingCapacity: 0,
+          reason: `Sales open on ${start.toLocaleString()}`,
+        };
+      }
+    }
+    if (group.salesEndDate) {
+      const end = new Date(group.salesEndDate);
+      if (!isNaN(end.getTime()) && end < now) {
+        return {
+          allowed: false,
+          remainingCapacity: 0,
+          reason: "Sales have closed",
+        };
+      }
+    }
+
     const soldQuantity = group.products.reduce(
       (sum, p) => sum + (p.soldQuantity || 0),
       0,

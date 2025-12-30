@@ -1,4 +1,4 @@
-import { component$, useSignal } from "@builder.io/qwik";
+import { component$, useSignal, $ } from "@builder.io/qwik";
 import {
   routeAction$,
   routeLoader$,
@@ -64,7 +64,7 @@ export const useCreatePhoto = routeAction$(
   zod$({
     filePath: z.string().startsWith("/private/events/").endsWith(".webp"),
     thumbnailPath: z.string().optional(),
-  })
+  }),
 );
 
 export default component$(() => {
@@ -89,7 +89,7 @@ export default component$(() => {
       <Card class="mb-8">
         <PhotoUploader
           eventId={event.value.id}
-          onUploadSuccess={async (filePath: string) => {
+          onUploadSuccess={$(async (filePath: string) => {
             // Register the photo in database
             const result = await createPhotoAction.submit({
               filePath,
@@ -106,11 +106,11 @@ export default component$(() => {
                 result.value?.message || "Failed to register photo";
               uploadSuccess.value = null;
             }
-          }}
-          onUploadError={(error: string) => {
+          })}
+          onUploadError={$((error: string) => {
             uploadError.value = error;
             uploadSuccess.value = null;
-          }}
+          })}
         />
 
         {uploadSuccess.value && (

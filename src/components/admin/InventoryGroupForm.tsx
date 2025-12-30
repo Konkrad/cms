@@ -22,6 +22,15 @@ export const InventoryGroupForm = component$<InventoryGroupFormProps>(
             min="1"
             required
           />
+          <Input
+            name="salesStartDate"
+            label="Sales Start"
+            type="datetime-local"
+          />
+          <Input name="salesEndDate" label="Sales End" type="datetime-local" />
+          <p class="text-sm text-gray-500">
+            Optional: limit when products in this group can be purchased
+          </p>
           <label class="flex items-center gap-2">
             <input type="checkbox" name="needsTicket" value="true" />
             <span class="text-sm">

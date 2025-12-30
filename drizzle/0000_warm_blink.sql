@@ -4,8 +4,6 @@ CREATE TABLE `events` (
 	`body` text NOT NULL,
 	`start_date` text NOT NULL,
 	`end_date` text NOT NULL,
-	`sales_start_date` text,
-	`sales_end_date` text,
 	`location_type` text NOT NULL,
 	`address` text,
 	`city` text,
@@ -19,8 +17,6 @@ CREATE TABLE `events` (
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE INDEX `events_sales_start_idx` ON `events` (`sales_start_date`);--> statement-breakpoint
-CREATE INDEX `events_sales_end_idx` ON `events` (`sales_end_date`);--> statement-breakpoint
 CREATE TABLE `logins` (
 	`id` text PRIMARY KEY NOT NULL,
 	`email` text NOT NULL,
@@ -106,10 +102,14 @@ CREATE TABLE `inventory_groups` (
 	`name` text NOT NULL,
 	`max_capacity` integer NOT NULL,
 	`needs_ticket` integer DEFAULT true NOT NULL,
+	`sales_start_date` text,
+	`sales_end_date` text,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	FOREIGN KEY (`event_id`) REFERENCES `events`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE INDEX `inventory_groups_sales_start_idx` ON `inventory_groups` (`sales_start_date`);--> statement-breakpoint
+CREATE INDEX `inventory_groups_sales_end_idx` ON `inventory_groups` (`sales_end_date`);--> statement-breakpoint
 CREATE TABLE `products` (
 	`id` text PRIMARY KEY NOT NULL,
 	`event_id` text NOT NULL,

@@ -81,4 +81,12 @@ export const usersService = {
   async delete(id: string): Promise<void> {
     await db.delete(users).where(eq(users.id, id));
   },
+
+  async getByEmail(email: string): Promise<User | undefined> {
+    const result = await db.query.users.findFirst({
+      where: eq(users.email, email),
+    });
+
+    return result;
+  },
 };

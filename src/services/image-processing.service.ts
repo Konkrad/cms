@@ -38,6 +38,20 @@ export const PROCESSING_PIPELINES = {
     quality: 80,
   },
 
+  // Gallery - web-optimized (scale down if needed), used for event gallery images
+  gallery: {
+    name: "gallery",
+    transform: (transformer) =>
+      transformer.resize({
+        width: 1600,
+        height: 1600,
+        fit: "inside",
+        withoutEnlargement: true,
+      }),
+    outputFormat: "webp" as const,
+    quality: 85,
+  },
+
   // Thumbnail - 300x300 webp for previews
   thumbnail: {
     name: "thumbnail",
@@ -127,18 +141,8 @@ export async function processAndUploadImage(
   const transformer = sharp();
   const transformedSharp = pipeline.transform(transformer);
 
-  // Apply format and quality
-  switch (pipeline.outputFormat) {
-    case "webp":
-      transformedSharp.webp({ quality: pipeline.quality || 80 });
-      break;
-    case "jpeg":
-      transformedSharp.jpeg({ quality: pipeline.quality || 80 });
-      break;
-    case "png":
-      transformedSharp.png({ quality: pipeline.quality || 80 });
-      break;
-  }
+  // Output format: always webp
+  transformedSharp.webp({ quality: pipeline.quality || 80 });
 
   // Create a PassThrough stream to bridge Sharp and S3
   const passThrough = new PassThrough();
@@ -170,6 +174,124 @@ export async function processAndUploadImage(
     key: s3Key,
     bucket: env.S3_BUCKET,
     url,
+  };
+}
+
+/**
+ * Process and upload an image buffer/stream to S3 producing both a gallery and thumbnail variant.
+ *
+ * Attempts to stream the pipeline and upload both variants concurrently.
+ * Falls back to buffering the input if the environment doesn't support tee() on web streams.
+ */
+export async function processAndUploadVariants(
+  input: ReadableStream | Buffer,
+  galleryPipeline: ImageProcessingPipeline = PROCESSING_PIPELINES.gallery,
+  thumbnailPipeline: ImageProcessingPipeline = PROCESSING_PIPELINES.thumbnail,
+  keyPrefix: string,
+  fileId?: string,
+): Promise<{ gallery: ImageUploadResult; thumbnail: ImageUploadResult }> {
+  const id = fileId || `${Date.now()}`;
+  const galleryFileName = `${id}.${galleryPipeline.outputFormat}`;
+  const thumbFileName = `${id}-thumb.${thumbnailPipeline.outputFormat}`;
+  const galleryS3Key = `${keyPrefix}/${galleryFileName}`;
+  const thumbS3Key = `${keyPrefix}/${thumbFileName}`;
+
+  const s3Client = createS3Client();
+
+  function uploadFromReadable(
+    nodeReadable: Readable,
+    pipeline: ImageProcessingPipeline,
+    s3Key: string,
+  ) {
+    const transformer = sharp();
+    const transformed = pipeline.transform(transformer);
+
+    // Output format: always webp
+    transformed.webp({ quality: pipeline.quality || 80 });
+
+    const passThrough = new PassThrough();
+    nodeReadable.pipe(transformed).pipe(passThrough);
+
+    const upload = new Upload({
+      client: s3Client,
+      params: {
+        Bucket: env.S3_BUCKET,
+        Key: s3Key,
+        Body: passThrough,
+        ContentType: `image/webp`,
+      },
+    });
+
+    return upload.done();
+  }
+
+  let galleryUploadPromise: Promise<any>;
+  let thumbUploadPromise: Promise<any>;
+
+  if (input instanceof Buffer) {
+    const nodeA = Readable.from(input);
+    const nodeB = Readable.from(input);
+
+    galleryUploadPromise = uploadFromReadable(
+      nodeA,
+      galleryPipeline,
+      galleryS3Key,
+    );
+    thumbUploadPromise = uploadFromReadable(
+      nodeB,
+      thumbnailPipeline,
+      thumbS3Key,
+    );
+  } else {
+    const webStream = input as ReadableStream;
+
+    // Require tee() to be available for streaming split; no fallback buffering.
+    if (typeof (webStream as any).tee !== "function") {
+      throw new Error(
+        "Streaming environment does not support ReadableStream.tee(); cannot split stream",
+      );
+    }
+
+    const [sA, sB] = (webStream as any).tee();
+    const nodeA = Readable.fromWeb(sA as any);
+    const nodeB = Readable.fromWeb(sB as any);
+
+    galleryUploadPromise = uploadFromReadable(
+      nodeA,
+      galleryPipeline,
+      galleryS3Key,
+    );
+    thumbUploadPromise = uploadFromReadable(
+      nodeB,
+      thumbnailPipeline,
+      thumbS3Key,
+    );
+  }
+
+  const [galleryResult, thumbResult] = await Promise.all([
+    galleryUploadPromise,
+    thumbUploadPromise,
+  ]);
+
+  const galleryUrl = env.AWS_ENDPOINT
+    ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${galleryS3Key}`
+    : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${galleryS3Key}`;
+
+  const thumbUrl = env.AWS_ENDPOINT
+    ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${thumbS3Key}`
+    : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${thumbS3Key}`;
+
+  return {
+    gallery: {
+      key: galleryS3Key,
+      bucket: env.S3_BUCKET,
+      url: galleryUrl,
+    },
+    thumbnail: {
+      key: thumbS3Key,
+      bucket: env.S3_BUCKET,
+      url: thumbUrl,
+    },
   };
 }
 

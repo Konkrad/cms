@@ -9,7 +9,10 @@ import {
 import { users } from "~/db/schemas/users";
 import { products } from "~/db/schemas/products";
 import { events } from "~/db/schemas/events";
-import { eq, and, isNull } from "drizzle-orm";
+import { ticketParticipants } from "~/db/schemas/ticket-participants";
+import { eq, and, isNull, isNotNull } from "drizzle-orm";
+import { parseAndValidateQR } from "~/utils/qr-code";
+import crypto from "crypto";
 
 export const ticketsService = {
   async create(data: InsertTicket): Promise<Ticket> {
@@ -37,6 +40,7 @@ export const ticketsService = {
         buyer: typeof users.$inferSelect;
         product: typeof products.$inferSelect;
         event: typeof events.$inferSelect;
+        participants: Array<typeof ticketParticipants.$inferSelect>;
       })
     | undefined
   > {
@@ -46,6 +50,11 @@ export const ticketsService = {
         buyer: true,
         product: true,
         event: true,
+        participants: {
+          orderBy: (participants, { asc }) => [
+            asc(participants.participantOrder),
+          ],
+        },
       },
     });
     return result as any;
@@ -106,45 +115,148 @@ export const ticketsService = {
     return results as any;
   },
 
-  async scanTicket(qrCodeUuid: string): Promise<Ticket | undefined> {
-    // First, check the current state of the ticket
-    const currentTicket = await db.query.tickets.findFirst({
-      where: eq(tickets.qrCodeUuid, qrCodeUuid),
-    });
+  async scanTicket(
+    qrDataString: string,
+    eventId: string,
+  ): Promise<
+    | {
+        success: true;
+        ticket: Ticket;
+        participants: Array<typeof ticketParticipants.$inferSelect>;
+      }
+    | { success: false; error: string }
+  > {
+    // Parse and validate QR code
+    const qrResult = parseAndValidateQR(qrDataString);
+    if (!qrResult.valid || !qrResult.data) {
+      return { success: false, error: qrResult.error || "Invalid QR code" };
+    }
 
-    console.log("scanTicket - Current ticket state:", {
-      found: !!currentTicket,
-      qrCodeUuid,
-      currentScannedAt: currentTicket?.scannedAt,
-      scannedAtType: typeof currentTicket?.scannedAt,
-      scannedAtValue:
-        currentTicket?.scannedAt === null
-          ? "NULL"
-          : currentTicket?.scannedAt === ""
-            ? "EMPTY_STRING"
-            : currentTicket?.scannedAt,
+    const { ticketId, eventId: qrEventId } = qrResult.data;
+
+    // Verify event ID matches
+    if (qrEventId !== eventId) {
+      return { success: false, error: "QR code is for a different event" };
+    }
+
+    // Find the ticket with participants
+    const currentTicket = await db.query.tickets.findFirst({
+      where: eq(tickets.id, ticketId),
+      with: {
+        participants: {
+          orderBy: (participants, { asc }) => [
+            asc(participants.participantOrder),
+          ],
+        },
+      },
     });
 
     if (!currentTicket) {
-      console.error("scanTicket - Ticket not found");
-      return undefined;
+      return { success: false, error: "Ticket not found" };
     }
 
+    // Check if already scanned
     if (currentTicket.scannedAt) {
-      console.error("scanTicket - Ticket already scanned");
-      return undefined;
+      return {
+        success: false,
+        error: `Ticket already scanned at ${currentTicket.scannedAt}`,
+      };
     }
 
-    // Try to update the ticket
+    // Update ticket as scanned
     const [ticket] = await db
       .update(tickets)
       .set({ scannedAt: new Date().toISOString() })
-      .where(and(eq(tickets.qrCodeUuid, qrCodeUuid), isNull(tickets.scannedAt)))
+      .where(and(eq(tickets.id, ticketId), isNull(tickets.scannedAt)))
       .returning();
 
-    console.log("scanTicket - Update result:", {
-      updated: !!ticket,
-      ticketId: ticket?.id,
+    if (!ticket) {
+      return { success: false, error: "Failed to scan ticket" };
+    }
+
+    return {
+      success: true,
+      ticket,
+      participants: currentTicket.participants as any,
+    };
+  },
+
+  async getAttendanceStats(eventId: string): Promise<{
+    totalTickets: number;
+    scannedTickets: number;
+    freeTickets: number;
+    paidTickets: number;
+    attendanceRate: number;
+  }> {
+    const allTickets = await db.query.tickets.findMany({
+      where: eq(tickets.eventId, eventId),
+      with: {
+        product: true,
+      },
+    });
+
+    const totalTickets = allTickets.length;
+    const scannedTickets = allTickets.filter((t) => t.scannedAt).length;
+    const freeTickets = allTickets.filter((t) => t.product.price === 0).length;
+    const paidTickets = totalTickets - freeTickets;
+    const attendanceRate =
+      totalTickets > 0 ? (scannedTickets / totalTickets) * 100 : 0;
+
+    return {
+      totalTickets,
+      scannedTickets,
+      freeTickets,
+      paidTickets,
+      attendanceRate,
+    };
+  },
+
+  async getAttendedTickets(eventId: string): Promise<
+    Array<
+      Ticket & {
+        buyer: typeof users.$inferSelect;
+        product: typeof products.$inferSelect;
+        participants: Array<typeof ticketParticipants.$inferSelect>;
+      }
+    >
+  > {
+    const results = await db.query.tickets.findMany({
+      where: and(eq(tickets.eventId, eventId), isNotNull(tickets.scannedAt)),
+      with: {
+        buyer: true,
+        product: true,
+        participants: {
+          orderBy: (participants, { asc }) => [
+            asc(participants.participantOrder),
+          ],
+        },
+      },
+    });
+    return results as any;
+  },
+
+  async createFreeTicket(data: {
+    productId: string;
+    eventId: string;
+    buyerId: string;
+  }): Promise<Ticket> {
+    // Create a dummy transaction for free tickets
+    const { transactionsService } = await import("./transactions.service");
+    const transaction = await transactionsService.create({
+      userId: data.buyerId,
+      eventId: data.eventId,
+      totalAmount: 0,
+      transactionFee: 0,
+      stripeSessionId: `free_${crypto.randomUUID()}`,
+      stripePaymentId: `free_${crypto.randomUUID()}`,
+    });
+
+    // Create the ticket
+    const ticket = await this.create({
+      transactionId: transaction.id,
+      productId: data.productId,
+      eventId: data.eventId,
+      buyerId: data.buyerId,
     });
 
     return ticket;

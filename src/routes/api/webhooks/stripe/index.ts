@@ -184,6 +184,17 @@ async function processCheckoutSession(session: Stripe.Checkout.Session) {
       ? await ticketsService.createBulk(ticketsToCreate)
       : [];
 
+  // Auto-upgrade participation status from "maybe" to "yes" on ticket purchase
+  if (tickets.length > 0) {
+    const { participationService } = await import("~/services/participation.service");
+    try {
+      await participationService.autoUpgradeToYes(userId, eventId);
+    } catch (error) {
+      console.error("Failed to auto-upgrade participation status:", error);
+      // Don't fail the transaction if participation update fails
+    }
+  }
+
   // Generate QR codes for tickets
   const qrCodes = await Promise.all(
     tickets.map(async (ticket) => {
@@ -394,6 +405,17 @@ async function processPaymentIntent(paymentIntent: Stripe.PaymentIntent) {
     ticketsToCreate.length > 0
       ? await ticketsService.createBulk(ticketsToCreate)
       : [];
+
+  // Auto-upgrade participation status from "maybe" to "yes" on ticket purchase
+  if (tickets.length > 0) {
+    const { participationService } = await import("~/services/participation.service");
+    try {
+      await participationService.autoUpgradeToYes(userId, eventId);
+    } catch (error) {
+      console.error("Failed to auto-upgrade participation status:", error);
+      // Don't fail the transaction if participation update fails
+    }
+  }
 
   // Generate QR codes for tickets
   const qrCodes = await Promise.all(

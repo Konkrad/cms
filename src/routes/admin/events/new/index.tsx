@@ -14,6 +14,8 @@ const eventSchema = z
     body: z.string().min(1, "Description is required"),
     startDate: z.string().min(1, "Start date is required"),
     endDate: z.string().min(1, "End date is required"),
+    salesStartDate: z.string().optional(),
+    salesEndDate: z.string().optional(),
     locationType: z.enum(["online", "in_person", "hybrid"]),
     address: z.string().optional(),
     city: z.string().optional(),
@@ -46,6 +48,31 @@ const eventSchema = z
         path: ["onlineUrl"],
       });
     }
+
+    // Validate sales period dates
+    if (data.salesStartDate && data.salesEndDate) {
+      const salesStart = new Date(data.salesStartDate);
+      const salesEnd = new Date(data.salesEndDate);
+      if (salesStart >= salesEnd) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Sales start date must be before sales end date",
+          path: ["salesStartDate"],
+        });
+      }
+    }
+
+    if (data.salesEndDate && data.endDate) {
+      const salesEnd = new Date(data.salesEndDate);
+      const eventEnd = new Date(data.endDate);
+      if (salesEnd > eventEnd) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Sales end date must be before or equal to event end date",
+          path: ["salesEndDate"],
+        });
+      }
+    }
   });
 
 export const useCreateEvent = routeAction$(async (data, event) => {
@@ -57,6 +84,8 @@ export const useCreateEvent = routeAction$(async (data, event) => {
     body: data.body,
     startDate: new Date(data.startDate).toISOString(),
     endDate: new Date(data.endDate).toISOString(),
+    salesStartDate: data.salesStartDate ? new Date(data.salesStartDate).toISOString() : null,
+    salesEndDate: data.salesEndDate ? new Date(data.salesEndDate).toISOString() : null,
     locationType: data.locationType,
     address: data.address || null,
     city: data.city || null,
@@ -123,8 +152,15 @@ export default component$(() => {
           <SmartDatePicker
             startDateName="startDate"
             endDateName="endDate"
-            label="Date & Time"
+            label="Event Date & Time"
             required
+          />
+
+          <SmartDatePicker
+            startDateName="salesStartDate"
+            endDateName="salesEndDate"
+            label="Sales Period (Optional)"
+            helpText="When can attendees purchase tickets? Leave empty for no restrictions."
           />
 
           <Select

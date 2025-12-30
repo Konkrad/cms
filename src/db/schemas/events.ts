@@ -7,6 +7,8 @@ import { inventoryGroups } from "./inventory-groups";
 import { products } from "./products";
 import { transactions } from "./transactions";
 import { tickets } from "./tickets";
+import { participationStatus } from "./participation-status";
+import { eventPhotos } from "./event-photos";
 import crypto from "crypto";
 
 export const events = sqliteTable("events", {
@@ -15,6 +17,7 @@ export const events = sqliteTable("events", {
   body: text("body").notNull(),
   startDate: text("start_date").notNull(),
   endDate: text("end_date").notNull(),
+
   locationType: text("location_type").notNull(),
   address: text("address"),
   city: text("city"),
@@ -42,6 +45,8 @@ export const eventsRelations = relations(events, ({ one, many }) => ({
   products: many(products),
   transactions: many(transactions),
   tickets: many(tickets),
+  participationStatuses: many(participationStatus),
+  photos: many(eventPhotos),
 }));
 
 const baseInsertSchema = createInsertSchema(events);
@@ -55,11 +60,13 @@ export const insertEventSchema = baseInsertSchema
       .default(() => crypto.randomUUID()),
     startDate: z.coerce.date().transform((d) => d.toISOString()),
     endDate: z.coerce.date().transform((d) => d.toISOString()),
+
     createdAt: z.string().default(() => new Date().toISOString()),
     updatedAt: z.string().default(() => new Date().toISOString()),
   })
   .partial({
     id: true,
+
     createdAt: true,
     updatedAt: true,
   });
@@ -79,6 +86,7 @@ export const updateEventSchema = baseInsertSchema
       .date()
       .transform((d) => d.toISOString())
       .optional(),
+
     updatedAt: z
       .string()
       .default(() => new Date().toISOString())

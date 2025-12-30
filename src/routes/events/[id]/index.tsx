@@ -16,8 +16,10 @@ import { db } from "~/db/connection";
 import { inventoryGroups } from "~/db/schemas/inventory-groups";
 import { tickets } from "~/db/schemas/tickets";
 import { eq, and, isNotNull } from "drizzle-orm";
+import { getCurrentUserData } from "~/utils/server-auth";
 
-export const useEvent = routeLoader$(async ({ params, status, sharedMap }) => {
+export const useEvent = routeLoader$(async (requestEvent) => {
+  const { params, status } = requestEvent;
   const event = await eventsService.getById(params.id);
 
   if (!event) {
@@ -37,12 +39,13 @@ export const useEvent = routeLoader$(async ({ params, status, sharedMap }) => {
   const salesValidation = await eventsService.validateSalesPeriod(event);
 
   // Get participation status if user is logged in
-  const session = sharedMap.get("session");
+  const userData = await getCurrentUserData(requestEvent);
+  const isLoggedIn = !!userData;
   let participationStatus = null;
   let hasAttended = false;
-  if (session?.userId) {
+  if (userData) {
     participationStatus = await participationService.getStatus(
-      session.userId,
+      userData.id,
       params.id,
     );
 
@@ -50,7 +53,7 @@ export const useEvent = routeLoader$(async ({ params, status, sharedMap }) => {
     const scannedTicket = await db.query.tickets.findFirst({
       where: and(
         eq(tickets.eventId, params.id),
-        eq(tickets.buyerId, session.userId),
+        eq(tickets.buyerId, userData.id),
         isNotNull(tickets.scannedAt),
       ),
     });
@@ -120,18 +123,19 @@ export const useEvent = routeLoader$(async ({ params, status, sharedMap }) => {
     isEventPast,
     isEventFuture,
     hasAttended,
+    isLoggedIn,
   };
 });
 
 export const useUpdateParticipation = routeAction$(
   async (data, event) => {
-    const session = event.sharedMap.get("session");
-    if (!session?.userId) {
+    const userData = await getCurrentUserData(event);
+    if (!userData) {
       return event.fail(401, { message: "Please log in to RSVP" });
     }
 
     await participationService.upsert(
-      session.userId,
+      userData.id,
       event.params.id,
       data.status,
     );
@@ -145,14 +149,14 @@ export const useUpdateParticipation = routeAction$(
 
 export const useRSVPWithTicket = routeAction$(
   async (data, event) => {
-    const session = event.sharedMap.get("session");
-    if (!session?.userId) {
+    const userData = await getCurrentUserData(event);
+    if (!userData) {
       return event.fail(401, { message: "Please log in to RSVP" });
     }
 
     // Update participation status
     await participationService.upsert(
-      session.userId,
+      userData.id,
       event.params.id,
       data.status,
     );
@@ -163,7 +167,7 @@ export const useRSVPWithTicket = routeAction$(
       await ticketsService.createFreeTicket({
         productId: data.productId,
         eventId: event.params.id,
-        buyerId: session.userId,
+        buyerId: userData.id,
       });
     }
 
@@ -252,7 +256,22 @@ export default component$(() => {
         {/* Free Event RSVP or Participation Toggle */}
         {!event.value.isEventPast && (
           <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            {showFreeRSVP ? (
+            {!event.value.isLoggedIn ? (
+              <>
+                <h3 class="text-lg font-semibold mb-4">
+                  Interested in this event?
+                </h3>
+                <p class="text-gray-600 mb-4">
+                  Please log in to RSVP or purchase tickets.
+                </p>
+                <a
+                  href="/login"
+                  class="block w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-center"
+                >
+                  Log In
+                </a>
+              </>
+            ) : showFreeRSVP ? (
               <>
                 <h3 class="text-lg font-semibold mb-4">
                   Will you attend? (Free Event)

@@ -149,7 +149,7 @@ export const useCreateProduct = routeAction$(
       name: z.string().min(1, "Product name is required"),
       price: z
         .union([z.string().transform((val) => parseFloat(val)), z.number()])
-        .pipe(z.number().positive("Price must be greater than 0")),
+        .pipe(z.number().min(0, "Price cannot be negative")),
       maxQuantity: z
         .union([
           z.string().transform((val) => parseInt(val, 10)),

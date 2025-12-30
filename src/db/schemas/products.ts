@@ -48,8 +48,11 @@ const baseSelectSchema = createSelectSchema(products);
 
 export const insertProductSchema = baseInsertSchema
   .extend({
-    id: z.string().uuid().default(() => crypto.randomUUID()),
-    price: z.number().positive(),
+    id: z
+      .string()
+      .uuid()
+      .default(() => crypto.randomUUID()),
+    price: z.number().min(0),
     maxQuantity: z.number().int().min(0),
     participantCapacity: z.number().int().min(1).default(1),
     features: z.array(z.string()).default([]),
@@ -68,27 +71,31 @@ export const insertProductSchema = baseInsertSchema
 
 // Form-compatible version that handles HTML form string inputs
 export const formProductSchema = insertProductSchema
-  .omit({ 
-    id: true, 
-    eventId: true, 
-    stripeProductId: true, 
-    soldQuantity: true, 
-    createdAt: true, 
-    updatedAt: true 
+  .omit({
+    id: true,
+    eventId: true,
+    stripeProductId: true,
+    soldQuantity: true,
+    createdAt: true,
+    updatedAt: true,
   })
   .extend({
-    price: z.union([
-      z.string().transform(val => parseFloat(val)),
-      z.number()
-    ]).pipe(z.number().positive("Price must be greater than 0")),
-    maxQuantity: z.union([
-      z.string().transform(val => parseInt(val, 10)),
-      z.number().int()
-    ]).pipe(z.number().int().min(0, "Max quantity cannot be negative")),
-    participantCapacity: z.union([
-      z.string().transform(val => parseInt(val, 10)),
-      z.number().int()
-    ]).pipe(z.number().int().min(1, "Participant capacity must be at least 1")).default(1),
+    price: z
+      .union([z.string().transform((val) => parseFloat(val)), z.number()])
+      .pipe(z.number().min(0, "Price cannot be negative")),
+    maxQuantity: z
+      .union([
+        z.string().transform((val) => parseInt(val, 10)),
+        z.number().int(),
+      ])
+      .pipe(z.number().int().min(0, "Max quantity cannot be negative")),
+    participantCapacity: z
+      .union([
+        z.string().transform((val) => parseInt(val, 10)),
+        z.number().int(),
+      ])
+      .pipe(z.number().int().min(1, "Participant capacity must be at least 1"))
+      .default(1),
     features: z.string().default(""),
     imageUrl: z.string().url("Invalid image URL").optional().or(z.literal("")),
   });

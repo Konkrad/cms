@@ -34,24 +34,27 @@ export const groupsService = {
 
   async create(data: InsertGroup): Promise<Group> {
     const validated = await insertGroupSchema.parseAsync(data);
-    
+
     if (!validated.slug) {
       validated.slug = generateSlug(validated.name);
     }
-    
-    const [group] = await db.insert(groups).values(validated).returning();
+
+    const [group] = await db
+      .insert(groups)
+      .values(validated as any)
+      .returning();
     return group;
   },
 
   async update(id: string, data: unknown): Promise<Group> {
     const validated = await updateGroupSchema.parseAsync(data);
-    
+
     if (validated.name && !validated.slug) {
       validated.slug = generateSlug(validated.name);
     }
-    
+
     validated.updatedAt = new Date().toISOString();
-    
+
     const [updated] = await db
       .update(groups)
       .set(validated)

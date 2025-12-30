@@ -14,8 +14,8 @@ export const groupRepresentativesService = {
       .where(
         and(
           eq(groupRepresentatives.userId, userId),
-          eq(groupRepresentatives.groupId, groupId)
-        )
+          eq(groupRepresentatives.groupId, groupId),
+        ),
       )
       .limit(1);
     return results.length > 0;
@@ -24,7 +24,7 @@ export const groupRepresentativesService = {
   async promote(
     userId: string,
     groupId: string,
-    promotedBy: string
+    promotedBy: string,
   ): Promise<GroupRepresentative> {
     const validated = await insertGroupRepresentativeSchema.parseAsync({
       userId,
@@ -33,7 +33,7 @@ export const groupRepresentativesService = {
     });
     const [representative] = await db
       .insert(groupRepresentatives)
-      .values(validated)
+      .values(validated as any)
       .returning();
     return representative;
   },

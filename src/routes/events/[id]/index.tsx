@@ -14,7 +14,8 @@ import { participationService } from "~/services/participation.service";
 import { ParticipationToggle } from "~/components/events/ParticipationToggle";
 import { db } from "~/db/connection";
 import { inventoryGroups } from "~/db/schemas/inventory-groups";
-import { eq } from "drizzle-orm";
+import { tickets } from "~/db/schemas/tickets";
+import { eq, and, isNotNull } from "drizzle-orm";
 
 export const useEvent = routeLoader$(async ({ params, status, sharedMap }) => {
   const event = await eventsService.getById(params.id);
@@ -38,11 +39,22 @@ export const useEvent = routeLoader$(async ({ params, status, sharedMap }) => {
   // Get participation status if user is logged in
   const session = sharedMap.get("session");
   let participationStatus = null;
+  let hasAttended = false;
   if (session?.userId) {
     participationStatus = await participationService.getStatus(
       session.userId,
       params.id,
     );
+
+    // Check if user has a scanned ticket for this event
+    const scannedTicket = await db.query.tickets.findFirst({
+      where: and(
+        eq(tickets.eventId, params.id),
+        eq(tickets.buyerId, session.userId),
+        isNotNull(tickets.scannedAt),
+      ),
+    });
+    hasAttended = !!scannedTicket;
   }
 
   // Calculate event ticket info
@@ -107,6 +119,7 @@ export const useEvent = routeLoader$(async ({ params, status, sharedMap }) => {
     soldOut,
     isEventPast,
     isEventFuture,
+    hasAttended,
   };
 });
 
@@ -476,8 +489,8 @@ export default component$(() => {
           </div>
         )}
 
-        {/* Photo Gallery Access (for past events) */}
-        {new Date() > endDate && (
+        {/* Photo Gallery Access (for verified attendees of past events) */}
+        {event.value.isEventPast && event.value.hasAttended && (
           <div class="bg-purple-50 border border-purple-200 rounded-lg p-6 mb-8">
             <div class="flex items-start gap-4">
               <svg
@@ -498,9 +511,8 @@ export default component$(() => {
                   📸 Event Photos
                 </h3>
                 <p class="text-purple-800 mb-4">
-                  Photos from this event are available to verified attendees. If
-                  your ticket was scanned at the event, you can view the photo
-                  gallery.
+                  You attended this event! View the photo gallery with all the
+                  memories from this event.
                 </p>
                 <Link
                   href={`/events/${event.value.id}/photos`}

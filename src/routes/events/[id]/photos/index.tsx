@@ -20,27 +20,27 @@ export const useEvent = routeLoader$(async ({ params }) => {
   return event;
 });
 
-export const usePhotos = routeLoader$(async ({ params, fail }) => {
-  const user = await getServerSession({ params } as any);
+export const usePhotos = routeLoader$(async (event) => {
+  const user = await getServerSession(event);
   if (!user) {
-    return fail(401, { message: "Please log in to view photos" });
+    return event.fail(401, { message: "Please log in to view photos" });
   }
 
   // Check if user attended the event
   const hasAttended = await photosService.checkUserAttendance(
     user.id,
-    params.id
+    event.params.id,
   );
 
   if (!hasAttended) {
-    return fail(403, {
+    return event.fail(403, {
       message:
         "Only attendees who were scanned can view photos. Please ensure your ticket was scanned at the event.",
     });
   }
 
   // Get photos for this event
-  const photos = await photosService.getByEventId(params.id, {
+  const photos = await photosService.getByEventId(event.params.id, {
     limit: 100,
     offset: 0,
   });
@@ -53,17 +53,17 @@ export const usePhotos = routeLoader$(async ({ params, fail }) => {
 });
 
 export const useGenerateSecureUrl = routeAction$(
-  async (data, { params, fail }) => {
-    const user = await getServerSession({ params } as any);
+  async (data, event) => {
+    const user = await getServerSession(event);
     if (!user) {
-      return fail(401, { message: "Not authenticated" });
+      return event.fail(401, { message: "Not authenticated" });
     }
 
     // Generate secure URL
     const result = await photosService.generateSecureUrl(data.photoId, user.id);
 
     if (!result) {
-      return fail(403, {
+      return event.fail(403, {
         message: "Cannot access this photo. You must have attended the event.",
       });
     }
@@ -76,7 +76,7 @@ export const useGenerateSecureUrl = routeAction$(
   },
   zod$({
     photoId: z.string().uuid(),
-  })
+  }),
 );
 
 export default component$(() => {
@@ -111,9 +111,7 @@ export default component$(() => {
                 d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
               />
             </svg>
-            <p class="text-lg font-medium text-gray-900">
-              Access Restricted
-            </p>
+            <p class="text-lg font-medium text-gray-900">Access Restricted</p>
             <p class="text-sm text-gray-600 mt-2">
               {photos.value.message ||
                 "You do not have permission to view these photos"}
@@ -133,7 +131,7 @@ export default component$(() => {
 
               console.error(
                 "Failed to generate photo URL:",
-                result.value?.message
+                result.value?.message,
               );
               return null;
             }}

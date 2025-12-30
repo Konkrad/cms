@@ -1,5 +1,9 @@
 import { component$ } from "@builder.io/qwik";
-import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
+import {
+  routeLoader$,
+  type DocumentHead,
+  useLocation,
+} from "@builder.io/qwik-city";
 import { Card } from "~/components/ui/Card";
 import { Button } from "~/components/ui/Button";
 import { ticketsService } from "~/services/tickets.service";
@@ -25,6 +29,10 @@ export default component$(() => {
   const event = useEvent();
   const stats = useAttendanceStats();
   const attendedTickets = useAttendedTickets();
+  const location = useLocation();
+  const pathParts = location.url.pathname.split("/");
+  const groupSlug = pathParts[2] || "global";
+  const scanPath = `/admin/${groupSlug}/events/${event.value.id}/scan`;
 
   return (
     <div class="container mx-auto px-4 py-8 max-w-7xl">
@@ -78,7 +86,7 @@ export default component$(() => {
 
       {/* Actions */}
       <div class="mb-6 flex flex-wrap gap-4">
-        <a href={`/admin/events/${event.value.id}/scan`}>
+        <a href={scanPath}>
           <Button>
             <svg
               class="w-5 h-5 mr-2 inline-block"

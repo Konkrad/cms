@@ -5,6 +5,7 @@ import {
   zod$,
   z,
   type DocumentHead,
+  useLocation,
 } from "@builder.io/qwik-city";
 import { TicketScanner } from "~/components/events/TicketScanner";
 import { ticketsService } from "~/services/tickets.service";
@@ -45,6 +46,10 @@ export const useScanTicket = routeAction$(
 export default component$(() => {
   const event = useEvent();
   const scanAction = useScanTicket();
+  const location = useLocation();
+  const parts = location.url.pathname.split("/");
+  const groupSlug = parts[2] || "global";
+  const attendanceUrl = `/admin/${groupSlug}/events/${event.value.id}/attendance`;
 
   return (
     <div class="container mx-auto px-4 py-8 max-w-4xl">
@@ -78,7 +83,7 @@ export default component$(() => {
 
       <div class="mt-8">
         <a
-          href={`/admin/events/${event.value.id}/attendance`}
+          href={attendanceUrl}
           class="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium"
         >
           <svg

@@ -96,6 +96,10 @@ export const useCreatePhoto = routeAction$(
 export default component$(() => {
   const event = useEvent();
   const photos = usePhotos();
+  const location = useLocation();
+  const parts = location.url.pathname.split("/");
+  const groupSlug = parts[2] || "global";
+  const backUrl = `/admin/${groupSlug}/events/${event.value.id}`;
   const createPhotoAction = useCreatePhoto();
   const uploadSuccess = useSignal<string | null>(null);
   const uploadError = useSignal<string | null>(null);
@@ -214,10 +218,7 @@ export default component$(() => {
       </Card>
 
       <div class="mt-6">
-        <a
-          href={`/admin/events/${event.value.id}`}
-          class="text-blue-600 hover:text-blue-700 font-medium"
-        >
+        <a href={backUrl} class="text-blue-600 hover:text-blue-700 font-medium">
           ← Back to Event Dashboard
         </a>
       </div>

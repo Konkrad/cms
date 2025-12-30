@@ -22,7 +22,8 @@ export const useEventData = routeLoader$(async (event) => {
   const eventData = await eventsService.getById(eventId);
 
   if (!eventData) {
-    throw event.redirect(303, "/admin/events");
+    const groupSlug = event.params.group_slug || "global";
+    throw event.redirect(303, `/admin/${groupSlug}/events`);
   }
 
   // Get all products for this event
@@ -86,9 +87,7 @@ export default component$(() => {
     <div class="container mx-auto p-6">
       <div class="mb-6">
         <h1 class="text-3xl font-bold mb-2">Issue Complimentary Tickets</h1>
-        <p class="text-gray-600">
-          Event: {data.value.event.title}
-        </p>
+        <p class="text-gray-600">Event: {data.value.event.title}</p>
       </div>
 
       {/* Success Message */}
@@ -120,7 +119,7 @@ export default component$(() => {
               placeholder="John Doe"
               required
             />
-            
+
             <Input
               name="email"
               label="Recipient Email"

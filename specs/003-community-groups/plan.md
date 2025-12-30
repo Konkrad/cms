@@ -7,96 +7,66 @@
 
 ## Summary
 
-Implement a community groups feature that enables platform admins to create local community organizations, users to join groups, and community representatives to manage group-specific content (posts and events) with configurable visibility (group-only or global). The system enforces role-based access control, requires group membership for event participation, and uses soft deletes to preserve user engagement data while hiding deleted content from all interfaces.
+Implement a community groups feature that allows platform admins to create and manage local community organizations, promote community representatives with elevated permissions for their groups, and enable representatives to create group-scoped or global content. The feature introduces a dual admin area: global platform administration and group-specific administration with distinct URL patterns and access control.
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.4+ (strict mode)  
-**Primary Dependencies**: Qwik 1.7+ with Qwik City, Drizzle ORM 0.45+, Zod 4.2+  
-**Storage**: SQLite (development) with soft delete support for content  
-**Testing**: Existing test infrastructure (no new tools required)  
-**Target Platform**: Web application (server-side rendering with Qwik)
-**Project Type**: Web application (existing Qwik City structure)  
-**Performance Goals**: <200ms response time for group operations, <3 seconds for join actions  
-**Constraints**: Role-based access control enforcement, 100% accuracy on content visibility rules  
-**Scale/Scope**: Multiple groups per community, unlimited group memberships per user, soft delete retention
+**Language/Version**: TypeScript 5.4+ with Qwik 1.7+  
+**Primary Dependencies**: Qwik City (routing), Drizzle ORM 0.45+, Zod 4.2+, Tailwind CSS 3.4+  
+**Storage**: SQLite (development) via Drizzle ORM with schema-driven design  
+**Testing**: Vitest (existing test framework)  
+**Target Platform**: Web application (SSR with Qwik)
+**Project Type**: Web application (frontend + backend integrated in Qwik City)  
+**Performance Goals**: Admin area page loads <200ms, group join action <3s response time  
+**Constraints**: Role-based access control must enforce group scoping with zero unauthorized access  
+**Scale/Scope**: Support multiple groups (10-100 initially), 1000s of users per group, group-specific content isolation
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-### ✅ I. Centralized Configuration
-- All environment variables already centralized in `src/env.ts` with Zod validation
-- No new environment variables required for this feature
+### ✅ Compliance Assessment
 
-### ✅ II. Schema-Driven Database Design
-- Will define new schemas in `src/db/schemas/` following Drizzle + Zod pattern:
-  - `groups.ts` - Group entity with location coordinates
-  - `group-memberships.ts` - User-to-group membership links
-  - `group-representatives.ts` - Representative role assignments
-- Will extend existing `posts.ts` and `events.ts` schemas to add:
-  - `groupId` foreign key (nullable)
-  - `visibility` enum field (group-only | global)
-  - `deletedAt` timestamp for soft deletes
-  - `deletedBy` user reference for audit trail
-- All schemas will use `createInsertSchema`/`createSelectSchema` from drizzle-zod
+**Principle I - Centralized Configuration**: ✅ Compliant
+- Group management features will use existing `env.ts` pattern
+- No new configuration required; uses existing database and auth
 
-### ✅ III. Service Layer Pattern
-- Will create service modules in `src/services/`:
-  - `groups.service.ts` - Group CRUD operations
-  - `group-memberships.service.ts` - Join/leave operations
-  - `group-representatives.service.ts` - Role management
-- Will extend existing services:
-  - `posts.service.ts` - Add group filtering and visibility checks
-  - `events.service.ts` - Add group membership validation for participation
-- All services will validate inputs using Zod schemas
-- Cursor-based pagination using existing `pagination.ts` utilities
+**Principle II - Schema-Driven Database Design**: ✅ Compliant
+- New entities (Group, Membership, GroupRole) will follow Drizzle + Zod pattern
+- Schemas in `src/db/schemas/groups.ts`, `src/db/schemas/memberships.ts`
+- Follow existing patterns for insert/update/select schemas
 
-### ✅ IV. Qwik Framework Conventions
-- Will use `component$()` for all new UI components
-- Will use `routeLoader$()` for group data loading
-- Will use `routeAction$()` with `zod$()` for join actions and content creation
-- Routes will follow Qwik City structure:
-  - `/routes/admin/groups/` - Platform admin group management
-  - `/routes/groups/[groupId]/` - Public group pages
-  - `/routes/groups/[groupId]/admin/` - Community representative area
-- Will use `useSignal()` for reactive state in components
+**Principle III - Service Layer Pattern**: ✅ Compliant
+- Create `src/services/groups.service.ts` for group operations
+- Create `src/services/memberships.service.ts` for membership operations
+- Reuse existing `posts.service.ts` and `events.service.ts` with group scoping
 
-### ✅ V. Component Organization
-- Will place reusable components in `src/components/`:
-  - `src/components/groups/` - Group-specific components (GroupCard, MemberList, etc.)
-  - Will extend existing `src/components/ui/` primitives as needed
-- Components will use `<Slot />` for composition
+**Principle IV - Qwik Framework Conventions**: ✅ Compliant
+- Route structure will follow Qwik City file-based routing
+- Use `routeLoader$()` for data fetching, `routeAction$()` with `zod$()` for mutations
+- Leverage existing component patterns
 
-### ✅ VI. Type Safety Without Redundancy
-- Will generate all types from Zod schemas using `z.infer<typeof schema>`
-- No manual type definitions required
-- Will leverage Drizzle's generated types for database entities
+**Principle V - Component Organization**: ✅ Compliant
+- Group admin UI components in `src/components/admin/` following existing patterns
+- Reuse existing UI primitives from `src/components/ui/`
 
-### ✅ VII. Fail Fast, Handle Gracefully
-- Will validate group membership before allowing event joins (expected error)
-- Will validate representative permissions before content operations (expected error)
-- Will validate coordinate ranges in schema (fail early)
-- Will NOT wrap database operations in try-catch unless handling specific expected errors
-- Will let unexpected errors bubble up to Qwik error boundaries
+**Principle VI - Type Safety**: ✅ Compliant
+- Generate types from Zod schemas using `z.infer<typeof schema>`
+- No manual type definitions
 
-### 📋 Violations Requiring Justification
+**Principle VII - Error Handling**: ✅ Compliant
+- Validate group membership before event joins (expected errors)
+- Validate role permissions at route level (expected errors)
+- Let unexpected errors bubble up
 
-**None** - This feature aligns with all constitution principles and requires no violations.
+**Breaking Changes Philosophy**: ✅ Compliant
+- Will reorganize admin routes from `/admin/*` to `/admin/global/*` and `/admin/{group_slug}/*`
+- This is a breaking change but acceptable per constitution principle
+- TypeScript will catch all route reference updates needed
 
----
+### Gate Status: ✅ PASS
 
-### ✅ Post-Design Re-evaluation (Phase 1 Complete)
-
-**Date**: 2025-12-30
-
-All design artifacts have been generated and reviewed:
-- ✅ research.md: All technical decisions align with constitution
-- ✅ data-model.md: Schema-driven design using Drizzle + Zod
-- ✅ contracts/api-contracts.md: Route actions follow Qwik City patterns
-- ✅ quickstart.md: Implementation steps follow service layer and component organization principles
-
-**Conclusion**: No constitution violations introduced during design phase. All principles remain satisfied. Ready to proceed to Phase 2 (Tasks generation).
+No violations detected. All new features align with constitutional principles.
 
 ## Project Structure
 
@@ -116,57 +86,309 @@ specs/003-community-groups/
 
 ```text
 src/
-├── db/
-│   ├── connection.ts           # Existing database connection
-│   ├── schema.ts               # Schema aggregator (will export new schemas)
-│   └── schemas/
-│       ├── groups.ts           # NEW: Group entity
-│       ├── group-memberships.ts # NEW: User-group membership links
-│       ├── group-representatives.ts # NEW: Representative role assignments
-│       ├── posts.ts            # MODIFIED: Add groupId, visibility, soft delete
-│       ├── events.ts           # MODIFIED: Add groupId, visibility, soft delete
-│       └── users.ts            # Existing (no changes required)
-├── services/
-│   ├── groups.service.ts       # NEW: Group CRUD operations
-│   ├── group-memberships.service.ts # NEW: Membership management
-│   ├── group-representatives.service.ts # NEW: Representative role management
-│   ├── posts.service.ts        # MODIFIED: Add visibility filtering
-│   └── events.service.ts       # MODIFIED: Add membership validation
 ├── components/
-│   └── groups/                 # NEW: Group-specific components
-│       ├── GroupCard.tsx
-│       ├── GroupHeader.tsx
-│       ├── MemberList.tsx
-│       └── GroupAdminNav.tsx
+│   ├── ui/              # Existing UI primitives (Button, Card, Input)
+│   ├── admin/           # Admin-specific components
+│   │   ├── global/      # Platform admin components (group management)
+│   │   └── group/       # Group-specific admin components
+│   └── groups/          # Public group-related components
+│
+├── db/
+│   ├── connection.ts    # Database connection singleton
+│   ├── schema.ts        # Schema aggregator
+│   └── schemas/
+│       ├── groups.ts           # NEW: Group entity schema
+│       ├── memberships.ts      # NEW: User-Group relationship
+│       ├── posts.ts            # UPDATED: Add group_id, visibility
+│       └── events.ts           # UPDATED: Add group_id, visibility
+│
 ├── routes/
 │   ├── admin/
-│   │   └── groups/             # NEW: Platform admin group management
-│   │       ├── index.tsx       # List groups
-│   │       ├── new/
-│   │       │   └── index.tsx   # Create group
-│   │       └── [groupId]/
-│   │           └── edit/
-│   │               └── index.tsx # Edit group
-│   └── groups/
-│       ├── index.tsx           # NEW: Browse groups
-│       └── [groupId]/
-│           ├── index.tsx       # NEW: Group details page
-│           └── admin/          # NEW: Community representative area
-│               ├── index.tsx   # Dashboard
-│               ├── members/
-│               │   └── index.tsx # Member list
-│               ├── posts/
-│               │   └── index.tsx # Manage posts
-│               └── events/
-│                   └── index.tsx # Manage events
+│   │   ├── global/             # NEW: Platform admin routes
+│   │   │   ├── groups/
+│   │   │   │   ├── index.tsx           # List all groups
+│   │   │   │   ├── new/index.tsx       # Create group
+│   │   │   │   └── [id]/
+│   │   │   │       ├── edit/index.tsx  # Edit group
+│   │   │   │       └── members/index.tsx # Manage members & promote representatives
+│   │   │   ├── events/
+│   │   │   │   └── [id]/
+│   │   │   │       └── index.tsx       # Global event management (existing, moved)
+│   │   │   ├── users/
+│   │   │   │   └── index.tsx           # Global user management (existing, moved)
+│   │   │   └── pages/
+│   │   │       └── index.tsx           # SITE ADMIN ONLY: Page management
+│   │   │
+│   │   ├── [group_slug]/       # NEW: Group-specific admin routes
+│   │   │   ├── layout.tsx              # Group admin layout with group context
+│   │   │   ├── index.tsx               # Group dashboard
+│   │   │   ├── events/
+│   │   │   │   ├── index.tsx           # List group events
+│   │   │   │   ├── new/index.tsx       # Create group event
+│   │   │   │   └── [id]/
+│   │   │   │       ├── edit/index.tsx          # Edit event
+│   │   │   │       ├── details/index.tsx       # Event details
+│   │   │   │       ├── attendance/index.tsx    # Attendance tracking
+│   │   │   │       ├── tickets/index.tsx       # Ticket management
+│   │   │   │       ├── participation/index.tsx # Participation
+│   │   │   │       └── photos/index.tsx        # Event photos
+│   │   │   ├── posts/
+│   │   │   │   ├── index.tsx           # List group posts
+│   │   │   │   ├── new/index.tsx       # Create group post
+│   │   │   │   └── [id]/edit/index.tsx # Edit post
+│   │   │   └── users/
+│   │   │       └── index.tsx           # Group members list
+│   │   │
+│   │   └── layout.tsx          # UPDATED: Root admin layout with role detection
+│   │
+│   └── groups/                 # NEW: Public group pages
+│       ├── index.tsx                   # Browse/search groups
+│       └── [slug]/
+│           ├── index.tsx               # Group detail page
+│           ├── posts/index.tsx         # Group posts feed
+│           └── events/index.tsx        # Group events list
+│
+├── services/
+│   ├── groups.service.ts       # NEW: Group CRUD operations
+│   ├── memberships.service.ts  # NEW: Join/leave, role management
+│   ├── posts.service.ts        # UPDATED: Add group filtering
+│   └── events.service.ts       # UPDATED: Add group filtering
+│
 └── utils/
-    └── access-control.ts       # NEW: Role-based permission utilities
+    ├── access-control.ts       # NEW: Role checking utilities
+    └── group-slug.ts           # NEW: Slug generation/validation
 ```
 
-**Structure Decision**: This is a web application using the existing Qwik City file-based routing structure. New functionality is integrated into existing `src/` directories following established patterns. Group-related routes are organized under `/groups/` for public access and `/admin/groups/` for platform admin access, with `/groups/[groupId]/admin/` for community representatives.
+**Structure Decision**: Web application structure following Qwik City conventions. Admin routes split into two distinct areas: `/admin/global/*` for platform administrators and `/admin/{group_slug}/*` for community representatives. This separation ensures clear access control boundaries and intuitive navigation. Middleware in layouts enforces role-based access at the route level.
 
 ## Complexity Tracking
 
 > **Fill ONLY if Constitution Check has violations that must be justified**
 
-No violations - this section intentionally left empty.
+No violations detected. This section intentionally left empty.
+
+## Admin URL Structure & Access Control
+
+### Route Patterns
+
+**Global Admin Routes** (`/admin/global/*`)
+- **Purpose**: Platform-wide administration for site administrators
+- **Access**: Platform administrators only (site admins)
+- **Routes**:
+  - `/admin/global/groups` - Manage all community groups
+  - `/admin/global/groups/new` - Create new group
+  - `/admin/global/groups/[id]/edit` - Edit group details
+  - `/admin/global/groups/[id]/members` - Manage members & promote representatives
+  - `/admin/global/events/[id]` - Global event administration (moved from `/admin/events/[id]`)
+  - `/admin/global/users` - User management (moved from `/admin/users`)
+  - `/admin/global/pages` - **SITE ADMINS ONLY**: Page management (moved from `/admin/pages`)
+
+**Group-Specific Admin Routes** (`/admin/{group_slug}/*`)
+- **Purpose**: Group-scoped administration for community representatives
+- **Access**: Community representatives for the specific group
+- **Slug Format**: Group name in lowercase with underscores for spaces (e.g., `paris`, `new_york`)
+- **Routes**:
+  - `/admin/paris/` - Paris group dashboard
+  - `/admin/paris/events` - List Paris group events
+  - `/admin/paris/events/new` - Create event for Paris group
+  - `/admin/paris/events/[id]/edit` - Edit Paris group event
+  - `/admin/paris/events/[id]/details` - Event details
+  - `/admin/paris/events/[id]/attendance` - Attendance tracking
+  - `/admin/paris/events/[id]/tickets` - Ticket management
+  - `/admin/paris/posts` - List Paris group posts
+  - `/admin/paris/posts/new` - Create post for Paris group
+  - `/admin/paris/users` - View Paris group members
+
+### Middleware & Access Control Guards
+
+**Implementation Files**:
+- `src/routes/admin/layout.tsx` - Root admin layout with role detection
+- `src/routes/admin/global/layout.tsx` - Platform admin guard
+- `src/routes/admin/[group_slug]/layout.tsx` - Group representative guard
+- `src/utils/access-control.ts` - Role checking utilities
+
+**Access Control Logic**:
+
+```typescript
+// src/utils/access-control.ts
+export const checkPlatformAdmin = (user: User): boolean => {
+  // Check if user has platform admin role
+  return user.role === 'admin' || user.role === 'site_admin';
+};
+
+export const checkGroupRepresentative = async (
+  userId: string, 
+  groupSlug: string
+): Promise<boolean> => {
+  // Check if user is a representative for the specific group
+  const membership = await membershipsService.getMembership(userId, groupSlug);
+  return membership?.role === 'representative';
+};
+
+export const checkSiteAdmin = (user: User): boolean => {
+  // Only site admins can manage pages and groups
+  return user.role === 'site_admin';
+};
+```
+
+**Layout Guards**:
+
+1. **Global Admin Layout** (`/admin/global/layout.tsx`)
+   ```typescript
+   export const onRequest: RequestHandler = async ({ sharedMap, redirect }) => {
+     const user = sharedMap.get('user');
+     if (!checkPlatformAdmin(user)) {
+       throw redirect(302, '/');
+     }
+   };
+   ```
+
+2. **Group Admin Layout** (`/admin/[group_slug]/layout.tsx`)
+   ```typescript
+   export const onRequest: RequestHandler = async ({ 
+     params, 
+     sharedMap, 
+     redirect 
+   }) => {
+     const user = sharedMap.get('user');
+     const groupSlug = params.group_slug;
+     
+     const isRepresentative = await checkGroupRepresentative(
+       user.id, 
+       groupSlug
+     );
+     
+     if (!isRepresentative) {
+       throw redirect(302, '/');
+     }
+     
+     // Load group context for nested routes
+     const group = await groupsService.getBySlug(groupSlug);
+     sharedMap.set('group', group);
+   };
+   ```
+
+3. **Pages Route Guard** (`/admin/global/pages/layout.tsx`)
+   ```typescript
+   export const onRequest: RequestHandler = async ({ sharedMap, redirect }) => {
+     const user = sharedMap.get('user');
+     if (!checkSiteAdmin(user)) {
+       throw redirect(302, '/admin/global');
+     }
+   };
+   ```
+
+### Navigation & Breadcrumbs
+
+**Admin Navigation Structure**:
+
+```typescript
+// src/components/admin/AdminNav.tsx
+interface NavItem {
+  label: string;
+  href: string;
+  icon?: string;
+  requiresSiteAdmin?: boolean;
+}
+
+// Platform Admin Navigation
+const globalAdminNav: NavItem[] = [
+  { label: 'Groups', href: '/admin/global/groups', icon: 'users' },
+  { label: 'Events', href: '/admin/global/events', icon: 'calendar' },
+  { label: 'Users', href: '/admin/global/users', icon: 'user' },
+  { 
+    label: 'Pages', 
+    href: '/admin/global/pages', 
+    icon: 'file',
+    requiresSiteAdmin: true 
+  },
+];
+
+// Group Admin Navigation (dynamic based on group_slug)
+const getGroupAdminNav = (groupSlug: string): NavItem[] => [
+  { label: 'Dashboard', href: `/admin/${groupSlug}`, icon: 'home' },
+  { label: 'Events', href: `/admin/${groupSlug}/events`, icon: 'calendar' },
+  { label: 'Posts', href: `/admin/${groupSlug}/posts`, icon: 'file-text' },
+  { label: 'Members', href: `/admin/${groupSlug}/users`, icon: 'users' },
+];
+```
+
+**Breadcrumb Implementation**:
+
+```typescript
+// src/components/admin/Breadcrumbs.tsx
+interface Breadcrumb {
+  label: string;
+  href?: string;
+}
+
+// Examples:
+// Global: Admin > Groups > Edit "Paris"
+// Group: Admin > Paris > Events > Edit "Summer Party"
+
+export const generateBreadcrumbs = (
+  pathname: string,
+  context: { group?: Group; event?: Event; post?: Post }
+): Breadcrumb[] => {
+  const segments = pathname.split('/').filter(Boolean);
+  const breadcrumbs: Breadcrumb[] = [{ label: 'Admin', href: '/admin' }];
+  
+  if (segments[1] === 'global') {
+    breadcrumbs.push({ label: 'Global', href: '/admin/global' });
+    // ... continue building global breadcrumbs
+  } else {
+    const groupSlug = segments[1];
+    const group = context.group;
+    breadcrumbs.push({ 
+      label: group?.name || groupSlug, 
+      href: `/admin/${groupSlug}` 
+    });
+    // ... continue building group breadcrumbs
+  }
+  
+  return breadcrumbs;
+};
+```
+
+### Slug Generation
+
+**Group Slug Rules**:
+- Convert group name to lowercase
+- Replace spaces with underscores
+- Remove special characters except underscores and hyphens
+- Must be unique across all groups
+
+```typescript
+// src/utils/group-slug.ts
+export const generateSlug = (name: string): string => {
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_-]/g, '')
+    .replace(/_{2,}/g, '_')
+    .replace(/^_|_$/g, '');
+};
+
+// Examples:
+// "Paris" -> "paris"
+// "New York" -> "new_york"
+// "San Francisco Bay Area" -> "san_francisco_bay_area"
+```
+
+### Route Migration Plan
+
+**Existing Routes to Move**:
+
+1. `/admin/events/[id]/*` → `/admin/global/events/[id]/*` (for global events)
+2. `/admin/users` → `/admin/global/users`
+3. `/admin/pages` → `/admin/global/pages` (site admin only)
+4. `/admin/posts` → `/admin/global/posts` (if exists)
+
+**New Group Routes**:
+- `/admin/[group_slug]/*` - All group-specific admin pages
+- Group events will use group-scoped routes: `/admin/paris/events/[id]/*`
+
+**Backward Compatibility**:
+- None required per constitution breaking changes philosophy
+- Update all internal links to use new route structure
+- TypeScript will catch route reference updates needed

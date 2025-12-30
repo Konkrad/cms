@@ -11,6 +11,7 @@ export default component$(() => {
     { path: "participation", label: "Participants" },
     { path: "transactions", label: "Transactions" },
     { path: "tickets", label: "Tickets" },
+    { path: "photos", label: "Photos" },
   ];
 
   return (

@@ -1,25 +1,31 @@
-# Implementation Plan: Ticket Sales System
+# Implementation Plan: [FEATURE]
 
-**Branch**: `001-ticket-sales` | **Date**: 2025-12-25 | **Spec**: [spec.md](./spec.md)
-**Input**: Feature specification from `/specs/001-ticket-sales/spec.md`
+**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
+**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-A comprehensive ticket sales system integrated into the event management platform with multi-tier inventory management, Stripe payment processing, QR code generation, and staff scanning capabilities. The system manages products organized by inventory groups with capacity constraints, processes payments through Stripe Checkout, generates tickets with unique QR codes, and provides transaction management and scanning interfaces.
+[Extract from feature spec: primary requirement + technical approach from research]
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.4.5 / Node.js ^18.17.0 || ^20.3.0 || >=21.0.0  
-**Primary Dependencies**: Qwik 1.7.3, Drizzle ORM 0.45.1, Stripe SDK 20.1.0, QRCode 1.5.4, React Email 5.1.0, Nodemailer 6.9.3, Node Telegram Bot API 0.67.0  
-**Storage**: SQLite (development via better-sqlite3 12.5.0), Turso (production), AWS S3 for image uploads  
-**Testing**: Manual testing via quickstart.md checklist (automated testing not in scope)  
-**Target Platform**: Web application (Node.js server-side rendering with Qwik)
-**Project Type**: Web application with backend services  
-**Performance Goals**: Handle 100 concurrent purchases without degradation, checkout completion under 3 minutes, ticket generation under 5 minutes  
-**Constraints**: Real-time inventory tracking, atomic payment/inventory operations, idempotent webhook handling  
-**Scale/Scope**: Multi-event platform with unlimited products per event, scalable to thousands of concurrent users
+<!--
+  ACTION REQUIRED: Replace the content in this section with the technical details
+  for the project. The structure here is presented in advisory capacity to guide
+  the iteration process.
+-->
+
+**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
+**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
+**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
+**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
+**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
+**Project Type**: [single/web/mobile - determines source structure]  
+**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
+**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
+**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
 
 ## Constitution Check
 
@@ -42,58 +48,51 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
+<!--
+  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
+  for this feature. Delete unused options and expand the chosen structure with
+  real paths (e.g., apps/admin, packages/something). The delivered plan must
+  not include Option labels.
+-->
 
 ```text
+# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
 src/
-├── routes/                           # Qwik City file-based routing
-│   ├── events/[id]/
-│   │   └── checkout/                # Customer checkout flow (behind login)
-│   │       └── index.tsx            # Ticket selection and Stripe payment
-│   ├── profile/
-│   │   └── tickets/                 # Customer ticket access
-│   │       ├── index.tsx            # List of customer tickets
-│   │       └── [id].png/            # QR code image endpoint (public)
-│   │           └── index.ts
-│   ├── admin/events/[id]/
-│   │   ├── products/                # Product management (admin)
-│   │   ├── transactions/            # Transaction list (admin)
-│   │   └── tickets/                 # Ticket scanning (admin/staff)
-│   │       └── index.tsx
+├── models/
+├── services/
+├── cli/
+└── lib/
+
+tests/
+├── contract/
+├── integration/
+└── unit/
+
+# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
+backend/
+├── src/
+│   ├── models/
+│   ├── services/
 │   └── api/
-│       └── webhooks/stripe/         # Stripe webhook handler
-│           └── index.ts
-│
-├── services/                        # Business logic layer
-│   ├── inventory.service.ts         # Inventory group and product CRUD
-│   ├── stripe.service.ts            # Stripe API integration
-│   ├── transaction.service.ts       # Transaction management
-│   ├── ticket.service.ts            # Ticket generation and QR codes
-│   ├── email.service.ts             # Email sending (existing, extended)
-│   └── telegram.service.ts          # Telegram notifications (new)
-│
-├── db/
-│   └── schema/
-│       ├── inventory-groups.ts      # Inventory group table
-│       ├── products.ts              # Products table
-│       ├── transactions.ts          # Transactions table
-│       ├── transaction-items.ts     # Transaction items table
-│       └── tickets.ts               # Tickets table
-│
-├── emails/                          # React Email templates
-│   ├── ticket-confirmation.tsx      # Customer confirmation email
-│   └── components/
-│       └── ticket-qr.tsx            # QR code component for emails
-│
-└── components/                      # Reusable UI components
-    ├── admin/
-    │   ├── product-form.tsx         # Product creation/edit form
-    │   ├── inventory-group-form.tsx # Inventory group form
-    │   └── qr-scanner.tsx           # QR code scanner component
-    └── checkout/
-        └── ticket-selector.tsx      # Ticket selection interface
+└── tests/
+
+frontend/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   └── services/
+└── tests/
+
+# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
+api/
+└── [same as backend above]
+
+ios/ or android/
+└── [platform-specific structure: feature modules, UI flows, platform tests]
 ```
 
-**Structure Decision**: Qwik web application with file-based routing. Public checkout is at `/events/[id]/checkout` (behind login), admin interfaces under `/admin/events/[id]/`, customer ticket access at `/profile/tickets/`, and public QR code images at `/profile/tickets/[id].png/`. Services layer handles business logic with direct database access via Drizzle ORM (no repository pattern per constitution).
+**Structure Decision**: [Document the selected structure and reference the real
+directories captured above]
 
 ## Complexity Tracking
 

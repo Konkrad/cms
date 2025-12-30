@@ -1,7 +1,6 @@
 import { component$, Slot } from "@builder.io/qwik";
 import { routeLoader$, useLocation } from "@builder.io/qwik-city";
 import { requireAdmin } from "~/utils/server-auth";
-import "~/components/editor/koenig-lexical.css";
 
 export const useAdminAuth = routeLoader$(async (event) => {
   await requireAdmin(event);

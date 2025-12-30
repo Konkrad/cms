@@ -4,21 +4,65 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./users";
 import crypto from "crypto";
-import LexicalHTMLRenderer from "@tryghost/kg-lexical-html-renderer";
-// @ts-ignore - no types available
-import { DEFAULT_NODES } from "@tryghost/kg-default-nodes";
 
-const renderer = new LexicalHTMLRenderer({
-  nodes: DEFAULT_NODES,
-});
-
+// Simple BlockNote to HTML converter
+// BlockNote stores content as an array of blocks
 async function renderEditorState(editorState: string | null): Promise<string> {
   if (!editorState) {
     return "";
   }
 
   try {
-    return await renderer.render(editorState);
+    const blocks = JSON.parse(editorState);
+
+    if (!Array.isArray(blocks)) {
+      return "";
+    }
+
+    return blocks
+      .map((block: any) => {
+        const content =
+          block.content
+            ?.map((c: any) => {
+              let text = c.text || "";
+
+              // Apply inline styles
+              if (c.styles?.bold) text = `<strong>${text}</strong>`;
+              if (c.styles?.italic) text = `<em>${text}</em>`;
+              if (c.styles?.underline) text = `<u>${text}</u>`;
+              if (c.styles?.strike) text = `<s>${text}</s>`;
+              if (c.styles?.code) text = `<code>${text}</code>`;
+
+              return text;
+            })
+            .join("") || "";
+
+        // Convert block type to HTML
+        switch (block.type) {
+          case "heading":
+            const level = block.props?.level || 1;
+            return `<h${level}>${content}</h${level}>`;
+          case "paragraph":
+            return `<p>${content}</p>`;
+          case "bulletListItem":
+            return `<li>${content}</li>`;
+          case "numberedListItem":
+            return `<li>${content}</li>`;
+          case "checkListItem":
+            const checked = block.props?.checked ? "checked" : "";
+            return `<li><input type="checkbox" ${checked} disabled>${content}</li>`;
+          case "image":
+            const url = block.props?.url || "";
+            const caption = block.props?.caption || "";
+            return `<figure><img src="${url}" alt="${caption}"><figcaption>${caption}</figcaption></figure>`;
+          case "codeBlock":
+            const lang = block.props?.language || "";
+            return `<pre><code class="language-${lang}">${content}</code></pre>`;
+          default:
+            return `<p>${content}</p>`;
+        }
+      })
+      .join("\n");
   } catch (error) {
     console.error("Error rendering editor state:", error);
     return "";

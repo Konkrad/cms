@@ -2,7 +2,7 @@ import { component$, useSignal, $ } from "@builder.io/qwik";
 import { Form, routeAction$, z, zod$ } from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
-import { KoenigEditor } from "~/components/editor";
+import { BlockNoteEditor } from "~/components/editor";
 import { postsService } from "~/services/posts.service";
 
 const postSchema = z.object({
@@ -66,7 +66,7 @@ export default component$(() => {
               Content
             </label>
             <div class="border border-gray-300 rounded-lg overflow-hidden">
-              <KoenigEditor
+              <BlockNoteEditor
                 editorState={null}
                 onChange$={handleEditorChange$}
                 uploadUrl="/api/images"

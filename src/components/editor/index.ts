@@ -1,4 +1,2 @@
-import "./koenig-lexical.css";
-
-export { KoenigEditor } from "./KoenigEditor";
-export type { KoenigEditorRef } from "./KoenigEditorReact";
+export { BlockNoteEditor } from "./BlockNoteEditor";
+export type { BlockNoteEditorRef } from "./BlockNoteEditorReact";

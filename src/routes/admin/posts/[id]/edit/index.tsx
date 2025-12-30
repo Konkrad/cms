@@ -8,7 +8,7 @@ import {
 } from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
-import { KoenigEditor } from "~/components/editor";
+import { BlockNoteEditor } from "~/components/editor";
 import { postsService } from "~/services/posts.service";
 
 const updateSchema = z.object({
@@ -94,7 +94,7 @@ export default component$(() => {
               Content
             </label>
             <div class="border border-gray-300 rounded-lg overflow-hidden">
-              <KoenigEditor
+              <BlockNoteEditor
                 editorState={post.value.editorState}
                 onChange$={handleEditorChange$}
                 uploadUrl="/api/images"

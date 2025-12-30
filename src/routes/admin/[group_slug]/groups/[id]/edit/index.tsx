@@ -1,8 +1,15 @@
 import { component$ } from "@builder.io/qwik";
-import { Form, routeAction$, routeLoader$, z, zod$ } from "@builder.io/qwik-city";
+import {
+  Form,
+  routeAction$,
+  routeLoader$,
+  z,
+  zod$,
+} from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { groupsService } from "~/services/groups.service";
+import { geocodingService } from "~/services/geocoding.service";
 import { getCurrentUserData } from "~/utils/server-auth";
 
 export const useGroup = routeLoader$(async ({ params, redirect }) => {
@@ -17,24 +24,26 @@ export const useGroup = routeLoader$(async ({ params, redirect }) => {
     throw redirect(302, "/admin/global/groups");
   }
 
-  return group;
+  // Attempt to reverse geocode the existing coordinates so we can present
+  // a friendly location string in the form.
+  let displayLocation: string | undefined;
+  try {
+    const lat = parseFloat(group.latitude);
+    const lon = parseFloat(group.longitude);
+    const geo = await geocodingService.reverse(lat, lon);
+    displayLocation =
+      geo?.displayName ?? `${group.latitude}, ${group.longitude}`;
+  } catch (err) {
+    displayLocation = `${group.latitude}, ${group.longitude}`;
+  }
+
+  return { ...group, displayLocation };
 });
 
 const updateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   slug: z.string().optional(),
-  latitude: z
-    .string()
-    .refine((val) => {
-      const num = parseFloat(val);
-      return !isNaN(num) && num >= -90 && num <= 90;
-    }, { message: "Latitude must be between -90 and 90" }),
-  longitude: z
-    .string()
-    .refine((val) => {
-      const num = parseFloat(val);
-      return !isNaN(num) && num >= -180 && num <= 180;
-    }, { message: "Longitude must be between -180 and 180" }),
+  location: z.string().min(1, "Location is required"),
 });
 
 export const useUpdateGroup = routeAction$(async (data, event) => {
@@ -50,17 +59,33 @@ export const useUpdateGroup = routeAction$(async (data, event) => {
   }
 
   try {
-    await groupsService.update(event.params.id as string, {
-      name: data.name,
-      slug: data.slug || undefined,
-      latitude: data.latitude,
-      longitude: data.longitude,
-    } as any);
+    // Geocode the provided location string to obtain lat/lon
+    const results = await geocodingService.forward(data.location);
+    if (!results || results.length === 0) {
+      return {
+        success: false,
+        error: "Unable to geocode the provided location",
+      };
+    }
+    const best = results[0];
+
+    await groupsService.update(
+      event.params.id as string,
+      {
+        name: data.name,
+        slug: data.slug || undefined,
+        latitude: String(best.latitude),
+        longitude: String(best.longitude),
+      } as any,
+    );
 
     throw event.redirect(303, "/admin/global/groups");
   } catch (error: any) {
     if (error?.status === 303) throw error;
-    return { success: false, error: error?.message || "Failed to update group" };
+    return {
+      success: false,
+      error: error?.message || "Failed to update group",
+    };
   }
 }, zod$(updateSchema));
 
@@ -82,11 +107,18 @@ export default component$(() => {
           <Input name="name" label="Name" value={group.value.name} required />
           <Input name="slug" label="Slug" value={group.value.slug} />
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input name="latitude" label="Latitude" value={group.value.latitude} required />
-              <Input name="longitude" label="Longitude" value={group.value.longitude} required />
-            </div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Location
+            </label>
+            <Input
+              name="location"
+              placeholder="e.g. Berlin, Germany or Alexanderplatz, Berlin"
+              value={
+                group.value.displayLocation ??
+                `${group.value.latitude}, ${group.value.longitude}`
+              }
+              required
+            />
           </div>
 
           {action.value?.error && (

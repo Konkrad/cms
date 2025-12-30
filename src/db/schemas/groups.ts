@@ -3,6 +3,7 @@ import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import crypto from "crypto";
+import { generateSlug } from "~/utils/group-slug";
 
 export const groups = sqliteTable("groups", {
   id: text("id").primaryKey(),
@@ -45,14 +46,14 @@ export const insertGroupSchema = baseInsertSchema
         const num = parseFloat(val);
         return !isNaN(num) && num >= -90 && num <= 90;
       },
-      { message: "Latitude must be between -90 and 90" }
+      { message: "Latitude must be between -90 and 90" },
     ),
     longitude: z.string().refine(
       (val) => {
         const num = parseFloat(val);
         return !isNaN(num) && num >= -180 && num <= 180;
       },
-      { message: "Longitude must be between -180 and 180" }
+      { message: "Longitude must be between -180 and 180" },
     ),
     createdAt: z.string().default(() => new Date().toISOString()),
     updatedAt: z.string().default(() => new Date().toISOString()),
@@ -62,6 +63,15 @@ export const insertGroupSchema = baseInsertSchema
     slug: true,
     createdAt: true,
     updatedAt: true,
+  })
+  .transform((val) => {
+    // Ensure a slug is present; generate from name if missing
+    return {
+      ...val,
+      slug:
+        (val.slug as string | undefined) ??
+        generateSlug((val.name as string) || ""),
+    };
   });
 
 export const updateGroupSchema = baseInsertSchema
@@ -78,7 +88,7 @@ export const updateGroupSchema = baseInsertSchema
           const num = parseFloat(val);
           return !isNaN(num) && num >= -90 && num <= 90;
         },
-        { message: "Latitude must be between -90 and 90" }
+        { message: "Latitude must be between -90 and 90" },
       )
       .optional(),
     longitude: z
@@ -88,13 +98,23 @@ export const updateGroupSchema = baseInsertSchema
           const num = parseFloat(val);
           return !isNaN(num) && num >= -180 && num <= 180;
         },
-        { message: "Longitude must be between -180 and 180" }
+        { message: "Longitude must be between -180 and 180" },
       )
       .optional(),
     updatedAt: z
       .string()
       .default(() => new Date().toISOString())
       .optional(),
+  })
+  .transform((val) => {
+    // If name is being updated and slug wasn't provided, generate slug from name
+    if (val.name && !val.slug) {
+      return {
+        ...val,
+        slug: generateSlug(val.name as string),
+      };
+    }
+    return val;
   });
 
 export const selectGroupSchema = baseSelectSchema;

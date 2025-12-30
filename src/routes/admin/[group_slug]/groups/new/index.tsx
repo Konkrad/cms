@@ -1,8 +1,15 @@
 import { component$, useSignal } from "@builder.io/qwik";
-import { Form, routeAction$, routeLoader$, z, zod$ } from "@builder.io/qwik-city";
+import {
+  Form,
+  routeAction$,
+  routeLoader$,
+  z,
+  zod$,
+} from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { groupsService } from "~/services/groups.service";
+import { geocodingService } from "~/services/geocoding.service";
 import { getCurrentUserData } from "~/utils/server-auth";
 
 export const useGlobalOnly = routeLoader$(async ({ params, redirect }) => {
@@ -16,22 +23,7 @@ export const useGlobalOnly = routeLoader$(async ({ params, redirect }) => {
 
 const groupSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  slug: z
-    .string()
-    .regex(/^[a-z0-9_-]+$/i, "Slug may contain letters, numbers, underscores and dashes")
-    .optional(),
-  latitude: z
-    .string()
-    .refine((val) => {
-      const num = parseFloat(val);
-      return !isNaN(num) && num >= -90 && num <= 90;
-    }, { message: "Latitude must be between -90 and 90" }),
-  longitude: z
-    .string()
-    .refine((val) => {
-      const num = parseFloat(val);
-      return !isNaN(num) && num >= -180 && num <= 180;
-    }, { message: "Longitude must be between -180 and 180" }),
+  location: z.string().min(1, "Location is required"),
 });
 
 export const useCreateGroup = routeAction$(async (data, event) => {
@@ -48,18 +40,31 @@ export const useCreateGroup = routeAction$(async (data, event) => {
   }
 
   try {
+    // Geocode the provided location string
+    const results = await geocodingService.forward(data.location);
+    if (!results || results.length === 0) {
+      return {
+        success: false,
+        error: "Unable to find location. Please enter a more specific address.",
+      };
+    }
+
+    const best = results[0];
+
     await groupsService.create({
       name: data.name,
-      slug: data.slug || undefined,
-      latitude: data.latitude,
-      longitude: data.longitude,
+      latitude: String(best.latitude),
+      longitude: String(best.longitude),
     } as any);
 
     // Redirect back to the groups list after creation
     throw event.redirect(303, "/admin/global/groups");
   } catch (error: any) {
     if (error?.status === 303) throw error;
-    return { success: false, error: error?.message || "Failed to create group" };
+    return {
+      success: false,
+      error: error?.message || "Failed to create group",
+    };
   }
 }, zod$(groupSchema));
 
@@ -79,21 +84,18 @@ export default component$(() => {
 
       <div class="bg-white rounded-lg shadow p-6">
         <Form action={createGroupAction} class="space-y-6">
-          <Input name="name" label="Name" placeholder="e.g. Berlin Community" required />
           <Input
-            name="slug"
-            label="Slug (optional)"
-            placeholder="e.g. berlin_community"
-            help="If left blank, a slug will be generated from the name"
+            name="name"
+            label="Name"
+            placeholder="e.g. Berlin Community"
+            required
           />
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input name="latitude" label="Latitude" placeholder="e.g. 52.5200" required />
-              <Input name="longitude" label="Longitude" placeholder="e.g. 13.4050" required />
-            </div>
-          </div>
+          <Input
+            name="location"
+            label="Location"
+            placeholder="e.g. Berlin, Germany or Alexanderplatz, Berlin"
+            required
+          />
 
           {createGroupAction.value?.error && (
             <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">

@@ -3,15 +3,15 @@ import { routeLoader$ } from "@builder.io/qwik-city";
 import { groupsService } from "~/services/groups.service";
 import { groupMembershipsService } from "~/services/group-memberships.service";
 import { db } from "~/db/connection";
-import { posts, events } from "~/db/schema";
+import { posts, events, users, pages } from "~/db/schema";
 import { eq, and, isNull, count } from "drizzle-orm";
 
 export const useAdminStats = routeLoader$(async ({ params }) => {
   const groupSlug = params.group_slug;
 
   if (groupSlug === "global") {
-    // Global admin stats
-    const [totalUsers] = await db.select({ count: count() }).from(db.select().from(groupsService as any));
+    // Global admin stats (migrated dashboard overview)
+    const [totalUsers] = await db.select({ count: count() }).from(users);
     const [totalPosts] = await db
       .select({ count: count() })
       .from(posts)
@@ -20,6 +20,7 @@ export const useAdminStats = routeLoader$(async ({ params }) => {
       .select({ count: count() })
       .from(events)
       .where(isNull(events.deletedAt));
+    const [totalPages] = await db.select({ count: count() }).from(pages);
 
     return {
       isGlobal: true,
@@ -27,6 +28,7 @@ export const useAdminStats = routeLoader$(async ({ params }) => {
         posts: totalPosts?.count || 0,
         events: totalEvents?.count || 0,
         users: totalUsers?.count || 0,
+        pages: totalPages?.count || 0,
       },
     };
   }
@@ -67,7 +69,7 @@ export default component$(() => {
         {stats.value.isGlobal ? "Platform Dashboard" : "Group Dashboard"}
       </h2>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {stats.value.isGlobal ? (
           <>
             <div class="bg-white rounded-lg shadow p-6">
@@ -86,6 +88,12 @@ export default component$(() => {
               <div class="text-sm text-gray-600 mb-1">Total Events</div>
               <div class="text-3xl font-bold text-green-600">
                 {stats.value.stats.events}
+              </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+              <div class="text-sm text-gray-600 mb-1">Total Pages</div>
+              <div class="text-3xl font-bold text-slate-600">
+                {stats.value.stats.pages}
               </div>
             </div>
           </>
@@ -128,6 +136,14 @@ export default component$(() => {
           >
             + New Post
           </a>
+          {stats.value.isGlobal && (
+            <a
+              href="/admin/global/pages/new"
+              class="px-4 py-3 bg-slate-100 text-slate-700 rounded hover:bg-slate-200 transition-colors text-center font-medium"
+            >
+              + New Page
+            </a>
+          )}
           <a
             href={`/admin/${stats.value.isGlobal ? "global" : stats.value.group?.slug}/users`}
             class="px-4 py-3 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors text-center font-medium"

@@ -117,17 +117,17 @@
 
 - [X] T032 [US4] Create group admin layout in src/routes/admin/[group_slug]/layout.tsx with conditional logic: if slug === "global" check platform admin role, else check group representative role for that group; load group context into sharedMap
 - [X] T033 [P] [US4] Refactor existing events list at src/routes/admin/events/index.tsx to src/routes/admin/[group_slug]/events/index.tsx with filtering based on group_slug parameter (global = all events, specific group = group events only)
-- [ ] T034 [P] [US4] Refactor existing users list at src/routes/admin/users/index.tsx to src/routes/admin/[group_slug]/users/index.tsx with filtering based on group_slug (global = all users, specific group = group members only)
-- [ ] T035 [P] [US4] Move pages management from src/routes/admin/pages/* to src/routes/admin/[group_slug]/pages/* (with guard: pages only accessible when group_slug === "global" AND user.role === 'site_admin')
-- [ ] T036 [US4] Refactor event creation at src/routes/admin/events/new/index.tsx to src/routes/admin/[group_slug]/events/new/index.tsx adding group_id assignment based on group_slug and visibility selection field
-- [ ] T037 [US4] Update event edit routes under src/routes/admin/events/[id]/* to src/routes/admin/[group_slug]/events/[id]/* (edit, details, attendance, tickets, participation, photos) with group_slug context
-- [ ] T038 [US4] Refactor posts routes from src/routes/admin/posts/* to src/routes/admin/[group_slug]/posts/* with group_slug-based filtering
+- [X] T034 [P] [US4] Refactor existing users list at src/routes/admin/users/index.tsx to src/routes/admin/[group_slug]/users/index.tsx with filtering based on group_slug (global = all users, specific group = group members only)
+- [X] T035 [P] [US4] Move pages management from src/routes/admin/pages/* to src/routes/admin/[group_slug]/pages/* (with guard: pages only accessible when group_slug === "global" AND user.role === 'site_admin')
+- [X] T036 [US4] Refactor event creation at src/routes/admin/events/new/index.tsx to src/routes/admin/[group_slug]/events/new/index.tsx adding group_id assignment based on group_slug and visibility selection field
+- [X] T037 [US4] Update event edit routes under src/routes/admin/events/[id]/* to src/routes/admin/[group_slug]/events/[id]/* (edit, details, attendance, tickets, participation, photos) with group_slug context
+- [X] T038 [US4] Refactor posts routes from src/routes/admin/posts/* to src/routes/admin/[group_slug]/posts/* with group_slug-based filtering
 - [X] T039 [US4] Add visibility selection component in src/components/admin/VisibilitySelector.tsx (radio buttons for "group-only" or "global")
 - [X] T040 [US4] Create group admin dashboard in src/routes/admin/[group_slug]/index.tsx showing group stats (member count, content count) or global stats when slug === "global"
 - [X] T041 [US4] Update posts service in src/services/posts.service.ts to add getVisiblePosts method that filters by user's group memberships and visibility settings
 - [X] T042 [US4] Update events service in src/services/events.service.ts to add getVisibleEvents method with same visibility filtering logic
 - [X] T043 [US4] Add soft delete actions to posts and events services (deletePost, deleteEvent methods that set deletedAt and deletedBy)
-- [ ] T044 [US4] Update all existing admin routes to redirect from old paths (e.g., /admin/events → /admin/global/events, /admin/users → /admin/global/users)
+- [X] T044 [US4] Update all existing admin routes to redirect from old paths (e.g., /admin/events → /admin/global/events, /admin/users → /admin/global/users)
 - [X] T045 [US4] Update AdminNav component in src/components/admin/AdminNav.tsx to generate navigation dynamically based on group_slug context
 
 **Checkpoint**: Community representatives can now create and manage group content. Group-only content is properly filtered. Admin routes work seamlessly for both global and group contexts.

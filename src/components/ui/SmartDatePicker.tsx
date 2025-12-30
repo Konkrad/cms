@@ -15,6 +15,7 @@ interface SmartDatePickerProps {
   required?: boolean;
   startValue?: string;
   endValue?: string;
+  helpText?: string;
 }
 
 export const SmartDatePicker = component$<SmartDatePickerProps>(
@@ -25,6 +26,7 @@ export const SmartDatePicker = component$<SmartDatePickerProps>(
     required = false,
     startValue = "",
     endValue = "",
+    helpText = "",
   }) => {
     const startInputRef = useSignal<HTMLInputElement>();
     const endInputRef = useSignal<HTMLInputElement>();
@@ -198,6 +200,7 @@ export const SmartDatePicker = component$<SmartDatePickerProps>(
           {label}
           {required && <span class="text-red-500 ml-1">*</span>}
         </label>
+        {helpText && <p class="text-sm text-gray-500 mt-1">{helpText}</p>}
 
         {/* Hidden inputs for form submission */}
         <input type="hidden" name={startDateName} value={startDateTime.value} />

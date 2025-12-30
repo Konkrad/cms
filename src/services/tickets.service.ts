@@ -119,8 +119,8 @@ export const ticketsService = {
     qrDataString: string,
     eventId: string,
   ): Promise<
-    | { 
-        success: true; 
+    | {
+        success: true;
         ticket: Ticket;
         participants: Array<typeof ticketParticipants.$inferSelect>;
       }
@@ -174,8 +174,8 @@ export const ticketsService = {
       return { success: false, error: "Failed to scan ticket" };
     }
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       ticket,
       participants: currentTicket.participants as any,
     };
@@ -190,11 +190,14 @@ export const ticketsService = {
   }> {
     const allTickets = await db.query.tickets.findMany({
       where: eq(tickets.eventId, eventId),
+      with: {
+        product: true,
+      },
     });
 
     const totalTickets = allTickets.length;
     const scannedTickets = allTickets.filter((t) => t.scannedAt).length;
-    const freeTickets = allTickets.filter((t) => t.isFree).length;
+    const freeTickets = allTickets.filter((t) => t.product.price === 0).length;
     const paidTickets = totalTickets - freeTickets;
     const attendanceRate =
       totalTickets > 0 ? (scannedTickets / totalTickets) * 100 : 0;
@@ -242,18 +245,18 @@ export const ticketsService = {
     const transaction = await transactionsService.create({
       userId: data.buyerId,
       eventId: data.eventId,
-      status: "completed",
       totalAmount: 0,
-      paymentIntentId: `free_${crypto.randomUUID()}`,
+      transactionFee: 0,
+      stripeSessionId: `free_${crypto.randomUUID()}`,
+      stripePaymentId: `free_${crypto.randomUUID()}`,
     });
 
-    // Create the ticket with isFree flag
+    // Create the ticket
     const ticket = await this.create({
       transactionId: transaction.id,
       productId: data.productId,
       eventId: data.eventId,
       buyerId: data.buyerId,
-      isFree: true,
     });
 
     return ticket;

@@ -153,7 +153,6 @@ export const useCreateCheckoutSession = routeAction$(
       }
 
       return {
-        isFree: true,
         tickets: createdTickets,
       };
     }
@@ -286,7 +285,7 @@ export default component$(() => {
       console.log("[Checkout] Checkout session result:", result);
 
       // Handle free tickets
-      if (result.value?.isFree) {
+      if (result.value?.tickets) {
         console.log("[Checkout] Free tickets created, skipping to success");
         currentStep.value = 3;
         return;

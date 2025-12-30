@@ -9,30 +9,36 @@ import { users } from "./users";
 import { ticketParticipants } from "./ticket-participants";
 import crypto from "crypto";
 
-export const tickets = sqliteTable("tickets", {
-  id: text("id").primaryKey(),
-  qrCodeUuid: text("qr_code_uuid").notNull().unique(),
-  transactionId: text("transaction_id")
-    .notNull()
-    .references(() => transactions.id),
-  productId: text("product_id")
-    .notNull()
-    .references(() => products.id),
-  eventId: text("event_id")
-    .notNull()
-    .references(() => events.id),
-  buyerId: text("buyer_id")
-    .notNull()
-    .references(() => users.id),
-  isFree: integer("is_free", { mode: "boolean" }).notNull().default(false),
-  scannedAt: text("scanned_at"),
-  createdAt: text("created_at")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
-}, (table) => ({
-  scannedAtIdx: index("tickets_scanned_at_idx").on(table.scannedAt),
-  eventScannedIdx: index("tickets_event_scanned_idx").on(table.eventId, table.scannedAt),
-}));
+export const tickets = sqliteTable(
+  "tickets",
+  {
+    id: text("id").primaryKey(),
+    qrCodeUuid: text("qr_code_uuid").notNull().unique(),
+    transactionId: text("transaction_id")
+      .notNull()
+      .references(() => transactions.id),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id),
+    eventId: text("event_id")
+      .notNull()
+      .references(() => events.id),
+    buyerId: text("buyer_id")
+      .notNull()
+      .references(() => users.id),
+    scannedAt: text("scanned_at"),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    scannedAtIdx: index("tickets_scanned_at_idx").on(table.scannedAt),
+    eventScannedIdx: index("tickets_event_scanned_idx").on(
+      table.eventId,
+      table.scannedAt,
+    ),
+  }),
+);
 
 export const ticketsRelations = relations(tickets, ({ one, many }) => ({
   transaction: one(transactions, {
@@ -59,15 +65,19 @@ const baseSelectSchema = createSelectSchema(tickets);
 
 export const insertTicketSchema = baseInsertSchema
   .extend({
-    id: z.string().uuid().default(() => crypto.randomUUID()),
-    qrCodeUuid: z.string().uuid().default(() => crypto.randomUUID()),
-    isFree: z.boolean().default(false),
+    id: z
+      .string()
+      .uuid()
+      .default(() => crypto.randomUUID()),
+    qrCodeUuid: z
+      .string()
+      .uuid()
+      .default(() => crypto.randomUUID()),
     createdAt: z.string().default(() => new Date().toISOString()),
   })
   .partial({
     id: true,
     qrCodeUuid: true,
-    isFree: true,
     scannedAt: true,
     createdAt: true,
   });

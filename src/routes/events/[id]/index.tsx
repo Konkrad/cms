@@ -12,6 +12,9 @@ import { format } from "date-fns";
 import { eventsService } from "~/services/events.service";
 import { participationService } from "~/services/participation.service";
 import { ParticipationToggle } from "~/components/events/ParticipationToggle";
+import { db } from "~/db/connection";
+import { inventoryGroups } from "~/db/schemas/inventory-groups";
+import { eq } from "drizzle-orm";
 
 export const useEvent = routeLoader$(async ({ params, status, sharedMap }) => {
   const event = await eventsService.getById(params.id);
@@ -20,6 +23,14 @@ export const useEvent = routeLoader$(async ({ params, status, sharedMap }) => {
     status(404);
     return null;
   }
+
+  // Get inventory groups with products
+  const groups = await db.query.inventoryGroups.findMany({
+    where: eq(inventoryGroups.eventId, params.id),
+    with: {
+      products: true,
+    },
+  });
 
   // Check sales period status
   const salesValidation = await eventsService.validateSalesPeriod(event);
@@ -34,10 +45,68 @@ export const useEvent = routeLoader$(async ({ params, status, sharedMap }) => {
     );
   }
 
+  // Calculate event ticket info
+  const now = new Date();
+  const eventStart = new Date(event.startDate);
+  const eventEnd = new Date(event.endDate);
+  const isEventPast = now > eventEnd;
+  const isEventFuture = now < eventStart;
+
+  // Determine if this is a free event with single product
+  const allProducts = groups.flatMap((g) => g.products);
+  const isFreeEvent =
+    allProducts.length > 0 && allProducts.every((p) => p.price === 0);
+  const hasSingleProduct = allProducts.length === 1;
+
+  // Check if any sales period is currently active
+  let activeSalesPeriod = false;
+  let futureSalesPeriod = false;
+  let pastSalesPeriod = false;
+  let soldOut = false;
+
+  for (const group of groups) {
+    const salesStart = group.salesStartDate
+      ? new Date(group.salesStartDate)
+      : null;
+    const salesEnd = group.salesEndDate ? new Date(group.salesEndDate) : null;
+
+    const withinWindow =
+      (!salesStart || salesStart <= now) && (!salesEnd || salesEnd >= now);
+
+    if (salesStart && salesStart > now) {
+      futureSalesPeriod = true;
+    }
+
+    if (salesEnd && salesEnd < now) {
+      pastSalesPeriod = true;
+    }
+
+    const soldQuantity =
+      group.products?.reduce((sum, p) => sum + (p.soldQuantity || 0), 0) || 0;
+    const remainingCapacity = group.maxCapacity - soldQuantity;
+
+    if (withinWindow && remainingCapacity > 0) {
+      activeSalesPeriod = true;
+    }
+
+    if (remainingCapacity <= 0) {
+      soldOut = true;
+    }
+  }
+
   return {
     ...event,
     salesStatus: salesValidation,
     userParticipation: participationStatus,
+    products: allProducts,
+    isFreeEvent,
+    hasSingleProduct,
+    activeSalesPeriod,
+    futureSalesPeriod,
+    pastSalesPeriod,
+    soldOut,
+    isEventPast,
+    isEventFuture,
   };
 });
 
@@ -61,9 +130,42 @@ export const useUpdateParticipation = routeAction$(
   }),
 );
 
+export const useRSVPWithTicket = routeAction$(
+  async (data, event) => {
+    const session = event.sharedMap.get("session");
+    if (!session?.userId) {
+      return event.fail(401, { message: "Please log in to RSVP" });
+    }
+
+    // Update participation status
+    await participationService.upsert(
+      session.userId,
+      event.params.id,
+      data.status,
+    );
+
+    // If status is "yes", create a free ticket
+    if (data.status === "yes" && data.productId) {
+      const { ticketsService } = await import("~/services/tickets.service");
+      await ticketsService.createFreeTicket({
+        productId: data.productId,
+        eventId: event.params.id,
+        buyerId: session.userId,
+      });
+    }
+
+    return { success: true };
+  },
+  zod$({
+    status: z.enum(["yes", "no", "maybe"]),
+    productId: z.string().optional(),
+  }),
+);
+
 export default component$(() => {
   const event = useEvent();
   const updateParticipation = useUpdateParticipation();
+  const rsvpWithTicket = useRSVPWithTicket();
 
   if (!event.value) {
     return (
@@ -87,6 +189,33 @@ export default component$(() => {
   const isMultiDay =
     format(startDate, "yyyy-MM-dd") !== format(endDate, "yyyy-MM-dd");
 
+  // Determine what to show for tickets/RSVP
+  const showFreeRSVP =
+    !event.value.isEventPast &&
+    event.value.isFreeEvent &&
+    event.value.hasSingleProduct &&
+    event.value.activeSalesPeriod &&
+    !event.value.soldOut;
+
+  const showWaitlist =
+    !event.value.isEventPast &&
+    event.value.isEventFuture &&
+    !event.value.activeSalesPeriod &&
+    event.value.futureSalesPeriod &&
+    !event.value.soldOut;
+
+  const showBuyTickets =
+    !event.value.isEventPast &&
+    event.value.activeSalesPeriod &&
+    !event.value.soldOut &&
+    (!event.value.isFreeEvent || !event.value.hasSingleProduct);
+
+  const showSalesClosed =
+    !event.value.isEventPast &&
+    event.value.pastSalesPeriod &&
+    !event.value.activeSalesPeriod &&
+    event.value.isEventFuture;
+
   return (
     <div class="min-h-screen bg-gray-50">
       <div class="max-w-4xl mx-auto px-4 py-12">
@@ -103,18 +232,115 @@ export default component$(() => {
           </h1>
         </div>
 
-        {/* Participation Toggle */}
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h3 class="text-lg font-semibold mb-4">Will you attend?</h3>
-          <Form action={updateParticipation}>
-            <ParticipationToggle
-              currentStatus={event.value.userParticipation?.status || null}
-              onStatusChange={$((status: "yes" | "no" | "maybe") => {
-                updateParticipation.submit({ status });
-              })}
-            />
-          </Form>
-        </div>
+        {/* Free Event RSVP or Participation Toggle */}
+        {!event.value.isEventPast && (
+          <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            {showFreeRSVP ? (
+              <>
+                <h3 class="text-lg font-semibold mb-4">
+                  Will you attend? (Free Event)
+                </h3>
+                <Form action={rsvpWithTicket}>
+                  <input
+                    type="hidden"
+                    name="productId"
+                    value={event.value.products[0]?.id}
+                  />
+                  <div class="flex flex-wrap gap-3">
+                    <button
+                      type="submit"
+                      name="status"
+                      value="yes"
+                      class="flex-1 min-w-[120px] px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+                    >
+                      ✓ Yes
+                    </button>
+                    <button
+                      type="submit"
+                      name="status"
+                      value="maybe"
+                      class="flex-1 min-w-[120px] px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded-lg transition-colors"
+                    >
+                      ? Maybe
+                    </button>
+                    <button
+                      type="submit"
+                      name="status"
+                      value="no"
+                      class="flex-1 min-w-[120px] px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
+                    >
+                      ✗ No
+                    </button>
+                  </div>
+                </Form>
+                {event.value.userParticipation?.status === "yes" && (
+                  <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800">
+                    ✓ You're attending! Your free ticket has been created.
+                  </div>
+                )}
+                {event.value.userParticipation?.status === "maybe" && (
+                  <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
+                    You're on the waitlist.
+                  </div>
+                )}
+                {event.value.userParticipation?.status === "no" && (
+                  <div class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-800">
+                    You've indicated you won't attend.
+                  </div>
+                )}
+              </>
+            ) : showWaitlist ? (
+              <>
+                <h3 class="text-lg font-semibold mb-4">
+                  Ticket sales haven't started yet
+                </h3>
+                <p class="text-gray-600 mb-4">
+                  Add yourself to the waitlist to be notified when tickets
+                  become available.
+                </p>
+                <Form action={updateParticipation}>
+                  <button
+                    type="submit"
+                    name="status"
+                    value="maybe"
+                    class="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                  >
+                    Add me to waitlist
+                  </button>
+                </Form>
+                {event.value.userParticipation?.status === "maybe" && (
+                  <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800">
+                    ✓ You're on the waitlist!
+                  </div>
+                )}
+              </>
+            ) : showBuyTickets ? (
+              <>
+                <h3 class="text-lg font-semibold mb-4">Get Your Tickets</h3>
+                <Link
+                  href={`/events/${event.value.id}/checkout`}
+                  class="block w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-center"
+                >
+                  Buy Tickets
+                </Link>
+              </>
+            ) : (
+              <>
+                <h3 class="text-lg font-semibold mb-4">Will you attend?</h3>
+                <Form action={updateParticipation}>
+                  <ParticipationToggle
+                    currentStatus={
+                      event.value.userParticipation?.status || null
+                    }
+                    onStatusChange={$((status: "yes" | "no" | "maybe") => {
+                      updateParticipation.submit({ status });
+                    })}
+                  />
+                </Form>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Event Details Card */}
         <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
@@ -227,34 +453,25 @@ export default component$(() => {
           </div>
         </div>
 
-        {/* Sales Period Status */}
-        {!event.value.salesStatus.valid && (
-          <div
-            class={`rounded-lg p-6 mb-8 ${
-              event.value.salesStatus.reason?.includes("open on")
-                ? "bg-yellow-50 border border-yellow-200"
-                : "bg-red-50 border border-red-200"
-            }`}
-          >
-            <h3
-              class={`text-lg font-semibold mb-2 ${
-                event.value.salesStatus.reason?.includes("open on")
-                  ? "text-yellow-900"
-                  : "text-red-900"
-              }`}
-            >
-              {event.value.salesStatus.reason?.includes("open on")
-                ? "🕒 Sales Not Yet Open"
-                : "🔒 Sales Closed"}
+        {/* Sales Period Status Messages */}
+        {showSalesClosed && (
+          <div class="rounded-lg p-6 mb-8 bg-red-50 border border-red-200">
+            <h3 class="text-lg font-semibold mb-2 text-red-900">
+              🔒 Ticket Sale is Closed
             </h3>
-            <p
-              class={
-                event.value.salesStatus.reason?.includes("open on")
-                  ? "text-yellow-800"
-                  : "text-red-800"
-              }
-            >
-              {event.value.salesStatus.reason}
+            <p class="text-red-800">
+              The sales period has ended for this event.
+            </p>
+          </div>
+        )}
+
+        {event.value.soldOut && (
+          <div class="rounded-lg p-6 mb-8 bg-orange-50 border border-orange-200">
+            <h3 class="text-lg font-semibold mb-2 text-orange-900">
+              🎫 Sold Out
+            </h3>
+            <p class="text-orange-800">
+              All tickets for this event have been sold.
             </p>
           </div>
         )}
@@ -297,21 +514,23 @@ export default component$(() => {
         )}
 
         {/* Additional Info */}
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 class="text-lg font-semibold text-blue-900 mb-2">
-            Interested in this event?
-          </h3>
-          <p class="text-blue-800 mb-4">
-            Contact the organizer at{" "}
-            <a
-              href={`mailto:${event.value.user.email}`}
-              class="underline hover:text-blue-600"
-            >
-              {event.value.user.email}
-            </a>{" "}
-            for more information or to RSVP.
-          </p>
-        </div>
+        {!event.value.isEventPast && (
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-blue-900 mb-2">
+              Questions about this event?
+            </h3>
+            <p class="text-blue-800 mb-4">
+              Contact the organizer at{" "}
+              <a
+                href={`mailto:${event.value.user.email}`}
+                class="underline hover:text-blue-600"
+              >
+                {event.value.user.email}
+              </a>{" "}
+              for more information.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

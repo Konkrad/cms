@@ -1,8 +1,5 @@
 import { component$ } from "@builder.io/qwik";
-import {
-  routeLoader$,
-  type DocumentHead,
-} from "@builder.io/qwik-city";
+import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { Card } from "~/components/ui/Card";
 import { Button } from "~/components/ui/Button";
 import { ticketsService } from "~/services/tickets.service";
@@ -177,12 +174,12 @@ export default component$(() => {
                     <td class="px-6 py-4 whitespace-nowrap">
                       <span
                         class={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          ticket.isFree
+                          ticket.product.price === 0
                             ? "bg-green-100 text-green-800"
                             : "bg-blue-100 text-blue-800"
                         }`}
                       >
-                        {ticket.isFree ? "Free" : "Paid"}
+                        {ticket.product.price === 0 ? "Free" : "Paid"}
                       </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

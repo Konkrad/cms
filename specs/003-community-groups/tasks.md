@@ -19,20 +19,20 @@
 
 **Purpose**: Database schema and core infrastructure for groups feature
 
-- [ ] T001 Create groups schema in src/db/schemas/groups.ts with validation for lat/long coordinates
-- [ ] T002 [P] Create group-memberships schema in src/db/schemas/group-memberships.ts with unique constraint on (user_id, group_id)
-- [ ] T003 [P] Create group-representatives schema in src/db/schemas/group-representatives.ts with unique constraint and promoted_by audit trail
-- [ ] T004 Add groupId, visibility, deletedAt, deletedBy fields to posts schema in src/db/schemas/posts.ts
-- [ ] T005 [P] Add groupId, visibility, deletedAt, deletedBy fields to events schema in src/db/schemas/events.ts
-- [ ] T006 Update schema aggregator in src/db/schema.ts to export new group schemas
-- [ ] T007 Generate and apply database migrations using drizzle-kit
-- [ ] T008 [P] Create groups service in src/services/groups.service.ts with CRUD operations
-- [ ] T009 [P] Create group-memberships service in src/services/group-memberships.service.ts with join, isMember, getUserGroups methods
-- [ ] T010 [P] Create group-representatives service in src/services/group-representatives.service.ts with promote, isRepresentative methods
-- [ ] T011 Create access control utilities in src/utils/access-control.ts with canManageGroupContent, canViewGroupOnlyContent functions
-- [ ] T012 Create group slug utilities in src/utils/group-slug.ts with generateSlug function
-- [ ] T013 Update posts service in src/services/posts.service.ts to add soft delete support and visibility filtering (always filter deletedAt IS NULL)
-- [ ] T014 Update events service in src/services/events.service.ts to add soft delete support, visibility filtering, and group membership validation for event joins
+- [X] T001 Create groups schema in src/db/schemas/groups.ts with validation for lat/long coordinates
+- [X] T002 [P] Create group-memberships schema in src/db/schemas/group-memberships.ts with unique constraint on (user_id, group_id)
+- [X] T003 [P] Create group-representatives schema in src/db/schemas/group-representatives.ts with unique constraint and promoted_by audit trail
+- [X] T004 Add groupId, visibility, deletedAt, deletedBy fields to posts schema in src/db/schemas/posts.ts
+- [X] T005 [P] Add groupId, visibility, deletedAt, deletedBy fields to events schema in src/db/schemas/events.ts
+- [X] T006 Update schema aggregator in src/db/schema.ts to export new group schemas
+- [X] T007 Generate and apply database migrations using drizzle-kit
+- [X] T008 [P] Create groups service in src/services/groups.service.ts with CRUD operations
+- [X] T009 [P] Create group-memberships service in src/services/group-memberships.service.ts with join, isMember, getUserGroups methods
+- [X] T010 [P] Create group-representatives service in src/services/group-representatives.service.ts with promote, isRepresentative methods
+- [X] T011 Create access control utilities in src/utils/access-control.ts with canManageGroupContent, canViewGroupOnlyContent functions
+- [X] T012 Create group slug utilities in src/utils/group-slug.ts with generateSlug function
+- [X] T013 Update posts service in src/services/posts.service.ts to add soft delete support and visibility filtering (always filter deletedAt IS NULL)
+- [X] T014 Update events service in src/services/events.service.ts to add soft delete support, visibility filtering, and group membership validation for event joins
 
 ---
 
@@ -42,9 +42,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T015 Create admin layout with access control in src/routes/admin/layout.tsx to detect platform admin vs group representative roles
-- [ ] T016 Create admin navigation component in src/components/admin/AdminNav.tsx that switches between global and group contexts
-- [ ] T017 Create breadcrumb component in src/components/admin/Breadcrumbs.tsx that handles both global and group-scoped routes
+- [X] T015 Create admin layout with access control in src/routes/admin/layout.tsx to detect platform admin vs group representative roles
+- [X] T016 Create admin navigation component in src/components/admin/AdminNav.tsx that switches between global and group contexts
+- [X] T017 Create breadcrumb component in src/components/admin/Breadcrumbs.tsx that handles both global and group-scoped routes
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -58,11 +58,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T018 [P] [US2] Create global admin layout in src/routes/admin/global/layout.tsx with platform admin guard (check user.role === 'admin')
-- [ ] T019 [P] [US2] Create groups list page in src/routes/admin/global/groups/index.tsx with useAdminGroups loader
-- [ ] T020 [US2] Create new group page in src/routes/admin/global/groups/new/index.tsx with useCreateGroup action and form using Zod validation
-- [ ] T021 [US2] Create edit group page in src/routes/admin/global/groups/[id]/edit/index.tsx with useUpdateGroup action
-- [ ] T022 [US2] Create group card component in src/components/groups/GroupCard.tsx for displaying group summary
+- [X] T018 [P] [US2] Create global admin layout in src/routes/admin/global/layout.tsx with platform admin guard (check user.role === 'admin')
+- [X] T019 [P] [US2] Create groups list page in src/routes/admin/global/groups/index.tsx with useAdminGroups loader
+- [X] T020 [US2] Create new group page in src/routes/admin/global/groups/new/index.tsx with useCreateGroup action and form using Zod validation
+- [X] T021 [US2] Create edit group page in src/routes/admin/global/groups/[id]/edit/index.tsx with useUpdateGroup action
+- [X] T022 [US2] Create group card component in src/components/groups/GroupCard.tsx for displaying group summary
 
 **Checkpoint**: Platform admins can now create and manage groups. This enables all subsequent user stories.
 
@@ -76,11 +76,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T023 [P] [US1] Create groups list page in src/routes/groups/index.tsx with useGroups loader showing all groups
-- [ ] T024 [P] [US1] Create group details page in src/routes/groups/[slug]/index.tsx with useGroup loader and useJoinGroup action
-- [ ] T025 [US1] Create group header component in src/components/groups/GroupHeader.tsx with join button (conditional rendering)
-- [ ] T026 [US1] Update groups service in src/services/groups.service.ts to add getBySlug method for slug-based lookup
-- [ ] T027 [US1] Add user groups view in src/routes/profile/groups/index.tsx to show user's group memberships
+- [X] T023 [P] [US1] Create groups list page in src/routes/groups/index.tsx with useGroups loader showing all groups
+- [X] T024 [P] [US1] Create group details page in src/routes/groups/[slug]/index.tsx with useGroup loader and useJoinGroup action
+- [X] T025 [US1] Create group header component in src/components/groups/GroupHeader.tsx with join button (conditional rendering)
+- [X] T026 [US1] Update groups service in src/services/groups.service.ts to add getBySlug method for slug-based lookup
+- [X] T027 [US1] Add user groups view in src/routes/profile/groups/index.tsx to show user's group memberships
 
 **Checkpoint**: Users can now join groups and see their memberships. Group membership enables participation in group events.
 
@@ -94,10 +94,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] Create group members management page in src/routes/admin/global/groups/[id]/members/index.tsx with useGroupMembers loader and usePromoteMember action
-- [ ] T029 [US3] Create member list component in src/components/admin/MemberList.tsx showing members with promote button for non-representatives
-- [ ] T030 [US3] Add representative badge/indicator in member list to show promoted users
-- [ ] T031 [US3] Update access control utilities in src/utils/access-control.ts to verify promotion prerequisites (user must be member first)
+- [X] T028 [US3] Create group members management page in src/routes/admin/global/groups/[id]/members/index.tsx with useGroupMembers loader and usePromoteMember action
+- [X] T029 [US3] Create member list component in src/components/admin/MemberList.tsx showing members with promote button for non-representatives
+- [X] T030 [US3] Add representative badge/indicator in member list to show promoted users
+- [X] T031 [US3] Update access control utilities in src/utils/access-control.ts to verify promotion prerequisites (user must be member first)
 
 **Checkpoint**: Platform admins can now promote members to representatives. This enables User Story 4 (community representatives creating content).
 
@@ -115,20 +115,20 @@
 
 ### Implementation for User Story 4
 
-- [ ] T032 [US4] Create group admin layout in src/routes/admin/[group_slug]/layout.tsx with conditional logic: if slug === "global" check platform admin role, else check group representative role for that group; load group context into sharedMap
-- [ ] T033 [P] [US4] Refactor existing events list at src/routes/admin/events/index.tsx to src/routes/admin/[group_slug]/events/index.tsx with filtering based on group_slug parameter (global = all events, specific group = group events only)
+- [X] T032 [US4] Create group admin layout in src/routes/admin/[group_slug]/layout.tsx with conditional logic: if slug === "global" check platform admin role, else check group representative role for that group; load group context into sharedMap
+- [X] T033 [P] [US4] Refactor existing events list at src/routes/admin/events/index.tsx to src/routes/admin/[group_slug]/events/index.tsx with filtering based on group_slug parameter (global = all events, specific group = group events only)
 - [ ] T034 [P] [US4] Refactor existing users list at src/routes/admin/users/index.tsx to src/routes/admin/[group_slug]/users/index.tsx with filtering based on group_slug (global = all users, specific group = group members only)
 - [ ] T035 [P] [US4] Move pages management from src/routes/admin/pages/* to src/routes/admin/[group_slug]/pages/* (with guard: pages only accessible when group_slug === "global" AND user.role === 'site_admin')
 - [ ] T036 [US4] Refactor event creation at src/routes/admin/events/new/index.tsx to src/routes/admin/[group_slug]/events/new/index.tsx adding group_id assignment based on group_slug and visibility selection field
 - [ ] T037 [US4] Update event edit routes under src/routes/admin/events/[id]/* to src/routes/admin/[group_slug]/events/[id]/* (edit, details, attendance, tickets, participation, photos) with group_slug context
 - [ ] T038 [US4] Refactor posts routes from src/routes/admin/posts/* to src/routes/admin/[group_slug]/posts/* with group_slug-based filtering
-- [ ] T039 [US4] Add visibility selection component in src/components/admin/VisibilitySelector.tsx (radio buttons for "group-only" or "global")
-- [ ] T040 [US4] Create group admin dashboard in src/routes/admin/[group_slug]/index.tsx showing group stats (member count, content count) or global stats when slug === "global"
-- [ ] T041 [US4] Update posts service in src/services/posts.service.ts to add getVisiblePosts method that filters by user's group memberships and visibility settings
-- [ ] T042 [US4] Update events service in src/services/events.service.ts to add getVisibleEvents method with same visibility filtering logic
-- [ ] T043 [US4] Add soft delete actions to posts and events services (deletePost, deleteEvent methods that set deletedAt and deletedBy)
+- [X] T039 [US4] Add visibility selection component in src/components/admin/VisibilitySelector.tsx (radio buttons for "group-only" or "global")
+- [X] T040 [US4] Create group admin dashboard in src/routes/admin/[group_slug]/index.tsx showing group stats (member count, content count) or global stats when slug === "global"
+- [X] T041 [US4] Update posts service in src/services/posts.service.ts to add getVisiblePosts method that filters by user's group memberships and visibility settings
+- [X] T042 [US4] Update events service in src/services/events.service.ts to add getVisibleEvents method with same visibility filtering logic
+- [X] T043 [US4] Add soft delete actions to posts and events services (deletePost, deleteEvent methods that set deletedAt and deletedBy)
 - [ ] T044 [US4] Update all existing admin routes to redirect from old paths (e.g., /admin/events → /admin/global/events, /admin/users → /admin/global/users)
-- [ ] T045 [US4] Update AdminNav component in src/components/admin/AdminNav.tsx to generate navigation dynamically based on group_slug context
+- [X] T045 [US4] Update AdminNav component in src/components/admin/AdminNav.tsx to generate navigation dynamically based on group_slug context
 
 **Checkpoint**: Community representatives can now create and manage group content. Group-only content is properly filtered. Admin routes work seamlessly for both global and group contexts.
 

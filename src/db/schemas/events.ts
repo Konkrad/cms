@@ -3,6 +3,7 @@ import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./users";
+import { groups } from "./groups";
 import { inventoryGroups } from "./inventory-groups";
 import { products } from "./products";
 import { transactions } from "./transactions";
@@ -28,6 +29,12 @@ export const events = sqliteTable("events", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id),
+  groupId: text("group_id").references(() => groups.id),
+  visibility: text("visibility", { enum: ["group-only", "global"] })
+    .notNull()
+    .default("global"),
+  deletedAt: text("deleted_at"),
+  deletedBy: text("deleted_by").references(() => users.id),
   createdAt: text("created_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
@@ -39,6 +46,14 @@ export const events = sqliteTable("events", {
 export const eventsRelations = relations(events, ({ one, many }) => ({
   user: one(users, {
     fields: [events.userId],
+    references: [users.id],
+  }),
+  group: one(groups, {
+    fields: [events.groupId],
+    references: [groups.id],
+  }),
+  deletedByUser: one(users, {
+    fields: [events.deletedBy],
     references: [users.id],
   }),
   inventoryGroups: many(inventoryGroups),

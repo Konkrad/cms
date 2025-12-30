@@ -4,7 +4,8 @@ import { requireAdmin } from "~/utils/server-auth";
 
 export const useAdminAuth = routeLoader$(async (event) => {
   await requireAdmin(event);
-  return true;
+  const user = event.sharedMap.get("session");
+  return { user };
 });
 
 export default component$(() => {

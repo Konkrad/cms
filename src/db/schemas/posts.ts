@@ -3,6 +3,7 @@ import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./users";
+import { groups } from "./groups";
 import crypto from "crypto";
 
 // Simple BlockNote to HTML converter
@@ -77,6 +78,12 @@ export const posts = sqliteTable("posts", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id),
+  groupId: text("group_id").references(() => groups.id),
+  visibility: text("visibility", { enum: ["group-only", "global"] })
+    .notNull()
+    .default("global"),
+  deletedAt: text("deleted_at"),
+  deletedBy: text("deleted_by").references(() => users.id),
   createdAt: text("created_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
@@ -88,6 +95,14 @@ export const posts = sqliteTable("posts", {
 export const postsRelations = relations(posts, ({ one }) => ({
   user: one(users, {
     fields: [posts.userId],
+    references: [users.id],
+  }),
+  group: one(groups, {
+    fields: [posts.groupId],
+    references: [groups.id],
+  }),
+  deletedByUser: one(users, {
+    fields: [posts.deletedBy],
     references: [users.id],
   }),
 }));

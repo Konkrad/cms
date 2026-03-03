@@ -17,8 +17,50 @@ export type RequestEvent =
   | RequestEventCommon;
 
 export async function getServerSession(event: RequestEvent) {
-  // First try DB-backed session cookie
-  const sessionToken = event.cookie.get("session")?.value;
+  // Support partial event objects (for example callers that pass just `{ sharedMap }`)
+  // by preferring any pre-loaded session stored in the sharedMap.
+  const maybeSharedMap: any = (event as any)?.sharedMap;
+  if (maybeSharedMap && typeof maybeSharedMap.get === "function") {
+    const sharedSession = maybeSharedMap.get("session");
+    if (sharedSession) {
+      // If the shared session already contains a `user` object, return it directly.
+      if (sharedSession.user) {
+        return sharedSession.user as any;
+      }
+
+      // If the shared session itself resembles a user record, return it.
+      if (sharedSession.id && (sharedSession.name || sharedSession.role)) {
+        return sharedSession as any;
+      }
+
+      // If we only have a userId, look up the user in the DB.
+      const userId = sharedSession.userId ?? sharedSession.user?.id;
+      if (userId) {
+        const localRows = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, userId));
+        if (localRows.length > 0) {
+          const u = localRows[0] as any;
+          let email: string | null = null;
+          if (u.loginId) {
+            const loginRows = await db
+              .select()
+              .from(logins)
+              .where(eq(logins.id, u.loginId));
+            if (loginRows.length > 0) email = loginRows[0].email;
+          }
+          return { ...u, email } as any;
+        }
+      }
+
+      // Shared session present but couldn't be resolved to a user
+      return null;
+    }
+  }
+
+  // Fallback to cookie-based DB session if cookie access is available
+  const sessionToken = (event as any)?.cookie?.get?.("session")?.value;
   if (sessionToken) {
     // Find session row
     const rows = await db

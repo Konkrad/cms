@@ -4,8 +4,9 @@ import { groupMembershipsService } from "~/services/group-memberships.service";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { GroupCard } from "~/components/groups/GroupCard";
 
-export const useUserGroups = routeLoader$(async ({ sharedMap, redirect }) => {
-  const user = await getCurrentUserData({ sharedMap } as any);
+export const useUserGroups = routeLoader$(async (event) => {
+  const { redirect } = event;
+  const user = await getCurrentUserData(event as any);
 
   if (!user) {
     throw redirect(302, "/login");
@@ -22,9 +23,7 @@ export default component$(() => {
     <div class="max-w-7xl mx-auto px-4 py-8">
       <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-2">My Groups</h1>
-        <p class="text-gray-600">
-          Community groups you have joined
-        </p>
+        <p class="text-gray-600">Community groups you have joined</p>
       </div>
 
       {groups.value.length === 0 ? (

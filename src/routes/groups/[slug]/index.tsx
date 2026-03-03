@@ -14,8 +14,9 @@ export const useGroup = routeLoader$(async ({ params, redirect }) => {
   return group;
 });
 
-export const useGroupMembership = routeLoader$(async ({ params, sharedMap }) => {
-  const user = await getCurrentUserData({ sharedMap } as any);
+export const useGroupMembership = routeLoader$(async (event) => {
+  const { params } = event;
+  const user = await getCurrentUserData(event as any);
   if (!user) return { isMember: false };
 
   const group = await groupsService.getBySlug(params.slug);
@@ -25,8 +26,9 @@ export const useGroupMembership = routeLoader$(async ({ params, sharedMap }) => 
   return { isMember };
 });
 
-export const useJoinGroup = routeAction$(async (data, { params, sharedMap, redirect }) => {
-  const user = await getCurrentUserData({ sharedMap } as any);
+export const useJoinGroup = routeAction$(async (data, event) => {
+  const { params, redirect } = event;
+  const user = await getCurrentUserData(event as any);
 
   if (!user) {
     throw redirect(302, "/login");
@@ -92,13 +94,16 @@ export default component$(() => {
           </div>
 
           <div class="prose max-w-none">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-4">About This Group</h2>
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+              About This Group
+            </h2>
             <p class="text-gray-600">
               This community group was created on{" "}
               {new Date(group.value.createdAt).toLocaleDateString()}.
             </p>
             <p class="text-gray-600 mt-4">
-              Join this group to access group-specific posts, events, and connect with other members.
+              Join this group to access group-specific posts, events, and
+              connect with other members.
             </p>
           </div>
         </div>

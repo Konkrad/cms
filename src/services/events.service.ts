@@ -1,4 +1,4 @@
-import { desc, eq, lt, gte } from "drizzle-orm";
+import { desc, eq, lt, gte, isNull, and, or, inArray } from "drizzle-orm";
 import { db } from "~/db/connection";
 import type { Event, InsertEvent, UpdateEvent } from "~/db/schemas/events";
 import {
@@ -10,6 +10,7 @@ import { products } from "~/db/schemas/products";
 import { inventoryGroups } from "~/db/schemas/inventory-groups";
 import { logins } from "~/db/schemas/logins";
 import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
+import { groupMembershipsService } from "~/services/group-memberships.service";
 
 export type EventWithUser = Event & {
   user: User & { email?: string };
@@ -30,9 +31,12 @@ export const eventsService = {
       },
       orderBy: [desc(events.createdAt), desc(events.id)],
       limit: limit + 1,
-      where: cursorObj?.createdAt
-        ? lt(events.createdAt, cursorObj.createdAt)
-        : undefined,
+      where: and(
+        isNull(events.deletedAt),
+        cursorObj?.createdAt
+          ? lt(events.createdAt, cursorObj.createdAt)
+          : undefined
+      ),
     });
 
     let nextCursor: string | undefined | null = undefined;
@@ -52,7 +56,7 @@ export const eventsService = {
     const now = new Date().toISOString();
 
     const results = await db.query.events.findMany({
-      where: gte(events.endDate, now),
+      where: and(gte(events.endDate, now), isNull(events.deletedAt)),
       orderBy: [events.startDate, events.id],
       with: {
         user: true,
@@ -65,7 +69,7 @@ export const eventsService = {
   async getYears(): Promise<number[]> {
     const now = new Date().toISOString();
     const results = await db.query.events.findMany({
-      where: lt(events.endDate, now),
+      where: and(lt(events.endDate, now), isNull(events.deletedAt)),
       columns: {
         startDate: true,
       },
@@ -81,7 +85,7 @@ export const eventsService = {
     const now = new Date().toISOString();
 
     const results = await db.query.events.findMany({
-      where: lt(events.endDate, now),
+      where: and(lt(events.endDate, now), isNull(events.deletedAt)),
       orderBy: [desc(events.startDate), desc(events.id)],
       with: {
         user: true,
@@ -97,7 +101,7 @@ export const eventsService = {
 
   async getById(id: string): Promise<EventWithUser | undefined> {
     const result = await db.query.events.findFirst({
-      where: eq(events.id, id),
+      where: and(eq(events.id, id), isNull(events.deletedAt)),
       with: {
         user: true,
       },
@@ -233,5 +237,94 @@ export const eventsService = {
 
     // Otherwise, sales are considered closed for the event
     return { valid: false, reason: "Sales have closed for this event" };
+  },
+
+  async getVisibleEvents(
+    userId: string | null,
+    limit: number = 10,
+    cursor?: string | null
+  ): Promise<{ items: EventWithUser[]; nextCursor?: string | null }> {
+    const cursorObj = decodeCursor(cursor ?? null);
+    
+    let visibilityCondition;
+    if (userId) {
+      const userGroups = await groupMembershipsService.getUserGroups(userId);
+      const groupIds = userGroups.map((g) => g.id);
+      
+      visibilityCondition = or(
+        eq(events.visibility, "global"),
+        and(
+          eq(events.visibility, "group-only"),
+          groupIds.length > 0 ? inArray(events.groupId, groupIds) : undefined
+        )
+      );
+    } else {
+      visibilityCondition = eq(events.visibility, "global");
+    }
+
+    const results = await db.query.events.findMany({
+      with: {
+        user: true,
+      },
+      orderBy: [desc(events.createdAt), desc(events.id)],
+      limit: limit + 1,
+      where: and(
+        isNull(events.deletedAt),
+        visibilityCondition,
+        cursorObj?.createdAt
+          ? lt(events.createdAt, cursorObj.createdAt)
+          : undefined
+      ),
+    });
+
+    let nextCursor: string | undefined | null = undefined;
+    let items = results;
+    if (results.length > limit) {
+      nextCursor = getNextCursorFromRows(results, ["createdAt"], limit);
+      items = results.slice(0, limit);
+    }
+
+    return {
+      items: items as EventWithUser[],
+      nextCursor: nextCursor ?? null,
+    };
+  },
+
+  async softDelete(id: string, deletedBy: string): Promise<Event | undefined> {
+    const [result] = await db
+      .update(events)
+      .set({
+        deletedAt: new Date().toISOString(),
+        deletedBy,
+      })
+      .where(eq(events.id, id))
+      .returning();
+
+    return result;
+  },
+
+  async joinEvent(
+    userId: string,
+    eventId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const event = await this.getById(eventId);
+    if (!event) {
+      return { success: false, error: "Event not found" };
+    }
+
+    if (event.groupId) {
+      const isMember = await groupMembershipsService.isMember(
+        userId,
+        event.groupId
+      );
+      if (!isMember) {
+        return {
+          success: false,
+          error: "You must be a member of this group to join this event",
+        };
+      }
+    }
+
+    return { success: true };
   },
 };

@@ -15,6 +15,13 @@
       "when": 1767085578388,
       "tag": "0001_dark_shinobi_shaw",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1767109578571,
+      "tag": "0002_equal_clea",
+      "breakpoints": true
     }
   ]
 }

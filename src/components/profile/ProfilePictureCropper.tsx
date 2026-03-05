@@ -15,7 +15,9 @@ interface CropState {
 
 interface ProfilePictureCropperProps {
   currentPictureUrl?: string | null;
-  onUploadComplete$?: QRL<(urls: { picture: string; pictureSmall: string }) => void>;
+  onUploadComplete$?: QRL<
+    (urls: { picture: string; pictureSmall: string }) => void
+  >;
 }
 
 export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
@@ -25,7 +27,6 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
     const containerRef = useSignal<HTMLDivElement>();
 
     const imageDataUrl = useSignal<string | null>(null);
-    const selectedFile = useSignal<File | null>(null);
     const uploading = useSignal(false);
     const uploadError = useSignal<string | null>(null);
     const uploadSuccess = useSignal(false);
@@ -45,7 +46,13 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
 
     // Drag state
     const dragging = useSignal<"move" | "nw" | "ne" | "sw" | "se" | null>(null);
-    const dragStart = useStore({ mouseX: 0, mouseY: 0, cropX: 0, cropY: 0, cropSize: 0 });
+    const dragStart = useStore({
+      mouseX: 0,
+      mouseY: 0,
+      cropX: 0,
+      cropY: 0,
+      cropSize: 0,
+    });
 
     const computeDisplayDimensions = $(() => {
       const img = imageRef.value;
@@ -90,7 +97,6 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
 
       uploadSuccess.value = false;
       uploadError.value = null;
-      selectedFile.value = file;
 
       const reader = new FileReader();
       reader.onload = () => {
@@ -219,19 +225,21 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
       });
     });
 
-    const startDrag = $((e: PointerEvent, handle: "move" | "nw" | "ne" | "sw" | "se") => {
-      e.preventDefault();
-      e.stopPropagation();
-      dragging.value = handle;
-      dragStart.mouseX = e.clientX;
-      dragStart.mouseY = e.clientY;
-      dragStart.cropX = crop.x;
-      dragStart.cropY = crop.y;
-      dragStart.cropSize = crop.size;
-    });
+    const startDrag = $(
+      (e: PointerEvent, handle: "move" | "nw" | "ne" | "sw" | "se") => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragging.value = handle;
+        dragStart.mouseX = e.clientX;
+        dragStart.mouseY = e.clientY;
+        dragStart.cropX = crop.x;
+        dragStart.cropY = crop.y;
+        dragStart.cropSize = crop.size;
+      },
+    );
 
     const upload = $(async () => {
-      const file = selectedFile.value;
+      const file = fileInputRef.value?.files?.[0];
       if (!file) return;
 
       uploading.value = true;
@@ -285,7 +293,6 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
 
     const removeSelection = $(() => {
       imageDataUrl.value = null;
-      selectedFile.value = null;
       uploadSuccess.value = false;
       uploadError.value = null;
       if (fileInputRef.value) {
@@ -332,9 +339,7 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
                 d="M12 6v6m0 0v6m0-6h6m-6 0H6"
               />
             </svg>
-            <p class="mt-2 text-sm text-gray-600">
-              Click to select a photo
-            </p>
+            <p class="mt-2 text-sm text-gray-600">Click to select a photo</p>
             <p class="mt-1 text-xs text-gray-400">
               JPG, PNG or WebP. You'll be able to crop it.
             </p>
@@ -353,7 +358,8 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
         {imageDataUrl.value && (
           <div class="space-y-3">
             <p class="text-sm text-gray-600">
-              Drag the square to select the area for your profile picture. Drag corners to resize.
+              Drag the square to select the area for your profile picture. Drag
+              corners to resize.
             </p>
             <div
               ref={containerRef}

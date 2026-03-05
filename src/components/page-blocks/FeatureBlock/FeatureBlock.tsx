@@ -4,19 +4,27 @@ import { FeatureGrid } from "./FeatureGrid";
 import { StatTile } from "./StatTile";
 import { ImageTile } from "./ImageTile";
 
+export const GRID_AREAS = [
+  { name: "left-top", label: "Left Top", color: "#3B82F6" },
+  { name: "left-bottom", label: "Left Bottom", color: "#10B981" },
+  { name: "middle", label: "Middle", color: "#F59E0B" },
+  { name: "right-top", label: "Right Top", color: "#8B5CF6" },
+  { name: "right-bottom", label: "Right Bottom", color: "#EF4444" },
+] as const;
+
+export type GridAreaName = (typeof GRID_AREAS)[number]["name"];
+
 export interface TileConfig {
   type: "stat" | "image";
-  area: string;
+  area: GridAreaName;
   // StatTile props
   number?: string;
   title?: string;
   description?: string;
-  statSize?: "sm" | "md" | "lg";
   // ImageTile props
   image?: string;
   alt?: string;
   overlayText?: string;
-  imageSize?: "sm" | "md" | "lg" | "xl";
 }
 
 interface FeatureBlockProps {
@@ -25,11 +33,7 @@ interface FeatureBlockProps {
   tilesJson?: string;
 }
 
-const DEFAULT_LAYOUT = `
-  "left-top middle right-top"
-  "left-bottom middle right-top"
-  "left-bottom middle right-bottom"
-`;
+const DEFAULT_LAYOUT = `"left-top middle right-top" "left-bottom middle right-top" "left-bottom middle right-bottom"`;
 
 const DEFAULT_TILES: TileConfig[] = [
   {
@@ -38,13 +42,11 @@ const DEFAULT_TILES: TileConfig[] = [
     number: "2000+",
     title: "Members",
     description: "A fast growing community that inspires and connects.",
-    statSize: "sm",
   },
   {
     type: "image",
     area: "left-bottom",
     image: "https://picsum.photos/400/400",
-    imageSize: "md",
   },
   {
     type: "image",
@@ -52,13 +54,11 @@ const DEFAULT_TILES: TileConfig[] = [
     image: "https://picsum.photos/500/700",
     overlayText:
       "With multiple events all over Europe every year we help to grow your network and make memories.",
-    imageSize: "xl",
   },
   {
     type: "image",
     area: "right-top",
     image: "https://picsum.photos/400/500",
-    imageSize: "md",
   },
   {
     type: "stat",
@@ -66,7 +66,6 @@ const DEFAULT_TILES: TileConfig[] = [
     number: "10+",
     title: "Local communities",
     description: "Can't find your city yet? Start your own one.",
-    statSize: "sm",
   },
 ];
 
@@ -89,10 +88,9 @@ export const definition: BlockDefinition = {
   configSchema: [
     {
       name: "layout",
-      label: "Grid Layout (CSS grid-template-areas)",
-      type: "textarea",
-      defaultValue: DEFAULT_LAYOUT.trim(),
-      placeholder: `"left-top middle right-top"\n"left-bottom middle right-top"\n"left-bottom middle right-bottom"`,
+      label: "Grid Layout",
+      type: "grid-layout",
+      defaultValue: DEFAULT_LAYOUT,
     },
     {
       name: "gap",
@@ -102,13 +100,13 @@ export const definition: BlockDefinition = {
     },
     {
       name: "tilesJson",
-      label: "Tiles Configuration (JSON)",
-      type: "textarea",
+      label: "Tiles",
+      type: "tiles",
       defaultValue: JSON.stringify(DEFAULT_TILES, null, 2),
     },
   ],
   defaultData: {
-    layout: DEFAULT_LAYOUT.trim(),
+    layout: DEFAULT_LAYOUT,
     gap: 24,
     tilesJson: JSON.stringify(DEFAULT_TILES, null, 2),
   },
@@ -131,7 +129,6 @@ export default component$<FeatureBlockProps>((props) => {
                 number={tile.number ?? "0"}
                 title={tile.title ?? "Title"}
                 description={tile.description}
-                size={tile.statSize}
               />
             );
           }
@@ -144,7 +141,6 @@ export default component$<FeatureBlockProps>((props) => {
                 image={tile.image ?? "https://picsum.photos/400/400"}
                 alt={tile.alt}
                 overlayText={tile.overlayText}
-                size={tile.imageSize}
               />
             );
           }

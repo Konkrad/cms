@@ -4,22 +4,13 @@ interface StatTileProps {
   number: string;
   title: string;
   description?: string;
-  size?: "sm" | "md" | "lg";
   area?: string;
 }
 
-const SIZE_CLASSES: Record<string, string> = {
-  sm: "min-h-[240px]",
-  md: "min-h-[280px]",
-  lg: "min-h-[360px]",
-};
-
 export const StatTile = component$<StatTileProps>((props) => {
-  const sizeClass = SIZE_CLASSES[props.size ?? "md"];
-
   return (
     <div
-      class={`bg-[#034ea2] rounded-[25px] p-8 flex flex-col justify-between ${sizeClass}`}
+      class="bg-[#034ea2] rounded-[25px] p-8 flex flex-col justify-between h-full"
       style={props.area ? { gridArea: props.area } : undefined}
     >
       <div>

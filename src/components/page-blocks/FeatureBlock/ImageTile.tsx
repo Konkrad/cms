@@ -4,24 +4,15 @@ interface ImageTileProps {
   image: string;
   alt?: string;
   overlayText?: string;
-  size?: "sm" | "md" | "lg" | "xl";
   area?: string;
 }
 
-const SIZE_CLASSES: Record<string, string> = {
-  sm: "h-[280px]",
-  md: "h-[380px]",
-  lg: "h-[500px]",
-  xl: "h-[680px]",
-};
-
 export const ImageTile = component$<ImageTileProps>((props) => {
-  const sizeClass = SIZE_CLASSES[props.size ?? "md"];
   const hasOverlay = props.overlayText;
 
   return (
     <div
-      class={`relative rounded-[25px] overflow-hidden ${sizeClass}`}
+      class="relative rounded-[25px] overflow-hidden h-full w-full"
       style={props.area ? { gridArea: props.area } : undefined}
     >
       <img

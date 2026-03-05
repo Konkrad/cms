@@ -1,7 +1,6 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
 import { Form, Link, useLocation } from "@builder.io/qwik-city";
 import { useLogoutAction, useUserSession, useMenuItems } from "~/routes/layout";
-import { env } from "~/env";
 
 export const Navigation = component$(() => {
   const user = useUserSession();
@@ -78,13 +77,7 @@ export const Navigation = component$(() => {
   const profilePictureSmallUrl = (() => {
     try {
       if (user.value && typeof user.value === "object") {
-        const key = (user.value as any).profilePictureSmall;
-        if (key) {
-          const s3Key = key.replace(/^\//, "");
-          return env.AWS_ENDPOINT
-            ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${s3Key}`
-            : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${s3Key}`;
-        }
+        return (user.value as any).profilePictureSmallUrl ?? null;
       }
       return null;
     } catch {

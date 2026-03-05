@@ -1,4 +1,4 @@
-import { component$, $ } from "@builder.io/qwik";
+import { component$, $, useSignal } from "@builder.io/qwik";
 import {
   Link,
   type DocumentHead,
@@ -15,14 +15,20 @@ import { ParticipationToggle } from "~/components/events/ParticipationToggle";
 import { db } from "~/db/connection";
 import { inventoryGroups } from "~/db/schemas/inventory-groups";
 import { tickets } from "~/db/schemas/tickets";
-import { eq, and, isNotNull } from "drizzle-orm";
+import { participationStatus as participationStatusTable } from "~/db/schemas/participation-status";
+import { groupRepresentatives } from "~/db/schemas/group-representatives";
+import { groups as groupsTable } from "~/db/schemas/groups";
+import { groupMemberships } from "~/db/schemas/group-memberships";
+import { eq, and, isNotNull, inArray } from "drizzle-orm";
 import { getCurrentUserData } from "~/utils/server-auth";
+import { env } from "~/env";
 
 import { FeatureGrid } from "~/components/page-blocks/FeatureBlock/FeatureGrid";
 import { EventDateTile } from "~/components/page-blocks/FeatureBlock/EventDateTile";
 import { LocationTile } from "~/components/page-blocks/FeatureBlock/LocationTile";
 import { ImageTile } from "~/components/page-blocks/FeatureBlock/ImageTile";
 import { ParticipantsTile } from "~/components/page-blocks/FeatureBlock/ParticipantsTile";
+import { ParticipantsModal } from "~/components/events/ParticipantsModal";
 
 export const useEvent = routeLoader$(async (requestEvent) => {
   const { params, status } = requestEvent;
@@ -67,6 +73,79 @@ export const useEvent = routeLoader$(async (requestEvent) => {
 
   // Participation summary
   const participationSummary = await participationService.getSummary(params.id);
+
+  // Fetch participants (yes / maybe) with profile pictures and group info
+  const participationRows = await db.query.participationStatus.findMany({
+    where: eq(participationStatusTable.eventId, params.id),
+    with: { user: true },
+  });
+
+  const goingRows = participationRows.filter(
+    (r) => r.status === "yes" || r.status === "maybe",
+  );
+  const participantUserIds = goingRows.map((r) => r.userId);
+
+  // Build a map userId → group role label (e.g. "Local Rep Berlin")
+  const userGroupLabels: Record<string, string> = {};
+
+  if (participantUserIds.length > 0) {
+    // Get representative status
+    const repRows = await db
+      .select({
+        userId: groupRepresentatives.userId,
+        groupId: groupRepresentatives.groupId,
+        groupName: groupsTable.name,
+      })
+      .from(groupRepresentatives)
+      .innerJoin(groupsTable, eq(groupRepresentatives.groupId, groupsTable.id))
+      .where(inArray(groupRepresentatives.userId, participantUserIds));
+
+    for (const rep of repRows) {
+      userGroupLabels[rep.userId] = `Local Rep ${rep.groupName}`;
+    }
+
+    // For users that aren't representatives, fall back to their group membership
+    const missingUsers = participantUserIds.filter(
+      (id) => !userGroupLabels[id],
+    );
+    if (missingUsers.length > 0) {
+      const memberRows = await db
+        .select({
+          userId: groupMemberships.userId,
+          groupName: groupsTable.name,
+        })
+        .from(groupMemberships)
+        .innerJoin(groupsTable, eq(groupMemberships.groupId, groupsTable.id))
+        .where(inArray(groupMemberships.userId, missingUsers));
+
+      for (const mem of memberRows) {
+        if (!userGroupLabels[mem.userId]) {
+          userGroupLabels[mem.userId] = mem.groupName;
+        }
+      }
+    }
+  }
+
+  // Build profile picture URL helper
+  const buildPicUrl = (s3Key: string | null) => {
+    if (!s3Key) return null;
+    const key = s3Key.replace(/^\//, "");
+    return env.AWS_ENDPOINT
+      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${key}`
+      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
+  };
+
+  const participants = goingRows.map((r) => {
+    const u = r.user as any;
+    return {
+      id: u.id as string,
+      displayName: (u.displayName ?? u.name ?? "User") as string,
+      profilePictureSmallUrl: buildPicUrl(u.profilePictureSmall ?? null),
+      groupLabel: userGroupLabels[u.id] ?? null,
+      city: (u.city ?? null) as string | null,
+      country: (u.country ?? null) as string | null,
+    };
+  });
 
   // Calculate event ticket info
   const now = new Date();
@@ -147,6 +226,7 @@ export const useEvent = routeLoader$(async (requestEvent) => {
     participationSummary,
     mapImageUrl,
     locationDisplay,
+    participants,
   };
 });
 
@@ -261,6 +341,8 @@ export default component$(() => {
 
   const mapImage =
     event.value.mapImageUrl ?? "https://picsum.photos/600/600?grayscale";
+
+  const showParticipantsModal = useSignal(false);
 
   return (
     <div class="min-h-screen bg-white">
@@ -404,17 +486,27 @@ export default component$(() => {
           {/* Bottom-right: Participants */}
           <ParticipantsTile
             area="right-bottom"
-            participantImages={[
-              `https://api.dicebear.com/7.x/avataaars/svg?seed=${event.value.id}-1`,
-              `https://api.dicebear.com/7.x/avataaars/svg?seed=${event.value.id}-2`,
-              `https://api.dicebear.com/7.x/avataaars/svg?seed=${event.value.id}-3`,
-            ]}
-            leadParticipant={event.value.user.displayName}
-            otherCount={participantCount}
+            participants={event.value.participants}
+            participantCount={participantCount}
             eventName={event.value.title}
+            isLoggedIn={event.value.isLoggedIn}
+            onSeeAll$={$(() => {
+              showParticipantsModal.value = true;
+            })}
             variant="dark"
           />
         </FeatureGrid>
+
+        {/* Participants modal */}
+        {showParticipantsModal.value && (
+          <ParticipantsModal
+            participants={event.value.participants}
+            eventName={event.value.title}
+            onClose$={$(() => {
+              showParticipantsModal.value = false;
+            })}
+          />
+        )}
 
         {/* ── Tickets / What's Included Section ── */}
         {hasProducts && !event.value.isEventPast && (

@@ -10,6 +10,7 @@ const componentModules = {
   PastEventsBlock: () => import("~/components/page-blocks/PastEventsBlock"),
   PostsListBlock: () => import("~/components/page-blocks/PostsListBlock"),
   SpacerBlock: () => import("~/components/page-blocks/SpacerBlock"),
+  FeatureBlock: () => import("~/components/page-blocks/FeatureBlock"),
 };
 
 type ComponentModuleLoader = () => Promise<{

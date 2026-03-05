@@ -1,6 +1,7 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
 import { Form, Link, useLocation } from "@builder.io/qwik-city";
 import { useLogoutAction, useUserSession, useMenuItems } from "~/routes/layout";
+import { env } from "~/env";
 
 export const Navigation = component$(() => {
   const user = useUserSession();
@@ -74,6 +75,23 @@ export const Navigation = component$(() => {
     }
   })();
 
+  const profilePictureSmallUrl = (() => {
+    try {
+      if (user.value && typeof user.value === "object") {
+        const key = (user.value as any).profilePictureSmall;
+        if (key) {
+          const s3Key = key.replace(/^\//, "");
+          return env.AWS_ENDPOINT
+            ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${s3Key}`
+            : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${s3Key}`;
+        }
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  })();
+
   const toggleUserMenu = $(() => {
     try {
       showUserMenu.value = !showUserMenu.value;
@@ -137,8 +155,21 @@ export const Navigation = component$(() => {
               <div class="relative">
                 <button
                   onClick$={toggleUserMenu}
-                  class="flex items-center px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
+                  class="flex items-center gap-2 px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
                 >
+                  {profilePictureSmallUrl ? (
+                    <img
+                      src={profilePictureSmallUrl}
+                      alt=""
+                      width={28}
+                      height={28}
+                      class="w-7 h-7 rounded-full object-cover border border-gray-200"
+                    />
+                  ) : (
+                    <span class="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs font-semibold">
+                      {displayName.charAt(0).toUpperCase()}
+                    </span>
+                  )}
                   {displayName}
                   <svg
                     class="ml-2 h-4 w-4"

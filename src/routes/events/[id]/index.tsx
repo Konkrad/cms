@@ -8,7 +8,7 @@ import {
   zod$,
   Form,
 } from "@builder.io/qwik-city";
-import { format } from "date-fns";
+
 import { eventsService } from "~/services/events.service";
 import { participationService } from "~/services/participation.service";
 import { ParticipationToggle } from "~/components/events/ParticipationToggle";
@@ -17,6 +17,12 @@ import { inventoryGroups } from "~/db/schemas/inventory-groups";
 import { tickets } from "~/db/schemas/tickets";
 import { eq, and, isNotNull } from "drizzle-orm";
 import { getCurrentUserData } from "~/utils/server-auth";
+
+import { FeatureGrid } from "~/components/page-blocks/FeatureBlock/FeatureGrid";
+import { EventDateTile } from "~/components/page-blocks/FeatureBlock/EventDateTile";
+import { LocationTile } from "~/components/page-blocks/FeatureBlock/LocationTile";
+import { ImageTile } from "~/components/page-blocks/FeatureBlock/ImageTile";
+import { ParticipantsTile } from "~/components/page-blocks/FeatureBlock/ParticipantsTile";
 
 export const useEvent = routeLoader$(async (requestEvent) => {
   const { params, status } = requestEvent;
@@ -49,7 +55,6 @@ export const useEvent = routeLoader$(async (requestEvent) => {
       params.id,
     );
 
-    // Check if user has a scanned ticket for this event
     const scannedTicket = await db.query.tickets.findFirst({
       where: and(
         eq(tickets.eventId, params.id),
@@ -60,6 +65,9 @@ export const useEvent = routeLoader$(async (requestEvent) => {
     hasAttended = !!scannedTicket;
   }
 
+  // Participation summary
+  const participationSummary = await participationService.getSummary(params.id);
+
   // Calculate event ticket info
   const now = new Date();
   const eventStart = new Date(event.startDate);
@@ -67,13 +75,11 @@ export const useEvent = routeLoader$(async (requestEvent) => {
   const isEventPast = now > eventEnd;
   const isEventFuture = now < eventStart;
 
-  // Determine if this is a free event with single product
   const allProducts = groups.flatMap((g) => g.products);
   const isFreeEvent =
     allProducts.length > 0 && allProducts.every((p) => p.price === 0);
   const hasSingleProduct = allProducts.length === 1;
 
-  // Check if any sales period is currently active
   let activeSalesPeriod = false;
   let futureSalesPeriod = false;
   let pastSalesPeriod = false;
@@ -109,6 +115,20 @@ export const useEvent = routeLoader$(async (requestEvent) => {
     }
   }
 
+  // Build a static map URL if we have coordinates
+  let mapImageUrl: string | null = null;
+  if (event.latitude && event.longitude) {
+    const lat = event.latitude;
+    const lon = event.longitude;
+    mapImageUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lon}&zoom=10&size=600x600&maptype=mapnik&markers=${lat},${lon},red-pushpin`;
+  }
+
+  // Location display string
+  const locationDisplay =
+    [event.city, event.country].filter(Boolean).join(", ") ||
+    event.address ||
+    (event.locationType === "online" ? "Online" : "");
+
   return {
     ...event,
     salesStatus: salesValidation,
@@ -124,6 +144,9 @@ export const useEvent = routeLoader$(async (requestEvent) => {
     isEventFuture,
     hasAttended,
     isLoggedIn,
+    participationSummary,
+    mapImageUrl,
+    locationDisplay,
   };
 });
 
@@ -154,14 +177,12 @@ export const useRSVPWithTicket = routeAction$(
       return event.fail(401, { message: "Please log in to RSVP" });
     }
 
-    // Update participation status
     await participationService.upsert(
       userData.id,
       event.params.id,
       data.status,
     );
 
-    // If status is "yes", create a free ticket
     if (data.status === "yes" && data.productId) {
       const { ticketsService } = await import("~/services/tickets.service");
       await ticketsService.createFreeTicket({
@@ -203,10 +224,7 @@ export default component$(() => {
 
   const startDate = new Date(event.value.startDate);
   const endDate = new Date(event.value.endDate);
-  const isMultiDay =
-    format(startDate, "yyyy-MM-dd") !== format(endDate, "yyyy-MM-dd");
 
-  // Determine what to show for tickets/RSVP
   const hasProducts = event.value.products.length > 0;
 
   const showFreeRSVP =
@@ -237,335 +255,255 @@ export default component$(() => {
     !event.value.activeSalesPeriod &&
     event.value.isEventFuture;
 
-  return (
-    <div class="min-h-screen bg-gray-50">
-      <div class="max-w-4xl mx-auto px-4 py-12">
-        {/* Header */}
-        <div class="mb-6">
-          <Link
-            href="/events"
-            class="text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-2 mb-4"
-          >
-            ← Back to Events
-          </Link>
-          <h1 class="text-4xl font-bold text-gray-900 mb-4">
-            {event.value.title}
-          </h1>
-        </div>
+  const participantCount =
+    event.value.participationSummary.yes +
+    event.value.participationSummary.maybe;
 
-        {/* Free Event RSVP or Participation Toggle */}
+  const mapImage =
+    event.value.mapImageUrl ?? "https://picsum.photos/600/600?grayscale";
+
+  return (
+    <div class="min-h-screen bg-white">
+      <div class="max-w-[1290px] mx-auto px-4 py-12">
+        {/* ── Title ── */}
+        <h1 class="font-['Rubik',sans-serif] font-bold text-[48px] md:text-[64px] leading-[1.1] text-center text-black mb-8">
+          {event.value.title}
+        </h1>
+
+        {/* ── Description ── */}
+        {event.value.body && (
+          <p class="max-w-3xl mx-auto text-center text-gray-700 text-base leading-relaxed mb-10">
+            {event.value.body}
+          </p>
+        )}
+
+        {/* ── CTA Button ── */}
         {!event.value.isEventPast && (
-          <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+          <div class="flex justify-center mb-12">
             {!event.value.isLoggedIn ? (
-              <>
-                <h3 class="text-lg font-semibold mb-4">
-                  Interested in this event?
-                </h3>
-                <p class="text-gray-600 mb-4">
-                  Please log in to RSVP or purchase tickets.
-                </p>
-                <a
-                  href="/login"
-                  class="block w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-center"
-                >
-                  Log In
-                </a>
-              </>
-            ) : showFreeRSVP ? (
-              <>
-                <h3 class="text-lg font-semibold mb-4">
-                  Will you attend? (Free Event)
-                </h3>
-                <Form action={rsvpWithTicket}>
-                  <input
-                    type="hidden"
-                    name="productId"
-                    value={event.value.products[0]?.id}
-                  />
-                  <div class="flex flex-wrap gap-3">
-                    <button
-                      type="submit"
-                      name="status"
-                      value="yes"
-                      class="flex-1 min-w-[120px] px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
-                    >
-                      ✓ Yes
-                    </button>
-                    <button
-                      type="submit"
-                      name="status"
-                      value="maybe"
-                      class="flex-1 min-w-[120px] px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded-lg transition-colors"
-                    >
-                      ? Maybe
-                    </button>
-                    <button
-                      type="submit"
-                      name="status"
-                      value="no"
-                      class="flex-1 min-w-[120px] px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
-                    >
-                      ✗ No
-                    </button>
-                  </div>
-                </Form>
-                {event.value.userParticipation?.status === "yes" && (
-                  <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800">
-                    ✓ You're attending! Your free ticket has been created.
-                  </div>
-                )}
-                {event.value.userParticipation?.status === "maybe" && (
-                  <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
-                    You're on the waitlist.
-                  </div>
-                )}
-                {event.value.userParticipation?.status === "no" && (
-                  <div class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-800">
-                    You've indicated you won't attend.
-                  </div>
-                )}
-              </>
-            ) : showWaitlist ? (
-              <>
-                <h3 class="text-lg font-semibold mb-4">
-                  Ticket sales haven't started yet
-                </h3>
-                <p class="text-gray-600 mb-4">
-                  Add yourself to the waitlist to be notified when tickets
-                  become available.
-                </p>
-                <Form action={updateParticipation}>
-                  <button
-                    type="submit"
-                    name="status"
-                    value="maybe"
-                    class="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-                  >
-                    Add me to waitlist
-                  </button>
-                </Form>
-                {event.value.userParticipation?.status === "maybe" && (
-                  <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800">
-                    ✓ You're on the waitlist!
-                  </div>
-                )}
-              </>
+              <a
+                href="/login"
+                class="inline-block px-10 py-3 bg-[#0e1148] hover:bg-[#1a1d5e] text-white font-['Lato',sans-serif] font-bold text-sm rounded-full transition-colors"
+              >
+                Log In to RSVP
+              </a>
             ) : showBuyTickets ? (
-              <>
-                <h3 class="text-lg font-semibold mb-4">Get Your Tickets</h3>
-                <Link
-                  href={`/events/${event.value.id}/checkout`}
-                  class="block w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-center"
+              <Link
+                href={`/events/${event.value.id}/checkout`}
+                class="inline-block px-10 py-3 bg-[#0e1148] hover:bg-[#1a1d5e] text-white font-['Lato',sans-serif] font-bold text-sm rounded-full transition-colors"
+              >
+                Buy Your Tickets
+              </Link>
+            ) : showFreeRSVP ? (
+              <Form action={rsvpWithTicket} class="flex gap-3">
+                <input
+                  type="hidden"
+                  name="productId"
+                  value={event.value.products[0]?.id}
+                />
+                <button
+                  type="submit"
+                  name="status"
+                  value="yes"
+                  class="px-10 py-3 bg-[#0e1148] hover:bg-[#1a1d5e] text-white font-['Lato',sans-serif] font-bold text-sm rounded-full transition-colors"
                 >
-                  Buy Tickets
-                </Link>
-              </>
+                  {event.value.userParticipation?.status === "yes"
+                    ? "✓ You're Going!"
+                    : "RSVP — I'm Going"}
+                </button>
+              </Form>
+            ) : showWaitlist ? (
+              <Form action={updateParticipation}>
+                <button
+                  type="submit"
+                  name="status"
+                  value="maybe"
+                  class="px-10 py-3 bg-[#0e1148] hover:bg-[#1a1d5e] text-white font-['Lato',sans-serif] font-bold text-sm rounded-full transition-colors"
+                >
+                  {event.value.userParticipation?.status === "maybe"
+                    ? "✓ On Waitlist"
+                    : "Join Waitlist"}
+                </button>
+              </Form>
+            ) : showSalesClosed ? (
+              <span class="inline-block px-10 py-3 bg-gray-400 text-white font-['Lato',sans-serif] font-bold text-sm rounded-full cursor-not-allowed">
+                Sales Closed
+              </span>
+            ) : event.value.soldOut ? (
+              <span class="inline-block px-10 py-3 bg-orange-500 text-white font-['Lato',sans-serif] font-bold text-sm rounded-full cursor-not-allowed">
+                Sold Out
+              </span>
             ) : (
-              <>
-                <h3 class="text-lg font-semibold mb-4">Will you attend?</h3>
-                <Form action={updateParticipation}>
-                  <ParticipationToggle
-                    currentStatus={
-                      event.value.userParticipation?.status || null
-                    }
-                    onStatusChange={$((status: "yes" | "no" | "maybe") => {
-                      updateParticipation.submit({ status });
-                    })}
-                  />
-                </Form>
-              </>
+              <Form action={updateParticipation}>
+                <ParticipationToggle
+                  currentStatus={event.value.userParticipation?.status || null}
+                  onStatusChange={$((status: "yes" | "no" | "maybe") => {
+                    updateParticipation.submit({ status });
+                  })}
+                />
+              </Form>
             )}
           </div>
         )}
 
-        {/* Event Details Card */}
-        <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
-          {/* Date & Time */}
-          <div class="p-6 border-b border-gray-200">
-            <div class="flex items-start gap-4">
-              <div class="flex-shrink-0 w-16 h-16 bg-blue-600 text-white rounded-lg flex flex-col items-center justify-center">
-                <div class="text-2xl font-bold">{format(startDate, "dd")}</div>
-                <div class="text-xs uppercase">{format(startDate, "MMM")}</div>
-              </div>
-              <div class="flex-1">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">
-                  Date & Time
-                </h3>
-                <div class="text-gray-600">
-                  {isMultiDay ? (
-                    <div>
-                      <div class="font-medium">
-                        {format(startDate, "EEEE, MMMM d, yyyy")} at{" "}
-                        {format(startDate, "h:mm a")}
-                      </div>
-                      <div class="text-sm">to</div>
-                      <div class="font-medium">
-                        {format(endDate, "EEEE, MMMM d, yyyy")} at{" "}
-                        {format(endDate, "h:mm a")}
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <div class="font-medium">
-                        {format(startDate, "EEEE, MMMM d, yyyy")}
-                      </div>
-                      <div>
-                        {format(startDate, "h:mm a")} -{" "}
-                        {format(endDate, "h:mm a")}
-                      </div>
-                    </div>
-                  )}
+        {/* RSVP confirmation messages */}
+        {event.value.userParticipation?.status === "yes" && showFreeRSVP && (
+          <div class="max-w-xl mx-auto mb-8 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-center text-sm">
+            ✓ You're attending! Your free ticket has been created.
+          </div>
+        )}
+        {event.value.userParticipation?.status === "maybe" && showWaitlist && (
+          <div class="max-w-xl mx-auto mb-8 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-center text-sm">
+            ✓ You're on the waitlist!
+          </div>
+        )}
+
+        {/* ── Feature Grid ── */}
+        <FeatureGrid gap={20}>
+          {/* Top-left: Save the Date */}
+          <EventDateTile
+            area="left-top"
+            startDate={startDate}
+            endDate={endDate}
+            variant="dark"
+            title={event.value.title}
+            location={event.value.locationDisplay}
+            description={event.value.body || undefined}
+            isPast={event.value.isEventPast}
+          />
+
+          {/* Center: Location Map */}
+          {event.value.locationDisplay ? (
+            <LocationTile
+              area="middle"
+              image={mapImage}
+              location={event.value.locationDisplay}
+            />
+          ) : (
+            <ImageTile
+              area="middle"
+              image="https://picsum.photos/600/700"
+              alt="Event"
+            />
+          )}
+
+          {/* Top-right: Event Image */}
+          <ImageTile
+            area="right-top"
+            image="https://picsum.photos/400/500"
+            alt={event.value.title}
+          />
+
+          {/* Bottom-left: Event Image */}
+          <ImageTile
+            area="left-bottom"
+            image="https://picsum.photos/400/400"
+            alt={event.value.title}
+          />
+
+          {/* Bottom-right: Participants */}
+          <ParticipantsTile
+            area="right-bottom"
+            participantImages={[
+              `https://api.dicebear.com/7.x/avataaars/svg?seed=${event.value.id}-1`,
+              `https://api.dicebear.com/7.x/avataaars/svg?seed=${event.value.id}-2`,
+              `https://api.dicebear.com/7.x/avataaars/svg?seed=${event.value.id}-3`,
+            ]}
+            leadParticipant={event.value.user.displayName}
+            otherCount={participantCount}
+            eventName={event.value.title}
+            variant="dark"
+          />
+        </FeatureGrid>
+
+        {/* ── Tickets / What's Included Section ── */}
+        {hasProducts && !event.value.isEventPast && (
+          <div class="max-w-4xl mx-auto mt-16">
+            <h2 class="font-['Rubik',sans-serif] font-bold text-[32px] leading-[1.3] text-black mb-6">
+              Tickets
+            </h2>
+            <p class="text-gray-700 text-base leading-relaxed mb-4">
+              What is included in your tickets:
+            </p>
+            <div class="space-y-4">
+              {event.value.products.map((product) => (
+                <div key={product.id} class="flex items-start gap-3">
+                  <span class="text-gray-400 mt-0.5">•</span>
+                  <div>
+                    <span class="font-medium text-gray-900">
+                      {product.name}
+                    </span>
+                    {product.price > 0 && (
+                      <span class="text-gray-500 ml-2">
+                        — €{(product.price / 100).toFixed(2)}
+                      </span>
+                    )}
+                    {product.features &&
+                      (product.features as string[]).length > 0 && (
+                        <ul class="mt-1 ml-2 space-y-1">
+                          {(product.features as string[]).map(
+                            (feature, idx) => (
+                              <li
+                                key={idx}
+                                class="text-sm text-gray-600 flex items-start gap-2"
+                              >
+                                <span class="text-gray-300">·</span>
+                                {feature}
+                              </li>
+                            ),
+                          )}
+                        </ul>
+                      )}
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
+        )}
 
-          {/* Location */}
-          {event.value.locationType && (
-            <div class="p-6 border-b border-gray-200">
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">Location</h3>
-              <div class="text-gray-600">
-                {event.value.locationType === "in-person" ? (
-                  <div>
-                    <div class="font-medium mb-1">In-Person Event</div>
-                    {event.value.address && <div>{event.value.address}</div>}
-                    {event.value.city && event.value.country && (
-                      <div>
-                        {event.value.city}, {event.value.country}
-                      </div>
-                    )}
-                  </div>
-                ) : event.value.locationType === "online" ? (
-                  <div>
-                    <div class="font-medium mb-1">Online Event</div>
-                    {event.value.onlineUrl && (
-                      <a
-                        href={event.value.onlineUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="text-blue-600 hover:underline"
-                      >
-                        {event.value.onlineUrl}
-                      </a>
-                    )}
-                  </div>
-                ) : (
-                  <div class="font-medium">Hybrid Event</div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Description */}
-          {event.value.body && (
-            <div class="p-6 border-b border-gray-200">
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">
-                About this event
-              </h3>
-              <div class="text-gray-600 whitespace-pre-wrap">
-                {event.value.body}
-              </div>
-            </div>
-          )}
-
-          {/* Organizer */}
-          <div class="p-6 bg-gray-50">
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">
-              Organized by
+        {/* ── Photo Gallery (past events, verified attendees) ── */}
+        {event.value.isEventPast && event.value.hasAttended && (
+          <div class="max-w-4xl mx-auto mt-16 bg-purple-50 border border-purple-200 rounded-[25px] p-8">
+            <h3 class="font-['Rubik',sans-serif] font-semibold text-[24px] text-purple-900 mb-3">
+              📸 Event Photos
             </h3>
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
-                {event.value.user.displayName.charAt(0).toUpperCase()}
+            <p class="text-purple-800 mb-6">
+              You attended this event! View the photo gallery with all the
+              memories.
+            </p>
+            <Link
+              href={`/events/${event.value.id}/photos`}
+              class="inline-block bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-3 rounded-full transition-colors"
+            >
+              View Photo Gallery
+            </Link>
+          </div>
+        )}
+
+        {/* ── Organizer ── */}
+        <div class="max-w-4xl mx-auto mt-16">
+          <h2 class="font-['Rubik',sans-serif] font-bold text-[24px] leading-[1.3] text-black mb-4">
+            Organized by
+          </h2>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-[#034ea2] text-white rounded-full flex items-center justify-center font-semibold text-lg">
+              {event.value.user.displayName.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div class="font-medium text-gray-900 text-lg">
+                {event.value.user.displayName}
               </div>
-              <div>
-                <div class="font-medium text-gray-900">
-                  {event.value.user.displayName}
-                </div>
-                <div class="text-sm text-gray-600">
+              {event.value.user.email && (
+                <a
+                  href={`mailto:${event.value.user.email}`}
+                  class="text-sm text-gray-500 hover:text-blue-600"
+                >
                   {event.value.user.email}
-                </div>
-              </div>
+                </a>
+              )}
             </div>
           </div>
         </div>
-
-        {/* Sales Period Status Messages */}
-        {showSalesClosed && (
-          <div class="rounded-lg p-6 mb-8 bg-red-50 border border-red-200">
-            <h3 class="text-lg font-semibold mb-2 text-red-900">
-              🔒 Ticket Sale is Closed
-            </h3>
-            <p class="text-red-800">
-              The sales period has ended for this event.
-            </p>
-          </div>
-        )}
-
-        {event.value.soldOut && (
-          <div class="rounded-lg p-6 mb-8 bg-orange-50 border border-orange-200">
-            <h3 class="text-lg font-semibold mb-2 text-orange-900">
-              🎫 Sold Out
-            </h3>
-            <p class="text-orange-800">
-              All tickets for this event have been sold.
-            </p>
-          </div>
-        )}
-
-        {/* Photo Gallery Access (for verified attendees of past events) */}
-        {event.value.isEventPast && event.value.hasAttended && (
-          <div class="bg-purple-50 border border-purple-200 rounded-lg p-6 mb-8">
-            <div class="flex items-start gap-4">
-              <svg
-                class="w-8 h-8 text-purple-600 flex-shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              <div class="flex-1">
-                <h3 class="text-lg font-semibold text-purple-900 mb-2">
-                  📸 Event Photos
-                </h3>
-                <p class="text-purple-800 mb-4">
-                  You attended this event! View the photo gallery with all the
-                  memories from this event.
-                </p>
-                <Link
-                  href={`/events/${event.value.id}/photos`}
-                  class="inline-block bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 rounded-lg transition-colors"
-                >
-                  View Photo Gallery
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Additional Info */}
-        {!event.value.isEventPast && (
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-blue-900 mb-2">
-              Questions about this event?
-            </h3>
-            <p class="text-blue-800 mb-4">
-              Contact the organizer at{" "}
-              <a
-                href={`mailto:${event.value.user.email}`}
-                class="underline hover:text-blue-600"
-              >
-                {event.value.user.email}
-              </a>{" "}
-              for more information.
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );

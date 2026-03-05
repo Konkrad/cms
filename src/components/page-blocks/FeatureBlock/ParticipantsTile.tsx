@@ -20,7 +20,7 @@ export const ParticipantsTile = component$<ParticipantsTileProps>((props) => {
 
   return (
     <div
-      class={`${bgClass} rounded-[25px] p-8`}
+      class={`${bgClass} rounded-[25px] p-8 h-full`}
       style={props.area ? { gridArea: props.area } : undefined}
     >
       <h3 class="font-['Rubik',sans-serif] font-semibold text-[30px] leading-[1.406] text-white mb-6">
@@ -60,7 +60,12 @@ export const ParticipantsTile = component$<ParticipantsTileProps>((props) => {
       <button class="flex items-center gap-2 group mt-6 cursor-pointer bg-transparent border-none p-0">
         <div class="w-6 h-6 relative">
           <svg class="w-full h-full" fill="none" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="12" fill="url(#paint0_linear_participants)" />
+            <circle
+              cx="12"
+              cy="12"
+              r="12"
+              fill="url(#paint0_linear_participants)"
+            />
             <defs>
               <linearGradient
                 id="paint0_linear_participants"

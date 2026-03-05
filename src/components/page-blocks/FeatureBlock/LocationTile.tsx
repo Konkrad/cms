@@ -3,23 +3,13 @@ import { component$ } from "@builder.io/qwik";
 interface LocationTileProps {
   image: string;
   location: string;
-  size?: "sm" | "md" | "lg" | "xl";
   area?: string;
 }
 
-const SIZE_CLASSES: Record<string, string> = {
-  sm: "h-[280px]",
-  md: "h-[380px]",
-  lg: "h-[500px]",
-  xl: "h-[680px]",
-};
-
 export const LocationTile = component$<LocationTileProps>((props) => {
-  const sizeClass = SIZE_CLASSES[props.size ?? "xl"];
-
   return (
     <div
-      class={`relative rounded-[25px] overflow-hidden ${sizeClass}`}
+      class="relative rounded-[25px] overflow-hidden h-full w-full"
       style={props.area ? { gridArea: props.area } : undefined}
     >
       <img

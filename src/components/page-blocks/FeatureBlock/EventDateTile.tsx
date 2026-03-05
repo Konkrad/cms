@@ -1,12 +1,15 @@
-import { component$ } from "@builder.io/qwik";
+import { component$, $ } from "@builder.io/qwik";
 
 interface EventDateTileProps {
   startDate: Date;
   endDate: Date;
-  size?: "sm" | "md";
   variant?: "blue" | "dark";
   area?: string;
   timezone?: string;
+  title?: string;
+  location?: string;
+  description?: string;
+  isPast?: boolean;
 }
 
 function formatDate(date: Date): string {
@@ -40,10 +43,27 @@ function formatTime(date: Date, timezone: string = "Europe/Paris"): string {
   return formatter.format(date);
 }
 
-const SIZE_CLASSES: Record<string, string> = {
-  sm: "min-h-[240px]",
-  md: "min-h-[280px]",
-};
+function toICalDateString(date: Date): string {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return (
+    date.getUTCFullYear().toString() +
+    pad(date.getUTCMonth() + 1) +
+    pad(date.getUTCDate()) +
+    "T" +
+    pad(date.getUTCHours()) +
+    pad(date.getUTCMinutes()) +
+    pad(date.getUTCSeconds()) +
+    "Z"
+  );
+}
+
+function escapeICalText(text: string): string {
+  return text
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\n/g, "\\n");
+}
 
 export const EventDateTile = component$<EventDateTileProps>((props) => {
   const bgClass =
@@ -51,17 +71,67 @@ export const EventDateTile = component$<EventDateTileProps>((props) => {
       ? "bg-[#034ea2]"
       : "bg-gradient-to-b from-[#0e1148] to-[#0f1330]";
 
-  const sizeClass = SIZE_CLASSES[props.size ?? "md"];
   const tz = props.timezone ?? "Europe/Paris";
+  const isPast = props.isPast ?? false;
 
   const formattedStartDate = formatDate(props.startDate);
   const formattedStartTime = formatTime(props.startDate, tz);
   const formattedEndDate = formatDate(props.endDate);
   const formattedEndTime = formatTime(props.endDate, tz);
 
+  const downloadIcal = $(() => {
+    const dtStart = toICalDateString(new Date(props.startDate));
+    const dtEnd = toICalDateString(new Date(props.endDate));
+    const uid = `${dtStart}-${dtEnd}@event`;
+    const now = toICalDateString(new Date());
+
+    const summary = escapeICalText(props.title || "Event");
+    const location = props.location ? escapeICalText(props.location) : "";
+    const description = props.description
+      ? escapeICalText(props.description)
+      : "";
+
+    const lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//CMS//Events//EN",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "BEGIN:VEVENT",
+      `UID:${uid}`,
+      `DTSTAMP:${now}`,
+      `DTSTART:${dtStart}`,
+      `DTEND:${dtEnd}`,
+      `SUMMARY:${summary}`,
+    ];
+
+    if (location) {
+      lines.push(`LOCATION:${location}`);
+    }
+    if (description) {
+      lines.push(`DESCRIPTION:${description}`);
+    }
+
+    lines.push("END:VEVENT", "END:VCALENDAR");
+
+    const content = lines.join("\r\n");
+    const blob = new Blob([content], {
+      type: "text/calendar;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download =
+      (props.title || "event").replace(/[^a-zA-Z0-9_-]/g, "_") + ".ics";
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  });
+
   return (
     <div
-      class={`${bgClass} rounded-[25px] p-8 ${sizeClass}`}
+      class={`${bgClass} rounded-[25px] p-8 h-full`}
       style={props.area ? { gridArea: props.area } : undefined}
     >
       <h3 class="font-['Rubik',sans-serif] font-semibold text-[30px] leading-[1.406] text-white mb-8">
@@ -109,38 +179,48 @@ export const EventDateTile = component$<EventDateTileProps>((props) => {
         </div>
       </div>
 
-      {/* Add to Calendar Button */}
-      <button class="flex items-center gap-2 group cursor-pointer bg-transparent border-none p-0">
-        <div class="w-6 h-6 relative">
-          <svg class="w-full h-full" fill="none" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="12" fill="url(#paint0_linear_calendar)" />
-            <defs>
-              <linearGradient
-                id="paint0_linear_calendar"
-                x1="30.05"
-                y1="-3.19"
-                x2="-8.71"
-                y2="24"
-                gradientUnits="userSpaceOnUse"
-              >
-                <stop stop-color="#96C046" />
-                <stop offset="1" stop-color="#D2DF83" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <div class="absolute inset-0 flex items-center justify-center">
-            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24">
-              <path
-                d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"
-                fill="white"
+      {/* Add to Calendar Button — hidden for past events */}
+      {!isPast && (
+        <button
+          onClick$={downloadIcal}
+          class="flex items-center gap-2 group cursor-pointer bg-transparent border-none p-0"
+        >
+          <div class="w-6 h-6 relative">
+            <svg class="w-full h-full" fill="none" viewBox="0 0 24 24">
+              <circle
+                cx="12"
+                cy="12"
+                r="12"
+                fill="url(#paint0_linear_calendar)"
               />
+              <defs>
+                <linearGradient
+                  id="paint0_linear_calendar"
+                  x1="30.05"
+                  y1="-3.19"
+                  x2="-8.71"
+                  y2="24"
+                  gradientUnits="userSpaceOnUse"
+                >
+                  <stop stop-color="#96C046" />
+                  <stop offset="1" stop-color="#D2DF83" />
+                </linearGradient>
+              </defs>
             </svg>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24">
+                <path
+                  d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"
+                  fill="white"
+                />
+              </svg>
+            </div>
           </div>
-        </div>
-        <span class="font-['Lato',sans-serif] font-bold text-[14px] leading-[1.348] text-white group-hover:underline">
-          Add to Calendar
-        </span>
-      </button>
+          <span class="font-['Lato',sans-serif] font-bold text-[14px] leading-[1.348] text-white group-hover:underline">
+            Add to Calendar
+          </span>
+        </button>
+      )}
     </div>
   );
 });

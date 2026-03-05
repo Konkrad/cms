@@ -1,9 +1,8 @@
 import { component$, useSignal, useTask$ } from "@builder.io/qwik";
-import { Link, server$ } from "@builder.io/qwik-city";
-import { format } from "date-fns";
-import { Card } from "~/components/ui/Card";
+import { server$ } from "@builder.io/qwik-city";
 import type { BlockDefinition } from "~/db/schema";
 import type { PostWithUser } from "~/services/posts.service";
+import { BlogCard } from "./BlogCard";
 
 interface PostsListBlockProps {
   limit?: number;
@@ -59,31 +58,21 @@ export default component$<PostsListBlockProps>((props) => {
           <p class="text-gray-500">Loading posts...</p>
         </div>
       ) : error.value ? (
-        <Card>
-          <p class="text-red-500 text-center py-8">
-            Failed to load posts: {error.value}
-          </p>
-        </Card>
+        <p class="text-red-500 text-center py-8">
+          Failed to load posts: {error.value}
+        </p>
       ) : posts.value.length === 0 ? (
-        <Card>
-          <p class="text-gray-500 text-center py-8">No posts found.</p>
-        </Card>
+        <p class="text-gray-500 text-center py-8">No posts found.</p>
       ) : (
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {posts.value.map((post) => (
-            <Link key={post.id} href={`/posts/${post.id}`}>
-              <Card hover>
-                <h3 class="text-xl font-semibold text-gray-900 mb-3">
-                  {post.title}
-                </h3>
-                <p class="text-gray-600 line-clamp-3 mb-4">{post.body}</p>
-                <div class="flex items-center gap-2 text-sm text-gray-500">
-                  {post.user && <span>{post.user.displayName}</span>}
-                  <span>-</span>
-                  <span>{format(new Date(post.createdAt), "PPP")}</span>
-                </div>
-              </Card>
-            </Link>
+            <BlogCard
+              key={post.id}
+              date={post.createdAt}
+              description={post.body}
+              location={post.user?.displayName}
+              readMoreHref={`/posts/${post.id}`}
+            />
           ))}
         </div>
       )}

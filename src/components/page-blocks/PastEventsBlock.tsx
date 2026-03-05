@@ -1,9 +1,8 @@
 import { component$, useSignal, useTask$, $ } from "@builder.io/qwik";
-import { Link, server$ } from "@builder.io/qwik-city";
-import { format } from "date-fns";
-import { Card } from "~/components/ui/Card";
+import { server$ } from "@builder.io/qwik-city";
 import type { BlockDefinition } from "~/db/schema";
 import type { EventWithUser } from "~/services/events.service";
+import { EventCard } from "./EventCard";
 
 export const definition: BlockDefinition = {
   name: "Past Events",
@@ -87,15 +86,11 @@ export default component$(() => {
           <p class="text-gray-500">Loading years...</p>
         </div>
       ) : error.value ? (
-        <Card>
-          <p class="text-red-500 text-center py-8">
-            Failed to load: {error.value}
-          </p>
-        </Card>
+        <p class="text-red-500 text-center py-8">
+          Failed to load: {error.value}
+        </p>
       ) : years.value.length === 0 ? (
-        <Card>
-          <p class="text-gray-500 text-center py-8">No past events found.</p>
-        </Card>
+        <p class="text-gray-500 text-center py-8">No past events found.</p>
       ) : (
         <div>
           <div class="mb-6">
@@ -121,11 +116,9 @@ export default component$(() => {
           </div>
 
           {selectedYears.value.length === 0 ? (
-            <Card>
-              <p class="text-gray-500 text-center py-8">
-                Select one or more years to view events.
-              </p>
-            </Card>
+            <p class="text-gray-500 text-center py-8">
+              Select one or more years to view events.
+            </p>
           ) : isLoadingEvents.value ? (
             <div class="text-center py-8">
               <p class="text-gray-500">Loading events...</p>
@@ -137,47 +130,28 @@ export default component$(() => {
                   <h3 class="text-xl font-semibold mb-4">{year}</h3>
                   {eventsByYear.value[year] &&
                   eventsByYear.value[year].length > 0 ? (
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {eventsByYear.value[year].map((event) => (
-                        <Link key={event.id} href={`/events/${event.id}`}>
-                          <Card hover>
-                            <div class="flex justify-between items-start mb-3">
-                              <h4 class="text-lg font-semibold text-gray-900 flex-1">
-                                {event.title}
-                              </h4>
-                              <span
-                                class={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ml-2 ${
-                                  event.locationType === "online"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : event.locationType === "in_person"
-                                      ? "bg-green-100 text-green-800"
-                                      : "bg-purple-100 text-purple-800"
-                                }`}
-                              >
-                                {event.locationType?.replace("_", " ")}
-                              </span>
-                            </div>
-                            <p class="text-gray-600 line-clamp-2 mb-3">
-                              {event.body}
-                            </p>
-                            <div class="text-sm text-gray-500">
-                              <p>
-                                {format(new Date(event.startDate), "PPP p")}
-                              </p>
-                              {event.user && (
-                                <p class="mt-1">{event.user.displayName}</p>
-                              )}
-                            </div>
-                          </Card>
-                        </Link>
-                      ))}
+                    <div class="flex flex-col gap-6">
+                      {eventsByYear.value[year].map((event) => {
+                        const location =
+                          event.city ||
+                          event.address ||
+                          (event.locationType === "online" ? "Online" : "TBA");
+
+                        return (
+                          <EventCard
+                            key={event.id}
+                            date={event.startDate}
+                            title={event.title}
+                            location={location}
+                            readMoreHref={`/events/${event.id}`}
+                          />
+                        );
+                      })}
                     </div>
                   ) : (
-                    <Card>
-                      <p class="text-gray-500 text-center py-8">
-                        No events for {year}.
-                      </p>
-                    </Card>
+                    <p class="text-gray-500 text-center py-8">
+                      No events for {year}.
+                    </p>
                   )}
                 </div>
               ))}

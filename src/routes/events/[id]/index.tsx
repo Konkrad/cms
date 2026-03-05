@@ -135,7 +135,7 @@ export const useEvent = routeLoader$(async (requestEvent) => {
       : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
   };
 
-  const participants = goingRows.map((r) => {
+  const participantsUnsorted = goingRows.map((r) => {
     const u = r.user as any;
     return {
       id: u.id as string,
@@ -146,6 +146,25 @@ export const useEvent = routeLoader$(async (requestEvent) => {
       country: (u.country ?? null) as string | null,
     };
   });
+
+  // Shuffle helper (Fisher-Yates)
+  const shuffle = <T,>(arr: T[]): T[] => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  // Prioritise users who have a profile picture, shuffle within each group
+  const withPic = shuffle(
+    participantsUnsorted.filter((p) => p.profilePictureSmallUrl),
+  );
+  const withoutPic = shuffle(
+    participantsUnsorted.filter((p) => !p.profilePictureSmallUrl),
+  );
+  const participants = [...withPic, ...withoutPic];
 
   // Calculate event ticket info
   const now = new Date();

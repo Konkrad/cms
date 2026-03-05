@@ -120,109 +120,93 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
       cleanup(() => img.removeEventListener("load", handler));
     });
 
-    // Attach pointer events on the container for dragging
-    useVisibleTask$(({ cleanup }) => {
-      const container = containerRef.value;
-      if (!container) return;
+    const onPointerMove = $((e: PointerEvent) => {
+      if (!dragging.value) return;
+      e.preventDefault();
 
-      const onPointerMove = (e: PointerEvent) => {
-        if (!dragging.value) return;
-        e.preventDefault();
+      const dx = e.clientX - dragStart.mouseX;
+      const dy = e.clientY - dragStart.mouseY;
 
-        const dx = e.clientX - dragStart.mouseX;
-        const dy = e.clientY - dragStart.mouseY;
+      const dw = displayWidth.value;
+      const dh = displayHeight.value;
 
-        const dw = displayWidth.value;
-        const dh = displayHeight.value;
+      if (dragging.value === "move") {
+        let newX = dragStart.cropX + dx;
+        let newY = dragStart.cropY + dy;
+        const size = crop.size;
 
-        if (dragging.value === "move") {
-          let newX = dragStart.cropX + dx;
-          let newY = dragStart.cropY + dy;
-          const size = crop.size;
+        // Clamp within image bounds
+        newX = Math.max(0, Math.min(newX, dw - size));
+        newY = Math.max(0, Math.min(newY, dh - size));
 
-          // Clamp within image bounds
-          newX = Math.max(0, Math.min(newX, dw - size));
-          newY = Math.max(0, Math.min(newY, dh - size));
+        crop.x = newX;
+        crop.y = newY;
+      } else {
+        // Corner resize – keep square
+        let newSize = dragStart.cropSize;
+        let newX = dragStart.cropX;
+        let newY = dragStart.cropY;
 
-          crop.x = newX;
-          crop.y = newY;
-        } else {
-          // Corner resize – keep square
-          let newSize = dragStart.cropSize;
-          let newX = dragStart.cropX;
-          let newY = dragStart.cropY;
+        // Determine delta based on which corner
+        const handle = dragging.value;
+        let delta = 0;
 
-          // Determine delta based on which corner
-          const handle = dragging.value;
-          let delta = 0;
-
-          if (handle === "se") {
-            delta = Math.max(dx, dy);
-            newSize = dragStart.cropSize + delta;
-          } else if (handle === "sw") {
-            delta = Math.max(-dx, dy);
-            newSize = dragStart.cropSize + delta;
-            newX = dragStart.cropX - delta;
-          } else if (handle === "ne") {
-            delta = Math.max(dx, -dy);
-            newSize = dragStart.cropSize + delta;
-            newY = dragStart.cropY - delta;
-          } else if (handle === "nw") {
-            delta = Math.max(-dx, -dy);
-            newSize = dragStart.cropSize + delta;
-            newX = dragStart.cropX - delta;
-            newY = dragStart.cropY - delta;
-          }
-
-          // Enforce minimum size
-          const minSize = 40;
-          if (newSize < minSize) {
-            const diff = minSize - newSize;
-            newSize = minSize;
-            if (handle === "sw" || handle === "nw") newX -= diff;
-            if (handle === "ne" || handle === "nw") newY -= diff;
-          }
-
-          // Clamp within bounds
-          if (newX < 0) {
-            newSize += newX;
-            newX = 0;
-          }
-          if (newY < 0) {
-            newSize += newY;
-            newY = 0;
-          }
-          if (newX + newSize > dw) {
-            newSize = dw - newX;
-          }
-          if (newY + newSize > dh) {
-            newSize = dh - newY;
-          }
-
-          // Keep square using the smaller constrained dimension
-          const maxPossible = Math.min(dw - newX, dh - newY);
-          newSize = Math.min(newSize, maxPossible);
-          newSize = Math.max(newSize, minSize);
-
-          crop.x = newX;
-          crop.y = newY;
-          crop.size = newSize;
+        if (handle === "se") {
+          delta = Math.max(dx, dy);
+          newSize = dragStart.cropSize + delta;
+        } else if (handle === "sw") {
+          delta = Math.max(-dx, dy);
+          newSize = dragStart.cropSize + delta;
+          newX = dragStart.cropX - delta;
+        } else if (handle === "ne") {
+          delta = Math.max(dx, -dy);
+          newSize = dragStart.cropSize + delta;
+          newY = dragStart.cropY - delta;
+        } else if (handle === "nw") {
+          delta = Math.max(-dx, -dy);
+          newSize = dragStart.cropSize + delta;
+          newX = dragStart.cropX - delta;
+          newY = dragStart.cropY - delta;
         }
-      };
 
-      const onPointerUp = () => {
-        dragging.value = null;
-      };
+        // Enforce minimum size
+        const minSize = 40;
+        if (newSize < minSize) {
+          const diff = minSize - newSize;
+          newSize = minSize;
+          if (handle === "sw" || handle === "nw") newX -= diff;
+          if (handle === "ne" || handle === "nw") newY -= diff;
+        }
 
-      container.addEventListener("pointermove", onPointerMove);
-      container.addEventListener("pointerup", onPointerUp);
-      container.addEventListener("pointerleave", onPointerUp);
+        // Clamp within bounds
+        if (newX < 0) {
+          newSize += newX;
+          newX = 0;
+        }
+        if (newY < 0) {
+          newSize += newY;
+          newY = 0;
+        }
+        if (newX + newSize > dw) {
+          newSize = dw - newX;
+        }
+        if (newY + newSize > dh) {
+          newSize = dh - newY;
+        }
 
-      cleanup(() => {
-        container.removeEventListener("pointermove", onPointerMove);
-        container.removeEventListener("pointerup", onPointerUp);
-        container.removeEventListener("pointerleave", onPointerUp);
-      });
+        // Keep square using the smaller constrained dimension
+        const maxPossible = Math.min(dw - newX, dh - newY);
+        newSize = Math.min(newSize, maxPossible);
+        newSize = Math.max(newSize, minSize);
+
+        crop.x = newX;
+        crop.y = newY;
+        crop.size = newSize;
+      }
+    });
+
+    const onPointerUp = $(() => {
+      dragging.value = null;
     });
 
     const startDrag = $(
@@ -239,8 +223,8 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
     );
 
     const upload = $(async () => {
-      const file = fileInputRef.value?.files?.[0];
-      if (!file) return;
+      const dataUrl = imageDataUrl.value;
+      if (!dataUrl) return;
 
       uploading.value = true;
       uploadError.value = null;
@@ -255,6 +239,10 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
         return;
       }
 
+      // Convert data URL to Blob (avoids relying on file input ref across Qwik serialization)
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+
       const cropRatioX = crop.x / dw;
       const cropRatioY = crop.y / dh;
       const cropRatioW = crop.size / dw;
@@ -262,9 +250,9 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
 
       const response = await fetch("/api/images/profile-picture", {
         method: "POST",
-        body: file,
+        body: blob,
         headers: {
-          "Content-Type": file.type,
+          "Content-Type": blob.type,
           "x-crop-x": cropRatioX.toFixed(6),
           "x-crop-y": cropRatioY.toFixed(6),
           "x-crop-width": cropRatioW.toFixed(6),
@@ -368,6 +356,9 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
                 height: `${displayHeight.value || 400}px`,
                 touchAction: "none",
               }}
+              onPointerMove$={onPointerMove}
+              onPointerUp$={onPointerUp}
+              onPointerLeave$={onPointerUp}
             >
               {/* The image */}
               <img

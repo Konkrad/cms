@@ -135,6 +135,8 @@ export async function getCurrentUserData(
       latitude: u.latitude,
       yearOfBirth: u.yearOfBirth,
       sex: u.sex,
+      profilePicture: u.profilePicture,
+      profilePictureSmall: u.profilePictureSmall,
       role: u.role,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,

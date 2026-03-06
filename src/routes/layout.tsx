@@ -27,7 +27,20 @@ export const useUserSession = routeLoader$(async (event) => {
   console.log("[Layout] useUserSession - starting");
   const userData = await getCurrentUserData(event);
   console.log("[Layout] useUserSession - completed, has user:", !!userData);
-  return userData;
+
+  if (!userData) return userData;
+
+  // Compute profile picture URL server-side so client components never need `env`
+  let profilePictureSmallUrl: string | null = null;
+  const u = userData as any;
+  if (u.profilePictureSmall) {
+    const s3Key = u.profilePictureSmall.replace(/^\//, "");
+    profilePictureSmallUrl = env.AWS_ENDPOINT
+      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${s3Key}`
+      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${s3Key}`;
+  }
+
+  return { ...userData, profilePictureSmallUrl };
 });
 
 export const useMenuItems = routeLoader$(async () => {

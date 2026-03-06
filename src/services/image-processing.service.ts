@@ -76,6 +76,30 @@ export const PROCESSING_PIPELINES = {
     quality: 85,
   },
 
+  // Profile picture - 400x400 square crop
+  profilePicture: {
+    name: "profilePicture",
+    transform: (transformer) =>
+      transformer.rotate().resize(400, 400, {
+        fit: "cover",
+        position: "entropy",
+      }),
+    outputFormat: "webp" as const,
+    quality: 85,
+  },
+
+  // Profile picture small - 75x75 square crop
+  profilePictureSmall: {
+    name: "profilePictureSmall",
+    transform: (transformer) =>
+      transformer.rotate().resize(75, 75, {
+        fit: "cover",
+        position: "entropy",
+      }),
+    outputFormat: "webp" as const,
+    quality: 80,
+  },
+
   // Original - minimal processing, just format conversion
   original: {
     name: "original",
@@ -291,6 +315,135 @@ export async function processAndUploadVariants(
       key: thumbS3Key,
       bucket: env.S3_BUCKET,
       url: thumbUrl,
+    },
+  };
+}
+
+/**
+ * Crop coordinates as ratios (0–1) relative to the natural image dimensions.
+ */
+export interface CropCoordinates {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Process and upload a profile picture to S3 producing a 400×400 and a 75×75 variant.
+ *
+ * The caller supplies crop coordinates (ratios 0–1) that describe the square
+ * region the user selected on the frontend.  The function:
+ *   1. Buffers the incoming stream
+ *   2. Auto-rotates based on EXIF orientation
+ *   3. Extracts the crop region (converted from ratios → pixels)
+ *   4. Resizes to 400×400 and 75×75
+ *   5. Uploads both variants to S3
+ *
+ * @returns S3 keys and URLs for both variants
+ */
+export async function processAndUploadProfilePicture(
+  input: ReadableStream | Buffer,
+  crop: CropCoordinates,
+  userId: string,
+): Promise<{ picture: ImageUploadResult; pictureSmall: ImageUploadResult }> {
+  // Always buffer so we can read metadata and branch into two pipelines
+  let buffer: Buffer;
+  if (input instanceof Buffer) {
+    buffer = input;
+  } else {
+    const nodeReadable = Readable.fromWeb(input as any);
+    const chunks: Buffer[] = [];
+    for await (const chunk of nodeReadable) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    buffer = Buffer.concat(chunks);
+  }
+
+  // Auto-rotate first, then read metadata so dimensions reflect the true orientation
+  const rotated = await sharp(buffer)
+    .rotate()
+    .toBuffer({ resolveWithObject: true });
+  const { width: imgWidth, height: imgHeight } = rotated.info;
+
+  // Convert ratio-based crop coordinates to pixel values
+  const extractLeft = Math.round(crop.x * imgWidth);
+  const extractTop = Math.round(crop.y * imgHeight);
+  const extractWidth = Math.min(
+    Math.round(crop.width * imgWidth),
+    imgWidth - extractLeft,
+  );
+  const extractHeight = Math.min(
+    Math.round(crop.height * imgHeight),
+    imgHeight - extractTop,
+  );
+
+  const s3Client = createS3Client();
+  const keyPrefix = `${env.S3_UPLOAD_PATH}/profile-pictures`;
+  const pictureKey = `${keyPrefix}/${userId}.webp`;
+  const pictureSmallKey = `${keyPrefix}/${userId}-small.webp`;
+
+  // Process 400×400 variant
+  const picBuffer = await sharp(rotated.data)
+    .extract({
+      left: extractLeft,
+      top: extractTop,
+      width: extractWidth,
+      height: extractHeight,
+    })
+    .resize(400, 400, { fit: "cover" })
+    .webp({ quality: 85 })
+    .toBuffer();
+
+  // Process 75×75 variant
+  const picSmallBuffer = await sharp(rotated.data)
+    .extract({
+      left: extractLeft,
+      top: extractTop,
+      width: extractWidth,
+      height: extractHeight,
+    })
+    .resize(75, 75, { fit: "cover" })
+    .webp({ quality: 80 })
+    .toBuffer();
+
+  // Upload both concurrently
+  const [_picResult, _picSmallResult] = await Promise.all([
+    new Upload({
+      client: s3Client,
+      params: {
+        Bucket: env.S3_BUCKET,
+        Key: pictureKey,
+        Body: picBuffer,
+        ContentType: "image/webp",
+      },
+    }).done(),
+    new Upload({
+      client: s3Client,
+      params: {
+        Bucket: env.S3_BUCKET,
+        Key: pictureSmallKey,
+        Body: picSmallBuffer,
+        ContentType: "image/webp",
+      },
+    }).done(),
+  ]);
+
+  const buildUrl = (key: string) =>
+    env.AWS_ENDPOINT
+      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${key}`
+      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
+
+  return {
+    picture: {
+      key: pictureKey,
+      bucket: env.S3_BUCKET,
+      url: buildUrl(pictureKey),
+    },
+    pictureSmall: {
+      key: pictureSmallKey,
+      bucket: env.S3_BUCKET,
+      url: buildUrl(pictureSmallKey),
     },
   };
 }

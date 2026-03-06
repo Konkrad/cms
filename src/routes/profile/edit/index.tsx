@@ -1,172 +1,196 @@
 import { component$ } from "@builder.io/qwik";
 import {
-	Form,
-	routeAction$,
-	routeLoader$,
-	z,
-	zod$,
+  Form,
+  routeAction$,
+  routeLoader$,
+  z,
+  zod$,
 } from "@builder.io/qwik-city";
 import { eq } from "drizzle-orm";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
+import { ProfilePictureCropper } from "~/components/profile/ProfilePictureCropper";
 import { db } from "~/db/connection";
 import { users } from "~/db/schema";
+import { env } from "~/env";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 
 export const useProfile = routeLoader$(async (event) => {
-	await requireAuth(event);
-	const userData = await getCurrentUserData(event);
+  await requireAuth(event);
+  const userData = await getCurrentUserData(event);
 
-	if (!userData) {
-		throw event.redirect(302, "/login");
-	}
+  if (!userData) {
+    throw event.redirect(302, "/login");
+  }
 
-	return userData;
+  // Build profile picture URLs from S3 keys if present
+  let profilePictureUrl: string | null = null;
+  const user = userData as any;
+  if (user.profilePicture) {
+    const key = user.profilePicture.replace(/^\//, "");
+    profilePictureUrl = env.AWS_ENDPOINT
+      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${key}`
+      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
+  }
+
+  return {
+    ...userData,
+    profilePictureUrl,
+  };
 });
 
 export const useUpdateProfile = routeAction$(
-	async (data, event) => {
-		const user = await requireAuth(event);
-		const currentUser = await getCurrentUserData(event);
+  async (data, event) => {
+    const user = await requireAuth(event);
+    const currentUser = await getCurrentUserData(event);
 
-		if (!currentUser) {
-			return {
-				success: false,
-				error: "User not found",
-			};
-		}
+    if (!currentUser) {
+      return {
+        success: false,
+        error: "User not found",
+      };
+    }
 
-		// Map incoming form fields (snake_case) to DB columns (camelCase)
-		const updateData: any = {
-			name: data.name,
-			familyName: data.family_name,
-			displayName: data.display_name,
-			city: data.city || null,
-			country: data.country || null,
-			yearOfBirth: data.year_of_birth ?? null,
-			sex: data.sex || null,
-			updatedAt: new Date().toISOString(),
-		};
+    // Map incoming form fields (snake_case) to DB columns (camelCase)
+    const updateData: any = {
+      name: data.name,
+      familyName: data.family_name,
+      displayName: data.display_name,
+      city: data.city || null,
+      country: data.country || null,
+      yearOfBirth: data.year_of_birth ?? null,
+      sex: data.sex || null,
+      updatedAt: new Date().toISOString(),
+    };
 
-		try {
-			await db
-				.update(users)
-				.set(updateData)
-				.where(eq(users.id, currentUser.id));
-		} catch (err: any) {
-			return {
-				success: false,
-				error: err?.message || "Failed to update profile",
-			};
-		}
+    try {
+      await db
+        .update(users)
+        .set(updateData)
+        .where(eq(users.id, currentUser.id));
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err?.message || "Failed to update profile",
+      };
+    }
 
-		throw event.redirect(302, "/profile");
-	},
-	zod$({
-		name: z.string().min(1, "Name is required"),
-		family_name: z.string().min(1, "Family name is required"),
-		display_name: z.string().min(1, "Display name is required"),
-		city: z.string().optional(),
-		country: z.string().optional(),
-		year_of_birth: z.coerce.number().optional(),
-		sex: z.string().optional(),
-	}),
+    throw event.redirect(302, "/profile");
+  },
+  zod$({
+    name: z.string().min(1, "Name is required"),
+    family_name: z.string().min(1, "Family name is required"),
+    display_name: z.string().min(1, "Display name is required"),
+    city: z.string().optional(),
+    country: z.string().optional(),
+    year_of_birth: z.coerce.number().optional(),
+    sex: z.string().optional(),
+  }),
 );
 
 export default component$(() => {
-	const profile = useProfile();
-	const updateAction = useUpdateProfile();
+  const profile = useProfile();
+  const updateAction = useUpdateProfile();
 
-	return (
-		<div class="container mx-auto px-4 py-8 max-w-4xl">
-			<h1 class="text-3xl font-bold mb-6">Edit Profile</h1>
+  return (
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+      <h1 class="text-3xl font-bold mb-6">Edit Profile</h1>
 
-			{updateAction.value?.error && (
-				<div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-					{updateAction.value.error}
-				</div>
-			)}
+      {updateAction.value?.error && (
+        <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {updateAction.value.error}
+        </div>
+      )}
 
-			<Card>
-				<Form action={updateAction} class="space-y-4">
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-						<Input
-							label="First Name"
-							name="name"
-							type="text"
-							value={profile.value.name}
-							required
-						/>
+      {/* Profile Picture Section */}
+      <Card>
+        <ProfilePictureCropper
+          currentPictureUrl={profile.value.profilePictureUrl}
+        />
+      </Card>
 
-						<Input
-							label="Last Name"
-							name="family_name"
-							type="text"
-							value={profile.value.familyName}
-							required
-						/>
+      <div class="mt-6">
+        <Card>
+          <Form action={updateAction} class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="First Name"
+                name="name"
+                type="text"
+                value={profile.value.name}
+                required
+              />
 
-						<Input
-							label="Display Name"
-							name="display_name"
-							type="text"
-							value={profile.value.displayName}
-							required
-							class="md:col-span-2"
-						/>
+              <Input
+                label="Last Name"
+                name="family_name"
+                type="text"
+                value={profile.value.familyName}
+                required
+              />
 
-						<Input
-							label="City"
-							name="city"
-							type="text"
-							value={profile.value.city || ""}
-						/>
+              <Input
+                label="Display Name"
+                name="display_name"
+                type="text"
+                value={profile.value.displayName}
+                required
+                class="md:col-span-2"
+              />
 
-						<Input
-							label="Country"
-							name="country"
-							type="text"
-							value={profile.value.country || ""}
-						/>
+              <Input
+                label="City"
+                name="city"
+                type="text"
+                value={profile.value.city || ""}
+              />
 
-						<Input
-							label="Year of Birth"
-							name="year_of_birth"
-							type="number"
-							value={profile.value.yearOfBirth?.toString() || ""}
-						/>
+              <Input
+                label="Country"
+                name="country"
+                type="text"
+                value={profile.value.country || ""}
+              />
 
-						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">
-								Gender
-							</label>
-							<select
-								name="sex"
-								value={profile.value.sex || ""}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-							>
-								<option value="">Select gender</option>
-								<option value="male">Male</option>
-								<option value="female">Female</option>
-								<option value="other">Other</option>
-								<option value="prefer_not_to_say">Prefer not to say</option>
-							</select>
-						</div>
-					</div>
+              <Input
+                label="Year of Birth"
+                name="year_of_birth"
+                type="number"
+                value={profile.value.yearOfBirth?.toString() || ""}
+              />
 
-					<div class="flex gap-4 pt-4">
-						<Button type="submit" variant="primary">
-							Save Changes
-						</Button>
-						<a href="/profile">
-							<Button type="button" variant="secondary">
-								Cancel
-							</Button>
-						</a>
-					</div>
-				</Form>
-			</Card>
-		</div>
-	);
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Gender
+                </label>
+                <select
+                  name="sex"
+                  value={profile.value.sex || ""}
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="flex gap-4 pt-4">
+              <Button type="submit" variant="primary">
+                Save Changes
+              </Button>
+              <a href="/profile">
+                <Button type="button" variant="secondary">
+                  Cancel
+                </Button>
+              </a>
+            </div>
+          </Form>
+        </Card>
+      </div>
+    </div>
+  );
 });

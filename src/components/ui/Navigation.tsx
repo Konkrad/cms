@@ -74,6 +74,17 @@ export const Navigation = component$(() => {
     }
   })();
 
+  const profilePictureSmallUrl = (() => {
+    try {
+      if (user.value && typeof user.value === "object") {
+        return (user.value as any).profilePictureSmallUrl ?? null;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  })();
+
   const toggleUserMenu = $(() => {
     try {
       showUserMenu.value = !showUserMenu.value;
@@ -137,8 +148,21 @@ export const Navigation = component$(() => {
               <div class="relative">
                 <button
                   onClick$={toggleUserMenu}
-                  class="flex items-center px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
+                  class="flex items-center gap-2 px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
                 >
+                  {profilePictureSmallUrl ? (
+                    <img
+                      src={profilePictureSmallUrl}
+                      alt=""
+                      width={28}
+                      height={28}
+                      class="w-7 h-7 rounded-full object-cover border border-gray-200"
+                    />
+                  ) : (
+                    <span class="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs font-semibold">
+                      {displayName.charAt(0).toUpperCase()}
+                    </span>
+                  )}
                   {displayName}
                   <svg
                     class="ml-2 h-4 w-4"

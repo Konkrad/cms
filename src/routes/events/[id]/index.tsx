@@ -246,6 +246,7 @@ export const useEvent = routeLoader$(async (requestEvent) => {
     mapImageUrl,
     locationDisplay,
     participants,
+    mapboxAccessToken: env.PUBLIC_MAPBOX_ACCESS_TOKEN,
   };
 });
 
@@ -479,6 +480,17 @@ export default component$(() => {
               area="middle"
               image={mapImage}
               location={event.value.locationDisplay}
+              mapboxAccessToken={event.value.mapboxAccessToken}
+              lat={
+                event.value.locationType !== "online" && event.value.latitude
+                  ? parseFloat(event.value.latitude)
+                  : undefined
+              }
+              lng={
+                event.value.locationType !== "online" && event.value.longitude
+                  ? parseFloat(event.value.longitude)
+                  : undefined
+              }
             />
           ) : (
             <ImageTile

@@ -1,5 +1,6 @@
-import { component$ } from "@builder.io/qwik";
+import { component$, useSignal, $ } from "@builder.io/qwik";
 import { routeAction$, routeLoader$, Form } from "@builder.io/qwik-city";
+import { ParticipantsModal } from "~/components/events/ParticipantsModal";
 import { eq, and, isNull, gte, desc } from "drizzle-orm";
 import { db } from "~/db/connection";
 import { groupMemberships, users, events, posts } from "~/db/schema";
@@ -117,6 +118,7 @@ export const useJoinGroup = routeAction$(async (_data, event) => {
 export default component$(() => {
   const data = useGroupData();
   const joinAction = useJoinGroup();
+  const showMembersModal = useSignal(false);
   const { group, memberCount, pastEventCount, memberParticipants, rep, isMember, isLoggedIn, upcomingEvents, recentPosts } = data.value;
 
   return (
@@ -137,7 +139,7 @@ export default component$(() => {
             participantCount={memberCount}
             title="Community Members"
             seeAllLabel="See All Members"
-            seeAllHref={`/groups/${group.slug}/members`}
+            onSeeAll$={$(() => { showMembersModal.value = true; })}
             emptyTitle="No members yet"
             emptyBody="Be the first to join this community"
             isLoggedIn={isLoggedIn}
@@ -250,6 +252,14 @@ export default component$(() => {
             ))}
           </div>
         </div>
+      )}
+      {/* Members modal */}
+      {showMembersModal.value && (
+        <ParticipantsModal
+          participants={memberParticipants}
+          eventName={`${group.name} Community`}
+          onClose$={$(() => { showMembersModal.value = false; })}
+        />
       )}
     </div>
   );

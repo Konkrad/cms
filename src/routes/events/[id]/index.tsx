@@ -536,8 +536,7 @@ export default component$(() => {
         {showParticipantsModal.value && (
           <ParticipantsModal
             participants={event.value.participants}
-            summaryLine={`are going to ${event.value.title}`}
-            emptyBody={`Join ${event.value.title} and invite your friends`}
+            eventName={event.value.title}
             onClose$={$(() => {
               showParticipantsModal.value = false;
             })}

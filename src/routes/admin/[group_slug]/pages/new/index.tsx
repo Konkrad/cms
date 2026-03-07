@@ -29,15 +29,19 @@ export const useCreatePage = routeAction$(
   async (data, event) => {
     await requireAdmin(event);
 
-    const page = await pagesService.create({
-      title: data.title,
-      slug: data.slug,
-      parentId: data.parentId || null,
-      status: (data.status as "draft" | "published") || "draft",
-      content: [],
-    });
-
-    throw event.redirect(303, `/admin/global/pages/${page.id}/builder`);
+    try {
+      const page = await pagesService.create({
+        title: data.title,
+        slug: data.slug,
+        parentId: data.parentId || null,
+        status: (data.status as "draft" | "published") || "draft",
+        content: [],
+      });
+      throw event.redirect(303, `/admin/global/pages/${page.id}/builder`);
+    } catch (err: any) {
+      if (err?.status === 303) throw err;
+      return { success: false, error: err?.message || "Failed to create page" };
+    }
   },
   zod$({
     title: z.string().min(1, "Title is required"),

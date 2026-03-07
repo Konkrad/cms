@@ -6,3 +6,5 @@
 6. dont put everything into try catch blocks. Only catch errors that are expected and handle them gracefully. Otherwise, let the error bubble up and let the caller handle it.
 7. dont create readme or documentation without being asked for it. When in doubt, ask the user.
 8. don't create migration files, modify database directly or force update
+
+React componets for visuals have to be self contained. Therefore in theory be portable web components. They contain both javscript and css in one folder.

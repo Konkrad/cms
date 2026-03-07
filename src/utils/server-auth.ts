@@ -127,7 +127,6 @@ export async function getCurrentUserData(
       id: u.id,
       name: u.name,
       familyName: u.familyName,
-      displayName: u.displayName,
       email,
       city: u.city,
       country: u.country,

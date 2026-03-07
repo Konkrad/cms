@@ -56,7 +56,6 @@ export const useUpdateProfile = routeAction$(
     const updateData: any = {
       name: data.name,
       familyName: data.family_name,
-      displayName: data.display_name,
       city: data.city || null,
       country: data.country || null,
       yearOfBirth: data.year_of_birth ?? null,
@@ -81,7 +80,6 @@ export const useUpdateProfile = routeAction$(
   zod$({
     name: z.string().min(1, "Name is required"),
     family_name: z.string().min(1, "Family name is required"),
-    display_name: z.string().min(1, "Display name is required"),
     city: z.string().optional(),
     country: z.string().optional(),
     year_of_birth: z.coerce.number().optional(),
@@ -128,15 +126,6 @@ export default component$(() => {
                 type="text"
                 value={profile.value.familyName}
                 required
-              />
-
-              <Input
-                label="Display Name"
-                name="display_name"
-                type="text"
-                value={profile.value.displayName}
-                required
-                class="md:col-span-2"
               />
 
               <Input

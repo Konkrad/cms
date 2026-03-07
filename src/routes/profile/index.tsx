@@ -4,6 +4,7 @@ import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { env } from "~/env";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
+import { formatUser } from "~/utils/users";
 
 export const useProfile = routeLoader$(async (event) => {
   await requireAuth(event);
@@ -33,7 +34,7 @@ export const useProfile = routeLoader$(async (event) => {
   }
 
   return {
-    ...userData,
+    ...formatUser(userData, true),
     profilePictureUrl,
     profilePictureSmallUrl,
   };
@@ -103,13 +104,6 @@ export default component$(() => {
                 Last Name
               </label>
               <p class="text-lg">{profile.value.familyName}</p>
-            </div>
-
-            <div>
-              <label class="text-sm font-medium text-gray-700 block mb-1">
-                Display Name
-              </label>
-              <p class="text-lg">{profile.value.displayName}</p>
             </div>
 
             <div>

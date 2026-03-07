@@ -1,6 +1,7 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
 import { Form, Link, useLocation } from "@builder.io/qwik-city";
 import { useLogoutAction, useUserSession, useMenuItems } from "~/routes/layout";
+import { formatUser } from "~/utils/users";
 
 export const Navigation = component$(() => {
   const user = useUserSession();
@@ -60,12 +61,12 @@ export const Navigation = component$(() => {
   const displayName = (() => {
     try {
       if (user.value && typeof user.value === "object") {
-        return (
-          (user.value as any).displayName ??
-          (user.value as any).email ??
-          (user.value as any).id ??
-          "User"
-        );
+        const u = user.value as any;
+        if (u.name) {
+          // User is logged in (it's their own session), so show full name
+          return formatUser(u, true).displayName;
+        }
+        return u.email ?? u.id ?? "User";
       }
       return String(user.value ?? "");
     } catch (e) {

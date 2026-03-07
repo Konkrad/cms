@@ -299,7 +299,7 @@ async function ensureUserForLogin(loginId: string) {
     return { user: found[0] as any, created: false };
   }
 
-  // create minimal user (name/display names are required in schema -> use empty strings)
+  // create minimal user (name is required in schema -> use empty strings)
   const id = crypto.randomUUID();
   const inserted = await db
     .insert(users)
@@ -307,7 +307,6 @@ async function ensureUserForLogin(loginId: string) {
       id,
       name: "",
       familyName: "",
-      displayName: "",
       loginId,
     } as any)
     .returning();
@@ -315,7 +314,7 @@ async function ensureUserForLogin(loginId: string) {
   const user =
     Array.isArray(inserted) && inserted.length > 0
       ? inserted[0]
-      : { id, name: "", familyName: "", displayName: "", loginId };
+      : { id, name: "", familyName: "", loginId };
   return { user, created: true };
 }
 

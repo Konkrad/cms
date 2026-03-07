@@ -8,7 +8,6 @@ export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   familyName: text("family_name").notNull(),
-  displayName: text("display_name").notNull(),
 
   loginId: text("login_id"),
   city: text("city"),

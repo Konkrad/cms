@@ -29,6 +29,7 @@ import { LocationTile } from "~/components/page-blocks/FeatureBlock/LocationTile
 import { ImageTile } from "~/components/page-blocks/FeatureBlock/ImageTile";
 import { ParticipantsTile } from "~/components/page-blocks/FeatureBlock/ParticipantsTile";
 import { ParticipantsModal } from "~/components/events/ParticipantsModal";
+import { formatUser } from "~/utils/users";
 
 export const useEvent = routeLoader$(async (requestEvent) => {
   const { params, status } = requestEvent;
@@ -137,9 +138,10 @@ export const useEvent = routeLoader$(async (requestEvent) => {
 
   const participantsUnsorted = goingRows.map((r) => {
     const u = r.user as any;
+    const formatted = formatUser(u, isLoggedIn);
     return {
-      id: u.id as string,
-      displayName: (u.displayName ?? u.name ?? "User") as string,
+      id: formatted.id,
+      displayName: formatted.displayName,
       profilePictureSmallUrl: buildPicUrl(u.profilePictureSmall ?? null),
       groupLabel: userGroupLabels[u.id] ?? null,
       city: (u.city ?? null) as string | null,
@@ -229,6 +231,7 @@ export const useEvent = routeLoader$(async (requestEvent) => {
 
   return {
     ...event,
+    user: formatUser(event.user, isLoggedIn),
     salesStatus: salesValidation,
     userParticipation: participationStatus,
     products: allProducts,

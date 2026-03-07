@@ -48,9 +48,7 @@ export const ParticipantsModal = component$<ParticipantsModalProps>(
           {/* Participant list */}
           <div class="overflow-y-auto flex-1 px-6 pb-6">
             {participants.length === 0 ? (
-              <p class="text-gray-500 text-center py-8">
-                No participants yet.
-              </p>
+              <p class="text-gray-500 text-center py-8">No participants yet.</p>
             ) : (
               <ul class="divide-y divide-gray-200">
                 {participants.map((p) => {

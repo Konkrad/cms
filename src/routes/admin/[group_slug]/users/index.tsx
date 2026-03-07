@@ -9,24 +9,25 @@ import { eq } from "drizzle-orm";
 
 export const useUsers = routeLoader$(async ({ params }) => {
   const groupSlug = params.group_slug;
-  
+
   // For global admin, show all users
   if (groupSlug === "global") {
     const res = await usersService.getAll(1000); // Large limit for all users
     return { users: res.items, groupSlug, isGlobal: true };
   }
-  
+
   // For group representatives, show only group members
   const group = await groupsService.getBySlug(groupSlug);
   if (!group) {
     return { users: [], groupSlug, isGlobal: false };
   }
-  
+
   // Get all members of this group with user details
   const members = await db
     .select({
       id: users.id,
-      displayName: users.displayName,
+      name: users.name,
+      familyName: users.familyName,
       loginId: users.loginId,
       role: users.role,
       city: users.city,
@@ -38,7 +39,7 @@ export const useUsers = routeLoader$(async ({ params }) => {
     .innerJoin(users, eq(groupMemberships.userId, users.id))
     .where(eq(groupMemberships.groupId, group.id))
     .orderBy(groupMemberships.createdAt);
-  
+
   return { users: members, groupSlug, isGlobal: false };
 });
 
@@ -79,7 +80,7 @@ export default component$(() => {
               <tr key={user.id} class="hover:bg-gray-50">
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm font-medium text-gray-900">
-                    {user.displayName}
+                    {user.name} {user.familyName}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -103,8 +104,12 @@ export default component$(() => {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {format(
-                    new Date(data.value.isGlobal ? user.createdAt : (user as any).joinedAt),
-                    "MMM d, yyyy"
+                    new Date(
+                      data.value.isGlobal
+                        ? user.createdAt
+                        : (user as any).joinedAt,
+                    ),
+                    "MMM d, yyyy",
                   )}
                 </td>
               </tr>
@@ -113,7 +118,9 @@ export default component$(() => {
         </table>
         {data.value.users.length === 0 && (
           <div class="text-center py-12 text-gray-500">
-            {data.value.isGlobal ? "No users found." : "No members in this group yet."}
+            {data.value.isGlobal
+              ? "No users found."
+              : "No members in this group yet."}
           </div>
         )}
       </div>

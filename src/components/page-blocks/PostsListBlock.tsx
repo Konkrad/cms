@@ -1,5 +1,5 @@
 import { component$, useSignal, useTask$ } from "@builder.io/qwik";
-import { server$ } from "@builder.io/qwik-city";
+import { server$, type RequestEventCommon } from "@builder.io/qwik-city";
 import type { BlockDefinition } from "~/db/schema";
 import type { PostWithUser } from "~/services/posts.service";
 import { BlogCard } from "./BlogCard";
@@ -26,15 +26,28 @@ export const definition: BlockDefinition = {
   },
 };
 
-const fetchPosts = server$(async (options: { limit: number }) => {
+const fetchPosts = server$(async function (
+  this: RequestEventCommon,
+  options: { limit: number },
+) {
   const { postsService } = await import("~/services/posts.service");
+  const { getServerSession } = await import("~/utils/server-auth");
+  const { formatUser } = await import("~/utils/users");
 
+  const session = await getServerSession(this);
   const res = await postsService.getAll(options.limit);
-  return res;
+
+  const items = res.items.map((post) => ({
+    ...post,
+    user: post.user ? formatUser(post.user, !!session) : post.user,
+  }));
+
+  return { items, isLoggedIn: !!session };
 });
 
 export default component$<PostsListBlockProps>((props) => {
   const posts = useSignal<PostWithUser[]>([]);
+  const isLoggedIn = useSignal(false);
   const isLoading = useSignal(true);
   const error = useSignal<string | null>(null);
 
@@ -44,6 +57,7 @@ export default component$<PostsListBlockProps>((props) => {
         limit: props.limit ?? 6,
       });
       posts.value = result.items;
+      isLoggedIn.value = result.isLoggedIn;
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to load posts";
     } finally {

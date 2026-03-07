@@ -1,6 +1,5 @@
 import { component$ } from "@builder.io/qwik";
-import { Form, routeAction$, routeLoader$, zod$ } from "@builder.io/qwik-city";
-import { insertPageSchema } from "~/db/schemas/pages";
+import { Form, routeAction$, routeLoader$, zod$, z } from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
@@ -30,39 +29,28 @@ export const useCreatePage = routeAction$(
   async (data, event) => {
     await requireAdmin(event);
 
-    const accessToken = event.cookie.get("sb-access-token")?.value;
-    const refreshToken = event.cookie.get("sb-refresh-token")?.value;
+    const page = await pagesService.create({
+      title: data.title,
+      slug: data.slug,
+      parentId: data.parentId || null,
+      status: (data.status as "draft" | "published") || "draft",
+      content: [],
+    });
 
-    try {
-      const page = await pagesService.create(
-        {
-          title: data.title,
-          slug: data.slug,
-          parentId: data.parentId || null,
-          status: data.status as "draft" | "published",
-          content: [],
-        },
-        accessToken,
-        refreshToken,
-      );
-
-      throw event.redirect(303, `/admin/global/pages/${page.id}/builder`);
-    } catch (error: any) {
-      if (error?.status === 303) throw error;
-      return {
-        success: false,
-        error: error.message || "Failed to create page",
-      };
-    }
+    throw event.redirect(303, `/admin/global/pages/${page.id}/builder`);
   },
-  zod$(
-    insertPageSchema.omit({
-      id: true,
-      createdAt: true,
-      updatedAt: true,
-      content: true,
-    }),
-  ),
+  zod$({
+    title: z.string().min(1, "Title is required"),
+    slug: z
+      .string()
+      .min(1, "Slug is required")
+      .regex(
+        /^(\/|[a-z0-9-]+)$/,
+        'Slug must be "/" or contain only lowercase letters, numbers, and hyphens',
+      ),
+    parentId: z.string().optional(),
+    status: z.enum(["draft", "published"]).default("draft"),
+  }),
 );
 
 export default component$(() => {

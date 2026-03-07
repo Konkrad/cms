@@ -28,7 +28,8 @@ export const useMembers = routeLoader$(async ({ params, redirect }) => {
   const members = await db
     .select({
       id: users.id,
-      displayName: users.displayName,
+      name: users.name,
+      familyName: users.familyName,
       loginId: users.loginId,
       role: users.role,
       city: users.city,
@@ -43,7 +44,11 @@ export const useMembers = routeLoader$(async ({ params, redirect }) => {
   const reps = await groupRepresentativesService.getRepresentatives(group.id);
   const repIds = new Set(reps.map((r) => r.userId));
 
-  const enriched = members.map((m) => ({ ...m, isRep: repIds.has(m.id) }));
+  const enriched = members.map((m) => ({
+    ...m,
+    displayName: `${m.name} ${m.familyName}`,
+    isRep: repIds.has(m.id),
+  }));
 
   return { group, members: enriched };
 });

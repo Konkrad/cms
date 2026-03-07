@@ -22,7 +22,7 @@ export const ParticipantsModal = component$<ParticipantsModalProps>(
           {/* Header */}
           <div class="flex items-center justify-between px-6 pt-6 pb-4">
             <h2 class="font-['Rubik',sans-serif] font-semibold text-[20px] text-black">
-              Participants {eventName.toUpperCase()}
+              Participants — {eventName}
             </h2>
             <button
               onClick$={onClose$}

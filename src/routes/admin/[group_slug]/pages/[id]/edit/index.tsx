@@ -1,6 +1,5 @@
 import { component$ } from "@builder.io/qwik";
-import { Form, routeAction$, routeLoader$, zod$ } from "@builder.io/qwik-city";
-import { insertPageSchema } from "~/db/schemas/pages";
+import { Form, routeAction$, routeLoader$, zod$, z } from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
@@ -39,9 +38,6 @@ export const useUpdatePage = routeAction$(
   async (data, event) => {
     await requireAdmin(event);
 
-    const accessToken = event.cookie.get("sb-access-token")?.value;
-    const refreshToken = event.cookie.get("sb-refresh-token")?.value;
-
     try {
       await pagesService.update(event.params.id, {
         title: data.title,
@@ -49,24 +45,24 @@ export const useUpdatePage = routeAction$(
         parentId: data.parentId || null,
         status: data.status as "draft" | "published",
       });
-
       throw event.redirect(303, "/admin/global/pages");
-    } catch (error: any) {
-      if (error?.status === 303) throw error;
-      return {
-        success: false,
-        error: error.message || "Failed to update page",
-      };
+    } catch (err: any) {
+      if (err?.status === 303) throw err;
+      return { success: false, error: err?.message || "Failed to update page" };
     }
   },
-  zod$(
-    insertPageSchema.omit({
-      id: true,
-      createdAt: true,
-      updatedAt: true,
-      content: true,
-    }),
-  ),
+  zod$({
+    title: z.string().min(1, "Title is required"),
+    slug: z
+      .string()
+      .min(1, "Slug is required")
+      .regex(
+        /^(\/|[a-z0-9-]+)$/,
+        'Slug must be "/" or contain only lowercase letters, numbers, and hyphens',
+      ),
+    parentId: z.string().optional(),
+    status: z.enum(["draft", "published"]).default("draft"),
+  }),
 );
 
 export default component$(() => {

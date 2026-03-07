@@ -8,6 +8,7 @@ import {
 } from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
+import { GroupImageUpload } from "~/components/groups/GroupImageUpload";
 import { groupsService } from "~/services/groups.service";
 import { geocodingService } from "~/services/geocoding.service";
 import { getCurrentUserData } from "~/utils/server-auth";
@@ -24,6 +25,9 @@ export const useGlobalOnly = routeLoader$(async ({ params, redirect }) => {
 const groupSchema = z.object({
   name: z.string().min(1, "Name is required"),
   location: z.string().min(1, "Location is required"),
+  image1: z.string().optional(),
+  image2: z.string().optional(),
+  image3: z.string().optional(),
 });
 
 export const useCreateGroup = routeAction$(async (data, event) => {
@@ -55,6 +59,9 @@ export const useCreateGroup = routeAction$(async (data, event) => {
       name: data.name,
       latitude: String(best.latitude),
       longitude: String(best.longitude),
+      image1: data.image1 || null,
+      image2: data.image2 || null,
+      image3: data.image3 || null,
     } as any);
 
     // Redirect back to the groups list after creation
@@ -97,6 +104,16 @@ export default component$(() => {
             required
           />
 
+          <hr class="border-gray-200" />
+          <p class="text-sm font-semibold text-gray-700">Group Page Images</p>
+
+          <GroupImageUpload name="image1" label="Image 1 — Left bottom tile" />
+          <GroupImageUpload
+            name="image2"
+            label="Image 2 — Middle tile (large)"
+          />
+          <GroupImageUpload name="image3" label="Image 3 — Right top tile" />
+
           {createGroupAction.value?.error && (
             <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
               {createGroupAction.value.error}
@@ -108,7 +125,6 @@ export default component$(() => {
               type="submit"
               onClick$={() => {
                 isSubmitting.value = true;
-                // isSubmitting will be reset when navigation happens (redirect)
               }}
             >
               {isSubmitting.value ? "Creating..." : "Create Group"}

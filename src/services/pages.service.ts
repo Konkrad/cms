@@ -104,6 +104,7 @@ export const pagesService = {
     const [inserted] = await db
       .insert(pages)
       .values({
+        id: crypto.randomUUID(),
         ...data,
         parentId: data.parentId || null,
         content: data.content || [],

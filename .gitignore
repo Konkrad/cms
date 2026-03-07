@@ -44,3 +44,8 @@ lerna-debug.log*
 .env
 my-database.db
 \n# Private event photos\nprivate/events/
+
+# Playwright
+tmp/
+test-results/
+playwright-report/

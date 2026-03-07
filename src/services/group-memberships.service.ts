@@ -16,8 +16,8 @@ export const groupMembershipsService = {
       .where(
         and(
           eq(groupMemberships.userId, userId),
-          eq(groupMemberships.groupId, groupId)
-        )
+          eq(groupMemberships.groupId, groupId),
+        ),
       )
       .limit(1);
     return results.length > 0;
@@ -60,9 +60,17 @@ export const groupMembershipsService = {
     return results;
   },
 
+  async countByGroupId(groupId: string): Promise<number> {
+    const results = await db
+      .select()
+      .from(groupMemberships)
+      .where(eq(groupMemberships.groupId, groupId));
+    return results.length;
+  },
+
   async getMembership(
     userId: string,
-    groupId: string
+    groupId: string,
   ): Promise<GroupMembership | null> {
     const results = await db
       .select()
@@ -70,8 +78,8 @@ export const groupMembershipsService = {
       .where(
         and(
           eq(groupMemberships.userId, userId),
-          eq(groupMemberships.groupId, groupId)
-        )
+          eq(groupMemberships.groupId, groupId),
+        ),
       )
       .limit(1);
     return results[0] || null;

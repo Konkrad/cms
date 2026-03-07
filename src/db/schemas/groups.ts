@@ -11,6 +11,9 @@ export const groups = sqliteTable("groups", {
   slug: text("slug").notNull().unique(),
   latitude: text("latitude").notNull(),
   longitude: text("longitude").notNull(),
+  image1: text("image1"),
+  image2: text("image2"),
+  image3: text("image3"),
   createdAt: text("created_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
@@ -55,17 +58,22 @@ export const insertGroupSchema = baseInsertSchema
       },
       { message: "Longitude must be between -180 and 180" },
     ),
+    image1: z.string().optional().nullable(),
+    image2: z.string().optional().nullable(),
+    image3: z.string().optional().nullable(),
     createdAt: z.string().default(() => new Date().toISOString()),
     updatedAt: z.string().default(() => new Date().toISOString()),
   })
   .partial({
     id: true,
     slug: true,
+    image1: true,
+    image2: true,
+    image3: true,
     createdAt: true,
     updatedAt: true,
   })
   .transform((val) => {
-    // Ensure a slug is present; generate from name if missing
     return {
       ...val,
       slug:
@@ -101,13 +109,15 @@ export const updateGroupSchema = baseInsertSchema
         { message: "Longitude must be between -180 and 180" },
       )
       .optional(),
+    image1: z.string().optional().nullable(),
+    image2: z.string().optional().nullable(),
+    image3: z.string().optional().nullable(),
     updatedAt: z
       .string()
       .default(() => new Date().toISOString())
       .optional(),
   })
   .transform((val) => {
-    // If name is being updated and slug wasn't provided, generate slug from name
     if (val.name && !val.slug) {
       return {
         ...val,

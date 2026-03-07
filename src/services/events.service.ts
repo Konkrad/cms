@@ -35,7 +35,7 @@ export const eventsService = {
         isNull(events.deletedAt),
         cursorObj?.createdAt
           ? lt(events.createdAt, cursorObj.createdAt)
-          : undefined
+          : undefined,
       ),
     });
 
@@ -242,21 +242,21 @@ export const eventsService = {
   async getVisibleEvents(
     userId: string | null,
     limit: number = 10,
-    cursor?: string | null
+    cursor?: string | null,
   ): Promise<{ items: EventWithUser[]; nextCursor?: string | null }> {
     const cursorObj = decodeCursor(cursor ?? null);
-    
+
     let visibilityCondition;
     if (userId) {
       const userGroups = await groupMembershipsService.getUserGroups(userId);
       const groupIds = userGroups.map((g) => g.id);
-      
+
       visibilityCondition = or(
         eq(events.visibility, "global"),
         and(
           eq(events.visibility, "group-only"),
-          groupIds.length > 0 ? inArray(events.groupId, groupIds) : undefined
-        )
+          groupIds.length > 0 ? inArray(events.groupId, groupIds) : undefined,
+        ),
       );
     } else {
       visibilityCondition = eq(events.visibility, "global");
@@ -273,7 +273,7 @@ export const eventsService = {
         visibilityCondition,
         cursorObj?.createdAt
           ? lt(events.createdAt, cursorObj.createdAt)
-          : undefined
+          : undefined,
       ),
     });
 
@@ -303,9 +303,24 @@ export const eventsService = {
     return result;
   },
 
+  async countPastByGroupId(groupId: string): Promise<number> {
+    const now = new Date().toISOString();
+    const results = await db
+      .select()
+      .from(events)
+      .where(
+        and(
+          eq(events.groupId, groupId),
+          isNull(events.deletedAt),
+          lt(events.endDate, now),
+        ),
+      );
+    return results.length;
+  },
+
   async joinEvent(
     userId: string,
-    eventId: string
+    eventId: string,
   ): Promise<{ success: boolean; error?: string }> {
     const event = await this.getById(eventId);
     if (!event) {
@@ -315,7 +330,7 @@ export const eventsService = {
     if (event.groupId) {
       const isMember = await groupMembershipsService.isMember(
         userId,
-        event.groupId
+        event.groupId,
       );
       if (!isMember) {
         return {

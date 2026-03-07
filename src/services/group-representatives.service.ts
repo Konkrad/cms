@@ -4,7 +4,17 @@ import {
   insertGroupRepresentativeSchema,
   type GroupRepresentative,
 } from "~/db/schema";
+import { users } from "~/db/schemas/users";
 import { eq, and } from "drizzle-orm";
+
+export type RepresentativeWithUser = GroupRepresentative & {
+  user: {
+    id: string;
+    name: string;
+    familyName: string;
+    profilePictureSmall: string | null;
+  };
+};
 
 export const groupRepresentativesService = {
   async isRepresentative(userId: string, groupId: string): Promise<boolean> {
@@ -43,5 +53,29 @@ export const groupRepresentativesService = {
       .select()
       .from(groupRepresentatives)
       .where(eq(groupRepresentatives.groupId, groupId));
+  },
+
+  async getFirstRepresentativeWithUser(
+    groupId: string,
+  ): Promise<RepresentativeWithUser | null> {
+    const results = await db
+      .select({
+        id: groupRepresentatives.id,
+        userId: groupRepresentatives.userId,
+        groupId: groupRepresentatives.groupId,
+        promotedAt: groupRepresentatives.promotedAt,
+        promotedBy: groupRepresentatives.promotedBy,
+        user: {
+          id: users.id,
+          name: users.name,
+          familyName: users.familyName,
+          profilePictureSmall: users.profilePictureSmall,
+        },
+      })
+      .from(groupRepresentatives)
+      .innerJoin(users, eq(groupRepresentatives.userId, users.id))
+      .where(eq(groupRepresentatives.groupId, groupId))
+      .limit(1);
+    return (results[0] as RepresentativeWithUser) ?? null;
   },
 };

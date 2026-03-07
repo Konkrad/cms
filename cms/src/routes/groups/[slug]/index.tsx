@@ -14,32 +14,38 @@ import { ParticipantsTile } from "~/components/page-blocks/FeatureBlock/Particip
 import { LocalRepTile } from "~/components/groups/LocalRepTile";
 
 const GRID_LAYOUT = `"left-top middle right-top" "left-bottom middle right-top" "left-bottom middle right-bottom"`;
-const FALLBACK = "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800";
+
+const FALLBACK =
+  "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800";
 
 export const useGroupData = routeLoader$(async (event) => {
   const { params, redirect } = event;
   const group = await groupsService.getBySlug(params.slug);
-  if (!group) throw redirect(302, "/groups");
+
+  if (!group) {
+    throw redirect(302, "/groups");
+  }
 
   const user = await getCurrentUserData(event as any);
 
-  const [memberCount, pastEventCount, rep, isMember, recentMembers] = await Promise.all([
-    groupMembershipsService.countByGroupId(group.id),
-    eventsService.countPastByGroupId(group.id),
-    groupRepresentativesService.getFirstRepresentativeWithUser(group.id),
-    user ? groupMembershipsService.isMember(user.id, group.id) : false,
-    db
-      .select({
-        id: users.id,
-        name: users.name,
-        familyName: users.familyName,
-        profilePictureSmall: users.profilePictureSmall,
-      })
-      .from(groupMemberships)
-      .innerJoin(users, eq(groupMemberships.userId, users.id))
-      .where(eq(groupMemberships.groupId, group.id))
-      .limit(6),
-  ]);
+  const [memberCount, pastEventCount, rep, isMember, recentMembers] =
+    await Promise.all([
+      groupMembershipsService.countByGroupId(group.id),
+      eventsService.countPastByGroupId(group.id),
+      groupRepresentativesService.getFirstRepresentativeWithUser(group.id),
+      user ? groupMembershipsService.isMember(user.id, group.id) : false,
+      db
+        .select({
+          id: users.id,
+          name: users.name,
+          familyName: users.familyName,
+          profilePictureSmall: users.profilePictureSmall,
+        })
+        .from(groupMemberships)
+        .innerJoin(users, eq(groupMemberships.userId, users.id))
+        .where(eq(groupMemberships.groupId, group.id))
+        .limit(6),
+    ]);
 
   const memberParticipants = recentMembers.map((m) => ({
     id: m.id,
@@ -59,16 +65,29 @@ export const useGroupData = routeLoader$(async (event) => {
       }
     : null;
 
-  return { group, memberCount, pastEventCount, memberParticipants, rep: repData, isMember, isLoggedIn: !!user };
+  return {
+    group,
+    memberCount,
+    pastEventCount,
+    memberParticipants,
+    rep: repData,
+    isMember,
+    isLoggedIn: !!user,
+  };
 });
 
 export const useJoinGroup = routeAction$(async (_data, event) => {
   const { params, redirect } = event;
   const user = await getCurrentUserData(event as any);
-  if (!user) throw redirect(302, "/login");
+
+  if (!user) {
+    throw redirect(302, "/login");
+  }
 
   const group = await groupsService.getBySlug(params.slug);
-  if (!group) return { success: false, error: "Group not found" };
+  if (!group) {
+    return { success: false, error: "Group not found" };
+  }
 
   await groupMembershipsService.join(user.id, group.id);
   return { success: true };
@@ -77,18 +96,29 @@ export const useJoinGroup = routeAction$(async (_data, event) => {
 export default component$(() => {
   const data = useGroupData();
   const joinAction = useJoinGroup();
-  const { group, memberCount, pastEventCount, memberParticipants, rep, isMember, isLoggedIn } = data.value;
+  const {
+    group,
+    memberCount,
+    pastEventCount,
+    memberParticipants,
+    rep,
+    isMember,
+    isLoggedIn,
+  } = data.value;
 
   return (
     <div>
+      {/* Heading */}
       <div class="max-w-[1290px] mx-auto px-4 pt-12 pb-4 text-center">
         <h1 class="font-['Rubik',sans-serif] font-semibold text-[40px] md:text-[52px] leading-[1.1] text-gray-900">
           {group.name}
         </h1>
       </div>
 
+      {/* Feature Grid */}
       <div class="max-w-[1290px] mx-auto px-4 py-8">
         <FeatureGrid layout={GRID_LAYOUT} gap={24}>
+          {/* left-top: community members */}
           <ParticipantsTile
             area="left-top"
             participants={memberParticipants}
@@ -101,8 +131,14 @@ export default component$(() => {
             isLoggedIn={isLoggedIn}
           />
 
-          <ImageTile area="left-bottom" image={group.image1 ?? FALLBACK} alt={group.name} />
+          {/* left-bottom: image 1 */}
+          <ImageTile
+            area="left-bottom"
+            image={group.image1 ?? FALLBACK}
+            alt={group.name}
+          />
 
+          {/* middle: image 2 with past event count overlay */}
           <ImageTile
             area="middle"
             image={group.image2 ?? FALLBACK}
@@ -110,8 +146,14 @@ export default component$(() => {
             overlayText={`${pastEventCount} local meet-up${pastEventCount === 1 ? "" : "s"} and counting`}
           />
 
-          <ImageTile area="right-top" image={group.image3 ?? FALLBACK} alt={group.name} />
+          {/* right-top: image 3 */}
+          <ImageTile
+            area="right-top"
+            image={group.image3 ?? FALLBACK}
+            alt={group.name}
+          />
 
+          {/* right-bottom: local rep or join CTA */}
           {rep ? (
             <LocalRepTile
               area="right-bottom"
@@ -129,7 +171,9 @@ export default component$(() => {
                 Join the community
               </h3>
               {isMember ? (
-                <p class="font-['Lato',sans-serif] text-[16px] text-white/80 mt-4">✓ You are a member</p>
+                <p class="font-['Lato',sans-serif] text-[16px] text-white/80 mt-4">
+                  ✓ You are a member
+                </p>
               ) : (
                 <Form action={joinAction} class="mt-6">
                   <button
@@ -146,6 +190,7 @@ export default component$(() => {
         </FeatureGrid>
       </div>
 
+      {/* Join / member status — shown below grid when a rep tile occupies the bottom-right */}
       {rep && (
         <div class="max-w-[1290px] mx-auto px-4 pb-12 flex flex-col items-center gap-3">
           {isMember ? (

@@ -1,8 +1,8 @@
 import { component$ } from "@builder.io/qwik";
 import { routeAction$, routeLoader$, Form } from "@builder.io/qwik-city";
-import { eq } from "drizzle-orm";
+import { eq, and, isNull, gte, desc } from "drizzle-orm";
 import { db } from "~/db/connection";
-import { groupMemberships, users } from "~/db/schema";
+import { groupMemberships, users, events, posts } from "~/db/schema";
 import { groupsService } from "~/services/groups.service";
 import { groupMembershipsService } from "~/services/group-memberships.service";
 import { groupRepresentativesService } from "~/services/group-representatives.service";
@@ -12,6 +12,8 @@ import { FeatureGrid } from "~/components/page-blocks/FeatureBlock/FeatureGrid";
 import { ImageTile } from "~/components/page-blocks/FeatureBlock/ImageTile";
 import { ParticipantsTile } from "~/components/page-blocks/FeatureBlock/ParticipantsTile";
 import { LocalRepTile } from "~/components/groups/LocalRepTile";
+import { EventCard } from "~/components/page-blocks/EventCard";
+import { BlogCard } from "~/components/page-blocks/BlogCard";
 
 const GRID_LAYOUT = `"left-top middle right-top" "left-bottom middle right-top" "left-bottom middle right-bottom"`;
 
@@ -21,14 +23,12 @@ const FALLBACK =
 export const useGroupData = routeLoader$(async (event) => {
   const { params, redirect } = event;
   const group = await groupsService.getBySlug(params.slug);
-
-  if (!group) {
-    throw redirect(302, "/groups");
-  }
+  if (!group) throw redirect(302, "/groups");
 
   const user = await getCurrentUserData(event as any);
+  const now = new Date().toISOString();
 
-  const [memberCount, pastEventCount, rep, isMember, recentMembers] =
+  const [memberCount, pastEventCount, rep, isMember, recentMembers, upcomingEvents, recentPosts] =
     await Promise.all([
       groupMembershipsService.countByGroupId(group.id),
       eventsService.countPastByGroupId(group.id),
@@ -45,6 +45,21 @@ export const useGroupData = routeLoader$(async (event) => {
         .innerJoin(users, eq(groupMemberships.userId, users.id))
         .where(eq(groupMemberships.groupId, group.id))
         .limit(6),
+      db.query.events.findMany({
+        where: and(
+          eq(events.groupId, group.id),
+          isNull(events.deletedAt),
+          gte(events.endDate, now),
+        ),
+        orderBy: events.startDate,
+        limit: 3,
+      }),
+      db.query.posts.findMany({
+        with: { user: true },
+        where: and(eq(posts.groupId, group.id), isNull(posts.deletedAt)),
+        orderBy: [desc(posts.createdAt)],
+        limit: 3,
+      }),
     ]);
 
   const memberParticipants = recentMembers.map((m) => ({
@@ -73,6 +88,18 @@ export const useGroupData = routeLoader$(async (event) => {
     rep: repData,
     isMember,
     isLoggedIn: !!user,
+    upcomingEvents: upcomingEvents.map((e) => ({
+      id: e.id,
+      title: e.title,
+      startDate: e.startDate,
+      location: [e.city, e.country].filter(Boolean).join(", ") || e.address || "",
+    })),
+    recentPosts: recentPosts.map((p) => ({
+      id: p.id,
+      body: p.body,
+      createdAt: p.createdAt,
+      authorName: `${(p as any).user.name} ${(p as any).user.familyName}`,
+    })),
   };
 });
 
@@ -104,6 +131,8 @@ export default component$(() => {
     rep,
     isMember,
     isLoggedIn,
+    upcomingEvents,
+    recentPosts,
   } = data.value;
 
   return (
@@ -118,7 +147,6 @@ export default component$(() => {
       {/* Feature Grid */}
       <div class="max-w-[1290px] mx-auto px-4 py-8">
         <FeatureGrid layout={GRID_LAYOUT} gap={24}>
-          {/* left-top: community members */}
           <ParticipantsTile
             area="left-top"
             participants={memberParticipants}
@@ -131,14 +159,8 @@ export default component$(() => {
             isLoggedIn={isLoggedIn}
           />
 
-          {/* left-bottom: image 1 */}
-          <ImageTile
-            area="left-bottom"
-            image={group.image1 ?? FALLBACK}
-            alt={group.name}
-          />
+          <ImageTile area="left-bottom" image={group.image1 ?? FALLBACK} alt={group.name} />
 
-          {/* middle: image 2 with past event count overlay */}
           <ImageTile
             area="middle"
             image={group.image2 ?? FALLBACK}
@@ -146,14 +168,8 @@ export default component$(() => {
             overlayText={`${pastEventCount} local meet-up${pastEventCount === 1 ? "" : "s"} and counting`}
           />
 
-          {/* right-top: image 3 */}
-          <ImageTile
-            area="right-top"
-            image={group.image3 ?? FALLBACK}
-            alt={group.name}
-          />
+          <ImageTile area="right-top" image={group.image3 ?? FALLBACK} alt={group.name} />
 
-          {/* right-bottom: local rep or join CTA */}
           {rep ? (
             <LocalRepTile
               area="right-bottom"
@@ -175,6 +191,87 @@ export default component$(() => {
                   ✓ You are a member
                 </p>
               ) : (
+                <Form action={joinAction} class="mt-6">
+                  <button
+                    type="submit"
+                    class="px-6 py-3 bg-white text-[#034ea2] rounded-full font-bold text-[15px] hover:bg-white/90 transition-colors disabled:opacity-50"
+                    disabled={joinAction.isRunning}
+                  >
+                    {joinAction.isRunning ? "Joining..." : "Join This Group"}
+                  </button>
+                </Form>
+              )}
+            </div>
+          )}
+        </FeatureGrid>
+      </div>
+
+      {/* Join / member status */}
+      {rep && (
+        <div class="max-w-[1290px] mx-auto px-4 pb-12 flex flex-col items-center gap-3">
+          {isMember ? (
+            <div class="bg-green-50 border border-green-200 text-green-800 px-6 py-3 rounded-full font-medium">
+              ✓ You are a member of this group
+            </div>
+          ) : (
+            <Form action={joinAction}>
+              <button
+                type="submit"
+                class="px-8 py-3 bg-[#034ea2] text-white rounded-full font-bold text-[16px] hover:bg-blue-700 transition-colors disabled:opacity-50"
+                disabled={joinAction.isRunning}
+              >
+                {joinAction.isRunning ? "Joining..." : "Join This Group"}
+              </button>
+            </Form>
+          )}
+          {joinAction.value?.error && (
+            <p class="text-red-600 text-sm">{joinAction.value.error}</p>
+          )}
+        </div>
+      )}
+
+      {/* Upcoming Events */}
+      {upcomingEvents.length > 0 && (
+        <div class="max-w-[1290px] mx-auto px-4 py-8">
+          <h2 class="font-['Rubik',sans-serif] font-semibold text-[32px] text-gray-900 mb-6">
+            Upcoming Community Events
+          </h2>
+          <div class="flex flex-col gap-4">
+            {upcomingEvents.map((e) => (
+              <EventCard
+                key={e.id}
+                date={e.startDate}
+                title={e.title}
+                location={e.location}
+                readMoreHref={`/events/${e.id}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent Posts */}
+      {recentPosts.length > 0 && (
+        <div class="max-w-[1290px] mx-auto px-4 py-8">
+          <h2 class="font-['Rubik',sans-serif] font-semibold text-[32px] text-gray-900 mb-6">
+            Latest from the Community
+          </h2>
+          <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {recentPosts.map((p) => (
+              <BlogCard
+                key={p.id}
+                date={p.createdAt}
+                location={p.authorName}
+                description={p.body.replace(/<[^>]+>/g, "").substring(0, 150)}
+                readMoreHref={`/posts/${p.id}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}) : (
                 <Form action={joinAction} class="mt-6">
                   <button
                     type="submit"

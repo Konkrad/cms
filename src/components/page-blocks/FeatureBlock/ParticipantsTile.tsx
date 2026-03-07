@@ -1,12 +1,14 @@
 import { component$, type QRL } from "@builder.io/qwik";
+import { formatUserName } from "~/utils/users";
 
 export interface ParticipantData {
   id: string;
-  displayName: string;
-  profilePictureSmallUrl: string | null;
-  groupLabel: string | null;
-  city: string | null;
-  country: string | null;
+  name: string;
+  familyName: string;
+  profilePictureSmall: string | null;
+  groupLabel?: string | null;
+  city?: string | null;
+  country?: string | null;
 }
 
 interface ParticipantsTileProps {
@@ -17,7 +19,6 @@ interface ParticipantsTileProps {
   seeAllHref?: string;
   emptyTitle?: string;
   emptyBody?: string;
-  // shown below "{N} others" when provided, e.g. "are going to {event name}"
   summaryLine?: string;
   variant?: "blue" | "dark";
   area?: string;
@@ -53,30 +54,33 @@ export const ParticipantsTile = component$<ParticipantsTileProps>((props) => {
         <>
           {/* Stacked avatar row */}
           <div class="flex items-center mb-4">
-            {displayParticipants.map((p, index) => (
-              <div
-                key={p.id}
-                class="relative rounded-full border-2 border-[#0e1148]"
-                style={{
-                  marginLeft: index === 0 ? "0" : "-10px",
-                  zIndex: displayParticipants.length - index,
-                }}
-              >
-                {p.profilePictureSmallUrl ? (
-                  <img
-                    src={p.profilePictureSmallUrl}
-                    alt={p.displayName}
-                    width={38}
-                    height={38}
-                    class="w-[38px] h-[38px] rounded-full object-cover"
-                  />
-                ) : (
-                  <div class="w-[38px] h-[38px] rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-semibold">
-                    {p.displayName.charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </div>
-            ))}
+            {displayParticipants.map((p, index) => {
+              const displayName = formatUserName(p);
+              return (
+                <div
+                  key={p.id}
+                  class="relative rounded-full border-2 border-[#0e1148]"
+                  style={{
+                    marginLeft: index === 0 ? "0" : "-10px",
+                    zIndex: displayParticipants.length - index,
+                  }}
+                >
+                  {p.profilePictureSmall ? (
+                    <img
+                      src={p.profilePictureSmall}
+                      alt={displayName}
+                      width={38}
+                      height={38}
+                      class="w-[38px] h-[38px] rounded-full object-cover"
+                    />
+                  ) : (
+                    <div class="w-[38px] h-[38px] rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-semibold">
+                      {displayName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             {count > 5 && (
               <div
                 class="relative rounded-full border-2 border-[#0e1148] bg-white/20 w-[38px] h-[38px] flex items-center justify-center"
@@ -89,7 +93,7 @@ export const ParticipantsTile = component$<ParticipantsTileProps>((props) => {
 
           <div class="space-y-1 mb-2">
             <p class="font-['Lato',sans-serif] font-bold text-[16px] leading-[1.348] text-white">
-              {displayParticipants[0]?.displayName}
+              {displayParticipants[0] && formatUserName(displayParticipants[0])}
               <span class="font-normal"> and</span>
             </p>
             <p class="font-['Lato',sans-serif] text-[16px] leading-[1.348] text-white">

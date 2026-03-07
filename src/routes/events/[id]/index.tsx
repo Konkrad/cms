@@ -138,11 +138,11 @@ export const useEvent = routeLoader$(async (requestEvent) => {
 
   const participantsUnsorted = goingRows.map((r) => {
     const u = r.user as any;
-    const formatted = formatUser(u, isLoggedIn);
     return {
-      id: formatted.id,
-      displayName: formatted.displayName,
-      profilePictureSmallUrl: buildPicUrl(u.profilePictureSmall ?? null),
+      id: u.id,
+      name: u.name as string,
+      familyName: u.familyName as string,
+      profilePictureSmall: buildPicUrl(u.profilePictureSmall ?? null),
       groupLabel: userGroupLabels[u.id] ?? null,
       city: (u.city ?? null) as string | null,
       country: (u.country ?? null) as string | null,
@@ -161,10 +161,10 @@ export const useEvent = routeLoader$(async (requestEvent) => {
 
   // Prioritise users who have a profile picture, shuffle within each group
   const withPic = shuffle(
-    participantsUnsorted.filter((p) => p.profilePictureSmallUrl),
+    participantsUnsorted.filter((p) => p.profilePictureSmall),
   );
   const withoutPic = shuffle(
-    participantsUnsorted.filter((p) => !p.profilePictureSmallUrl),
+    participantsUnsorted.filter((p) => !p.profilePictureSmall),
   );
   const participants = [...withPic, ...withoutPic];
 

@@ -1,4 +1,5 @@
 import { component$, type QRL } from "@builder.io/qwik";
+import { formatUserName } from "~/utils/users";
 import type { ParticipantData } from "~/components/page-blocks/FeatureBlock/ParticipantsTile";
 
 interface ParticipantsModalProps {
@@ -29,18 +30,8 @@ export const ParticipantsModal = component$<ParticipantsModalProps>(
               class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-800"
               aria-label="Close"
             >
-              <svg
-                class="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
@@ -52,6 +43,7 @@ export const ParticipantsModal = component$<ParticipantsModalProps>(
             ) : (
               <ul class="divide-y divide-gray-200">
                 {participants.map((p) => {
+                  const displayName = formatUserName(p);
                   const subtitle = [
                     p.groupLabel,
                     [p.city, p.country].filter(Boolean).join(", "),
@@ -60,15 +52,11 @@ export const ParticipantsModal = component$<ParticipantsModalProps>(
                     .join(", ");
 
                   return (
-                    <li
-                      key={p.id}
-                      class="flex items-center gap-4 py-4 first:pt-0"
-                    >
-                      {/* Avatar */}
-                      {p.profilePictureSmallUrl ? (
+                    <li key={p.id} class="flex items-center gap-4 py-4 first:pt-0">
+                      {p.profilePictureSmall ? (
                         <img
-                          src={p.profilePictureSmallUrl}
-                          alt={p.displayName}
+                          src={p.profilePictureSmall}
+                          alt={displayName}
                           width={48}
                           height={48}
                           class="w-12 h-12 rounded-full object-cover border-2 border-gray-200 flex-shrink-0"
@@ -76,20 +64,14 @@ export const ParticipantsModal = component$<ParticipantsModalProps>(
                       ) : (
                         <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 border-2 border-gray-200">
                           <span class="text-gray-500 font-semibold text-base">
-                            {p.displayName.charAt(0).toUpperCase()}
+                            {displayName.charAt(0).toUpperCase()}
                           </span>
                         </div>
                       )}
-
-                      {/* Name & subtitle */}
                       <div class="min-w-0">
-                        <p class="font-semibold text-[15px] text-gray-900 truncate">
-                          {p.displayName}
-                        </p>
+                        <p class="font-semibold text-[15px] text-gray-900 truncate">{displayName}</p>
                         {subtitle && (
-                          <p class="text-[13px] text-gray-500 truncate">
-                            {subtitle}
-                          </p>
+                          <p class="text-[13px] text-gray-500 truncate">{subtitle}</p>
                         )}
                       </div>
                     </li>

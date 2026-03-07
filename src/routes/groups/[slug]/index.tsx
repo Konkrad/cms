@@ -61,14 +61,7 @@ export const useGroupData = routeLoader$(async (event) => {
       }),
     ]);
 
-  const memberParticipants = recentMembers.map((m) => ({
-    id: m.id,
-    displayName: `${m.name} ${m.familyName}`,
-    profilePictureSmallUrl: m.profilePictureSmall,
-    groupLabel: null,
-    city: null,
-    country: null,
-  }));
+
 
   const repData = rep
     ? {
@@ -83,7 +76,7 @@ export const useGroupData = routeLoader$(async (event) => {
     group,
     memberCount,
     pastEventCount,
-    memberParticipants,
+    recentMembers,
     rep: repData,
     isMember,
     isLoggedIn: !!user,
@@ -119,7 +112,7 @@ export default component$(() => {
   const data = useGroupData();
   const joinAction = useJoinGroup();
   const showMembersModal = useSignal(false);
-  const { group, memberCount, pastEventCount, memberParticipants, rep, isMember, isLoggedIn, upcomingEvents, recentPosts } = data.value;
+  const { group, memberCount, pastEventCount, recentMembers, rep, isMember, isLoggedIn, upcomingEvents, recentPosts } = data.value;
 
   return (
     <div>
@@ -135,7 +128,7 @@ export default component$(() => {
         <FeatureGrid layout={GRID_LAYOUT} gap={24}>
           <ParticipantsTile
             area="left-top"
-            participants={memberParticipants}
+            participants={recentMembers}
             participantCount={memberCount}
             title="Community Members"
             seeAllLabel="See All Members"
@@ -256,8 +249,7 @@ export default component$(() => {
       {/* Members modal */}
       {showMembersModal.value && (
         <ParticipantsModal
-          participants={memberParticipants}
-          eventName={`${group.name} Community`}
+          participants={recentMembers}$1={`${group.name} Community`}
           onClose$={$(() => { showMembersModal.value = false; })}
         />
       )}

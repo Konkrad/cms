@@ -11,3 +11,7 @@ export function formatUser(
     displayName: isLoggedIn ? `${user.name} ${user.familyName}` : user.name,
   };
 }
+
+export function formatUserName(user: Pick<User, "name" | "familyName">): string {
+  return `${user.name} ${user.familyName}`;
+}

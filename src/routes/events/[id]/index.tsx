@@ -522,7 +522,8 @@ export default component$(() => {
             area="right-bottom"
             participants={event.value.participants}
             participantCount={participantCount}
-            eventName={event.value.title}
+            summaryLine={`are going to ${event.value.title}`}
+            emptyBody={`Join ${event.value.title} and invite your friends`}
             isLoggedIn={event.value.isLoggedIn}
             onSeeAll$={$(() => {
               showParticipantsModal.value = true;
@@ -535,7 +536,8 @@ export default component$(() => {
         {showParticipantsModal.value && (
           <ParticipantsModal
             participants={event.value.participants}
-            eventName={event.value.title}
+            summaryLine={`are going to ${event.value.title}`}
+            emptyBody={`Join ${event.value.title} and invite your friends`}
             onClose$={$(() => {
               showParticipantsModal.value = false;
             })}

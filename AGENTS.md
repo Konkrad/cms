@@ -8,3 +8,5 @@
 8. don't create migration files, modify database directly or force update
 
 React componets for visuals have to be self contained. Therefore in theory be portable web components. They contain both javscript and css in one folder.
+
+Use the playwright to verify if things actually are working. If the user complains about an endpoint use it to verify. Check playwright-cli --help for available commands.

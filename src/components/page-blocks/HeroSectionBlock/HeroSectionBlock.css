@@ -1,16 +1,17 @@
 /* ── Container ── */
-.hero-container {
+.hero-section-container {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
   position: relative;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  font-family: "Lato", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", sans-serif;
 }
 
 /* ── Loading / Empty states ── */
-.hero-loading,
-.hero-empty {
+.hero-section-loading,
+.hero-section-empty {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
@@ -18,18 +19,21 @@
   text-align: center;
 }
 
-.hero-loading-text {
+.hero-section-loading-text {
   color: #9ca3af;
   font-size: 1.125rem;
 }
 
-.hero-empty-text {
+.hero-section-empty-text {
   color: #6b7280;
   font-size: 1.125rem;
 }
 
-/* ── Mobile Layout ── */
-.hero-mobile {
+/* ══════════════════════════════════
+   Mobile Layout
+   ══════════════════════════════════ */
+
+.hero-section-mobile {
   display: flex;
   flex-direction: column;
   position: relative;
@@ -38,7 +42,7 @@
   margin: 0 auto;
 }
 
-.hero-mobile-gradient {
+.hero-section-mobile-image-wrapper {
   width: 100%;
   height: 339px;
   border-radius: 25px;
@@ -47,16 +51,15 @@
   z-index: 1;
 }
 
-.hero-mobile-gradient-inner {
-  position: absolute;
-  inset: 0;
+.hero-section-mobile-gradient {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
 }
 
-.hero-slide-number {
+.hero-section-mobile-slide-number {
   color: rgba(255, 255, 255, 0.2);
   font-size: 120px;
   font-weight: 700;
@@ -64,11 +67,11 @@
   user-select: none;
 }
 
-.hero-mobile-card {
+.hero-section-mobile-card {
   background-color: #034ea2;
   border-radius: 25px;
   padding: 1.5rem;
-  margin-top: 1.25rem;
+  margin-top: 20px;
   position: relative;
   z-index: 2;
   min-height: 127px;
@@ -77,27 +80,30 @@
   justify-content: center;
 }
 
-.hero-mobile-title {
+.hero-section-mobile-title {
   color: #fff;
-  font-size: 1.125rem;
+  font-size: 18px;
+  font-family: "Lato", sans-serif;
   font-weight: 400;
   margin: 0 0 1rem;
   line-height: 1.4;
 }
 
-.hero-mobile-cta {
+.hero-section-mobile-cta {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  cursor: pointer;
   color: #fff;
+  font-family: "Lato", sans-serif;
   text-decoration: none;
 }
 
-.hero-mobile-cta:hover .hero-mobile-cta-text {
+.hero-section-mobile-cta:hover .hero-section-mobile-cta-text {
   text-decoration: underline;
 }
 
-.hero-arrow-circle {
+.hero-section-arrow-circle {
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -106,31 +112,37 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: #034ea2;
 }
 
-.hero-mobile-cta-text {
-  font-size: 0.875rem;
+.hero-section-mobile-cta-text {
+  font-size: 14px;
   font-weight: 700;
   color: #fff;
 }
 
-.hero-mobile-small-arrow {
+.hero-section-mobile-small-arrow {
+  width: 19px;
+  height: 18px;
   color: #fff;
 }
 
-/* ── Desktop Layout ── */
-.hero-desktop {
+/* ══════════════════════════════════
+   Desktop Layout
+   ══════════════════════════════════ */
+
+.hero-section-desktop {
   display: none;
 }
 
-.hero-desktop-gradient-wrapper {
+.hero-section-desktop-image-wrapper {
   width: 400px;
   height: 400px;
   flex-shrink: 0;
   position: relative;
 }
 
-.hero-desktop-gradient {
+.hero-section-desktop-image-frame {
   width: 100%;
   height: 100%;
   border-radius: 30px;
@@ -139,15 +151,15 @@
   z-index: 2;
 }
 
-.hero-desktop-gradient-inner {
-  position: absolute;
-  inset: 0;
+.hero-section-desktop-gradient {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.hero-desktop-slide-number {
+.hero-section-desktop-slide-number {
   color: rgba(255, 255, 255, 0.15);
   font-size: 200px;
   font-weight: 700;
@@ -155,7 +167,19 @@
   user-select: none;
 }
 
-.hero-desktop-content {
+.hero-section-desktop-image-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 400px;
+  height: 400px;
+  background-color: #034ea2;
+  border-radius: 30px;
+  transform: rotate(-3deg);
+  z-index: 1;
+}
+
+.hero-section-desktop-content {
   flex: 1;
   max-width: 650px;
   display: flex;
@@ -163,7 +187,8 @@
   align-items: flex-start;
 }
 
-.hero-desktop-title {
+.hero-section-desktop-title {
+  font-family: "Titillium Web", sans-serif;
   font-weight: 700;
   font-size: clamp(2.5rem, 4.3vw, 4.3rem);
   line-height: 1;
@@ -172,20 +197,23 @@
   margin: 0 0 1rem;
 }
 
-.hero-desktop-excerpt {
-  font-size: 1.5rem;
-  line-height: 1.625;
+.hero-section-desktop-description {
+  font-family: "Titillium Web", sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.6;
   color: rgba(0, 0, 0, 0.8);
   margin: 0 0 2.5rem;
   max-width: 583px;
 }
 
-.hero-desktop-button {
+.hero-section-desktop-button {
   display: inline-block;
   background-color: #96c247;
   color: #fff;
+  font-family: "Lato", sans-serif;
   font-weight: 700;
-  font-size: 1.25rem;
+  font-size: 20px;
   padding: 18px 40px;
   border-radius: 10px;
   border: none;
@@ -195,12 +223,15 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.hero-desktop-button:hover {
+.hero-section-desktop-button:hover {
   transform: scale(1.05);
 }
 
-/* ── Pagination Dots ── */
-.hero-pagination {
+/* ══════════════════════════════════
+   Pagination Dots
+   ══════════════════════════════════ */
+
+.hero-section-pagination {
   display: flex;
   justify-content: center;
   gap: 12px;
@@ -209,7 +240,7 @@
   padding-bottom: 1rem;
 }
 
-.hero-dot {
+.hero-section-dot {
   width: 12px;
   height: 12px;
   border-radius: 50%;
@@ -220,17 +251,20 @@
   transition: background-color 0.2s;
 }
 
-.hero-dot-active {
+.hero-section-dot-active {
   background-color: #034ea2;
 }
 
-/* ── Desktop breakpoint ── */
+/* ══════════════════════════════════
+   Desktop breakpoint (>= 1024px)
+   ══════════════════════════════════ */
+
 @media (min-width: 1024px) {
-  .hero-mobile {
+  .hero-section-mobile {
     display: none;
   }
 
-  .hero-desktop {
+  .hero-section-desktop {
     display: flex;
     flex-direction: row;
     align-items: center;

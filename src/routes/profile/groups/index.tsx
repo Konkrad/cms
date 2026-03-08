@@ -39,9 +39,7 @@ export default component$(() => {
       ) : (
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {groups.value.map((group) => (
-            <a key={group.id} href={`/groups/${group.slug}`}>
-              <GroupCard group={group} showActions={true} />
-            </a>
+            <GroupCard key={group.id} group={group} showActions={true} />
           ))}
         </div>
       )}

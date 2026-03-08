@@ -1,5 +1,11 @@
 import { component$ } from "@builder.io/qwik";
-import { Form, routeAction$, routeLoader$, zod$, z } from "@builder.io/qwik-city";
+import {
+  Form,
+  routeAction$,
+  routeLoader$,
+  zod$,
+  z,
+} from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
@@ -8,12 +14,14 @@ import { pagesService } from "~/services/pages.service";
 import { requireAdmin } from "~/utils/server-auth";
 
 // Pages are only accessible in global context
-export const useCheckGlobalContext = routeLoader$(async ({ params, redirect }) => {
-  if (params.group_slug !== "global") {
-    throw redirect(302, `/admin/${params.group_slug}`);
-  }
-  return true;
-});
+export const useCheckGlobalContext = routeLoader$(
+  async ({ params, redirect }) => {
+    if (params.group_slug !== "global") {
+      throw redirect(302, `/admin/${params.group_slug}`);
+    }
+    return true;
+  },
+);
 
 export const useAdminAuth = routeLoader$(async (event) => {
   await requireAdmin(event);
@@ -49,8 +57,8 @@ export const useCreatePage = routeAction$(
       .string()
       .min(1, "Slug is required")
       .regex(
-        /^(\/|[a-z0-9-]+)$/,
-        'Slug must be "/" or contain only lowercase letters, numbers, and hyphens',
+        /^\/?[a-z0-9-]+(\/[a-z0-9-]+)*$|^\/$/,
+        'Slug must be "/" for home page, or a path of lowercase letters, numbers, and hyphens (e.g. "groups" or "/groups/subpage")',
       ),
     parentId: z.string().optional(),
     status: z.enum(["draft", "published"]).default("draft"),

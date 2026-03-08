@@ -12,6 +12,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-25
 - TypeScript 5.4+ (strict mode), Qwik 1.7+ (002-event-participation-tracking)
 - TypeScript 5.4+ (strict mode) + Qwik 1.7+ with Qwik City, Drizzle ORM 0.45+, Zod 4.2+ (003-community-groups)
 - SQLite (development) with soft delete support for content (003-community-groups)
+- TypeScript 5.4+ / Node 20 + Qwik 1.7+, Qwik City, Drizzle ORM 0.45+, Zod 4.2+, Tailwind CSS 3.4+ (004-profile-improvements)
+- SQLite (Drizzle ORM) — `users`, `participation_status`, `group_memberships`, `events`, `groups` (004-profile-improvements)
 
 - TypeScript 5.4+ (strict mode enabled) (001-ticket-sales)
 
@@ -31,9 +33,9 @@ npm test && npm run lint
 TypeScript 5.4+ (strict mode enabled): Follow standard conventions
 
 ## Recent Changes
+- 004-profile-improvements: Added TypeScript 5.4+ / Node 20 + Qwik 1.7+, Qwik City, Drizzle ORM 0.45+, Zod 4.2+, Tailwind CSS 3.4+
 - 003-community-groups: Added TypeScript 5.4+ (strict mode) + Qwik 1.7+ with Qwik City, Drizzle ORM 0.45+, Zod 4.2+
 - 002-event-participation-tracking: Added TypeScript 5.4+ (strict mode), Qwik 1.7+
-- 002-event-participation-tracking: Added TypeScript 5.4+ (strict mode), Node.js runtime + Qwik 1.7+, Qwik City (routing/SSR), Drizzle ORM 0.45+, Zod 4.2+ (validation)
 
 
 <!-- MANUAL ADDITIONS START -->

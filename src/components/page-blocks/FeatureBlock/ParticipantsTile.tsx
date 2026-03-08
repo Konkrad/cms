@@ -9,6 +9,7 @@ export interface ParticipantData {
   groupLabel?: string | null;
   city?: string | null;
   country?: string | null;
+  profileUrl?: string | null;
 }
 
 interface ParticipantsTileProps {

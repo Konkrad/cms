@@ -75,9 +75,10 @@ export default component$<LocalCommunitiesMapBlockProps>((props) => {
       .attr("height", height)
       .attr("viewBox", `0 0 ${width} ${height}`);
 
+    //configure what part of the map is shown
     const projection = (d3.geoAzimuthalEqualArea() as any)
       .center([15, 52])
-      .scale(Math.min(width, height) * 1.2)
+      .scale(Math.min(width, height) * (width < 768 ? 1.8 : 1.4))
       .translate([width / 2, height / 2]);
 
     const path = d3.geoPath().projection(projection);

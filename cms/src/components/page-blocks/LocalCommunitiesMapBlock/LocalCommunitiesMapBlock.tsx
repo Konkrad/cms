@@ -76,9 +76,10 @@ export default component$<LocalCommunitiesMapBlockProps>((props) => {
       .attr("viewBox", `0 0 ${width} ${height}`);
 
     // Azimuthal Equal Area — matches the original map look
+    const isMobile = width < 768;
     const projection = (d3.geoAzimuthalEqualArea() as any)
       .center([15, 52])
-      .scale(Math.min(width, height) * 1.2)
+      .scale(Math.min(width, height) * (isMobile ? 1.8 : 1.2))
       .translate([width / 2, height / 2]);
 
     const path = d3.geoPath().projection(projection);

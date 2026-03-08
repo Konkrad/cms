@@ -76,9 +76,10 @@ export default component$<LocalCommunitiesMapBlockProps>((props) => {
       .attr("viewBox", `0 0 ${width} ${height}`);
 
     //configure what part of the map is shown
+    const isMobile = width < 768;
     const projection = (d3.geoAzimuthalEqualArea() as any)
       .center([15, 52])
-      .scale(Math.min(width, height) * (width < 768 ? 1.8 : 1.4))
+      .scale(Math.min(width, height) * (isMobile ? 2 : 1.4))
       .translate([width / 2, height / 2]);
 
     const path = d3.geoPath().projection(projection);
@@ -127,7 +128,7 @@ export default component$<LocalCommunitiesMapBlockProps>((props) => {
       .attr("class", "lcm-city")
       .attr("cx", (d) => d[0])
       .attr("cy", (d) => d[1])
-      .attr("r", 1.5); // control city dot size
+      .attr("r", isMobile ? 0.8 : 1.5); // control city dot size
 
     // Community pins on top
     const tooltip = tooltipRef.value;

@@ -11,6 +11,8 @@ const componentModules = {
   PostsListBlock: () => import("~/components/page-blocks/PostsListBlock"),
   SpacerBlock: () => import("~/components/page-blocks/SpacerBlock"),
   FeatureBlock: () => import("~/components/page-blocks/FeatureBlock"),
+  LocalCommunitiesMapBlock: () =>
+    import("~/components/page-blocks/LocalCommunitiesMapBlock"),
 };
 
 type ComponentModuleLoader = () => Promise<{

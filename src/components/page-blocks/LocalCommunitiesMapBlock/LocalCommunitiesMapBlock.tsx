@@ -111,7 +111,7 @@ export default component$<LocalCommunitiesMapBlockProps>((props) => {
       if (j < i) continue;
       const p1 = cityPoints[triangles[i]];
       const p2 = cityPoints[triangles[j]];
-      if (Math.hypot(p1[0] - p2[0], p1[1] - p2[1]) < 40) {
+      if (Math.hypot(p1[0] - p2[0], p1[1] - p2[1]) < 80) {
         meshLines.push(`M${p1[0]},${p1[1]}L${p2[0]},${p2[1]}`);
       }
     }
@@ -126,7 +126,7 @@ export default component$<LocalCommunitiesMapBlockProps>((props) => {
       .attr("class", "lcm-city")
       .attr("cx", (d) => d[0])
       .attr("cy", (d) => d[1])
-      .attr("r", 1.2);
+      .attr("r", 1.5); // control city dot size
 
     // Community pins on top
     const tooltip = tooltipRef.value;
@@ -160,14 +160,16 @@ export default component$<LocalCommunitiesMapBlockProps>((props) => {
         const scaleX = svgRect.width / width;
         const scaleY = svgRect.height / height;
 
-        tooltip.querySelector(".lcm-tooltip-name")!.textContent = community.name;
-        const link = tooltip.querySelector(".lcm-tooltip-link") as HTMLAnchorElement;
+        tooltip.querySelector(".lcm-tooltip-name")!.textContent =
+          community.name;
+        const link = tooltip.querySelector(
+          ".lcm-tooltip-link",
+        ) as HTMLAnchorElement;
         link.href = "/groups/" + community.slug;
 
         tooltip.style.left =
           cx * scaleX + (svgRect.left - wrapRect.left) + "px";
-        tooltip.style.top =
-          cy * scaleY + (svgRect.top - wrapRect.top) + "px";
+        tooltip.style.top = cy * scaleY + (svgRect.top - wrapRect.top) + "px";
         tooltip.classList.add("visible");
       });
 
@@ -225,7 +227,8 @@ export default component$<LocalCommunitiesMapBlockProps>((props) => {
           <span
             class="lcm-tap-card-close"
             onClick$={() => {
-              if (tapCardRef.value) tapCardRef.value.classList.remove("visible");
+              if (tapCardRef.value)
+                tapCardRef.value.classList.remove("visible");
             }}
           >
             ✕ close

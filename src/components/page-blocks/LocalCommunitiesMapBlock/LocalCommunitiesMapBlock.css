@@ -17,7 +17,7 @@
 }
 
 .lcm-title {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-size: 2.4rem;
   font-weight: 700;
   color: #111111;
@@ -26,7 +26,7 @@
 }
 
 .lcm-body {
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-size: 0.95rem;
   color: #444444;
   line-height: 1.6;
@@ -37,7 +37,7 @@
   display: inline-block;
   background: #96c046;
   color: #111111;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-size: 0.95rem;
   font-weight: 600;
   padding: 0.75rem 1.6rem;
@@ -71,7 +71,7 @@
 .lcm-mesh {
   fill: none;
   stroke: #aaaaaa;
-  stroke-width: 0.3;
+  stroke-width: 0.5; /* control mesh line with */
   stroke-opacity: 1;
 }
 
@@ -84,7 +84,9 @@
   stroke: #4a9a4a;
   stroke-width: 1;
   cursor: pointer;
-  transition: r 0.15s ease, fill 0.15s ease;
+  transition:
+    r 0.15s ease,
+    fill 0.15s ease;
 }
 
 .lcm-pin:hover {
@@ -95,7 +97,7 @@
   position: absolute;
   background: rgba(15, 40, 15, 0.9);
   color: #ffffff;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   font-size: 13px;
   border-radius: 8px;
   padding: 8px 14px;
@@ -136,7 +138,7 @@
   transform: translateX(-50%);
   background: rgba(15, 40, 15, 0.92);
   color: #fff;
-  font-family: 'Rubik', sans-serif;
+  font-family: "Rubik", sans-serif;
   border-radius: 12px;
   padding: 12px 20px;
   display: flex;

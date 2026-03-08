@@ -51,8 +51,8 @@ export const ParticipantsModal = component$<ParticipantsModalProps>(
                     .filter(Boolean)
                     .join(", ");
 
-                  return (
-                    <li key={p.id} class="flex items-center gap-4 py-4 first:pt-0">
+                  const inner = (
+                    <>
                       {p.profilePictureSmall ? (
                         <img
                           src={p.profilePictureSmall}
@@ -74,6 +74,21 @@ export const ParticipantsModal = component$<ParticipantsModalProps>(
                           <p class="text-[13px] text-gray-500 truncate">{subtitle}</p>
                         )}
                       </div>
+                    </>
+                  );
+
+                  return (
+                    <li key={p.id} class="py-4 first:pt-0">
+                      {p.profileUrl ? (
+                        <a
+                          href={p.profileUrl}
+                          class="flex items-center gap-4 hover:bg-gray-50 rounded-xl transition-colors -mx-2 px-2"
+                        >
+                          {inner}
+                        </a>
+                      ) : (
+                        <div class="flex items-center gap-4">{inner}</div>
+                      )}
                     </li>
                   );
                 })}

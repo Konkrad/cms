@@ -5,6 +5,7 @@ import {
   type ParticipationStatus,
   type InsertParticipationStatus,
 } from "~/db/schemas/participation-status";
+import { events } from "~/db/schemas/events";
 import { eq, and } from "drizzle-orm";
 import { logins } from "~/db/schemas/logins";
 
@@ -159,5 +160,44 @@ export const participationService = {
           eq(participationStatus.eventId, eventId),
         ),
       );
+  },
+
+  async getByUserId(userId: string): Promise<{
+    past: Array<{ id: string; title: string; startDate: string; endDate: string; city: string | null; country: string | null }>;
+    upcoming: Array<{ id: string; title: string; startDate: string; endDate: string; city: string | null; country: string | null }>;
+  }> {
+    const rows = await db.query.participationStatus.findMany({
+      where: and(
+        eq(participationStatus.userId, userId),
+        eq(participationStatus.status, "yes"),
+      ),
+      with: { event: true },
+    });
+
+    const now = new Date().toISOString();
+    const past = [];
+    const upcoming = [];
+
+    for (const row of rows) {
+      const e = row.event;
+      const entry = {
+        id: e.id,
+        title: e.title,
+        startDate: e.startDate,
+        endDate: e.endDate,
+        city: e.city ?? null,
+        country: e.country ?? null,
+      };
+      if (e.endDate < now) {
+        past.push(entry);
+      } else {
+        upcoming.push(entry);
+      }
+    }
+
+    past.sort((a, b) => b.startDate.localeCompare(a.startDate));
+    upcoming.sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+    return { past, upcoming };
   },
 };

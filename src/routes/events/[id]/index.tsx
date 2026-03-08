@@ -29,7 +29,7 @@ import { LocationTile } from "~/components/page-blocks/FeatureBlock/LocationTile
 import { ImageTile } from "~/components/page-blocks/FeatureBlock/ImageTile";
 import { ParticipantsTile } from "~/components/page-blocks/FeatureBlock/ParticipantsTile";
 import { ParticipantsModal } from "~/components/events/ParticipantsModal";
-import { formatUser } from "~/utils/users";
+import { formatUser, buildProfileUrl } from "~/utils/users";
 
 export const useEvent = routeLoader$(async (requestEvent) => {
   const { params, status } = requestEvent;
@@ -146,6 +146,7 @@ export const useEvent = routeLoader$(async (requestEvent) => {
       groupLabel: userGroupLabels[u.id] ?? null,
       city: (u.city ?? null) as string | null,
       country: (u.country ?? null) as string | null,
+      profileUrl: buildProfileUrl({ id: u.id, name: u.name as string, familyName: u.familyName as string }),
     };
   });
 

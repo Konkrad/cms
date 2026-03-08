@@ -9,6 +9,7 @@ import { groupMembershipsService } from "~/services/group-memberships.service";
 import { groupRepresentativesService } from "~/services/group-representatives.service";
 import { eventsService } from "~/services/events.service";
 import { getCurrentUserData } from "~/utils/server-auth";
+import { buildProfileUrl } from "~/utils/users";
 import { FeatureGrid } from "~/components/page-blocks/FeatureBlock/FeatureGrid";
 import { ImageTile } from "~/components/page-blocks/FeatureBlock/ImageTile";
 import { ParticipantsTile } from "~/components/page-blocks/FeatureBlock/ParticipantsTile";
@@ -68,7 +69,7 @@ export const useGroupData = routeLoader$(async (event) => {
         name: `${rep.user.name} ${rep.user.familyName}`,
         subtitle: `Local Rep ${group.name}`,
         profilePictureUrl: rep.user.profilePictureSmall,
-        profileUrl: `/profile/${rep.userId}`,
+        profileUrl: buildProfileUrl({ id: rep.userId, name: rep.user.name, familyName: rep.user.familyName }),
       }
     : null;
 
@@ -76,7 +77,10 @@ export const useGroupData = routeLoader$(async (event) => {
     group,
     memberCount,
     pastEventCount,
-    recentMembers,
+    recentMembers: recentMembers.map((m) => ({
+      ...m,
+      profileUrl: buildProfileUrl({ id: m.id, name: m.name, familyName: m.familyName }),
+    })),
     rep: repData,
     isMember,
     isLoggedIn: !!user,
@@ -249,7 +253,8 @@ export default component$(() => {
       {/* Members modal */}
       {showMembersModal.value && (
         <ParticipantsModal
-          participants={recentMembers}$1={`${group.name} Community`}
+          participants={recentMembers}
+          eventName={`${group.name} Community`}
           onClose$={$(() => { showMembersModal.value = false; })}
         />
       )}

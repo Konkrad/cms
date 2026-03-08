@@ -1,0 +1,60 @@
+.groups-map-wrapper {
+  position: relative;
+  width: 100%;
+  background: #0b1e3d;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.groups-map-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.groups-map-land {
+  fill: #1a3a6b;
+  stroke: #0b1e3d;
+  stroke-width: 0.3;
+}
+
+.groups-map-graticule {
+  fill: none;
+  stroke: #ffffff08;
+  stroke-width: 0.4;
+}
+
+.groups-map-sphere {
+  fill: #0b1e3d;
+}
+
+.groups-map-pin {
+  fill: #96c046;
+  stroke: #ffffff;
+  stroke-width: 1;
+  cursor: pointer;
+  transition: r 0.15s ease, fill 0.15s ease;
+}
+
+.groups-map-pin:hover {
+  fill: #d2df83;
+}
+
+.groups-map-tooltip {
+  position: absolute;
+  background: rgba(3, 78, 162, 0.95);
+  color: #fff;
+  font-family: 'Rubik', sans-serif;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translate(-50%, -110%);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.groups-map-tooltip.visible {
+  opacity: 1;
+}

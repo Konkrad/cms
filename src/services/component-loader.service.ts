@@ -1,7 +1,6 @@
 import type { BlockDefinition } from "~/db/schema";
 
 const componentModules = {
-  HeroBlock: () => import("~/components/page-blocks/HeroBlock"),
   TextBlock: () => import("~/components/page-blocks/TextBlock"),
   TitleBlock: () => import("~/components/page-blocks/TitleBlock"),
   ImageBlock: () => import("~/components/page-blocks/ImageBlock"),
@@ -11,6 +10,10 @@ const componentModules = {
   PostsListBlock: () => import("~/components/page-blocks/PostsListBlock"),
   SpacerBlock: () => import("~/components/page-blocks/SpacerBlock"),
   FeatureBlock: () => import("~/components/page-blocks/FeatureBlock"),
+  LocalCommunitiesMapBlock: () =>
+    import("~/components/page-blocks/LocalCommunitiesMapBlock"),
+  HeroSectionBlock: () => import("~/components/page-blocks/HeroSectionBlock"),
+  GroupsListBlock: () => import("~/components/page-blocks/GroupsListBlock"),
 };
 
 type ComponentModuleLoader = () => Promise<{

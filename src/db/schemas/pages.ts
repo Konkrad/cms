@@ -29,8 +29,8 @@ const slugValidation = z
   .string()
   .min(1, "Slug is required")
   .regex(
-    /^(\/|[a-z0-9-]+)$/,
-    'Slug must be "/" for home page, or contain only lowercase letters, numbers, and hyphens',
+    /^\/?[a-z0-9-]+(\/[a-z0-9-]+)*$|^\/$/,
+    'Slug must be "/" for home page, or a path of lowercase letters, numbers, and hyphens (e.g. "groups" or "/groups/subpage")',
   );
 
 export const insertPageSchema = baseInsertSchema

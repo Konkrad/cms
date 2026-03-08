@@ -2,21 +2,21 @@ import { $, component$, useSignal, useTask$ } from "@builder.io/qwik";
 import { Link, server$ } from "@builder.io/qwik-city";
 import type { BlockDefinition } from "~/db/schema";
 import type { PostWithUser } from "~/services/posts.service";
-import "./HeroBlock.css";
+import "./HeroSectionBlock.css";
 
 export const definition: BlockDefinition = {
   name: "Hero Section",
-  componentType: "HeroBlock",
+  componentType: "HeroSectionBlock",
   category: "dynamic",
-  icon: "🎯",
+  icon: "🖼️",
   configSchema: [],
   defaultData: {},
 };
 
-const fetchLatestPosts = server$(async () => {
+const fetchLatestGlobalPosts = server$(async () => {
   const { postsService } = await import("~/services/posts.service");
-  const posts = await postsService.getRecent(3);
-  return posts;
+  const res = await postsService.getVisiblePosts(null, 3);
+  return res.items;
 });
 
 const SLIDE_GRADIENTS = [
@@ -45,10 +45,9 @@ export default component$(() => {
 
   useTask$(async () => {
     try {
-      const result = await fetchLatestPosts();
-      posts.value = result;
+      posts.value = await fetchLatestGlobalPosts();
     } catch (e) {
-      console.error("HeroBlock: Failed to fetch posts", e);
+      console.error("HeroSectionBlock: Failed to fetch posts", e);
     } finally {
       isLoading.value = false;
     }
@@ -60,16 +59,16 @@ export default component$(() => {
 
   if (isLoading.value) {
     return (
-      <div class="hero-loading">
-        <div class="hero-loading-text">Loading latest articles...</div>
+      <div class="hero-section-loading">
+        <div class="hero-section-loading-text">Loading latest articles...</div>
       </div>
     );
   }
 
   if (posts.value.length === 0) {
     return (
-      <div class="hero-empty">
-        <div class="hero-empty-text">No articles yet.</div>
+      <div class="hero-section-empty">
+        <div class="hero-section-empty-text">No articles yet.</div>
       </div>
     );
   }
@@ -80,31 +79,34 @@ export default component$(() => {
   const excerpt = slide.body ? getExcerpt(slide.body) : "";
 
   return (
-    <div class="hero-container">
+    <div class="hero-section-container">
       {/* ── Mobile Layout ── */}
-      <div class="hero-mobile">
-        <div
-          class="hero-mobile-gradient"
-          style={{ background: slideGradient }}
-        >
-          <div class="hero-mobile-gradient-inner">
-            <span class="hero-slide-number">
+      <div class="hero-section-mobile">
+        <div class="hero-section-mobile-image-wrapper">
+          <div
+            class="hero-section-mobile-gradient"
+            style={{ background: slideGradient }}
+          >
+            <span class="hero-section-mobile-slide-number">
               {currentSlide.value + 1}
             </span>
           </div>
         </div>
 
-        <div class="hero-mobile-card">
-          <h2 class="hero-mobile-title">{slide.title}</h2>
+        <div class="hero-section-mobile-card">
+          <h2 class="hero-section-mobile-title">{slide.title}</h2>
 
-          <Link href={`/posts/${slide.id}`} class="hero-mobile-cta">
-            <div class="hero-arrow-circle">
+          <Link
+            href={`/posts/${slide.id}`}
+            class="hero-section-mobile-cta"
+          >
+            <div class="hero-section-arrow-circle">
               <svg
                 width="10"
                 height="10"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#034EA2"
+                stroke="currentColor"
                 stroke-width="3"
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -113,14 +115,14 @@ export default component$(() => {
               </svg>
             </div>
 
-            <span class="hero-mobile-cta-text">Read more</span>
+            <span class="hero-section-mobile-cta-text">Read more</span>
 
             <svg
               width="19"
               height="18"
               viewBox="0 0 19 18"
               fill="none"
-              class="hero-mobile-small-arrow"
+              class="hero-section-mobile-small-arrow"
             >
               <path
                 d="M4 9h11M11 4.5L15 9l-4 4.5"
@@ -135,28 +137,32 @@ export default component$(() => {
       </div>
 
       {/* ── Desktop Layout ── */}
-      <div class="hero-desktop">
-        <div class="hero-desktop-gradient-wrapper">
-          <div
-            class="hero-desktop-gradient"
-            style={{ background: slideGradient }}
-          >
-            <div class="hero-desktop-gradient-inner">
-              <span class="hero-desktop-slide-number">
+      <div class="hero-section-desktop">
+        <div class="hero-section-desktop-image-wrapper">
+          <div class="hero-section-desktop-image-frame">
+            <div
+              class="hero-section-desktop-gradient"
+              style={{ background: slideGradient }}
+            >
+              <span class="hero-section-desktop-slide-number">
                 {currentSlide.value + 1}
               </span>
             </div>
           </div>
+          <div class="hero-section-desktop-image-bg" />
         </div>
 
-        <div class="hero-desktop-content">
-          <h1 class="hero-desktop-title">{slide.title}</h1>
+        <div class="hero-section-desktop-content">
+          <h1 class="hero-section-desktop-title">{slide.title}</h1>
 
           {excerpt && (
-            <p class="hero-desktop-excerpt">{excerpt}</p>
+            <p class="hero-section-desktop-description">{excerpt}</p>
           )}
 
-          <Link href={`/posts/${slide.id}`} class="hero-desktop-button">
+          <Link
+            href={`/posts/${slide.id}`}
+            class="hero-section-desktop-button"
+          >
             Read the Article
           </Link>
         </div>
@@ -164,11 +170,11 @@ export default component$(() => {
 
       {/* ── Pagination Dots ── */}
       {posts.value.length > 1 && (
-        <div class="hero-pagination">
+        <div class="hero-section-pagination">
           {posts.value.map((_, index) => (
             <button
               key={index}
-              class={`hero-dot ${currentSlide.value === index ? "hero-dot-active" : ""}`}
+              class={`hero-section-dot ${currentSlide.value === index ? "hero-section-dot-active" : ""}`}
               onClick$={$(() => goToSlide(index))}
               aria-label={`Go to slide ${index + 1}`}
             />

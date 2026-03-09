@@ -19,7 +19,8 @@ import { EventCard } from "~/components/page-blocks/EventCard";
 import { BlogCard } from "~/components/page-blocks/BlogCard";
 
 const GRID_LAYOUT = `"left-top middle right-top" "left-bottom middle right-top" "left-bottom middle right-bottom"`;
-const FALLBACK = "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800";
+const FALLBACK =
+  "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800";
 
 export const useGroupData = routeLoader$(async (event) => {
   const { params, redirect } = event;
@@ -29,48 +30,59 @@ export const useGroupData = routeLoader$(async (event) => {
   const user = await getCurrentUserData(event as any);
   const now = new Date().toISOString();
 
-  const [memberCount, pastEventCount, rep, isMember, recentMembers, upcomingEvents, recentPosts] =
-    await Promise.all([
-      groupMembershipsService.countByGroupId(group.id),
-      eventsService.countPastByGroupId(group.id),
-      groupRepresentativesService.getFirstRepresentativeWithUser(group.id),
-      user ? groupMembershipsService.isMember(user.id, group.id) : false,
-      db
-        .select({
-          id: users.id,
-          name: users.name,
-          familyName: users.familyName,
-          profilePicture: users.profilePicture,
-        })
-        .from(groupMemberships)
-        .innerJoin(users, eq(groupMemberships.userId, users.id))
-        .where(eq(groupMemberships.groupId, group.id))
-        .limit(6),
-      db.query.events.findMany({
-        where: and(
-          eq(events.groupId, group.id),
-          isNull(events.deletedAt),
-          gte(events.endDate, now),
-        ),
-        orderBy: events.startDate,
-        limit: 3,
-      }),
-      db.query.posts.findMany({
-        with: { user: true },
-        where: and(eq(posts.groupId, group.id), isNull(posts.deletedAt)),
-        orderBy: [desc(posts.createdAt)],
-        limit: 3,
-      }),
-    ]);
-
-
+  const [
+    memberCount,
+    pastEventCount,
+    rep,
+    isMember,
+    recentMembers,
+    upcomingEvents,
+    recentPosts,
+  ] = await Promise.all([
+    groupMembershipsService.countByGroupId(group.id),
+    eventsService.countPastByGroupId(group.id),
+    groupRepresentativesService.getFirstRepresentativeWithUser(group.id),
+    user ? groupMembershipsService.isMember(user.id, group.id) : false,
+    db
+      .select({
+        id: users.id,
+        name: users.name,
+        familyName: users.familyName,
+        profilePicture: users.profilePicture,
+      })
+      .from(groupMemberships)
+      .innerJoin(users, eq(groupMemberships.userId, users.id))
+      .where(eq(groupMemberships.groupId, group.id))
+      .limit(6),
+    db.query.events.findMany({
+      where: and(
+        eq(events.groupId, group.id),
+        isNull(events.deletedAt),
+        gte(events.endDate, now),
+      ),
+      orderBy: events.startDate,
+      limit: 3,
+    }),
+    db.query.posts.findMany({
+      with: { user: true },
+      where: and(eq(posts.groupId, group.id), isNull(posts.deletedAt)),
+      orderBy: [desc(posts.createdAt)],
+      limit: 3,
+    }),
+  ]);
 
   const repData = rep
     ? {
         name: `${rep.user.name} ${rep.user.familyName}`,
         subtitle: `Local Rep ${group.name}`,
-        profilePictureUrl: rep.user.profilePicture ? deriveProfilePicSmallKey(rep.user.profilePicture) : null,
-        profileUrl: buildProfileUrl({ id: rep.userId, name: rep.user.name, familyName: rep.user.familyName }),
+        profilePictureUrl: rep.user.profilePicture
+          ? deriveProfilePicSmallKey(rep.user.profilePicture)
+          : null,
+        profileUrl: buildProfileUrl({
+          id: rep.userId,
+          name: rep.user.name,
+          familyName: rep.user.familyName,
+        }),
       }
     : null;
 
@@ -82,8 +94,14 @@ export const useGroupData = routeLoader$(async (event) => {
       id: m.id,
       name: m.name,
       familyName: m.familyName,
-      profilePictureSmall: m.profilePicture ? deriveProfilePicSmallKey(m.profilePicture) : null,
-      profileUrl: buildProfileUrl({ id: m.id, name: m.name, familyName: m.familyName }),
+      profilePictureSmall: m.profilePicture
+        ? deriveProfilePicSmallKey(m.profilePicture)
+        : null,
+      profileUrl: buildProfileUrl({
+        id: m.id,
+        name: m.name,
+        familyName: m.familyName,
+      }),
     })),
     rep: repData,
     isMember,
@@ -92,7 +110,11 @@ export const useGroupData = routeLoader$(async (event) => {
       id: e.id,
       title: e.title,
       startDate: e.startDate,
-      location: [e.city, e.country].filter(Boolean).join(", ") || e.address || "",
+      endDate: e.endDate,
+      image1: e.image1,
+      locationType: e.locationType,
+      city: e.city,
+      address: e.address,
     })),
     recentPosts: recentPosts.map((p) => ({
       id: p.id,
@@ -121,7 +143,17 @@ export default component$(() => {
   const data = useGroupData();
   const joinAction = useJoinGroup();
   const showMembersModal = useSignal(false);
-  const { group, memberCount, pastEventCount, recentMembers, rep, isMember, isLoggedIn, upcomingEvents, recentPosts } = data.value;
+  const {
+    group,
+    memberCount,
+    pastEventCount,
+    recentMembers,
+    rep,
+    isMember,
+    isLoggedIn,
+    upcomingEvents,
+    recentPosts,
+  } = data.value;
 
   return (
     <div>
@@ -141,13 +173,19 @@ export default component$(() => {
             participantCount={memberCount}
             title="Community Members"
             seeAllLabel="See All Members"
-            onSeeAll$={$(() => { showMembersModal.value = true; })}
+            onSeeAll$={$(() => {
+              showMembersModal.value = true;
+            })}
             emptyTitle="No members yet"
             emptyBody="Be the first to join this community"
             isLoggedIn={isLoggedIn}
           />
 
-          <ImageTile area="left-bottom" image={group.image1 ?? FALLBACK} alt={group.name} />
+          <ImageTile
+            area="left-bottom"
+            image={group.image1 ?? FALLBACK}
+            alt={group.name}
+          />
 
           <ImageTile
             area="middle"
@@ -156,7 +194,11 @@ export default component$(() => {
             overlayText={`${pastEventCount} local meet-up${pastEventCount === 1 ? "" : "s"} and counting`}
           />
 
-          <ImageTile area="right-top" image={group.image3 ?? FALLBACK} alt={group.name} />
+          <ImageTile
+            area="right-top"
+            image={group.image3 ?? FALLBACK}
+            alt={group.name}
+          />
 
           {rep ? (
             <LocalRepTile
@@ -175,7 +217,9 @@ export default component$(() => {
                 Join the community
               </h3>
               {isMember ? (
-                <p class="font-['Lato',sans-serif] text-[16px] text-white/80 mt-4">✓ You are a member</p>
+                <p class="font-['Lato',sans-serif] text-[16px] text-white/80 mt-4">
+                  ✓ You are a member
+                </p>
               ) : (
                 <Form action={joinAction} class="mt-6">
                   <button
@@ -223,15 +267,23 @@ export default component$(() => {
             Upcoming Community Events
           </h2>
           <div class="flex flex-col gap-4">
-            {upcomingEvents.map((e) => (
-              <EventCard
-                key={e.id}
-                date={e.startDate}
-                title={e.title}
-                location={e.location}
-                readMoreHref={`/events/${e.id}`}
-              />
-            ))}
+            {upcomingEvents.map((e) => {
+              const location =
+                e.city ||
+                e.address ||
+                (e.locationType === "online" ? "Online" : "TBA");
+              return (
+                <EventCard
+                  key={e.id}
+                  date={e.startDate}
+                  endDate={e.endDate}
+                  title={e.title}
+                  location={location}
+                  image={e.image1 ?? undefined}
+                  readMoreHref={`/events/${e.id}`}
+                />
+              );
+            })}
           </div>
         </div>
       )}
@@ -261,7 +313,9 @@ export default component$(() => {
         <ParticipantsModal
           participants={recentMembers}
           eventName={`${group.name} Community`}
-          onClose$={$(() => { showMembersModal.value = false; })}
+          onClose$={$(() => {
+            showMembersModal.value = false;
+          })}
         />
       )}
     </div>

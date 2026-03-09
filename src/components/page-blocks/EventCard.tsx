@@ -1,12 +1,14 @@
 import { component$ } from "@builder.io/qwik";
-import { ReadMoreButton } from "./ReadMoreButton";
+import { ListCard } from "./ListCard";
 
 interface EventCardProps {
   date: string;
+  endDate?: string;
   title: string;
   location: string;
   image?: string;
   readMoreHref?: string;
+  readMoreLabel?: string;
 }
 
 const LOCATION_PIN_OUTER =
@@ -48,73 +50,62 @@ function formatTime(dateStr: string): string {
 }
 
 export const EventCard = component$<EventCardProps>(
-  ({ date, title, location, image, readMoreHref = "#" }) => {
+  ({
+    date,
+    endDate,
+    title,
+    location,
+    image,
+    readMoreHref = "#",
+    readMoreLabel = "Open Tickets",
+  }) => {
     const day = formatDay(date);
     const month = formatMonth(date);
-    const time = formatTime(date);
+    const startTime = formatTime(date);
+    const endTime = endDate ? formatTime(endDate) : "";
+    const timeDisplay = endTime ? `${startTime} - ${endTime}` : startTime;
 
     return (
-      <div class="relative w-full bg-white rounded-[25px] shadow-[0px_0px_6px_0px_rgba(0,0,0,0.06)] h-[200px] flex items-center">
-        {/* Optional Image on Left */}
-        {image && (
-          <div class="w-[200px] h-full rounded-l-[25px] overflow-hidden flex-shrink-0">
-            <img
-              src={image}
-              alt={title}
-              class="w-full h-full object-cover"
-              width={200}
-              height={200}
-            />
-          </div>
-        )}
-
-        {/* Content Area */}
-        <div
-          class={`flex-1 flex items-center px-8 ${image ? "pl-10" : "pl-16"}`}
-        >
-          {/* Date Section */}
-          <div class="flex flex-col items-start min-w-[170px]">
-            <p class="font-['Lato',sans-serif] font-semibold text-[40px] leading-[1.523] text-black">
-              {day}
-            </p>
-            <p class="font-['Lato',sans-serif] font-bold text-[20px] leading-[1.523] text-black">
-              {month}
-            </p>
-            <p class="font-['Lato',sans-serif] font-medium text-[13px] leading-[1.523] text-black">
-              {time}
-            </p>
-          </div>
-
-          {/* Divider Line */}
-          <div class="h-24 w-px bg-black/20 mx-8" />
-
-          {/* Title and Location */}
-          <div class="flex-1 flex flex-col justify-center gap-4">
-            <h3 class="font-['Lato',sans-serif] font-bold text-[26px] leading-[1.359] text-black">
-              {title}
-            </h3>
-
-            <div class="flex items-center gap-2">
-              <svg
-                class="w-[17px] h-[17px] flex-shrink-0"
-                fill="none"
-                viewBox="0 0 17 17"
-              >
-                <path d={LOCATION_PIN_INNER} fill="black" />
-                <path d={LOCATION_PIN_OUTER} fill="black" />
-              </svg>
-              <p class="font-['Lato',sans-serif] font-normal text-[15px] leading-[1.523] text-black">
-                {location}
-              </p>
-            </div>
-          </div>
-
-          {/* Read More Button */}
-          <div class="ml-8 flex-shrink-0">
-            <ReadMoreButton href={readMoreHref} />
-          </div>
+      <ListCard
+        image={image}
+        imageAlt={title}
+        title={title}
+        readMoreHref={readMoreHref}
+        readMoreLabel={readMoreLabel}
+      >
+        <div q:slot="top-left" class="flex items-baseline gap-2 flex-wrap">
+          <span class="font-['Lato',sans-serif] font-semibold text-[32px] sm:text-[38px] leading-none text-black">
+            {day}
+          </span>
+          <span class="font-['Lato',sans-serif] font-medium text-[16px] sm:text-[18px] leading-none text-black">
+            {month}
+          </span>
         </div>
-      </div>
+
+        <div
+          q:slot="top-right"
+          class="flex items-center gap-1.5 flex-shrink-0 pt-1"
+        >
+          <svg
+            class="w-[17px] h-[17px] flex-shrink-0"
+            fill="none"
+            viewBox="0 0 17 17"
+          >
+            <path d={LOCATION_PIN_INNER} fill="black" />
+            <path d={LOCATION_PIN_OUTER} fill="black" />
+          </svg>
+          <span class="font-['Lato',sans-serif] font-normal text-[14px] leading-[1.4] text-black">
+            {location}
+          </span>
+        </div>
+
+        <p
+          q:slot="subtitle"
+          class="font-['Lato',sans-serif] font-normal text-[13px] leading-[1.4] text-gray-500 mt-0.5"
+        >
+          {timeDisplay}
+        </p>
+      </ListCard>
     );
   },
 );

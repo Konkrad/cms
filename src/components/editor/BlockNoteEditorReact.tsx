@@ -176,6 +176,20 @@ const BlockNoteEditorReact = (
     uploadFile,
   });
 
+  // When there's no editorState but HTML content exists, parse it into blocks
+  const [htmlLoaded, setHtmlLoaded] = useState(false);
+  useEffect(() => {
+    if (!editorState && content && !htmlLoaded) {
+      try {
+        const blocks = editor.tryParseHTMLToBlocks(content);
+        editor.replaceBlocks(editor.document, blocks);
+      } catch (e) {
+        console.error("Failed to parse HTML content into blocks:", e);
+      }
+      setHtmlLoaded(true);
+    }
+  }, [editor, editorState, content, htmlLoaded]);
+
   useImperativeHandle(ref, () => ({
     getEditorState: () => {
       const blocks = editor.document;

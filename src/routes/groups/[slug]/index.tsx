@@ -299,7 +299,7 @@ export default component$(() => {
               <BlogCard
                 key={p.id}
                 date={p.createdAt}
-                location={p.authorName}
+                title={p.authorName}
                 image={p.featuredImage ?? undefined}
                 description={p.body.replace(/<[^>]+>/g, "").substring(0, 150)}
                 readMoreHref={`/posts/${p.id}`}

@@ -84,7 +84,7 @@ export default component$<PostsListBlockProps>((props) => {
               key={post.id}
               date={post.createdAt}
               description={post.body}
-              location={post.user?.displayName}
+              title={post.title}
               image={post.featuredImage ?? undefined}
               readMoreHref={`/posts/${post.id}`}
             />

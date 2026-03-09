@@ -5,7 +5,7 @@ interface BlogCardProps {
   image?: string;
   date?: string;
   category?: string;
-  location?: string;
+  title?: string;
   description?: string;
   readMoreHref?: string;
 }
@@ -36,7 +36,7 @@ export const BlogCard = component$<BlogCardProps>(
     image = "https://picsum.photos/450/220",
     date,
     category,
-    location,
+    title,
     description,
     readMoreHref = "#",
   }) => {
@@ -48,7 +48,7 @@ export const BlogCard = component$<BlogCardProps>(
         <div class="relative h-[218px] w-full overflow-hidden flex-shrink-0">
           <img
             src={image}
-            alt={location ?? ""}
+            alt={title ?? ""}
             class="w-full h-full object-cover"
             width={457}
             height={218}
@@ -58,7 +58,7 @@ export const BlogCard = component$<BlogCardProps>(
           <div class="absolute bottom-0 left-0 right-0 h-[91px] bg-black/20" />
 
           {/* Text Overlay Content */}
-          <div class="absolute left-[33px] bottom-[34px] flex flex-col gap-2">
+          <div class="absolute left-[33px] right-[33px] bottom-[34px] flex flex-col gap-2">
             {/* Date and Clock Icon */}
             {formattedDate && (
               <div class="flex items-center gap-2">
@@ -76,8 +76,10 @@ export const BlogCard = component$<BlogCardProps>(
               </div>
             )}
 
-            {/* Location */}
-            {location && <h3 class="text-white text-2xl">{location}</h3>}
+            {/* Title */}
+            {title && (
+              <h3 class="text-white text-2xl truncate max-w-full">{title}</h3>
+            )}
           </div>
 
           {/* Category */}

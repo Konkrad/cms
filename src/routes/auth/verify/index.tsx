@@ -4,41 +4,38 @@ import { emailAuthService } from "~/services/email-auth.service";
 import { env } from "~/env";
 
 export const useVerify = routeLoader$(async (event: any) => {
+	const url = new URL(event.request.url);
+	const token = url.searchParams.get("token");
+	if (!token) {
+		return { success: false, error: "Missing token" };
+	}
+
+	const ip =
+		event.request.headers.get("x-forwarded-for") ||
+		event.request.headers.get("cf-connecting-ip") ||
+		event.request.headers.get("x-real-ip") ||
+		undefined;
+	const userAgent = event.request.headers.get("user-agent") || undefined;
+
+	let result: Awaited<ReturnType<typeof emailAuthService.verifyMagic>>;
 	try {
-		const url = new URL(event.request.url);
-		const token = url.searchParams.get("token");
-		if (!token) {
-			return { success: false, error: "Missing token" };
-		}
-
-		const ip =
-			event.request.headers.get("x-forwarded-for") ||
-			event.request.headers.get("cf-connecting-ip") ||
-			event.request.headers.get("x-real-ip") ||
-			undefined;
-		const userAgent = event.request.headers.get("user-agent") || undefined;
-
-		const result = await emailAuthService.verifyMagic(token, { ip, userAgent });
-
-		// Set session cookie
-		event.cookie.set("session", result.session.token, {
-			httpOnly: true,
-			secure: env.isProduction,
-			sameSite: "Strict",
-			path: "/",
-			expires: new Date(result.session.expiresAt),
-		});
-
-		// Redirect to profile for new users, otherwise to homepage
-		if (result.userCreated) {
-			throw event.redirect(302, "/profile");
-		} else {
-			throw event.redirect(302, "/");
-		}
+		result = await emailAuthService.verifyMagic(token, { ip, userAgent });
 	} catch (err: any) {
 		console.error("[auth/verify] error:", err);
 		return { success: false, error: err?.message || "Invalid or expired token" };
 	}
+
+	// Set session cookie
+	event.cookie.set("session", result.session.token, {
+		httpOnly: true,
+		secure: env.isProduction,
+		sameSite: "Strict",
+		path: "/",
+		expires: new Date(result.session.expiresAt),
+	});
+
+	// Redirect to profile for new users, otherwise to homepage
+	throw event.redirect(302, result.userCreated ? "/profile/" : "/");
 });
 
 export default component$(() => {

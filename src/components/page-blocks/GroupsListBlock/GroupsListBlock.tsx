@@ -3,6 +3,7 @@ import { server$ } from "@builder.io/qwik-city";
 import type { BlockDefinition } from "~/db/schema";
 import type { Group } from "~/db/schema";
 import { GroupCard } from "./GroupCard";
+import { deriveSquareSmallUrl } from "~/utils/images";
 
 export const definition: BlockDefinition = {
   name: "Groups List",
@@ -71,7 +72,7 @@ export default component$(() => {
               key={group.id}
               name={group.name}
               memberCount={group.memberCount}
-              image={group.image1}
+              image={group.image1 ? deriveSquareSmallUrl(group.image1) : null}
               readMoreHref={`/groups/${group.slug}`}
             />
           ))}

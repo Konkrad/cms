@@ -1,7 +1,7 @@
 import { component$, useSignal, useTask$, $ } from "@builder.io/qwik";
 import { server$ } from "@builder.io/qwik-city";
 import type { BlockDefinition } from "~/db/schema";
-import type { EventWithUser } from "~/services/events.service";
+import type { Event } from "~/db/schemas/events";
 import { EventCard } from "./EventCard";
 
 export const definition: BlockDefinition = {
@@ -26,7 +26,7 @@ const fetchEventsByYear = server$(async (year: number) => {
 export default component$(() => {
   const years = useSignal<number[]>([]);
   const selectedYear = useSignal<number | null>(null);
-  const events = useSignal<EventWithUser[]>([]);
+  const events = useSignal<Event[]>([]);
   const isLoadingYears = useSignal(true);
   const isLoadingEvents = useSignal(false);
   const error = useSignal<string | null>(null);
@@ -113,8 +113,10 @@ export default component$(() => {
                   <EventCard
                     key={event.id}
                     date={event.startDate}
+                    endDate={event.endDate}
                     title={event.title}
                     location={location}
+                    image={event.image1}
                     readMoreHref={`/events/${event.id}`}
                   />
                 );

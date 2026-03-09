@@ -52,18 +52,15 @@ export const eventsService = {
     };
   },
 
-  async getUpcoming(): Promise<EventWithUser[]> {
+  async getUpcoming(): Promise<Event[]> {
     const now = new Date().toISOString();
 
     const results = await db.query.events.findMany({
       where: and(gte(events.endDate, now), isNull(events.deletedAt)),
       orderBy: [events.startDate, events.id],
-      with: {
-        user: true,
-      },
     });
 
-    return results as EventWithUser[];
+    return results;
   },
 
   async getYears(): Promise<number[]> {
@@ -81,22 +78,19 @@ export const eventsService = {
     return Array.from(yearsSet).sort((a, b) => b - a);
   },
 
-  async getEventsByYear(year: number): Promise<EventWithUser[]> {
+  async getEventsByYear(year: number): Promise<Event[]> {
     const now = new Date().toISOString();
 
     const results = await db.query.events.findMany({
       where: and(lt(events.endDate, now), isNull(events.deletedAt)),
       orderBy: [desc(events.startDate), desc(events.id)],
-      with: {
-        user: true,
-      },
     });
 
     const filtered = results.filter(
       (e) => new Date(e.startDate).getFullYear() === year,
     );
 
-    return filtered as EventWithUser[];
+    return filtered;
   },
 
   async getById(id: string): Promise<EventWithUser | undefined> {

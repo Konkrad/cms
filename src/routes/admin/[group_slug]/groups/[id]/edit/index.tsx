@@ -9,6 +9,7 @@ import {
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { GroupImageUpload } from "~/components/groups/GroupImageUpload";
+import { SquareImageCropper } from "~/components/ui/SquareImageCropper";
 import { groupsService } from "~/services/groups.service";
 import { geocodingService } from "~/services/geocoding.service";
 import { getCurrentUserData } from "~/utils/server-auth";
@@ -131,10 +132,11 @@ export default component$(() => {
           <hr class="border-gray-200" />
           <p class="text-sm font-semibold text-gray-700">Group Page Images</p>
 
-          <GroupImageUpload
+          <SquareImageCropper
             name="image1"
             label="Image 1 — Left bottom tile"
-            value={group.value.image1}
+            uploadPath="public/groups/"
+            currentImageUrl={group.value.image1}
           />
           <GroupImageUpload
             name="image2"

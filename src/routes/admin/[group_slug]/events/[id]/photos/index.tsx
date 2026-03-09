@@ -2,6 +2,7 @@ import { component$, useSignal, $ } from "@builder.io/qwik";
 import {
   routeAction$,
   routeLoader$,
+  useLocation,
   zod$,
   z,
   type DocumentHead,

@@ -8,7 +8,8 @@ import { usersService } from "~/services/users.service";
 import { groupMembershipsService } from "~/services/group-memberships.service";
 import { participationService } from "~/services/participation.service";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
-import { formatUserName } from "~/utils/users";
+import { formatUserName, buildProfileUrl } from "~/utils/users";
+import { deriveProfilePicSmallKey } from "~/utils/images";
 
 export const usePublicProfile = routeLoader$(async (event) => {
   await requireAuth(event);
@@ -55,7 +56,7 @@ export const usePublicProfile = routeLoader$(async (event) => {
     city: user.city ?? null,
     country: user.country ?? null,
     profilePictureUrl: buildPicUrl(user.profilePicture ?? null),
-    profilePictureSmallUrl: buildPicUrl(user.profilePictureSmall ?? null),
+    profilePictureSmallUrl: user.profilePicture ? buildPicUrl(deriveProfilePicSmallKey(user.profilePicture)) : null,
     isOwner,
     email,
     yearOfBirth: user.yearOfBirth ?? null,

@@ -83,14 +83,22 @@ export default component$(() => {
       {/* ── Mobile Layout ── */}
       <div class="hero-section-mobile">
         <div class="hero-section-mobile-image-wrapper">
-          <div
-            class="hero-section-mobile-gradient"
-            style={{ background: slideGradient }}
-          >
-            <span class="hero-section-mobile-slide-number">
-              {currentSlide.value + 1}
-            </span>
-          </div>
+          {slide.featuredImage ? (
+            <img
+              src={slide.featuredImage}
+              alt={slide.title}
+              class="hero-section-mobile-image"
+            />
+          ) : (
+            <div
+              class="hero-section-mobile-gradient"
+              style={{ background: slideGradient }}
+            >
+              <span class="hero-section-mobile-slide-number">
+                {currentSlide.value + 1}
+              </span>
+            </div>
+          )}
         </div>
 
         <div class="hero-section-mobile-card">
@@ -140,14 +148,22 @@ export default component$(() => {
       <div class="hero-section-desktop">
         <div class="hero-section-desktop-image-wrapper">
           <div class="hero-section-desktop-image-frame">
-            <div
-              class="hero-section-desktop-gradient"
-              style={{ background: slideGradient }}
-            >
-              <span class="hero-section-desktop-slide-number">
-                {currentSlide.value + 1}
-              </span>
-            </div>
+            {slide.featuredImage ? (
+              <img
+                src={slide.featuredImage}
+                alt={slide.title}
+                class="hero-section-desktop-image"
+              />
+            ) : (
+              <div
+                class="hero-section-desktop-gradient"
+                style={{ background: slideGradient }}
+              >
+                <span class="hero-section-desktop-slide-number">
+                  {currentSlide.value + 1}
+                </span>
+              </div>
+            )}
           </div>
           <div class="hero-section-desktop-image-bg" />
         </div>

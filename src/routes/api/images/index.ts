@@ -21,6 +21,7 @@ import { type RequestHandler } from "@builder.io/qwik-city";
 import {
   processAndUploadImage,
   processAndUploadVariants,
+  processAndUploadSquareVariants,
   getPipeline,
   PROCESSING_PIPELINES,
 } from "~/services/image-processing.service";
@@ -60,7 +61,43 @@ export const onPost: RequestHandler = async ({
 
     const fileId = query.get("filename") || crypto.randomUUID();
 
-    // If pipeline is 'gallery' create a gallery variant AND a thumbnail; otherwise single variant
+    // If pipeline is 'gallery' create a gallery variant AND a thumbnail
+    // If pipeline is 'square' create a 1000x1000 main + 200x200 small (derived by URL convention)
+    if (pipelineName === "square") {
+      // Read optional crop coordinates (ratio 0–1)
+      const cropX = Number.parseFloat(request.headers.get("x-crop-x") || "");
+      const cropY = Number.parseFloat(request.headers.get("x-crop-y") || "");
+      const cropWidth = Number.parseFloat(request.headers.get("x-crop-width") || "");
+      const cropHeight = Number.parseFloat(request.headers.get("x-crop-height") || "");
+
+      const hasCrop =
+        !Number.isNaN(cropX) &&
+        !Number.isNaN(cropY) &&
+        !Number.isNaN(cropWidth) &&
+        !Number.isNaN(cropHeight) &&
+        cropWidth > 0 &&
+        cropHeight > 0;
+
+      const { main } = await processAndUploadSquareVariants(
+        bodyStream,
+        uploadPrefix,
+        fileId,
+        hasCrop ? { x: cropX, y: cropY, width: cropWidth, height: cropHeight } : null,
+      );
+
+      const accessUrl = env.AWS_ENDPOINT
+        ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${main.key}`
+        : await generatePresignedGetUrl(main.key, 60 * 60);
+
+      json(200, {
+        success: true,
+        filePath: `/${main.key}`,
+        url: accessUrl,
+        s3: { main },
+      });
+      return;
+    }
+
     if (pipelineName === "gallery") {
       const { gallery, thumbnail } = await processAndUploadVariants(
         bodyStream,

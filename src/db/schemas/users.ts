@@ -17,7 +17,6 @@ export const users = sqliteTable("users", {
   yearOfBirth: integer("year_of_birth"),
   sex: text("sex"),
   profilePicture: text("profile_picture"),
-  profilePictureSmall: text("profile_picture_small"),
   role: text("role", { enum: ["user", "moderator", "admin"] })
     .notNull()
     .default("user"),

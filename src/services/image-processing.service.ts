@@ -100,6 +100,30 @@ export const PROCESSING_PIPELINES = {
     quality: 80,
   },
 
+  // Square - 1000x1000 square crop for event/group/post featured images
+  square: {
+    name: "square",
+    transform: (transformer) =>
+      transformer.resize(1000, 1000, {
+        fit: "cover",
+        position: "entropy",
+      }),
+    outputFormat: "webp" as const,
+    quality: 80,
+  },
+
+  // Square small - 200x200 thumbnail variant for square images
+  squareSmall: {
+    name: "squareSmall",
+    transform: (transformer) =>
+      transformer.resize(200, 200, {
+        fit: "cover",
+        position: "entropy",
+      }),
+    outputFormat: "webp" as const,
+    quality: 80,
+  },
+
   // Original - minimal processing, just format conversion
   original: {
     name: "original",
@@ -381,7 +405,7 @@ export async function processAndUploadProfilePicture(
   const s3Client = createS3Client();
   const keyPrefix = `${env.S3_UPLOAD_PATH}/profile-pictures`;
   const pictureKey = `${keyPrefix}/${userId}.webp`;
-  const pictureSmallKey = `${keyPrefix}/${userId}-small.webp`;
+  const pictureSmallKey = `${keyPrefix}/${userId}_75x75.webp`;
 
   // Process 400×400 variant
   const picBuffer = await sharp(rotated.data)
@@ -445,6 +469,107 @@ export async function processAndUploadProfilePicture(
       bucket: env.S3_BUCKET,
       url: buildUrl(pictureSmallKey),
     },
+  };
+}
+
+/**
+ * Process and upload a square image producing a 1000×1000 main variant and a
+ * 200×200 small variant. The small variant is stored at `{fileId}_200x200.webp`
+ * alongside the main `{fileId}.webp` — clients derive the small URL by
+ * convention without it being stored in the database.
+ *
+ * When `crop` is provided (ratio-based coordinates 0–1), the crop region is
+ * extracted first before resizing, giving the user full control over framing.
+ */
+export async function processAndUploadSquareVariants(
+  input: ReadableStream | Buffer,
+  keyPrefix: string,
+  fileId?: string,
+  crop?: CropCoordinates | null,
+): Promise<{ main: ImageUploadResult; small: ImageUploadResult }> {
+  const id = fileId || `${Date.now()}`;
+  const mainKey = `${keyPrefix}/${id}.webp`;
+  const smallKey = `${keyPrefix}/${id}_200x200.webp`;
+
+  // Buffer the input so we can process two variants from the same data
+  let buffer: Buffer;
+  if (input instanceof Buffer) {
+    buffer = input;
+  } else {
+    const nodeReadable = Readable.fromWeb(input as any);
+    const chunks: Buffer[] = [];
+    for await (const chunk of nodeReadable) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    buffer = Buffer.concat(chunks);
+  }
+
+  // Auto-rotate so dimensions reflect true orientation, then optionally crop
+  const rotated = await sharp(buffer)
+    .rotate()
+    .toBuffer({ resolveWithObject: true });
+  const { width: imgWidth, height: imgHeight } = rotated.info;
+
+  let sourceBuffer: Buffer = rotated.data;
+  if (crop) {
+    const extractLeft = Math.round(crop.x * imgWidth);
+    const extractTop = Math.round(crop.y * imgHeight);
+    const extractWidth = Math.min(
+      Math.round(crop.width * imgWidth),
+      imgWidth - extractLeft,
+    );
+    const extractHeight = Math.min(
+      Math.round(crop.height * imgHeight),
+      imgHeight - extractTop,
+    );
+    sourceBuffer = await sharp(rotated.data)
+      .extract({
+        left: extractLeft,
+        top: extractTop,
+        width: extractWidth,
+        height: extractHeight,
+      })
+      .toBuffer();
+  }
+
+  const s3Client = createS3Client();
+
+  function uploadBufferWithPipeline(
+    buf: Buffer,
+    pipeline: ImageProcessingPipeline,
+    s3Key: string,
+  ) {
+    const transformer = sharp(buf);
+    const transformed = pipeline.transform(transformer);
+    transformed.webp({ quality: pipeline.quality || 80 });
+
+    const passThrough = new PassThrough();
+    transformed.pipe(passThrough);
+
+    return new Upload({
+      client: s3Client,
+      params: {
+        Bucket: env.S3_BUCKET,
+        Key: s3Key,
+        Body: passThrough,
+        ContentType: "image/webp",
+      },
+    }).done();
+  }
+
+  await Promise.all([
+    uploadBufferWithPipeline(sourceBuffer, PROCESSING_PIPELINES.square, mainKey),
+    uploadBufferWithPipeline(sourceBuffer, PROCESSING_PIPELINES.squareSmall, smallKey),
+  ]);
+
+  const buildUrl = (key: string) =>
+    env.AWS_ENDPOINT
+      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${key}`
+      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
+
+  return {
+    main: { key: mainKey, bucket: env.S3_BUCKET, url: buildUrl(mainKey) },
+    small: { key: smallKey, bucket: env.S3_BUCKET, url: buildUrl(smallKey) },
   };
 }
 

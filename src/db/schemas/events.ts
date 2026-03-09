@@ -33,6 +33,8 @@ export const events = sqliteTable("events", {
   visibility: text("visibility", { enum: ["group-only", "global"] })
     .notNull()
     .default("global"),
+  image1: text("image1"),
+  image2: text("image2"),
   deletedAt: text("deleted_at"),
   deletedBy: text("deleted_by").references(() => users.id),
   createdAt: text("created_at")

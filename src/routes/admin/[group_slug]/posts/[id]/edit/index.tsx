@@ -9,12 +9,15 @@ import {
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { BlockNoteEditor } from "~/components/editor";
+import { GroupImageUpload } from "~/components/groups/GroupImageUpload";
+import { SquareImageCropper } from "~/components/ui/SquareImageCropper";
 import { postsService } from "~/services/posts.service";
 
 const updateSchema = z.object({
   title: z.string().min(1, "Title is required"),
   content: z.string(),
   editorState: z.string().optional(),
+  featuredImage: z.string().optional(),
 });
 
 export const usePost = routeLoader$(async (event) => {
@@ -39,6 +42,7 @@ export const useUpdatePost = routeAction$(async (data, event) => {
     const updated = await postsService.update(postId, {
       title: data.title,
       editorState: data.editorState || null,
+      featuredImage: data.featuredImage || null,
     });
 
     if (!updated) {
@@ -88,6 +92,13 @@ export default component$(() => {
             value={data.value.post.title}
             placeholder="Enter post title"
             required
+          />
+
+          <SquareImageCropper
+            name="featuredImage"
+            label="Featured Image (optional)"
+            uploadPath="public/posts/"
+            currentImageUrl={(data.value.post as any).featuredImage}
           />
 
           <div>

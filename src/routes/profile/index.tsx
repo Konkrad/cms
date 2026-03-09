@@ -4,6 +4,7 @@ import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { env } from "~/env";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
+import { deriveProfilePicSmallKey } from "~/utils/images";
 import { formatUser } from "~/utils/users";
 
 export const useProfile = routeLoader$(async (event) => {
@@ -24,13 +25,10 @@ export const useProfile = routeLoader$(async (event) => {
     profilePictureUrl = env.AWS_ENDPOINT
       ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${key}`
       : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
-  }
-
-  if (user.profilePictureSmall) {
-    const key = user.profilePictureSmall.replace(/^\//, "");
+    const smallKey = deriveProfilePicSmallKey(user.profilePicture).replace(/^\//, "");
     profilePictureSmallUrl = env.AWS_ENDPOINT
-      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${key}`
-      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
+      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${smallKey}`
+      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${smallKey}`;
   }
 
   return {

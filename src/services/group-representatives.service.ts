@@ -12,7 +12,7 @@ export type RepresentativeWithUser = GroupRepresentative & {
     id: string;
     name: string;
     familyName: string;
-    profilePictureSmall: string | null;
+    profilePicture: string | null;
   };
 };
 
@@ -69,7 +69,7 @@ export const groupRepresentativesService = {
           id: users.id,
           name: users.name,
           familyName: users.familyName,
-          profilePictureSmall: users.profilePictureSmall,
+          profilePicture: users.profilePicture,
         },
       })
       .from(groupRepresentatives)

@@ -10,6 +10,7 @@ import { groupRepresentativesService } from "~/services/group-representatives.se
 import { eventsService } from "~/services/events.service";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { buildProfileUrl } from "~/utils/users";
+import { deriveProfilePicSmallKey } from "~/utils/images";
 import { FeatureGrid } from "~/components/page-blocks/FeatureBlock/FeatureGrid";
 import { ImageTile } from "~/components/page-blocks/FeatureBlock/ImageTile";
 import { ParticipantsTile } from "~/components/page-blocks/FeatureBlock/ParticipantsTile";
@@ -39,7 +40,7 @@ export const useGroupData = routeLoader$(async (event) => {
           id: users.id,
           name: users.name,
           familyName: users.familyName,
-          profilePictureSmall: users.profilePictureSmall,
+          profilePicture: users.profilePicture,
         })
         .from(groupMemberships)
         .innerJoin(users, eq(groupMemberships.userId, users.id))
@@ -68,7 +69,7 @@ export const useGroupData = routeLoader$(async (event) => {
     ? {
         name: `${rep.user.name} ${rep.user.familyName}`,
         subtitle: `Local Rep ${group.name}`,
-        profilePictureUrl: rep.user.profilePictureSmall,
+        profilePictureUrl: rep.user.profilePicture ? deriveProfilePicSmallKey(rep.user.profilePicture) : null,
         profileUrl: buildProfileUrl({ id: rep.userId, name: rep.user.name, familyName: rep.user.familyName }),
       }
     : null;
@@ -78,7 +79,10 @@ export const useGroupData = routeLoader$(async (event) => {
     memberCount,
     pastEventCount,
     recentMembers: recentMembers.map((m) => ({
-      ...m,
+      id: m.id,
+      name: m.name,
+      familyName: m.familyName,
+      profilePictureSmall: m.profilePicture ? deriveProfilePicSmallKey(m.profilePicture) : null,
       profileUrl: buildProfileUrl({ id: m.id, name: m.name, familyName: m.familyName }),
     })),
     rep: repData,
@@ -95,6 +99,7 @@ export const useGroupData = routeLoader$(async (event) => {
       title: p.title,
       body: p.body,
       createdAt: p.createdAt,
+      featuredImage: (p as any).featuredImage ?? null,
       authorName: `${(p as any).user.name} ${(p as any).user.familyName}`,
     })),
   };
@@ -243,6 +248,7 @@ export default component$(() => {
                 key={p.id}
                 date={p.createdAt}
                 location={p.authorName}
+                image={p.featuredImage ?? undefined}
                 description={p.body.replace(/<[^>]+>/g, "").substring(0, 150)}
                 readMoreHref={`/posts/${p.id}`}
               />

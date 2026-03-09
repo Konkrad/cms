@@ -11,7 +11,7 @@
  * - Updates the user record with the S3 keys.
  *
  * Returns:
- *   200: { success, profilePicture, profilePictureSmall, urls }
+ *   200: { success, profilePicture, urls }
  *   400 / 401 / 500 accordingly
  */
 
@@ -71,12 +71,11 @@ export const onPost: RequestHandler = async ({
     user.id,
   );
 
-  // Persist S3 keys on the user record
+  // Persist S3 key on the user record (small variant is derived by convention)
   await db
     .update(users)
     .set({
       profilePicture: `/${picture.key}`,
-      profilePictureSmall: `/${pictureSmall.key}`,
       updatedAt: new Date().toISOString(),
     })
     .where(eq(users.id, user.id));
@@ -84,10 +83,8 @@ export const onPost: RequestHandler = async ({
   json(200, {
     success: true,
     profilePicture: `/${picture.key}`,
-    profilePictureSmall: `/${pictureSmall.key}`,
     urls: {
       picture: picture.url,
-      pictureSmall: pictureSmall.url,
     },
   });
 };

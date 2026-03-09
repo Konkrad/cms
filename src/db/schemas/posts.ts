@@ -82,6 +82,7 @@ export const posts = sqliteTable("posts", {
   visibility: text("visibility", { enum: ["group-only", "global"] })
     .notNull()
     .default("global"),
+  featuredImage: text("featured_image"),
   deletedAt: text("deleted_at"),
   deletedBy: text("deleted_by").references(() => users.id),
   createdAt: text("created_at")

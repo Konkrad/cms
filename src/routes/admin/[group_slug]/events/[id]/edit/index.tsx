@@ -18,6 +18,8 @@ import { Select } from "~/components/ui/Select";
 import { TextArea } from "~/components/ui/TextArea";
 import { AddressAutocomplete } from "~/components/ui/AddressAutocomplete";
 import { SmartDatePicker } from "~/components/ui/SmartDatePicker";
+import { GroupImageUpload } from "~/components/groups/GroupImageUpload";
+import { SquareImageCropper } from "~/components/ui/SquareImageCropper";
 import { eventsService } from "~/services/events.service";
 
 export const useEvent = routeLoader$(async (event) => {
@@ -48,6 +50,8 @@ const eventSchema = z
     latitude: z.string().optional(),
     longitude: z.string().optional(),
     onlineUrl: z.string().url("Please enter a valid URL").optional(),
+    image1: z.string().optional(),
+    image2: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     // Validate address is provided for in_person or hybrid events
@@ -121,6 +125,8 @@ export const useUpdateEvent = routeAction$(async (data, event) => {
     latitude: data.latitude || null,
     longitude: data.longitude || null,
     onlineUrl: data.onlineUrl || null,
+    image1: data.image1 || null,
+    image2: data.image2 || null,
   } as any);
 
   return {
@@ -258,6 +264,22 @@ export default component$(() => {
               required={locationType.value !== "in_person"}
             />
           )}
+
+          <hr class="border-gray-200" />
+          <p class="text-sm font-semibold text-gray-700">Event Page Images</p>
+
+          <SquareImageCropper
+            name="image1"
+            label="Image Left (square)"
+            uploadPath="public/events/"
+            currentImageUrl={(event.value as any).image1}
+          />
+          <SquareImageCropper
+            name="image2"
+            label="Image Right (square)"
+            uploadPath="public/events/"
+            currentImageUrl={(event.value as any).image2}
+          />
 
           {updateEventAction.value?.fieldErrors && (
             <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">

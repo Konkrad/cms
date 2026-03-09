@@ -22,6 +22,7 @@ import { groupMemberships } from "~/db/schemas/group-memberships";
 import { eq, and, isNotNull, inArray } from "drizzle-orm";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { env } from "~/env";
+import { deriveProfilePicSmallKey } from "~/utils/images";
 
 import { FeatureGrid } from "~/components/page-blocks/FeatureBlock/FeatureGrid";
 import { EventDateTile } from "~/components/page-blocks/FeatureBlock/EventDateTile";
@@ -142,7 +143,7 @@ export const useEvent = routeLoader$(async (requestEvent) => {
       id: u.id,
       name: u.name as string,
       familyName: u.familyName as string,
-      profilePictureSmall: buildPicUrl(u.profilePictureSmall ?? null),
+      profilePictureSmall: buildPicUrl(u.profilePicture ? deriveProfilePicSmallKey(u.profilePicture) : null),
       groupLabel: userGroupLabels[u.id] ?? null,
       city: (u.city ?? null) as string | null,
       country: (u.country ?? null) as string | null,
@@ -251,6 +252,8 @@ export const useEvent = routeLoader$(async (requestEvent) => {
     locationDisplay,
     participants,
     mapboxAccessToken: env.PUBLIC_MAPBOX_ACCESS_TOKEN,
+    image1: event.image1 ?? null,
+    image2: event.image2 ?? null,
   };
 });
 
@@ -364,7 +367,9 @@ export default component$(() => {
     event.value.participationSummary.maybe;
 
   const mapImage =
-    event.value.mapImageUrl ?? "https://picsum.photos/600/600?grayscale";
+    event.value.locationType === "online"
+      ? "/online.png"
+      : (event.value.mapImageUrl ?? "https://picsum.photos/600/600?grayscale");
 
   const showParticipantsModal = useSignal(false);
 
@@ -505,18 +510,22 @@ export default component$(() => {
           )}
 
           {/* Top-right: Event Image */}
-          <ImageTile
-            area="right-top"
-            image="https://picsum.photos/400/500"
-            alt={event.value.title}
-          />
+          {event.value.image2 && (
+            <ImageTile
+              area="right-top"
+              image={event.value.image2}
+              alt={event.value.title}
+            />
+          )}
 
           {/* Bottom-left: Event Image */}
-          <ImageTile
-            area="left-bottom"
-            image="https://picsum.photos/400/400"
-            alt={event.value.title}
-          />
+          {event.value.image1 && (
+            <ImageTile
+              area="left-bottom"
+              image={event.value.image1}
+              alt={event.value.title}
+            />
+          )}
 
           {/* Bottom-right: Participants */}
           <ParticipantsTile

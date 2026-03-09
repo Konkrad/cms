@@ -3,6 +3,7 @@ import type { RequestHandler } from "@builder.io/qwik-city";
 import { routeAction$, routeLoader$ } from "@builder.io/qwik-city";
 import { Navigation } from "~/components/ui/Navigation";
 import { menuItemsService } from "~/services/menu-items.service";
+import { deriveProfilePicSmallKey } from "~/utils/images";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { eq } from "drizzle-orm";
 import { db } from "~/db/connection";
@@ -33,8 +34,8 @@ export const useUserSession = routeLoader$(async (event) => {
   // Compute profile picture URL server-side so client components never need `env`
   let profilePictureSmallUrl: string | null = null;
   const u = userData as any;
-  if (u.profilePictureSmall) {
-    const s3Key = u.profilePictureSmall.replace(/^\//, "");
+  if (u.profilePicture) {
+    const s3Key = deriveProfilePicSmallKey(u.profilePicture).replace(/^\//, "");
     profilePictureSmallUrl = env.AWS_ENDPOINT
       ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${s3Key}`
       : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${s3Key}`;

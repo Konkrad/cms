@@ -4,6 +4,8 @@ interface GroupImageUploadProps {
   name: string;
   label: string;
   value?: string | null;
+  pipeline?: string;
+  uploadPath?: string;
 }
 
 export const GroupImageUpload = component$<GroupImageUploadProps>((props) => {
@@ -15,13 +17,16 @@ export const GroupImageUpload = component$<GroupImageUploadProps>((props) => {
     uploading.value = true;
     error.value = null;
 
+    const pipeline = props.pipeline ?? "standard";
+    const uploadPath = props.uploadPath ?? "public/groups/";
+
     const res = await fetch(
-      `/api/images?pipeline=standard&filename=${encodeURIComponent(file.name.replace(/\.[^.]+$/, ""))}`,
+      `/api/images?pipeline=${pipeline}&filename=${encodeURIComponent(file.name.replace(/\.[^.]+$/, ""))}`,
       {
         method: "POST",
         headers: {
           "Content-Type": file.type,
-          "x-upload-path": "public/groups/",
+          "x-upload-path": uploadPath,
         },
         body: file,
       },

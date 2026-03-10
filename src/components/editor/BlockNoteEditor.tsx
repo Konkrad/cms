@@ -28,17 +28,18 @@ const QwikBlockNoteEditor = qwikify$(ReactLoader, {
 
 interface BlockNoteEditorProps {
   editorState: string | null;
+  content?: string;
   onChange$: QRL<(content: string, editorState: string) => void>;
   uploadUrl?: string;
 }
 
 export const BlockNoteEditor = component$<BlockNoteEditorProps>(
-  ({ editorState, onChange$, uploadUrl }) => {
+  ({ editorState, content, onChange$, uploadUrl }) => {
     return (
       <div class="blocknote-editor-container">
         <QwikBlockNoteEditor
           editorState={editorState || ""}
-          content=""
+          content={content || ""}
           onChange$={onChange$}
           uploadUrl={uploadUrl}
         />

@@ -108,6 +108,7 @@ export default component$(() => {
             <div class="border border-gray-300 rounded-lg overflow-hidden">
               <BlockNoteEditor
                 editorState={data.value.post.editorState}
+                content={data.value.post.body || ""}
                 onChange$={handleEditorChange$}
                 uploadUrl="/api/images"
               />

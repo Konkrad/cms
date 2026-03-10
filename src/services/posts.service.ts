@@ -1,4 +1,4 @@
-import { desc, eq, lt, isNull, and, or, inArray } from "drizzle-orm";
+import { desc, eq, lt, isNull, and, or, inArray, sql } from "drizzle-orm";
 import { db } from "~/db/connection";
 import type { InsertPost, UpdatePost, Post } from "~/db/schemas/posts";
 import { posts, insertPostSchema, updatePostSchema } from "~/db/schemas/posts";
@@ -48,6 +48,37 @@ export const postsService = {
   async getRecent(limit: number = 3): Promise<PostWithUser[]> {
     const res = await this.getAll(limit);
     return res.items;
+  },
+
+  async getPage(
+    page: number,
+    perPage: number = 10,
+  ): Promise<{ items: PostWithUser[]; totalPages: number }> {
+    const pageIndex = Math.max(0, page);
+    const safePerPage = Math.max(1, perPage);
+
+    const totalResult = await db
+      .select({ total: sql<number>`count(*)` })
+      .from(posts)
+      .where(isNull(posts.deletedAt));
+
+    const total = Number(totalResult[0]?.total ?? 0);
+    const totalPages = Math.ceil(total / safePerPage);
+
+    const items = await db.query.posts.findMany({
+      with: {
+        user: true,
+      },
+      where: isNull(posts.deletedAt),
+      orderBy: [desc(posts.createdAt), desc(posts.id)],
+      limit: safePerPage,
+      offset: pageIndex * safePerPage,
+    });
+
+    return {
+      items: items as PostWithUser[],
+      totalPages,
+    };
   },
 
   async getById(id: string): Promise<PostWithUser | undefined> {

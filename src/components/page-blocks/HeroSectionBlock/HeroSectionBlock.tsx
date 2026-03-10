@@ -1,7 +1,8 @@
 import { $, component$, useSignal, useTask$ } from "@builder.io/qwik";
-import { Link, server$ } from "@builder.io/qwik-city";
+import { server$ } from "@builder.io/qwik-city";
 import type { BlockDefinition } from "~/db/schema";
 import type { PostWithUser } from "~/services/posts.service";
+import { ActionButton } from "~/components/ui/ActionButton";
 import "./HeroSectionBlock.css";
 
 export const definition: BlockDefinition = {
@@ -104,43 +105,10 @@ export default component$(() => {
         <div class="hero-section-mobile-card">
           <h2 class="hero-section-mobile-title">{slide.title}</h2>
 
-          <Link
+          <ActionButton
             href={`/posts/${slide.id}`}
-            class="hero-section-mobile-cta"
-          >
-            <div class="hero-section-arrow-circle">
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </div>
-
-            <span class="hero-section-mobile-cta-text">Read more</span>
-
-            <svg
-              width="19"
-              height="18"
-              viewBox="0 0 19 18"
-              fill="none"
-              class="hero-section-mobile-small-arrow"
-            >
-              <path
-                d="M4 9h11M11 4.5L15 9l-4 4.5"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </Link>
+            label="Read more"
+          />
         </div>
       </div>
 
@@ -175,12 +143,10 @@ export default component$(() => {
             <p class="hero-section-desktop-description">{excerpt}</p>
           )}
 
-          <Link
+          <ActionButton
             href={`/posts/${slide.id}`}
-            class="hero-section-desktop-button"
-          >
-            Read the Article
-          </Link>
+            label="Read the Article"
+          />
         </div>
       </div>
 

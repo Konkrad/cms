@@ -33,23 +33,6 @@
   margin: 0 0 2rem 0;
 }
 
-.lcm-cta {
-  display: inline-block;
-  background: #96c046;
-  color: #111111;
-  font-family: "Rubik", sans-serif;
-  font-size: 0.95rem;
-  font-weight: 600;
-  padding: 0.75rem 1.6rem;
-  border-radius: 999px;
-  text-decoration: none;
-  transition: background 0.15s ease;
-}
-
-.lcm-cta:hover {
-  background: #7da836;
-}
-
 .lcm-map-wrap {
   flex: 1;
   position: relative;

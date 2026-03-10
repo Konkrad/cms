@@ -1,6 +1,7 @@
 import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { server$ } from "@builder.io/qwik-city";
 import type { BlockDefinition } from "~/db/schema";
+import { ActionButton } from "~/components/ui/ActionButton";
 import "./LocalCommunitiesMapBlock.css";
 
 export const definition: BlockDefinition = {
@@ -208,9 +209,7 @@ export default component$<LocalCommunitiesMapBlockProps>((props) => {
       <div class="lcm-text">
         <h2 class="lcm-title">{title}</h2>
         <p class="lcm-body">{body}</p>
-        <a href={ctaHref} class="lcm-cta">
-          {ctaLabel}
-        </a>
+        <ActionButton href={ctaHref} label={ctaLabel} />
       </div>
 
       <div class="lcm-map-wrap" ref={mapWrapRef}>

@@ -10,6 +10,7 @@ const componentModules = {
   PostsListBlock: () => import("~/components/page-blocks/PostsListBlock"),
   SpacerBlock: () => import("~/components/page-blocks/SpacerBlock"),
   FeatureBlock: () => import("~/components/page-blocks/FeatureBlock"),
+  ActionButtonBlock: () => import("~/components/page-blocks/ActionButtonBlock"),
   LocalCommunitiesMapBlock: () =>
     import("~/components/page-blocks/LocalCommunitiesMapBlock"),
   HeroSectionBlock: () => import("~/components/page-blocks/HeroSectionBlock"),

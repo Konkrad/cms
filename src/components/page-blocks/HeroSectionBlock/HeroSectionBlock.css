@@ -96,43 +96,6 @@
   line-height: 1.4;
 }
 
-.hero-section-mobile-cta {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  cursor: pointer;
-  color: #fff;
-  font-family: "Lato", sans-serif;
-  text-decoration: none;
-}
-
-.hero-section-mobile-cta:hover .hero-section-mobile-cta-text {
-  text-decoration: underline;
-}
-
-.hero-section-arrow-circle {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background-color: #96c247;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: #034ea2;
-}
-
-.hero-section-mobile-cta-text {
-  font-size: 14px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.hero-section-mobile-small-arrow {
-  width: 19px;
-  height: 18px;
-  color: #fff;
-}
 
 /* ══════════════════════════════════
    Desktop Layout
@@ -219,26 +182,6 @@
   color: rgba(0, 0, 0, 0.8);
   margin: 0 0 2.5rem;
   max-width: 583px;
-}
-
-.hero-section-desktop-button {
-  display: inline-block;
-  background-color: #96c247;
-  color: #fff;
-  font-family: "Lato", sans-serif;
-  font-weight: 700;
-  font-size: 20px;
-  padding: 18px 40px;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  text-decoration: none;
-  transition: transform 0.2s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.hero-section-desktop-button:hover {
-  transform: scale(1.05);
 }
 
 /* ══════════════════════════════════

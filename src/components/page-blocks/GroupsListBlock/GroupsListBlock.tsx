@@ -2,7 +2,7 @@ import { component$, useSignal, useTask$ } from "@builder.io/qwik";
 import { server$ } from "@builder.io/qwik-city";
 import type { BlockDefinition } from "~/db/schema";
 import type { Group } from "~/db/schema";
-import { GroupCard } from "./GroupCard";
+import { ListCard } from "../ListCard";
 import { deriveSquareSmallUrl } from "~/utils/images";
 
 export const definition: BlockDefinition = {
@@ -68,12 +68,13 @@ export default component$(() => {
       ) : (
         <div class="flex flex-col gap-6">
           {groups.value.map((group) => (
-            <GroupCard
+            <ListCard
               key={group.id}
-              name={group.name}
-              memberCount={group.memberCount}
+              title={group.name}
               image={group.image1 ? deriveSquareSmallUrl(group.image1) : null}
+              topRight={`${group.memberCount} ${group.memberCount === 1 ? "member" : "members"}`}
               readMoreHref={`/groups/${group.slug}`}
+              readMoreLabel="Read More"
             />
           ))}
         </div>

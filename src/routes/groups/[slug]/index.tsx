@@ -15,12 +15,35 @@ import { FeatureGrid } from "~/components/page-blocks/FeatureBlock/FeatureGrid";
 import { ImageTile } from "~/components/page-blocks/FeatureBlock/ImageTile";
 import { ParticipantsTile } from "~/components/page-blocks/FeatureBlock/ParticipantsTile";
 import { LocalRepTile } from "~/components/groups/LocalRepTile";
-import { EventCard } from "~/components/page-blocks/EventCard";
+import { ListCard } from "~/components/page-blocks/ListCard";
 import { BlogCard } from "~/components/page-blocks/BlogCard";
 
 const GRID_LAYOUT = `"left-top middle right-top" "left-bottom middle right-top" "left-bottom middle right-bottom"`;
 const FALLBACK =
   "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800";
+
+function formatEventDate(startDate: string, endDate?: string): string {
+  const start = new Date(startDate);
+  const day = new Intl.DateTimeFormat("en-US", { day: "numeric" }).format(start);
+  const month = new Intl.DateTimeFormat("en-US", { month: "long" }).format(start);
+  const startTime = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(start);
+
+  if (!endDate) {
+    return `${day} ${month} · ${startTime}`;
+  }
+
+  const endTime = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(new Date(endDate));
+
+  return `${day} ${month} · ${startTime} - ${endTime}`;
+}
 
 export const useGroupData = routeLoader$(async (event) => {
   const { params, redirect } = event;
@@ -273,14 +296,14 @@ export default component$(() => {
                 e.address ||
                 (e.locationType === "online" ? "Online" : "TBA");
               return (
-                <EventCard
+                <ListCard
                   key={e.id}
-                  date={e.startDate}
-                  endDate={e.endDate}
                   title={e.title}
-                  location={location}
                   image={e.image1 ?? undefined}
+                  date={formatEventDate(e.startDate, e.endDate)}
+                  topRight={location}
                   readMoreHref={`/events/${e.id}`}
+                  readMoreLabel="Open Tickets"
                 />
               );
             })}

@@ -1,10 +1,13 @@
-import { component$, Slot } from "@builder.io/qwik";
+import { component$ } from "@builder.io/qwik";
 import { ReadMoreButton } from "./ReadMoreButton";
 
 interface ListCardProps {
   image?: string | null;
   imageAlt?: string;
   title: string;
+  date?: string;
+  topRight?: string;
+  description?: string;
   readMoreHref?: string;
   readMoreLabel?: string;
 }
@@ -14,6 +17,9 @@ export const ListCard = component$<ListCardProps>(
     image,
     imageAlt = "",
     title,
+    date,
+    topRight,
+    description,
     readMoreHref = "#",
     readMoreLabel = "Read More",
   }) => {
@@ -35,13 +41,22 @@ export const ListCard = component$<ListCardProps>(
         {/* Content Area */}
         <div class="flex-1 flex flex-col py-5 px-5 sm:px-8 min-w-0">
           {/* Top row */}
-          <div class="flex items-start justify-between gap-4">
-            <Slot name="top-left" />
-            <Slot name="top-right" />
-          </div>
-
-          {/* Subtitle beneath top row */}
-          <Slot name="subtitle" />
+          {(date || topRight) && (
+            <div class="flex items-start justify-between gap-4">
+              {date ? (
+                <p class="font-['Lato',sans-serif] font-normal text-[13px] leading-[1.4] text-gray-500 mt-0.5">
+                  {date}
+                </p>
+              ) : (
+                <div />
+              )}
+              {topRight && (
+                <p class="font-['Lato',sans-serif] font-normal text-[14px] leading-[1.4] text-black text-right">
+                  {topRight}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Separator */}
           <div class="w-full h-px bg-black/10 my-3" />
@@ -50,6 +65,12 @@ export const ListCard = component$<ListCardProps>(
           <h3 class="font-['Lato',sans-serif] font-bold text-[18px] sm:text-[22px] md:text-[24px] leading-[1.3] text-black">
             {title}
           </h3>
+
+          {description && (
+            <p class="font-['Lato',sans-serif] font-normal text-[15px] leading-[1.5] text-gray-700 mt-2">
+              {description}
+            </p>
+          )}
 
           {/* Action Button */}
           <div class="mt-3">

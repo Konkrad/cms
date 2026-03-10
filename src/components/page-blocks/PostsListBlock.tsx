@@ -2,7 +2,7 @@ import { component$, useSignal, useTask$ } from "@builder.io/qwik";
 import { server$, type RequestEventCommon } from "@builder.io/qwik-city";
 import type { BlockDefinition } from "~/db/schema";
 import type { PostWithUser } from "~/services/posts.service";
-import { BlogCard } from "./BlogCard";
+import { ListCard } from "./ListCard";
 
 interface PostsListBlockProps {
   limit?: number;
@@ -78,15 +78,20 @@ export default component$<PostsListBlockProps>((props) => {
       ) : posts.value.length === 0 ? (
         <p class="text-gray-500 text-center py-8">No posts found.</p>
       ) : (
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="flex flex-col gap-6">
           {posts.value.map((post) => (
-            <BlogCard
+            <ListCard
               key={post.id}
-              date={post.createdAt}
-              description={post.body}
               title={post.title}
               image={post.featuredImage ?? undefined}
+              date={new Intl.DateTimeFormat("en-US", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              }).format(new Date(post.createdAt))}
+              description={post.body.replace(/<[^>]+>/g, "").substring(0, 160)}
               readMoreHref={`/posts/${post.id}`}
+              readMoreLabel="Read More"
             />
           ))}
         </div>

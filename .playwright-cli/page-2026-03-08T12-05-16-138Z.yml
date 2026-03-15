@@ -1,0 +1,80 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e4]:
+      - link "Community Hub" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - link "Events" [ref=e9] [cursor=pointer]:
+            - /url: /events
+          - link "Home" [ref=e10] [cursor=pointer]:
+            - /url: /
+          - link "Groups" [ref=e11] [cursor=pointer]:
+            - /url: /groups
+        - button "Konrad Kleeberger" [ref=e13] [cursor=pointer]:
+          - text: Konrad Kleeberger
+          - img [ref=e14]
+  - main [ref=e16]:
+    - generic [ref=e19]:
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - heading "Platform Admin" [level=1] [ref=e24]
+          - link "Back to Site" [ref=e26] [cursor=pointer]:
+            - /url: /
+        - navigation [ref=e27]:
+          - link "Dashboard" [ref=e28] [cursor=pointer]:
+            - /url: /admin/global
+          - link "Users" [ref=e29] [cursor=pointer]:
+            - /url: /admin/global/users
+          - link "Posts" [ref=e30] [cursor=pointer]:
+            - /url: /admin/global/posts
+          - link "Events" [ref=e31] [cursor=pointer]:
+            - /url: /admin/global/events
+          - link "Pages" [ref=e32] [cursor=pointer]:
+            - /url: /admin/global/pages
+          - link "Groups" [ref=e33] [cursor=pointer]:
+            - /url: /admin/global/groups
+      - generic [ref=e34]:
+        - navigation [ref=e35]:
+          - link "Admin" [ref=e37] [cursor=pointer]:
+            - /url: /admin/global
+          - generic [ref=e38]:
+            - generic [ref=e39]: /
+            - generic [ref=e40]: Platform Admin
+          - generic [ref=e41]:
+            - generic [ref=e42]: /
+            - generic [ref=e43]: Events
+        - generic [ref=e44]:
+          - navigation [ref=e45]:
+            - generic [ref=e46]:
+              - link "Details" [ref=e47] [cursor=pointer]:
+                - /url: /admin/global/events/fcd34e3d-3104-4207-9fd4-0005c66380eb/details/
+              - link "Products" [ref=e48] [cursor=pointer]:
+                - /url: /admin/global/events/fcd34e3d-3104-4207-9fd4-0005c66380eb/products/
+              - link "Participants" [ref=e49] [cursor=pointer]:
+                - /url: /admin/global/events/fcd34e3d-3104-4207-9fd4-0005c66380eb/participation/
+              - link "Transactions" [ref=e50] [cursor=pointer]:
+                - /url: /admin/global/events/fcd34e3d-3104-4207-9fd4-0005c66380eb/transactions/
+              - link "Tickets" [ref=e51] [cursor=pointer]:
+                - /url: /admin/global/events/fcd34e3d-3104-4207-9fd4-0005c66380eb/tickets/
+              - link "Photos" [ref=e52] [cursor=pointer]:
+                - /url: /admin/global/events/fcd34e3d-3104-4207-9fd4-0005c66380eb/photos/
+          - generic [ref=e53]:
+            - generic [ref=e54]:
+              - 'heading "Manage Photos: Cologne Public Meet & Greet" [level=1] [ref=e55]'
+              - paragraph [ref=e56]: Upload photos that will be visible to attendees who were scanned
+            - generic [ref=e59]:
+              - heading "Upload Event Photos" [level=3] [ref=e60]
+              - generic [ref=e61]:
+                - paragraph [ref=e62]: "Upload Guidelines:"
+                - list [ref=e63]:
+                  - listitem [ref=e64]: Only images (JPEG, PNG, WebP) are accepted
+                  - listitem [ref=e65]: "Maximum file size: 10MB per image"
+                  - listitem [ref=e66]: Photos will be optimized automatically
+                  - listitem [ref=e67]: Only attendees who were scanned can view photos
+            - generic [ref=e68]:
+              - heading "Uploaded Photos (0)" [level=2] [ref=e69]
+              - paragraph [ref=e71]: No photos uploaded yet. Use the uploader above to add photos.
+            - link "← Back to Event Dashboard" [ref=e73] [cursor=pointer]:
+              - /url: /admin/global/events/fcd34e3d-3104-4207-9fd4-0005c66380eb
+  - generic [ref=e74]: "Click-to-Source: Alt"

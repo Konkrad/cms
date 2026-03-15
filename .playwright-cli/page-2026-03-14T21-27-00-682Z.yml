@@ -1,0 +1,156 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - link "MailpitMailpit" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - img "Mailpit" [ref=e6]
+      - text: Mailpit
+    - generic [ref=e9]:
+      - textbox "Search" [ref=e11]:
+        - /placeholder: Search mailbox
+      - button "" [ref=e12] [cursor=pointer]:
+        - generic [ref=e13]: 
+    - generic [ref=e14]:
+      - text: 
+      - combobox [ref=e15]:
+        - option "25"
+        - option "50" [selected]
+        - option "100"
+        - option "200"
+      - generic [ref=e16]: 1-11 of 11
+      - button "" [disabled]:
+        - generic: 
+      - button "" [disabled]:
+        - generic: 
+  - text:      
+  - generic [ref=e17]:
+    - generic [ref=e18]:
+      - generic [ref=e20]:
+        - button " Inbox 1" [ref=e21] [cursor=pointer]:
+          - generic [ref=e22]: 
+          - text: Inbox
+          - generic "Unread messages" [ref=e23]: "1"
+        - button " Mark all read" [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]: 
+          - text: Mark all read
+        - button " Delete all" [ref=e26] [cursor=pointer]:
+          - generic [ref=e27]: 
+          - text: Delete all
+      - generic [ref=e28]:
+        - button " About" [ref=e29] [cursor=pointer]:
+          - generic [ref=e30]: 
+          - text: About
+        - button "" [ref=e31] [cursor=pointer]:
+          - generic [ref=e32]: 
+        - button "" [ref=e33] [cursor=pointer]:
+          - generic [ref=e34]: 
+    - generic [ref=e37]:
+      - 'link "no-reply@example.com To: test@example.com Sign in to My Community App Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: ZMDDIJ The link and code ex... 5.9 kB a few seconds ago" [ref=e38] [cursor=pointer]':
+        - /url: /view/oUAWm3d57znzBP6BB9W7KS
+        - generic [ref=e39]:
+          - generic [ref=e41]: no-reply@example.com
+          - generic [ref=e43]: "To: test@example.com"
+        - generic [ref=e44]:
+          - generic [ref=e45]: Sign in to My Community App
+          - generic [ref=e46]: "Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: ZMDDIJ The link and code ex..."
+        - generic [ref=e47]: 5.9 kB
+        - generic [ref=e48]: a few seconds ago
+      - 'link "no-reply@example.com To: test@example.com Sign in to My Community App Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: TJKPLK The link and code ex... 5.9 kB 9 minutes ago" [ref=e49] [cursor=pointer]':
+        - /url: /view/6omtWxGhw3bSVxLdG3JMtb
+        - generic [ref=e50]:
+          - generic [ref=e52]: no-reply@example.com
+          - generic [ref=e54]: "To: test@example.com"
+        - generic [ref=e55]:
+          - generic [ref=e56]: Sign in to My Community App
+          - generic [ref=e57]: "Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: TJKPLK The link and code ex..."
+        - generic [ref=e58]: 5.9 kB
+        - generic [ref=e59]: 9 minutes ago
+      - 'link "no-reply@example.com To: test@example.com Sign in to My Community App Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: EDMAQV The link and code ex... 5.9 kB 5 days ago" [ref=e60] [cursor=pointer]':
+        - /url: /view/c9ctkcAK6tPFT9ciqAhAhd
+        - generic [ref=e61]:
+          - generic [ref=e63]: no-reply@example.com
+          - generic [ref=e65]: "To: test@example.com"
+        - generic [ref=e66]:
+          - generic [ref=e67]: Sign in to My Community App
+          - generic [ref=e68]: "Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: EDMAQV The link and code ex..."
+        - generic [ref=e69]: 5.9 kB
+        - generic [ref=e70]: 5 days ago
+      - 'link "no-reply@example.com To: test@example.com Sign in to My Community App Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: UZLIKO The link and code ex... 5.9 kB 6 days ago" [ref=e71] [cursor=pointer]':
+        - /url: /view/SRMszwRbyzgG4JpsR282GT
+        - generic [ref=e72]:
+          - generic [ref=e74]: no-reply@example.com
+          - generic [ref=e76]: "To: test@example.com"
+        - generic [ref=e77]:
+          - generic [ref=e78]: Sign in to My Community App
+          - generic [ref=e79]: "Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: UZLIKO The link and code ex..."
+        - generic [ref=e80]: 5.9 kB
+        - generic [ref=e81]: 6 days ago
+      - 'link "no-reply@example.com To: test@example.com Sign in to My Community App Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: CNVLZU The link and code ex... 5.9 kB 6 days ago" [ref=e82] [cursor=pointer]':
+        - /url: /view/ieVoDApucgAaeu7jquLw7q
+        - generic [ref=e83]:
+          - generic [ref=e85]: no-reply@example.com
+          - generic [ref=e87]: "To: test@example.com"
+        - generic [ref=e88]:
+          - generic [ref=e89]: Sign in to My Community App
+          - generic [ref=e90]: "Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: CNVLZU The link and code ex..."
+        - generic [ref=e91]: 5.9 kB
+        - generic [ref=e92]: 6 days ago
+      - 'link "no-reply@example.com To: test@example.com Sign in to My Community App Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: QHUYIC The link and code ex... 5.9 kB 6 days ago" [ref=e93] [cursor=pointer]':
+        - /url: /view/WJhetjpaUkmwepwXvtdm5G
+        - generic [ref=e94]:
+          - generic [ref=e96]: no-reply@example.com
+          - generic [ref=e98]: "To: test@example.com"
+        - generic [ref=e99]:
+          - generic [ref=e100]: Sign in to My Community App
+          - generic [ref=e101]: "Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: QHUYIC The link and code ex..."
+        - generic [ref=e102]: 5.9 kB
+        - generic [ref=e103]: 6 days ago
+      - 'link "no-reply@example.com To: test@example.com Sign in to My Community App Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: GVKWKW The link and code ex... 5.9 kB 6 days ago" [ref=e104] [cursor=pointer]':
+        - /url: /view/ZZ4VHGCmnkQd3vMDsSuReZ
+        - generic [ref=e105]:
+          - generic [ref=e107]: no-reply@example.com
+          - generic [ref=e109]: "To: test@example.com"
+        - generic [ref=e110]:
+          - generic [ref=e111]: Sign in to My Community App
+          - generic [ref=e112]: "Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: GVKWKW The link and code ex..."
+        - generic [ref=e113]: 5.9 kB
+        - generic [ref=e114]: 6 days ago
+      - 'link "no-reply@example.com To: test@example.com Sign in to My Community App Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: ZNLEWC The link and code ex... 5.9 kB 11 days ago" [ref=e115] [cursor=pointer]':
+        - /url: /view/4BvNCCA7gHjZ2p2DfjyX73
+        - generic [ref=e116]:
+          - generic [ref=e118]: no-reply@example.com
+          - generic [ref=e120]: "To: test@example.com"
+        - generic [ref=e121]:
+          - generic [ref=e122]: Sign in to My Community App
+          - generic [ref=e123]: "Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: ZNLEWC The link and code ex..."
+        - generic [ref=e124]: 5.9 kB
+        - generic [ref=e125]: 11 days ago
+      - 'link "no-reply@example.com To: test@example.com Sign in to My Community App Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: AAIPML The link and code ex... 5.9 kB 2 months ago" [ref=e126] [cursor=pointer]':
+        - /url: /view/bxmLsPhjeaVr9wYKnT9N45
+        - generic [ref=e127]:
+          - generic [ref=e129]: no-reply@example.com
+          - generic [ref=e131]: "To: test@example.com"
+        - generic [ref=e132]:
+          - generic [ref=e133]: Sign in to My Community App
+          - generic [ref=e134]: "Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: AAIPML The link and code ex..."
+        - generic [ref=e135]: 5.9 kB
+        - generic [ref=e136]: 2 months ago
+      - 'link "no-reply@example.com To: test@example.com Sign in to My Community App Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: IGPZUP The link and code ex... 5.9 kB 2 months ago" [ref=e137] [cursor=pointer]':
+        - /url: /view/ZQaYNSkKhftWPpDA3VtoWA
+        - generic [ref=e138]:
+          - generic [ref=e140]: no-reply@example.com
+          - generic [ref=e142]: "To: test@example.com"
+        - generic [ref=e143]:
+          - generic [ref=e144]: Sign in to My Community App
+          - generic [ref=e145]: "Sign in to My Community App Authentication Request Use the button below to sign in, or copy the 6-letter code into the site. Sign in to My Community App Or enter this code: IGPZUP The link and code ex..."
+        - generic [ref=e146]: 5.9 kB
+        - generic [ref=e147]: 2 months ago
+      - 'link "no-reply@example.com To: test@example.com Sign in to My Community App Sign in to My Community App Sign in to My Community App Use the button below to sign in, or copy the 6-letter code into the site. Sign in Or enter this code CLFXAF The link and code expire in 15 minut... 12.7 kB 3 months ago" [ref=e148] [cursor=pointer]':
+        - /url: /view/72EmcFHf3P8TGs9qUoUSQ9
+        - generic [ref=e149]:
+          - generic [ref=e151]: no-reply@example.com
+          - generic [ref=e153]: "To: test@example.com"
+        - generic [ref=e154]:
+          - generic [ref=e155]: Sign in to My Community App
+          - generic [ref=e156]: Sign in to My Community App Sign in to My Community App Use the button below to sign in, or copy the 6-letter code into the site. Sign in Or enter this code CLFXAF The link and code expire in 15 minut...
+        - generic [ref=e157]: 12.7 kB
+        - generic [ref=e158]: 3 months ago

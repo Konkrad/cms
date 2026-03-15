@@ -1,0 +1,136 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - link "MailpitMailpit" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - img "Mailpit" [ref=e6]
+      - text: Mailpit
+    - generic [ref=e7]:
+      - text: 
+      - button " Mark read" [ref=e8] [cursor=pointer]:
+        - generic [ref=e9]: 
+        - generic [ref=e10]: Mark read
+      - button " Delete" [ref=e11] [cursor=pointer]:
+        - generic [ref=e12]: 
+        - text: Delete
+    - generic [ref=e13]:
+      - button " Download" [ref=e15] [cursor=pointer]:
+        - generic [ref=e16]: 
+        - text: Download
+      - link "":
+        - /url: /view/false
+        - generic: 
+      - link "" [ref=e17] [cursor=pointer]:
+        - /url: /view/4BvNCCA7gHjZ2p2DfjyX73
+        - generic "View next message" [ref=e18]: 
+  - generic [ref=e19]:
+    - generic [ref=e20]:
+      - button " Return to inbox" [ref=e22] [cursor=pointer]:
+        - generic [ref=e23]: 
+        - generic [ref=e24]: Return to inbox
+      - generic [ref=e26]:
+        - 'link "no-reply@example.com a few seconds ago To: test@example.com Sign in to My Community App" [ref=e27] [cursor=pointer]':
+          - /url: /view/ZZ4VHGCmnkQd3vMDsSuReZ
+          - strong [ref=e30]: no-reply@example.com
+          - generic [ref=e31]: a few seconds ago
+          - generic [ref=e33]: "To: test@example.com"
+          - generic [ref=e35]: Sign in to My Community App
+        - 'link "no-reply@example.com 5 days ago To: test@example.com Sign in to My Community App" [ref=e36] [cursor=pointer]':
+          - /url: /view/4BvNCCA7gHjZ2p2DfjyX73
+          - strong [ref=e39]: no-reply@example.com
+          - generic [ref=e40]: 5 days ago
+          - generic [ref=e42]: "To: test@example.com"
+          - generic [ref=e44]: Sign in to My Community App
+        - 'link "no-reply@example.com 2 months ago To: test@example.com Sign in to My Community App" [ref=e45] [cursor=pointer]':
+          - /url: /view/bxmLsPhjeaVr9wYKnT9N45
+          - strong [ref=e48]: no-reply@example.com
+          - generic [ref=e49]: 2 months ago
+          - generic [ref=e51]: "To: test@example.com"
+          - generic [ref=e53]: Sign in to My Community App
+        - 'link "no-reply@example.com 2 months ago To: test@example.com Sign in to My Community App" [ref=e54] [cursor=pointer]':
+          - /url: /view/ZQaYNSkKhftWPpDA3VtoWA
+          - strong [ref=e57]: no-reply@example.com
+          - generic [ref=e58]: 2 months ago
+          - generic [ref=e60]: "To: test@example.com"
+          - generic [ref=e62]: Sign in to My Community App
+        - 'link "no-reply@example.com 3 months ago To: test@example.com Sign in to My Community App" [ref=e63] [cursor=pointer]':
+          - /url: /view/72EmcFHf3P8TGs9qUoUSQ9
+          - strong [ref=e66]: no-reply@example.com
+          - generic [ref=e67]: 3 months ago
+          - generic [ref=e69]: "To: test@example.com"
+          - generic [ref=e71]: Sign in to My Community App
+      - generic [ref=e72]:
+        - button " About" [ref=e73] [cursor=pointer]:
+          - generic [ref=e74]: 
+          - text: About
+        - button "" [ref=e75] [cursor=pointer]:
+          - generic [ref=e76]: 
+        - button "" [ref=e77] [cursor=pointer]:
+          - generic [ref=e78]: 
+    - generic [ref=e81]:
+      - table [ref=e84]:
+        - rowgroup [ref=e85]:
+          - row "From <no-reply@example.com>" [ref=e86]:
+            - rowheader "From" [ref=e87]
+            - cell "<no-reply@example.com>" [ref=e88]:
+              - generic [ref=e90]:
+                - text: <
+                - link "no-reply@example.com" [ref=e91] [cursor=pointer]:
+                  - /url: /search?q=no-reply%40example.com
+                - text: ">"
+          - row "To <test@example.com>" [ref=e92]:
+            - rowheader "To" [ref=e93]
+            - cell "<test@example.com>" [ref=e94]:
+              - generic [ref=e96]:
+                - text: <
+                - link "test@example.com" [ref=e97] [cursor=pointer]:
+                  - /url: /search?q=test%40example.com
+                - text: ">"
+          - row "Subject Sign in to My Community App" [ref=e98]:
+            - rowheader "Subject" [ref=e99]
+            - cell "Sign in to My Community App" [ref=e100]:
+              - strong [ref=e101]: Sign in to My Community App
+          - row "Date Sun, 8 Mar 2026, 1:00 pm (5.9 kB)" [ref=e102]:
+            - rowheader "Date" [ref=e103]
+            - cell "Sun, 8 Mar 2026, 1:00 pm (5.9 kB)" [ref=e104]
+          - row "Tags" [ref=e105]:
+            - rowheader "Tags" [ref=e106]
+            - cell [ref=e107]:
+              - combobox "Type a value" [ref=e110]
+      - tablist [ref=e111]:
+        - tab "HTML" [selected] [ref=e113] [cursor=pointer]
+        - tab "HTML Source" [ref=e114] [cursor=pointer]
+        - tab "Text" [ref=e115] [cursor=pointer]
+        - tab "Headers" [ref=e116] [cursor=pointer]
+        - tab "Raw" [ref=e117] [cursor=pointer]
+        - tab "HTML Check 94%" [ref=e118] [cursor=pointer]:
+          - text: HTML Check
+          - generic [ref=e119]: 94%
+        - tab "Link Check" [ref=e120] [cursor=pointer]
+        - generic [ref=e121]:
+          - button "" [ref=e122] [cursor=pointer]:
+            - generic [ref=e123]: 
+          - button "" [ref=e124] [cursor=pointer]:
+            - generic [ref=e125]: 
+          - button "" [disabled]:
+            - generic: 
+      - generic [ref=e126]:
+        - tabpanel "HTML" [ref=e127]:
+          - iframe [ref=e129]:
+            - generic [active] [ref=f1e1]:
+              - generic [ref=f1e2]:
+                - img "EIT Digital Alumni Logo" [ref=f1e3]
+                - heading "Sign in to My Community App" [level=1] [ref=f1e4]
+                - paragraph [ref=f1e5]: Authentication Request
+              - generic [ref=f1e6]:
+                - paragraph [ref=f1e7]: Use the button below to sign in, or copy the 6-letter code into the site.
+                - link "Sign in to My Community App" [ref=f1e8] [cursor=pointer]:
+                  - /url: http://localhost:5173/auth/verify?token=dGVzdEBleGFtcGxlLmNvbTo4MzkxNTk1MTFjYThiZjEyYjEzZGUzZGNlZTFlYjU1Mzc0MGEwNDk1N2U2N2Y4MTQ2MWJmNDk4YzZiODNjMzUy
+                  - generic [ref=f1e9]: Sign in to My Community App
+                - paragraph [ref=f1e10]: "Or enter this code:"
+                - paragraph [ref=f1e11]: GVKWKW
+                - paragraph [ref=f1e12]: The link and code expire in 15 minutes.
+                - separator [ref=f1e13]
+                - paragraph [ref=f1e14]: If you didn't request this, you can safely ignore this email.
+                - paragraph [ref=f1e15]: For security reasons, do not share your code or sign-in link with anyone.
+              - paragraph [ref=f1e16]: © 2026 EIT Digital Alumni. All rights reserved.
+        - text:                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  

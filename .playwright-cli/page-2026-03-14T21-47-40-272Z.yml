@@ -1,0 +1,115 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e4]:
+      - link "Community Hub" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - link "Events" [ref=e9] [cursor=pointer]:
+            - /url: /events
+          - link "Home" [ref=e10] [cursor=pointer]:
+            - /url: /
+          - link "Groups" [ref=e11] [cursor=pointer]:
+            - /url: /groups
+          - link "News" [ref=e12] [cursor=pointer]:
+            - /url: /news
+        - button "Konrad Kleeberger" [ref=e14] [cursor=pointer]:
+          - text: Konrad Kleeberger
+          - img [ref=e15]
+  - main [ref=e17]:
+    - generic [ref=e20]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - heading "Platform Admin" [level=1] [ref=e25]
+          - link "Back to Site" [ref=e27] [cursor=pointer]:
+            - /url: /
+        - navigation [ref=e28]:
+          - link "Dashboard" [ref=e29] [cursor=pointer]:
+            - /url: /admin/global
+          - link "Users" [ref=e30] [cursor=pointer]:
+            - /url: /admin/global/users
+          - link "Posts" [ref=e31] [cursor=pointer]:
+            - /url: /admin/global/posts
+          - link "Events" [ref=e32] [cursor=pointer]:
+            - /url: /admin/global/events
+          - link "Forms" [ref=e33] [cursor=pointer]:
+            - /url: /admin/global/forms
+          - link "Pages" [ref=e34] [cursor=pointer]:
+            - /url: /admin/global/pages
+          - link "Groups" [ref=e35] [cursor=pointer]:
+            - /url: /admin/global/groups
+      - generic [ref=e36]:
+        - navigation [ref=e37]:
+          - link "Admin" [ref=e39] [cursor=pointer]:
+            - /url: /admin/global
+          - generic [ref=e40]:
+            - generic [ref=e41]: /
+            - generic [ref=e42]: Platform Admin
+        - generic [ref=e93]:
+          - generic [ref=e94]:
+            - heading "Manage Forms" [level=2] [ref=e95]
+            - link "Create New Form" [ref=e96] [cursor=pointer]:
+              - /url: /admin/global/forms/new
+              - button "Create New Form" [ref=e97]
+          - table [ref=e100]:
+            - rowgroup [ref=e101]:
+              - row "Title Slug Visibility System Updated Actions" [ref=e102]:
+                - columnheader "Title" [ref=e103]
+                - columnheader "Slug" [ref=e104]
+                - columnheader "Visibility" [ref=e105]
+                - columnheader "System" [ref=e106]
+                - columnheader "Updated" [ref=e107]
+                - columnheader "Actions" [ref=e108]
+            - rowgroup [ref=e109]:
+              - row "E2E Form 724682 Updated e2e_form_724682 private - Mar 14, 2026 Open Edit" [ref=e110]:
+                - cell "E2E Form 724682 Updated" [ref=e111]
+                - cell "e2e_form_724682" [ref=e112]:
+                  - code [ref=e113]: e2e_form_724682
+                - cell "private" [ref=e114]
+                - cell "-" [ref=e115]
+                - cell "Mar 14, 2026" [ref=e116]
+                - cell "Open Edit" [ref=e117]:
+                  - generic [ref=e118]:
+                    - link "Open" [ref=e119] [cursor=pointer]:
+                      - /url: /forms/e4766fbb-c8f6-4cdb-9821-7bce6f9756b1-e2e_form_724682
+                    - link "Edit" [ref=e120] [cursor=pointer]:
+                      - /url: /admin/global/forms/e4766fbb-c8f6-4cdb-9821-7bce6f9756b1/edit
+              - row "24td 4rtasdg private - Mar 14, 2026 Open Edit" [ref=e121]:
+                - cell "24td" [ref=e122]
+                - cell "4rtasdg" [ref=e123]:
+                  - code [ref=e124]: 4rtasdg
+                - cell "private" [ref=e125]
+                - cell "-" [ref=e126]
+                - cell "Mar 14, 2026" [ref=e127]
+                - cell "Open Edit" [ref=e128]:
+                  - generic [ref=e129]:
+                    - link "Open" [ref=e130] [cursor=pointer]:
+                      - /url: /forms/32fa0df5-2e1a-4969-8845-2983d1111f26-4rtasdg
+                    - link "Edit" [ref=e131] [cursor=pointer]:
+                      - /url: /admin/global/forms/32fa0df5-2e1a-4969-8845-2983d1111f26/edit
+              - row "asdf sadf private - Mar 14, 2026 Open Edit" [ref=e132]:
+                - cell "asdf" [ref=e133]
+                - cell "sadf" [ref=e134]:
+                  - code [ref=e135]: sadf
+                - cell "private" [ref=e136]
+                - cell "-" [ref=e137]
+                - cell "Mar 14, 2026" [ref=e138]
+                - cell "Open Edit" [ref=e139]:
+                  - generic [ref=e140]:
+                    - link "Open" [ref=e141] [cursor=pointer]:
+                      - /url: /forms/8ef37b8e-949d-45d7-bd68-6f02b8056485-sadf
+                    - link "Edit" [ref=e142] [cursor=pointer]:
+                      - /url: /admin/global/forms/8ef37b8e-949d-45d7-bd68-6f02b8056485/edit
+              - row "Test Form test private - Mar 14, 2026 Open Edit" [ref=e143]:
+                - cell "Test Form" [ref=e144]
+                - cell "test" [ref=e145]:
+                  - code [ref=e146]: test
+                - cell "private" [ref=e147]
+                - cell "-" [ref=e148]
+                - cell "Mar 14, 2026" [ref=e149]
+                - cell "Open Edit" [ref=e150]:
+                  - generic [ref=e151]:
+                    - link "Open" [ref=e152] [cursor=pointer]:
+                      - /url: /forms/c052fc44-bc78-431f-8f54-50e84ad647ee-test
+                    - link "Edit" [ref=e153] [cursor=pointer]:
+                      - /url: /admin/global/forms/c052fc44-bc78-431f-8f54-50e84ad647ee/edit

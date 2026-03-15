@@ -1,0 +1,127 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e4]:
+      - link "Community Hub" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - link "Events" [ref=e9] [cursor=pointer]:
+            - /url: /events
+          - link "Home" [ref=e10] [cursor=pointer]:
+            - /url: /
+          - link "Groups" [ref=e11] [cursor=pointer]:
+            - /url: /groups
+          - link "News" [ref=e12] [cursor=pointer]:
+            - /url: /news
+        - button "Konrad Kleeberger" [ref=e14] [cursor=pointer]:
+          - text: Konrad Kleeberger
+          - img [ref=e15]
+  - main [ref=e17]:
+    - generic [ref=e20]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - heading "Platform Admin" [level=1] [ref=e25]
+          - link "Back to Site" [ref=e27] [cursor=pointer]:
+            - /url: /
+        - navigation [ref=e28]:
+          - link "Dashboard" [ref=e29] [cursor=pointer]:
+            - /url: /admin/global
+          - link "Users" [ref=e30] [cursor=pointer]:
+            - /url: /admin/global/users
+          - link "Posts" [ref=e31] [cursor=pointer]:
+            - /url: /admin/global/posts
+          - link "Events" [ref=e32] [cursor=pointer]:
+            - /url: /admin/global/events
+          - link "Forms" [ref=e33] [cursor=pointer]:
+            - /url: /admin/global/forms
+          - link "Pages" [ref=e34] [cursor=pointer]:
+            - /url: /admin/global/pages
+          - link "Groups" [ref=e35] [cursor=pointer]:
+            - /url: /admin/global/groups
+      - generic [ref=e36]:
+        - navigation [ref=e37]:
+          - link "Admin" [ref=e39] [cursor=pointer]:
+            - /url: /admin/global
+          - generic [ref=e40]:
+            - generic [ref=e41]: /
+            - generic [ref=e42]: Platform Admin
+        - generic [ref=e43]:
+          - heading "Forms" [level=2] [ref=e45]
+          - generic [ref=e46]:
+            - heading "Create New Form" [level=3] [ref=e47]
+            - generic [ref=e48]:
+              - generic [ref=e49]:
+                - generic [ref=e50]:
+                  - generic [ref=e51]: Title*
+                  - textbox [ref=e52]
+                - generic [ref=e53]:
+                  - generic [ref=e54]: Slug*
+                  - textbox "signup-survey" [ref=e55]
+              - generic [ref=e56]:
+                - generic [ref=e57]: Description
+                - textbox [ref=e58]
+              - generic [ref=e59]:
+                - generic [ref=e60]:
+                  - generic [ref=e61]: Visibility
+                  - combobox [ref=e62]:
+                    - option "Private (login required)" [selected]
+                    - option "Public"
+                - generic [ref=e63]:
+                  - generic [ref=e64]: Builder Mode
+                  - combobox [ref=e65]:
+                    - option "Simple Builder" [selected]
+                    - option "Paste SurveyJS JSON"
+              - generic [ref=e66]:
+                - paragraph [ref=e67]: Use the simple builder for text, textarea, radio, and select fields.
+                - generic [ref=e68]:
+                  - generic [ref=e69]:
+                    - generic [ref=e70]:
+                      - generic [ref=e71]:
+                        - text: Field Name
+                        - textbox "Field Name" [ref=e72]
+                      - generic [ref=e73]:
+                        - text: Label
+                        - textbox "Label" [ref=e74]
+                      - generic [ref=e75]:
+                        - text: Type
+                        - combobox "Type" [ref=e76]:
+                          - option "Text" [selected]
+                          - option "Textarea"
+                          - option "Radio Group"
+                          - option "Select Dropdown"
+                      - generic [ref=e77]:
+                        - checkbox "Required" [ref=e78]
+                        - text: Required
+                    - generic [ref=e79]:
+                      - text: Help Text
+                      - textbox "Help Text" [ref=e80]
+                    - button "Remove Field" [ref=e81] [cursor=pointer]
+                  - button "Add Field" [ref=e82] [cursor=pointer]
+              - generic [ref=e83]:
+                - generic [ref=e84]: Advanced SurveyJS JSON (optional when using simple builder)
+                - textbox [ref=e85]: "{\"pages\":[]}"
+              - generic [ref=e86]:
+                - checkbox "Mark as system form" [ref=e87]
+                - generic [ref=e88]: Mark as system form
+              - generic [ref=e89]:
+                - generic [ref=e90]: System Key (only for system forms)
+                - textbox "onboarding" [ref=e91]
+              - button "Create Form" [ref=e93] [cursor=pointer]
+          - generic [ref=e94]:
+            - heading "Existing Forms" [level=3] [ref=e95]
+            - table [ref=e97]:
+              - rowgroup [ref=e98]:
+                - row "Title Visibility System Actions" [ref=e99]:
+                  - columnheader "Title" [ref=e100]
+                  - columnheader "Visibility" [ref=e101]
+                  - columnheader "System" [ref=e102]
+                  - columnheader "Actions" [ref=e103]
+              - rowgroup [ref=e104]:
+                - row "Test Form private - Open" [ref=e105]:
+                  - cell "Test Form" [ref=e106]
+                  - cell "private" [ref=e107]
+                  - cell "-" [ref=e108]
+                  - cell "Open" [ref=e109]:
+                    - link "Open" [ref=e110] [cursor=pointer]:
+                      - /url: /forms/c052fc44-bc78-431f-8f54-50e84ad647ee-test
+  - generic [ref=e111]: "Click-to-Source: Alt"

@@ -107,15 +107,23 @@ export default component$(() => {
 });
 
 export const head: DocumentHead = ({ resolveValue }) => {
-  const page = resolveValue(usePage);
+  // During client-side transitions to non-catch-all routes, this head can run
+  // without usePage being executed for the current request.
+  try {
+    const page = resolveValue(usePage);
 
-  if (!page) {
+    if (!page) {
+      return {
+        title: "Page Not Found",
+      };
+    }
+
     return {
-      title: "Page Not Found",
+      title: page.title,
+    };
+  } catch {
+    return {
+      title: "Community Hub",
     };
   }
-
-  return {
-    title: page.title,
-  };
 };

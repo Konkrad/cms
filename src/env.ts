@@ -75,6 +75,9 @@ const envSchema = z.object({
 
   // Mapbox
   PUBLIC_MAPBOX_ACCESS_TOKEN: z.string(),
+
+  // ALTCHA
+  ALTCHA_HMAC_KEY: z.string().default("change-this-altcha-key"),
 });
 
 /**
@@ -122,6 +125,7 @@ export const env = {
   TELEGRAM_BOT_TOKEN: _env.TELEGRAM_BOT_TOKEN,
   TELEGRAM_CHANNEL_ID: _env.TELEGRAM_CHANNEL_ID,
   PUBLIC_MAPBOX_ACCESS_TOKEN: _env.PUBLIC_MAPBOX_ACCESS_TOKEN,
+  ALTCHA_HMAC_KEY: _env.ALTCHA_HMAC_KEY,
 
   // helpful booleans
   isProduction: _env.NODE_ENV === "production",

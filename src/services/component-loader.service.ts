@@ -15,6 +15,7 @@ const componentModules = {
     import("~/components/page-blocks/LocalCommunitiesMapBlock"),
   HeroSectionBlock: () => import("~/components/page-blocks/HeroSectionBlock"),
   GroupsListBlock: () => import("~/components/page-blocks/GroupsListBlock"),
+  SurveyFormBlock: () => import("~/components/page-blocks/SurveyFormBlock"),
 };
 
 type ComponentModuleLoader = () => Promise<{

@@ -17,3 +17,5 @@ export * from "./schemas/tickets";
 export * from "./schemas/ticket-participants";
 export * from "./schemas/participation-status";
 export * from "./schemas/event-photos";
+export * from "./schemas/forms";
+export * from "./schemas/form-results";

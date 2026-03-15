@@ -18,6 +18,7 @@ export const AdminNav = component$<AdminNavProps>(({ groupSlug, isGlobal = true 
     { href: `${basePath}/users`, label: "Users" },
     { href: `${basePath}/posts`, label: "Posts" },
     { href: `${basePath}/events`, label: "Events" },
+    { href: `${basePath}/forms`, label: "Forms" },
   ];
 
   // Add Pages link only for global admin

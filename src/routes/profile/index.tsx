@@ -3,6 +3,8 @@ import { routeLoader$ } from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { env } from "~/env";
+import { formResultsService } from "~/services/form-results.service";
+import { buildFormPath } from "~/utils/forms";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { deriveProfilePicSmallKey } from "~/utils/images";
 import { formatUser } from "~/utils/users";
@@ -31,10 +33,48 @@ export const useProfile = routeLoader$(async (event) => {
       : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${smallKey}`;
   }
 
+  const submittedForms = await formResultsService.getByUser(user.id);
+
+  const formatResponseValue = (value: unknown): string => {
+    if (value === null || value === undefined) {
+      return "-";
+    }
+
+    if (typeof value === "string") {
+      return value.trim() || "-";
+    }
+
+    if (typeof value === "number" || typeof value === "boolean") {
+      return String(value);
+    }
+
+    if (Array.isArray(value)) {
+      const parts = value
+        .map((item) => (typeof item === "string" ? item.trim() : String(item)))
+        .filter(Boolean);
+      return parts.length > 0 ? parts.join(", ") : "-";
+    }
+
+    return JSON.stringify(value);
+  };
+
   return {
     ...formatUser(userData, true),
     profilePictureUrl,
     profilePictureSmallUrl,
+    submittedForms: submittedForms.map((submission) => ({
+      id: submission.id,
+      title: submission.formTitle,
+      submittedAt: submission.submittedAt,
+      responseEntries: Object.entries(submission.resultJson || {}).map(([question, value]) => ({
+        question,
+        answer: formatResponseValue(value),
+      })),
+      path: buildFormPath({
+        id: submission.formId,
+        slug: submission.formSlug,
+      }),
+    })),
   };
 });
 
@@ -108,7 +148,7 @@ export default component$(() => {
               <label class="text-sm font-medium text-gray-700 block mb-1">
                 Email
               </label>
-              <p class="text-lg">{profile.value.email}</p>
+              <p class="text-lg">{profile.value.loginId}</p>
             </div>
 
             {profile.value.city && (
@@ -145,6 +185,43 @@ export default component$(() => {
                 </label>
                 <p class="text-lg">{profile.value.sex}</p>
               </div>
+            )}
+          </div>
+
+          <hr class="border-gray-200" />
+
+          <div>
+            <h3 class="text-lg font-semibold mb-3">Submitted Forms</h3>
+            {profile.value.submittedForms.length === 0 ? (
+              <p class="text-gray-500">No forms submitted yet.</p>
+            ) : (
+              <ul class="space-y-2">
+                {profile.value.submittedForms.map((submission) => (
+                  <li key={submission.id} class="border border-gray-200 rounded-lg p-3">
+                    <a href={submission.path} class="text-blue-600 hover:underline font-medium">
+                      {submission.title}
+                    </a>
+                    <p class="text-sm text-gray-500 mt-1">
+                      Submitted {new Date(submission.submittedAt).toLocaleString()}
+                    </p>
+                    <div class="mt-3">
+                      <p class="text-sm font-medium text-gray-700 mb-1">Your Response</p>
+                      {submission.responseEntries.length === 0 ? (
+                        <p class="text-sm text-gray-500">No answers captured.</p>
+                      ) : (
+                        <dl class="space-y-1">
+                          {submission.responseEntries.map((entry) => (
+                            <div key={entry.question} class="grid grid-cols-1 md:grid-cols-3 gap-1">
+                              <dt class="text-sm text-gray-600 break-words">{entry.question}</dt>
+                              <dd class="text-sm text-gray-900 md:col-span-2 break-words">{entry.answer}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </div>

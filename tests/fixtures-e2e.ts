@@ -14,7 +14,7 @@ export const test = base.extend({
   },
 
   stripeMock: async ({}, use) => {
-    const proc = startStripeMock();
+    const proc = await startStripeMock();
     await use(proc);
     stopStripeMock();
   },

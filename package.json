@@ -33,7 +33,7 @@
     "test:headed": "playwright test --headed",
     "start:stripe-mock": "npx stripe-mock",
     "test:e2e": "playwright test tests/e2e"
-  }
+  },
   "devDependencies": {
     "@biomejs/biome": "2.3.10",
     "@builder.io/qwik": "^1.7.3",

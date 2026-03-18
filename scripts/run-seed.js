@@ -19,22 +19,12 @@ if (!fs.existsSync(SQL_PATH)) {
   process.exit(1);
 }
 
-const sql = fs.readFileSync(SQL_PATH, 'utf8');
-const db = new Database(DB_PATH);
-
+// Prefer running the TypeScript seed script which creates a richer set of test data
 try {
-  db.exec('BEGIN');
-  // Naive split by semicolon — keep seeds idempotent and single-statement per line if possible.
-  const stmts = sql.split(/;\s*\n/).map(s => s.trim()).filter(Boolean);
-  for (const stmt of stmts) {
-    db.exec(stmt);
-  }
-  db.exec('COMMIT');
-  console.log('Seeded test data into', DB_PATH);
+  console.log('Running TypeScript seed script via npx tsx scripts/seed.ts');
+  const out = execSync('npx tsx scripts/seed.ts', { stdio: 'inherit' });
+  console.log('Seed complete');
 } catch (err) {
   console.error('Seeding failed:', err);
-  try { db.exec('ROLLBACK'); } catch(e){}
   process.exit(1);
-} finally {
-  db.close();
 }

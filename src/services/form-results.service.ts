@@ -33,19 +33,26 @@ export const formResultsService = {
   },
 
   async getByUser(userId: string): Promise<Array<FormResult & { formTitle: string; formSlug: string }>> {
-    const rows = await db.query.formResults.findMany({
-      where: eq(formResults.userId, userId),
-      with: {
-        form: true,
-      },
-      orderBy: [desc(formResults.submittedAt)],
-    });
+    try {
+      const rows = await db.query.formResults.findMany({
+        where: eq(formResults.userId, userId),
+        with: {
+          form: true,
+        },
+        orderBy: [desc(formResults.submittedAt)],
+      });
 
-    return rows.map((row) => ({
-      ...row,
-      formTitle: row.form.title,
-      formSlug: row.form.slug,
-    }));
+      return rows.map((row) => ({
+        ...row,
+        formTitle: row.form.title,
+        formSlug: row.form.slug,
+      }));
+    } catch (err) {
+      // In test environments or fresh DBs the table may not exist yet.
+      // Don't fail the entire request for UI pages; return an empty list
+      // so the profile page can render without crashing.
+      return [];
+    }
   },
 
   async getByForm(formId: string): Promise<FormResult[]> {

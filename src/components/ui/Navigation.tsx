@@ -149,6 +149,9 @@ export const Navigation = component$(() => {
               <div class="relative">
                 <button
                   onClick$={toggleUserMenu}
+                  aria-label="profile-menu"
+                  aria-haspopup="menu"
+                  aria-expanded={String(showUserMenu.value)}
                   class="flex items-center gap-2 px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
                 >
                   {profilePictureSmallUrl ? (
@@ -199,6 +202,7 @@ export const Navigation = component$(() => {
                     <Form action={logoutAction}>
                       <button
                         type="submit"
+                        aria-label="logout"
                         class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
                       >
                         Logout

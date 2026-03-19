@@ -4,6 +4,14 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import crypto from "crypto";
 
+export type ConsentStep =
+  | "profile"
+  | "locationVerification"
+  | "foodPreference"
+  | "lastProfileUpdate";
+
+export type UserConsent = Partial<Record<ConsentStep, string | null>>;
+
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -17,6 +25,7 @@ export const users = sqliteTable("users", {
   yearOfBirth: integer("year_of_birth"),
   sex: text("sex"),
   profilePicture: text("profile_picture"),
+  consent: text("consent", { mode: "json" }).$type<UserConsent>().notNull().default(sql`'{}'`),
   role: text("role", { enum: ["user", "moderator", "admin"] })
     .notNull()
     .default("user"),

@@ -1,6 +1,5 @@
 import { test as base } from '@playwright/test';
 import { execSync } from 'child_process';
-import { startStripeMock, stopStripeMock } from './utils/stripe-mock';
 import Database from 'better-sqlite3';
 
 export const test = base.extend({
@@ -31,12 +30,6 @@ export const test = base.extend({
     };
     await use(helper);
     sqlite.close();
-  },
-
-  stripeMock: async ({}, use) => {
-    const proc = await startStripeMock();
-    await use(proc);
-    stopStripeMock();
   },
 });
 

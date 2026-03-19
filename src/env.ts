@@ -69,7 +69,7 @@ const envSchema = z.object({
   STRIPE_PUBLISHABLE_KEY: z.string(),
   STRIPE_WEBHOOK_SECRET: z.string(),
   // Optional: point to a local stripe-mock or other custom Stripe API host
-  STRIPE_API_BASE_URL: z.string().url().optional(),
+  STRIPE_API_BASE_URL: z.url().optional(),
 
   // Telegram
   TELEGRAM_BOT_TOKEN: z.string(),

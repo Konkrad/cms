@@ -34,18 +34,18 @@ export const formResultsService = {
 
   async getByUser(userId: string): Promise<Array<FormResult & { formTitle: string; formSlug: string }>> {
     const rows = await db.query.formResults.findMany({
-      where: eq(formResults.userId, userId),
-      with: {
-        form: true,
-      },
-      orderBy: [desc(formResults.submittedAt)],
-    });
+        where: eq(formResults.userId, userId),
+        with: {
+          form: true,
+        },
+        orderBy: [desc(formResults.submittedAt)],
+      });
 
-    return rows.map((row) => ({
-      ...row,
-      formTitle: row.form.title,
-      formSlug: row.form.slug,
-    }));
+      return rows.map((row) => ({
+        ...row,
+        formTitle: row.form.title,
+        formSlug: row.form.slug,
+      }));
   },
 
   async getByForm(formId: string): Promise<FormResult[]> {

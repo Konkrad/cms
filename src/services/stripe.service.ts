@@ -1,9 +1,26 @@
 import Stripe from "stripe";
 import { env } from "~/env";
 
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
+const stripeConfig: Stripe.StripeConfig = {
   apiVersion: "2025-12-15.clover",
-});
+};
+
+if (env.STRIPE_API_BASE_URL) {
+  const url = new URL(env.STRIPE_API_BASE_URL);
+  stripeConfig.host = url.hostname;
+
+  // `StripeConfig.protocol` is strictly typed as 'http' | 'https'.
+  const protocol = url.protocol.replace(/:$/, "") as Stripe.HttpProtocol;
+  if (protocol === "http" || protocol === "https") {
+    stripeConfig.protocol = protocol;
+  }
+
+  if (url.port) {
+    stripeConfig.port = Number(url.port);
+  }
+}
+
+const stripe = new Stripe(env.STRIPE_SECRET_KEY, stripeConfig);
 
 export const stripeService = {
   stripe,

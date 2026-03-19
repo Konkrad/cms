@@ -550,3 +550,153 @@ console.log(`   posts:       ${counts.posts}`);
 console.log(`   events:      ${counts.events}`);
 
 sqlite.close();
+ 
+// ─── additional e2e ticket scenarios ─────────────────────────────────────────
+// Ensure there are events + inventory/products that cover specific test scenarios:
+// - ticketed event (active sales)
+// - sold-out event
+// - waitlist event (capacity reached)
+// - past event
+// - an event with no products (free RSVP)
+
+// Re-open DB to insert inventory/products (idempotent-ish)
+const sqlite2 = new Database("my-database.db");
+const db2 = drizzle(sqlite2, { schema });
+
+const existingEvents = db2.select().from(schema.events).all();
+const eventByTitle: Record<string, any> = Object.fromEntries(
+  existingEvents.map((e) => [e.title, e]),
+);
+
+function upsertInventoryAndProducts(opts: {
+  eventTitle: string;
+  inventoryName: string;
+  maxCapacity: number;
+  needsTicket?: boolean;
+  salesStartOffset?: number | null;
+  salesEndOffset?: number | null;
+  products?: Array<{
+    name: string;
+    price: number;
+    maxQuantity: number;
+    soldQuantity?: number;
+    participantCapacity?: number;
+  }>;
+}) {
+  const e = eventByTitle[opts.eventTitle];
+  if (!e) {
+    console.warn(`Skipping seeding for missing event '${opts.eventTitle}'`);
+    return;
+  }
+
+  const invId = uuid();
+  const salesStart =
+    typeof opts.salesStartOffset === 'number' ? daysFromNow(opts.salesStartOffset) : null;
+  const salesEnd =
+    typeof opts.salesEndOffset === 'number' ? daysFromNow(opts.salesEndOffset) : null;
+
+  db2.insert(schema.inventoryGroups).values({
+    id: invId,
+    eventId: e.id,
+    name: opts.inventoryName,
+    maxCapacity: opts.maxCapacity,
+    needsTicket: opts.needsTicket === undefined ? true : opts.needsTicket,
+    salesStartDate: salesStart,
+    salesEndDate: salesEnd,
+    createdAt: new Date().toISOString(),
+  }).run();
+
+  if (opts.products && opts.products.length) {
+    for (const p of opts.products) {
+      db2.insert(schema.products).values({
+        id: uuid(),
+        eventId: e.id,
+        inventoryGroupId: invId,
+        name: p.name,
+        price: p.price,
+        maxQuantity: p.maxQuantity,
+        participantCapacity: p.participantCapacity ?? 1,
+        features: [],
+        imageUrl: null,
+        stripeProductId: null,
+        soldQuantity: p.soldQuantity ?? 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }).run();
+    }
+  }
+}
+
+// Create a past event if not present
+if (!eventByTitle['Past Meetup (E2E)']) {
+  const start = daysFromNow(-30);
+  const end = new Date(new Date(start).getTime() + 2 * 3600000).toISOString();
+  const id = uuid();
+  db2.insert(schema.events).values({
+    id,
+    title: 'Past Meetup (E2E)',
+    body: '<p>Past event used for E2E tests.</p>',
+    startDate: start,
+    endDate: end,
+    locationType: 'in-person',
+    address: 'Old Venue',
+    city: 'Berlin',
+    country: 'Germany',
+    longitude: '13.4000',
+    latitude: '52.5200',
+    onlineUrl: null,
+    userId: adminUser.id,
+    groupId: groupIds['berlin'],
+    visibility: 'global',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }).run();
+  // refresh map
+  const ev = db2.select().from(schema.events).all().find((x) => x.title === 'Past Meetup (E2E)');
+  if (ev) eventByTitle[ev.title] = ev;
+}
+
+// Ensure there is a ticketed event (Cologne Members Dinner)
+upsertInventoryAndProducts({
+  eventTitle: 'Cologne Members Dinner',
+  inventoryName: 'Dinner Tickets',
+  maxCapacity: 20,
+  needsTicket: true,
+  salesStartOffset: -1,
+  salesEndOffset: 30,
+  products: [
+    { name: 'Dinner Ticket', price: 25.0, maxQuantity: 20 },
+  ],
+});
+
+// Ensure a sold-out event (Munich Members Workshop: Public Speaking)
+upsertInventoryAndProducts({
+  eventTitle: 'Munich Members Workshop: Public Speaking',
+  inventoryName: 'Workshop Seats',
+  maxCapacity: 2,
+  needsTicket: true,
+  salesStartOffset: -10,
+  salesEndOffset: 30,
+  products: [
+    { name: 'Workshop Ticket', price: 0, maxQuantity: 2, soldQuantity: 2 },
+  ],
+});
+
+// Ensure a waitlist scenario: small capacity already sold
+upsertInventoryAndProducts({
+  eventTitle: 'Hamburg Harbour Morning Walk',
+  inventoryName: 'Walk Spots',
+  maxCapacity: 1,
+  needsTicket: true,
+  salesStartOffset: -5,
+  salesEndOffset: 10,
+  products: [
+    { name: 'Walk Ticket', price: 0, maxQuantity: 1, soldQuantity: 1 },
+  ],
+});
+
+// Ensure Berlin Summer Social remains a free RSVP (no products)
+// no-op: leave without products so the page shows RSVP-style flows
+
+console.log('✅ Additional event ticket scenarios seeded.');
+sqlite2.close();

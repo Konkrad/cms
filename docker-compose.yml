@@ -26,3 +26,11 @@ services:
       MINIO_ROOT_USER: test
       MINIO_ROOT_PASSWORD: testtest
     command: server /data --console-address ":9001"
+
+  stripe-mock:
+    image: stripe/stripe-mock:latest
+    container_name: stripe-mock
+    restart: unless-stopped
+    ports:
+      - 12111:12111
+    command: stripe-mock --port 12111

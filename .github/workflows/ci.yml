@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      minio:
+        image: minio/minio:latest
+        ports:
+          - 9000:9000
+          - 9001:9001
+        env:
+          MINIO_ROOT_USER: test
+          MINIO_ROOT_PASSWORD: testtest
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        command: server /data --console-address ":9001"
+
+      mailpit:
+        image: axllent/mailpit:latest
+        ports:
+          - 8025:8025
+          - 1025:1025
+        env:
+          MP_MAX_MESSAGES: 5000
+          MP_DATABASE: /data/mailpit.db
+          MP_SMTP_AUTH_ACCEPT_ANY: 1
+          MP_SMTP_AUTH_ALLOW_INSECURE: 1
+        options: >-
+          --health-cmd "curl -f http://localhost:8025 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      stripe-mock:
+        image: stripe/stripe-mock:latest
+        ports:
+          - 12111:12111
+        options: >-
+          --health-cmd "curl -f http://localhost:12111/ || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+        env:
+          NODE_ENV: test
+          APP_URL: http://localhost:5173
+          APP_NAME: Digitalumni
+          MAGIC_LINK_SECRET: test
+          PHOTO_URL_SECRET: test
+          SMTP_HOST: localhost
+          SMTP_PORT: "1025"
+          SMTP_FROM: test@example.com
+          AWS_REGION: us-east-1
+          AWS_ENDPOINT: http://localhost:9000
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: testtest
+          S3_BUCKET: test
+          STRIPE_SECRET_KEY: sk_test_123
+          STRIPE_PUBLISHABLE_KEY: pk_test_123
+          STRIPE_WEBHOOK_SECRET: whsec_test
+          STRIPE_API_BASE_URL: http://localhost:12111
+          TELEGRAM_BOT_TOKEN: test
+          TELEGRAM_CHANNEL_ID: test
+          PUBLIC_MAPBOX_ACCESS_TOKEN: test
+          ALTCHA_HMAC_KEY: test
+          E2E_ALLOW_DB_WRITE: "true"

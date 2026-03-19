@@ -68,6 +68,8 @@ const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string(),
   STRIPE_PUBLISHABLE_KEY: z.string(),
   STRIPE_WEBHOOK_SECRET: z.string(),
+  // Optional: point to a local stripe-mock or other custom Stripe API host
+  STRIPE_API_BASE_URL: z.url().optional(),
 
   // Telegram
   TELEGRAM_BOT_TOKEN: z.string(),
@@ -122,6 +124,7 @@ export const env = {
   STRIPE_SECRET_KEY: _env.STRIPE_SECRET_KEY,
   STRIPE_PUBLISHABLE_KEY: _env.STRIPE_PUBLISHABLE_KEY,
   STRIPE_WEBHOOK_SECRET: _env.STRIPE_WEBHOOK_SECRET,
+  STRIPE_API_BASE_URL: _env.STRIPE_API_BASE_URL,
   TELEGRAM_BOT_TOKEN: _env.TELEGRAM_BOT_TOKEN,
   TELEGRAM_CHANNEL_ID: _env.TELEGRAM_CHANNEL_ID,
   PUBLIC_MAPBOX_ACCESS_TOKEN: _env.PUBLIC_MAPBOX_ACCESS_TOKEN,

@@ -3,6 +3,7 @@ import { routeLoader$, useNavigate } from "@builder.io/qwik-city";
 import { SetupLayout } from "~/components/setup/SetupLayout";
 import { useUpdateProfile, ProfileStep } from "~/components/setup/ProfileStep";
 import { useMarkLocation, LocationStep } from "~/components/setup/LocationStep";
+import { useSavePhotoConsent, PhotoConsentStep } from "~/components/setup/PhotoConsentStep";
 import { SurveyRuntime } from "~/components/forms/SurveyRuntime";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { formsService } from "~/services/forms.service";
@@ -10,7 +11,7 @@ import { env } from "~/env";
 import type { UserConsent } from "~/db/schemas/users";
 
 // Re-export so Qwik City registers the actions for this route.
-export { useUpdateProfile, useMarkLocation };
+export { useUpdateProfile, useMarkLocation, useSavePhotoConsent };
 
 export const useOnboardingLoader = routeLoader$(async (event) => {
   await requireAuth(event);
@@ -39,15 +40,23 @@ export default component$(() => {
   const loader = useOnboardingLoader();
   const updateAction = useUpdateProfile();
   const markLocation = useMarkLocation();
-  const showSurvey = useSignal(false);
+  const saveConsent = useSavePhotoConsent();
   const saving = useSignal(false);
   const saveTrigger = useSignal(0);
+  const consentTrigger = useSignal(0);
   const nav = useNavigate();
 
   const { user, consent, form } = loader.value;
   const needsProfile = !consent.lastProfileUpdate;
   const needsLocation = !consent.locationVerification;
+  const needsConsent = !consent.photoConsent;
 
+  // Determine initial phase based on what's already complete.
+  const phase = useSignal<"steps" | "consent" | "survey">(
+    needsProfile || needsLocation ? "steps" : needsConsent ? "consent" : "survey",
+  );
+
+  // After profile + location actions complete, advance to consent (or survey/home).
   useVisibleTask$(({ track }) => {
     track(() => updateAction.value);
     track(() => markLocation.value);
@@ -59,10 +68,24 @@ export default component$(() => {
 
     if (profileOk && locationOk) {
       saving.value = false;
-      if (form) {
-        showSurvey.value = true;
+      if (needsConsent) {
+        phase.value = "consent";
+      } else if (form) {
+        phase.value = "survey";
       } else {
-        nav("/");
+        void nav("/");
+      }
+    }
+  });
+
+  // After photo consent is saved, advance to survey (or home).
+  useVisibleTask$(({ track }) => {
+    track(() => saveConsent.value);
+    if (saveConsent.value?.success && phase.value === "consent") {
+      if (form) {
+        phase.value = "survey";
+      } else {
+        void nav("/");
       }
     }
   });
@@ -72,12 +95,31 @@ export default component$(() => {
       title="Complete your profile"
       description="Fill in your details to continue."
     >
-      {showSurvey.value ? (
+      {phase.value === "survey" ? (
         <SurveyRuntime
           surveyJson={form!.schemaJson}
           submitUrl="/api/onboarding/form-submit"
           requireAltcha={false}
+          onComplete$={$(() => nav("/"))}
         />
+      ) : phase.value === "consent" ? (
+        <div class="space-y-6">
+          <PhotoConsentStep
+            initialValue={user.photoConsentGiven ?? null}
+            updateAction={saveConsent}
+            saveTrigger={consentTrigger}
+          />
+          <div class="pt-4">
+            <button
+              class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+              onClick$={$(() => {
+                consentTrigger.value++;
+              })}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
       ) : (
         <div class="space-y-6">
           {needsProfile && (
@@ -97,7 +139,10 @@ export default component$(() => {
           <div class="pt-4">
             <button
               class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-              onClick$={$(() => { saving.value = true; saveTrigger.value++; })}
+              onClick$={$(() => {
+                saving.value = true;
+                saveTrigger.value++;
+              })}
             >
               Continue
             </button>

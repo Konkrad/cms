@@ -38,21 +38,3 @@ export const test = base.extend({
 });
 
 export { expect } from '@playwright/test';
-    const helper = {
-      getEventIdByTitle(title: string) {
-        const row = sqlite.prepare('SELECT id FROM events WHERE title = ? ORDER BY created_at DESC LIMIT 1').get(title);
-        return row ? row.id : null;
-      },
-      getProductsByEventId(eventId: string) {
-        return sqlite.prepare('SELECT * FROM products WHERE event_id = ?').all(eventId);
-      },
-      getInventoryGroupsByEventId(eventId: string) {
-        return sqlite.prepare('SELECT * FROM inventory_groups WHERE event_id = ?').all(eventId);
-      },
-    };
-    await use(helper);
-    sqlite.close();
-  },
-});
-
-export { expect } from '@playwright/test';

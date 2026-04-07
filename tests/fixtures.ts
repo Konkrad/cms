@@ -9,8 +9,11 @@
 import { test as base, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import crypto from "crypto";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const DB_PATH = "my-database.db";
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const DB_PATH = process.env.DB_PATH ?? path.join(ROOT, "my-database.db");
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 

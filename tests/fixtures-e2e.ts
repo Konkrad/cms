@@ -1,6 +1,11 @@
 import { test as base } from '@playwright/test';
 import { execSync } from 'child_process';
 import Database from 'better-sqlite3';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const DB_PATH = process.env.DB_PATH ?? path.join(ROOT, 'my-database.db');
 
 export const test = base.extend({
   dbSeed: async ({}, use) => {
@@ -14,8 +19,25 @@ export const test = base.extend({
   },
 
   db: async ({}, use) => {
-    const DB_PATH = './my-database.db';
     const sqlite = new Database(DB_PATH, { readonly: true });
+    const helper = {
+      getEventIdByTitle(title: string) {
+        const row = sqlite.prepare('SELECT id FROM events WHERE title = ? ORDER BY created_at DESC LIMIT 1').get(title);
+        return row ? row.id : null;
+      },
+      getProductsByEventId(eventId: string) {
+        return sqlite.prepare('SELECT * FROM products WHERE event_id = ?').all(eventId);
+      },
+      getInventoryGroupsByEventId(eventId: string) {
+        return sqlite.prepare('SELECT * FROM inventory_groups WHERE event_id = ?').all(eventId);
+      },
+    };
+    await use(helper);
+    sqlite.close();
+  },
+});
+
+export { expect } from '@playwright/test';
     const helper = {
       getEventIdByTitle(title: string) {
         const row = sqlite.prepare('SELECT id FROM events WHERE title = ? ORDER BY created_at DESC LIMIT 1').get(title);

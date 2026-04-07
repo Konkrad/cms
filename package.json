@@ -29,6 +29,8 @@
     "email:dev": "email dev --dir=src/emails",
     "biome": "biome check . --write",
     "test": "playwright test",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "start:stripe-mock": "npx stripe-mock",
@@ -55,10 +57,12 @@
     "postcss": "^8.5.6",
     "prettier": "^3.2.5",
     "react-email": "5.1.0",
+    "testcontainers": "^11.13.0",
     "typescript": "5.4.5",
     "undici": "*",
     "vite": "^5.2.10",
-    "vite-tsconfig-paths": "^4.2.1"
+    "vite-tsconfig-paths": "^4.2.1",
+    "vitest": "^4.1.3"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.958.0",

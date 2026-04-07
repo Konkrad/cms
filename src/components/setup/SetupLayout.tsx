@@ -1,12 +1,12 @@
 import { component$, Slot } from "@builder.io/qwik";
 
-type OnboardingLayoutProps = {
+type SetupLayoutProps = {
   title: string;
   description?: string;
   backHref?: string;
 };
 
-export const OnboardingLayout = component$<OnboardingLayoutProps>((props) => {
+export const SetupLayout = component$<SetupLayoutProps>((props) => {
   return (
     <div class="container mx-auto px-4 py-10 max-w-4xl">
       <div class="flex items-start justify-between gap-4 mb-8">

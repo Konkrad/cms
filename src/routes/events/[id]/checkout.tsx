@@ -1,4 +1,4 @@
-import { component$, useSignal, useComputed$ } from "@builder.io/qwik";
+import { component$, useSignal, useComputed$, useVisibleTask$ } from "@builder.io/qwik";
 import {
   routeLoader$,
   routeAction$,
@@ -10,11 +10,16 @@ import { Button } from "~/components/ui/Button";
 import { inventoryGroupsService } from "~/services/inventory-groups.service";
 import { productsService } from "~/services/products.service";
 import { checkoutService } from "~/services/checkout.service";
-import { getServerSession } from "~/utils/server-auth";
+import { getServerSession, getCurrentUserData } from "~/utils/server-auth";
 import { ParticipantsCollection } from "~/components/events/ParticipantForm";
+import { useSaveFoodPreference, FoodPreferenceStep } from "~/components/setup/FoodPreferenceStep";
+import { useSavePhotoConsent, PhotoConsentStep } from "~/components/setup/PhotoConsentStep";
+
+export { useSaveFoodPreference, useSavePhotoConsent };
 
 export const useProductsData = routeLoader$(async (event) => {
   const eventId = event.params.id;
+  const user = await getCurrentUserData(event);
 
   // Get all inventory groups with products
   const groups = await inventoryGroupsService.getByEventId(eventId);
@@ -40,6 +45,8 @@ export const useProductsData = routeLoader$(async (event) => {
   return {
     eventId,
     groups: groupsWithCapacity,
+    userFoodPreference: (user as any)?.foodPreference ?? null,
+    userPhotoConsentGiven: (user as any)?.photoConsentGiven ?? null,
   };
 });
 
@@ -165,10 +172,26 @@ export const useProcessPayment = routeAction$(
 export default component$(() => {
   const data = useProductsData();
   const processPayment = useProcessPayment();
+  const saveFoodPref = useSaveFoodPreference();
+  const savePhotoConsent = useSavePhotoConsent();
 
   const currentStep = useSignal<1 | 2 | 3>(1);
   const selectedProducts = useSignal<Record<string, number>>({});
   const participantData = useSignal<Record<string, Array<{ name: string; email: string; phone?: string }>>>({});
+  const foodSaveTrigger = useSignal(0);
+  const photoSaveTrigger = useSignal(0);
+  const foodSaved = useSignal(!!data.value.userFoodPreference);
+  const photoConsentAnswered = useSignal(data.value.userPhotoConsentGiven !== null);
+
+  useVisibleTask$(({ track }) => {
+    track(() => saveFoodPref.value?.success);
+    if (saveFoodPref.value?.success) foodSaved.value = true;
+  });
+
+  useVisibleTask$(({ track }) => {
+    track(() => savePhotoConsent.value?.success);
+    if (savePhotoConsent.value?.success) photoConsentAnswered.value = true;
+  });
 
   const calculateTotal = useComputed$(() => {
     let total = 0;
@@ -490,6 +513,39 @@ export default component$(() => {
       {/* Step 3 (or 2): Payment */}
       {currentStep.value === (requiresParticipantData.value ? 3 : 2) && (
         <div class="space-y-6">
+          {/* Food preference — collected here if not yet set */}
+          {!foodSaved.value && (
+            <div class="border rounded-lg p-6 bg-white">
+              <h2 class="text-xl font-bold mb-2">Dietary preference</h2>
+              <p class="text-sm text-gray-600 mb-4">
+                We need your dietary preference before completing the order.
+              </p>
+              <FoodPreferenceStep
+                initialPreference={data.value.userFoodPreference}
+                isComplete={false}
+                updateAction={saveFoodPref}
+                saveTrigger={foodSaveTrigger}
+              />
+              <div class="mt-4">
+                <Button onClick$={() => { foodSaveTrigger.value++; }}>Save preference</Button>
+              </div>
+            </div>
+          )}
+
+          {/* Photo consent — collected here if not yet answered */}
+          {!photoConsentAnswered.value && (
+            <PhotoConsentStep
+              initialValue={data.value.userPhotoConsentGiven}
+              updateAction={savePhotoConsent}
+              saveTrigger={photoSaveTrigger}
+            />
+          )}
+          {!photoConsentAnswered.value && (
+            <div>
+              <Button onClick$={() => { photoSaveTrigger.value++; }}>Save photo consent</Button>
+            </div>
+          )}
+
           {/* Order Summary */}
           <div class="border rounded-lg p-6 bg-white">
             <h2 class="text-xl font-bold mb-4">Order Summary</h2>
@@ -588,7 +644,7 @@ export default component$(() => {
                 >
                   Back
                 </Button>
-                <Button type="submit" class="flex-1">
+                <Button type="submit" class="flex-1" disabled={!foodSaved.value || !photoConsentAnswered.value}>
                   Complete Payment
                 </Button>
               </div>

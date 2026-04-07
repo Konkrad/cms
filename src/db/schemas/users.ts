@@ -8,7 +8,8 @@ export type ConsentStep =
   | "profile"
   | "locationVerification"
   | "foodPreference"
-  | "lastProfileUpdate";
+  | "lastProfileUpdate"
+  | "photoConsent";
 
 export type UserConsent = Partial<Record<ConsentStep, string | null>>;
 
@@ -24,6 +25,8 @@ export const users = sqliteTable("users", {
   latitude: text("latitude"),
   yearOfBirth: integer("year_of_birth"),
   sex: text("sex"),
+  foodPreference: text("food_preference"),
+  photoConsentGiven: integer("photo_consent_given", { mode: "boolean" }),
   profilePicture: text("profile_picture"),
   consent: text("consent", { mode: "json" }).$type<UserConsent>().notNull().default(sql`'{}'`),
   role: text("role", { enum: ["user", "moderator", "admin"] })

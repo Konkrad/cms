@@ -1,7 +1,9 @@
 import { component$ } from "@builder.io/qwik";
 import { routeLoader$ } from "@builder.io/qwik-city";
 import { emailAuthService } from "~/services/email-auth.service";
+import { getCurrentUserData } from "~/utils/server-auth";
 import { env } from "~/env";
+import type { UserConsent } from "~/db/schemas/users";
 
 export const useVerify = routeLoader$(async (event: any) => {
 	const url = new URL(event.request.url);
@@ -34,8 +36,14 @@ export const useVerify = routeLoader$(async (event: any) => {
 		expires: new Date(result.session.expiresAt),
 	});
 
-	// Redirect to profile for new users, otherwise to homepage
-	throw event.redirect(302, result.userCreated ? "/profile/" : "/");
+	// Check consent — redirect to /profile/setup whenever required steps are incomplete.
+	const user = await getCurrentUserData(event);
+	const consent = ((user as any)?.consent ?? {}) as UserConsent;
+	if (!consent.lastProfileUpdate || !consent.locationVerification) {
+		throw event.redirect(302, "/profile/setup");
+	}
+
+	throw event.redirect(302, "/");
 });
 
 export default component$(() => {

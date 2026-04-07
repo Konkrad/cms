@@ -1,13 +1,15 @@
-import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
+import { component$, useSignal, useVisibleTask$, type QRL } from "@builder.io/qwik";
 
 type SurveyRuntimeProps = {
   surveyJson: Record<string, any>;
   submitUrl: string;
   requireAltcha: boolean;
+  /** Called after a successful submission. */
+  onComplete$?: QRL<() => void>;
 };
 
 export const SurveyRuntime = component$<SurveyRuntimeProps>(
-  ({ surveyJson, submitUrl, requireAltcha }) => {
+  ({ surveyJson, submitUrl, requireAltcha, onComplete$ }) => {
     const wrapperRef = useSignal<HTMLElement>();
     const containerRef = useSignal<HTMLElement>();
     const state = useSignal<"idle" | "submitting" | "success" | "error">("idle");
@@ -65,6 +67,10 @@ export const SurveyRuntime = component$<SurveyRuntimeProps>(
 
         state.value = "success";
         message.value = "Form submitted successfully.";
+
+        if (onComplete$) {
+          await onComplete$();
+        }
       });
 
       cleanup(() => {

@@ -1,0 +1,116 @@
+/**
+ * SurveyJS theme override — maps --sjs-* variables to our design tokens
+ * so SurveyJS forms look identical to the rest of the site.
+ *
+ * Loaded AFTER survey-core.min.css via forms.css.
+ */
+
+.sd-root-modern,
+.sd-root-modern--full-container {
+  /* ── Primary / brand ── */
+  --sjs-primary-backcolor: var(--color-primary);
+  --sjs-primary-backcolor-dark: var(--color-primary-dark);
+  --sjs-primary-backcolor-light: var(--color-primary-light);
+  --sjs-primary-forecolor: #ffffff;
+  --sjs-primary-forecolor-light: rgba(255, 255, 255, 0.75);
+
+  /* ── General backgrounds ── */
+  --sjs-general-backcolor: var(--color-bg-card);
+  --sjs-general-backcolor-dark: var(--color-bg-muted);
+  --sjs-general-backcolor-dim: var(--color-bg);
+  --sjs-general-backcolor-dim-dark: var(--color-border);
+  --sjs-general-backcolor-dim-light: var(--color-bg);
+
+  /* ── Text / foreground ── */
+  --sjs-general-forecolor: var(--color-text);
+  --sjs-general-forecolor-light: var(--color-text-secondary);
+  --sjs-general-dim-forecolor: var(--color-text);
+  --sjs-general-dim-forecolor-light: var(--color-text-secondary);
+
+  /* ── Borders ── */
+  --sjs-border-default: var(--color-border-strong);
+  --sjs-border-light: var(--color-border);
+  --sjs-border-inside: var(--color-border);
+
+  /* ── Corner radius ── */
+  --sjs-corner-radius: 8px;
+
+  /* ── Shadows ── */
+  --sjs-shadow-small: var(--shadow-sm);
+  --sjs-shadow-medium: var(--shadow-md);
+  --sjs-shadow-large: none;
+  --sjs-shadow-inner: none;
+
+  /* ── Semantic colors ── */
+  --sjs-special-red: var(--color-error);
+  --sjs-special-red-light: var(--color-error-bg);
+  --sjs-special-red-forecolor: #ffffff;
+  --sjs-special-green: var(--color-success);
+  --sjs-special-green-light: var(--color-success-bg);
+  --sjs-special-blue: var(--color-primary);
+  --sjs-special-blue-light: var(--color-info-bg);
+
+  /* ── Editor / input ── */
+  --sjs-editor-background: var(--color-bg-card);
+  --sjs-editorpanel-backcolor: var(--color-bg);
+  --sjs-editorpanel-hovercolor: var(--color-bg-muted);
+  --sjs-editorpanel-cornerRadius: 8px;
+
+  /* ── Question panel ── */
+  --sjs-question-background: var(--color-bg-card);
+  --sjs-questionpanel-backcolor: transparent;
+  --sjs-questionpanel-hovercolor: var(--color-bg);
+  --sjs-questionpanel-cornerRadius: 8px;
+
+  /* ── Fonts ── */
+  --sjs-font-family: var(--font-sans);
+  --sjs-default-font-family: var(--font-sans);
+  --sjs-font-questiontitle-color: var(--color-text);
+  --sjs-font-questiontitle-weight: 500;
+  --sjs-font-questiontitle-size: 0.875rem;
+  --sjs-font-questiondescription-color: var(--color-text-secondary);
+  --sjs-font-questiondescription-size: 0.8125rem;
+  --sjs-font-editorfont-color: var(--color-text);
+  --sjs-font-editorfont-placeholdercolor: var(--color-text-muted);
+  --sjs-font-editorfont-size: 0.95rem;
+}
+
+/* ── Input focus ring matching our forms ── */
+.sd-input:focus-within {
+  outline: none;
+  border-color: var(--color-focus-ring) !important;
+  box-shadow: var(--focus-ring) !important;
+}
+
+/* ── Primary button ── */
+.sd-btn--action {
+  background-color: var(--color-primary) !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 600;
+}
+.sd-btn--action:hover {
+  background-color: var(--color-primary-light) !important;
+}
+
+/* ── Navigation buttons ── */
+.sd-body__navigation .sd-btn {
+  border-radius: var(--radius-md) !important;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.9rem;
+}
+
+/* ── Error messages ── */
+.sd-error {
+  color: var(--color-error);
+  font-size: 0.875rem;
+}
+
+/* ── Completed page ── */
+.sd-completedpage {
+  color: var(--color-success);
+  background-color: var(--color-success-bg);
+  border: 1px solid var(--color-success-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+}

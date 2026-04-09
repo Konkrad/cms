@@ -20,12 +20,12 @@
 }
 
 .hero-section-loading-text {
-  color: #9ca3af;
+  color: var(--color-text-muted);
   font-size: 1.125rem;
 }
 
 .hero-section-empty-text {
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 1.125rem;
 }
 
@@ -75,7 +75,7 @@
 }
 
 .hero-section-mobile-card {
-  background-color: #034ea2;
+  background-color: var(--color-primary);
   border-radius: 25px;
   padding: 1.5rem;
   margin-top: 20px;
@@ -150,7 +150,7 @@
   left: 0;
   width: 400px;
   height: 400px;
-  background-color: #034ea2;
+  background-color: var(--color-primary);
   border-radius: 30px;
   transform: rotate(-3deg);
   z-index: 1;
@@ -169,7 +169,7 @@
   font-weight: 700;
   font-size: clamp(2.5rem, 4.3vw, 4.3rem);
   line-height: 1;
-  color: #031241;
+  color: var(--color-primary-dark);
   letter-spacing: -1.38px;
   margin: 0 0 1rem;
 }
@@ -201,7 +201,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 1px solid #034ea2;
+  border: 1px solid var(--color-primary);
   background-color: transparent;
   cursor: pointer;
   padding: 0;
@@ -209,7 +209,7 @@
 }
 
 .hero-section-dot-active {
-  background-color: #034ea2;
+  background-color: var(--color-primary);
 }
 
 /* ══════════════════════════════════

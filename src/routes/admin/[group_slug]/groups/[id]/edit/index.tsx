@@ -105,9 +105,7 @@ export default component$(() => {
     <div>
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Edit Group</h2>
-        <a href="/admin/global/groups">
-          <Button variant="secondary">Back to Groups</Button>
-        </a>
+        <Button href="/admin/global/groups" variant="secondary">Back to Groups</Button>
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
@@ -157,9 +155,7 @@ export default component$(() => {
 
           <div class="flex gap-4">
             <Button type="submit">Save Group</Button>
-            <a href="/admin/global/groups">
-              <Button variant="secondary">Cancel</Button>
-            </a>
+            <Button href="/admin/global/groups" variant="secondary">Cancel</Button>
           </div>
         </Form>
       </div>

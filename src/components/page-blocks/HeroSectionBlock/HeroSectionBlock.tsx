@@ -3,7 +3,7 @@ import { server$ } from "@builder.io/qwik-city";
 import type { BlockDefinition } from "~/db/schema";
 import type { PostWithUser } from "~/services/posts.service";
 import { postsService } from "~/services/posts.service";
-import { ActionButton } from "~/components/ui/ActionButton";
+import { Button } from "~/components/ui/Button";
 import "./HeroSectionBlock.css";
 
 export const definition: BlockDefinition = {
@@ -105,10 +105,12 @@ export default component$(() => {
         <div class="hero-section-mobile-card">
           <h2 class="hero-section-mobile-title">{slide.title}</h2>
 
-          <ActionButton
+          <Button
             href={`/posts/${slide.id}`}
-            label="Read more"
-          />
+            size="xl"
+          >
+            Read more
+          </Button>
         </div>
       </div>
 
@@ -143,10 +145,12 @@ export default component$(() => {
             <p class="hero-section-desktop-description">{excerpt}</p>
           )}
 
-          <ActionButton
+          <Button
             href={`/posts/${slide.id}`}
-            label="Read the Article"
-          />
+            size="xl"
+          >
+            Read the Article
+          </Button>
         </div>
       </div>
 

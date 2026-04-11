@@ -184,9 +184,7 @@ export default component$(() => {
     <div>
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Edit Event</h2>
-        <a href={eventsBase}>
-          <Button variant="secondary">Back to Events</Button>
-        </a>
+        <Button href={eventsBase} variant="secondary">Back to Events</Button>
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
@@ -310,9 +308,7 @@ export default component$(() => {
             <Button type="submit" disabled={isSubmitting.value}>
               {isSubmitting.value ? "Saving..." : "Save Changes"}
             </Button>
-            <a href={eventsBase}>
-              <Button variant="secondary">Cancel</Button>
-            </a>
+            <Button href={eventsBase} variant="secondary">Cancel</Button>
           </div>
         </Form>
       </div>

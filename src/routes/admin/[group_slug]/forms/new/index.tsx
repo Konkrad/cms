@@ -1,5 +1,5 @@
 import { component$, useComputed$, useSignal } from "@builder.io/qwik";
-import { Form, Link, routeAction$, routeLoader$, z, zod$ } from "@builder.io/qwik-city";
+import { Form, routeAction$, routeLoader$, z, zod$ } from "@builder.io/qwik-city";
 import { SimpleFormBuilder } from "~/components/forms/SimpleFormBuilder";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
@@ -200,11 +200,9 @@ export default component$(() => {
             <Button type="submit" disabled={action.isRunning}>
               {action.isRunning ? "Creating..." : "Create Form"}
             </Button>
-            <Link href={scope.value.basePath}>
-              <Button type="button" variant="secondary">
-                Cancel
-              </Button>
-            </Link>
+            <Button href={scope.value.basePath} variant="secondary">
+              Cancel
+            </Button>
           </div>
         </Form>
       </Card>

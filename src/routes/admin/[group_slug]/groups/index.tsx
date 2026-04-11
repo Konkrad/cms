@@ -1,5 +1,5 @@
 import { component$ } from "@builder.io/qwik";
-import { Link, routeLoader$ } from "@builder.io/qwik-city";
+import { routeLoader$ } from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/Button";
 import { groupsService } from "~/services/groups.service";
 
@@ -21,9 +21,7 @@ export default component$(() => {
     <div>
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Manage Groups</h2>
-        <Link href="/admin/global/groups/new">
-          <Button>Create New Group</Button>
-        </Link>
+        <Button href="/admin/global/groups/new">Create New Group</Button>
       </div>
 
       <div class="bg-white rounded-lg shadow overflow-hidden">

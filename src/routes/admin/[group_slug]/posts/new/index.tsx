@@ -79,9 +79,7 @@ export default component$(() => {
     <div>
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Create New Post</h2>
-        <a href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/posts`}>
-          <Button variant="secondary">Back to Posts</Button>
-        </a>
+        <Button href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/posts`} variant="secondary">Back to Posts</Button>
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
@@ -131,9 +129,7 @@ export default component$(() => {
             <Button type="submit" disabled={isSubmitting.value}>
               {isSubmitting.value ? "Creating..." : "Create Post"}
             </Button>
-            <a href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/posts`}>
-              <Button variant="secondary">Cancel</Button>
-            </a>
+            <Button href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/posts`} variant="secondary">Cancel</Button>
           </div>
         </Form>
       </div>

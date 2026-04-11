@@ -86,9 +86,7 @@ export default component$(() => {
         <h2 class="text-2xl font-bold text-gray-800">
           Manage Members − {data.value.group.name}
         </h2>
-        <a href="/admin/global/groups">
-          <Button variant="secondary">Back to Groups</Button>
-        </a>
+        <Button href="/admin/global/groups" variant="secondary">Back to Groups</Button>
       </div>
 
       {promote.value?.error && (

@@ -5,6 +5,7 @@ import {
   $,
   useStore,
 } from "@builder.io/qwik";
+import { Button } from "~/components/ui/Button";
 
 interface CropState {
   x: number;
@@ -425,22 +426,21 @@ export const SquareImageCropper = component$<SquareImageCropperProps>(
             </div>
 
             <div class="flex items-center gap-3">
-              <button
+              <Button
                 type="button"
-                class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={uploading.value}
                 onClick$={upload}
               >
                 {uploading.value ? "Uploading…" : "Upload Image"}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition-colors"
+                variant="secondary"
                 disabled={uploading.value}
                 onClick$={removeSelection}
               >
                 Cancel
-              </button>
+              </Button>
             </div>
 
             {uploadError.value && (

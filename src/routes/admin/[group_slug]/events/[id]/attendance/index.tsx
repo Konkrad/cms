@@ -86,8 +86,7 @@ export default component$(() => {
 
       {/* Actions */}
       <div class="mb-6 flex flex-wrap gap-4">
-        <a href={scanPath}>
-          <Button>
+        <Button href={scanPath}>
             <svg
               class="w-5 h-5 mr-2 inline-block"
               fill="none"
@@ -102,8 +101,7 @@ export default component$(() => {
               />
             </svg>
             Scan Tickets
-          </Button>
-        </a>
+        </Button>
         <Button variant="secondary">
           <svg
             class="w-5 h-5 mr-2 inline-block"

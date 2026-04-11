@@ -1,5 +1,5 @@
 import { component$, useSignal } from "@builder.io/qwik";
-import { Form, Link, routeAction$, routeLoader$, z, zod$ } from "@builder.io/qwik-city";
+import { Form, routeAction$, routeLoader$, z, zod$ } from "@builder.io/qwik-city";
 import { SimpleFormBuilder } from "~/components/forms/SimpleFormBuilder";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
@@ -99,11 +99,9 @@ export default component$(() => {
       <h1 class="text-3xl font-bold text-gray-900 mb-8">Edit Form</h1>
 
       <div class="mb-6">
-        <Link href={`${loader.value.basePath}/${loader.value.form.id}/responses`}>
-          <Button type="button" variant="secondary">
-            View Responses
-          </Button>
-        </Link>
+        <Button href={`${loader.value.basePath}/${loader.value.form.id}/responses`} variant="secondary">
+          View Responses
+        </Button>
       </div>
 
       {(action.value as { error?: string } | undefined)?.error && (
@@ -219,11 +217,9 @@ export default component$(() => {
             <Button type="submit" disabled={action.isRunning}>
               {action.isRunning ? "Updating..." : "Update Form"}
             </Button>
-            <Link href={loader.value.basePath}>
-              <Button type="button" variant="secondary">
-                Cancel
-              </Button>
-            </Link>
+            <Button href={loader.value.basePath} variant="secondary">
+              Cancel
+            </Button>
           </div>
         </Form>
       </Card>

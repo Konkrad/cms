@@ -3,7 +3,6 @@ export { Card } from "./Card";
 export { Input } from "./Input";
 export { Select } from "./Select";
 export { TextArea } from "./TextArea";
-export { ActionButton } from "./ActionButton";
 export { SmartDatePicker } from "./SmartDatePicker";
 export { AddressAutocomplete } from "./AddressAutocomplete";
 export { SquareImageCropper } from "./SquareImageCropper";

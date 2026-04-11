@@ -154,9 +154,7 @@ export default component$(() => {
     <div>
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Create New Event</h2>
-        <a href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/events`}>
-          <Button variant="secondary">Back to Events</Button>
-        </a>
+        <Button href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/events`} variant="secondary">Back to Events</Button>
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
@@ -257,9 +255,7 @@ export default component$(() => {
             <Button type="submit" disabled={isSubmitting.value}>
               {isSubmitting.value ? "Creating..." : "Create Event"}
             </Button>
-            <a href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/events`}>
-              <Button variant="secondary">Cancel</Button>
-            </a>
+            <Button href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/events`} variant="secondary">Cancel</Button>
           </div>
         </Form>
       </div>

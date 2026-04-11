@@ -1,5 +1,6 @@
 import { component$, useSignal, useVisibleTask$, $ } from "@builder.io/qwik";
 import type { ActionStore } from "@builder.io/qwik-city";
+import { Button } from "~/components/ui/Button";
 import { Html5QrcodeScanner } from "html5-qrcode";
 
 interface TicketScannerProps {
@@ -89,17 +90,13 @@ export default component$<TicketScannerProps>(({ action }) => {
     <div class="bg-white rounded-lg shadow-md p-6">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-xl font-semibold">QR Code Scanner</h3>
-        <button
+        <Button
           type="button"
+          variant={isScanning.value ? "danger" : "primary"}
           onClick$={toggleScanner}
-          class={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            isScanning.value
-              ? "bg-red-600 hover:bg-red-700 text-white"
-              : "bg-blue-600 hover:bg-blue-700 text-white"
-          }`}
         >
           {isScanning.value ? "Stop Scanning" : "Start Scanning"}
-        </button>
+        </Button>
       </div>
 
       {isScanning.value && (

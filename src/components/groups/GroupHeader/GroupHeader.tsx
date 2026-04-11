@@ -1,5 +1,6 @@
 import { component$ } from "@builder.io/qwik";
 import { Form } from "@builder.io/qwik-city";
+import { Button } from "~/components/ui/Button";
 import type { Group } from "~/db/schema";
 
 interface GroupHeaderProps {
@@ -30,21 +31,18 @@ export const GroupHeader = component$<GroupHeaderProps>(
               </div>
             ) : joinAction ? (
               <Form action={joinAction}>
-                <button
+                <Button
                   type="submit"
-                  class="px-6 py-2 bg-white text-blue-700 rounded-lg hover:bg-blue-50 transition-colors font-semibold disabled:opacity-50"
+                  variant="secondary"
                   disabled={joinAction.isRunning}
                 >
                   {joinAction.isRunning ? "Joining..." : "Join Group"}
-                </button>
+                </Button>
               </Form>
             ) : (
-              <a
-                href={`/groups/${group.slug}`}
-                class="px-6 py-2 bg-white text-blue-700 rounded-lg hover:bg-blue-50 transition-colors font-semibold inline-block"
-              >
+              <Button href={`/groups/${group.slug}`} variant="secondary">
                 Join Group
-              </a>
+              </Button>
             )}
           </div>
         </div>

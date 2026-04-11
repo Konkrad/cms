@@ -117,9 +117,7 @@ export default component$(() => {
     <div>
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold">Manage Pages</h2>
-        <a href="/admin/global/pages/new">
-          <Button variant="primary">Create New Page</Button>
-        </a>
+        <Button href="/admin/global/pages/new" variant="primary">Create New Page</Button>
       </div>
 
       {deletePageAction.value?.success && (

@@ -39,9 +39,7 @@ export default component$(() => {
         <h2 class="text-2xl font-bold text-gray-800">
           {data.value.groupSlug === "global" ? "All Posts" : "Group Posts"}
         </h2>
-        <a href={`/admin/${data.value.groupSlug}/posts/new`}>
-          <Button>Create New Post</Button>
-        </a>
+        <Button href={`/admin/${data.value.groupSlug}/posts/new`}>Create New Post</Button>
       </div>
 
       <div class="bg-white rounded-lg shadow overflow-hidden">

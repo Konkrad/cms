@@ -27,9 +27,7 @@ export default component$(() => {
     <div>
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold">Manage Forms</h2>
-        <Link href={`${data.value.basePath}/new`}>
-          <Button variant="primary">Create New Form</Button>
-        </Link>
+        <Button href={`${data.value.basePath}/new`}>Create New Form</Button>
       </div>
 
       {data.value.forms.length === 0 ? (

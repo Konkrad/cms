@@ -1,6 +1,6 @@
 import { component$ } from "@builder.io/qwik";
 import type { BlockDefinition } from "~/db/schema";
-import { ActionButton } from "~/components/ui/ActionButton";
+import { Button } from "~/components/ui/Button";
 
 interface ActionButtonBlockProps {
   text?: string;
@@ -61,7 +61,7 @@ export default component$<ActionButtonBlockProps>((props) => {
   return (
     <div class="max-w-6xl mx-auto px-4 py-6">
       <div class={`flex ${alignClass}`}>
-        <ActionButton href={href} label={text} />
+        <Button href={href} size="xl">{text}</Button>
       </div>
     </div>
   );

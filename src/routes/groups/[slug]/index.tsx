@@ -1,5 +1,6 @@
 import { component$, useSignal, $ } from "@builder.io/qwik";
 import { routeAction$, routeLoader$, Form } from "@builder.io/qwik-city";
+import { Button } from "~/components/ui/Button";
 import { ParticipantsModal } from "~/components/events/ParticipantsModal";
 import { eq, and, isNull, gte, desc } from "drizzle-orm";
 import { db } from "~/db/connection";
@@ -245,13 +246,13 @@ export default component$(() => {
                 </p>
               ) : (
                 <Form action={joinAction} class="mt-6">
-                  <button
+                  <Button
                     type="submit"
-                    class="px-6 py-3 bg-white text-[#034ea2] rounded-full font-bold text-[15px] hover:bg-white/90 transition-colors disabled:opacity-50"
+                    variant="secondary"
                     disabled={joinAction.isRunning}
                   >
                     {joinAction.isRunning ? "Joining..." : "Join This Group"}
-                  </button>
+                  </Button>
                 </Form>
               )}
             </div>
@@ -268,13 +269,13 @@ export default component$(() => {
             </div>
           ) : (
             <Form action={joinAction}>
-              <button
+              <Button
                 type="submit"
-                class="px-8 py-3 bg-[#034ea2] text-white rounded-full font-bold text-[16px] hover:bg-blue-700 transition-colors disabled:opacity-50"
+                size="lg"
                 disabled={joinAction.isRunning}
               >
                 {joinAction.isRunning ? "Joining..." : "Join This Group"}
-              </button>
+              </Button>
             </Form>
           )}
           {joinAction.value?.error && (

@@ -171,11 +171,9 @@ export default component$(() => {
               <Button type="submit" variant="primary">
                 Save Changes
               </Button>
-              <a href="/profile">
-                <Button type="button" variant="secondary">
+              <Button href="/profile" variant="secondary">
                   Cancel
-                </Button>
-              </a>
+              </Button>
             </div>
           </Form>
         </Card>

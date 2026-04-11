@@ -68,17 +68,13 @@ export default component$(() => {
         <h2 class="text-2xl font-bold text-gray-800">
           {data.value.groupSlug === "global" ? "All Events" : "Group Events"}
         </h2>
-        <Link href={`/admin/${data.value.groupSlug}/events/new`}>
-          <Button>Create New Event</Button>
-        </Link>
+        <Button href={`/admin/${data.value.groupSlug}/events/new`}>Create New Event</Button>
       </div>
 
       {data.value.events.length === 0 ? (
         <div class="bg-white rounded-lg shadow p-8 text-center">
           <p class="text-gray-600 mb-4">No events found.</p>
-          <Link href={`/admin/${data.value.groupSlug}/events/new`}>
-            <Button>Create Your First Event</Button>
-          </Link>
+          <Button href={`/admin/${data.value.groupSlug}/events/new`}>Create Your First Event</Button>
         </div>
       ) : (
         <div class="bg-white shadow rounded-lg overflow-hidden">

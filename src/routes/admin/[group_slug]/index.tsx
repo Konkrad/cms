@@ -1,5 +1,6 @@
 import { component$ } from "@builder.io/qwik";
 import { routeLoader$ } from "@builder.io/qwik-city";
+import { Button } from "~/components/ui/Button/Button";
 import { groupsService } from "~/services/groups.service";
 import { groupMembershipsService } from "~/services/group-memberships.service";
 import { db } from "~/db/connection";
@@ -124,39 +125,39 @@ export default component$(() => {
       <div class="bg-white rounded-lg shadow p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <a
+          <Button
             href={`/admin/${stats.value.isGlobal ? "global" : stats.value.group?.slug}/events/new`}
-            class="px-4 py-3 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-center font-medium"
+            variant="secondary"
           >
             + New Event
-          </a>
-          <a
+          </Button>
+          <Button
             href={`/admin/${stats.value.isGlobal ? "global" : stats.value.group?.slug}/posts/new`}
-            class="px-4 py-3 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors text-center font-medium"
+            variant="secondary"
           >
             + New Post
-          </a>
+          </Button>
           {stats.value.isGlobal && (
-            <a
+            <Button
               href="/admin/global/pages/new"
-              class="px-4 py-3 bg-slate-100 text-slate-700 rounded hover:bg-slate-200 transition-colors text-center font-medium"
+              variant="secondary"
             >
               + New Page
-            </a>
+            </Button>
           )}
-          <a
+          <Button
             href={`/admin/${stats.value.isGlobal ? "global" : stats.value.group?.slug}/users`}
-            class="px-4 py-3 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors text-center font-medium"
+            variant="secondary"
           >
             View {stats.value.isGlobal ? "Users" : "Members"}
-          </a>
+          </Button>
           {stats.value.isGlobal && (
-            <a
+            <Button
               href="/admin/global/groups"
-              class="px-4 py-3 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors text-center font-medium"
+              variant="secondary"
             >
               Manage Groups
-            </a>
+            </Button>
           )}
         </div>
       </div>

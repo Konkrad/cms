@@ -23,6 +23,7 @@ export const useUpdateProfile = routeAction$(
       country: data.country || null,
       yearOfBirth: data.year_of_birth ?? null,
       sex: data.sex || null,
+      ...(data.profilePicture ? { profilePicture: data.profilePicture } : {}),
     });
     await markConsentStepComplete(user.id, "lastProfileUpdate");
     return { success: true };
@@ -34,6 +35,7 @@ export const useUpdateProfile = routeAction$(
     country: z.string().optional(),
     year_of_birth: z.coerce.number().optional(),
     sex: z.string().optional(),
+    profilePicture: z.string().optional(),
   }),
 );
 
@@ -69,6 +71,13 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
   }
 
   const saveFn = async () => {
+    // Trigger any deferred image uploads before building form data
+    const pendingUploads: Record<string, () => Promise<string>> = (window as any).__deferredUploads ?? {};
+    const uploadResults: Record<string, string> = {};
+    for (const [fieldName, uploadFn] of Object.entries(pendingUploads)) {
+      uploadResults[fieldName] = await uploadFn();
+    }
+
     const formData = new FormData();
     formData.set("name", name.value);
     formData.set("family_name", familyName.value);
@@ -76,6 +85,9 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
     formData.set("country", country.value || "");
     if (yearOfBirth.value) formData.set("year_of_birth", yearOfBirth.value);
     formData.set("sex", sex.value || "");
+    for (const [k, v] of Object.entries(uploadResults)) {
+      formData.set(k, v);
+    }
 
     // Use the server action passed via props
     if (props.updateAction && typeof props.updateAction.submit === "function") {
@@ -137,6 +149,7 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
             pipeline="profile-picture"
             previewShape="circle"
             currentImageUrl={props.profile.profilePictureUrl}
+            deferred={true}
           />
         </div>
 

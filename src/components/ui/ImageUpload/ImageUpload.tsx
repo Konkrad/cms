@@ -4,6 +4,8 @@ import {
   useVisibleTask$,
   $,
   useStore,
+  noSerialize,
+  type NoSerialize,
   type QRL,
 } from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
@@ -22,6 +24,9 @@ interface ImageUploadProps {
   pipeline?: string;
   crop?: boolean;
   previewShape?: "square" | "circle";
+  /** When true, the file is stored locally and the S3 upload is deferred until
+   *  the parent calls window.__deferredUploads[name]() before form submit. */
+  deferred?: boolean;
   onUploadComplete$?: QRL<(urls: Record<string, string>) => void>;
 }
 
@@ -34,6 +39,7 @@ export const ImageUpload = component$<ImageUploadProps>(
     pipeline = "square",
     crop: cropEnabled,
     previewShape = "square",
+    deferred = false,
     onUploadComplete$,
   }) => {
     const showCrop =
@@ -50,6 +56,14 @@ export const ImageUpload = component$<ImageUploadProps>(
     const uploadError = useSignal<string | null>(null);
     const uploadSuccess = useSignal(false);
     const savedUrl = useSignal<string>(currentImageUrl ?? "");
+
+    // Deferred upload support: local preview URL (object URL or data URL) + blob to upload
+    const previewUrl = useSignal<string | null>(null);
+    const pendingBlob = useSignal<NoSerialize<Blob> | null>(null);
+    const pendingCropX = useSignal(0);
+    const pendingCropY = useSignal(0);
+    const pendingCropW = useSignal(1);
+    const pendingCropH = useSignal(1);
 
     const displayWidth = useSignal(0);
     const displayHeight = useSignal(0);
@@ -112,6 +126,11 @@ export const ImageUpload = component$<ImageUploadProps>(
           imageDataUrl.value = reader.result as string;
         };
         reader.readAsDataURL(file);
+      } else if (deferred) {
+        // Deferred simple upload: store blob + preview, upload on form save
+        pendingBlob.value = noSerialize(file);
+        previewUrl.value = URL.createObjectURL(file);
+        uploadSuccess.value = true;
       } else {
         uploadSimple(file);
       }
@@ -279,6 +298,20 @@ export const ImageUpload = component$<ImageUploadProps>(
       const cropRatioW = crop.size / dw;
       const cropRatioH = crop.size / dh;
 
+      if (deferred) {
+        // Store blob + crop ratios; actual upload happens on form save
+        pendingBlob.value = noSerialize(blob);
+        pendingCropX.value = cropRatioX;
+        pendingCropY.value = cropRatioY;
+        pendingCropW.value = cropRatioW;
+        pendingCropH.value = cropRatioH;
+        previewUrl.value = dataUrl; // full image as preview (server applies crop on upload)
+        imageDataUrl.value = null;
+        uploading.value = false;
+        uploadSuccess.value = true;
+        return;
+      }
+
       const cropHeaders: Record<string, string> = {
         "x-crop-x": cropRatioX.toFixed(6),
         "x-crop-y": cropRatioY.toFixed(6),
@@ -286,15 +319,10 @@ export const ImageUpload = component$<ImageUploadProps>(
         "x-crop-height": cropRatioH.toFixed(6),
       };
 
-      let url: string;
-      if (pipeline === "profile-picture") {
-        url = "/api/images/profile-picture";
-      } else {
-        const fileId = globalThis.crypto.randomUUID();
-        const prefix = uploadPath.replace(/^\//, "").replace(/\/$/, "");
-        url = `/api/images?pipeline=${pipeline}&filename=${encodeURIComponent(fileId)}`;
-        cropHeaders["x-upload-path"] = prefix;
-      }
+      const fileId = globalThis.crypto.randomUUID();
+      const prefix = uploadPath.replace(/^\//, "").replace(/\/$/, "");
+      const url = `/api/images?pipeline=${pipeline}&filename=${encodeURIComponent(fileId)}`;
+      cropHeaders["x-upload-path"] = prefix;
 
       const response = await fetch(url, {
         method: "POST",
@@ -313,7 +341,7 @@ export const ImageUpload = component$<ImageUploadProps>(
         return;
       }
 
-      savedUrl.value = result.url ?? result.filePath ?? result.profilePicture ?? "";
+      savedUrl.value = result.url ?? result.filePath ?? "";
       uploading.value = false;
       uploadSuccess.value = true;
       imageDataUrl.value = null;
@@ -322,14 +350,79 @@ export const ImageUpload = component$<ImageUploadProps>(
         await onUploadComplete$(result.urls ?? { url: savedUrl.value });
       }
     });
-
     const removeSelection = $(() => {
       imageDataUrl.value = null;
+      previewUrl.value = null;
+      pendingBlob.value = null;
       uploadSuccess.value = false;
       uploadError.value = null;
       if (fileInputRef.value) {
         fileInputRef.value.value = "";
       }
+    });
+
+    // Register / deregister deferred upload handler on window.__deferredUploads
+    // so the parent form can trigger all pending uploads before submitting.
+    useVisibleTask$(({ track, cleanup }) => {
+      track(() => pendingBlob.value);
+
+      const deferredUploads = (window as any).__deferredUploads ?? {};
+      (window as any).__deferredUploads = deferredUploads;
+
+      if (!pendingBlob.value) {
+        delete deferredUploads[name];
+        return;
+      }
+
+      deferredUploads[name] = async (): Promise<string> => {
+        const blob = pendingBlob.value;
+        if (!blob) return savedUrl.value;
+
+        uploading.value = true;
+        uploadError.value = null;
+
+        const prefix = uploadPath.replace(/^\//, "").replace(/\/$/, "");
+        const fileId = globalThis.crypto.randomUUID();
+
+        const headers: Record<string, string> = {
+          "Content-Type": blob.type || "image/jpeg",
+          "x-upload-path": prefix,
+          "x-crop-x": pendingCropX.value.toFixed(6),
+          "x-crop-y": pendingCropY.value.toFixed(6),
+          "x-crop-width": pendingCropW.value.toFixed(6),
+          "x-crop-height": pendingCropH.value.toFixed(6),
+        };
+
+        const response = await fetch(
+          `/api/images?pipeline=${pipeline}&filename=${encodeURIComponent(fileId)}`,
+          { method: "POST", headers, body: blob },
+        );
+
+        const result = await response.json();
+        uploading.value = false;
+
+        if (!response.ok || !result.success) {
+          uploadError.value = result.error || "Upload failed";
+          throw new Error(result.error || "Upload failed");
+        }
+
+        const url = result.url ?? result.filePath ?? "";
+        savedUrl.value = url;
+        previewUrl.value = null;
+        pendingBlob.value = null;
+        uploadSuccess.value = true;
+        delete deferredUploads[name];
+
+        if (onUploadComplete$) {
+          await onUploadComplete$(result.urls ?? { url });
+        }
+
+        return url;
+      };
+
+      cleanup(() => {
+        delete ((window as any).__deferredUploads ?? {})[name];
+      });
     });
 
     const previewRounded =
@@ -339,22 +432,24 @@ export const ImageUpload = component$<ImageUploadProps>(
       <div class="space-y-4">
         <label class="text-sm font-medium text-text block">{label}</label>
 
-        {/* Current image preview */}
-        {!imageDataUrl.value && savedUrl.value && (
+        {/* Current / deferred preview image */}
+        {!imageDataUrl.value && (previewUrl.value || savedUrl.value) && (
           <div class="flex items-center gap-4">
             <img
-              src={savedUrl.value}
+              src={previewUrl.value || savedUrl.value}
               alt="Current image"
               width={80}
               height={80}
               class={`w-20 h-20 object-cover border-2 border-gray-200 ${previewRounded}`}
             />
-            <span class="text-sm text-gray-500">Current image</span>
+            <span class="text-sm text-gray-500">
+              {pendingBlob.value ? "Ready — will upload on save" : "Current image"}
+            </span>
           </div>
         )}
 
         {/* Drop zone */}
-        {!imageDataUrl.value && !uploading.value && (
+        {!imageDataUrl.value && !uploading.value && !pendingBlob.value && (
           <div
             class="border-2 border-dashed border-border-strong rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
             onClick$={() => fileInputRef.value?.click()}
@@ -561,7 +656,7 @@ export const ImageUpload = component$<ImageUploadProps>(
                 disabled={uploading.value}
                 onClick$={uploadCropped}
               >
-                {uploading.value ? "Uploading…" : "Upload Image"}
+                {uploading.value ? "Uploading…" : deferred ? "Confirm Crop" : "Upload Image"}
               </Button>
               <Button
                 type="button"
@@ -585,7 +680,9 @@ export const ImageUpload = component$<ImageUploadProps>(
         )}
 
         {uploadSuccess.value && !imageDataUrl.value && (
-          <p class="text-sm text-green-600">Image uploaded successfully!</p>
+          <p class="text-sm text-green-600">
+            {pendingBlob.value ? "Image ready — will be uploaded on save." : "Image uploaded successfully!"}
+          </p>
         )}
 
         <input type="hidden" name={name} value={savedUrl.value} />

@@ -1,5 +1,5 @@
 import { component$, useSignal, $ } from "@qwik.dev/core";
-import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
+import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { BlockNoteEditor } from "~/components/editor";
@@ -78,6 +78,18 @@ export default component$(() => {
     editorState.value = state;
   });
 
+  const handleSubmit = $(async (e: Event) => {
+    e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
+    const formData = new FormData(form);
+    const pending: Record<string, () => Promise<string>> = (window as any).__deferredUploads ?? {};
+    for (const [field, uploadFn] of Object.entries(pending)) {
+      const url = await uploadFn();
+      formData.set(field, url);
+    }
+    await createPostAction.submit(formData);
+  });
+
   return (
     <div>
       <div class="flex items-center justify-between mb-6">
@@ -86,7 +98,7 @@ export default component$(() => {
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
-        <Form action={createPostAction} class="space-y-6">
+        <form onSubmit$={handleSubmit} class="space-y-6">
           <Input
             name="title"
             label="Title"
@@ -98,6 +110,7 @@ export default component$(() => {
             name="featuredImage"
             label="Featured Image (optional)"
             uploadPath="public/posts/"
+            deferred={true}
           />
 
           <div>
@@ -140,7 +153,7 @@ export default component$(() => {
             </Button>
             <Button href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/posts`} variant="secondary">Cancel</Button>
           </div>
-        </Form>
+        </form>
       </div>
     </div>
   );

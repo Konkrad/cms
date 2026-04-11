@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
+import { component$, $ } from "@qwik.dev/core";
 import {
-  Form,
   routeAction$,
   routeLoader$,
   z,
@@ -100,6 +100,18 @@ export default component$(() => {
   const group = useGroup();
   const action = useUpdateGroup();
 
+  const handleSubmit = $(async (e: Event) => {
+    e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
+    const formData = new FormData(form);
+    const pending: Record<string, () => Promise<string>> = (window as any).__deferredUploads ?? {};
+    for (const [field, uploadFn] of Object.entries(pending)) {
+      const url = await uploadFn();
+      formData.set(field, url);
+    }
+    await action.submit(formData);
+  });
+
   return (
     <div>
       <div class="flex items-center justify-between mb-6">
@@ -108,7 +120,7 @@ export default component$(() => {
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
-        <Form action={action} class="space-y-6">
+        <form onSubmit$={handleSubmit} class="space-y-6">
           <Input name="name" label="Name" value={group.value.name} required />
           <Input name="slug" label="Slug" value={group.value.slug} />
           <div>
@@ -134,6 +146,7 @@ export default component$(() => {
             label="Image 1 — Left bottom tile"
             uploadPath="public/groups/"
             currentImageUrl={group.value.image1}
+            deferred={true}
           />
           <ImageUpload
             name="image2"
@@ -141,6 +154,7 @@ export default component$(() => {
             uploadPath="public/groups/"
             pipeline="standard"
             currentImageUrl={group.value.image2}
+            deferred={true}
           />
           <ImageUpload
             name="image3"
@@ -148,6 +162,7 @@ export default component$(() => {
             uploadPath="public/groups/"
             pipeline="standard"
             currentImageUrl={group.value.image3}
+            deferred={true}
           />
 
           {action.value?.error && (
@@ -160,7 +175,7 @@ export default component$(() => {
             <Button type="submit">Save Group</Button>
             <Button href="/admin/global/groups" variant="secondary">Cancel</Button>
           </div>
-        </Form>
+        </form>
       </div>
     </div>
   );

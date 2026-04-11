@@ -1,6 +1,6 @@
 import { component$, useSignal } from "@qwik.dev/core";
+import { component$, useSignal, $ } from "@qwik.dev/core";
 import {
-  Form,
   routeAction$,
   routeLoader$,
   z,
@@ -80,6 +80,18 @@ export default component$(() => {
   useGlobalOnly(); // Ensure we fail fast on UI if not in global context
   const isSubmitting = useSignal(false);
 
+  const handleSubmit = $(async (e: Event) => {
+    e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
+    const formData = new FormData(form);
+    const pending: Record<string, () => Promise<string>> = (window as any).__deferredUploads ?? {};
+    for (const [field, uploadFn] of Object.entries(pending)) {
+      const url = await uploadFn();
+      formData.set(field, url);
+    }
+    await createGroupAction.submit(formData);
+  });
+
   return (
     <div>
       <div class="flex items-center justify-between mb-6">
@@ -88,7 +100,7 @@ export default component$(() => {
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
-        <Form action={createGroupAction} class="space-y-6">
+        <form onSubmit$={handleSubmit} class="space-y-6">
           <Input
             name="name"
             label="Name"
@@ -105,14 +117,15 @@ export default component$(() => {
           <hr class="border-gray-200" />
           <p class="text-sm font-semibold text-gray-700">Group Page Images</p>
 
-          <ImageUpload name="image1" label="Image 1 — Left bottom tile" uploadPath="public/groups/" />
+          <ImageUpload name="image1" label="Image 1 — Left bottom tile" uploadPath="public/groups/" deferred={true} />
           <ImageUpload
             name="image2"
             label="Image 2 — Middle tile (large)"
             uploadPath="public/groups/"
             pipeline="standard"
+            deferred={true}
           />
-          <ImageUpload name="image3" label="Image 3 — Right top tile" uploadPath="public/groups/" pipeline="standard" />
+          <ImageUpload name="image3" label="Image 3 — Right top tile" uploadPath="public/groups/" pipeline="standard" deferred={true} />
 
           {createGroupAction.value?.error && (
             <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
@@ -131,7 +144,7 @@ export default component$(() => {
             </Button>
             <Button href="/admin/global/groups" variant="secondary">Cancel</Button>
           </div>
-        </Form>
+        </form>
       </div>
     </div>
   );

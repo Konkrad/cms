@@ -4,8 +4,9 @@ import {
   useComputed$,
   useTask$,
 } from "@qwik.dev/core";
+  $,
+} from "@qwik.dev/core";
 import {
-  Form,
   routeAction$,
   routeLoader$,
   z,
@@ -163,6 +164,18 @@ export default component$(() => {
       | "hybrid";
   });
 
+  const handleSubmit = $(async (e: Event) => {
+    e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
+    const formData = new FormData(form);
+    const pending: Record<string, () => Promise<string>> = (window as any).__deferredUploads ?? {};
+    for (const [field, uploadFn] of Object.entries(pending)) {
+      const url = await uploadFn();
+      formData.set(field, url);
+    }
+    await updateEventAction.submit(formData);
+  });
+
   // Computed visibility flags
   const showAddress = useComputed$(() => {
     return (
@@ -187,7 +200,7 @@ export default component$(() => {
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
-        <Form action={updateEventAction} class="space-y-6">
+        <form onSubmit$={handleSubmit} class="space-y-6">
           <Input
             name="title"
             label="Title"
@@ -270,12 +283,14 @@ export default component$(() => {
             label="Image Left (square)"
             uploadPath="public/events/"
             currentImageUrl={(event.value as any).image1}
+            deferred={true}
           />
           <ImageUpload
             name="image2"
             label="Image Right (square)"
             uploadPath="public/events/"
             currentImageUrl={(event.value as any).image2}
+            deferred={true}
           />
 
           {updateEventAction.value?.fieldErrors && (
@@ -309,7 +324,7 @@ export default component$(() => {
             </Button>
             <Button href={eventsBase} variant="secondary">Cancel</Button>
           </div>
-        </Form>
+        </form>
       </div>
     </div>
   );

@@ -22,10 +22,12 @@ import {
   processAndUploadImage,
   processAndUploadVariants,
   processAndUploadSquareVariants,
+  processAndUploadProfilePicture,
   getPipeline,
   PROCESSING_PIPELINES,
 } from "~/services/image-processing.service";
 import { generatePresignedGetUrl } from "~/utils/secure-urls";
+import { requireAuth } from "~/utils/server-auth";
 import { env } from "~/env";
 import crypto from "crypto";
 
@@ -34,7 +36,14 @@ export const onPost: RequestHandler = async ({
   query,
   json,
   error,
+  cookie,
+  sharedMap,
+  redirect,
 }) => {
+  // All image uploads require authentication
+  const authEvent = { cookie, sharedMap, redirect } as any;
+  const user = await requireAuth(authEvent);
+
   try {
     // Streaming-only uploads (no multipart): expect the raw file body to be the request body
     const bodyStream = request.body;
@@ -60,6 +69,27 @@ export const onPost: RequestHandler = async ({
     }
 
     const fileId = query.get("filename") || crypto.randomUUID();
+
+    // Profile picture: 400×400 + 75×75 variants, no DB write (action handles persistence)
+    if (pipelineName === "profile-picture") {
+      const cropX = Number.parseFloat(request.headers.get("x-crop-x") || "0");
+      const cropY = Number.parseFloat(request.headers.get("x-crop-y") || "0");
+      const cropWidth = Number.parseFloat(request.headers.get("x-crop-width") || "1");
+      const cropHeight = Number.parseFloat(request.headers.get("x-crop-height") || "1");
+
+      const { picture } = await processAndUploadProfilePicture(
+        bodyStream,
+        { x: cropX, y: cropY, width: cropWidth, height: cropHeight },
+        user.id,
+      );
+
+      json(200, {
+        success: true,
+        filePath: `/${picture.key}`,
+        url: picture.url,
+      });
+      return;
+    }
 
     // If pipeline is 'gallery' create a gallery variant AND a thumbnail
     // If pipeline is 'square' create a 1000x1000 main + 200x200 small (derived by URL convention)

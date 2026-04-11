@@ -1,5 +1,5 @@
-import { component$, useSignal, useComputed$ } from "@qwik.dev/core";
-import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
+import { component$, useSignal, useComputed$, $ } from "@qwik.dev/core";
+import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
@@ -155,6 +155,18 @@ export default component$(() => {
     return locationType.value === "online" || locationType.value === "hybrid";
   });
 
+  const handleSubmit = $(async (e: Event) => {
+    e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
+    const formData = new FormData(form);
+    const pending: Record<string, () => Promise<string>> = (window as any).__deferredUploads ?? {};
+    for (const [field, uploadFn] of Object.entries(pending)) {
+      const url = await uploadFn();
+      formData.set(field, url);
+    }
+    await createEventAction.submit(formData);
+  });
+
   return (
     <div>
       <div class="flex items-center justify-between mb-6">
@@ -163,7 +175,7 @@ export default component$(() => {
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
-        <Form action={createEventAction} class="space-y-6">
+        <form onSubmit$={handleSubmit} class="space-y-6">
           <Input
             name="title"
             label="Title"
@@ -244,11 +256,13 @@ export default component$(() => {
             name="image1"
             label="Image Left (square)"
             uploadPath="public/events/"
+            deferred={true}
           />
           <ImageUpload
             name="image2"
             label="Image Right (square)"
             uploadPath="public/events/"
+            deferred={true}
           />
 
           {createEventAction.value?.fieldErrors && (
@@ -276,7 +290,7 @@ export default component$(() => {
             </Button>
             <Button href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/events`} variant="secondary">Cancel</Button>
           </div>
-        </Form>
+        </form>
       </div>
     </div>
   );

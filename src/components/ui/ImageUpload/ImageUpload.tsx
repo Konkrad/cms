@@ -14,15 +14,33 @@ interface CropState {
   size: number;
 }
 
-interface ProfilePictureCropperProps {
-  currentPictureUrl?: string | null;
-  onUploadComplete$?: QRL<
-    (urls: { picture: string; pictureSmall: string }) => void
-  >;
+interface ImageUploadProps {
+  name: string;
+  label: string;
+  currentImageUrl?: string | null;
+  uploadPath?: string;
+  pipeline?: string;
+  crop?: boolean;
+  previewShape?: "square" | "circle";
+  onUploadComplete$?: QRL<(urls: Record<string, string>) => void>;
 }
 
-export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
-  ({ currentPictureUrl, onUploadComplete$ }) => {
+export const ImageUpload = component$<ImageUploadProps>(
+  ({
+    name,
+    label,
+    currentImageUrl,
+    uploadPath = "public/",
+    pipeline = "square",
+    crop: cropEnabled,
+    previewShape = "square",
+    onUploadComplete$,
+  }) => {
+    const showCrop =
+      cropEnabled !== undefined
+        ? cropEnabled
+        : pipeline === "square" || pipeline === "profile-picture";
+
     const fileInputRef = useSignal<HTMLInputElement>();
     const imageRef = useSignal<HTMLImageElement>();
     const containerRef = useSignal<HTMLDivElement>();
@@ -31,22 +49,17 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
     const uploading = useSignal(false);
     const uploadError = useSignal<string | null>(null);
     const uploadSuccess = useSignal(false);
+    const savedUrl = useSignal<string>(currentImageUrl ?? "");
 
-    // Natural image dimensions
-    const naturalWidth = useSignal(0);
-    const naturalHeight = useSignal(0);
-
-    // Display dimensions of the image within the container
     const displayWidth = useSignal(0);
     const displayHeight = useSignal(0);
     const imageOffsetX = useSignal(0);
-    const imageOffsetY = useSignal(0);
 
-    // Crop state in display pixels (relative to the image element)
     const crop = useStore<CropState>({ x: 0, y: 0, size: 100 });
 
-    // Drag state
-    const dragging = useSignal<"move" | "nw" | "ne" | "sw" | "se" | null>(null);
+    const dragging = useSignal<"move" | "nw" | "ne" | "sw" | "se" | null>(
+      null,
+    );
     const dragStart = useStore({
       mouseX: 0,
       mouseY: 0,
@@ -67,10 +80,6 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
       const nh = img.naturalHeight;
       if (!nw || !nh) return;
 
-      naturalWidth.value = nw;
-      naturalHeight.value = nh;
-
-      // Fit image within container maintaining aspect ratio
       const aspect = nw / nh;
       let dw = containerWidth;
       let dh = containerWidth / aspect;
@@ -82,9 +91,7 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
       displayWidth.value = dw;
       displayHeight.value = dh;
       imageOffsetX.value = (containerWidth - dw) / 2;
-      imageOffsetY.value = 0;
 
-      // Initialize crop to largest centered square
       const minDim = Math.min(dw, dh);
       crop.size = minDim * 0.8;
       crop.x = (dw - crop.size) / 2;
@@ -99,24 +106,59 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
       uploadSuccess.value = false;
       uploadError.value = null;
 
-      const reader = new FileReader();
-      reader.onload = () => {
-        imageDataUrl.value = reader.result as string;
-      };
-      reader.readAsDataURL(file);
+      if (showCrop) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          imageDataUrl.value = reader.result as string;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        uploadSimple(file);
+      }
     });
 
-    // Recalculate display dimensions when image loads
+    const uploadSimple = $(async (file: File) => {
+      uploading.value = true;
+      uploadError.value = null;
+
+      const prefix = uploadPath.replace(/^\//, "").replace(/\/$/, "");
+      const fileId = globalThis.crypto.randomUUID();
+
+      const response = await fetch(
+        `/api/images?pipeline=${pipeline}&filename=${encodeURIComponent(fileId)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": file.type,
+            "x-upload-path": prefix,
+          },
+          body: file,
+        },
+      );
+
+      const result = await response.json();
+      uploading.value = false;
+
+      if (!response.ok || !result.success) {
+        uploadError.value = result.error || "Upload failed";
+        return;
+      }
+
+      savedUrl.value = result.url ?? result.filePath ?? "";
+      uploadSuccess.value = true;
+
+      if (onUploadComplete$) {
+        await onUploadComplete$(result.urls ?? { url: savedUrl.value });
+      }
+    });
+
     useVisibleTask$(({ track, cleanup }) => {
       track(() => imageDataUrl.value);
 
       const img = imageRef.value;
       if (!img) return;
 
-      const handler = () => {
-        computeDisplayDimensions();
-      };
-
+      const handler = () => computeDisplayDimensions();
       img.addEventListener("load", handler);
       cleanup(() => img.removeEventListener("load", handler));
     });
@@ -127,7 +169,6 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
 
       const dx = e.clientX - dragStart.mouseX;
       const dy = e.clientY - dragStart.mouseY;
-
       const dw = displayWidth.value;
       const dh = displayHeight.value;
 
@@ -135,20 +176,14 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
         let newX = dragStart.cropX + dx;
         let newY = dragStart.cropY + dy;
         const size = crop.size;
-
-        // Clamp within image bounds
         newX = Math.max(0, Math.min(newX, dw - size));
         newY = Math.max(0, Math.min(newY, dh - size));
-
         crop.x = newX;
         crop.y = newY;
       } else {
-        // Corner resize – keep square
         let newSize = dragStart.cropSize;
         let newX = dragStart.cropX;
         let newY = dragStart.cropY;
-
-        // Determine delta based on which corner
         const handle = dragging.value;
         let delta = 0;
 
@@ -170,7 +205,6 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
           newY = dragStart.cropY - delta;
         }
 
-        // Enforce minimum size
         const minSize = 40;
         if (newSize < minSize) {
           const diff = minSize - newSize;
@@ -179,7 +213,6 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
           if (handle === "ne" || handle === "nw") newY -= diff;
         }
 
-        // Clamp within bounds
         if (newX < 0) {
           newSize += newX;
           newX = 0;
@@ -195,7 +228,6 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
           newSize = dh - newY;
         }
 
-        // Keep square using the smaller constrained dimension
         const maxPossible = Math.min(dw - newX, dh - newY);
         newSize = Math.min(newSize, maxPossible);
         newSize = Math.max(newSize, minSize);
@@ -223,7 +255,7 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
       },
     );
 
-    const upload = $(async () => {
+    const uploadCropped = $(async () => {
       const dataUrl = imageDataUrl.value;
       if (!dataUrl) return;
 
@@ -231,7 +263,6 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
       uploadError.value = null;
       uploadSuccess.value = false;
 
-      // Convert crop from display pixels to ratios (0–1)
       const dw = displayWidth.value;
       const dh = displayHeight.value;
       if (!dw || !dh) {
@@ -240,7 +271,6 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
         return;
       }
 
-      // Convert data URL to Blob (avoids relying on file input ref across Qwik serialization)
       const res = await fetch(dataUrl);
       const blob = await res.blob();
 
@@ -249,15 +279,29 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
       const cropRatioW = crop.size / dw;
       const cropRatioH = crop.size / dh;
 
-      const response = await fetch("/api/images/profile-picture", {
+      const cropHeaders: Record<string, string> = {
+        "x-crop-x": cropRatioX.toFixed(6),
+        "x-crop-y": cropRatioY.toFixed(6),
+        "x-crop-width": cropRatioW.toFixed(6),
+        "x-crop-height": cropRatioH.toFixed(6),
+      };
+
+      let url: string;
+      if (pipeline === "profile-picture") {
+        url = "/api/images/profile-picture";
+      } else {
+        const fileId = globalThis.crypto.randomUUID();
+        const prefix = uploadPath.replace(/^\//, "").replace(/\/$/, "");
+        url = `/api/images?pipeline=${pipeline}&filename=${encodeURIComponent(fileId)}`;
+        cropHeaders["x-upload-path"] = prefix;
+      }
+
+      const response = await fetch(url, {
         method: "POST",
         body: blob,
         headers: {
           "Content-Type": blob.type,
-          "x-crop-x": cropRatioX.toFixed(6),
-          "x-crop-y": cropRatioY.toFixed(6),
-          "x-crop-width": cropRatioW.toFixed(6),
-          "x-crop-height": cropRatioH.toFixed(6),
+          ...cropHeaders,
         },
       });
 
@@ -269,14 +313,13 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
         return;
       }
 
+      savedUrl.value = result.url ?? result.filePath ?? result.profilePicture ?? "";
       uploading.value = false;
       uploadSuccess.value = true;
+      imageDataUrl.value = null;
 
       if (onUploadComplete$) {
-        await onUploadComplete$({
-          picture: result.urls.picture,
-          pictureSmall: result.urls.pictureSmall,
-        });
+        await onUploadComplete$(result.urls ?? { url: savedUrl.value });
       }
     });
 
@@ -289,30 +332,31 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
       }
     });
 
+    const previewRounded =
+      previewShape === "circle" ? "rounded-full" : "rounded-lg";
+
     return (
       <div class="space-y-4">
-        <label class="text-sm font-medium text-gray-700 block">
-          Profile Picture
-        </label>
+        <label class="text-sm font-medium text-text block">{label}</label>
 
-        {/* Current picture preview */}
-        {!imageDataUrl.value && currentPictureUrl && (
+        {/* Current image preview */}
+        {!imageDataUrl.value && savedUrl.value && (
           <div class="flex items-center gap-4">
             <img
-              src={currentPictureUrl}
-              alt="Current profile picture"
+              src={savedUrl.value}
+              alt="Current image"
               width={80}
               height={80}
-              class="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+              class={`w-20 h-20 object-cover border-2 border-gray-200 ${previewRounded}`}
             />
-            <span class="text-sm text-gray-500">Current picture</span>
+            <span class="text-sm text-gray-500">Current image</span>
           </div>
         )}
 
-        {/* File input */}
-        {!imageDataUrl.value && (
+        {/* Drop zone */}
+        {!imageDataUrl.value && !uploading.value && (
           <div
-            class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-400 transition-colors"
+            class="border-2 border-dashed border-border-strong rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
             onClick$={() => fileInputRef.value?.click()}
           >
             <svg
@@ -330,9 +374,15 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
             </svg>
             <p class="mt-2 text-sm text-gray-600">Click to select a photo</p>
             <p class="mt-1 text-xs text-gray-400">
-              JPG, PNG or WebP. You'll be able to crop it.
+              JPG, PNG or WebP.
+              {showCrop && " You'll be able to crop it to a square."}
             </p>
           </div>
+        )}
+
+        {/* Simple upload loading state */}
+        {!showCrop && uploading.value && (
+          <p class="text-sm text-blue-600">Uploading...</p>
         )}
 
         <input
@@ -343,12 +393,11 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
           onChange$={onFileSelect}
         />
 
-        {/* Crop area */}
-        {imageDataUrl.value && (
+        {/* Crop UI */}
+        {showCrop && imageDataUrl.value && (
           <div class="space-y-3">
             <p class="text-sm text-gray-600">
-              Drag the square to select the area for your profile picture. Drag
-              corners to resize.
+              Drag the square to select the area. Drag corners to resize.
             </p>
             <div
               ref={containerRef}
@@ -361,7 +410,6 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
               onPointerUp$={onPointerUp}
               onPointerLeave$={onPointerUp}
             >
-              {/* The image */}
               <img
                 ref={imageRef}
                 src={imageDataUrl.value}
@@ -375,7 +423,6 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
                 draggable={false}
               />
 
-              {/* Dark overlay – four rectangles around the crop area */}
               {displayWidth.value > 0 && (
                 <>
                   {/* Top overlay */}
@@ -419,7 +466,7 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
                     }}
                   />
 
-                  {/* Crop box border + move handle */}
+                  {/* Crop box + move handle */}
                   <div
                     class="absolute border-2 border-white cursor-move"
                     style={{
@@ -430,7 +477,7 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
                     }}
                     onPointerDown$={(e: PointerEvent) => startDrag(e, "move")}
                   >
-                    {/* Grid lines */}
+                    {/* Rule-of-thirds grid */}
                     <div class="absolute inset-0 pointer-events-none">
                       <div
                         class="absolute bg-white/30"
@@ -472,7 +519,6 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
                   </div>
 
                   {/* Corner handles */}
-                  {/* NW */}
                   <div
                     class="absolute w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nw-resize -translate-x-1/2 -translate-y-1/2"
                     style={{
@@ -481,7 +527,6 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
                     }}
                     onPointerDown$={(e: PointerEvent) => startDrag(e, "nw")}
                   />
-                  {/* NE */}
                   <div
                     class="absolute w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-ne-resize -translate-x-1/2 -translate-y-1/2"
                     style={{
@@ -490,7 +535,6 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
                     }}
                     onPointerDown$={(e: PointerEvent) => startDrag(e, "ne")}
                   />
-                  {/* SW */}
                   <div
                     class="absolute w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-sw-resize -translate-x-1/2 -translate-y-1/2"
                     style={{
@@ -499,7 +543,6 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
                     }}
                     onPointerDown$={(e: PointerEvent) => startDrag(e, "sw")}
                   />
-                  {/* SE */}
                   <div
                     class="absolute w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-se-resize -translate-x-1/2 -translate-y-1/2"
                     style={{
@@ -512,14 +555,13 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
               )}
             </div>
 
-            {/* Actions */}
             <div class="flex items-center gap-3">
               <Button
                 type="button"
                 disabled={uploading.value}
-                onClick$={upload}
+                onClick$={uploadCropped}
               >
-                {uploading.value ? "Uploading…" : "Upload Picture"}
+                {uploading.value ? "Uploading…" : "Upload Image"}
               </Button>
               <Button
                 type="button"
@@ -534,13 +576,19 @@ export const ProfilePictureCropper = component$<ProfilePictureCropperProps>(
             {uploadError.value && (
               <p class="text-sm text-red-600">{uploadError.value}</p>
             )}
-            {uploadSuccess.value && (
-              <p class="text-sm text-green-600">
-                Profile picture updated successfully!
-              </p>
-            )}
           </div>
         )}
+
+        {/* Non-crop error */}
+        {!showCrop && uploadError.value && (
+          <p class="text-sm text-red-600">{uploadError.value}</p>
+        )}
+
+        {uploadSuccess.value && !imageDataUrl.value && (
+          <p class="text-sm text-green-600">Image uploaded successfully!</p>
+        )}
+
+        <input type="hidden" name={name} value={savedUrl.value} />
       </div>
     );
   },

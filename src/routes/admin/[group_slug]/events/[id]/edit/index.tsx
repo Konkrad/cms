@@ -18,8 +18,7 @@ import { Select } from "~/components/ui/Select";
 import { TextArea } from "~/components/ui/TextArea";
 import { AddressAutocomplete } from "~/components/ui/AddressAutocomplete";
 import { SmartDatePicker } from "~/components/ui/SmartDatePicker";
-import { GroupImageUpload } from "~/components/groups/GroupImageUpload";
-import { SquareImageCropper } from "~/components/ui/SquareImageCropper";
+import { ImageUpload } from "~/components/ui/ImageUpload";
 import { eventsService } from "~/services/events.service";
 
 export const useEvent = routeLoader$(async (event) => {
@@ -266,13 +265,13 @@ export default component$(() => {
           <hr class="border-gray-200" />
           <p class="text-sm font-semibold text-gray-700">Event Page Images</p>
 
-          <SquareImageCropper
+          <ImageUpload
             name="image1"
             label="Image Left (square)"
             uploadPath="public/events/"
             currentImageUrl={(event.value as any).image1}
           />
-          <SquareImageCropper
+          <ImageUpload
             name="image2"
             label="Image Right (square)"
             uploadPath="public/events/"

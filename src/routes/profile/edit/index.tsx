@@ -10,7 +10,7 @@ import { eq } from "drizzle-orm";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
-import { ProfilePictureCropper } from "~/components/profile/ProfilePictureCropper";
+import { ImageUpload } from "~/components/ui/ImageUpload";
 import { db } from "~/db/connection";
 import { users } from "~/db/schema";
 import { env } from "~/env";
@@ -103,8 +103,12 @@ export default component$(() => {
 
       {/* Profile Picture Section */}
       <Card>
-        <ProfilePictureCropper
-          currentPictureUrl={profile.value.profilePictureUrl}
+        <ImageUpload
+          name="profilePicture"
+          label="Profile Picture"
+          pipeline="profile-picture"
+          previewShape="circle"
+          currentImageUrl={profile.value.profilePictureUrl}
         />
       </Card>
 

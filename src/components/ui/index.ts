@@ -5,7 +5,7 @@ export { Select } from "./Select";
 export { TextArea } from "./TextArea";
 export { SmartDatePicker } from "./SmartDatePicker";
 export { AddressAutocomplete } from "./AddressAutocomplete";
-export { SquareImageCropper } from "./SquareImageCropper";
+export { ImageUpload } from "./ImageUpload";
 export { Navigation } from "./Navigation";
 export { Modal } from "./Modal";
 export { Badge } from "./Badge";

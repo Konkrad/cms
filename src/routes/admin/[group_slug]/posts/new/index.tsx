@@ -3,6 +3,7 @@ import { Form, routeAction$, routeLoader$, z, zod$ } from "@builder.io/qwik-city
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { BlockNoteEditor } from "~/components/editor";
+import { ImageUpload } from "~/components/ui/ImageUpload";
 import { VisibilitySelector } from "~/components/admin/VisibilitySelector";
 import { postsService } from "~/services/posts.service";
 import { groupsService } from "~/services/groups.service";
@@ -23,6 +24,7 @@ const postSchema = z.object({
   title: z.string().min(1, "Title is required"),
   content: z.string(),
   editorState: z.string().optional(),
+  featuredImage: z.string().optional(),
   visibility: z.enum(["global", "group-only"]).optional(),
 });
 
@@ -48,6 +50,7 @@ export const useCreatePost = routeAction$(async (data, event) => {
     await postsService.create({
       title: data.title,
       editorState: data.editorState || null,
+      featuredImage: data.featuredImage || null,
       userId: user.id,
       groupId: groupId,
       visibility: data.visibility || "global",
@@ -89,6 +92,12 @@ export default component$(() => {
             label="Title"
             placeholder="Enter post title"
             required
+          />
+
+          <ImageUpload
+            name="featuredImage"
+            label="Featured Image (optional)"
+            uploadPath="public/posts/"
           />
 
           <div>

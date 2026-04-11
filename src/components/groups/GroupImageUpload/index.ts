@@ -1,1 +1,0 @@
-export { GroupImageUpload } from "./GroupImageUpload";

@@ -4,7 +4,7 @@ import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { Alert } from "~/components/ui/Alert";
-import { ProfilePictureCropper } from "~/components/profile/ProfilePictureCropper";
+import { ImageUpload } from "~/components/ui/ImageUpload";
 import { requireAuth } from "~/utils/server-auth";
 import { usersService } from "~/services/users.service";
 import { markConsentStepComplete } from "~/utils/onboarding";
@@ -131,7 +131,13 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
         </div>
 
         <div class="mt-4">
-          <ProfilePictureCropper currentPictureUrl={props.profile.profilePictureUrl} />
+          <ImageUpload
+            name="profilePicture"
+            label="Profile Picture"
+            pipeline="profile-picture"
+            previewShape="circle"
+            currentImageUrl={props.profile.profilePictureUrl}
+          />
         </div>
 
       </Form>

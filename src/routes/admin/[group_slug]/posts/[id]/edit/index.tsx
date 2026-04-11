@@ -9,8 +9,7 @@ import {
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { BlockNoteEditor } from "~/components/editor";
-import { GroupImageUpload } from "~/components/groups/GroupImageUpload";
-import { SquareImageCropper } from "~/components/ui/SquareImageCropper";
+import { ImageUpload } from "~/components/ui/ImageUpload";
 import { postsService } from "~/services/posts.service";
 
 const updateSchema = z.object({
@@ -92,7 +91,7 @@ export default component$(() => {
             required
           />
 
-          <SquareImageCropper
+          <ImageUpload
             name="featuredImage"
             label="Featured Image (optional)"
             uploadPath="public/posts/"

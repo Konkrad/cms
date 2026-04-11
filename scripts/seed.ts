@@ -79,12 +79,16 @@ if (!adminUser) {
 }
 
 if (!hostUser) {
+  const loginId = uuid();
+  db.insert(schema.logins)
+    .values({ id: loginId, email: "host@example.com", expiresAt: "2099-01-01T00:00:00.000Z" })
+    .run();
   const id = uuid();
   db.insert(schema.users)
-    .values({ id, name: "Host", familyName: "User", role: "admin", createdAt: now(), updatedAt: now() })
+    .values({ id, name: "Host", familyName: "User", role: "admin", loginId, createdAt: now(), updatedAt: now() })
     .run();
   hostUser = db.select().from(schema.users).all().find((u) => u.id === id)!;
-  console.log("  created host user 'Host'");
+  console.log("  created host user 'Host' (host@example.com)");
 }
 
 let testUsers = db
@@ -95,8 +99,13 @@ let testUsers = db
 
 if (testUsers.length < 10) {
   for (let i = testUsers.length; i < 10; i++) {
+    const loginId = uuid();
+    const email = `user${i + 1}@example.com`;
+    db.insert(schema.logins)
+      .values({ id: loginId, email, expiresAt: "2099-01-01T00:00:00.000Z" })
+      .run();
     db.insert(schema.users)
-      .values({ id: uuid(), name: `User${i + 1}`, familyName: "Test", role: "user", createdAt: now(), updatedAt: now() })
+      .values({ id: uuid(), name: `User${i + 1}`, familyName: "Test", role: "user", loginId, createdAt: now(), updatedAt: now() })
       .run();
   }
   testUsers = db
@@ -716,7 +725,71 @@ for (let i = 0; i < groupsNoImg.length; i++) {
 
 console.log(`  images seeded (${eventsNoImg.length} events, ${postsNoImg.length} posts, ${groupsNoImg.length} groups)`);
 
-// ─── 13. Pages ───────────────────────────────────────────────────────────────
+// ─── 13. Forms ───────────────────────────────────────────────────────────────
+
+const onboardJson = JSON.parse(fs.readFileSync("surveys/onboard.json", "utf-8"));
+
+const formDefs: Array<{
+  title: string;
+  slug: string;
+  description: string;
+  schemaJson: any;
+  visibility: "private" | "public";
+  isSystemForm: boolean;
+  systemKey: string | null;
+}> = [
+  {
+    title: "Onboarding Survey",
+    slug: "onboarding",
+    description: "Required during signup — captures how you know us and your academic background.",
+    schemaJson: onboardJson,
+    visibility: "private",
+    isSystemForm: true,
+    systemKey: "affilation",
+  },
+  {
+    title: "Community Feedback",
+    slug: "community-feedback",
+    description: "Tell us what you think about the community and how we can improve.",
+    schemaJson: {
+      pages: [{
+        name: "feedback_page",
+        elements: [
+          { type: "rating", name: "overall_rating", title: "How would you rate your overall experience?", rateMin: 1, rateMax: 5, minRateDescription: "Poor", maxRateDescription: "Excellent", isRequired: true },
+          { type: "radiogroup", name: "how_often", title: "How often do you attend events?", choices: ["Weekly", "Monthly", "A few times a year", "This was my first time"], isRequired: true },
+          { type: "comment", name: "what_we_do_well", title: "What do we do well?" },
+          { type: "comment", name: "what_to_improve", title: "What could we improve?" },
+          { type: "boolean", name: "recommend", title: "Would you recommend us to a friend?", isRequired: true },
+        ],
+      }],
+    },
+    visibility: "public",
+    isSystemForm: false,
+    systemKey: null,
+  },
+];
+
+for (const f of formDefs) {
+  db.insert(schema.forms)
+    .values({
+      id: uuid(),
+      title: f.title,
+      slug: f.slug,
+      description: f.description,
+      schemaJson: f.schemaJson,
+      visibility: f.visibility,
+      scopeType: "global",
+      isSystemForm: f.isSystemForm,
+      systemKey: f.systemKey,
+      createdBy: adminUser.id,
+      createdAt: now(),
+      updatedAt: now(),
+    })
+    .run();
+}
+console.log(`  forms seeded (${formDefs.length})`);
+
+// ─── 14. Pages ───────────────────────────────────────────────────────────────
 
 const DEFAULT_TILES = JSON.stringify([
   { type: "stat", area: "left-top", number: "2000+", title: "Members", description: "A fast growing community that inspires and connects." },
@@ -807,7 +880,7 @@ for (const p of pageDefs) {
 }
 console.log(`  pages seeded (${pageDefs.length})`);
 
-// ─── 14. Menu items ──────────────────────────────────────────────────────────
+// ─── 15. Menu items ──────────────────────────────────────────────────────────
 
 const menuDefs: Array<{ label: string; url: string; position: number }> = [
   { label: "Home", url: "/", position: 0 },
@@ -843,6 +916,8 @@ const counts = {
   events: db.select().from(schema.events).all().length,
   pages: db.select().from(schema.pages).all().length,
   menuItems: db.select().from(schema.menuItems).all().length,
+  forms: db.select().from(schema.forms).all().length,
+  forms: db.select().from(schema.forms).all().length,
 };
 
 console.log("\n✅ Seed complete:");

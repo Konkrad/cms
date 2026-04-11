@@ -1,5 +1,6 @@
 import { component$ } from "@builder.io/qwik";
-import { routeLoader$ } from "@builder.io/qwik-city";
+import { Link, routeLoader$ } from "@builder.io/qwik-city";
+import { Button } from "~/components/ui/Button";
 import { groupsService } from "~/services/groups.service";
 
 export const useAdminGroups = routeLoader$(async ({ params, redirect }) => {
@@ -20,11 +21,9 @@ export default component$(() => {
     <div>
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Manage Groups</h2>
-        <a href="/admin/global/groups/new" class="text-sm">
-          <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
-            + New Group
-          </button>
-        </a>
+        <Link href="/admin/global/groups/new">
+          <Button>Create New Group</Button>
+        </Link>
       </div>
 
       <div class="bg-white rounded-lg shadow overflow-hidden">

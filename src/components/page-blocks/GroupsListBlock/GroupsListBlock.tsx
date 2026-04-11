@@ -2,6 +2,8 @@ import { component$, useSignal, useTask$ } from "@builder.io/qwik";
 import { server$ } from "@builder.io/qwik-city";
 import type { BlockDefinition } from "~/db/schema";
 import type { Group } from "~/db/schema";
+import { groupsService } from "~/services/groups.service";
+import { groupMembershipsService } from "~/services/group-memberships.service";
 import { ListCard } from "../ListCard";
 import { deriveSquareSmallUrl } from "~/utils/images";
 
@@ -19,11 +21,6 @@ interface GroupWithMemberCount extends Group {
 }
 
 const fetchGroups = server$(async (): Promise<GroupWithMemberCount[]> => {
-  const { groupsService } = await import("~/services/groups.service");
-  const { groupMembershipsService } = await import(
-    "~/services/group-memberships.service"
-  );
-
   const allGroups = await groupsService.getAll();
 
   const results = await Promise.all(

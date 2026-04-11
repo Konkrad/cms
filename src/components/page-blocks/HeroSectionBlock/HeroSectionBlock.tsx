@@ -2,6 +2,7 @@ import { $, component$, useSignal, useTask$ } from "@builder.io/qwik";
 import { server$ } from "@builder.io/qwik-city";
 import type { BlockDefinition } from "~/db/schema";
 import type { PostWithUser } from "~/services/posts.service";
+import { postsService } from "~/services/posts.service";
 import { ActionButton } from "~/components/ui/ActionButton";
 import "./HeroSectionBlock.css";
 
@@ -15,7 +16,6 @@ export const definition: BlockDefinition = {
 };
 
 const fetchLatestGlobalPosts = server$(async () => {
-  const { postsService } = await import("~/services/posts.service");
   const res = await postsService.getVisiblePosts(null, 3);
   return res.items;
 });

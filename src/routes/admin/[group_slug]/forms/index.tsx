@@ -1,8 +1,8 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, routeLoader$ } from "@builder.io/qwik-city";
 import { format } from "date-fns";
+import { AdminTable } from "~/components/ui/AdminTable";
 import { Button } from "~/components/ui/Button";
-import { Card } from "~/components/ui/Card";
 import { formResultsService } from "~/services/form-results.service";
 import { formsService } from "~/services/forms.service";
 import { buildFormPath } from "~/utils/forms";
@@ -32,12 +32,12 @@ export default component$(() => {
         </Link>
       </div>
 
-      <Card>
-        {data.value.forms.length === 0 ? (
+      {data.value.forms.length === 0 ? (
+        <div class="bg-white shadow rounded-lg p-8 text-center">
           <p class="text-gray-500">No forms created yet.</p>
-        ) : (
-          <div class="overflow-x-auto">
-            <table class="w-full">
+        </div>
+      ) : (
+        <AdminTable>
               <thead class="bg-gray-50">
                 <tr>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -98,10 +98,8 @@ export default component$(() => {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+        </AdminTable>
+      )}
     </div>
   );
 });

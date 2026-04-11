@@ -2,6 +2,7 @@ import { component$, useSignal, useTask$ } from "@builder.io/qwik";
 import { server$ } from "@builder.io/qwik-city";
 import type { BlockDefinition } from "~/db/schema";
 import type { Event } from "~/db/schemas/events";
+import { eventsService } from "~/services/events.service";
 import { ListCard } from "../ListCard/ListCard";
 
 export const definition: BlockDefinition = {
@@ -14,7 +15,6 @@ export const definition: BlockDefinition = {
 };
 
 const fetchUpcoming = server$(async () => {
-  const { eventsService } = (await import("~/services/events.service")) as any;
   return eventsService.getUpcoming();
 });
 

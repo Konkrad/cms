@@ -7,8 +7,8 @@ import {
   z,
   zod$,
 } from "@builder.io/qwik-city";
+import { AdminTable } from "~/components/ui/AdminTable";
 import { Button } from "~/components/ui/Button";
-import { Card } from "~/components/ui/Card";
 import { menuItemsService } from "~/services/menu-items.service";
 import { pagesService } from "~/services/pages.service";
 import { requireAdmin } from "~/utils/server-auth";
@@ -146,9 +146,7 @@ export default component$(() => {
         </div>
       )}
 
-      <Card>
-        <div class="overflow-x-auto">
-          <table class="w-full">
+      <AdminTable>
             <thead class="bg-gray-50">
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -265,9 +263,7 @@ export default component$(() => {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
-      </Card>
+      </AdminTable>
     </div>
   );
 });

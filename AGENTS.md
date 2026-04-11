@@ -10,3 +10,5 @@
 React componets for visuals have to be self contained. Therefore in theory be portable web components. They contain both javscript and css in one folder.
 
 Use the playwright to verify if things actually are working. If the user complains about an endpoint use it to verify. Check playwright-cli --help for available commands.
+
+Before creating any UI element (button, input, modal, badge, alert, avatar, card, table, image upload), read src/design/DESIGN.md — all shared primitives are documented there with usage examples. Import from `~/components/ui`, never from individual component files.

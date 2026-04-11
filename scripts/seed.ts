@@ -4,6 +4,10 @@
  * Usage:
  *   npx tsx scripts/seed.ts          # normal seed (keeps existing DB)
  *   npx tsx scripts/seed.ts --fresh  # deletes DB and starts from scratch
+ *
+ * Admin account:
+ *   email: admin@example.com
+ *   Login via magic link (check Mailpit at http://localhost:8025)
  */
 
 import Database from "better-sqlite3";
@@ -53,18 +57,25 @@ function daysFromNow(n: number): string {
 
 // ─── 4. Base users ───────────────────────────────────────────────────────────
 
+const ADMIN_EMAIL = "admin@example.com";
+
 const existingUsers = db.select().from(schema.users).all();
 
 let adminUser = existingUsers.find((u) => u.role === "admin" && u.name === "Konrad");
 let hostUser = existingUsers.find((u) => u.name === "Host");
 
 if (!adminUser) {
+  const loginId = uuid();
+  db.insert(schema.logins)
+    .values({ id: loginId, email: ADMIN_EMAIL, expiresAt: "2099-01-01T00:00:00.000Z" })
+    .run();
+
   const id = uuid();
   db.insert(schema.users)
-    .values({ id, name: "Konrad", familyName: "Admin", role: "admin", createdAt: now(), updatedAt: now() })
+    .values({ id, name: "Konrad", familyName: "Admin", role: "admin", loginId, createdAt: now(), updatedAt: now() })
     .run();
   adminUser = db.select().from(schema.users).all().find((u) => u.id === id)!;
-  console.log("  created admin user 'Konrad'");
+  console.log(`  created admin user 'Konrad' (${ADMIN_EMAIL})`);
 }
 
 if (!hostUser) {
@@ -705,6 +716,122 @@ for (let i = 0; i < groupsNoImg.length; i++) {
 
 console.log(`  images seeded (${eventsNoImg.length} events, ${postsNoImg.length} posts, ${groupsNoImg.length} groups)`);
 
+// ─── 13. Pages ───────────────────────────────────────────────────────────────
+
+const DEFAULT_TILES = JSON.stringify([
+  { type: "stat", area: "left-top", number: "2000+", title: "Members", description: "A fast growing community that inspires and connects." },
+  { type: "image", area: "left-bottom", image: "https://picsum.photos/400/400" },
+  { type: "image", area: "middle", image: "https://picsum.photos/500/700", overlayText: "With multiple events all over Europe every year we help to grow your network and make memories." },
+  { type: "image", area: "right-top", image: "https://picsum.photos/400/500" },
+  { type: "stat", area: "right-bottom", number: "10+", title: "Local communities", description: "Can't find your city yet? Start your own one." },
+], null, 2);
+
+const pageDefs: Array<{ title: string; slug: string; status: "published" | "draft"; content: any[] }> = [
+  {
+    title: "Home",
+    slug: "/",
+    status: "published",
+    content: [
+      { id: uuid(), componentType: "HeroSectionBlock", order: 0, data: {} },
+      { id: uuid(), componentType: "SpacerBlock", order: 1, data: { height: 40 } },
+      { id: uuid(), componentType: "TitleBlock", order: 2, data: { text: "What We Do", level: "2", align: "center" } },
+      { id: uuid(), componentType: "TextBlock", order: 3, data: { content: "<p>We bring together people from all walks of life to build meaningful connections, share knowledge, and grow together. Our local communities across Germany organise regular meetups, workshops, and social events.</p>" } },
+      { id: uuid(), componentType: "SpacerBlock", order: 4, data: { height: 40 } },
+      { id: uuid(), componentType: "FeatureBlock", order: 5, data: { layout: '"left-top middle right-top" "left-bottom middle right-top" "left-bottom middle right-bottom"', gap: 24, tilesJson: DEFAULT_TILES } },
+      { id: uuid(), componentType: "SpacerBlock", order: 6, data: { height: 40 } },
+      { id: uuid(), componentType: "TitleBlock", order: 7, data: { text: "Upcoming Events", level: "2", align: "center" } },
+      { id: uuid(), componentType: "UpcomingEventsBlock", order: 8, data: {} },
+      { id: uuid(), componentType: "SpacerBlock", order: 9, data: { height: 40 } },
+      { id: uuid(), componentType: "TitleBlock", order: 10, data: { text: "Our Communities", level: "2", align: "center" } },
+      { id: uuid(), componentType: "GroupsListBlock", order: 11, data: {} },
+      { id: uuid(), componentType: "SpacerBlock", order: 12, data: { height: 40 } },
+      { id: uuid(), componentType: "TitleBlock", order: 13, data: { text: "Latest Posts", level: "2", align: "center" } },
+      { id: uuid(), componentType: "PostsListBlock", order: 14, data: { limit: 6 } },
+    ],
+  },
+  {
+    title: "About Us",
+    slug: "/about-us",
+    status: "published",
+    content: [
+      { id: uuid(), componentType: "TitleBlock", order: 0, data: { text: "About Us", level: "1", align: "center" } },
+      { id: uuid(), componentType: "SpacerBlock", order: 1, data: { height: 20 } },
+      { id: uuid(), componentType: "TextBlock", order: 2, data: { content: "<p>We started as a small group of friends who wanted to build a space for people to connect beyond the usual networking events. What began in Berlin quickly spread to Munich, Hamburg, Frankfurt, and Cologne.</p><p>Today, we are a growing community of over 2,000 members across Germany. Our mission is simple: bring people together, foster genuine relationships, and create opportunities for personal and professional growth.</p>" } },
+      { id: uuid(), componentType: "SpacerBlock", order: 3, data: { height: 40 } },
+      { id: uuid(), componentType: "ImageBlock", order: 4, data: { src: "https://picsum.photos/800/400", alt: "Community gathering", caption: "" } },
+      { id: uuid(), componentType: "SpacerBlock", order: 5, data: { height: 40 } },
+      { id: uuid(), componentType: "TitleBlock", order: 6, data: { text: "Our Values", level: "2", align: "left" } },
+      { id: uuid(), componentType: "TextBlock", order: 7, data: { content: "<p><strong>Openness</strong> — Everyone is welcome, regardless of background or experience.</p><p><strong>Authenticity</strong> — We value real connections over superficial networking.</p><p><strong>Local Roots</strong> — Each community is shaped by its members and the city it calls home.</p>" } },
+    ],
+  },
+  {
+    title: "Events",
+    slug: "/events",
+    status: "published",
+    content: [
+      { id: uuid(), componentType: "TitleBlock", order: 0, data: { text: "Events", level: "1", align: "center" } },
+      { id: uuid(), componentType: "SpacerBlock", order: 1, data: { height: 20 } },
+      { id: uuid(), componentType: "UpcomingEventsBlock", order: 2, data: {} },
+      { id: uuid(), componentType: "SpacerBlock", order: 3, data: { height: 40 } },
+      { id: uuid(), componentType: "TitleBlock", order: 4, data: { text: "Past Events", level: "2", align: "center" } },
+      { id: uuid(), componentType: "PastEventsBlock", order: 5, data: {} },
+    ],
+  },
+  {
+    title: "Communities",
+    slug: "/communities",
+    status: "published",
+    content: [
+      { id: uuid(), componentType: "TitleBlock", order: 0, data: { text: "Our Communities", level: "1", align: "center" } },
+      { id: uuid(), componentType: "SpacerBlock", order: 1, data: { height: 20 } },
+      { id: uuid(), componentType: "TextBlock", order: 2, data: { content: "<p>Find your local community and connect with members in your area.</p>" } },
+      { id: uuid(), componentType: "LocalCommunitiesMapBlock", order: 3, data: {} },
+      { id: uuid(), componentType: "SpacerBlock", order: 4, data: { height: 40 } },
+      { id: uuid(), componentType: "GroupsListBlock", order: 5, data: {} },
+    ],
+  },
+];
+
+for (const p of pageDefs) {
+  db.insert(schema.pages)
+    .values({
+      id: uuid(),
+      title: p.title,
+      slug: p.slug,
+      content: p.content,
+      status: p.status,
+      createdAt: now(),
+      updatedAt: now(),
+    })
+    .run();
+}
+console.log(`  pages seeded (${pageDefs.length})`);
+
+// ─── 14. Menu items ──────────────────────────────────────────────────────────
+
+const menuDefs: Array<{ label: string; url: string; position: number }> = [
+  { label: "Home", url: "/", position: 0 },
+  { label: "Events", url: "/events", position: 1 },
+  { label: "Communities", url: "/communities", position: 2 },
+  { label: "About Us", url: "/about-us", position: 3 },
+];
+
+for (const m of menuDefs) {
+  db.insert(schema.menuItems)
+    .values({
+      id: uuid(),
+      menuName: "main",
+      label: m.label,
+      url: m.url,
+      position: m.position,
+      target: "_self",
+      createdAt: now(),
+      updatedAt: now(),
+    })
+    .run();
+}
+console.log(`  menu items seeded (${menuDefs.length})`);
+
 // ─── Done ────────────────────────────────────────────────────────────────────
 
 const counts = {
@@ -714,6 +841,8 @@ const counts = {
   reps: db.select().from(schema.groupRepresentatives).all().length,
   posts: db.select().from(schema.posts).all().length,
   events: db.select().from(schema.events).all().length,
+  pages: db.select().from(schema.pages).all().length,
+  menuItems: db.select().from(schema.menuItems).all().length,
 };
 
 console.log("\n✅ Seed complete:");

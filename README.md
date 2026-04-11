@@ -8,6 +8,63 @@ Features:
 - Turso for database
 - Qwik with QwikCity as a framework
 
+## Getting Started
+
+### Prerequisites
+- Node.js (^18.17.0 || ^20.3.0 || >=21.0.0)
+- Docker (for Mailpit, MinIO, stripe-mock)
+
+### Setup
+
+```sh
+# 1. Install dependencies
+npm install
+
+# 2. Start local services (Mailpit, MinIO, stripe-mock)
+docker compose up -d
+
+# 3. Copy env and fill in values
+cp .env.example .env
+
+# 4. Seed the database (creates a fresh SQLite DB with test data)
+npm run db:seed
+
+# 5. Start the dev server
+npm run dev
+```
+
+### Seeded Admin Account
+
+The seed creates an admin account you can use to log in:
+
+| Field | Value |
+|-------|-------|
+| Email | `admin@example.com` |
+| Auth  | Magic link (check Mailpit at http://localhost:8025) |
+
+Go to the login page, enter `admin@example.com`, then open Mailpit to click the magic link.
+
+### Local Services (docker compose)
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| Mailpit UI | http://localhost:8025 | Email inbox (catches all outgoing mail) |
+| Mailpit SMTP | localhost:1025 | SMTP server |
+| MinIO Console | http://localhost:9001 | S3-compatible file storage (user: `test`, pass: `testtest`) |
+| MinIO API | http://localhost:9000 | S3 API |
+| stripe-mock | http://localhost:12111 | Stripe API mock |
+
+### npm Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `npm run dev` | Start dev server |
+| `npm run db:seed` | Seed database (fresh, deletes existing) |
+| `npm run db:studio` | Open Drizzle Studio (DB browser) |
+| `npm run test` | Run Playwright tests |
+| `npm run test:unit` | Run Vitest unit tests |
+| `npm run biome` | Lint & format |
+
 Environment variables
 ---------------------
 

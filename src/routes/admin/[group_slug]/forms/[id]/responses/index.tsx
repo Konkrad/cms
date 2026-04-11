@@ -1,5 +1,5 @@
 import { component$ } from "@builder.io/qwik";
-import { Link, routeLoader$ } from "@builder.io/qwik-city";
+import { routeLoader$ } from "@builder.io/qwik-city";
 import { format } from "date-fns";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
@@ -48,9 +48,7 @@ export default component$(() => {
           >
             Export CSV
           </a>
-          <Link href={`${data.value.basePath}/${data.value.form.id}/edit`}>
-            <Button variant="secondary">Back to Form</Button>
-          </Link>
+          <Button href={`${data.value.basePath}/${data.value.form.id}/edit`} variant="secondary">Back to Form</Button>
         </div>
       </div>
 

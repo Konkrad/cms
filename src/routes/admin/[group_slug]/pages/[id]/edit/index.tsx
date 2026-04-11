@@ -147,11 +147,9 @@ export default component$(() => {
             <Button type="submit" disabled={action.isRunning}>
               {action.isRunning ? "Updating..." : "Update Page"}
             </Button>
-            <a href="/admin/global/pages">
-              <Button type="button" variant="secondary">
-                Cancel
-              </Button>
-            </a>
+            <Button href="/admin/global/pages" variant="secondary">
+              Cancel
+            </Button>
           </div>
         </Form>
       </Card>

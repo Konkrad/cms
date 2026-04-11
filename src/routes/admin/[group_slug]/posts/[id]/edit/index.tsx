@@ -9,8 +9,7 @@ import {
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { BlockNoteEditor } from "~/components/editor";
-import { GroupImageUpload } from "~/components/groups/GroupImageUpload";
-import { SquareImageCropper } from "~/components/ui/SquareImageCropper";
+import { ImageUpload } from "~/components/ui/ImageUpload";
 import { postsService } from "~/services/posts.service";
 
 const updateSchema = z.object({
@@ -79,9 +78,7 @@ export default component$(() => {
     <div>
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Edit Post</h2>
-        <a href={`/admin/${data.value.groupSlug}/posts`}>
-          <Button variant="secondary">Back to Posts</Button>
-        </a>
+        <Button href={`/admin/${data.value.groupSlug}/posts`} variant="secondary">Back to Posts</Button>
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
@@ -94,7 +91,7 @@ export default component$(() => {
             required
           />
 
-          <SquareImageCropper
+          <ImageUpload
             name="featuredImage"
             label="Featured Image (optional)"
             uploadPath="public/posts/"
@@ -138,9 +135,7 @@ export default component$(() => {
             <Button type="submit" disabled={isSubmitting.value}>
               {isSubmitting.value ? "Saving..." : "Save Changes"}
             </Button>
-            <a href={`/admin/${data.value.groupSlug}/posts`}>
-              <Button variant="secondary">Cancel</Button>
-            </a>
+            <Button href={`/admin/${data.value.groupSlug}/posts`} variant="secondary">Cancel</Button>
           </div>
         </Form>
       </div>

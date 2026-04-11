@@ -3,6 +3,7 @@ import { Form, routeAction$, routeLoader$, z, zod$ } from "@builder.io/qwik-city
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { BlockNoteEditor } from "~/components/editor";
+import { ImageUpload } from "~/components/ui/ImageUpload";
 import { VisibilitySelector } from "~/components/admin/VisibilitySelector";
 import { postsService } from "~/services/posts.service";
 import { groupsService } from "~/services/groups.service";
@@ -23,6 +24,7 @@ const postSchema = z.object({
   title: z.string().min(1, "Title is required"),
   content: z.string(),
   editorState: z.string().optional(),
+  featuredImage: z.string().optional(),
   visibility: z.enum(["global", "group-only"]).optional(),
 });
 
@@ -48,6 +50,7 @@ export const useCreatePost = routeAction$(async (data, event) => {
     await postsService.create({
       title: data.title,
       editorState: data.editorState || null,
+      featuredImage: data.featuredImage || null,
       userId: user.id,
       groupId: groupId,
       visibility: data.visibility || "global",
@@ -79,9 +82,7 @@ export default component$(() => {
     <div>
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Create New Post</h2>
-        <a href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/posts`}>
-          <Button variant="secondary">Back to Posts</Button>
-        </a>
+        <Button href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/posts`} variant="secondary">Back to Posts</Button>
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
@@ -91,6 +92,12 @@ export default component$(() => {
             label="Title"
             placeholder="Enter post title"
             required
+          />
+
+          <ImageUpload
+            name="featuredImage"
+            label="Featured Image (optional)"
+            uploadPath="public/posts/"
           />
 
           <div>
@@ -131,9 +138,7 @@ export default component$(() => {
             <Button type="submit" disabled={isSubmitting.value}>
               {isSubmitting.value ? "Creating..." : "Create Post"}
             </Button>
-            <a href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/posts`}>
-              <Button variant="secondary">Cancel</Button>
-            </a>
+            <Button href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/posts`} variant="secondary">Cancel</Button>
           </div>
         </Form>
       </div>

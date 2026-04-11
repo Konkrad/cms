@@ -1,4 +1,5 @@
 import { $, component$, useSignal, useTask$, type QRL } from "@builder.io/qwik";
+import { Button } from "~/components/ui/Button";
 import {
   GRID_AREAS,
   type TileConfig,
@@ -367,22 +368,26 @@ export const TileEditor = component$<TileEditorProps>((props) => {
 
       {/* Add tile buttons */}
       <div class="flex gap-2">
-        <button
+        <Button
           type="button"
-          class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+          variant="secondary"
+          size="sm"
+          class="flex-1 flex items-center justify-center gap-1.5"
           onClick$={() => handleAddTile("stat")}
         >
           <span>📊</span>
           <span>Add Stat</span>
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+          variant="secondary"
+          size="sm"
+          class="flex-1 flex items-center justify-center gap-1.5"
           onClick$={() => handleAddTile("image")}
         >
           <span>🖼️</span>
           <span>Add Image</span>
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { component$, Slot } from "@builder.io/qwik";
 import { routeLoader$ } from "@builder.io/qwik-city";
 import { AdminNav } from "~/components/admin/AdminNav";
 import { Breadcrumbs } from "~/components/admin/Breadcrumbs";
+import { Button } from "~/components/ui/Button/Button";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { groupsService } from "~/services/groups.service";
 import { canManageGroupContent } from "~/utils/access-control";
@@ -62,19 +63,21 @@ export default component$(() => {
             </div>
             <div class="flex gap-3">
               {!auth.value.isGlobal && auth.value.group && (
-                <a
+                <Button
                   href={`/groups/${auth.value.group.slug}`}
-                  class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded transition-colors text-sm"
+                  variant="secondary"
+                  size="sm"
                 >
                   View Group
-                </a>
+                </Button>
               )}
-              <a
+              <Button
                 href="/"
-                class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded transition-colors text-sm"
+                variant="secondary"
+                size="sm"
               >
                 Back to Site
-              </a>
+              </Button>
             </div>
           </div>
           <AdminNav

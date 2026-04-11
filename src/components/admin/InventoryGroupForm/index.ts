@@ -1,0 +1,1 @@
+export { InventoryGroupForm } from "./InventoryGroupForm";

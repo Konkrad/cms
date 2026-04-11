@@ -9,6 +9,7 @@ import {
   Form,
 } from "@builder.io/qwik-city";
 
+import { Button } from "~/components/ui/Button";
 import { eventsService } from "~/services/events.service";
 import { participationService } from "~/services/participation.service";
 import { ParticipationToggle } from "~/components/events/ParticipationToggle";
@@ -412,29 +413,29 @@ export default component$(() => {
                   name="productId"
                   value={event.value.products[0]?.id}
                 />
-                <button
+                <Button
                   type="submit"
                   name="status"
                   value="yes"
-                  class="px-10 py-3 bg-[#0e1148] hover:bg-[#1a1d5e] text-white font-['Lato',sans-serif] font-bold text-sm rounded-full transition-colors"
+                  size="lg"
                 >
                   {event.value.userParticipation?.status === "yes"
                     ? "✓ You're Going!"
                     : "RSVP — I'm Going"}
-                </button>
+                </Button>
               </Form>
             ) : showWaitlist ? (
               <Form action={updateParticipation}>
-                <button
+                <Button
                   type="submit"
                   name="status"
                   value="maybe"
-                  class="px-10 py-3 bg-[#0e1148] hover:bg-[#1a1d5e] text-white font-['Lato',sans-serif] font-bold text-sm rounded-full transition-colors"
+                  size="lg"
                 >
                   {event.value.userParticipation?.status === "maybe"
                     ? "✓ On Waitlist"
                     : "Join Waitlist"}
-                </button>
+                </Button>
               </Form>
             ) : showSalesClosed ? (
               <span class="inline-block px-10 py-3 bg-gray-400 text-white font-['Lato',sans-serif] font-bold text-sm rounded-full cursor-not-allowed">

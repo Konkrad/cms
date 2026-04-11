@@ -6,6 +6,7 @@ import { Select } from "~/components/ui/Select";
 import { TextArea } from "~/components/ui/TextArea";
 import { AddressAutocomplete } from "~/components/ui/AddressAutocomplete";
 import { SmartDatePicker } from "~/components/ui/SmartDatePicker";
+import { ImageUpload } from "~/components/ui/ImageUpload";
 import { VisibilitySelector } from "~/components/admin/VisibilitySelector";
 import { eventsService } from "~/services/events.service";
 import { groupsService } from "~/services/groups.service";
@@ -37,6 +38,8 @@ const eventSchema = z
     latitude: z.string().optional(),
     longitude: z.string().optional(),
     onlineUrl: z.string().url("Please enter a valid URL").optional(),
+    image1: z.string().optional(),
+    image2: z.string().optional(),
     visibility: z.enum(["global", "group-only"]).optional(),
   })
   .superRefine((data, ctx) => {
@@ -119,6 +122,8 @@ export const useCreateEvent = routeAction$(async (data, event) => {
     latitude: data.latitude || null,
     longitude: data.longitude || null,
     onlineUrl: data.onlineUrl || null,
+    image1: data.image1 || null,
+    image2: data.image2 || null,
     userId: user.id,
     groupId: groupId,
     visibility: data.visibility || "global",
@@ -154,9 +159,7 @@ export default component$(() => {
     <div>
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Create New Event</h2>
-        <a href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/events`}>
-          <Button variant="secondary">Back to Events</Button>
-        </a>
+        <Button href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/events`} variant="secondary">Back to Events</Button>
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
@@ -234,6 +237,20 @@ export default component$(() => {
             />
           )}
 
+          <hr class="border-gray-200" />
+          <p class="text-sm font-semibold text-gray-700">Event Page Images</p>
+
+          <ImageUpload
+            name="image1"
+            label="Image Left (square)"
+            uploadPath="public/events/"
+          />
+          <ImageUpload
+            name="image2"
+            label="Image Right (square)"
+            uploadPath="public/events/"
+          />
+
           {createEventAction.value?.fieldErrors && (
             <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
               {Object.entries(createEventAction.value.fieldErrors).map(
@@ -257,9 +274,7 @@ export default component$(() => {
             <Button type="submit" disabled={isSubmitting.value}>
               {isSubmitting.value ? "Creating..." : "Create Event"}
             </Button>
-            <a href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/events`}>
-              <Button variant="secondary">Cancel</Button>
-            </a>
+            <Button href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/events`} variant="secondary">Cancel</Button>
           </div>
         </Form>
       </div>

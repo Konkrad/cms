@@ -1,7 +1,8 @@
 import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { server$ } from "@builder.io/qwik-city";
 import type { BlockDefinition } from "~/db/schema";
-import { ActionButton } from "~/components/ui/ActionButton";
+import { Button } from "~/components/ui/Button";
+import { groupsService } from "~/services/groups.service";
 import "./LocalCommunitiesMapBlock.css";
 
 export const definition: BlockDefinition = {
@@ -22,7 +23,6 @@ interface CommunityPin {
 }
 
 const fetchCommunities = server$(async (): Promise<CommunityPin[]> => {
-  const { groupsService } = await import("~/services/groups.service");
   const all = await groupsService.getAll();
   return (all as any[])
     .filter((g) => g.latitude != null && g.longitude != null)
@@ -209,7 +209,7 @@ export default component$<LocalCommunitiesMapBlockProps>((props) => {
       <div class="lcm-text">
         <h2 class="lcm-title">{title}</h2>
         <p class="lcm-body">{body}</p>
-        <ActionButton href={ctaHref} label={ctaLabel} />
+        <Button href={ctaHref} size="xl">{ctaLabel}</Button>
       </div>
 
       <div class="lcm-map-wrap" ref={mapWrapRef}>

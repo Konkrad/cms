@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { usersService } from "~/services/users.service";
 import { groupsService } from "~/services/groups.service";
 import { db } from "~/db/connection";
-import { groupMemberships, users } from "~/db/schema";
+import { groupMemberships, logins, users } from "~/db/schema";
 import { eq } from "drizzle-orm";
 
 export const useUsers = routeLoader$(async ({ params }) => {
@@ -13,7 +13,17 @@ export const useUsers = routeLoader$(async ({ params }) => {
   // For global admin, show all users
   if (groupSlug === "global") {
     const res = await usersService.getAll(1000); // Large limit for all users
-    return { users: res.items, groupSlug, isGlobal: true };
+    // Fetch emails from logins table
+    const loginIds = res.items.map((u) => u.loginId).filter(Boolean) as string[];
+    const loginRows = loginIds.length
+      ? await db.select({ id: logins.id, email: logins.email }).from(logins)
+      : [];
+    const emailMap = new Map(loginRows.map((l) => [l.id, l.email]));
+    const usersWithEmail = res.items.map((u) => ({
+      ...u,
+      email: u.loginId ? emailMap.get(u.loginId) ?? null : null,
+    }));
+    return { users: usersWithEmail, groupSlug, isGlobal: true };
   }
 
   // For group representatives, show only group members
@@ -22,13 +32,13 @@ export const useUsers = routeLoader$(async ({ params }) => {
     return { users: [], groupSlug, isGlobal: false };
   }
 
-  // Get all members of this group with user details
+  // Get all members of this group with user details and email
   const members = await db
     .select({
       id: users.id,
       name: users.name,
       familyName: users.familyName,
-      loginId: users.loginId,
+      email: logins.email,
       role: users.role,
       city: users.city,
       country: users.country,
@@ -37,6 +47,7 @@ export const useUsers = routeLoader$(async ({ params }) => {
     })
     .from(groupMemberships)
     .innerJoin(users, eq(groupMemberships.userId, users.id))
+    .leftJoin(logins, eq(users.loginId, logins.id))
     .where(eq(groupMemberships.groupId, group.id))
     .orderBy(groupMemberships.createdAt);
 
@@ -84,7 +95,7 @@ export default component$(() => {
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900">{user.loginId ?? ""}</div>
+                  <div class="text-sm text-gray-900">{user.email ?? ""}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span

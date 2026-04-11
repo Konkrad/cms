@@ -8,8 +8,7 @@ import {
 } from "@builder.io/qwik-city";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
-import { GroupImageUpload } from "~/components/groups/GroupImageUpload";
-import { SquareImageCropper } from "~/components/ui/SquareImageCropper";
+import { ImageUpload } from "~/components/ui/ImageUpload";
 import { groupsService } from "~/services/groups.service";
 import { geocodingService } from "~/services/geocoding.service";
 import { getCurrentUserData } from "~/utils/server-auth";
@@ -85,9 +84,7 @@ export default component$(() => {
     <div>
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Create New Group</h2>
-        <a href="/admin/global/groups">
-          <Button variant="secondary">Back to Groups</Button>
-        </a>
+        <Button href="/admin/global/groups" variant="secondary">Back to Groups</Button>
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
@@ -108,12 +105,14 @@ export default component$(() => {
           <hr class="border-gray-200" />
           <p class="text-sm font-semibold text-gray-700">Group Page Images</p>
 
-          <SquareImageCropper name="image1" label="Image 1 — Left bottom tile" uploadPath="public/groups/" />
-          <GroupImageUpload
+          <ImageUpload name="image1" label="Image 1 — Left bottom tile" uploadPath="public/groups/" />
+          <ImageUpload
             name="image2"
             label="Image 2 — Middle tile (large)"
+            uploadPath="public/groups/"
+            pipeline="standard"
           />
-          <GroupImageUpload name="image3" label="Image 3 — Right top tile" />
+          <ImageUpload name="image3" label="Image 3 — Right top tile" uploadPath="public/groups/" pipeline="standard" />
 
           {createGroupAction.value?.error && (
             <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
@@ -130,9 +129,7 @@ export default component$(() => {
             >
               {isSubmitting.value ? "Creating..." : "Create Group"}
             </Button>
-            <a href="/admin/global/groups">
-              <Button variant="secondary">Cancel</Button>
-            </a>
+            <Button href="/admin/global/groups" variant="secondary">Cancel</Button>
           </div>
         </Form>
       </div>

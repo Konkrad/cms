@@ -1,5 +1,6 @@
 import { component$, useSignal, useVisibleTask$, $ } from "@builder.io/qwik";
 import { routeLoader$, useNavigate } from "@builder.io/qwik-city";
+import { Button } from "~/components/ui/Button";
 import { SetupLayout } from "~/components/setup/SetupLayout";
 import { useUpdateProfile, ProfileStep } from "~/components/setup/ProfileStep";
 import { useMarkLocation, LocationStep } from "~/components/setup/LocationStep";
@@ -110,14 +111,13 @@ export default component$(() => {
             saveTrigger={consentTrigger}
           />
           <div class="pt-4">
-            <button
-              class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+            <Button
               onClick$={$(() => {
                 consentTrigger.value++;
               })}
             >
               Continue
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
@@ -137,15 +137,14 @@ export default component$(() => {
             />
           )}
           <div class="pt-4">
-            <button
-              class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+            <Button
               onClick$={$(() => {
                 saving.value = true;
                 saveTrigger.value++;
               })}
             >
               Continue
-            </button>
+            </Button>
           </div>
         </div>
       )}

@@ -85,9 +85,7 @@ export default component$(() => {
     <div class="container mx-auto px-4 py-8 max-w-4xl">
       <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold">My Profile</h1>
-        <a href="/profile/edit">
-          <Button variant="primary">Edit Profile</Button>
-        </a>
+        <Button href="/profile/edit" variant="primary">Edit Profile</Button>
       </div>
 
       <Card>

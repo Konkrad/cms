@@ -1,5 +1,4 @@
-import { component$ } from "@qwik.dev/core";
-import { component$, $ } from "@qwik.dev/core";
+import { component$, $, useSignal } from "@qwik.dev/core";
 import {
   routeAction$,
   routeLoader$,
@@ -10,7 +9,7 @@ import { eq } from "drizzle-orm";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
-import { ImageUpload } from "~/components/ui/ImageUpload";
+import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { db } from "~/db/connection";
 import { users } from "~/db/schema";
 import { env } from "~/env";
@@ -46,7 +45,7 @@ export const useProfile = routeLoader$(async (event) => {
 
 export const useUpdateProfile = routeAction$(
   async (data, event) => {
-    const user = await requireAuth(event);
+    await requireAuth(event);
     const currentUser = await getCurrentUserData(event);
 
     if (!currentUser) {
@@ -91,19 +90,19 @@ export const useUpdateProfile = routeAction$(
 export default component$(() => {
   const profile = useProfile();
   const updateAction = useUpdateProfile();
+  const isSubmitting = useSignal(false);
+  const triggerUpload = useSignal(false);
 
-  const handleSubmit = $(async (e: Event) => {
-    e.preventDefault();
-    const form = e.currentTarget as HTMLFormElement;
-    const formData = new FormData(form);
+  const handleSubmit = $(() => {
+    isSubmitting.value = true;
+    triggerUpload.value = true;
+  });
 
-    const pending: Record<string, () => Promise<string>> = (window as any).__deferredUploads ?? {};
-    for (const [field, uploadFn] of Object.entries(pending)) {
-      const url = await uploadFn();
-      formData.set(field, url);
+  const onSettled = $(() => {
+    const form = document.querySelector('form');
+    if (form) {
+      updateAction.submit(new FormData(form));
     }
-
-    await updateAction.submit(formData);
   });
 
   return (
@@ -117,14 +116,16 @@ export default component$(() => {
       )}
 
       <Card>
-        <form onSubmit$={handleSubmit} class="space-y-4">
-          <ImageUpload
+        <form preventdefault:submit onSubmit$={handleSubmit} class="space-y-4">
+          <p class="text-sm font-medium text-gray-700 mb-1">Profile Picture</p>
+          <ImageUploader
             name="profilePicture"
-            label="Profile Picture"
-            pipeline="profile-picture"
-            previewShape="circle"
-            currentImageUrl={profile.value.profilePictureUrl}
-            deferred={true}
+            pipeline="standard"
+            path="public/profiles"
+            aspectRatio="1/1"
+            triggerSignal={triggerUpload}
+            onSettled$={onSettled}
+            currentUrl={profile.value.profilePictureUrl || undefined}
           />
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -157,39 +158,13 @@ export default component$(() => {
               type="text"
               value={profile.value.country || ""}
             />
-
-            <Input
-              label="Year of Birth"
-              name="year_of_birth"
-              type="number"
-              value={profile.value.yearOfBirth?.toString() || ""}
-            />
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Gender
-              </label>
-              <select
-                name="sex"
-                value={profile.value.sex || ""}
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-                <option value="prefer_not_to_say">Prefer not to say</option>
-              </select>
-            </div>
           </div>
 
-          <div class="flex gap-4 pt-4">
-            <Button type="submit" variant="primary">
-              Save Changes
+          <div class="flex items-center gap-4 py-4">
+            <Button type="submit" disabled={isSubmitting.value}>
+              {isSubmitting.value ? "Saving..." : "Save Changes"}
             </Button>
-            <Button href="/profile" variant="secondary">
-              Cancel
-            </Button>
+            <Button href="/profile" variant="secondary">Cancel</Button>
           </div>
         </form>
       </Card>

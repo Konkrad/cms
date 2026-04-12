@@ -21,8 +21,6 @@ import { type RequestHandler } from "@qwik.dev/router";
 import {
   processAndUploadImage,
   processAndUploadVariants,
-  processAndUploadSquareVariants,
-  processAndUploadProfilePicture,
   getPipeline,
   PROCESSING_PIPELINES,
 } from "~/services/image-processing.service";
@@ -70,60 +68,26 @@ export const onPost: RequestHandler = async ({
 
     const fileId = query.get("filename") || crypto.randomUUID();
 
-    // Profile picture: 400×400 + 75×75 variants, no DB write (action handles persistence)
+    // Profile picture: 1000x1000 + 400x400 thumbnail, no DB write (action handles persistence)
     if (pipelineName === "profile-picture") {
-      const cropX = Number.parseFloat(request.headers.get("x-crop-x") || "0");
-      const cropY = Number.parseFloat(request.headers.get("x-crop-y") || "0");
-      const cropWidth = Number.parseFloat(request.headers.get("x-crop-width") || "1");
-      const cropHeight = Number.parseFloat(request.headers.get("x-crop-height") || "1");
-
-      const { picture } = await processAndUploadProfilePicture(
+      const { gallery: picture, thumbnail: pictureSmall } = await processAndUploadVariants(
         bodyStream,
-        { x: cropX, y: cropY, width: cropWidth, height: cropHeight },
-        user.id,
+        PROCESSING_PIPELINES.profilePicture,
+        PROCESSING_PIPELINES.thumbnail,
+        uploadPrefix,
+        fileId,
       );
+
+      // Access URLs
+      const accessUrl = env.AWS_ENDPOINT
+        ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${picture.key}`
+        : await generatePresignedGetUrl(picture.key, 60 * 60);
 
       json(200, {
         success: true,
         filePath: `/${picture.key}`,
-        url: picture.url,
-      });
-      return;
-    }
-
-    // If pipeline is 'gallery' create a gallery variant AND a thumbnail
-    // If pipeline is 'square' create a 1000x1000 main + 200x200 small (derived by URL convention)
-    if (pipelineName === "square") {
-      // Read optional crop coordinates (ratio 0–1)
-      const cropX = Number.parseFloat(request.headers.get("x-crop-x") || "");
-      const cropY = Number.parseFloat(request.headers.get("x-crop-y") || "");
-      const cropWidth = Number.parseFloat(request.headers.get("x-crop-width") || "");
-      const cropHeight = Number.parseFloat(request.headers.get("x-crop-height") || "");
-
-      const hasCrop =
-        !Number.isNaN(cropX) &&
-        !Number.isNaN(cropY) &&
-        !Number.isNaN(cropWidth) &&
-        !Number.isNaN(cropHeight) &&
-        cropWidth > 0 &&
-        cropHeight > 0;
-
-      const { main } = await processAndUploadSquareVariants(
-        bodyStream,
-        uploadPrefix,
-        fileId,
-        hasCrop ? { x: cropX, y: cropY, width: cropWidth, height: cropHeight } : null,
-      );
-
-      const accessUrl = env.AWS_ENDPOINT
-        ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${main.key}`
-        : await generatePresignedGetUrl(main.key, 60 * 60);
-
-      json(200, {
-        success: true,
-        filePath: `/${main.key}`,
+        thumbnailPath: `/${pictureSmall.key}`,
         url: accessUrl,
-        s3: { main },
       });
       return;
     }

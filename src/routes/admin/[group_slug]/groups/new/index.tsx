@@ -8,7 +8,7 @@ import {
 } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
-import { ImageUpload } from "~/components/ui/ImageUpload";
+import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { groupsService } from "~/services/groups.service";
 import { geocodingService } from "~/services/geocoding.service";
 import { getCurrentUserData } from "~/utils/server-auth";
@@ -79,17 +79,23 @@ export default component$(() => {
   const createGroupAction = useCreateGroup();
   useGlobalOnly(); // Ensure we fail fast on UI if not in global context
   const isSubmitting = useSignal(false);
+  const triggerUpload = useSignal(false);
+  const successCount = useSignal(0);
 
-  const handleSubmit = $(async (e: Event) => {
-    e.preventDefault();
-    const form = e.currentTarget as HTMLFormElement;
-    const formData = new FormData(form);
-    const pending: Record<string, () => Promise<string>> = (window as any).__deferredUploads ?? {};
-    for (const [field, uploadFn] of Object.entries(pending)) {
-      const url = await uploadFn();
-      formData.set(field, url);
+  const handleSubmit = $(() => {
+    isSubmitting.value = true;
+    triggerUpload.value = true;
+  });
+
+  const checkAndSubmit = $(() => {
+    successCount.value++;
+    // We have 3 uploaders. If all are done or failed (we should handle both), we submit.
+    if (successCount.value === 3) {
+      const form = document.querySelector('form');
+      if (form) {
+        createGroupAction.submit(new FormData(form));
+      }
     }
-    await createGroupAction.submit(formData);
   });
 
   return (
@@ -100,7 +106,7 @@ export default component$(() => {
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
-        <form onSubmit$={handleSubmit} class="space-y-6">
+        <form preventdefault:submit onSubmit$={handleSubmit} class="space-y-6">
           <Input
             name="name"
             label="Name"
@@ -117,15 +123,40 @@ export default component$(() => {
           <hr class="border-gray-200" />
           <p class="text-sm font-semibold text-gray-700">Group Page Images</p>
 
-          <ImageUpload name="image1" label="Image 1 — Left bottom tile" uploadPath="public/groups/" deferred={true} />
-          <ImageUpload
-            name="image2"
-            label="Image 2 — Middle tile (large)"
-            uploadPath="public/groups/"
-            pipeline="standard"
-            deferred={true}
-          />
-          <ImageUpload name="image3" label="Image 3 — Right top tile" uploadPath="public/groups/" pipeline="standard" deferred={true} />
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p class="text-sm font-medium text-gray-700 mb-1">Image 1 — Left bottom tile</p>
+              <ImageUploader
+                name="image1"
+                path="public/groups"
+                triggerSignal={triggerUpload}
+                aspectRatio="1/1"
+                onSettled$={checkAndSubmit}
+              />
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-700 mb-1">Image 2 — Middle tile (large)</p>
+              <ImageUploader
+                name="image2"
+                path="public/groups"
+                pipeline="standard"
+                triggerSignal={triggerUpload}
+                aspectRatio="4/3"
+                onSettled$={checkAndSubmit}
+              />
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-700 mb-1">Image 3 — Right top tile</p>
+              <ImageUploader
+                name="image3"
+                path="public/groups"
+                pipeline="standard"
+                triggerSignal={triggerUpload}
+                aspectRatio="1/1"
+                onSettled$={checkAndSubmit}
+              />
+            </div>
+          </div>
 
           {createGroupAction.value?.error && (
             <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
@@ -136,9 +167,7 @@ export default component$(() => {
           <div class="flex gap-4">
             <Button
               type="submit"
-              onClick$={() => {
-                isSubmitting.value = true;
-              }}
+              disabled={isSubmitting.value}
             >
               {isSubmitting.value ? "Creating..." : "Create Group"}
             </Button>

@@ -72,6 +72,8 @@
     "@types/topojson-client": "^3.1.5",
     "@uppy/core": "^5.2.0",
     "@uppy/dashboard": "^5.1.0",
+    "@uppy/image-editor": "^4.2.0",
+    "@uppy/unsplash": "^5.1.0",
     "@uppy/xhr-upload": "^5.1.1",
     "altcha": "^2.3.0",
     "altcha-lib": "^1.4.1",

@@ -1,5 +1,4 @@
-import { component$ } from "@qwik.dev/core";
-import { component$, $ } from "@qwik.dev/core";
+import { component$, $, useSignal } from "@qwik.dev/core";
 import {
   routeAction$,
   routeLoader$,
@@ -8,42 +7,36 @@ import {
 } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
-import { ImageUpload } from "~/components/ui/ImageUpload";
+import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { groupsService } from "~/services/groups.service";
 import { geocodingService } from "~/services/geocoding.service";
 import { getCurrentUserData } from "~/utils/server-auth";
+import { db } from "~/db/connection";
+import { groups } from "~/db/schema";
+import { eq } from "drizzle-orm";
 
-export const useGroup = routeLoader$(async ({ params, redirect }) => {
-  // Only valid in the global admin context
+export const useGlobalOnly = routeLoader$(async ({ params, redirect }) => {
   const groupSlug = params.group_slug;
   if (groupSlug !== "global") {
     throw redirect(302, `/admin/${groupSlug}`);
   }
-
-  const group = await groupsService.getById(params.id as string);
-  if (!group) {
-    throw redirect(302, "/admin/global/groups");
-  }
-
-  // Attempt to reverse geocode the existing coordinates so we can present
-  // a friendly location string in the form.
-  let displayLocation: string | undefined;
-  try {
-    const lat = parseFloat(group.latitude);
-    const lon = parseFloat(group.longitude);
-    const geo = await geocodingService.reverse(lat, lon);
-    displayLocation =
-      geo?.displayName ?? `${group.latitude}, ${group.longitude}`;
-  } catch (err) {
-    displayLocation = `${group.latitude}, ${group.longitude}`;
-  }
-
-  return { ...group, displayLocation };
+  return { isGlobal: true };
 });
 
-const updateSchema = z.object({
+export const useGroupData = routeLoader$(async (event) => {
+  const { id } = event.params;
+  const group = await db.query.groups.findFirst({
+    where: eq(groups.id, id),
+  });
+  if (!group) {
+    throw event.error(404, "Group not found");
+  }
+  return group;
+});
+
+const groupSchema = z.object({
+  id: z.string(),
   name: z.string().min(1, "Name is required"),
-  slug: z.string().optional(),
   location: z.string().min(1, "Location is required"),
   image1: z.string().optional(),
   image2: z.string().optional(),
@@ -56,35 +49,30 @@ export const useUpdateGroup = routeAction$(async (data, event) => {
     return { success: false, error: "Unauthorized" };
   }
 
-  // Ensure the request is coming from the global admin context
   const groupSlug = event.params.group_slug;
   if (groupSlug !== "global") {
     return { success: false, error: "Not allowed in this context" };
   }
 
   try {
-    // Geocode the provided location string to obtain lat/lon
     const results = await geocodingService.forward(data.location);
     if (!results || results.length === 0) {
       return {
         success: false,
-        error: "Unable to geocode the provided location",
+        error: "Unable to find location. Please enter a more specific address.",
       };
     }
+
     const best = results[0];
 
-    await groupsService.update(
-      event.params.id as string,
-      {
-        name: data.name,
-        slug: data.slug || undefined,
-        latitude: String(best.latitude),
-        longitude: String(best.longitude),
-        image1: data.image1 || null,
-        image2: data.image2 || null,
-        image3: data.image3 || null,
-      } as any,
-    );
+    await groupsService.update(data.id, {
+      name: data.name,
+      latitude: String(best.latitude),
+      longitude: String(best.longitude),
+      image1: data.image1 || null,
+      image2: data.image2 || null,
+      image3: data.image3 || null,
+    });
 
     throw event.redirect(303, "/admin/global/groups");
   } catch (error: any) {
@@ -94,22 +82,31 @@ export const useUpdateGroup = routeAction$(async (data, event) => {
       error: error?.message || "Failed to update group",
     };
   }
-}, zod$(updateSchema));
+}, zod$(groupSchema));
 
 export default component$(() => {
-  const group = useGroup();
-  const action = useUpdateGroup();
+  const updateGroupAction = useUpdateGroup();
+  const groupData = useGroupData();
+  useGlobalOnly();
+  const isSubmitting = useSignal(false);
+  
+  const triggerUpload = useSignal(false);
+  const successCount = useSignal(0);
 
-  const handleSubmit = $(async (e: Event) => {
-    e.preventDefault();
-    const form = e.currentTarget as HTMLFormElement;
-    const formData = new FormData(form);
-    const pending: Record<string, () => Promise<string>> = (window as any).__deferredUploads ?? {};
-    for (const [field, uploadFn] of Object.entries(pending)) {
-      const url = await uploadFn();
-      formData.set(field, url);
+  const handleSubmit = $(() => {
+    isSubmitting.value = true;
+    triggerUpload.value = true;
+  });
+
+  const checkAndSubmit = $(() => {
+    successCount.value++;
+    // 3 images
+    if (successCount.value === 3) {
+      const form = document.querySelector('form');
+      if (form) {
+        updateGroupAction.submit(new FormData(form));
+      }
     }
-    await action.submit(formData);
   });
 
   return (
@@ -120,59 +117,69 @@ export default component$(() => {
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
-        <form onSubmit$={handleSubmit} class="space-y-6">
-          <Input name="name" label="Name" value={group.value.name} required />
-          <Input name="slug" label="Slug" value={group.value.slug} />
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Location
-            </label>
-            <Input
-              name="location"
-              placeholder="e.g. Berlin, Germany or Alexanderplatz, Berlin"
-              value={
-                group.value.displayLocation ??
-                `${group.value.latitude}, ${group.value.longitude}`
-              }
-              required
-            />
-          </div>
+        <form preventdefault:submit onSubmit$={handleSubmit} class="space-y-6">
+          <input type="hidden" name="id" value={groupData.value.id} />
+          <Input
+            name="name"
+            label="Name"
+            value={groupData.value.name}
+            required
+          />
+          <Input
+            name="location"
+            label="Location"
+            placeholder="e.g. City, Country"
+            required
+          />
 
           <hr class="border-gray-200" />
           <p class="text-sm font-semibold text-gray-700">Group Page Images</p>
 
-          <ImageUpload
-            name="image1"
-            label="Image 1 — Left bottom tile"
-            uploadPath="public/groups/"
-            currentImageUrl={group.value.image1}
-            deferred={true}
-          />
-          <ImageUpload
-            name="image2"
-            label="Image 2 — Middle tile (large)"
-            uploadPath="public/groups/"
-            pipeline="standard"
-            currentImageUrl={group.value.image2}
-            deferred={true}
-          />
-          <ImageUpload
-            name="image3"
-            label="Image 3 — Right top tile"
-            uploadPath="public/groups/"
-            pipeline="standard"
-            currentImageUrl={group.value.image3}
-            deferred={true}
-          />
-
-          {action.value?.error && (
-            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {action.value.error}
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p class="text-sm font-medium text-gray-700 mb-1">Image 1 — Left bottom tile</p>
+              <ImageUploader
+                name="image1"
+                path="public/groups"
+                triggerSignal={triggerUpload}
+                aspectRatio="1/1"
+                onSettled$={checkAndSubmit}
+                currentUrl={groupData.value.image1 || undefined}
+              />
             </div>
-          )}
+            <div>
+              <p class="text-sm font-medium text-gray-700 mb-1">Image 2 — Middle tile (large)</p>
+              <ImageUploader
+                name="image2"
+                path="public/groups"
+                pipeline="standard"
+                triggerSignal={triggerUpload}
+                aspectRatio="4/3"
+                onSettled$={checkAndSubmit}
+                currentUrl={groupData.value.image2 || undefined}
+              />
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-700 mb-1">Image 3 — Right top tile</p>
+              <ImageUploader
+                name="image3"
+                path="public/groups"
+                pipeline="standard"
+                triggerSignal={triggerUpload}
+                aspectRatio="1/1"
+                onSettled$={checkAndSubmit}
+                currentUrl={groupData.value.image3 || undefined}
+              />
+            </div>
+          </div>
 
           <div class="flex gap-4">
-            <Button type="submit">Save Group</Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting.value}
+            >
+              {isSubmitting.value ? "Saving Changes..." : "Update Group"}
+            </Button>
             <Button href="/admin/global/groups" variant="secondary">Cancel</Button>
           </div>
         </form>

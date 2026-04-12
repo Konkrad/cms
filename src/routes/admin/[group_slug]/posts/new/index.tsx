@@ -3,7 +3,7 @@ import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { BlockNoteEditor } from "~/components/editor";
-import { ImageUpload } from "~/components/ui/ImageUpload";
+import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { VisibilitySelector } from "~/components/admin/VisibilitySelector";
 import { postsService } from "~/services/posts.service";
 import { groupsService } from "~/services/groups.service";
@@ -72,22 +72,21 @@ export default component$(() => {
   const isSubmitting = useSignal(false);
   const content = useSignal("");
   const editorState = useSignal<string | null>(null);
+  const triggerUpload = useSignal(false);
 
   const handleEditorChange$ = $((htmlContent: string, state: string) => {
     content.value = htmlContent;
     editorState.value = state;
   });
 
-  const handleSubmit = $(async (e: Event) => {
-    e.preventDefault();
-    const form = e.currentTarget as HTMLFormElement;
-    const formData = new FormData(form);
-    const pending: Record<string, () => Promise<string>> = (window as any).__deferredUploads ?? {};
-    for (const [field, uploadFn] of Object.entries(pending)) {
-      const url = await uploadFn();
-      formData.set(field, url);
-    }
-    await createPostAction.submit(formData);
+  const handleSubmit = $(() => {
+    isSubmitting.value = true;
+    triggerUpload.value = true;
+  });
+
+  const onUploadDone = $(() => {
+    const form = document.querySelector('form');
+    if (form) createPostAction.submit(new FormData(form));
   });
 
   return (
@@ -98,7 +97,7 @@ export default component$(() => {
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
-        <form onSubmit$={handleSubmit} class="space-y-6">
+        <form preventdefault:submit onSubmit$={handleSubmit} class="space-y-6">
           <Input
             name="title"
             label="Title"
@@ -106,11 +105,13 @@ export default component$(() => {
             required
           />
 
-          <ImageUpload
+          <p class="text-sm font-medium text-gray-700 mb-1">Featured Image (optional)</p>
+          <ImageUploader
             name="featuredImage"
-            label="Featured Image (optional)"
-            uploadPath="public/posts/"
-            deferred={true}
+            path="public/posts"
+            aspectRatio="16/9"
+            triggerSignal={triggerUpload}
+            onSettled$={onUploadDone}
           />
 
           <div>

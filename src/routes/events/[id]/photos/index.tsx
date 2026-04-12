@@ -47,7 +47,6 @@ export const usePhotos = routeLoader$(async (event) => {
 
   return photos.map((photo) => ({
     id: photo.id,
-    thumbnailPath: photo.thumbnailPath,
     uploadedAt: photo.uploadedAt,
   }));
 });

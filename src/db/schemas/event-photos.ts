@@ -19,7 +19,6 @@ export const eventPhotos = sqliteTable("event_photos", {
   uploadedAt: text("uploaded_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
-  thumbnailPath: text("thumbnail_path"),
 }, (table) => ({
   eventIdIdx: index("event_photos_event_id_idx").on(table.eventId),
 }));
@@ -41,10 +40,10 @@ const baseSelectSchema = createSelectSchema(eventPhotos);
 export const insertEventPhotoSchema = baseInsertSchema
   .extend({
     id: z.string().uuid().default(() => crypto.randomUUID()),
-    filePath: z.string().startsWith("/private/events/"),
+    filePath: z.string().startsWith("private/events/"),
     uploadedAt: z.string().default(() => new Date().toISOString()),
   })
-  .partial({ id: true, thumbnailPath: true, uploadedAt: true });
+  .partial({ id: true, uploadedAt: true });
 
 export const selectEventPhotoSchema = baseSelectSchema;
 

@@ -6,7 +6,7 @@ import { env } from "~/env";
 import { formResultsService } from "~/services/form-results.service";
 import { buildFormPath } from "~/utils/forms";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
-import { deriveProfilePicSmallKey } from "~/utils/images";
+import { deriveThumbnailKey } from "~/utils/images";
 import { formatUser } from "~/utils/users";
 
 export const useProfile = routeLoader$(async (event) => {
@@ -23,11 +23,11 @@ export const useProfile = routeLoader$(async (event) => {
   const user = userData as any;
 
   if (user.profilePicture) {
-    const key = user.profilePicture.replace(/^\//, "");
+    const key = user.profilePicture;
     profilePictureUrl = env.AWS_ENDPOINT
       ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${key}`
       : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
-    const smallKey = deriveProfilePicSmallKey(user.profilePicture).replace(/^\//, "");
+    const smallKey = deriveThumbnailKey(user.profilePicture);
     profilePictureSmallUrl = env.AWS_ENDPOINT
       ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${smallKey}`
       : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${smallKey}`;

@@ -54,7 +54,7 @@ export const onPost: RequestHandler = async ({
       request.headers.get("x-upload-path") || ""
     ).trim();
     const uploadPrefix = uploadPathHeader
-      ? uploadPathHeader.replace(/^\//, "").replace(/\/$/, "")
+      ? uploadPathHeader.replace(/\/$/, "")
       : env.S3_UPLOAD_PATH;
 
     // Pipeline selection
@@ -85,8 +85,7 @@ export const onPost: RequestHandler = async ({
 
       json(200, {
         success: true,
-        filePath: `/${picture.key}`,
-        thumbnailPath: `/${pictureSmall.key}`,
+        filePath: picture.key,
         url: accessUrl,
       });
       return;
@@ -101,22 +100,15 @@ export const onPost: RequestHandler = async ({
         fileId,
       );
 
-      // Build access URLs:
-      // - Prefer a custom endpoint (env.AWS_ENDPOINT) if configured (never return raw amazonaws.com URL)
-      // - Otherwise return presigned URLs (required for private/cloud defaults)
+      // Build access URL
       const galleryUrl = env.AWS_ENDPOINT
         ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${gallery.key}`
         : await generatePresignedGetUrl(gallery.key, 60 * 60);
-      const thumbnailUrl = env.AWS_ENDPOINT
-        ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${thumbnail.key}`
-        : await generatePresignedGetUrl(thumbnail.key, 60 * 60);
 
       json(200, {
         success: true,
-        filePath: `/${gallery.key}`,
-        thumbnailPath: `/${thumbnail.key}`,
-        urls: { gallery: galleryUrl, thumbnail: thumbnailUrl },
-        s3: { gallery, thumbnail },
+        filePath: gallery.key,
+        url: galleryUrl,
       });
       return;
     }
@@ -137,9 +129,8 @@ export const onPost: RequestHandler = async ({
 
     json(200, {
       success: true,
-      filePath: `/${result.key}`,
+      filePath: result.key,
       url: accessUrl,
-      s3: result,
     });
     return;
   } catch (err) {

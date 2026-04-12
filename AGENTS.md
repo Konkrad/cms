@@ -12,3 +12,13 @@ React componets for visuals have to be self contained. Therefore in theory be po
 Use the playwright to verify if things actually are working. If the user complains about an endpoint use it to verify. Check playwright-cli --help for available commands.
 
 Before creating any UI element (button, input, modal, badge, alert, avatar, card, table, image upload), read src/design/DESIGN.md — all shared primitives are documented there with usage examples. Import from `~/components/ui`, never from individual component files.
+
+## Image thumbnail convention
+
+Every uploaded image has a thumbnail variant. The DB only stores the **main** image path. The thumbnail path is derived by convention:
+
+```
+{name}.webp → {name}-thumb.webp
+```
+
+Use `deriveThumbnailKey(mainPath)` from `~/utils/images` to get the thumbnail path. Never store thumbnail paths separately in the database — they are always computable from the main path.

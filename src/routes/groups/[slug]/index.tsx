@@ -11,7 +11,7 @@ import { groupRepresentativesService } from "~/services/group-representatives.se
 import { eventsService } from "~/services/events.service";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { buildProfileUrl } from "~/utils/users";
-import { deriveProfilePicSmallKey } from "~/utils/images";
+import { deriveThumbnailKey } from "~/utils/images";
 import { FeatureGrid } from "~/components/page-blocks/FeatureBlock/FeatureGrid";
 import { ImageTile } from "~/components/page-blocks/FeatureBlock/ImageTile";
 import { ParticipantsTile } from "~/components/page-blocks/FeatureBlock/ParticipantsTile";
@@ -103,7 +103,7 @@ export const useGroupData = routeLoader$(async (event) => {
         name: `${rep.user.name} ${rep.user.familyName}`,
         subtitle: `Local Rep ${group.name}`,
         profilePictureUrl: rep.user.profilePicture
-          ? deriveProfilePicSmallKey(rep.user.profilePicture)
+          ? deriveThumbnailKey(rep.user.profilePicture)
           : null,
         profileUrl: buildProfileUrl({
           id: rep.userId,
@@ -122,7 +122,7 @@ export const useGroupData = routeLoader$(async (event) => {
       name: m.name,
       familyName: m.familyName,
       profilePictureSmall: m.profilePicture
-        ? deriveProfilePicSmallKey(m.profilePicture)
+        ? deriveThumbnailKey(m.profilePicture)
         : null,
       profileUrl: buildProfileUrl({
         id: m.id,

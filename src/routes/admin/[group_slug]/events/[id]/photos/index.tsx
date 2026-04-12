@@ -8,12 +8,13 @@ import {
   type DocumentHead,
   Link,
 } from "@qwik.dev/router";
-import { PhotoUploader } from "~/components/events/PhotoUploader";
+import { ImageUploader } from "~/components/ui";
 import { Card } from "~/components/ui/Card";
 import { photosService } from "~/services/photos.service";
 import { eventsService } from "~/services/events.service";
 import { getServerSession } from "~/utils/server-auth";
 import { generatePresignedGetUrl } from "~/utils/secure-urls";
+import { deriveThumbnailKey } from "~/utils/images";
 
 export const useEvent = routeLoader$(async ({ params }) => {
   const event = await eventsService.getById(params.id);
@@ -26,19 +27,13 @@ export const useEvent = routeLoader$(async ({ params }) => {
 export const usePhotos = routeLoader$(async ({ params }) => {
   const photos = await photosService.getByEventId(params.id);
 
-  // Generate presigned URLs for each photo
   const photosWithUrls = await Promise.all(
     photos.map(async (photo) => {
-      const thumbnailUrl = photo.thumbnailPath
-        ? await generatePresignedGetUrl(
-            photo.thumbnailPath.replace(/^\//, ""),
-            60 * 60,
-          )
-        : null;
-      const fullUrl = await generatePresignedGetUrl(
-        photo.filePath.replace(/^\//, ""),
+      const thumbnailUrl = await generatePresignedGetUrl(
+        deriveThumbnailKey(photo.filePath),
         60 * 60,
       );
+      const fullUrl = await generatePresignedGetUrl(photo.filePath, 60 * 60);
 
       return {
         ...photo,
@@ -80,7 +75,6 @@ export const useCreatePhoto = routeAction$(
     const photo = await photosService.create({
       eventId: params.id,
       filePath: data.filePath,
-      thumbnailPath: data.thumbnailPath,
       uploadedBy: user.id,
     });
 
@@ -90,8 +84,7 @@ export const useCreatePhoto = routeAction$(
     };
   },
   zod$({
-    filePath: z.string().startsWith("/private/events/").endsWith(".webp"),
-    thumbnailPath: z.string().optional(),
+    filePath: z.string().startsWith("private/events/").endsWith(".webp"),
   }),
 );
 
@@ -119,44 +112,34 @@ export default component$(() => {
 
       {/* Upload Section */}
       <Card class="mb-8">
-        <PhotoUploader
-          eventId={event.value.id}
-          onUploadSuccess={$(
-            async (filePath: string, thumbnailPath?: string) => {
-              console.log("Submitting photo to database:", {
-                filePath,
-                thumbnailPath,
-              });
+        <ImageUploader
+          path={`private/events/${event.value.id}/photos`}
+          pipeline="gallery"
+          autoUpload
+          aspectRatio="4/3"
+          onFileUploaded$={$(async (response: { filePath?: string }) => {
+            if (!response.filePath) {
+              uploadError.value = "Upload failed — no file path in response";
+              return;
+            }
 
-              // Register the photo in database
-              const result = await createPhotoAction.submit({
-                filePath,
-                thumbnailPath,
-              });
+            const result = await createPhotoAction.submit({
+              filePath: response.filePath,
+            });
 
-              console.log("Photo submission result:", result.value);
-
-              if (result.value?.success) {
-                uploadSuccess.value = "Photo uploaded successfully!";
-                uploadError.value = null;
-                // Reload photos list
-                window.location.reload();
-              } else {
-                const errorMsg =
-                  result.value?.message ||
-                  (result.value?.fieldErrors
-                    ? JSON.stringify(result.value.fieldErrors)
-                    : "Failed to register photo");
-                console.error("Photo submission failed:", result.value);
-                uploadError.value = errorMsg;
-                uploadSuccess.value = null;
-              }
-            },
-          )}
-          onUploadError={$((error: string) => {
-            console.error("Upload error:", error);
-            uploadError.value = error;
-            uploadSuccess.value = null;
+            if (result.value?.success) {
+              uploadSuccess.value = "Photo uploaded successfully!";
+              uploadError.value = null;
+              window.location.reload();
+            } else {
+              const errorMsg =
+                result.value?.message ||
+                (result.value?.fieldErrors
+                  ? JSON.stringify(result.value.fieldErrors)
+                  : "Failed to register photo");
+              uploadError.value = errorMsg;
+              uploadSuccess.value = null;
+            }
           })}
         />
 

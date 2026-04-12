@@ -17,15 +17,24 @@ import dashboardStyles from "@uppy/dashboard/css/style.css?inline";
 import coreStyles from "@uppy/core/css/style.css?inline";
 import imageEditorStyles from "@uppy/image-editor/css/style.css?inline";
 
+interface UploadedFileResponse {
+  url?: string;
+  filePath?: string;
+}
+
 interface ImageUploaderProps {
   /** Storage path prefix in S3 (e.g. 'public/events', 'public/profiles') */
   path: string;
   /** Processing pipeline — determines resize logic on the backend. Defaults to 'standard'. */
   pipeline?: "standard" | "gallery" | "thumbnail";
-  /** Set to true to trigger the upload (e.g. on form submit). */
-  triggerSignal: Signal<boolean>;
-  /** Called when upload finishes (success or failure) or when there are no files to upload. */
+  /** Set to true to trigger the upload (e.g. on form submit). Required unless autoUpload is true. */
+  triggerSignal?: Signal<boolean>;
+  /** When true, shows the Uppy upload button and uploads immediately. No triggerSignal needed. */
+  autoUpload?: boolean;
+  /** Called when upload finishes (success or failure) or when there are no files to upload. Used with triggerSignal. */
   onSettled$?: PropFunction<() => void>;
+  /** Called for each successfully uploaded file with the API response. Useful in autoUpload mode. */
+  onFileUploaded$?: PropFunction<(response: UploadedFileResponse) => void>;
   /** CSS aspect-ratio value for the widget (e.g. "16/9", "1/1", "4/3"). Defaults to "16/9". */
   aspectRatio?: string;
   /** HTML input name — emits hidden inputs so the form can read uploaded URLs */
@@ -64,7 +73,7 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
         width: "100%",
         height: computedHeight,
         hideProgressDetails: false,
-        hideUploadButton: true,
+        hideUploadButton: !props.autoUpload,
         proudlyDisplayPoweredByUppy: false,
       })
       .use(ImageEditor, {
@@ -87,6 +96,15 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
         },
       });
 
+    // Per-file callback — useful for gallery/auto-upload mode
+    uppy.on("upload-success", (_file, response) => {
+      const body = (response as any).body ?? {};
+      props.onFileUploaded$?.({
+        url: body.url,
+        filePath: body.filePath,
+      });
+    });
+
     // Handle completion inline — avoids QRL-as-callback issues
     uppy.on("complete", async (result) => {
       const successful = result.successful ?? [];
@@ -103,22 +121,19 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
     });
 
     uppyRef.value = noSerialize(uppy);
-    console.log(`[ImageUploader:${props.name}] initialised, triggerSignal.value=${props.triggerSignal.value}`);
 
     cleanup(() => uppy.destroy());
   });
 
   // Watch the trigger signal and kick off the upload when it flips to true.
   useVisibleTask$(({ track }) => {
-    const shouldTrigger = track(() => props.triggerSignal.value);
-    console.log(`[ImageUploader:${props.name}] trigger task ran — shouldTrigger=${shouldTrigger}, uppyReady=${!!uppyRef.value}`);
+    if (!props.triggerSignal) return;
+    const shouldTrigger = track(() => props.triggerSignal!.value);
     if (shouldTrigger && uppyRef.value) {
       const uppy = uppyRef.value;
       const fileCount = uppy.getFiles().length;
-      console.log(`[ImageUploader:${props.name}] uploading — fileCount=${fileCount}`);
       if (fileCount === 0) {
         // No files selected — treat as settled so the form can still submit
-        console.log(`[ImageUploader:${props.name}] no files, calling onSettled$`);
         void props.onSettled$?.();
       } else {
         uppy.upload();

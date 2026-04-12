@@ -3,7 +3,7 @@ import type { RequestHandler } from "@qwik.dev/router";
 import { routeAction$, routeLoader$ } from "@qwik.dev/router";
 import { Navigation } from "~/components/ui/Navigation";
 import { menuItemsService } from "~/services/menu-items.service";
-import { deriveProfilePicSmallKey } from "~/utils/images";
+import { deriveThumbnailKey } from "~/utils/images";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { eq } from "drizzle-orm";
 import { db } from "~/db/connection";
@@ -35,7 +35,7 @@ export const useUserSession = routeLoader$(async (event) => {
   let profilePictureSmallUrl: string | null = null;
   const u = userData as any;
   if (u.profilePicture) {
-    const s3Key = deriveProfilePicSmallKey(u.profilePicture).replace(/^\//, "");
+    const s3Key = deriveThumbnailKey(u.profilePicture);
     profilePictureSmallUrl = env.AWS_ENDPOINT
       ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${s3Key}`
       : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${s3Key}`;

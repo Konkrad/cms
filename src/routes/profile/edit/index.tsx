@@ -30,7 +30,7 @@ export const useProfile = routeLoader$(async (event) => {
     if (user.profilePicture.startsWith("http")) {
       profilePictureUrl = user.profilePicture;
     } else {
-      const key = user.profilePicture.replace(/^\//, "");
+      const key = user.profilePicture;
       profilePictureUrl = env.AWS_ENDPOINT
         ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${key}`
         : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;

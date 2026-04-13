@@ -4,9 +4,9 @@
  * POST /api/images
  * - Expects a raw streaming file in the request body (no multipart). Use `x-upload-path` header
  *   to indicate the S3 key prefix (e.g. `private/events/{eventId}/photos`).
- * - Choose processing with `?pipeline=<name>`. If `pipeline=gallery` the server uploads a gallery
- *   variant AND also generates/uploads a thumbnail. For other pipelines only a single variant
- *   is produced.
+ * - Choose processing with `x-pipeline` header (e.g. `gallery`, `original`, `profile-picture`).
+ *   If `pipeline=gallery` the server uploads a gallery variant AND also generates/uploads a thumbnail.
+ *   For other pipelines only a single variant is produced.
  * - All outputs are converted to WebP.
  *
  * GET /api/images
@@ -58,7 +58,7 @@ export const onPost: RequestHandler = async ({
       : env.S3_UPLOAD_PATH;
 
     // Pipeline selection
-    const pipelineName = query.get("pipeline") || "standard";
+    const pipelineName = (request.headers.get("x-pipeline") || "").trim() || "standard";
     let pipeline;
     try {
       pipeline = getPipeline(pipelineName);
@@ -117,7 +117,7 @@ export const onPost: RequestHandler = async ({
     const result = await processAndUploadImage(
       bodyStream,
       pipeline,
-      `${fileId}.${pipeline.outputFormat}`,
+      `${uploadPrefix}/${fileId}.${pipeline.outputFormat}`,
     );
 
     // Decide access URL: use endpoint when available and object is not private; otherwise presign

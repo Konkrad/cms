@@ -54,8 +54,8 @@ const editEventSchema = z.object({
   id: z.string(),
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
-  startTime: z.string().min(1, "Start time is required"),
-  endTime: z.string().min(1, "End time is required"),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
   location: z.string().min(1, "Location is required"),
   locationType: z.enum(["in_person", "online", "hybrid"]),
   onlineUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
@@ -76,8 +76,8 @@ export const useUpdateEvent = routeAction$(async (data, event) => {
     await eventsService.update(data.id, {
       title: data.title,
       description: data.description,
-      startTime: new Date(data.startTime).toISOString(),
-      endTime: new Date(data.endTime).toISOString(),
+      startDate: new Date(data.startDate).toISOString(),
+      endDate: new Date(data.endDate).toISOString(),
       location: data.location,
       locationType: data.locationType,
       onlineUrl: data.onlineUrl || null,
@@ -157,16 +157,16 @@ export default component$(() => {
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <SmartDatePicker
-              name="startTime"
+              name="startDate"
               label="Start Time"
-              value={new Date(eventData.value.startTime).toISOString()}
+              value={eventData.value.startDate}
               enableTime={true}
               required
             />
             <SmartDatePicker
-              name="endTime"
+              name="endDate"
               label="End Time"
-              value={new Date(eventData.value.endTime).toISOString()}
+              value={eventData.value.endDate}
               enableTime={true}
               required
             />

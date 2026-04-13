@@ -14,7 +14,7 @@ import { Card } from "~/components/ui/Card";
 import { photosService } from "~/services/photos.service";
 import { eventsService } from "~/services/events.service";
 import { deleteS3Objects } from "~/services/image-processing.service";
-import { getServerSession } from "~/utils/server-auth";
+import { getCurrentUserData } from "~/utils/server-auth";
 import { generatePresignedGetUrl } from "~/utils/secure-urls";
 import { deriveThumbnailKey } from "~/utils/images";
 
@@ -51,26 +51,14 @@ export const usePhotos = routeLoader$(async ({ params }) => {
 export const useCreatePhoto = routeAction$(
   async (data, requestEvent) => {
     const { params, fail } = requestEvent;
-    const user = await getServerSession(requestEvent);
-    if (!user) {
-      return fail(401, { message: "Not authenticated" });
+    const user = await getCurrentUserData(requestEvent as any);
+    if (!user || (user.role !== "admin" && user.role !== "group_admin")) {
+      return fail(403, { message: "Unauthorized" });
     }
 
-    // Get event and verify ownership
     const event = await eventsService.getById(params.id);
     if (!event) {
       return fail(404, { message: "Event not found" });
-    }
-
-    if (event.userId !== user.id) {
-      return fail(403, { message: "Not authorized - must be event organizer" });
-    }
-
-    // Check if event has started
-    const eventStartDate = new Date(event.startDate);
-    const now = new Date();
-    if (now < eventStartDate) {
-      return fail(400, { message: "Cannot upload photos before event starts" });
     }
 
     // Create photo record
@@ -93,12 +81,13 @@ export const useCreatePhoto = routeAction$(
 export const useDeletePhoto = routeAction$(
   async (data, requestEvent) => {
     const { params, fail } = requestEvent;
-    const user = await getServerSession(requestEvent);
-    if (!user) return fail(401, { message: "Not authenticated" });
+    const user = await getCurrentUserData(requestEvent as any);
+    if (!user || (user.role !== "admin" && user.role !== "group_admin")) {
+      return fail(403, { message: "Unauthorized" });
+    }
 
     const event = await eventsService.getById(params.id);
     if (!event) return fail(404, { message: "Event not found" });
-    if (event.userId !== user.id) return fail(403, { message: "Not authorized" });
 
     const photo = await photosService.getById(data.photoId);
     if (!photo || photo.eventId !== params.id) {

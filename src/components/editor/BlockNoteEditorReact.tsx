@@ -49,10 +49,12 @@ const BlockNoteEditorReact = (
     });
 
     uppy.use(XHRUpload, {
-      endpoint: `${uploadUrl}?pipeline=original`,
+      endpoint: uploadUrl,
       formData: false,
       fieldName: "file",
-      headers: {},
+      headers: {
+        "x-pipeline": "original",
+      },
     });
 
     return uppy;

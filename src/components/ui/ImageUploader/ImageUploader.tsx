@@ -115,6 +115,8 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
         uploadedUrls.value = [...uploadedUrls.value, ...urls];
       }
 
+      // Wait for Qwik to reconcile the DOM (hidden inputs) before notifying
+      await new Promise((r) => requestAnimationFrame(r));
       await props.onSettled$?.();
     });
 

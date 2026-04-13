@@ -39,8 +39,6 @@ interface ImageUploaderProps {
   aspectRatio?: string;
   /** HTML input name — emits hidden inputs so the form can read uploaded URLs */
   name?: string;
-  /** Existing image URL to display in edit mode */
-  currentUrl?: string;
 }
 
 export const ImageUploader = component$((props: ImageUploaderProps) => {
@@ -143,37 +141,23 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
 
   return (
     <div class="w-full">
-      {props.currentUrl && uploadedUrls.value.length === 0 && (
-        <div class="mb-2 rounded border border-gray-200 overflow-hidden">
-          <img
-            src={props.currentUrl}
-            alt="Current"
-            class="w-full object-cover"
-            style={{ aspectRatio: props.aspectRatio ?? "16/9" }}
-          />
-        </div>
-      )}
       <div
         ref={containerRef}
-        style={{ aspectRatio: props.aspectRatio ?? "16/9", width: "100%" }}
+        style={{
+          aspectRatio: props.aspectRatio ?? "16/9",
+          width: "100%",
+        }}
       />
       {/* Hidden inputs so the surrounding form can read the uploaded URLs */}
-      {props.name && uploadedUrls.value.length > 0
-        ? uploadedUrls.value.map((url, idx) => (
-            <input
-              key={String(idx)}
-              type="hidden"
-              name={props.name}
-              value={url}
-            />
-          ))
-        : props.name && props.currentUrl && (
-            <input
-              type="hidden"
-              name={props.name}
-              value={props.currentUrl}
-            />
-          )}
+      {props.name && uploadedUrls.value.length > 0 &&
+        uploadedUrls.value.map((url, idx) => (
+          <input
+            key={String(idx)}
+            type="hidden"
+            name={props.name}
+            value={url}
+          />
+        ))}
     </div>
   );
 });

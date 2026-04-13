@@ -6,7 +6,7 @@
  */
 
 import sharp from "sharp";
-import { S3Client } from "@aws-sdk/client-s3";
+import { S3Client, DeleteObjectsCommand } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { PassThrough } from "stream";
 import { Readable } from "stream";
@@ -228,4 +228,15 @@ export function getPipeline(name: string): ImageProcessingPipeline {
   const pipeline = (PROCESSING_PIPELINES as any)[name];
   if (!pipeline) throw new Error(`Pipeline ${name} not found`);
   return pipeline;
+}
+
+export async function deleteS3Objects(keys: string[]): Promise<void> {
+  if (keys.length === 0) return;
+  const s3Client = createS3Client();
+  await s3Client.send(
+    new DeleteObjectsCommand({
+      Bucket: env.S3_BUCKET,
+      Delete: { Objects: keys.map((Key) => ({ Key })) },
+    }),
+  );
 }

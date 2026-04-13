@@ -68,6 +68,7 @@ export default component$(() => {
   const content = useSignal(data.value.post.body || "");
   const editorState = useSignal(data.value.post.editorState || null);
   const triggerUpload = useSignal(false);
+  const showFeaturedUploader = useSignal(!data.value.post.featuredImage);
 
   const handleEditorChange$ = $((htmlContent: string, state: string) => {
     content.value = htmlContent;
@@ -102,14 +103,21 @@ export default component$(() => {
           />
 
           <p class="text-sm font-medium text-gray-700 mb-1">Featured Image (optional)</p>
-          <ImageUploader
-            name="featuredImage"
-            path="public/posts"
-            aspectRatio="16/9"
-            triggerSignal={triggerUpload}
-            onSettled$={onUploadDone}
-            currentUrl={data.value.post.featuredImage || undefined}
-          />
+          {!showFeaturedUploader.value && data.value.post.featuredImage ? (
+            <div class="relative rounded border border-gray-200 overflow-hidden">
+              <img src={data.value.post.featuredImage} alt="Current" class="w-full object-cover" style={{ aspectRatio: "16/9" }} />
+              <button type="button" class="absolute bottom-2 right-2 rounded bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow hover:bg-white" onClick$={() => { showFeaturedUploader.value = true; }}>Change image</button>
+              <input type="hidden" name="featuredImage" value={data.value.post.featuredImage} />
+            </div>
+          ) : (
+            <ImageUploader
+              name="featuredImage"
+              path="public/posts"
+              aspectRatio="16/9"
+              triggerSignal={triggerUpload}
+              onSettled$={onUploadDone}
+            />
+          )}
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">

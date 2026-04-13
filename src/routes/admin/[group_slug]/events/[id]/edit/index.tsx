@@ -108,6 +108,8 @@ export default component$(() => {
   
   const triggerUpload = useSignal(false);
   const successCount = useSignal(0);
+  const showImage1Uploader = useSignal(!eventData.value.image1);
+  const showImage2Uploader = useSignal(!eventData.value.image2);
 
   const handleSubmit = $(() => {
     isSubmitting.value = true;

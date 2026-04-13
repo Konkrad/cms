@@ -92,6 +92,9 @@ export default component$(() => {
   
   const triggerUpload = useSignal(false);
   const successCount = useSignal(0);
+  const showImage1Uploader = useSignal(!groupData.value.image1);
+  const showImage2Uploader = useSignal(!groupData.value.image2);
+  const showImage3Uploader = useSignal(!groupData.value.image3);
 
   const handleSubmit = $(() => {
     isSubmitting.value = true;
@@ -138,38 +141,59 @@ export default component$(() => {
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <p class="text-sm font-medium text-gray-700 mb-1">Image 1 — Left bottom tile</p>
-              <ImageUploader
-                name="image1"
-                path="public/groups"
-                triggerSignal={triggerUpload}
-                aspectRatio="1/1"
-                onSettled$={checkAndSubmit}
-                currentUrl={groupData.value.image1 || undefined}
-              />
+              {!showImage1Uploader.value && groupData.value.image1 ? (
+                <div class="relative rounded border border-gray-200 overflow-hidden">
+                  <img src={groupData.value.image1} alt="Current" class="w-full object-cover" style={{ aspectRatio: "1/1" }} />
+                  <button type="button" class="absolute bottom-2 right-2 rounded bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow hover:bg-white" onClick$={() => { showImage1Uploader.value = true; }}>Change image</button>
+                  <input type="hidden" name="image1" value={groupData.value.image1} />
+                </div>
+              ) : (
+                <ImageUploader
+                  name="image1"
+                  path="public/groups"
+                  triggerSignal={triggerUpload}
+                  aspectRatio="1/1"
+                  onSettled$={checkAndSubmit}
+                />
+              )}
             </div>
             <div>
               <p class="text-sm font-medium text-gray-700 mb-1">Image 2 — Middle tile (large)</p>
-              <ImageUploader
-                name="image2"
-                path="public/groups"
-                pipeline="standard"
-                triggerSignal={triggerUpload}
-                aspectRatio="4/3"
-                onSettled$={checkAndSubmit}
-                currentUrl={groupData.value.image2 || undefined}
-              />
+              {!showImage2Uploader.value && groupData.value.image2 ? (
+                <div class="relative rounded border border-gray-200 overflow-hidden">
+                  <img src={groupData.value.image2} alt="Current" class="w-full object-cover" style={{ aspectRatio: "4/3" }} />
+                  <button type="button" class="absolute bottom-2 right-2 rounded bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow hover:bg-white" onClick$={() => { showImage2Uploader.value = true; }}>Change image</button>
+                  <input type="hidden" name="image2" value={groupData.value.image2} />
+                </div>
+              ) : (
+                <ImageUploader
+                  name="image2"
+                  path="public/groups"
+                  pipeline="standard"
+                  triggerSignal={triggerUpload}
+                  aspectRatio="4/3"
+                  onSettled$={checkAndSubmit}
+                />
+              )}
             </div>
             <div>
               <p class="text-sm font-medium text-gray-700 mb-1">Image 3 — Right top tile</p>
-              <ImageUploader
-                name="image3"
-                path="public/groups"
-                pipeline="standard"
-                triggerSignal={triggerUpload}
-                aspectRatio="1/1"
-                onSettled$={checkAndSubmit}
-                currentUrl={groupData.value.image3 || undefined}
-              />
+              {!showImage3Uploader.value && groupData.value.image3 ? (
+                <div class="relative rounded border border-gray-200 overflow-hidden">
+                  <img src={groupData.value.image3} alt="Current" class="w-full object-cover" style={{ aspectRatio: "1/1" }} />
+                  <button type="button" class="absolute bottom-2 right-2 rounded bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow hover:bg-white" onClick$={() => { showImage3Uploader.value = true; }}>Change image</button>
+                  <input type="hidden" name="image3" value={groupData.value.image3} />
+                </div>
+              ) : (
+                <ImageUploader
+                  name="image3"
+                  path="public/groups"
+                  pipeline="standard"
+                  triggerSignal={triggerUpload}
+                  aspectRatio="1/1"
+                  onSettled$={checkAndSubmit}
+                />
+              )}
             </div>
           </div>
 

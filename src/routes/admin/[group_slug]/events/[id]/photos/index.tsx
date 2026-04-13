@@ -9,9 +9,11 @@ import {
   Link,
 } from "@qwik.dev/router";
 import { ImageUploader } from "~/components/ui";
+import { Button } from "~/components/ui";
 import { Card } from "~/components/ui/Card";
 import { photosService } from "~/services/photos.service";
 import { eventsService } from "~/services/events.service";
+import { deleteS3Objects } from "~/services/image-processing.service";
 import { getServerSession } from "~/utils/server-auth";
 import { generatePresignedGetUrl } from "~/utils/secure-urls";
 import { deriveThumbnailKey } from "~/utils/images";
@@ -88,6 +90,34 @@ export const useCreatePhoto = routeAction$(
   }),
 );
 
+export const useDeletePhoto = routeAction$(
+  async (data, requestEvent) => {
+    const { params, fail } = requestEvent;
+    const user = await getServerSession(requestEvent);
+    if (!user) return fail(401, { message: "Not authenticated" });
+
+    const event = await eventsService.getById(params.id);
+    if (!event) return fail(404, { message: "Event not found" });
+    if (event.userId !== user.id) return fail(403, { message: "Not authorized" });
+
+    const photo = await photosService.getById(data.photoId);
+    if (!photo || photo.eventId !== params.id) {
+      return fail(404, { message: "Photo not found" });
+    }
+
+    // Delete from S3 (main + thumbnail)
+    await deleteS3Objects([photo.filePath, deriveThumbnailKey(photo.filePath)]);
+
+    // Delete from DB
+    await photosService.delete(photo.id);
+
+    return { success: true };
+  },
+  zod$({
+    photoId: z.string().min(1),
+  }),
+);
+
 export default component$(() => {
   const event = useEvent();
   const photos = usePhotos();
@@ -96,6 +126,7 @@ export default component$(() => {
   const groupSlug = parts[2] || "global";
   const backUrl = `/admin/${groupSlug}/events/${event.value.id}`;
   const createPhotoAction = useCreatePhoto();
+  const deletePhotoAction = useDeletePhoto();
   const uploadSuccess = useSignal<string | null>(null);
   const uploadError = useSignal<string | null>(null);
 
@@ -180,7 +211,7 @@ export default component$(() => {
             {photos.value.map((photo) => (
               <div
                 key={photo.id}
-                class="relative aspect-square bg-gray-100 rounded-lg overflow-hidden group cursor-pointer"
+                class="relative aspect-square bg-gray-100 rounded-lg overflow-hidden group"
               >
                 <img
                   src={photo.thumbnailUrl || photo.fullUrl}
@@ -188,13 +219,28 @@ export default component$(() => {
                   class="w-full h-full object-cover"
                   loading="lazy"
                 />
-                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <p class="text-xs text-white truncate" title={photo.filePath}>
-                    {photo.filePath.split("/").pop()}
-                  </p>
-                  <p class="text-xs text-white/80">
-                    {new Date(photo.uploadedAt).toLocaleDateString()}
-                  </p>
+                <div class="absolute inset-0 flex flex-col justify-between bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div class="flex justify-end p-2">
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick$={async () => {
+                        if (!confirm("Delete this photo?")) return;
+                        await deletePhotoAction.submit({ photoId: photo.id });
+                        window.location.reload();
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                  <div class="p-2">
+                    <p class="text-xs text-white truncate" title={photo.filePath}>
+                      {photo.filePath.split("/").pop()}
+                    </p>
+                    <p class="text-xs text-white/80">
+                      {new Date(photo.uploadedAt).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
               </div>
             ))}

@@ -1,19 +1,32 @@
 {
   "name": "CMS Codespace",
-  "image": "mcr.microsoft.com/devcontainers/javascript-node:0-20",
-  "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:1": {}
-  },
+  // Use dockerComposeFile instead of a direct image
   "dockerComposeFile": [
     "../docker-compose.yml"
   ],
+  // This MUST match the name of the app/web service in your docker-compose.yml
+  "service": "app", 
+  "workspaceFolder": "/workspace",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:1": {}
+  },
+
+  "portsAttributes": {
+    "5173": {
+        "label": "App Server",
+        "onAutoForward": "notify"
+    }
+  },
+
   "runServices": [
     "mailpit",
     "minio",
     "stripe-mock"
   ],
-  "workspaceFolder": "/workspace",
+
   "forwardPorts": [5173, 5174, 8025, 9000, 9001, 12111],
+
   "containerEnv": {
     "APP_URL": "http://localhost:5173",
     "MAILPIT_API_URL": "http://mailpit:8025",
@@ -27,6 +40,9 @@
     "STRIPE_PUBLISHABLE_KEY": "pk_test_codespace",
     "DB_PATH": "./my-database.db"
   },
-  "postCreateCommand": "chmod +x .devcontainer/post-create.sh && .devcontainer/post-create.sh",
-  "remoteUser": "automatic"
+
+  "postCreateCommand": "chmod +x .devcontainer/post-create.sh && ./.devcontainer/post-create.sh",
+
+  // "node" is the default user for the mcr...javascript-node image
+  "remoteUser": "node"
 }

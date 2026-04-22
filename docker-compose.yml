@@ -5,8 +5,11 @@ services:
     volumes:
       # This mounts your local folder into the container
       - .:/workspace:cached
-    # Keeps the container running in the background
+    # Keep the container running in the background
     command: sleep infinity
+    # Expose the dev server port so Codespaces can forward it cleanly
+    ports:
+      - 5173:5173
     # Ensures the app can talk to other services by name (e.g., http://mailpit:8025)
     networks:
       - cms-network

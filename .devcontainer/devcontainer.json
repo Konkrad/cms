@@ -13,8 +13,10 @@
   },
 
   "portsAttributes": {
-    "5173": { "label": "App Server", "onAutoForward": "notify" },
-    "8025": { "label": "Mailpit UI", "onAutoForward": "notify" }
+    "5173": { "label": "App", "onAutoForward": "notify" },
+    "8025": { "label": "Mailpit UI"},
+    "9001": { "label": "Minio UI"}
+
   },
 
   "runServices": [
@@ -23,7 +25,7 @@
     "stripe-mock"
   ],
 
-  "forwardPorts": [5173, 5174, 8025, 9000, 9001, 12111],
+  "forwardPorts": [5173, 8025, 9001],
 
   "containerEnv": {
     "APP_URL": "http://localhost:5173",

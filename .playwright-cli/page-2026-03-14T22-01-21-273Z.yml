@@ -1,0 +1,59 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e4]:
+      - link "Community Hub" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - link "Events" [ref=e9] [cursor=pointer]:
+            - /url: /events
+          - link "Home" [ref=e10] [cursor=pointer]:
+            - /url: /
+          - link "Groups" [ref=e11] [cursor=pointer]:
+            - /url: /groups
+          - link "News" [ref=e12] [cursor=pointer]:
+            - /url: /news
+        - button "Konrad Kleeberger" [ref=e14] [cursor=pointer]:
+          - text: Konrad Kleeberger
+          - img [ref=e15]
+  - main [ref=e17]:
+    - generic [ref=e20]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - heading "Platform Admin" [level=1] [ref=e25]
+          - link "Back to Site" [ref=e27] [cursor=pointer]:
+            - /url: /
+        - navigation [ref=e28]:
+          - link "Dashboard" [ref=e29] [cursor=pointer]:
+            - /url: /admin/global
+          - link "Users" [ref=e30] [cursor=pointer]:
+            - /url: /admin/global/users
+          - link "Posts" [ref=e31] [cursor=pointer]:
+            - /url: /admin/global/posts
+          - link "Events" [ref=e32] [cursor=pointer]:
+            - /url: /admin/global/events
+          - link "Forms" [ref=e33] [cursor=pointer]:
+            - /url: /admin/global/forms
+          - link "Pages" [ref=e34] [cursor=pointer]:
+            - /url: /admin/global/pages
+          - link "Groups" [ref=e35] [cursor=pointer]:
+            - /url: /admin/global/groups
+      - generic [ref=e36]:
+        - navigation [ref=e37]:
+          - link "Admin" [ref=e39] [cursor=pointer]:
+            - /url: /admin/global
+          - generic [ref=e40]:
+            - generic [ref=e41]: /
+            - generic [ref=e42]: Platform Admin
+        - generic [ref=e109]:
+          - generic [ref=e110]:
+            - generic [ref=e111]:
+              - heading "Responses" [level=2] [ref=e112]
+              - paragraph [ref=e113]: E2E Form 724682 Updated
+            - generic [ref=e114]:
+              - link "Export CSV" [ref=e115] [cursor=pointer]:
+                - /url: /admin/global/forms/e4766fbb-c8f6-4cdb-9821-7bce6f9756b1/responses/export.csv
+              - link "Back to Form" [ref=e116] [cursor=pointer]:
+                - /url: /admin/global/forms/e4766fbb-c8f6-4cdb-9821-7bce6f9756b1/edit
+                - button "Back to Form" [ref=e117]
+          - paragraph [ref=e119]: No responses yet.

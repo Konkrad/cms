@@ -1,0 +1,286 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e4]:
+      - link "Community Hub" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - link "Events" [ref=e9] [cursor=pointer]:
+            - /url: /events
+          - link "Home" [ref=e10] [cursor=pointer]:
+            - /url: /
+          - link "Groups" [ref=e11] [cursor=pointer]:
+            - /url: /groups
+        - button "Konrad Kleeberger" [ref=e13] [cursor=pointer]:
+          - text: Konrad Kleeberger
+          - img [ref=e14]
+  - main [ref=e16]:
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e24]: "1"
+          - generic [ref=e26]:
+            - heading "Community Guidelines Update" [level=1] [ref=e27]
+            - paragraph [ref=e28]: Please take a moment to review our updated community guidelines. We've added clearer rules around respectful communicati...
+            - link "Read the Article" [ref=e29] [cursor=pointer]:
+              - /url: /posts/ef1aa859-19c2-4efa-ac6b-d22ef2b3b6bd
+        - generic [ref=e30]:
+          - button "Go to slide 1" [ref=e31] [cursor=pointer]
+          - button "Go to slide 2" [ref=e32] [cursor=pointer]
+          - button "Go to slide 3" [ref=e33] [cursor=pointer]
+      - heading "About us" [level=2] [ref=e35]
+      - generic [ref=e37]: Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+      - generic [ref=e39]:
+        - generic [ref=e40]:
+          - generic [ref=e41]:
+            - paragraph [ref=e42]: 2000+
+            - heading "Members" [level=3] [ref=e43]
+          - paragraph [ref=e44]: A fast growing community that inspires and connects.
+        - paragraph [ref=e50]: With multiple events all over Europe every year we help to grow your network and make memories.
+        - generic [ref=e54]:
+          - generic [ref=e55]:
+            - paragraph [ref=e56]: 10+
+            - heading "Local communities" [level=3] [ref=e57]
+          - paragraph [ref=e58]: Can't find your city yet? Start your own one.
+      - generic [ref=e59]:
+        - generic [ref=e60]:
+          - heading "Local Communities" [level=2] [ref=e61]
+          - paragraph [ref=e62]: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+          - link "Discover the Communities" [ref=e63] [cursor=pointer]:
+            - /url: /groups
+        - generic:
+          - generic:
+            - link "Visit group page →":
+              - /url: "#"
+          - generic:
+            - link "Visit group page →":
+              - /url: "#"
+            - generic: ✕ close
+      - heading "Upcoming Events" [level=2] [ref=e65]
+      - generic [ref=e67]: Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+      - generic [ref=e69]:
+        - generic [ref=e71]:
+          - generic [ref=e72]:
+            - paragraph [ref=e73]: "13"
+            - paragraph [ref=e74]: March
+            - paragraph [ref=e75]: 5:00 PM
+          - generic [ref=e77]:
+            - heading "Hamburg Harbour Morning Walk" [level=3] [ref=e78]
+            - generic [ref=e79]:
+              - img [ref=e80]
+              - paragraph [ref=e83]: Hamburg
+          - link "Read More" [ref=e85] [cursor=pointer]:
+            - /url: /events/11e7c609-0450-40d3-86a3-be03c586dffa
+            - generic [ref=e86]:
+              - img [ref=e87]
+              - img [ref=e90]
+            - generic [ref=e92]: Read More
+        - generic [ref=e94]:
+          - generic [ref=e95]:
+            - paragraph [ref=e96]: "13"
+            - paragraph [ref=e97]: March
+            - paragraph [ref=e98]: 7:38 PM
+          - generic [ref=e100]:
+            - heading "Test Meetup Event" [level=3] [ref=e101]
+            - generic [ref=e102]:
+              - img [ref=e103]
+              - paragraph [ref=e106]: Test City
+          - link "Read More" [ref=e108] [cursor=pointer]:
+            - /url: /events/086f6433-046b-4520-b861-93c54dd331ed
+            - generic [ref=e109]:
+              - img [ref=e110]
+              - img [ref=e113]
+            - generic [ref=e115]: Read More
+        - generic [ref=e117]:
+          - generic [ref=e118]:
+            - paragraph [ref=e119]: "14"
+            - paragraph [ref=e120]: March
+            - paragraph [ref=e121]: 5:00 PM
+          - generic [ref=e123]:
+            - heading "Berlin New Members Welcome Night" [level=3] [ref=e124]
+            - generic [ref=e125]:
+              - img [ref=e126]
+              - paragraph [ref=e129]: Berlin
+          - link "Read More" [ref=e131] [cursor=pointer]:
+            - /url: /events/aca82abe-d68d-4510-8d07-f70305bb722e
+            - generic [ref=e132]:
+              - img [ref=e133]
+              - img [ref=e136]
+            - generic [ref=e138]: Read More
+        - generic [ref=e140]:
+          - generic [ref=e141]:
+            - paragraph [ref=e142]: "16"
+            - paragraph [ref=e143]: March
+            - paragraph [ref=e144]: 5:00 PM
+          - generic [ref=e146]:
+            - heading "Cologne Members Dinner" [level=3] [ref=e147]
+            - generic [ref=e148]:
+              - img [ref=e149]
+              - paragraph [ref=e152]: Cologne
+          - link "Read More" [ref=e154] [cursor=pointer]:
+            - /url: /events/1cb89856-d0b4-4747-8b13-5d49d7ba2dc1
+            - generic [ref=e155]:
+              - img [ref=e156]
+              - img [ref=e159]
+            - generic [ref=e161]: Read More
+        - generic [ref=e163]:
+          - generic [ref=e164]:
+            - paragraph [ref=e165]: "17"
+            - paragraph [ref=e166]: March
+            - paragraph [ref=e167]: 5:00 PM
+          - generic [ref=e169]:
+            - heading "Munich Community Hike – Englischer Garten" [level=3] [ref=e170]
+            - generic [ref=e171]:
+              - img [ref=e172]
+              - paragraph [ref=e175]: Munich
+          - link "Read More" [ref=e177] [cursor=pointer]:
+            - /url: /events/10fc54a0-5106-40d8-bd0f-33e42777a88e
+            - generic [ref=e178]:
+              - img [ref=e179]
+              - img [ref=e182]
+            - generic [ref=e184]: Read More
+        - generic [ref=e186]:
+          - generic [ref=e187]:
+            - paragraph [ref=e188]: "19"
+            - paragraph [ref=e189]: March
+            - paragraph [ref=e190]: 5:00 PM
+          - generic [ref=e192]:
+            - heading "Frankfurt Networking Breakfast" [level=3] [ref=e193]
+            - generic [ref=e194]:
+              - img [ref=e195]
+              - paragraph [ref=e198]: Frankfurt
+          - link "Read More" [ref=e200] [cursor=pointer]:
+            - /url: /events/52382ed3-7836-4ecd-9953-497a2eb11cb5
+            - generic [ref=e201]:
+              - img [ref=e202]
+              - img [ref=e205]
+            - generic [ref=e207]: Read More
+        - generic [ref=e209]:
+          - generic [ref=e210]:
+            - paragraph [ref=e211]: "21"
+            - paragraph [ref=e212]: March
+            - paragraph [ref=e213]: 5:00 PM
+          - generic [ref=e215]:
+            - heading "Berlin Summer Social" [level=3] [ref=e216]
+            - generic [ref=e217]:
+              - img [ref=e218]
+              - paragraph [ref=e221]: Berlin
+          - link "Read More" [ref=e223] [cursor=pointer]:
+            - /url: /events/9332f543-335a-4b75-a5c5-8ce0ec68ea43
+            - generic [ref=e224]:
+              - img [ref=e225]
+              - img [ref=e228]
+            - generic [ref=e230]: Read More
+        - generic [ref=e232]:
+          - generic [ref=e233]:
+            - paragraph [ref=e234]: "25"
+            - paragraph [ref=e235]: March
+            - paragraph [ref=e236]: 5:00 PM
+          - generic [ref=e238]:
+            - heading "Hamburg Open Meetup" [level=3] [ref=e239]
+            - generic [ref=e240]:
+              - img [ref=e241]
+              - paragraph [ref=e244]: Hamburg
+          - link "Read More" [ref=e246] [cursor=pointer]:
+            - /url: /events/51629432-b94a-4f25-8c8f-a10a0ccec1c5
+            - generic [ref=e247]:
+              - img [ref=e248]
+              - img [ref=e251]
+            - generic [ref=e253]: Read More
+        - generic [ref=e255]:
+          - generic [ref=e256]:
+            - paragraph [ref=e257]: "28"
+            - paragraph [ref=e258]: March
+            - paragraph [ref=e259]: 5:00 PM
+          - generic [ref=e261]:
+            - 'heading "Berlin Tech Talk: AI in 2025" [level=3] [ref=e262]'
+            - generic [ref=e263]:
+              - img [ref=e264]
+              - paragraph [ref=e267]: Berlin
+          - link "Read More" [ref=e269] [cursor=pointer]:
+            - /url: /events/2d7c4ce1-5856-4306-b76d-073df6dfa1a2
+            - generic [ref=e270]:
+              - img [ref=e271]
+              - img [ref=e274]
+            - generic [ref=e276]: Read More
+        - generic [ref=e278]:
+          - generic [ref=e279]:
+            - paragraph [ref=e280]: "1"
+            - paragraph [ref=e281]: April
+            - paragraph [ref=e282]: 5:00 PM
+          - generic [ref=e284]:
+            - heading "Frankfurt Startup Pitch Night" [level=3] [ref=e285]
+            - generic [ref=e286]:
+              - img [ref=e287]
+              - paragraph [ref=e290]: Frankfurt
+          - link "Read More" [ref=e292] [cursor=pointer]:
+            - /url: /events/ec645978-939c-4ea0-8e8b-c821320cf426
+            - generic [ref=e293]:
+              - img [ref=e294]
+              - img [ref=e297]
+            - generic [ref=e299]: Read More
+        - generic [ref=e301]:
+          - generic [ref=e302]:
+            - paragraph [ref=e303]: "6"
+            - paragraph [ref=e304]: April
+            - paragraph [ref=e305]: 5:00 PM
+          - generic [ref=e307]:
+            - 'heading "Munich Members Workshop: Public Speaking" [level=3] [ref=e308]'
+            - generic [ref=e309]:
+              - img [ref=e310]
+              - paragraph [ref=e313]: Munich
+          - link "Read More" [ref=e315] [cursor=pointer]:
+            - /url: /events/eb2322cc-8f3f-485d-8a22-890d2d202cdf
+            - generic [ref=e316]:
+              - img [ref=e317]
+              - img [ref=e320]
+            - generic [ref=e322]: Read More
+        - generic [ref=e324]:
+          - generic [ref=e325]:
+            - paragraph [ref=e326]: "11"
+            - paragraph [ref=e327]: April
+            - paragraph [ref=e328]: 5:00 PM
+          - generic [ref=e330]:
+            - heading "Cologne Public Meet & Greet" [level=3] [ref=e331]
+            - generic [ref=e332]:
+              - img [ref=e333]
+              - paragraph [ref=e336]: Cologne
+          - link "Read More" [ref=e338] [cursor=pointer]:
+            - /url: /events/fcd34e3d-3104-4207-9fd4-0005c66380eb
+            - generic [ref=e339]:
+              - img [ref=e340]
+              - img [ref=e343]
+            - generic [ref=e345]: Read More
+        - generic [ref=e347]:
+          - generic [ref=e348]:
+            - paragraph [ref=e349]: "21"
+            - paragraph [ref=e350]: April
+            - paragraph [ref=e351]: 5:00 PM
+          - generic [ref=e353]:
+            - heading "All-Groups Online Town Hall" [level=3] [ref=e354]
+            - generic [ref=e355]:
+              - img [ref=e356]
+              - paragraph [ref=e359]: Online
+          - link "Read More" [ref=e361] [cursor=pointer]:
+            - /url: /events/7ac09158-3efd-4f97-8730-0892f92c7009
+            - generic [ref=e362]:
+              - img [ref=e363]
+              - img [ref=e366]
+            - generic [ref=e368]: Read More
+        - generic [ref=e370]:
+          - generic [ref=e371]:
+            - paragraph [ref=e372]: "4"
+            - paragraph [ref=e373]: March
+            - paragraph [ref=e374]: 12:00 AM
+          - generic [ref=e376]:
+            - heading "Future Evetn" [level=3] [ref=e377]
+            - generic [ref=e378]:
+              - img [ref=e379]
+              - paragraph [ref=e382]: Brussels
+          - link "Read More" [ref=e384] [cursor=pointer]:
+            - /url: /events/c91f4d0d-3af6-4260-b849-24fac8ce1f8d
+            - generic [ref=e385]:
+              - img [ref=e386]
+              - img [ref=e389]
+            - generic [ref=e391]: Read More
+  - generic [ref=e392]: "Click-to-Source: Alt"

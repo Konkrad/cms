@@ -1,0 +1,54 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e4]:
+      - link "Community Hub" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - link "Events" [ref=e9] [cursor=pointer]:
+            - /url: /events
+          - link "Home" [ref=e10] [cursor=pointer]:
+            - /url: /
+          - link "Groups" [ref=e11] [cursor=pointer]:
+            - /url: /groups
+          - link "News" [ref=e12] [cursor=pointer]:
+            - /url: /news
+        - button "Konrad Kleeberger" [ref=e35] [cursor=pointer]:
+          - text: Konrad Kleeberger
+          - img [ref=e36]
+  - main [ref=e14]:
+    - generic [ref=e39]:
+      - generic [ref=e41]: No articles yet.
+      - heading "About us" [level=2] [ref=e43]
+      - generic [ref=e45]: Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+      - generic [ref=e47]:
+        - generic [ref=e48]:
+          - generic [ref=e49]:
+            - paragraph [ref=e50]: 2000+
+            - heading "Members" [level=3] [ref=e51]
+          - paragraph [ref=e52]: A fast growing community that inspires and connects.
+        - paragraph [ref=e58]: With multiple events all over Europe every year we help to grow your network and make memories.
+        - generic [ref=e62]:
+          - generic [ref=e63]:
+            - paragraph [ref=e64]: 10+
+            - heading "Local communities" [level=3] [ref=e65]
+          - paragraph [ref=e66]: Can't find your city yet? Start your own one.
+      - generic [ref=e67]:
+        - generic [ref=e68]: "👇 Uncaught error happened here 👇 DevTools: Cmd+Alt+I"
+        - generic [ref=e70]:
+          - generic [ref=e71]:
+            - heading "Local Communities" [level=2] [ref=e72]
+            - paragraph [ref=e73]: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            - link "Discover the Communities" [ref=e74] [cursor=pointer]:
+              - /url: /groups
+          - generic:
+            - generic:
+              - link "Visit group page →":
+                - /url: "#"
+            - generic:
+              - link "Visit group page →":
+                - /url: "#"
+              - generic: ✕ close
+      - heading "Upcoming Events" [level=2] [ref=e76]
+      - generic [ref=e78]: Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+      - paragraph [ref=e80]: "Failed to load events: Failed to load events"

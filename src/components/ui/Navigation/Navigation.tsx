@@ -1,5 +1,5 @@
-import { $, component$, useSignal } from "@builder.io/qwik";
-import { Form, Link, useLocation } from "@builder.io/qwik-city";
+import { $, component$, useSignal } from "@qwik.dev/core";
+import { Form, Link, useLocation } from "@qwik.dev/router";
 import { useLogoutAction, useUserSession, useMenuItems } from "~/routes/layout";
 import { formatUser } from "~/utils/users";
 
@@ -151,7 +151,7 @@ export const Navigation = component$(() => {
                   onClick$={toggleUserMenu}
                   aria-label="profile-menu"
                   aria-haspopup="menu"
-                  aria-expanded={String(showUserMenu.value)}
+                  aria-expanded={showUserMenu.value}
                   class="flex items-center gap-2 px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
                 >
                   {profilePictureSmallUrl ? (

@@ -158,7 +158,7 @@ rendered. Stripping at the loader level is the only safe enforcement point.
 The following technologies form the core stack and MUST be used consistently:
 
 - **Framework**: Qwik 1.7+ with Qwik City for routing and SSR
-- **React interop**: `@builder.io/qwik-react` — used for third-party React components (BlockNote)
+- **React interop**: `@qwik.dev/react` — used for third-party React components (BlockNote)
 - **Database**: SQLite via `better-sqlite3` with Drizzle ORM 0.45+ for schema and queries
 - **Validation**: Zod 4.2+ for all schemas (environment, forms, API inputs)
 - **Styling**: Tailwind CSS 3.4+ with utility-first approach

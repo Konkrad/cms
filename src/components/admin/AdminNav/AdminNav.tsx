@@ -1,5 +1,5 @@
-import { component$ } from "@builder.io/qwik";
-import { useLocation } from "@builder.io/qwik-city";
+import { component$ } from "@qwik.dev/core";
+import { useLocation, Link } from "@qwik.dev/router";
 
 interface AdminNavProps {
   groupSlug?: string;
@@ -39,7 +39,7 @@ export const AdminNav = component$<AdminNavProps>(({ groupSlug, isGlobal = true 
           : currentPath.startsWith(item.href);
 
         return (
-          <a
+          <Link
             key={item.href}
             href={item.href}
             class={`px-4 py-2 rounded transition-colors ${
@@ -49,7 +49,7 @@ export const AdminNav = component$<AdminNavProps>(({ groupSlug, isGlobal = true 
             }`}
           >
             {item.label}
-          </a>
+          </Link>
         );
       })}
     </nav>

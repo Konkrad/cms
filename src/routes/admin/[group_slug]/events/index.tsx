@@ -1,5 +1,5 @@
-import { component$ } from "@builder.io/qwik";
-import { Form, Link, routeAction$, routeLoader$ } from "@builder.io/qwik-city";
+import { component$ } from "@qwik.dev/core";
+import { Form, Link, routeAction$, routeLoader$ } from "@qwik.dev/router";
 import { format } from "date-fns";
 import { Button } from "~/components/ui/Button";
 import { eventsService } from "~/services/events.service";
@@ -25,7 +25,7 @@ export const useEvents = routeLoader$(async ({ params }) => {
   const eventsWithParticipation = await Promise.all(
     filteredItems.map(async (event) => {
       const participationSummary = await participationService.getSummary(event.id);
-      return {
+        return {
         id: event.id,
         title: event.title,
         body: event.body,
@@ -37,7 +37,7 @@ export const useEvents = routeLoader$(async ({ params }) => {
         country: event.country,
         visibility: event.visibility,
         groupId: event.groupId,
-        organizerName: event.user.displayName,
+        organizerName: `${event.user.name} ${event.user.familyName}`,
         participationCounts: participationSummary,
       };
     })
@@ -120,7 +120,7 @@ export default component$(() => {
                     </span>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {event.participationCounts.going || 0} going
+                    {event.participationCounts.yes || 0} going
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
                     <Link

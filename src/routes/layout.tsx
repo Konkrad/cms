@@ -1,6 +1,6 @@
-import { component$, Slot } from "@builder.io/qwik";
-import type { RequestHandler } from "@builder.io/qwik-city";
-import { routeAction$, routeLoader$ } from "@builder.io/qwik-city";
+import { component$, Slot } from "@qwik.dev/core";
+import type { RequestHandler } from "@qwik.dev/router";
+import { routeAction$, routeLoader$ } from "@qwik.dev/router";
 import { Navigation } from "~/components/ui/Navigation";
 import { menuItemsService } from "~/services/menu-items.service";
 import { deriveProfilePicSmallKey } from "~/utils/images";

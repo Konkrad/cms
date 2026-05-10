@@ -1,11 +1,11 @@
-import { component$, useSignal } from "@builder.io/qwik";
+import { component$, useSignal } from "@qwik.dev/core";
 import {
   Form,
   routeAction$,
   routeLoader$,
   z,
   zod$,
-} from "@builder.io/qwik-city";
+} from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
@@ -49,10 +49,10 @@ export const useIssueCompTicket = routeAction$(
     if (existingUser) {
       userId = existingUser.id;
     } else {
-      // Create a basic user account
+      // Create a basic user account (familyName is required by the schema)
       const newUser = await usersService.create({
-        email: data.email,
         name: data.name,
+        familyName: "",
         role: "user",
       });
       userId = newUser.id;
@@ -135,9 +135,9 @@ export default component$(() => {
               <Select name="productId" required>
                 <option value="">Select a product</option>
                 {data.value.products.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name} - €{product.price.toFixed(2)}
-                  </option>
+                    <option key={product.id} value={product.id}>
+                      {`${product.name} - €${product.price.toFixed(2)}`}
+                    </option>
                 ))}
               </Select>
             </div>

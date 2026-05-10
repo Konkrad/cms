@@ -1,6 +1,7 @@
-import { component$ } from "@builder.io/qwik";
-import { Link, type DocumentHead, routeLoader$ } from "@builder.io/qwik-city";
+import { component$ } from "@qwik.dev/core";
+import { Link, type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import { postsService } from "~/services/posts.service";
+import { formatUser } from "~/utils/users";
 
 export const usePost = routeLoader$(async ({ params, status }) => {
   const { id } = params;
@@ -17,7 +18,10 @@ export const usePost = routeLoader$(async ({ params, status }) => {
     return null;
   }
 
-  return post;
+  return {
+    ...post,
+    user: formatUser(post.user, true),
+  };
 });
 
 export default component$(() => {

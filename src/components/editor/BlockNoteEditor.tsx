@@ -1,5 +1,5 @@
-import { component$, type QRL } from "@builder.io/qwik";
-import { qwikify$ } from "@builder.io/qwik-react";
+import { component$, type QRL } from "@qwik.dev/core";
+import { qwikify$ } from "@qwik.dev/react";
 import React, { Suspense } from "react";
 
 // Lazy load the React component to avoid SSR import issues

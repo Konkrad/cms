@@ -1,5 +1,5 @@
-import { component$ } from "@builder.io/qwik";
-import { routeLoader$ } from "@builder.io/qwik-city";
+import { component$ } from "@qwik.dev/core";
+import { routeLoader$, Link } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { groupsService } from "~/services/groups.service";
 
@@ -60,24 +60,24 @@ export default component$(() => {
                 </td>
                 <td class="px-6 py-4 text-sm font-medium">
                   <div class="flex items-center gap-4">
-                    <a
+                    <Link
                       href={`/admin/global/groups/${group.id}/edit`}
                       class="text-blue-600 hover:text-blue-900"
                     >
                       Edit
-                    </a>
-                    <a
+                    </Link>
+                    <Link
                       href={`/admin/global/groups/${group.id}/members`}
                       class="text-gray-600 hover:text-gray-900"
                     >
                       Members
-                    </a>
-                    <a
+                    </Link>
+                    <Link
                       href={`/groups/${group.slug}`}
                       class="text-indigo-600 hover:text-indigo-900"
                     >
                       View
-                    </a>
+                    </Link>
                   </div>
                 </td>
               </tr>

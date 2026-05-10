@@ -1,4 +1,4 @@
-import { component$, useSignal, useVisibleTask$, type QRL } from "@builder.io/qwik";
+import { component$, useSignal, useVisibleTask$, type QRL } from "@qwik.dev/core";
 
 type SurveyRuntimeProps = {
   surveyJson: Record<string, any>;

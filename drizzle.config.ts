@@ -4,5 +4,5 @@ export default {
   schema: "./src/db/schema.ts",
   out: "./drizzle",
   dialect: "sqlite",
-  url: process.env.DB_PATH ?? "my-database.db",
+  dbCredentials: { url: process.env.DB_PATH ?? "my-database.db" },
 } satisfies Config;

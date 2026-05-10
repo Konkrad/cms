@@ -32,15 +32,15 @@ export const participantsService = {
 
   async getByTicketId(ticketId: string): Promise<TicketParticipant[]> {
     const results = await db.query.ticketParticipants.findMany({
-      where: eq(ticketParticipants.ticketId, ticketId),
-      orderBy: (participants, { asc }) => [asc(participants.participantOrder)],
+      where: { ticketId },
+      orderBy: { participantOrder: "asc" },
     });
     return results;
   },
 
   async getById(id: string): Promise<TicketParticipant | undefined> {
     const result = await db.query.ticketParticipants.findFirst({
-      where: eq(ticketParticipants.id, id),
+      where: { id },
     });
     return result;
   },

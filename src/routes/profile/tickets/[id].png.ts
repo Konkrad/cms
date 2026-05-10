@@ -1,4 +1,4 @@
-import type { RequestHandler } from "@builder.io/qwik-city";
+import type { RequestHandler } from "@qwik.dev/router";
 import { ticketsService } from "~/services/tickets.service";
 import { generateTicketQR } from "~/utils/qr-code";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";

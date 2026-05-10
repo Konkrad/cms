@@ -28,18 +28,18 @@ export const formResultsService = {
 
   async getByFormAndUser(formId: string, userId: string): Promise<FormResult | undefined> {
     return db.query.formResults.findFirst({
-      where: and(eq(formResults.formId, formId), eq(formResults.userId, userId)),
+      where: { formId, userId },
     });
   },
 
   async getByUser(userId: string): Promise<Array<FormResult & { formTitle: string; formSlug: string }>> {
     const rows = await db.query.formResults.findMany({
-        where: eq(formResults.userId, userId),
+        where: { userId },
         with: {
           form: true,
         },
-        orderBy: [desc(formResults.submittedAt)],
-      });
+        orderBy: { submittedAt: "desc" },
+      }) as any[];
 
       return rows.map((row) => ({
         ...row,
@@ -50,8 +50,8 @@ export const formResultsService = {
 
   async getByForm(formId: string): Promise<FormResult[]> {
     return db.query.formResults.findMany({
-      where: eq(formResults.formId, formId),
-      orderBy: [desc(formResults.submittedAt)],
+      where: { formId },
+      orderBy: { submittedAt: "desc" },
     });
   },
 
@@ -59,12 +59,12 @@ export const formResultsService = {
     formId: string,
   ): Promise<Array<FormResult & { userLoginId: string | null; userName: string | null }>> {
     const rows = await db.query.formResults.findMany({
-      where: eq(formResults.formId, formId),
+      where: { formId },
       with: {
         user: true,
       },
-      orderBy: [desc(formResults.submittedAt)],
-    });
+      orderBy: { submittedAt: "desc" },
+    }) as any[];
 
     return rows.map((row) => ({
       ...row,

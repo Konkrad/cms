@@ -1,4 +1,4 @@
-import type { RequestHandler } from "@builder.io/qwik-city";
+import type { RequestHandler } from "@qwik.dev/router";
 import { stripeService } from "~/services/stripe.service";
 import { transactionsService } from "~/services/transactions.service";
 import { transactionItemsService } from "~/services/transaction-items.service";
@@ -11,7 +11,7 @@ import { icalService } from "~/services/ical.service";
 import { sendEmail } from "~/utils/send-email";
 import { render } from "@react-email/render";
 import * as React from "react";
-import TicketConfirmationEmail from "~/emails/ticket-confirmation";
+import TicketConfirmationEmail from "~/emails/TicketConfirmation";
 import { env } from "~/env";
 import Stripe from "stripe";
 import { db } from "~/db/connection";
@@ -222,7 +222,7 @@ async function processCheckoutSession(session: Stripe.Checkout.Session) {
     .map((p) => ({
       name: p.product!.name,
       quantity: p.quantity,
-      unitPrice: p.product!.price,
+      amount: p.product!.price,
     }));
 
   // Generate iCal attachment
@@ -232,16 +232,20 @@ async function processCheckoutSession(session: Stripe.Checkout.Session) {
   try {
     const emailHtml = await render(
       React.createElement(TicketConfirmationEmail, {
-        eventTitle: event.title,
-        eventDate: new Date(event.startDate).toLocaleString(),
-        eventLocation: event.address || event.onlineUrl || undefined,
-        buyerName: user.name || userEmail,
-        transactionId: transaction.id,
-        products: productsForEmail,
-        tickets: ticketsForEmail,
-        totalAmount,
-        transactionFee,
         baseUrl: env.APP_URL || "https://yourdomain.com",
+        event: {
+          title: event.title,
+          date: new Date(event.startDate).toLocaleString(),
+          location: event.address || event.onlineUrl || undefined,
+        },
+        transaction: {
+          buyerName: user.name || userEmail,
+          transactionId: transaction.id,
+          products: productsForEmail,
+          totalAmount,
+        },
+        hasTickets: ticketsForEmail.length > 0,
+        ticketIds: ticketsForEmail.map((t) => t.id),
       }),
     );
 
@@ -444,7 +448,7 @@ async function processPaymentIntent(paymentIntent: Stripe.PaymentIntent) {
     .map((p) => ({
       name: p.product!.name,
       quantity: p.quantity,
-      unitPrice: p.product!.price,
+      amount: p.product!.price,
     }));
 
   // Generate iCal attachment
@@ -454,16 +458,20 @@ async function processPaymentIntent(paymentIntent: Stripe.PaymentIntent) {
   try {
     const emailHtml = await render(
       React.createElement(TicketConfirmationEmail, {
-        eventTitle: event.title,
-        eventDate: new Date(event.startDate).toLocaleString(),
-        eventLocation: event.address || event.onlineUrl || undefined,
-        buyerName: user.name || userEmail,
-        transactionId: transaction.id,
-        products: productsForEmail,
-        tickets: ticketsForEmail,
-        totalAmount: calculatedAmount,
-        transactionFee,
         baseUrl: env.APP_URL || "https://yourdomain.com",
+        event: {
+          title: event.title,
+          date: new Date(event.startDate).toLocaleString(),
+          location: event.address || event.onlineUrl || undefined,
+        },
+        transaction: {
+          buyerName: user.name || userEmail,
+          transactionId: transaction.id,
+          products: productsForEmail,
+          totalAmount: calculatedAmount,
+        },
+        hasTickets: ticketsForEmail.length > 0,
+        ticketIds: ticketsForEmail.map((t) => t.id),
       }),
     );
 

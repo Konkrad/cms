@@ -1,5 +1,5 @@
-import { component$, useSignal, useVisibleTask$, $ } from "@builder.io/qwik";
-import type { ActionStore } from "@builder.io/qwik-city";
+import { component$, useSignal, useVisibleTask$, $ } from "@qwik.dev/core";
+import type { ActionStore } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Html5QrcodeScanner } from "html5-qrcode";
 

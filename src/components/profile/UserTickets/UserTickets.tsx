@@ -1,4 +1,4 @@
-import { component$, useSignal, $ } from "@builder.io/qwik";
+import { component$, useSignal, $ } from "@qwik.dev/core";
 import type { Ticket } from "~/db/schemas/tickets";
 import type { events, products } from "~/db/schema";
 import { Modal } from "~/components/ui/Modal";

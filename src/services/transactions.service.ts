@@ -79,7 +79,7 @@ export const transactionsService = {
     >
   > {
     const results = await db.query.transactions.findMany({
-      where: eq(transactions.userId, userId),
+      where: { userId },
       with: {
         event: true,
         items: {
@@ -88,7 +88,7 @@ export const transactionsService = {
           },
         },
       },
-      orderBy: [desc(transactions.paymentDate)],
+      orderBy: { paymentDate: "desc" },
     });
     return results as any;
   },
@@ -106,7 +106,7 @@ export const transactionsService = {
     >
   > {
     const results = await db.query.transactions.findMany({
-      where: eq(transactions.eventId, eventId),
+      where: { eventId },
       with: {
         user: true,
         items: {
@@ -115,7 +115,7 @@ export const transactionsService = {
           },
         },
       },
-      orderBy: [desc(transactions.paymentDate)],
+      orderBy: { paymentDate: "desc" },
     });
     return results as any;
   },

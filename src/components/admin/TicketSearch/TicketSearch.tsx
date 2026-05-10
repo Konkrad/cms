@@ -1,4 +1,4 @@
-import { component$, useSignal, useComputed$ } from "@builder.io/qwik";
+import { component$, useSignal, useComputed$ } from "@qwik.dev/core";
 import Fuse from "fuse.js";
 import type { Ticket } from "~/db/schemas/tickets";
 import type { users, products } from "~/db/schema";

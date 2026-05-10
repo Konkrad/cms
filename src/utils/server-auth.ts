@@ -2,7 +2,7 @@ import type {
   RequestEventAction,
   RequestEventCommon,
   RequestEventLoader,
-} from "@builder.io/qwik-city";
+} from "@qwik.dev/router";
 import { eq } from "drizzle-orm";
 /* Supabase auth removed: using DB-backed sessions only (local DB sessions are now authoritative) */
 import { db } from "~/db/connection";

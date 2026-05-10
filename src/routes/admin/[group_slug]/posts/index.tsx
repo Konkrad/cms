@@ -1,5 +1,5 @@
-import { component$ } from "@builder.io/qwik";
-import { Form, routeLoader$, routeAction$ } from "@builder.io/qwik-city";
+import { component$ } from "@qwik.dev/core";
+import { Form, routeLoader$, routeAction$, Link } from "@qwik.dev/router";
 import { format } from "date-fns";
 import { Button } from "~/components/ui/Button";
 import { postsService } from "~/services/posts.service";
@@ -73,7 +73,7 @@ export default component$(() => {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900">
-                    {post.user.displayName}
+                    {`${post.user.name} ${post.user.familyName}`}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -81,12 +81,12 @@ export default component$(() => {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div class="flex items-center gap-4">
-                    <a
+                    <Link
                       href={`/admin/${data.value.groupSlug}/posts/${post.id}/edit`}
                       class="text-blue-600 hover:text-blue-900"
                     >
                       Edit
-                    </a>
+                    </Link>
                     <Form action={deletePostAction}>
                       <input type="hidden" name="postId" value={post.id} />
                       <button

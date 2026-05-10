@@ -27,7 +27,7 @@ async function findEventLinkFromGroups(page: any) {
   // prefer one that mentions 'Online' nearby, else return first
   for (let i = 0; i < count; i++) {
     const a = anchors.nth(i);
-    const containerText = await a.evaluate((el) => el.closest('div')?.innerText || '');
+    const containerText = await a.evaluate((el: Element) => el.closest('div')?.textContent || '');
     if (containerText.includes('Online')) {
       return a.getAttribute('href');
     }

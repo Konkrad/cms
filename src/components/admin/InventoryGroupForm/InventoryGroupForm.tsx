@@ -1,5 +1,5 @@
-import { component$, type QRL } from "@builder.io/qwik";
-import { Form, type ActionStore } from "@builder.io/qwik-city";
+import { component$, type QRL } from "@qwik.dev/core";
+import { Form, type ActionStore } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 

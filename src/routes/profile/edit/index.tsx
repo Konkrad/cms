@@ -1,11 +1,11 @@
-import { component$ } from "@builder.io/qwik";
+import { component$ } from "@qwik.dev/core";
 import {
   Form,
   routeAction$,
   routeLoader$,
   z,
   zod$,
-} from "@builder.io/qwik-city";
+} from "@qwik.dev/router";
 import { eq } from "drizzle-orm";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";

@@ -4,7 +4,7 @@ import {
   useVisibleTask$,
   $,
   type Signal,
-} from "@builder.io/qwik";
+} from "@qwik.dev/core";
 import flatpickr from "flatpickr";
 import type { Instance } from "flatpickr/dist/types/instance";
 

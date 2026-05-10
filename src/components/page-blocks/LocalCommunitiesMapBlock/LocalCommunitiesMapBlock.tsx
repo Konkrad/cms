@@ -1,5 +1,5 @@
-import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
-import { server$ } from "@builder.io/qwik-city";
+import { component$, useSignal, useVisibleTask$ } from "@qwik.dev/core";
+import { server$ } from "@qwik.dev/router";
 import type { BlockDefinition } from "~/db/schema";
 import { Button } from "~/components/ui/Button";
 import { groupsService } from "~/services/groups.service";

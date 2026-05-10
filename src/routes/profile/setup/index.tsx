@@ -1,5 +1,5 @@
-import { component$, useSignal, useVisibleTask$, $ } from "@builder.io/qwik";
-import { routeLoader$, useNavigate } from "@builder.io/qwik-city";
+import { component$, useSignal, useVisibleTask$, $ } from "@qwik.dev/core";
+import { routeLoader$, useNavigate } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { SetupLayout } from "~/components/setup/SetupLayout";
 import { useUpdateProfile, ProfileStep } from "~/components/setup/ProfileStep";

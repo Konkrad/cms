@@ -2,6 +2,7 @@ import { desc, eq, lt, isNull, and, or, inArray, sql } from "drizzle-orm";
 import { db } from "~/db/connection";
 import type { InsertPost, UpdatePost, Post } from "~/db/schemas/posts";
 import { posts, insertPostSchema, updatePostSchema } from "~/db/schemas/posts";
+import { users as usersTable } from "~/db/schemas/users";
 import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
 import { groupMembershipsService } from "~/services/group-memberships.service";
 
@@ -22,14 +23,14 @@ export const postsService = {
       with: {
         user: true,
       },
-      orderBy: [desc(posts.createdAt), desc(posts.id)],
+      orderBy: { createdAt: "desc", id: "desc" },
       limit: limit + 1,
-      where: and(
-        isNull(posts.deletedAt),
-        cursorObj?.createdAt
-          ? lt(posts.createdAt, cursorObj.createdAt)
-          : undefined
-      ),
+      where: {
+        deletedAt: { isNull: true },
+        ...(cursorObj?.createdAt
+          ? { createdAt: { lt: cursorObj.createdAt } }
+          : {}),
+      },
     });
 
     let nextCursor: string | undefined | null = undefined;
@@ -69,8 +70,10 @@ export const postsService = {
       with: {
         user: true,
       },
-      where: isNull(posts.deletedAt),
-      orderBy: [desc(posts.createdAt), desc(posts.id)],
+      where: {
+        deletedAt: { isNull: true },
+      },
+      orderBy: { createdAt: "desc", id: "desc" },
       limit: safePerPage,
       offset: pageIndex * safePerPage,
     });
@@ -83,7 +86,10 @@ export const postsService = {
 
   async getById(id: string): Promise<PostWithUser | undefined> {
     const result = await db.query.posts.findFirst({
-      where: and(eq(posts.id, id), isNull(posts.deletedAt)),
+      where: {
+        id,
+        deletedAt: { isNull: true },
+      },
       with: {
         user: true,
       },
@@ -98,47 +104,55 @@ export const postsService = {
     cursor?: string | null
   ): Promise<{ items: PostWithUser[]; nextCursor?: string | null }> {
     const cursorObj = decodeCursor(cursor ?? null);
-    
+
     let visibilityCondition;
     if (userId) {
       const userGroups = await groupMembershipsService.getUserGroups(userId);
       const groupIds = userGroups.map((g) => g.id);
-      
-      visibilityCondition = or(
-        eq(posts.visibility, "global"),
-        and(
-          eq(posts.visibility, "group-only"),
-          groupIds.length > 0 ? inArray(posts.groupId, groupIds) : undefined
-        )
-      );
+
+      visibilityCondition =
+        groupIds.length > 0
+          ? or(
+              eq(posts.visibility, "global"),
+              and(
+                eq(posts.visibility, "group-only"),
+                inArray(posts.groupId, groupIds),
+              ),
+            )
+          : eq(posts.visibility, "global");
     } else {
       visibilityCondition = eq(posts.visibility, "global");
     }
 
-    const results = await db.query.posts.findMany({
-      with: {
-        user: true,
-      },
-      orderBy: [desc(posts.createdAt), desc(posts.id)],
-      limit: limit + 1,
-      where: and(
-        isNull(posts.deletedAt),
-        visibilityCondition,
-        cursorObj?.createdAt
-          ? lt(posts.createdAt, cursorObj.createdAt)
-          : undefined
-      ),
-    });
+    const results = await db
+      .select({ post: posts, user: usersTable })
+      .from(posts)
+      .innerJoin(usersTable, eq(posts.userId, usersTable.id))
+      .where(
+        and(
+          isNull(posts.deletedAt),
+          visibilityCondition,
+          cursorObj?.createdAt
+            ? lt(posts.createdAt, cursorObj.createdAt)
+            : undefined,
+        ),
+      )
+      .orderBy(desc(posts.createdAt), desc(posts.id))
+      .limit(limit + 1);
 
     let nextCursor: string | undefined | null = undefined;
     let items = results;
     if (results.length > limit) {
-      nextCursor = getNextCursorFromRows(results, ["createdAt"], limit);
+      nextCursor = getNextCursorFromRows(
+        results.map((r) => r.post),
+        ["createdAt"],
+        limit,
+      );
       items = results.slice(0, limit);
     }
 
     return {
-      items: items as PostWithUser[],
+      items: items.map((row) => ({ ...row.post, user: row.user })) as PostWithUser[],
       nextCursor: nextCursor ?? null,
     };
   },

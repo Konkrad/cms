@@ -6,7 +6,7 @@ import {
   noSerialize,
   type NoSerialize,
   type Signal,
-} from "@builder.io/qwik";
+} from "@qwik.dev/core";
 import Uppy from "@uppy/core";
 import Dashboard from "@uppy/dashboard";
 import XHRUpload from "@uppy/xhr-upload";

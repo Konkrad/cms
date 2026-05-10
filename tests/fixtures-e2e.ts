@@ -4,10 +4,21 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+type DbHelper = {
+  getEventIdByTitle: (title: string) => string | null;
+  getProductsByEventId: (eventId: string) => any[];
+  getInventoryGroupsByEventId: (eventId: string) => any[];
+};
+
+type E2EFixtures = {
+  dbSeed: null;
+  db: DbHelper;
+};
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DB_PATH = process.env.DB_PATH ?? path.join(ROOT, 'my-database.db');
 
-export const test = base.extend({
+export const test = base.extend<E2EFixtures>({
   dbSeed: async ({}, use) => {
     // Run seed script synchronously before tests
     const allow = process.env.E2E_ALLOW_DB_WRITE;
@@ -20,9 +31,9 @@ export const test = base.extend({
 
   db: async ({}, use) => {
     const sqlite = new Database(DB_PATH, { readonly: true });
-    const helper = {
+    const helper: DbHelper = {
       getEventIdByTitle(title: string) {
-        const row = sqlite.prepare('SELECT id FROM events WHERE title = ? ORDER BY created_at DESC LIMIT 1').get(title);
+        const row = sqlite.prepare('SELECT id FROM events WHERE title = ? ORDER BY created_at DESC LIMIT 1').get(title) as { id: string } | undefined;
         return row ? row.id : null;
       },
       getProductsByEventId(eventId: string) {

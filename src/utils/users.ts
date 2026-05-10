@@ -1,15 +1,18 @@
-import type { User } from "~/db/schema";
+import type { User } from "~/db/schemas/users";
 
 export type UserWithDisplayName = User & { displayName: string };
 
-export function formatUser(
-  user: User,
+export function formatUser<T extends Record<string, any>>(
+  user: T,
   isLoggedIn: boolean = false,
-): UserWithDisplayName {
+): T & { displayName: string } {
+  const displayName = isLoggedIn
+    ? `${(user as any).name} ${(user as any).familyName}`
+    : (user as any).name;
   return {
     ...user,
-    displayName: isLoggedIn ? `${user.name} ${user.familyName}` : user.name,
-  };
+    displayName,
+  } as T & { displayName: string };
 }
 
 export function formatUserName(user: Pick<User, "name" | "familyName">): string {

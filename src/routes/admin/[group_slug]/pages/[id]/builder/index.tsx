@@ -1,5 +1,5 @@
-import { $, component$, useSignal, useTask$ } from "@builder.io/qwik";
-import { routeAction$, routeLoader$, z, zod$ } from "@builder.io/qwik-city";
+import { $, component$, useSignal, useTask$ } from "@qwik.dev/core";
+import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { Canvas } from "~/components/builder/Canvas";
 import { ComponentsSidebar } from "~/components/builder/ComponentsSidebar";
 import { PropertiesPanel } from "~/components/builder/PropertiesPanel";

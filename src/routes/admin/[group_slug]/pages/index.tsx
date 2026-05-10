@@ -1,4 +1,4 @@
-import { component$ } from "@builder.io/qwik";
+import { component$ } from "@qwik.dev/core";
 import {
   Form,
   Link,
@@ -6,7 +6,7 @@ import {
   routeLoader$,
   z,
   zod$,
-} from "@builder.io/qwik-city";
+} from "@qwik.dev/router";
 import { AdminTable } from "~/components/ui/AdminTable";
 import { Button } from "~/components/ui/Button";
 import { menuItemsService } from "~/services/menu-items.service";
@@ -207,18 +207,18 @@ export default component$(() => {
                           View
                         </Link>
                       )}
-                      <a
+                      <Link
                         href={`/admin/global/pages/${page.id}/edit`}
                         class="text-green-600 hover:text-green-900"
                       >
                         Edit
-                      </a>
-                      <a
+                      </Link>
+                      <Link
                         href={`/admin/global/pages/${page.id}/builder`}
                         class="text-purple-600 hover:text-purple-900"
                       >
                         Builder
-                      </a>
+                      </Link>
                       {!isPageInMenu(page.id) &&
                         page.status === "published" && (
                           <Form action={addToMenuAction} class="inline">

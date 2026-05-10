@@ -1,4 +1,4 @@
-import { $, component$, type QRL } from "@builder.io/qwik";
+import { $, component$, type QRL } from "@qwik.dev/core";
 import type { BlockData, BlockDefinition } from "~/db/schema";
 import { BlockWrapper } from "./BlockWrapper";
 

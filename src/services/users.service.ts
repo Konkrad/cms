@@ -1,7 +1,7 @@
 import { eq, desc, lt } from "drizzle-orm";
 import { db } from "~/db/connection";
 import type { InsertUser, UpdateUser, User } from "~/db/schema";
-import { users, insertUserSchema, updateUserSchema } from "~/db/schema";
+import { users, insertUserSchema, updateUserSchema, logins } from "~/db/schema";
 import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
 import type { Post } from "~/db/schemas/posts";
 
@@ -17,10 +17,10 @@ export const usersService = {
     const cursorObj = decodeCursor(cursor ?? null);
 
     const results = await db.query.users.findMany({
-      orderBy: [desc(users.createdAt), desc(users.id)],
+      orderBy: { createdAt: "desc", id: "desc" },
       limit: limit + 1,
       where: cursorObj?.createdAt
-        ? lt(users.createdAt, cursorObj.createdAt)
+        ? { createdAt: { lt: cursorObj.createdAt } }
         : undefined,
     });
 
@@ -36,7 +36,7 @@ export const usersService = {
 
   async getById(id: string): Promise<User | undefined> {
     const result = await db.query.users.findFirst({
-      where: eq(users.id, id),
+      where: { id },
     });
 
     return result;
@@ -44,7 +44,7 @@ export const usersService = {
 
   async getByIdWithPosts(id: string): Promise<UserWithPosts | undefined> {
     const result = await db.query.users.findFirst({
-      where: eq(users.id, id),
+      where: { id },
       with: {
         posts: true,
       },
@@ -83,8 +83,12 @@ export const usersService = {
   },
 
   async getByEmail(email: string): Promise<User | undefined> {
+    // Find a login row for the email, then resolve the user by loginId
+    const loginRows = await db.select().from(logins).where(eq(logins.email, email));
+    if (loginRows.length === 0) return undefined;
+    const login = loginRows[0] as any;
     const result = await db.query.users.findFirst({
-      where: eq(users.email, email),
+      where: { loginId: login.id },
     });
 
     return result;

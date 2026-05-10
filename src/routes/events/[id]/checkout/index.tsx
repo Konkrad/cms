@@ -4,14 +4,14 @@ import {
   useComputed$,
   useVisibleTask$,
   $,
-} from "@builder.io/qwik";
+} from "@qwik.dev/core";
 import {
   routeLoader$,
   routeAction$,
   Form,
   z,
   zod$,
-} from "@builder.io/qwik-city";
+} from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { inventoryGroupsService } from "~/services/inventory-groups.service";
 import { productsService } from "~/services/products.service";

@@ -1,5 +1,5 @@
-import { component$, useSignal, useTask$ } from "@builder.io/qwik";
-import { server$, type RequestEventCommon } from "@builder.io/qwik-city";
+import { component$, useSignal, useTask$ } from "@qwik.dev/core";
+import { server$, type RequestEventCommon } from "@qwik.dev/router";
 import type { BlockDefinition } from "~/db/schema";
 import type { PostWithUser } from "~/services/posts.service";
 import { ListCard } from "../ListCard/ListCard";
@@ -27,14 +27,13 @@ export const definition: BlockDefinition = {
 };
 
 const fetchPosts = server$(async function (
-  this: RequestEventCommon,
   options: { limit: number },
 ) {
   const { postsService } = await import("~/services/posts.service");
   const { getServerSession } = await import("~/utils/server-auth");
   const { formatUser } = await import("~/utils/users");
 
-  const session = await getServerSession(this);
+  const session = await getServerSession(this as any);
   const res = await postsService.getAll(options.limit);
 
   const items = res.items.map((post) => ({

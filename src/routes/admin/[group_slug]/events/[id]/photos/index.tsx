@@ -1,4 +1,4 @@
-import { component$, useSignal, $ } from "@builder.io/qwik";
+import { component$, useSignal, $ } from "@qwik.dev/core";
 import {
   routeAction$,
   routeLoader$,
@@ -6,7 +6,8 @@ import {
   zod$,
   z,
   type DocumentHead,
-} from "@builder.io/qwik-city";
+  Link,
+} from "@qwik.dev/router";
 import { PhotoUploader } from "~/components/events/PhotoUploader";
 import { Card } from "~/components/ui/Card";
 import { photosService } from "~/services/photos.service";
@@ -219,9 +220,9 @@ export default component$(() => {
       </Card>
 
       <div class="mt-6">
-        <a href={backUrl} class="text-blue-600 hover:text-blue-700 font-medium">
+        <Link href={backUrl} class="text-blue-600 hover:text-blue-700 font-medium">
           ← Back to Event Dashboard
-        </a>
+        </Link>
       </div>
     </div>
   );

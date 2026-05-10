@@ -1,5 +1,5 @@
-import { component$, useSignal, type QRL } from "@builder.io/qwik";
-import { Form } from "@builder.io/qwik-city";
+import { component$, useSignal, type QRL } from "@qwik.dev/core";
+import { Form } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { Modal } from "~/components/ui/Modal";

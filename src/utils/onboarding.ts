@@ -1,13 +1,14 @@
-import type { RequestEvent } from "@builder.io/qwik-city";
+import type { RequestEvent } from "@qwik.dev/router";
 import { getServerSession } from "~/utils/server-auth";
 import { usersService } from "~/services/users.service";
-import type { ConsentStep, User } from "~/db/schema";
+import type { ConsentStep, User } from "~/db/schemas/users";
 
 const STEP_TO_ROUTE: Record<ConsentStep, string> = {
   profile: "",
   locationVerification: "",
   foodPreference: "",
   lastProfileUpdate: "",
+  photoConsent: "",
 };
 
 export const ONBOARDING_STEPS: ConsentStep[] = ["profile"];
@@ -25,6 +26,7 @@ export function getConsentStatus(user: User): ConsentStatus {
     locationVerification: Boolean(consent?.locationVerification),
     foodPreference: Boolean(consent?.foodPreference),
     lastProfileUpdate: Boolean(consent?.lastProfileUpdate),
+    photoConsent: Boolean(consent?.photoConsent),
   };
 
   const nextStep = ONBOARDING_STEPS.find((step) => !completed[step]);

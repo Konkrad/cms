@@ -13,16 +13,16 @@ import { products } from "~/db/schemas/products";
 export const inventoryGroupsService = {
   async getByEventId(eventId: string): Promise<InventoryGroup[]> {
     return db.query.inventoryGroups.findMany({
-      where: eq(inventoryGroups.eventId, eventId),
+      where: { eventId },
       with: { products: true },
-    });
+    }) as any;
   },
 
   async getById(id: string): Promise<InventoryGroup | undefined> {
     return db.query.inventoryGroups.findFirst({
-      where: eq(inventoryGroups.id, id),
+      where: { id },
       with: { products: true },
-    });
+    }) as any;
   },
 
   async create(data: InsertInventoryGroup): Promise<InventoryGroup> {
@@ -52,9 +52,9 @@ export const inventoryGroupsService = {
     additionalQuantity: number,
   ): Promise<{ allowed: boolean; remainingCapacity: number; reason?: string }> {
     const group = await db.query.inventoryGroups.findFirst({
-      where: eq(inventoryGroups.id, inventoryGroupId),
+      where: { id: inventoryGroupId },
       with: { products: true },
-    });
+    }) as any;
 
     if (!group) {
       return {
@@ -88,7 +88,7 @@ export const inventoryGroupsService = {
     }
 
     const soldQuantity = group.products.reduce(
-      (sum, p) => sum + (p.soldQuantity || 0),
+      (sum: number, p: any) => sum + (p.soldQuantity || 0),
       0,
     );
     const remaining = group.maxCapacity - soldQuantity;

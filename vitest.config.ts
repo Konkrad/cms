@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
-import { qwikVite } from "@builder.io/qwik/optimizer";
+import { qwikVite } from "@qwik.dev/core/optimizer";
 import path from "path";
 
 export default defineConfig({

@@ -1,5 +1,5 @@
-import { component$, useSignal } from "@builder.io/qwik";
-import { routeLoader$, routeAction$, zod$, z } from "@builder.io/qwik-city";
+import { component$, useSignal } from "@qwik.dev/core";
+import { routeLoader$, routeAction$, zod$, z } from "@qwik.dev/router";
 import { ticketsService } from "~/services/tickets.service";
 import TicketScanner from "~/components/admin/TicketScanner";
 import TicketsList from "~/components/admin/TicketsList";
@@ -63,13 +63,11 @@ export const useScanTicket = routeAction$(
     }
 
     console.log("Attempting to scan ticket...");
-    const scannedTicket = await ticketsService.scanTicket(qrCodeUuid);
+    const scanRes = await ticketsService.scanTicket(qrCodeUuid, params.id);
 
-    if (!scannedTicket) {
-      console.error("scanTicket returned undefined - checking current state");
+    if (!scanRes.success) {
+      console.error("scanTicket returned failure - checking current state");
 
-      // The scan query didn't update a row: it could be a race with another scanner.
-      // Re-query to check if it's now scanned.
       const latest = await ticketsService.getByQrCodeUuid(qrCodeUuid);
       console.log("Latest ticket state:", {
         found: !!latest,
@@ -83,23 +81,22 @@ export const useScanTicket = routeAction$(
           error: "This ticket was already scanned (race condition)",
           alreadyScanned: true,
           scannedAt: latest.scannedAt,
-          details: "Another scanner processed this ticket simultaneously",
+          details: `Scanned at: ${new Date(latest.scannedAt).toLocaleString()}`,
         };
       }
 
       // Retry once (in case of transient DB glitch)
       console.log("Retrying scan...");
-      const retry = await ticketsService.scanTicket(qrCodeUuid);
-      if (retry) {
+      const retryRes = await ticketsService.scanTicket(qrCodeUuid, params.id);
+      if (retryRes.success) {
         console.log("Retry successful!");
         return {
           success: true,
-          ticket: retry,
+          ticket: retryRes.ticket,
           message: `Ticket scanned successfully for ${ticket.buyer.name} ${ticket.buyer.familyName}`,
         };
       }
 
-      // If we get here, we couldn't scan nor is it marked as scanned. Log and return more info for debugging.
       console.error(
         "scanTicket failed to update and ticket remains unscanned",
         {
@@ -117,6 +114,8 @@ export const useScanTicket = routeAction$(
         details: `Database update failed for ticket ${ticket.id}. This might be a database constraint issue or the ticket state changed unexpectedly.`,
       };
     }
+
+    const scannedTicket = scanRes.ticket;
 
     console.log("Scan successful!", {
       ticketId: scannedTicket.id,

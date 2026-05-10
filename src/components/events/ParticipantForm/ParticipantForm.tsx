@@ -1,4 +1,4 @@
-import { component$, type Signal } from "@builder.io/qwik";
+import { component$, type Signal } from "@qwik.dev/core";
 import { Input } from "~/components/ui/Input";
 
 interface ParticipantData {
@@ -90,7 +90,6 @@ export const ParticipantsCollection = component$<ParticipantsCollectionProps>(
             participantNumber={i + 1}
             participantData={
               {
-                value: participants.value[i] || { name: "", email: "", phone: "" },
                 get value() {
                   return participants.value[i] || { name: "", email: "", phone: "" };
                 },

@@ -15,7 +15,7 @@
  *   400 / 401 / 500 accordingly
  */
 
-import type { RequestHandler } from "@builder.io/qwik-city";
+import type { RequestHandler } from "@qwik.dev/router";
 import { processAndUploadProfilePicture } from "~/services/image-processing.service";
 import { requireAuth } from "~/utils/server-auth";
 import { db } from "~/db/connection";

@@ -387,7 +387,7 @@ Continue pattern for:
 ### `src/routes/api/webhooks/stripe/index.ts`
 
 ```typescript
-import type { RequestHandler } from '@builder.io/qwik-city';
+import type { RequestHandler } from '@qwik.dev/router';
 import { stripeService } from '~/services/stripe.service';
 import { transactionsService } from '~/services/transactions.service';
 import { ticketsService } from '~/services/tickets.service';
@@ -450,8 +450,8 @@ Public routes:
 ### Tab Layout: `/src/routes/admin/events/[id]/layout.tsx`
 
 ```typescript
-import { component$, Slot } from '@builder.io/qwik';
-import { Link, useLocation } from '@builder.io/qwik-city';
+import { component$, Slot } from '@qwik.dev/core';
+import { Link, useLocation } from '@qwik.dev/router';
 
 export default component$(() => {
   const loc = useLocation();
@@ -486,7 +486,7 @@ export default component$(() => {
 ### QR Code Image Generation: `/src/routes/profile/tickets/[id].png/index.ts`
 
 ```typescript
-import type { RequestHandler } from '@builder.io/qwik-city';
+import type { RequestHandler } from '@qwik.dev/router';
 import { ticketsService } from '~/services/tickets.service';
 import { qrcodeService } from '~/services/qrcode.service';
 
@@ -515,8 +515,8 @@ export const onGet: RequestHandler = async ({ params, send, status, headers }) =
 ### Ticket Scanner: `/src/routes/admin/events/[id]/tickets/index.tsx`
 
 ```typescript
-import { component$, useSignal, useVisibleTask$ } from '@builder.io/qwik';
-import { routeLoader$, routeAction$, zod$, z } from '@builder.io/qwik-city';
+import { component$, useSignal, useVisibleTask$ } from '@qwik.dev/core';
+import { routeLoader$, routeAction$, zod$, z } from '@qwik.dev/router';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 
 export const useScanTicket = routeAction$(
@@ -636,8 +636,8 @@ User purchase routes: `/src/routes/events/[id]/`
 ### Checkout Page: `/src/routes/events/[id]/checkout/index.tsx`
 
 ```typescript
-import { component$ } from '@builder.io/qwik';
-import { routeLoader$, routeAction$, zod$, z, Form } from '@builder.io/qwik-city';
+import { component$ } from '@qwik.dev/core';
+import { routeLoader$, routeAction$, zod$, z, Form } from '@qwik.dev/router';
 import { productsService } from '~/services/products.service';
 import { inventoryGroupsService } from '~/services/inventory-groups.service';
 
@@ -720,8 +720,8 @@ export default component$(() => {
 ### Checkout Page: `/src/routes/events/[id]/checkout/index.tsx`
 
 ```typescript
-import { component$, useSignal, useVisibleTask$ } from '@builder.io/qwik';
-import { routeLoader$, routeAction$, zod$, z } from '@builder.io/qwik-city';
+import { component$, useSignal, useVisibleTask$ } from '@qwik.dev/core';
+import { routeLoader$, routeAction$, zod$, z } from '@qwik.dev/router';
 import { loadStripe } from '@stripe/stripe-js';
 
 export const useCheckSession = routeLoader$(async ({ query, params }) => {

@@ -1,4 +1,4 @@
-import { component$ } from "@builder.io/qwik";
+import { component$ } from "@qwik.dev/core";
 import type { Transaction } from "~/db/schemas/transactions";
 import type { events, transactionItems, products } from "~/db/schema";
 import { SectionCard } from "~/components/ui/SectionCard";

@@ -1,9 +1,9 @@
-import { component$ } from "@builder.io/qwik";
+import { component$ } from "@qwik.dev/core";
 import {
   routeLoader$,
   type DocumentHead,
   useLocation,
-} from "@builder.io/qwik-city";
+} from "@qwik.dev/router";
 import { Card } from "~/components/ui/Card";
 import { Button } from "~/components/ui/Button";
 import { ticketsService } from "~/services/tickets.service";

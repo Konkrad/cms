@@ -1,4 +1,4 @@
-import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
+import { component$, useSignal, useVisibleTask$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/db/schema";
 import { SurveyRuntime } from "~/components/forms/SurveyRuntime";
 

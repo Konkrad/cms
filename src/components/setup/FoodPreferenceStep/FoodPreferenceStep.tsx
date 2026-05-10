@@ -1,5 +1,5 @@
-import { component$, useSignal, useVisibleTask$, type Signal } from "@builder.io/qwik";
-import { routeAction$, z, zod$ } from "@builder.io/qwik-city";
+import { component$, useSignal, useVisibleTask$, type Signal } from "@qwik.dev/core";
+import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
 import { requireAuth } from "~/utils/server-auth";

@@ -1,4 +1,4 @@
-import { component$, type QwikIntrinsicElements, Slot } from "@builder.io/qwik";
+import { component$, type QwikIntrinsicElements, Slot } from "@qwik.dev/core";
 
 type SelectProps = QwikIntrinsicElements["select"] & {
 	label?: string;

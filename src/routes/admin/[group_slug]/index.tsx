@@ -1,5 +1,5 @@
-import { component$ } from "@builder.io/qwik";
-import { routeLoader$ } from "@builder.io/qwik-city";
+import { component$ } from "@qwik.dev/core";
+import { routeLoader$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button/Button";
 import { groupsService } from "~/services/groups.service";
 import { groupMembershipsService } from "~/services/group-memberships.service";

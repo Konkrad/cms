@@ -1,4 +1,4 @@
-import { component$, type QRL, useSignal } from "@builder.io/qwik";
+import { component$, type QRL, useSignal } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/db/schema";
 
 interface ComponentsSidebarProps {

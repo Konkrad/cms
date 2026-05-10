@@ -1,10 +1,12 @@
-import { component$ } from "@builder.io/qwik";
-import { routeLoader$ } from "@builder.io/qwik-city";
+import { component$ } from "@qwik.dev/core";
+import { routeLoader$ } from "@qwik.dev/router";
 import { format } from "date-fns";
 import { usersService } from "~/services/users.service";
 import { groupsService } from "~/services/groups.service";
 import { db } from "~/db/connection";
-import { groupMemberships, logins, users } from "~/db/schema";
+import { groupMemberships } from "~/db/schemas/group-memberships";
+import { logins } from "~/db/schemas/logins";
+import { users } from "~/db/schemas/users";
 import { eq } from "drizzle-orm";
 
 export const useUsers = routeLoader$(async ({ params }) => {
@@ -43,13 +45,13 @@ export const useUsers = routeLoader$(async ({ params }) => {
       city: users.city,
       country: users.country,
       createdAt: users.createdAt,
-      joinedAt: groupMemberships.createdAt,
+      joinedAt: groupMemberships.joinedAt,
     })
     .from(groupMemberships)
     .innerJoin(users, eq(groupMemberships.userId, users.id))
     .leftJoin(logins, eq(users.loginId, logins.id))
     .where(eq(groupMemberships.groupId, group.id))
-    .orderBy(groupMemberships.createdAt);
+    .orderBy(groupMemberships.joinedAt);
 
   return { users: members, groupSlug, isGlobal: false };
 });

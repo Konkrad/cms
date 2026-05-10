@@ -1,8 +1,8 @@
-import { component$, type PropFunction } from "@builder.io/qwik";
+import { component$, type QRL } from "@qwik.dev/core";
 
 interface ParticipationToggleProps {
   currentStatus: "yes" | "no" | "maybe" | null;
-  onStatusChange: PropFunction<(status: "yes" | "no" | "maybe") => void>;
+  onStatusChange: QRL<(status: "yes" | "no" | "maybe") => void>;
   disabled?: boolean;
 }
 

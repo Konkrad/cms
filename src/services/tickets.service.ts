@@ -45,15 +45,13 @@ export const ticketsService = {
     | undefined
   > {
     const result = await db.query.tickets.findFirst({
-      where: eq(tickets.id, id),
+      where: { id },
       with: {
         buyer: true,
         product: true,
         event: true,
         participants: {
-          orderBy: (participants, { asc }) => [
-            asc(participants.participantOrder),
-          ],
+          orderBy: { participantOrder: "asc" },
         },
       },
     });
@@ -69,7 +67,7 @@ export const ticketsService = {
     | undefined
   > {
     const result = await db.query.tickets.findFirst({
-      where: eq(tickets.qrCodeUuid, qrCodeUuid),
+      where: { qrCodeUuid },
       with: {
         buyer: true,
         product: true,
@@ -88,7 +86,7 @@ export const ticketsService = {
     >
   > {
     const results = await db.query.tickets.findMany({
-      where: eq(tickets.eventId, eventId),
+      where: { eventId },
       with: {
         buyer: true,
         product: true,
@@ -106,7 +104,7 @@ export const ticketsService = {
     >
   > {
     const results = await db.query.tickets.findMany({
-      where: eq(tickets.buyerId, buyerId),
+      where: { buyerId },
       with: {
         event: true,
         product: true,
@@ -141,12 +139,10 @@ export const ticketsService = {
 
     // Find the ticket with participants
     const currentTicket = await db.query.tickets.findFirst({
-      where: eq(tickets.id, ticketId),
+      where: { id: ticketId },
       with: {
         participants: {
-          orderBy: (participants, { asc }) => [
-            asc(participants.participantOrder),
-          ],
+          orderBy: { participantOrder: "asc" },
         },
       },
     });
@@ -189,7 +185,7 @@ export const ticketsService = {
     attendanceRate: number;
   }> {
     const allTickets = await db.query.tickets.findMany({
-      where: eq(tickets.eventId, eventId),
+      where: { eventId },
       with: {
         product: true,
       },
@@ -221,14 +217,15 @@ export const ticketsService = {
     >
   > {
     const results = await db.query.tickets.findMany({
-      where: and(eq(tickets.eventId, eventId), isNotNull(tickets.scannedAt)),
+      where: {
+        eventId,
+        scannedAt: { isNotNull: true },
+      },
       with: {
         buyer: true,
         product: true,
         participants: {
-          orderBy: (participants, { asc }) => [
-            asc(participants.participantOrder),
-          ],
+          orderBy: { participantOrder: "asc" },
         },
       },
     });

@@ -1,4 +1,4 @@
-import { $, component$, type QRL, useSignal, useTask$ } from "@builder.io/qwik";
+import { $, component$, type QRL, useSignal, useTask$ } from "@qwik.dev/core";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { TextArea } from "~/components/ui/TextArea";

@@ -26,13 +26,17 @@ export async function createEventWithInventory(opts: {
   const db = new Database('./my-database.db');
   try {
     // Find an admin user as organizer
-    const admin = db.prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1").get();
+    const admin = db
+      .prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1")
+      .get() as { id: string } | undefined;
     const adminId = admin?.id;
 
     // Find group id if provided
     let groupId: string | null = null;
     if (opts.groupSlug) {
-      const g = db.prepare('SELECT id FROM groups WHERE slug = ? LIMIT 1').get(opts.groupSlug);
+      const g = db
+        .prepare('SELECT id FROM groups WHERE slug = ? LIMIT 1')
+        .get(opts.groupSlug) as { id: string } | undefined;
       if (g) groupId = g.id;
     }
 

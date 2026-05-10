@@ -1,5 +1,5 @@
-import { component$, $, useSignal, type Signal } from "@builder.io/qwik";
-import type { ActionStore } from "@builder.io/qwik-city";
+import { component$, $, useSignal, type Signal } from "@qwik.dev/core";
+import type { ActionStore } from "@qwik.dev/router";
 import Fuse from "fuse.js";
 import type { Ticket } from "~/db/schemas/tickets";
 import type { users, products } from "~/db/schema";

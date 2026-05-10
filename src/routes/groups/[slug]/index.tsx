@@ -1,8 +1,8 @@
-import { component$, useSignal, $ } from "@builder.io/qwik";
-import { routeAction$, routeLoader$, Form } from "@builder.io/qwik-city";
+import { component$, useSignal, $ } from "@qwik.dev/core";
+import { routeAction$, routeLoader$, Form } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { ParticipantsModal } from "~/components/events/ParticipantsModal";
-import { eq, and, isNull, gte, desc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { db } from "~/db/connection";
 import { groupMemberships, users, events, posts } from "~/db/schema";
 import { groupsService } from "~/services/groups.service";
@@ -79,20 +79,23 @@ export const useGroupData = routeLoader$(async (event) => {
       .where(eq(groupMemberships.groupId, group.id))
       .limit(6),
     db.query.events.findMany({
-      where: and(
-        eq(events.groupId, group.id),
-        isNull(events.deletedAt),
-        gte(events.endDate, now),
-      ),
-      orderBy: events.startDate,
+      where: {
+        groupId: group.id,
+        deletedAt: { isNull: true },
+        endDate: { gte: now },
+      },
+      orderBy: { startDate: "asc" },
       limit: 3,
     }),
     db.query.posts.findMany({
       with: { user: true },
-      where: and(eq(posts.groupId, group.id), isNull(posts.deletedAt)),
-      orderBy: [desc(posts.createdAt)],
+      where: {
+        groupId: group.id,
+        deletedAt: { isNull: true },
+      },
+      orderBy: { createdAt: "desc" },
       limit: 3,
-    }),
+    }) as any,
   ]);
 
   const repData = rep
@@ -140,7 +143,7 @@ export const useGroupData = routeLoader$(async (event) => {
       city: e.city,
       address: e.address,
     })),
-    recentPosts: recentPosts.map((p) => ({
+    recentPosts: recentPosts.map((p: any) => ({
       id: p.id,
       title: p.title,
       body: p.body,
@@ -319,7 +322,7 @@ export default component$(() => {
             Latest from the Community
           </h2>
           <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {recentPosts.map((p) => (
+            {recentPosts.map((p: any) => (
               <BlogCard
                 key={p.id}
                 date={p.createdAt}

@@ -1,4 +1,4 @@
-import { component$, $, useSignal } from "@builder.io/qwik";
+import { component$, $, useSignal } from "@qwik.dev/core";
 import {
   Link,
   type DocumentHead,
@@ -7,7 +7,7 @@ import {
   z,
   zod$,
   Form,
-} from "@builder.io/qwik-city";
+} from "@qwik.dev/router";
 
 import { Button } from "~/components/ui/Button";
 import { eventsService } from "~/services/events.service";
@@ -44,11 +44,11 @@ export const useEvent = routeLoader$(async (requestEvent) => {
 
   // Get inventory groups with products
   const groups = await db.query.inventoryGroups.findMany({
-    where: eq(inventoryGroups.eventId, params.id),
+    where: { eventId: params.id },
     with: {
       products: true,
     },
-  });
+  }) as any[];
 
   // Check sales period status
   const salesValidation = await eventsService.validateSalesPeriod(event);
@@ -65,11 +65,11 @@ export const useEvent = routeLoader$(async (requestEvent) => {
     );
 
     const scannedTicket = await db.query.tickets.findFirst({
-      where: and(
-        eq(tickets.eventId, params.id),
-        eq(tickets.buyerId, userData.id),
-        isNotNull(tickets.scannedAt),
-      ),
+      where: {
+        eventId: params.id,
+        buyerId: userData.id,
+        scannedAt: { isNotNull: true },
+      },
     });
     hasAttended = !!scannedTicket;
   }
@@ -79,9 +79,9 @@ export const useEvent = routeLoader$(async (requestEvent) => {
 
   // Fetch participants (yes / maybe) with profile pictures and group info
   const participationRows = await db.query.participationStatus.findMany({
-    where: eq(participationStatusTable.eventId, params.id),
+    where: { eventId: params.id },
     with: { user: true },
-  });
+  }) as any[];
 
   const goingRows = participationRows.filter(
     (r) => r.status === "yes" || r.status === "maybe",
@@ -206,7 +206,7 @@ export const useEvent = routeLoader$(async (requestEvent) => {
     }
 
     const soldQuantity =
-      group.products?.reduce((sum, p) => sum + (p.soldQuantity || 0), 0) || 0;
+      group.products?.reduce((sum: number, p: any) => sum + (p.soldQuantity || 0), 0) || 0;
     const remainingCapacity = group.maxCapacity - soldQuantity;
 
     if (withinWindow && remainingCapacity > 0) {

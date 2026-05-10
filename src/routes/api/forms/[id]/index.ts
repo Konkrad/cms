@@ -1,4 +1,4 @@
-import type { RequestHandler } from "@builder.io/qwik-city";
+import type { RequestHandler } from "@qwik.dev/router";
 import { formAccessService } from "~/services/form-access.service";
 import { formsService } from "~/services/forms.service";
 import { getServerSession } from "~/utils/server-auth";

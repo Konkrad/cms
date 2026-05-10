@@ -16,6 +16,16 @@ import * as schema from "../src/db/schema.ts";
 import crypto from "crypto";
 import fs from "fs";
 import { execSync } from "child_process";
+import dotenv from "dotenv";
+import sharp from "sharp";
+import {
+  CreateBucketCommand,
+  PutBucketPolicyCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
+
+dotenv.config();
 
 const DB_PATH = process.env.DB_PATH ?? "my-database.db";
 const isFresh = process.argv.includes("--fresh");
@@ -53,6 +63,144 @@ function daysFromNow(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() + n);
   return d.toISOString();
+}
+
+function resolveSeedPublicEndpoint(): string {
+  const codespaceName = process.env.CODESPACE_NAME;
+  const forwardingDomain = process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN;
+
+  if (codespaceName && forwardingDomain) {
+    return `https://${codespaceName}-9000.${forwardingDomain}`;
+  }
+
+  return process.env.AWS_ENDPOINT ?? "http://localhost:9000";
+}
+
+const seedStorageConfig = {
+  region: process.env.AWS_REGION ?? "us-east-1",
+  endpoint: process.env.AWS_ENDPOINT ?? "http://localhost:9000",
+  publicEndpoint: resolveSeedPublicEndpoint(),
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? "test",
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? "testtest",
+  bucket: process.env.S3_BUCKET ?? "data",
+  imagePrefix: process.env.SEED_IMAGE_PREFIX ?? "public/events",
+} as const;
+
+const seedImageSources = [
+  "https://picsum.photos/id/1011/1400/900.jpg",
+  "https://picsum.photos/id/1015/1400/900.jpg",
+  "https://picsum.photos/id/1025/1400/900.jpg",
+  "https://picsum.photos/id/1035/1400/900.jpg",
+  "https://picsum.photos/id/1043/1400/900.jpg",
+  "https://picsum.photos/id/1050/1400/900.jpg",
+] as const;
+
+function publicObjectUrl(objectKey: string): string {
+  const endpoint = seedStorageConfig.publicEndpoint.replace(/\/$/, "");
+  return `${endpoint}/${seedStorageConfig.bucket}/${objectKey}`;
+}
+
+async function ensureBucketAndPublicReadPolicy(s3: S3Client): Promise<void> {
+  try {
+    await s3.send(new CreateBucketCommand({ Bucket: seedStorageConfig.bucket }));
+  } catch (error: any) {
+    const code = error?.name ?? error?.Code;
+    if (code !== "BucketAlreadyOwnedByYou" && code !== "BucketAlreadyExists") {
+      throw error;
+    }
+  }
+
+  await s3.send(
+    new PutBucketPolicyCommand({
+      Bucket: seedStorageConfig.bucket,
+      Policy: JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Sid: "PublicReadSeedImages",
+            Effect: "Allow",
+            Principal: "*",
+            Action: ["s3:GetObject"],
+            Resource: [`arn:aws:s3:::${seedStorageConfig.bucket}/public/*`],
+          },
+        ],
+      }),
+    }),
+  );
+}
+
+async function downloadAndUploadSeedImages(): Promise<string[]> {
+  const s3 = new S3Client({
+    region: seedStorageConfig.region,
+    endpoint: seedStorageConfig.endpoint,
+    forcePathStyle: true,
+    credentials: {
+      accessKeyId: seedStorageConfig.accessKeyId,
+      secretAccessKey: seedStorageConfig.secretAccessKey,
+    },
+  });
+
+  await ensureBucketAndPublicReadPolicy(s3);
+
+  const uploadedUrls: string[] = [];
+
+  for (let i = 0; i < seedImageSources.length; i++) {
+    const sourceUrl = seedImageSources[i];
+    const baseKey = `${seedStorageConfig.imagePrefix}/seed-${i + 1}`;
+    const objectKey = `${baseKey}.webp`;
+    const smallObjectKey = `${baseKey}_200x200.webp`;
+
+    const response = await fetch(sourceUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to download seed image: ${sourceUrl} (${response.status})`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const sourceBuffer = Buffer.from(arrayBuffer);
+    const normalized = await sharp(sourceBuffer)
+      .rotate()
+      .toBuffer();
+
+    const mainBuffer = await sharp(normalized)
+      .resize(1000, 1000, {
+        fit: "cover",
+        position: "entropy",
+      })
+      .webp({ quality: 80 })
+      .toBuffer();
+
+    const smallBuffer = await sharp(normalized)
+      .resize(200, 200, {
+        fit: "cover",
+        position: "entropy",
+      })
+      .webp({ quality: 80 })
+      .toBuffer();
+
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: seedStorageConfig.bucket,
+        Key: objectKey,
+        Body: mainBuffer,
+        ContentType: "image/webp",
+        CacheControl: "public, max-age=86400",
+      }),
+    );
+
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: seedStorageConfig.bucket,
+        Key: smallObjectKey,
+        Body: smallBuffer,
+        ContentType: "image/webp",
+        CacheControl: "public, max-age=86400",
+      }),
+    );
+
+    uploadedUrls.push(publicObjectUrl(objectKey));
+  }
+
+  return uploadedUrls;
 }
 
 // ─── 4. Base users ───────────────────────────────────────────────────────────
@@ -688,16 +836,9 @@ seedInventory({
 
 console.log("  inventory & products seeded");
 
-// ─── 12. Placeholder images ──────────────────────────────────────────────────
+// ─── 12. Seed image assets in MinIO and link them in the DB ─────────────────
 
-const IMG_BASE = "http://localhost:9000/data/public/events/";
-const imgs = [
-  "1ca6d59d-64fe-4ad2-aa48-e4d7fb693121.webp",
-  "604eba88-a38e-4325-80a0-1d8646a96a59.webp",
-  "1707077845237.webp",
-  "Photo%27s%20in%20detail.webp",
-];
-const imgUrls = imgs.map((f) => IMG_BASE + f);
+const imgUrls = await downloadAndUploadSeedImages();
 
 const eventsNoImg = sqlite
   .prepare("SELECT id FROM events WHERE deleted_at IS NULL AND (image1 IS NULL OR image2 IS NULL)")
@@ -723,7 +864,7 @@ for (let i = 0; i < groupsNoImg.length; i++) {
   updateGroup.run(imgUrls[i % imgUrls.length], imgUrls[(i + 1) % imgUrls.length], imgUrls[(i + 2) % imgUrls.length], groupsNoImg[i].id);
 }
 
-console.log(`  images seeded (${eventsNoImg.length} events, ${postsNoImg.length} posts, ${groupsNoImg.length} groups)`);
+console.log(`  images downloaded/uploaded and linked (${eventsNoImg.length} events, ${postsNoImg.length} posts, ${groupsNoImg.length} groups)`);
 
 // ─── 13. Forms ───────────────────────────────────────────────────────────────
 
@@ -916,7 +1057,6 @@ const counts = {
   events: db.select().from(schema.events).all().length,
   pages: db.select().from(schema.pages).all().length,
   menuItems: db.select().from(schema.menuItems).all().length,
-  forms: db.select().from(schema.forms).all().length,
   forms: db.select().from(schema.forms).all().length,
 };
 

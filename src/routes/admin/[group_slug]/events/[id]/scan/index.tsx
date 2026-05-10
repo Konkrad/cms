@@ -6,6 +6,7 @@ import {
   z,
   type DocumentHead,
   useLocation,
+  Link,
 } from "@qwik.dev/router";
 import { TicketScanner } from "~/components/events/TicketScanner";
 import { ticketsService } from "~/services/tickets.service";
@@ -82,7 +83,7 @@ export default component$(() => {
       />
 
       <div class="mt-8">
-        <a
+        <Link
           href={attendanceUrl}
           class="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium"
         >
@@ -100,7 +101,7 @@ export default component$(() => {
             />
           </svg>
           View Attendance Report
-        </a>
+        </Link>
       </div>
     </div>
   );

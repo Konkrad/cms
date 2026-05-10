@@ -1,5 +1,5 @@
 import { component$ } from "@qwik.dev/core";
-import { useLocation } from "@qwik.dev/router";
+import { useLocation, Link } from "@qwik.dev/router";
 
 interface BreadcrumbsProps {
   groupSlug?: string;
@@ -63,9 +63,9 @@ export const Breadcrumbs = component$<BreadcrumbsProps>(
           <span key={index} class="flex items-center">
             {index > 0 && <span class="mx-2">/</span>}
             {crumb.href ? (
-              <a href={crumb.href} class="hover:text-gray-900 underline">
+              <Link href={crumb.href} class="hover:text-gray-900 underline">
                 {crumb.label}
-              </a>
+              </Link>
             ) : (
               <span class="text-gray-900 font-medium">{crumb.label}</span>
             )}

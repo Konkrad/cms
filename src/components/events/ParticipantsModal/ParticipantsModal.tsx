@@ -1,4 +1,5 @@
 import { component$, type QRL } from "@qwik.dev/core";
+import { Link } from "@qwik.dev/router";
 import { formatUserName } from "~/utils/users";
 import type { ParticipantData } from "~/components/page-blocks/FeatureBlock/ParticipantsTile";
 import { Modal } from "~/components/ui/Modal";
@@ -46,12 +47,12 @@ export const ParticipantsModal = component$<ParticipantsModalProps>(
               return (
                 <li key={p.id} class="py-4 first:pt-0">
                   {p.profileUrl ? (
-                    <a
+                    <Link
                       href={p.profileUrl}
-                      class="flex items-center gap-4 hover:bg-gray-50 rounded-xl transition-colors -mx-2 px-2"
+                      class="flex items-center gap-4 hover:bg-gray-50 rounded-xl transition-colors -mx-2 px-2 block"
                     >
                       {inner}
-                    </a>
+                    </Link>
                   ) : (
                     <div class="flex items-center gap-4">{inner}</div>
                   )}

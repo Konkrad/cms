@@ -6,6 +6,7 @@ import {
   zod$,
   z,
   type DocumentHead,
+  Link,
 } from "@qwik.dev/router";
 import { PhotoUploader } from "~/components/events/PhotoUploader";
 import { Card } from "~/components/ui/Card";
@@ -219,9 +220,9 @@ export default component$(() => {
       </Card>
 
       <div class="mt-6">
-        <a href={backUrl} class="text-blue-600 hover:text-blue-700 font-medium">
+        <Link href={backUrl} class="text-blue-600 hover:text-blue-700 font-medium">
           ← Back to Event Dashboard
-        </a>
+        </Link>
       </div>
     </div>
   );

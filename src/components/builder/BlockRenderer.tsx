@@ -1,4 +1,4 @@
-import { component$, type Signal, useSignal, useTask$ } from "@builder.io/qwik";
+import { component$, type Signal, useSignal, useTask$ } from "@qwik.dev/core";
 import type { BlockData } from "~/db/schema";
 import { componentLoaderService } from "~/services/component-loader.service";
 

@@ -5,7 +5,7 @@ import {
   $,
   useStore,
   type QRL,
-} from "@builder.io/qwik";
+} from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
 
 interface CropState {

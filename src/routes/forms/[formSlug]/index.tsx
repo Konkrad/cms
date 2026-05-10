@@ -1,5 +1,5 @@
-import { component$ } from "@builder.io/qwik";
-import { routeLoader$ } from "@builder.io/qwik-city";
+import { component$ } from "@qwik.dev/core";
+import { routeLoader$ } from "@qwik.dev/router";
 import { SurveyRuntime } from "~/components/forms/SurveyRuntime";
 import { formAccessService } from "~/services/form-access.service";
 import { formResultsService } from "~/services/form-results.service";

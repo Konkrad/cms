@@ -1,4 +1,4 @@
-import type { RequestHandler } from "@builder.io/qwik-city";
+import type { RequestHandler } from "@qwik.dev/router";
 import { formResultsService } from "~/services/form-results.service";
 import { formsService } from "~/services/forms.service";
 import { buildFormsAdminBasePath, resolveFormsAdminScope } from "../../../_utils";

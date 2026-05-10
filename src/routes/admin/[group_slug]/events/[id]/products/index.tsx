@@ -1,11 +1,11 @@
-import { component$, useSignal, useTask$, $ } from "@builder.io/qwik";
+import { component$, useSignal, useTask$, $ } from "@qwik.dev/core";
 import {
   Form,
   routeAction$,
   routeLoader$,
   z,
   zod$,
-} from "@builder.io/qwik-city";
+} from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { inventoryGroupsService } from "~/services/inventory-groups.service";

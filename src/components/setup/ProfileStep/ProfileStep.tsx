@@ -1,5 +1,5 @@
-import { component$, useSignal, useVisibleTask$, type Signal } from "@builder.io/qwik";
-import { Form, routeAction$, z, zod$ } from "@builder.io/qwik-city";
+import { component$, useSignal, useVisibleTask$, type Signal } from "@qwik.dev/core";
+import { Form, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";

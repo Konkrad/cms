@@ -4,7 +4,7 @@ import {
   type Signal,
   useSignal,
   useTask$,
-} from "@builder.io/qwik";
+} from "@qwik.dev/core";
 import type { BlockData, BlockDefinition } from "~/db/schema";
 import { componentLoaderService } from "~/services/component-loader.service";
 

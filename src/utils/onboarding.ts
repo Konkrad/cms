@@ -1,4 +1,4 @@
-import type { RequestEvent } from "@builder.io/qwik-city";
+import type { RequestEvent } from "@qwik.dev/router";
 import { getServerSession } from "~/utils/server-auth";
 import { usersService } from "~/services/users.service";
 import type { ConsentStep, User } from "~/db/schemas/users";

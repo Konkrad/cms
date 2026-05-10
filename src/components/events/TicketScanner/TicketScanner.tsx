@@ -4,7 +4,7 @@ import {
   useVisibleTask$,
   $,
   type PropFunction,
-} from "@builder.io/qwik";
+} from "@qwik.dev/core";
 import { Html5Qrcode } from "html5-qrcode";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";

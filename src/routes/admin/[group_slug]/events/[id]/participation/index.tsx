@@ -1,5 +1,5 @@
-import { component$ } from "@builder.io/qwik";
-import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
+import { component$ } from "@qwik.dev/core";
+import { routeLoader$, type DocumentHead } from "@qwik.dev/router";
 import { eventsService } from "~/services/events.service";
 import { participationService } from "~/services/participation.service";
 import { ParticipationSummary } from "~/components/events/ParticipationToggle";

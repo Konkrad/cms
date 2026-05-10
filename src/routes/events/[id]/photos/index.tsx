@@ -1,11 +1,11 @@
-import { component$ } from "@builder.io/qwik";
+import { component$ } from "@qwik.dev/core";
 import {
   routeAction$,
   routeLoader$,
   zod$,
   z,
   type DocumentHead,
-} from "@builder.io/qwik-city";
+} from "@qwik.dev/router";
 import { PhotoGallery } from "~/components/events/PhotoGallery";
 import { Card } from "~/components/ui/Card";
 import { photosService } from "~/services/photos.service";

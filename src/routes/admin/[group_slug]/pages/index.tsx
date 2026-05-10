@@ -1,4 +1,4 @@
-import { component$ } from "@builder.io/qwik";
+import { component$ } from "@qwik.dev/core";
 import {
   Form,
   Link,
@@ -6,7 +6,7 @@ import {
   routeLoader$,
   z,
   zod$,
-} from "@builder.io/qwik-city";
+} from "@qwik.dev/router";
 import { AdminTable } from "~/components/ui/AdminTable";
 import { Button } from "~/components/ui/Button";
 import { menuItemsService } from "~/services/menu-items.service";

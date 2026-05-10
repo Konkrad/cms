@@ -1,4 +1,4 @@
-import { component$, type PropFunction } from "@builder.io/qwik";
+import { component$, type PropFunction } from "@qwik.dev/core";
 
 interface ParticipationToggleProps {
   currentStatus: "yes" | "no" | "maybe" | null;

@@ -17,7 +17,7 @@
  * - 400 / 403 / 500 accordingly
  */
 
-import { type RequestHandler } from "@builder.io/qwik-city";
+import { type RequestHandler } from "@qwik.dev/router";
 import {
   processAndUploadImage,
   processAndUploadVariants,

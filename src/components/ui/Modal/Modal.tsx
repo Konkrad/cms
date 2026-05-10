@@ -1,4 +1,4 @@
-import { component$, type QRL, Slot } from "@builder.io/qwik";
+import { component$, type QRL, Slot } from "@qwik.dev/core";
 
 type ModalProps = {
   open: boolean;

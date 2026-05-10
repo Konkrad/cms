@@ -1,4 +1,4 @@
-import { component$, $, useSignal } from "@builder.io/qwik";
+import { component$, $, useSignal } from "@qwik.dev/core";
 import {
   Link,
   type DocumentHead,
@@ -7,7 +7,7 @@ import {
   z,
   zod$,
   Form,
-} from "@builder.io/qwik-city";
+} from "@qwik.dev/router";
 
 import { Button } from "~/components/ui/Button";
 import { eventsService } from "~/services/events.service";

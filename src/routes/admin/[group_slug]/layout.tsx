@@ -1,5 +1,5 @@
-import { component$, Slot } from "@builder.io/qwik";
-import { routeLoader$ } from "@builder.io/qwik-city";
+import { component$, Slot } from "@qwik.dev/core";
+import { routeLoader$ } from "@qwik.dev/router";
 import { AdminNav } from "~/components/admin/AdminNav";
 import { Breadcrumbs } from "~/components/admin/Breadcrumbs";
 import { Button } from "~/components/ui/Button/Button";

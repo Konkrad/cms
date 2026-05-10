@@ -1,5 +1,5 @@
-import { component$ } from "@builder.io/qwik";
-import { routeLoader$ } from "@builder.io/qwik-city";
+import { component$ } from "@qwik.dev/core";
+import { routeLoader$ } from "@qwik.dev/router";
 import { transactionsService } from "~/services/transactions.service";
 import { ticketsService } from "~/services/tickets.service";
 import TransactionsList from "~/components/profile/TransactionsList";

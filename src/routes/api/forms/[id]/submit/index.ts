@@ -1,4 +1,4 @@
-import type { RequestHandler } from "@builder.io/qwik-city";
+import type { RequestHandler } from "@qwik.dev/router";
 import { altchaService } from "~/services/altcha.service";
 import { formAccessService } from "~/services/form-access.service";
 import { formResultsService } from "~/services/form-results.service";

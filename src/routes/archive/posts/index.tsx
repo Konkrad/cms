@@ -1,5 +1,5 @@
-import { component$ } from "@builder.io/qwik";
-import { Link, routeLoader$ } from "@builder.io/qwik-city";
+import { component$ } from "@qwik.dev/core";
+import { Link, routeLoader$ } from "@qwik.dev/router";
 import { ListCard } from "~/components/page-blocks/ListCard";
 import { postsService } from "~/services/posts.service";
 import { formatPostDate, toPlainText } from "~/utils/posts";

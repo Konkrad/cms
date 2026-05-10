@@ -3,10 +3,9 @@
  * When building, the adapter config is used which loads this file and extends it.
  */
 
-import { qwikVite } from "@builder.io/qwik/optimizer";
-import { qwikCity } from "@builder.io/qwik-city/vite";
+import { qwikVite } from "@qwik.dev/core/optimizer";
+import { qwikRouter } from "@qwik.dev/router/vite";
 import { defineConfig, type UserConfig } from "vite";
-import tsconfigPaths from "vite-tsconfig-paths";
 import pkg from "./package.json";
 
 type PkgDep = Record<string, string>;
@@ -22,8 +21,9 @@ errorOnDuplicatesPkgDeps(devDependencies, dependencies);
  */
 export default defineConfig(({ command, mode }): UserConfig => {
   return {
-    plugins: [qwikCity(), qwikVite(), tsconfigPaths()],
+    plugins: [qwikRouter(), qwikVite()],
     resolve: {
+      tsconfigPaths: true,
       dedupe: ["react", "react-dom"],
     },
     // This tells Vite which dependencies to pre-build in dev mode.
@@ -82,7 +82,7 @@ function errorOnDuplicatesPkgDeps(
   );
 
   // any errors for missing "qwik-city-plan"
-  // [PLUGIN_ERROR]: Invalid module "@qwik-city-plan" is not a valid package
+  // [PLUGIN_ERROR]: Invalid module "@qwik-router-config" is not a valid package
   msg = `Move qwik packages ${qwikPkg.join(", ")} to devDependencies`;
 
   if (qwikPkg.length > 0) {

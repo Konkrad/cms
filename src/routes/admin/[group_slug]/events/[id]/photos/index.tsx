@@ -1,4 +1,4 @@
-import { component$, useSignal, $ } from "@builder.io/qwik";
+import { component$, useSignal, $ } from "@qwik.dev/core";
 import {
   routeAction$,
   routeLoader$,
@@ -6,7 +6,7 @@ import {
   zod$,
   z,
   type DocumentHead,
-} from "@builder.io/qwik-city";
+} from "@qwik.dev/router";
 import { PhotoUploader } from "~/components/events/PhotoUploader";
 import { Card } from "~/components/ui/Card";
 import { photosService } from "~/services/photos.service";

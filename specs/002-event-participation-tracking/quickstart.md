@@ -282,7 +282,7 @@ export function validateSecureUrl(
 #### 1. Create `src/components/events/PhotoUploader.tsx`
 
 ```typescript
-import { component$, useSignal, $ } from '@builder.io/qwik';
+import { component$, useSignal, $ } from '@qwik.dev/core';
 import Uppy from '@uppy/core';
 import Dashboard from '@uppy/dashboard';
 import XHRUpload from '@uppy/xhr-upload';
@@ -340,7 +340,7 @@ Lazy-loading photo grid with secure URL generation.
 
 **`src/routes/admin/events/[id]/scan/index.tsx`**:
 ```typescript
-import { routeAction$, zod$ } from '@builder.io/qwik-city';
+import { routeAction$, zod$ } from '@qwik.dev/router';
 import { z } from 'zod';
 import { ticketsService } from '~/services/tickets.service';
 
@@ -355,7 +355,7 @@ export const useScanTicket = routeAction$(async (data, { params, sharedMap }) =>
 
 **`src/routes/admin/events/[id]/photos/index.tsx`**:
 ```typescript
-import { routeAction$, zod$ } from '@builder.io/qwik-city';
+import { routeAction$, zod$ } from '@qwik.dev/router';
 import { z } from 'zod';
 import { photosService } from '~/services/photos.service';
 
@@ -372,7 +372,7 @@ export const useCreatePhoto = routeAction$(async (data, { params, sharedMap }) =
 
 **`src/routes/events/[id]/index.tsx`** (EXTEND EXISTING):
 ```typescript
-import { routeAction$, routeLoader$, zod$ } from '@builder.io/qwik-city';
+import { routeAction$, routeLoader$, zod$ } from '@qwik.dev/router';
 import { z } from 'zod';
 import { participationService } from '~/services/participation.service';
 
@@ -394,7 +394,7 @@ export const useUpdateParticipation = routeAction$(async (data, { params, shared
 
 **`src/routes/events/[id]/photos/index.tsx`** (NEW):
 ```typescript
-import { routeLoader$, routeAction$, zod$ } from '@builder.io/qwik-city';
+import { routeLoader$, routeAction$, zod$ } from '@qwik.dev/router';
 import { z } from 'zod';
 import { photosService } from '~/services/photos.service';
 
@@ -418,7 +418,7 @@ export const useGeneratePhotoUrl = routeAction$(async (data, { sharedMap }) => {
 
 **`src/routes/api/photos/serve/index.ts`** (TRUE REST ENDPOINT):
 ```typescript
-import type { RequestHandler } from '@builder.io/qwik-city';
+import type { RequestHandler } from '@qwik.dev/router';
 import { validateSecureUrl } from '~/utils/secure-urls';
 import fs from 'fs/promises';
 import path from 'path';

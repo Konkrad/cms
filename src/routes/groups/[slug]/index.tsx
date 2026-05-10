@@ -1,5 +1,5 @@
-import { component$, useSignal, $ } from "@builder.io/qwik";
-import { routeAction$, routeLoader$, Form } from "@builder.io/qwik-city";
+import { component$, useSignal, $ } from "@qwik.dev/core";
+import { routeAction$, routeLoader$, Form } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { ParticipantsModal } from "~/components/events/ParticipantsModal";
 import { eq, and, isNull, gte, desc } from "drizzle-orm";

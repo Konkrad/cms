@@ -1,5 +1,5 @@
-import { component$, useSignal, useComputed$ } from "@builder.io/qwik";
-import { Form, routeAction$, routeLoader$, z, zod$ } from "@builder.io/qwik-city";
+import { component$, useSignal, useComputed$ } from "@qwik.dev/core";
+import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";

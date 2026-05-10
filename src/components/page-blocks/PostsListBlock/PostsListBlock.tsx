@@ -1,5 +1,5 @@
-import { component$, useSignal, useTask$ } from "@builder.io/qwik";
-import { server$, type RequestEventCommon } from "@builder.io/qwik-city";
+import { component$, useSignal, useTask$ } from "@qwik.dev/core";
+import { server$, type RequestEventCommon } from "@qwik.dev/router";
 import type { BlockDefinition } from "~/db/schema";
 import type { PostWithUser } from "~/services/posts.service";
 import { ListCard } from "../ListCard/ListCard";

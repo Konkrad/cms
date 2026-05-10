@@ -1,4 +1,4 @@
-import type { RequestHandler } from "@builder.io/qwik-city";
+import type { RequestHandler } from "@qwik.dev/router";
 import { stripeService } from "~/services/stripe.service";
 import { transactionsService } from "~/services/transactions.service";
 import { transactionItemsService } from "~/services/transaction-items.service";

@@ -1,4 +1,4 @@
-import { $, component$, useSignal, useTask$, type QRL } from "@builder.io/qwik";
+import { $, component$, useSignal, useTask$, type QRL } from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
 import {
   GRID_AREAS,

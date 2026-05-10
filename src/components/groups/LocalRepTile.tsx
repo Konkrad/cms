@@ -1,4 +1,4 @@
-import { component$ } from "@builder.io/qwik";
+import { component$ } from "@qwik.dev/core";
 import { Avatar, Button } from "~/components/ui";
 
 interface LocalRepTileProps {

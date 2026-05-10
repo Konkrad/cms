@@ -1,4 +1,4 @@
-import { component$, type Signal } from "@builder.io/qwik";
+import { component$, type Signal } from "@qwik.dev/core";
 import { Input } from "~/components/ui/Input";
 
 interface ParticipantData {

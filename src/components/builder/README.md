@@ -52,7 +52,7 @@ Creating a new block (step-by-step)
 
 Minimal example
 ```/dev/null/ExampleBlock.tsx#L1-80
-import { component$ } from "@builder.io/qwik";
+import { component$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/db/schema";
 
 interface ExampleBlockProps {

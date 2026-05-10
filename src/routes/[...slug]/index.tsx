@@ -1,5 +1,5 @@
-import { component$ } from "@builder.io/qwik";
-import { Link, type DocumentHead, routeLoader$ } from "@builder.io/qwik-city";
+import { component$ } from "@qwik.dev/core";
+import { Link, type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import { BlockRenderer } from "~/components/builder/BlockRenderer";
 import { pagesService } from "~/services/pages.service";
 

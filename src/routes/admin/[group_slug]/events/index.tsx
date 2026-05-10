@@ -1,5 +1,5 @@
-import { component$ } from "@builder.io/qwik";
-import { Form, Link, routeAction$, routeLoader$ } from "@builder.io/qwik-city";
+import { component$ } from "@qwik.dev/core";
+import { Form, Link, routeAction$, routeLoader$ } from "@qwik.dev/router";
 import { format } from "date-fns";
 import { Button } from "~/components/ui/Button";
 import { eventsService } from "~/services/events.service";

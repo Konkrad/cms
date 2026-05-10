@@ -1,4 +1,4 @@
-import { component$, useSignal, $ } from "@builder.io/qwik";
+import { component$, useSignal, $ } from "@qwik.dev/core";
 import type { Transaction } from "~/db/schemas/transactions";
 import type { users, transactionItems, products } from "~/db/schema";
 

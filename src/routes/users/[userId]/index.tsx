@@ -1,5 +1,5 @@
-import { component$ } from "@builder.io/qwik";
-import { routeLoader$ } from "@builder.io/qwik-city";
+import { component$ } from "@qwik.dev/core";
+import { routeLoader$ } from "@qwik.dev/router";
 import { eq } from "drizzle-orm";
 import { db } from "~/db/connection";
 import { logins } from "~/db/schemas/logins";

@@ -1,4 +1,4 @@
-import { component$, type QwikIntrinsicElements } from "@builder.io/qwik";
+import { component$, type QwikIntrinsicElements } from "@qwik.dev/core";
 
 type InputProps = QwikIntrinsicElements["input"] & {
 	label?: string;

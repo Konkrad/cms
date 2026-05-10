@@ -1,5 +1,5 @@
-import { component$, useSignal } from "@builder.io/qwik";
-import { routeLoader$, routeAction$, zod$, z } from "@builder.io/qwik-city";
+import { component$, useSignal } from "@qwik.dev/core";
+import { routeLoader$, routeAction$, zod$, z } from "@qwik.dev/router";
 import { ticketsService } from "~/services/tickets.service";
 import TicketScanner from "~/components/admin/TicketScanner";
 import TicketsList from "~/components/admin/TicketsList";

@@ -15,7 +15,7 @@ Two independent test suites cover different layers of the application.
 
 | Area | How |
 |---|---|
-| Qwik components | `createDOM()` from `@builder.io/qwik/testing` — renders in a simulated DOM, no browser |
+| Qwik components | `createDOM()` from `@qwik.dev/core/testing` — renders in a simulated DOM, no browser |
 | Service functions | Import and call directly, assert return values |
 | Email templates | Render to HTML string, assert content |
 | DB queries | Against a real SQLite test DB file, no server needed |

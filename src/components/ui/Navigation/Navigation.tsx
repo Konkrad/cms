@@ -1,5 +1,5 @@
-import { $, component$, useSignal } from "@builder.io/qwik";
-import { Form, Link, useLocation } from "@builder.io/qwik-city";
+import { $, component$, useSignal } from "@qwik.dev/core";
+import { Form, Link, useLocation } from "@qwik.dev/router";
 import { useLogoutAction, useUserSession, useMenuItems } from "~/routes/layout";
 import { formatUser } from "~/utils/users";
 

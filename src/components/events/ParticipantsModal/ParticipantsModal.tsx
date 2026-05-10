@@ -1,4 +1,4 @@
-import { component$, type QRL } from "@builder.io/qwik";
+import { component$, type QRL } from "@qwik.dev/core";
 import { formatUserName } from "~/utils/users";
 import type { ParticipantData } from "~/components/page-blocks/FeatureBlock/ParticipantsTile";
 import { Modal } from "~/components/ui/Modal";

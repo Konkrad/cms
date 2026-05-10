@@ -1,4 +1,4 @@
-import { component$, $ } from "@builder.io/qwik";
+import { component$, $ } from "@qwik.dev/core";
 import {
   routeAction$,
   routeLoader$,
@@ -6,7 +6,7 @@ import {
   z,
   type DocumentHead,
   useLocation,
-} from "@builder.io/qwik-city";
+} from "@qwik.dev/router";
 import { TicketScanner } from "~/components/events/TicketScanner";
 import { ticketsService } from "~/services/tickets.service";
 import { eventsService } from "~/services/events.service";

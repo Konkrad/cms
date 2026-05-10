@@ -1,4 +1,4 @@
-import { component$, useSignal, $, type Signal } from "@builder.io/qwik";
+import { component$, useSignal, $, type Signal } from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
 import { EmptyState } from "~/components/ui/EmptyState";
 

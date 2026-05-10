@@ -23,7 +23,7 @@ import { groupMemberships } from "~/db/schemas/group-memberships";
 import { eq, and, isNotNull, inArray } from "drizzle-orm";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { env } from "~/env";
-import { deriveThumbnailKey } from "~/utils/images";
+import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 
 import { FeatureGrid } from "~/components/page-blocks/FeatureBlock/FeatureGrid";
 import { EventDateTile } from "~/components/page-blocks/FeatureBlock/EventDateTile";
@@ -252,8 +252,8 @@ export const useEvent = routeLoader$(async (requestEvent) => {
     locationDisplay,
     participants,
     mapboxAccessToken: env.PUBLIC_MAPBOX_ACCESS_TOKEN,
-    image1: event.image1 ?? null,
-    image2: event.image2 ?? null,
+    image1: publicImageUrlFromKey(event.image1),
+    image2: publicImageUrlFromKey(event.image2),
   };
 });
 

@@ -99,11 +99,6 @@ const seedImageSources = [
   "https://picsum.photos/id/1050/1400/900.jpg",
 ] as const;
 
-function publicObjectUrl(objectKey: string): string {
-  const endpoint = seedStorageConfig.publicEndpoint.replace(/\/$/, "");
-  return `${endpoint}/${seedStorageConfig.bucket}/${objectKey}`;
-}
-
 async function ensureBucketAndPublicReadPolicy(s3: S3Client): Promise<void> {
   try {
     await s3.send(new CreateBucketCommand({ Bucket: seedStorageConfig.bucket }));
@@ -146,13 +141,13 @@ async function downloadAndUploadSeedImages(): Promise<string[]> {
 
   await ensureBucketAndPublicReadPolicy(s3);
 
-  const uploadedUrls: string[] = [];
+  const uploadedKeys: string[] = [];
 
   for (let i = 0; i < seedImageSources.length; i++) {
     const sourceUrl = seedImageSources[i];
     const baseKey = `${seedStorageConfig.imagePrefix}/seed-${i + 1}`;
     const objectKey = `${baseKey}.webp`;
-    const smallObjectKey = `${baseKey}_200x200.webp`;
+    const smallObjectKey = `${baseKey}-thumb.webp`;
 
     const response = await fetch(sourceUrl);
     if (!response.ok) {
@@ -201,10 +196,10 @@ async function downloadAndUploadSeedImages(): Promise<string[]> {
       }),
     );
 
-    uploadedUrls.push(publicObjectUrl(objectKey));
+    uploadedKeys.push(objectKey);
   }
 
-  return uploadedUrls;
+  return uploadedKeys;
 }
 
 // ─── 4. Base users ───────────────────────────────────────────────────────────
@@ -1220,14 +1215,18 @@ console.log(`  transactions seeded (${txCount} transactions, ${ticketCount} tick
 
 // ─── 12. Placeholder images ──────────────────────────────────────────────────
 
-const imgUrls = await downloadAndUploadSeedImages();
+const imageKeys = await downloadAndUploadSeedImages();
 
 const eventsNoImg = sqlite
   .prepare("SELECT id FROM events WHERE deleted_at IS NULL AND (image1 IS NULL OR image2 IS NULL)")
   .all() as Array<{ id: string }>;
 const updateEvent = sqlite.prepare("UPDATE events SET image1 = ?, image2 = ? WHERE id = ?");
 for (let i = 0; i < eventsNoImg.length; i++) {
-  updateEvent.run(imgUrls[i % imgUrls.length], imgUrls[(i + 1) % imgUrls.length], eventsNoImg[i].id);
+  updateEvent.run(
+    imageKeys[i % imageKeys.length],
+    imageKeys[(i + 1) % imageKeys.length],
+    eventsNoImg[i].id,
+  );
 }
 
 const postsNoImg = sqlite
@@ -1235,7 +1234,7 @@ const postsNoImg = sqlite
   .all() as Array<{ id: string }>;
 const updatePost = sqlite.prepare("UPDATE posts SET featured_image = ? WHERE id = ?");
 for (let i = 0; i < postsNoImg.length; i++) {
-  updatePost.run(imgUrls[i % imgUrls.length], postsNoImg[i].id);
+  updatePost.run(imageKeys[i % imageKeys.length], postsNoImg[i].id);
 }
 
 const groupsNoImg = sqlite
@@ -1243,7 +1242,12 @@ const groupsNoImg = sqlite
   .all() as Array<{ id: string }>;
 const updateGroup = sqlite.prepare("UPDATE groups SET image1 = ?, image2 = ?, image3 = ? WHERE id = ?");
 for (let i = 0; i < groupsNoImg.length; i++) {
-  updateGroup.run(imgUrls[i % imgUrls.length], imgUrls[(i + 1) % imgUrls.length], imgUrls[(i + 2) % imgUrls.length], groupsNoImg[i].id);
+  updateGroup.run(
+    imageKeys[i % imageKeys.length],
+    imageKeys[(i + 1) % imageKeys.length],
+    imageKeys[(i + 2) % imageKeys.length],
+    groupsNoImg[i].id,
+  );
 }
 
 console.log(`  images downloaded/uploaded and linked (${eventsNoImg.length} events, ${postsNoImg.length} posts, ${groupsNoImg.length} groups)`);

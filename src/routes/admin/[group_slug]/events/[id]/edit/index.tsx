@@ -24,6 +24,7 @@ import { db } from "~/db/connection";
 import { groups, events } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { VisibilitySelector } from "~/components/admin/VisibilitySelector";
+import { publicImageUrlFromKey } from "~/utils/images";
 
 export const useGroupContext = routeLoader$(async (event) => {
   const groupSlug = event.params.group_slug;
@@ -47,7 +48,11 @@ export const useEventData = routeLoader$(async (event) => {
   if (!data) {
     throw event.error(404, "Event not found");
   }
-  return data;
+  return {
+    ...data,
+    image1Url: publicImageUrlFromKey(data.image1),
+    image2Url: publicImageUrlFromKey(data.image2),
+  };
 });
 
 const editEventSchema = z.object({
@@ -224,7 +229,8 @@ export default component$(() => {
                 triggerSignal={triggerUpload}
                 aspectRatio="1/1"
                 onSettled$={checkAndSubmit}
-                currentUrl={eventData.value.image1 || undefined}
+                currentUrl={eventData.value.image1Url || undefined}
+                currentValue={eventData.value.image1 || undefined}
               />
             </div>
             <div>
@@ -235,7 +241,8 @@ export default component$(() => {
                 triggerSignal={triggerUpload}
                 aspectRatio="1/1"
                 onSettled$={checkAndSubmit}
-                currentUrl={eventData.value.image2 || undefined}
+                currentUrl={eventData.value.image2Url || undefined}
+                currentValue={eventData.value.image2 || undefined}
               />
             </div>
           </div>

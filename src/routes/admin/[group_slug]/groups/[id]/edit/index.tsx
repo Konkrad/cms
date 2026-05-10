@@ -14,6 +14,7 @@ import { getCurrentUserData } from "~/utils/server-auth";
 import { db } from "~/db/connection";
 import { groups } from "~/db/schema";
 import { eq } from "drizzle-orm";
+import { publicImageUrlFromKey } from "~/utils/images";
 
 export const useGlobalOnly = routeLoader$(async ({ params, redirect }) => {
   const groupSlug = params.group_slug;
@@ -31,7 +32,12 @@ export const useGroupData = routeLoader$(async (event) => {
   if (!group) {
     throw event.error(404, "Group not found");
   }
-  return group;
+  return {
+    ...group,
+    image1Url: publicImageUrlFromKey(group.image1),
+    image2Url: publicImageUrlFromKey(group.image2),
+    image3Url: publicImageUrlFromKey(group.image3),
+  };
 });
 
 const groupSchema = z.object({
@@ -143,7 +149,7 @@ export default component$(() => {
               <p class="text-sm font-medium text-gray-700 mb-1">Image 1 — Left bottom tile</p>
               {!showImage1Uploader.value && groupData.value.image1 ? (
                 <div class="relative rounded border border-gray-200 overflow-hidden">
-                  <img src={groupData.value.image1} alt="Current" class="w-full object-cover" style={{ aspectRatio: "1/1" }} />
+                  <img src={groupData.value.image1Url || ""} alt="Current" class="w-full object-cover" style={{ aspectRatio: "1/1" }} />
                   <button type="button" class="absolute bottom-2 right-2 rounded bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow hover:bg-white" onClick$={() => { showImage1Uploader.value = true; }}>Change image</button>
                   <input type="hidden" name="image1" value={groupData.value.image1} />
                 </div>
@@ -161,7 +167,7 @@ export default component$(() => {
               <p class="text-sm font-medium text-gray-700 mb-1">Image 2 — Middle tile (large)</p>
               {!showImage2Uploader.value && groupData.value.image2 ? (
                 <div class="relative rounded border border-gray-200 overflow-hidden">
-                  <img src={groupData.value.image2} alt="Current" class="w-full object-cover" style={{ aspectRatio: "4/3" }} />
+                  <img src={groupData.value.image2Url || ""} alt="Current" class="w-full object-cover" style={{ aspectRatio: "4/3" }} />
                   <button type="button" class="absolute bottom-2 right-2 rounded bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow hover:bg-white" onClick$={() => { showImage2Uploader.value = true; }}>Change image</button>
                   <input type="hidden" name="image2" value={groupData.value.image2} />
                 </div>
@@ -180,7 +186,7 @@ export default component$(() => {
               <p class="text-sm font-medium text-gray-700 mb-1">Image 3 — Right top tile</p>
               {!showImage3Uploader.value && groupData.value.image3 ? (
                 <div class="relative rounded border border-gray-200 overflow-hidden">
-                  <img src={groupData.value.image3} alt="Current" class="w-full object-cover" style={{ aspectRatio: "1/1" }} />
+                  <img src={groupData.value.image3Url || ""} alt="Current" class="w-full object-cover" style={{ aspectRatio: "1/1" }} />
                   <button type="button" class="absolute bottom-2 right-2 rounded bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow hover:bg-white" onClick$={() => { showImage3Uploader.value = true; }}>Change image</button>
                   <input type="hidden" name="image3" value={groupData.value.image3} />
                 </div>

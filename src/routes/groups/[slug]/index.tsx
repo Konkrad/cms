@@ -11,7 +11,7 @@ import { groupRepresentativesService } from "~/services/group-representatives.se
 import { eventsService } from "~/services/events.service";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { buildProfileUrl } from "~/utils/users";
-import { deriveThumbnailKey } from "~/utils/images";
+import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { FeatureGrid } from "~/components/page-blocks/FeatureBlock/FeatureGrid";
 import { ImageTile } from "~/components/page-blocks/FeatureBlock/ImageTile";
 import { ParticipantsTile } from "~/components/page-blocks/FeatureBlock/ParticipantsTile";
@@ -98,12 +98,14 @@ export const useGroupData = routeLoader$(async (event) => {
     }) as any,
   ]);
 
+  const toPublicUrl = (key: string | null | undefined) => publicImageUrlFromKey(key);
+
   const repData = rep
     ? {
         name: `${rep.user.name} ${rep.user.familyName}`,
         subtitle: `Local Rep ${group.name}`,
         profilePictureUrl: rep.user.profilePicture
-          ? deriveThumbnailKey(rep.user.profilePicture)
+          ? toPublicUrl(deriveThumbnailKey(rep.user.profilePicture))
           : null,
         profileUrl: buildProfileUrl({
           id: rep.userId,
@@ -122,7 +124,7 @@ export const useGroupData = routeLoader$(async (event) => {
       name: m.name,
       familyName: m.familyName,
       profilePictureSmall: m.profilePicture
-        ? deriveThumbnailKey(m.profilePicture)
+        ? toPublicUrl(deriveThumbnailKey(m.profilePicture))
         : null,
       profileUrl: buildProfileUrl({
         id: m.id,
@@ -138,7 +140,7 @@ export const useGroupData = routeLoader$(async (event) => {
       title: e.title,
       startDate: e.startDate,
       endDate: e.endDate,
-      image1: e.image1,
+      image1: toPublicUrl(e.image1),
       locationType: e.locationType,
       city: e.city,
       address: e.address,
@@ -148,9 +150,12 @@ export const useGroupData = routeLoader$(async (event) => {
       title: p.title,
       body: p.body,
       createdAt: p.createdAt,
-      featuredImage: (p as any).featuredImage ?? null,
+      featuredImage: toPublicUrl((p as any).featuredImage ?? null),
       authorName: `${(p as any).user.name} ${(p as any).user.familyName}`,
     })),
+    groupImage1: toPublicUrl(group.image1),
+    groupImage2: toPublicUrl(group.image2),
+    groupImage3: toPublicUrl(group.image3),
   };
 });
 
@@ -180,6 +185,9 @@ export default component$(() => {
     isLoggedIn,
     upcomingEvents,
     recentPosts,
+    groupImage1,
+    groupImage2,
+    groupImage3,
   } = data.value;
 
   return (
@@ -210,20 +218,20 @@ export default component$(() => {
 
           <ImageTile
             area="left-bottom"
-            image={group.image1 ?? FALLBACK}
+            image={groupImage1 ?? FALLBACK}
             alt={group.name}
           />
 
           <ImageTile
             area="middle"
-            image={group.image2 ?? FALLBACK}
+            image={groupImage2 ?? FALLBACK}
             alt={group.name}
             overlayText={`${pastEventCount} local meet-up${pastEventCount === 1 ? "" : "s"} and counting`}
           />
 
           <ImageTile
             area="right-top"
-            image={group.image3 ?? FALLBACK}
+            image={groupImage3 ?? FALLBACK}
             alt={group.name}
           />
 

@@ -10,6 +10,7 @@ import { Input } from "~/components/ui/Input";
 import { BlockNoteEditor } from "~/components/editor";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { postsService } from "~/services/posts.service";
+import { publicImageUrlFromKey } from "~/utils/images";
 
 const updateSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -27,7 +28,11 @@ export const usePost = routeLoader$(async (event) => {
     throw event.redirect(303, `/admin/${groupSlug}/posts`);
   }
 
-  return { post, groupSlug };
+  return {
+    post,
+    groupSlug,
+    featuredImageUrl: publicImageUrlFromKey(post.featuredImage),
+  };
 });
 
 export const useUpdatePost = routeAction$(async (data, event) => {
@@ -105,7 +110,7 @@ export default component$(() => {
           <p class="text-sm font-medium text-gray-700 mb-1">Featured Image (optional)</p>
           {!showFeaturedUploader.value && data.value.post.featuredImage ? (
             <div class="relative rounded border border-gray-200 overflow-hidden">
-              <img src={data.value.post.featuredImage} alt="Current" class="w-full object-cover" style={{ aspectRatio: "16/9" }} />
+              <img src={data.value.featuredImageUrl || ""} alt="Current" class="w-full object-cover" style={{ aspectRatio: "16/9" }} />
               <button type="button" class="absolute bottom-2 right-2 rounded bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow hover:bg-white" onClick$={() => { showFeaturedUploader.value = true; }}>Change image</button>
               <input type="hidden" name="featuredImage" value={data.value.post.featuredImage} />
             </div>

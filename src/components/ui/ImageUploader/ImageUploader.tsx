@@ -39,6 +39,10 @@ interface ImageUploaderProps {
   aspectRatio?: string;
   /** HTML input name — emits hidden inputs so the form can read uploaded URLs */
   name?: string;
+  /** Existing image URL for preview in edit forms. */
+  currentUrl?: string;
+  /** Existing stored key/value to keep when no new upload is selected. */
+  currentValue?: string;
 }
 
 export const ImageUploader = component$((props: ImageUploaderProps) => {
@@ -48,7 +52,7 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
 
   const containerRef = useSignal<Element>();
   const uppyRef = useSignal<NoSerialize<Uppy>>();
-  const uploadedUrls = useSignal<string[]>([]);
+  const uploadedValues = useSignal<string[]>([]);
 
   // Initialise Uppy once the widget container is visible in the DOM.
   useVisibleTask$(({ cleanup }) => {
@@ -107,12 +111,12 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
     uppy.on("complete", async (result) => {
       const successful = result.successful ?? [];
 
-      const urls = successful
-        .map((f: any) => f.response?.body?.url)
+      const values = successful
+        .map((f: any) => f.response?.body?.filePath || f.response?.body?.url)
         .filter(Boolean) as string[];
 
-      if (urls.length > 0) {
-        uploadedUrls.value = [...uploadedUrls.value, ...urls];
+      if (values.length > 0) {
+        uploadedValues.value = [...uploadedValues.value, ...values];
       }
 
       // Wait for Qwik to reconcile the DOM (hidden inputs) before notifying
@@ -143,6 +147,17 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
 
   return (
     <div class="w-full">
+      {props.currentUrl && uploadedValues.value.length === 0 && (
+        <div class="mb-3 rounded border border-gray-200 overflow-hidden">
+          <img
+            src={props.currentUrl}
+            alt="Current image"
+            class="w-full h-auto object-cover"
+            loading="lazy"
+          />
+        </div>
+      )}
+
       <div
         ref={containerRef}
         style={{
@@ -150,16 +165,20 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
           width: "100%",
         }}
       />
-      {/* Hidden inputs so the surrounding form can read the uploaded URLs */}
-      {props.name && uploadedUrls.value.length > 0 &&
-        uploadedUrls.value.map((url, idx) => (
+      {/* Hidden inputs so the surrounding form can read uploaded keys */}
+      {props.name && uploadedValues.value.length > 0 &&
+        uploadedValues.value.map((value, idx) => (
           <input
             key={String(idx)}
             type="hidden"
             name={props.name}
-            value={url}
+            value={value}
           />
         ))}
+
+      {props.name && uploadedValues.value.length === 0 && props.currentValue && (
+        <input type="hidden" name={props.name} value={props.currentValue} />
+      )}
     </div>
   );
 });

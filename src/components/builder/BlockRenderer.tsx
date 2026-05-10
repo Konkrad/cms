@@ -1,55 +1,49 @@
-import { component$, type Signal, useSignal, useTask$ } from "@qwik.dev/core";
+import { component$ } from "@qwik.dev/core";
 import type { BlockData } from "~/db/schema";
-import { componentLoaderService } from "~/services/component-loader.service";
+import TextBlock from "~/components/page-blocks/TextBlock";
+import TitleBlock from "~/components/page-blocks/TitleBlock";
+import ImageBlock from "~/components/page-blocks/ImageBlock";
+import UpcomingEventsBlock from "~/components/page-blocks/UpcomingEventsBlock";
+import PastEventsBlock from "~/components/page-blocks/PastEventsBlock";
+import PostsListBlock from "~/components/page-blocks/PostsListBlock";
+import SpacerBlock from "~/components/page-blocks/SpacerBlock";
+import FeatureBlock from "~/components/page-blocks/FeatureBlock";
+import ActionButtonBlock from "~/components/page-blocks/ActionButtonBlock";
+import LocalCommunitiesMapBlock from "~/components/page-blocks/LocalCommunitiesMapBlock";
+import HeroSectionBlock from "~/components/page-blocks/HeroSectionBlock";
+import GroupsListBlock from "~/components/page-blocks/GroupsListBlock";
+import SurveyFormBlock from "~/components/page-blocks/SurveyFormBlock";
 
 interface BlockRendererProps {
   block: BlockData;
 }
 
+const RUNTIME_COMPONENTS: Record<string, any> = {
+  TextBlock,
+  TitleBlock,
+  ImageBlock,
+  UpcomingEventsBlock,
+  PastEventsBlock,
+  PostsListBlock,
+  SpacerBlock,
+  FeatureBlock,
+  ActionButtonBlock,
+  LocalCommunitiesMapBlock,
+  HeroSectionBlock,
+  GroupsListBlock,
+  SurveyFormBlock,
+};
+
 export const BlockRenderer = component$<BlockRendererProps>((props) => {
-  console.log("[BlockRenderer] render start:", {
-    id: props.block?.id,
-    componentType: props.block?.componentType,
-  });
-  const BlockComponent: Signal<any> = useSignal(null);
-  const error = useSignal<string | null>(null);
+  const BlockComponent = RUNTIME_COMPONENTS[props.block.componentType];
 
-  useTask$(async ({ track }) => {
-    track(() => props.block.componentType);
-    console.log("[BlockRenderer] useTask$ - begin loading block:", {
-      id: props.block?.id,
-      componentType: props.block?.componentType,
-    });
-    try {
-      const Component = await componentLoaderService.loadComponent(
-        props.block.componentType,
-      );
-      BlockComponent.value = Component;
-      error.value = null;
-    } catch (err: any) {
-      console.error(
-        `Failed to load component ${props.block.componentType}:`,
-        err,
-      );
-      error.value = `Failed to load component: ${props.block.componentType}`;
-    }
-  });
-
-  if (error.value) {
+  if (!BlockComponent) {
     return (
       <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-600 text-sm">
-        {error.value}
+        Failed to load component: {props.block.componentType}
       </div>
     );
   }
 
-  if (!BlockComponent.value) {
-    return (
-      <div class="bg-gray-100 rounded-lg p-4 text-gray-500 text-sm text-center">
-        Loading...
-      </div>
-    );
-  }
-
-  return <BlockComponent.value {...props.block.data} />;
+  return <BlockComponent {...props.block.data} />;
 });

@@ -185,7 +185,7 @@ export const EventDateTile = component$<EventDateTileProps>((props) => {
           onClick$={downloadIcal}
           class="flex items-center gap-2 group cursor-pointer bg-transparent border-none p-0"
         >
-          <div class="w-6 h-6 relative">
+          <span class="w-6 h-6 relative inline-flex">
             <svg class="w-full h-full" fill="none" viewBox="0 0 24 24">
               <circle
                 cx="12"
@@ -207,15 +207,15 @@ export const EventDateTile = component$<EventDateTileProps>((props) => {
                 </linearGradient>
               </defs>
             </svg>
-            <div class="absolute inset-0 flex items-center justify-center">
+            <span class="absolute inset-0 flex items-center justify-center">
               <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24">
                 <path
                   d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"
                   fill="white"
                 />
               </svg>
-            </div>
-          </div>
+            </span>
+          </span>
           <span class="font-['Lato',sans-serif] font-bold text-[14px] leading-[1.348] text-white group-hover:underline">
             Add to Calendar
           </span>

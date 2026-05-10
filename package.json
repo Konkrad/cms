@@ -27,6 +27,9 @@
   "devDependencies": {
     "@biomejs/biome": "2.3.10",
     "@playwright/test": "^1.58.2",
+    "@qwik.dev/core": "^2.0.0-beta.34",
+    "@qwik.dev/react": "2.0.0-beta.34",
+    "@qwik.dev/router": "^2.0.0-beta.34",
     "@react-email/preview-server": "5.1.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
@@ -48,10 +51,7 @@
     "typescript": "^6.0.0",
     "undici": "*",
     "vite": "^8.0.7",
-    "vitest": "^2.0.0",
-    "@qwik.dev/router": "2.0.0-beta.34",
-    "@qwik.dev/react": "2.0.0-beta.34",
-    "@qwik.dev/core": "2.0.0-beta.34"
+    "vitest": "^4.1.5"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.958.0",

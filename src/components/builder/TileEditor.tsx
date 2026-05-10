@@ -1,9 +1,11 @@
 import { $, component$, useSignal, useTask$, type QRL } from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
+import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import {
   GRID_AREAS,
   type TileConfig,
 } from "~/components/page-blocks/FeatureBlock/FeatureBlock";
+import { publicImageUrlFromKey } from "~/utils/images";
 
 interface TileEditorProps {
   value: string;
@@ -40,7 +42,7 @@ function createDefaultImageTile(): TileConfig {
   return {
     type: "image",
     area: "left-top",
-    image: "https://picsum.photos/400/400",
+    image: "public/events/seed-1.webp",
     alt: "",
     overlayText: "",
   };
@@ -49,16 +51,22 @@ function createDefaultImageTile(): TileConfig {
 export const TileEditor = component$<TileEditorProps>((props) => {
   const tiles = useSignal<TileConfig[]>(parseTiles(props.value));
   const expandedIndex = useSignal<number | null>(null);
+  const lastSerializedValue = useSignal(props.value);
 
   useTask$(({ track }) => {
     const val = track(() => props.value);
+    if (val === lastSerializedValue.value) return;
+
     tiles.value = parseTiles(val);
     expandedIndex.value = null;
+    lastSerializedValue.value = val;
   });
 
   const syncTiles = $((updated: TileConfig[]) => {
     tiles.value = [...updated];
-    props.onChange$(JSON.stringify(updated, null, 2));
+    const serialized = JSON.stringify(updated, null, 2);
+    lastSerializedValue.value = serialized;
+    props.onChange$(serialized);
   });
 
   const handleAddTile = $((type: "stat" | "image") => {
@@ -306,20 +314,20 @@ export const TileEditor = component$<TileEditorProps>((props) => {
                   <>
                     <div>
                       <label class="block text-xs font-medium text-gray-600 mb-1">
-                        Image URL
+                        Image Upload
                       </label>
-                      <input
-                        type="url"
-                        class="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                        value={tile.image ?? ""}
-                        placeholder="https://..."
-                        onInput$={(e) =>
-                          handleUpdateTile(
-                            index,
-                            "image",
-                            (e.target as HTMLInputElement).value,
-                          )
+                      <ImageUploader
+                        path="public/page-blocks/feature-grid"
+                        pipeline="standard"
+                        currentUrl={
+                          tile.image ? publicImageUrlFromKey(tile.image) ?? undefined : undefined
                         }
+                        currentValue={tile.image}
+                        onFileUploaded$={(response: { filePath?: string }) => {
+                          if (response.filePath) {
+                            handleUpdateTile(index, "image", response.filePath);
+                          }
+                        }}
                       />
                     </div>
                     <div>

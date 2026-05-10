@@ -821,7 +821,7 @@ function seedInventory(opts: {
         maxQuantity: p.maxQuantity,
         participantCapacity: p.participantCapacity ?? 1,
         features: [],
-        imageUrl: null,
+        imageKey: null,
         stripeProductId: null,
         soldQuantity: p.soldQuantity ?? 0,
         createdAt: now(),
@@ -1218,7 +1218,7 @@ console.log(`  transactions seeded (${txCount} transactions, ${ticketCount} tick
 const imageKeys = await downloadAndUploadSeedImages();
 
 const eventsNoImg = sqlite
-  .prepare("SELECT id FROM events WHERE deleted_at IS NULL AND (image1 IS NULL OR image2 IS NULL)")
+  .prepare("SELECT id FROM events WHERE deleted_at IS NULL AND (image1 IS NULL OR image1 LIKE '%picsum.photos%' OR image2 IS NULL OR image2 LIKE '%picsum.photos%')")
   .all() as Array<{ id: string }>;
 const updateEvent = sqlite.prepare("UPDATE events SET image1 = ?, image2 = ? WHERE id = ?");
 for (let i = 0; i < eventsNoImg.length; i++) {
@@ -1230,7 +1230,7 @@ for (let i = 0; i < eventsNoImg.length; i++) {
 }
 
 const postsNoImg = sqlite
-  .prepare("SELECT id FROM posts WHERE deleted_at IS NULL AND featured_image IS NULL")
+  .prepare("SELECT id FROM posts WHERE deleted_at IS NULL AND (featured_image IS NULL OR featured_image LIKE '%picsum.photos%')")
   .all() as Array<{ id: string }>;
 const updatePost = sqlite.prepare("UPDATE posts SET featured_image = ? WHERE id = ?");
 for (let i = 0; i < postsNoImg.length; i++) {
@@ -1238,7 +1238,7 @@ for (let i = 0; i < postsNoImg.length; i++) {
 }
 
 const groupsNoImg = sqlite
-  .prepare("SELECT id FROM groups WHERE image1 IS NULL OR image2 IS NULL OR image3 IS NULL")
+  .prepare("SELECT id FROM groups WHERE (image1 IS NULL OR image1 LIKE '%picsum.photos%' OR image2 IS NULL OR image2 LIKE '%picsum.photos%' OR image3 IS NULL OR image3 LIKE '%picsum.photos%')")
   .all() as Array<{ id: string }>;
 const updateGroup = sqlite.prepare("UPDATE groups SET image1 = ?, image2 = ?, image3 = ? WHERE id = ?");
 for (let i = 0; i < groupsNoImg.length; i++) {

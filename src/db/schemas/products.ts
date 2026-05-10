@@ -21,7 +21,7 @@ export const products = sqliteTable("products", {
   maxQuantity: integer("max_quantity").notNull().default(0),
   participantCapacity: integer("participant_capacity").notNull().default(1),
   features: text("features", { mode: "json" }).notNull().$type<string[]>(),
-  imageUrl: text("image_url"),
+  imageKey: text("image_key"),
   stripeProductId: text("stripe_product_id"),
   soldQuantity: integer("sold_quantity").notNull().default(0),
   createdAt: text("created_at")
@@ -63,7 +63,7 @@ export const insertProductSchema = baseInsertSchema
   .partial({
     id: true,
     participantCapacity: true,
-    imageUrl: true,
+    imageKey: true,
     stripeProductId: true,
     soldQuantity: true,
     createdAt: true,
@@ -98,7 +98,7 @@ export const formProductSchema = insertProductSchema
       .pipe(z.number().int().min(1, "Participant capacity must be at least 1"))
       .default(1),
     features: z.string().default(""),
-    imageUrl: z.string().url("Invalid image URL").optional().or(z.literal("")),
+    imageKey: z.string().optional().or(z.literal("")),
   });
 
 export const updateProductSchema = baseInsertSchema

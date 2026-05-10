@@ -3,19 +3,17 @@ import {
   useSignal,
   useVisibleTask$,
   useStyles$,
-  type PropFunction,
+  type QRL,
   type Signal,
   noSerialize,
   type NoSerialize,
-} from "@builder.io/qwik";
+} from "@qwik.dev/core";
 import Uppy from "@uppy/core";
 import Dashboard from "@uppy/dashboard";
 import XHRUpload from "@uppy/xhr-upload";
-import ImageEditor from "@uppy/image-editor";
 
 import dashboardStyles from "@uppy/dashboard/css/style.css?inline";
 import coreStyles from "@uppy/core/css/style.css?inline";
-import imageEditorStyles from "@uppy/image-editor/css/style.css?inline";
 
 interface UploadedFileResponse {
   url?: string;
@@ -32,9 +30,9 @@ interface ImageUploaderProps {
   /** When true, shows the Uppy upload button and uploads immediately. No triggerSignal needed. */
   autoUpload?: boolean;
   /** Called when upload finishes (success or failure) or when there are no files to upload. Used with triggerSignal. */
-  onSettled$?: PropFunction<() => void>;
+  onSettled$?: QRL<() => void>;
   /** Called for each successfully uploaded file with the API response. Useful in autoUpload mode. */
-  onFileUploaded$?: PropFunction<(response: UploadedFileResponse) => void>;
+  onFileUploaded$?: QRL<(response: UploadedFileResponse) => void>;
   /** CSS aspect-ratio value for the widget (e.g. "16/9", "1/1", "4/3"). Defaults to "16/9". */
   aspectRatio?: string;
   /** HTML input name — emits hidden inputs so the form can read uploaded URLs */
@@ -48,11 +46,11 @@ interface ImageUploaderProps {
 export const ImageUploader = component$((props: ImageUploaderProps) => {
   useStyles$(coreStyles);
   useStyles$(dashboardStyles);
-  useStyles$(imageEditorStyles);
 
   const containerRef = useSignal<Element>();
   const uppyRef = useSignal<NoSerialize<Uppy>>();
   const uploadedValues = useSignal<string[]>([]);
+  const selectedPreviewUrl = useSignal<string | null>(null);
 
   // Initialise Uppy once the widget container is visible in the DOM.
   useVisibleTask$(({ cleanup }) => {
@@ -78,17 +76,6 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
         hideUploadButton: !props.autoUpload,
         proudlyDisplayPoweredByUppy: false,
       })
-      .use(ImageEditor, {
-        target: Dashboard as any,
-        quality: 0.8,
-        cropperOptions: {
-          viewMode: 1,
-          background: false,
-          autoCropArea: 1,
-          responsive: true,
-          aspectRatio: props.pipeline === "thumbnail" ? 1 : undefined,
-        },
-      })
       .use(XHRUpload, {
         endpoint: "/api/images",
         formData: false,
@@ -97,6 +84,23 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
           "x-pipeline": props.pipeline ?? "standard",
         },
       });
+
+    uppy.on("file-added", (file) => {
+      const data = file.data;
+      if (data instanceof Blob) {
+        if (selectedPreviewUrl.value) {
+          URL.revokeObjectURL(selectedPreviewUrl.value);
+        }
+        selectedPreviewUrl.value = URL.createObjectURL(data);
+      }
+    });
+
+    uppy.on("file-removed", () => {
+      if (selectedPreviewUrl.value) {
+        URL.revokeObjectURL(selectedPreviewUrl.value);
+        selectedPreviewUrl.value = null;
+      }
+    });
 
     // Per-file callback — useful for gallery/auto-upload mode
     uppy.on("upload-success", (_file, response) => {
@@ -126,7 +130,12 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
 
     uppyRef.value = noSerialize(uppy);
 
-    cleanup(() => uppy.destroy());
+    cleanup(() => {
+      if (selectedPreviewUrl.value) {
+        URL.revokeObjectURL(selectedPreviewUrl.value);
+      }
+      uppy.destroy();
+    });
   });
 
   // Watch the trigger signal and kick off the upload when it flips to true.
@@ -147,11 +156,11 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
 
   return (
     <div class="w-full">
-      {props.currentUrl && uploadedValues.value.length === 0 && (
+      {(selectedPreviewUrl.value || props.currentUrl) && uploadedValues.value.length === 0 && (
         <div class="mb-3 rounded border border-gray-200 overflow-hidden">
           <img
-            src={props.currentUrl}
-            alt="Current image"
+            src={selectedPreviewUrl.value ?? props.currentUrl ?? undefined}
+            alt={selectedPreviewUrl.value ? "Selected image preview" : "Current image"}
             class="w-full h-auto object-cover"
             loading="lazy"
           />

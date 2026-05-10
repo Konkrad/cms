@@ -59,14 +59,14 @@ export const ComponentsSidebar = component$<ComponentsSidebarProps>((props) => {
 									onClick$={() => props.onAddBlock(definition.componentType)}
 									data-component-type={definition.componentType}
 								>
-									<div class="flex items-center gap-2">
+									<span class="flex items-center gap-2">
 										<span class="text-2xl">{definition.icon}</span>
-										<div class="flex-1">
-											<div class="font-medium text-sm text-gray-900">
+										<span class="flex-1">
+											<span class="font-medium text-sm text-gray-900">
 												{definition.name}
-											</div>
-										</div>
-									</div>
+											</span>
+										</span>
+									</span>
 								</button>
 							))}
 						</div>
@@ -87,14 +87,14 @@ export const ComponentsSidebar = component$<ComponentsSidebarProps>((props) => {
 									onClick$={() => props.onAddBlock(definition.componentType)}
 									data-component-type={definition.componentType}
 								>
-									<div class="flex items-center gap-2">
+									<span class="flex items-center gap-2">
 										<span class="text-2xl">{definition.icon}</span>
-										<div class="flex-1">
-											<div class="font-medium text-sm text-gray-900">
+										<span class="flex-1">
+											<span class="font-medium text-sm text-gray-900">
 												{definition.name}
-											</div>
-										</div>
-									</div>
+											</span>
+										</span>
+									</span>
 								</button>
 							))}
 						</div>

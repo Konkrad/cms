@@ -46,19 +46,19 @@ const DEFAULT_TILES: TileConfig[] = [
   {
     type: "image",
     area: "left-bottom",
-    image: "https://picsum.photos/400/400",
+    image: "public/events/seed-2.webp",
   },
   {
     type: "image",
     area: "middle",
-    image: "https://picsum.photos/500/700",
+    image: "public/events/seed-3.webp",
     overlayText:
       "With multiple events all over Europe every year we help to grow your network and make memories.",
   },
   {
     type: "image",
     area: "right-top",
-    image: "https://picsum.photos/400/500",
+    image: "public/events/seed-4.webp",
   },
   {
     type: "stat",
@@ -138,7 +138,7 @@ export default component$<FeatureBlockProps>((props) => {
               <ImageTile
                 key={`tile-${index}`}
                 area={tile.area}
-                image={tile.image ?? "https://picsum.photos/400/400"}
+                image={tile.image ?? "public/events/seed-1.webp"}
                 alt={tile.alt}
                 overlayText={tile.overlayText}
               />

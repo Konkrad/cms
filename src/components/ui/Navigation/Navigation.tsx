@@ -151,7 +151,7 @@ export const Navigation = component$(() => {
                   onClick$={toggleUserMenu}
                   aria-label="profile-menu"
                   aria-haspopup="menu"
-                  aria-expanded={String(showUserMenu.value)}
+                  aria-expanded={showUserMenu.value}
                   class="flex items-center gap-2 px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
                 >
                   {profilePictureSmallUrl ? (

@@ -1,11 +1,10 @@
 import { db } from "~/db/connection";
 import {
   groupMemberships,
-  groups,
   insertGroupMembershipSchema,
   type GroupMembership,
-  type Group,
-} from "~/db/schema";
+} from "~/db/schemas/group-memberships";
+import { groups, type Group } from "~/db/schemas/groups";
 import { eq, and } from "drizzle-orm";
 
 export const groupMembershipsService = {
@@ -30,7 +29,7 @@ export const groupMembershipsService = {
     });
     const [membership] = await db
       .insert(groupMemberships)
-      .values(validated)
+      .values(validated as any)
       .returning();
     return membership;
   },
@@ -43,6 +42,9 @@ export const groupMembershipsService = {
         slug: groups.slug,
         latitude: groups.latitude,
         longitude: groups.longitude,
+        image1: groups.image1,
+        image2: groups.image2,
+        image3: groups.image3,
         createdAt: groups.createdAt,
         updatedAt: groups.updatedAt,
       })

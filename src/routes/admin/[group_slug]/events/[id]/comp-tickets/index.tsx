@@ -49,10 +49,10 @@ export const useIssueCompTicket = routeAction$(
     if (existingUser) {
       userId = existingUser.id;
     } else {
-      // Create a basic user account
+      // Create a basic user account (familyName is required by the schema)
       const newUser = await usersService.create({
-        email: data.email,
         name: data.name,
+        familyName: "",
         role: "user",
       });
       userId = newUser.id;
@@ -135,9 +135,9 @@ export default component$(() => {
               <Select name="productId" required>
                 <option value="">Select a product</option>
                 {data.value.products.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name} - €{product.price.toFixed(2)}
-                  </option>
+                    <option key={product.id} value={product.id}>
+                      {`${product.name} - €${product.price.toFixed(2)}`}
+                    </option>
                 ))}
               </Select>
             </div>

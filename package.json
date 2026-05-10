@@ -1,15 +1,13 @@
 {
   "name": "cms",
-  "description": "Demo app with sample routes",
+  "description": "Community Management System",
   "engines": {
-    "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
+    "node": ">=24.15.0"
   },
-  "engines-annotation": "Mostly required by sharp which needs a Node-API v9 compatible runtime",
   "private": true,
   "trustedDependencies": [
     "sharp"
   ],
-  "trustedDependencies-annotation": "Needed for bun to allow running install scripts",
   "type": "module",
   "scripts": {
     "dev": "vite --mode ssr --host 0.0.0.0",
@@ -33,6 +31,7 @@
     "@builder.io/qwik-react": "^0.5.8",
     "@playwright/test": "^1.58.2",
     "@react-email/preview-server": "5.1.0",
+    "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
     "@types/flatpickr": "^3.0.2",
     "@types/node": "^20.12.7",
@@ -49,7 +48,7 @@
     "react-email": "5.1.0",
     "testcontainers": "^11.13.0",
     "tsx": "4.21.0",
-    "typescript": "5.4.5",
+    "typescript": "^6.0.0",
     "undici": "*",
     "vite": "^5.2.10",
     "vite-tsconfig-paths": "^4.2.1",

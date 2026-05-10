@@ -90,7 +90,6 @@ export const ParticipantsCollection = component$<ParticipantsCollectionProps>(
             participantNumber={i + 1}
             participantData={
               {
-                value: participants.value[i] || { name: "", email: "", phone: "" },
                 get value() {
                   return participants.value[i] || { name: "", email: "", phone: "" };
                 },

@@ -27,14 +27,13 @@ export const definition: BlockDefinition = {
 };
 
 const fetchPosts = server$(async function (
-  this: RequestEventCommon,
   options: { limit: number },
 ) {
   const { postsService } = await import("~/services/posts.service");
   const { getServerSession } = await import("~/utils/server-auth");
   const { formatUser } = await import("~/utils/users");
 
-  const session = await getServerSession(this);
+  const session = await getServerSession(this as any);
   const res = await postsService.getAll(options.limit);
 
   const items = res.items.map((post) => ({

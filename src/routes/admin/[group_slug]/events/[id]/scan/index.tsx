@@ -75,7 +75,7 @@ export default component$(() => {
             success: result.value.success,
             message: result.value.message,
             ticketId: result.value.ticketId,
-            scannedAt: result.value.scannedAt,
+            scannedAt: result.value.scannedAt ?? undefined,
             participants: result.value.participants,
           };
         })}

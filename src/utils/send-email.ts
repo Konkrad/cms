@@ -54,7 +54,7 @@ export async function sendLoginEmail({
 }): Promise<MailResult> {
   const appName = env.APP_NAME;
   const html = await render(
-    React.createElement(LoginEmail, { link, code, appName }),
+    React.createElement(LoginEmail, { link, code, appName, baseUrl: env.APP_URL }),
   );
 
   const text = [

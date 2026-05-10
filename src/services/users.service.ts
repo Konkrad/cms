@@ -17,10 +17,10 @@ export const usersService = {
     const cursorObj = decodeCursor(cursor ?? null);
 
     const results = await db.query.users.findMany({
-      orderBy: [desc(users.createdAt), desc(users.id)],
+      orderBy: { createdAt: "desc", id: "desc" },
       limit: limit + 1,
       where: cursorObj?.createdAt
-        ? lt(users.createdAt, cursorObj.createdAt)
+        ? { createdAt: { lt: cursorObj.createdAt } }
         : undefined,
     });
 
@@ -36,7 +36,7 @@ export const usersService = {
 
   async getById(id: string): Promise<User | undefined> {
     const result = await db.query.users.findFirst({
-      where: eq(users.id, id),
+      where: { id },
     });
 
     return result;
@@ -44,7 +44,7 @@ export const usersService = {
 
   async getByIdWithPosts(id: string): Promise<UserWithPosts | undefined> {
     const result = await db.query.users.findFirst({
-      where: eq(users.id, id),
+      where: { id },
       with: {
         posts: true,
       },
@@ -88,7 +88,7 @@ export const usersService = {
     if (loginRows.length === 0) return undefined;
     const login = loginRows[0] as any;
     const result = await db.query.users.findFirst({
-      where: eq(users.loginId, login.id),
+      where: { loginId: login.id },
     });
 
     return result;

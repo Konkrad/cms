@@ -11,11 +11,11 @@ export const formsService = {
   },
 
   async getById(id: string): Promise<Form | undefined> {
-    return db.query.forms.findFirst({ where: eq(forms.id, id) });
+    return db.query.forms.findFirst({ where: { id } });
   },
 
   async getBySystemKey(systemKey: string): Promise<Form | undefined> {
-    return db.query.forms.findFirst({ where: eq(forms.systemKey, systemKey) });
+    return db.query.forms.findFirst({ where: { systemKey } });
   },
 
   async getByIdAndScope(
@@ -26,8 +26,8 @@ export const formsService = {
     return db.query.forms.findFirst({
       where:
         scopeType === "group"
-          ? and(eq(forms.id, id), eq(forms.scopeType, "group"), eq(forms.scopeId, scopeId || ""))
-          : and(eq(forms.id, id), eq(forms.scopeType, "global"), isNull(forms.scopeId)),
+          ? { id, scopeType: "group", scopeId: scopeId || "" }
+          : { id, scopeType: "global", scopeId: { isNull: true } },
     });
   },
 
@@ -47,9 +47,9 @@ export const formsService = {
     return db.query.forms.findMany({
       where:
         scopeType === "group"
-          ? and(eq(forms.scopeType, "group"), eq(forms.scopeId, scopeId || ""))
-          : and(eq(forms.scopeType, "global"), isNull(forms.scopeId)),
-      orderBy: [desc(forms.createdAt)],
+          ? { scopeType: "group", scopeId: scopeId || "" }
+          : { scopeType: "global", scopeId: { isNull: true } },
+      orderBy: { createdAt: "desc" },
     });
   },
 

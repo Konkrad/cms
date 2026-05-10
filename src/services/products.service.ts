@@ -13,14 +13,14 @@ import { stripeService } from "./stripe.service";
 export const productsService = {
   async getByEventId(eventId: string): Promise<Product[]> {
     return db.query.products.findMany({
-      where: eq(products.eventId, eventId),
+      where: { eventId },
       with: { inventoryGroup: true },
     });
   },
 
   async getById(id: string): Promise<Product | undefined> {
     const result = await db.query.products.findFirst({
-      where: eq(products.id, id),
+      where: { id },
       with: { inventoryGroup: true },
     });
     return result as any;

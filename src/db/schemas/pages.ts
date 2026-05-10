@@ -68,6 +68,12 @@ export const updatePageSchema = baseInsertSchema
 
 export const selectPageSchema = baseSelectSchema;
 
-export type Page = z.infer<typeof selectPageSchema>;
-export type InsertPage = z.infer<typeof insertPageSchema>;
-export type UpdatePage = z.infer<typeof updatePageSchema>;
+export type Page = Omit<z.infer<typeof selectPageSchema>, "content"> & {
+  content: BlockData[] | null;
+};
+export type InsertPage = Omit<z.infer<typeof insertPageSchema>, "content"> & {
+  content?: BlockData[] | null;
+};
+export type UpdatePage = Omit<z.infer<typeof updatePageSchema>, "content"> & {
+  content?: BlockData[] | null;
+};

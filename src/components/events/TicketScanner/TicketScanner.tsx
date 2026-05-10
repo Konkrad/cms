@@ -3,7 +3,7 @@ import {
   useSignal,
   useVisibleTask$,
   $,
-  type PropFunction,
+  type QRL,
 } from "@qwik.dev/core";
 import { Html5Qrcode } from "html5-qrcode";
 import { Button } from "~/components/ui/Button";
@@ -25,7 +25,7 @@ type ScanResult = {
 
 type TicketScannerProps = {
   eventId: string;
-  onScan: PropFunction<(qrData: string) => Promise<ScanResult>>;
+  onScan: QRL<(qrData: string) => Promise<ScanResult>>;
 };
 
 export const TicketScanner = component$<TicketScannerProps>(

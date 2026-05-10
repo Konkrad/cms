@@ -1,4 +1,5 @@
-import { relations, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
+import { relations } from "drizzle-orm/_relations";
 import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -109,6 +110,12 @@ export const updateProductSchema = baseInsertSchema
 
 export const selectProductSchema = baseSelectSchema;
 
-export type Product = z.infer<typeof selectProductSchema>;
-export type InsertProduct = z.infer<typeof insertProductSchema>;
-export type UpdateProduct = z.infer<typeof updateProductSchema>;
+export type Product = Omit<z.infer<typeof selectProductSchema>, "features"> & {
+  features: string[];
+};
+export type InsertProduct = Omit<z.infer<typeof insertProductSchema>, "features"> & {
+  features: string[];
+};
+export type UpdateProduct = Omit<z.infer<typeof updateProductSchema>, "features"> & {
+  features?: string[];
+};

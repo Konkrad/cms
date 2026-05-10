@@ -47,7 +47,11 @@ execSync("npx drizzle-kit push --config drizzle.config.ts", { stdio: "inherit" }
 // ─── 3. Open DB connection ───────────────────────────────────────────────────
 
 const sqlite = new Database(DB_PATH);
-const db = drizzle(sqlite, { schema });
+const db = drizzle({
+  client: sqlite,
+  schema,
+  relations: schema.schemaRelations,
+});
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 

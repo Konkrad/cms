@@ -9,6 +9,7 @@ import {
 import { products } from "~/db/schemas/products";
 import { inventoryGroups } from "~/db/schemas/inventory-groups";
 import { logins } from "~/db/schemas/logins";
+import { users as usersTable } from "~/db/schemas/users";
 import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
 import { groupMembershipsService } from "~/services/group-memberships.service";
 
@@ -29,14 +30,14 @@ export const eventsService = {
       with: {
         user: true,
       },
-      orderBy: [desc(events.createdAt), desc(events.id)],
+      orderBy: { createdAt: "desc", id: "desc" },
       limit: limit + 1,
-      where: and(
-        isNull(events.deletedAt),
-        cursorObj?.createdAt
-          ? lt(events.createdAt, cursorObj.createdAt)
-          : undefined,
-      ),
+      where: {
+        deletedAt: { isNull: true },
+        ...(cursorObj?.createdAt
+          ? { createdAt: { lt: cursorObj.createdAt } }
+          : {}),
+      },
     });
 
     let nextCursor: string | undefined | null = undefined;
@@ -56,8 +57,11 @@ export const eventsService = {
     const now = new Date().toISOString();
 
     const results = await db.query.events.findMany({
-      where: and(gte(events.endDate, now), isNull(events.deletedAt)),
-      orderBy: [events.startDate, events.id],
+      where: {
+        endDate: { gte: now },
+        deletedAt: { isNull: true },
+      },
+      orderBy: { startDate: "asc", id: "asc" },
     });
 
     return results;
@@ -66,7 +70,10 @@ export const eventsService = {
   async getYears(): Promise<number[]> {
     const now = new Date().toISOString();
     const results = await db.query.events.findMany({
-      where: and(lt(events.endDate, now), isNull(events.deletedAt)),
+      where: {
+        endDate: { lt: now },
+        deletedAt: { isNull: true },
+      },
       columns: {
         startDate: true,
       },
@@ -82,8 +89,11 @@ export const eventsService = {
     const now = new Date().toISOString();
 
     const results = await db.query.events.findMany({
-      where: and(lt(events.endDate, now), isNull(events.deletedAt)),
-      orderBy: [desc(events.startDate), desc(events.id)],
+      where: {
+        endDate: { lt: now },
+        deletedAt: { isNull: true },
+      },
+      orderBy: { startDate: "desc", id: "desc" },
     });
 
     const filtered = results.filter(
@@ -95,11 +105,14 @@ export const eventsService = {
 
   async getById(id: string): Promise<EventWithUser | undefined> {
     const result = await db.query.events.findFirst({
-      where: and(eq(events.id, id), isNull(events.deletedAt)),
+      where: {
+        id,
+        deletedAt: { isNull: true },
+      },
       with: {
         user: true,
       },
-    });
+    }) as any;
 
     if (!result) return undefined;
 
@@ -160,7 +173,7 @@ export const eventsService = {
 
     // Get all products for the event
     const eventProducts = await db.query.products.findMany({
-      where: eq(products.eventId, eventId),
+      where: { eventId },
     });
 
     // Event is free if all products have price 0
@@ -177,9 +190,9 @@ export const eventsService = {
 
     // Derive sales availability from inventory groups (each may have its own sales window)
     const groups = await db.query.inventoryGroups.findMany({
-      where: eq(inventoryGroups.eventId, event.id),
+      where: { eventId: event.id },
       with: { products: true },
-    });
+    }) as any[];
 
     // Track earliest upcoming sales start (if any)
     let earliestStart: Date | null = null;
@@ -245,41 +258,49 @@ export const eventsService = {
       const userGroups = await groupMembershipsService.getUserGroups(userId);
       const groupIds = userGroups.map((g) => g.id);
 
-      visibilityCondition = or(
-        eq(events.visibility, "global"),
-        and(
-          eq(events.visibility, "group-only"),
-          groupIds.length > 0 ? inArray(events.groupId, groupIds) : undefined,
-        ),
-      );
+      visibilityCondition =
+        groupIds.length > 0
+          ? or(
+              eq(events.visibility, "global"),
+              and(
+                eq(events.visibility, "group-only"),
+                inArray(events.groupId, groupIds),
+              ),
+            )
+          : eq(events.visibility, "global");
     } else {
       visibilityCondition = eq(events.visibility, "global");
     }
 
-    const results = await db.query.events.findMany({
-      with: {
-        user: true,
-      },
-      orderBy: [desc(events.createdAt), desc(events.id)],
-      limit: limit + 1,
-      where: and(
-        isNull(events.deletedAt),
-        visibilityCondition,
-        cursorObj?.createdAt
-          ? lt(events.createdAt, cursorObj.createdAt)
-          : undefined,
-      ),
-    });
+    const results = await db
+      .select({ event: events, user: usersTable })
+      .from(events)
+      .innerJoin(usersTable, eq(events.userId, usersTable.id))
+      .where(
+        and(
+          isNull(events.deletedAt),
+          visibilityCondition,
+          cursorObj?.createdAt
+            ? lt(events.createdAt, cursorObj.createdAt)
+            : undefined,
+        ),
+      )
+      .orderBy(desc(events.createdAt), desc(events.id))
+      .limit(limit + 1);
 
     let nextCursor: string | undefined | null = undefined;
     let items = results;
     if (results.length > limit) {
-      nextCursor = getNextCursorFromRows(results, ["createdAt"], limit);
+      nextCursor = getNextCursorFromRows(
+        results.map((r) => r.event),
+        ["createdAt"],
+        limit,
+      );
       items = results.slice(0, limit);
     }
 
     return {
-      items: items as EventWithUser[],
+      items: items.map((row) => ({ ...row.event, user: row.user })) as EventWithUser[],
       nextCursor: nextCursor ?? null,
     };
   },

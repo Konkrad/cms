@@ -67,10 +67,7 @@ export const participationService = {
     eventId: string,
   ): Promise<ParticipationStatus | undefined> {
     const result = await db.query.participationStatus.findFirst({
-      where: and(
-        eq(participationStatus.userId, userId),
-        eq(participationStatus.eventId, eventId),
-      ),
+      where: { userId, eventId },
     });
     return result;
   },
@@ -82,7 +79,7 @@ export const participationService = {
     total: number;
   }> {
     const results = await db.query.participationStatus.findMany({
-      where: eq(participationStatus.eventId, eventId),
+      where: { eventId },
     });
 
     const summary = {
@@ -103,7 +100,7 @@ export const participationService = {
 
   async getByEventId(eventId: string): Promise<ParticipationStatus[]> {
     const results = await db.query.participationStatus.findMany({
-      where: eq(participationStatus.eventId, eventId),
+      where: { eventId },
       with: {
         user: true,
       },
@@ -167,10 +164,10 @@ export const participationService = {
     upcoming: Array<{ id: string; title: string; startDate: string; endDate: string; city: string | null; country: string | null }>;
   }> {
     const rows = await db.query.participationStatus.findMany({
-      where: and(
-        eq(participationStatus.userId, userId),
-        eq(participationStatus.status, "yes"),
-      ),
+      where: {
+        userId,
+        status: "yes",
+      },
       with: { event: true },
     });
 

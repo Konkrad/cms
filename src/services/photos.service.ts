@@ -21,7 +21,7 @@ export const photosService = {
 
   async getById(id: string): Promise<EventPhoto | undefined> {
     const result = await db.query.eventPhotos.findFirst({
-      where: eq(eventPhotos.id, id),
+      where: { id },
     });
     return result;
   },
@@ -32,8 +32,8 @@ export const photosService = {
   ): Promise<EventPhoto[]> {
     const { limit = 20, offset = 0 } = options || {};
     const results = await db.query.eventPhotos.findMany({
-      where: eq(eventPhotos.eventId, eventId),
-      orderBy: (photos, { desc }) => [desc(photos.uploadedAt)],
+      where: { eventId },
+      orderBy: { uploadedAt: "desc" },
       limit,
       offset,
     });
@@ -42,7 +42,7 @@ export const photosService = {
 
   async countByEventId(eventId: string): Promise<number> {
     const results = await db.query.eventPhotos.findMany({
-      where: eq(eventPhotos.eventId, eventId),
+      where: { eventId },
     });
     return results.length;
   },
@@ -53,11 +53,11 @@ export const photosService = {
 
   async checkUserAttendance(userId: string, eventId: string): Promise<boolean> {
     const attendedTicket = await db.query.tickets.findFirst({
-      where: and(
-        eq(tickets.buyerId, userId),
-        eq(tickets.eventId, eventId),
-        isNotNull(tickets.scannedAt),
-      ),
+      where: {
+        buyerId: userId,
+        eventId,
+        scannedAt: { isNotNull: true },
+      },
     });
     return !!attendedTicket;
   },

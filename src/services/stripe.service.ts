@@ -2,7 +2,7 @@ import Stripe from "stripe";
 import { env } from "~/env";
 
 const stripeConfig: Stripe.StripeConfig = {
-  apiVersion: "2025-12-15.clover",
+  apiVersion: "2026-02-25.clover",
 };
 
 if (env.STRIPE_API_BASE_URL) {

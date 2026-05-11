@@ -193,6 +193,12 @@ export const PropertiesPanel = component$<PropertiesPanelProps>((props) => {
                   onFileSelected$={$((blobUrl: string) => {
                     handleChange(field.name, blobUrl);
                   })}
+                  onFileUploaded$={$((response) => {
+                    // After upload succeeds, update with the actual key
+                    if (response.filePath) {
+                      handleChange(field.name, response.filePath);
+                    }
+                  })}
                 />
               </div>
             );

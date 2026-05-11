@@ -331,6 +331,12 @@ export const TileEditor = component$<TileEditorProps>((props) => {
                         onFileSelected$={(blobUrl: string) => {
                           handleUpdateTile(index, "image", blobUrl);
                         }}
+                        onFileUploaded$={(response) => {
+                          // After upload succeeds, update tile with the actual key
+                          if (response.filePath) {
+                            handleUpdateTile(index, "image", response.filePath);
+                          }
+                        }}
                       />
                     </div>
                     <div>

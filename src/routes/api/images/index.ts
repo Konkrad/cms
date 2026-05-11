@@ -139,7 +139,7 @@ export const onPost: RequestHandler = async ({
   }
 };
 
-export const onGet = async ({ query, json }: any) => {
+export const onGet: RequestHandler = async ({ query, json, redirect }) => {
   const key = query.get("key")?.trim();
 
   if (key) {
@@ -147,20 +147,14 @@ export const onGet = async ({ query, json }: any) => {
 
     if (normalizedKey.startsWith("private/")) {
       const presignedUrl = await generatePresignedGetUrl(normalizedKey, 60 * 60);
-      return new Response(null, {
-        status: 302,
-        headers: { Location: presignedUrl },
-      });
+      throw redirect(302, presignedUrl);
     }
 
     const directUrl = env.AWS_ENDPOINT
       ? `${env.AWS_ENDPOINT.replace(/\/$/, "")}/${env.S3_BUCKET}/${normalizedKey}`
       : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${normalizedKey}`;
 
-    return new Response(null, {
-      status: 302,
-      headers: { Location: directUrl },
-    });
+    throw redirect(302, directUrl);
   }
 
   const pipelines = Object.entries(PROCESSING_PIPELINES).map(

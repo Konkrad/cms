@@ -195,6 +195,11 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
       const data = updatedFile.data;
       if (data instanceof Blob) {
         updatePreview(data);
+        // Update the file in Uppy's queue so it uploads the cropped version
+        const fileId = updatedFile.id;
+        if (fileId) {
+          uppy.setFileState(fileId, { data });
+        }
       }
     });
 
@@ -216,14 +221,17 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
 
     // Handle completion inline — avoids QRL-as-callback issues
     uppy.on("complete", async (result) => {
-      const successful = result.successful ?? [];
+      const successful = Array.isArray(result.successful) ? result.successful : [];
 
       const values = successful
         .map((f: any) => f.response?.body?.filePath || f.response?.body?.url)
         .filter(Boolean) as string[];
 
       if (values.length > 0) {
-        uploadedValues.value = [...uploadedValues.value, ...values];
+        const existingValues = Array.isArray(uploadedValues.value)
+          ? uploadedValues.value
+          : [];
+        uploadedValues.value = [...existingValues, ...values];
       }
 
       // Wait for Qwik to reconcile the DOM (hidden inputs) before notifying
@@ -260,7 +268,7 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
 
   return (
     <div class="w-full">
-      {(selectedPreviewUrl.value || props.currentUrl) && uploadedValues.value.length === 0 && (
+      {(selectedPreviewUrl.value || props.currentUrl) && (uploadedValues.value?.length ?? 0) === 0 && (
         <div class="mb-3 rounded border border-gray-200 overflow-hidden">
           <img
             src={selectedPreviewUrl.value ?? props.currentUrl ?? undefined}
@@ -279,8 +287,8 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
         }}
       />
       {/* Hidden inputs so the surrounding form can read uploaded keys */}
-      {props.name && uploadedValues.value.length > 0 &&
-        uploadedValues.value.map((value, idx) => (
+      {props.name && (uploadedValues.value?.length ?? 0) > 0 &&
+        (uploadedValues.value ?? []).map((value, idx) => (
           <input
             key={String(idx)}
             type="hidden"
@@ -289,7 +297,7 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
           />
         ))}
 
-      {props.name && uploadedValues.value.length === 0 && props.currentValue && (
+      {props.name && (uploadedValues.value?.length ?? 0) === 0 && props.currentValue && (
         <input type="hidden" name={props.name} value={props.currentValue} />
       )}
     </div>

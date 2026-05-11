@@ -99,10 +99,13 @@ export default component$(() => {
   });
 
   const onSettled = $(() => {
-    const form = document.querySelector('form');
-    if (form) {
-      updateAction.submit(new FormData(form));
-    }
+    // Add a small delay to ensure the hidden input is rendered in the DOM
+    setTimeout(() => {
+      const form = document.querySelector('form');
+      if (form) {
+        updateAction.submit(new FormData(form));
+      }
+    }, 50);
   });
 
   return (

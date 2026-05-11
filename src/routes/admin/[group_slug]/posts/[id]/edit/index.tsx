@@ -110,7 +110,7 @@ export default component$(() => {
           <p class="text-sm font-medium text-gray-700 mb-1">Featured Image (optional)</p>
           {!showFeaturedUploader.value && data.value.post.featuredImage ? (
             <div class="relative rounded border border-gray-200 overflow-hidden">
-              <img src={data.value.featuredImageUrl || ""} alt="Current" class="w-full object-cover" style={{ aspectRatio: "16/9" }} />
+              <img src={data.value.featuredImageUrl || ""} alt="Current" class="w-full object-cover" style={{ aspectRatio: "1/1" }} />
               <button type="button" class="absolute bottom-2 right-2 rounded bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow hover:bg-white" onClick$={() => { showFeaturedUploader.value = true; }}>Change image</button>
               <input type="hidden" name="featuredImage" value={data.value.post.featuredImage} />
             </div>
@@ -118,7 +118,9 @@ export default component$(() => {
             <ImageUploader
               name="featuredImage"
               path="public/posts"
-              aspectRatio="16/9"
+              aspectRatio="1/1"
+              crop
+              cropAspectRatio="1/1"
               triggerSignal={triggerUpload}
               onSettled$={onUploadDone}
             />

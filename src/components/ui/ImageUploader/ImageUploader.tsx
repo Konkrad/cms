@@ -10,10 +10,12 @@ import {
 } from "@qwik.dev/core";
 import Uppy from "@uppy/core";
 import Dashboard from "@uppy/dashboard";
+import ImageEditor from "@uppy/image-editor";
 import XHRUpload from "@uppy/xhr-upload";
 
 import dashboardStyles from "@uppy/dashboard/css/style.css?inline";
 import coreStyles from "@uppy/core/css/style.css?inline";
+import imageEditorStyles from "@uppy/image-editor/css/style.css?inline";
 
 interface UploadedFileResponse {
   url?: string;
@@ -24,13 +26,19 @@ interface ImageUploaderProps {
   /** Storage path prefix in S3 (e.g. 'public/events', 'public/profiles') */
   path: string;
   /** Processing pipeline — determines resize logic on the backend. Defaults to 'standard'. */
-  pipeline?: "standard" | "gallery" | "thumbnail";
+  pipeline?: "standard" | "gallery" | "thumbnail" | "profile-picture";
   /** Set to true to trigger the upload (e.g. on form submit). Required unless autoUpload is true. */
   triggerSignal?: Signal<boolean>;
   /** When true, shows the Uppy upload button and uploads immediately. No triggerSignal needed. */
   autoUpload?: boolean;
   /** Called when upload finishes (success or failure) or when there are no files to upload. Used with triggerSignal. */
   onSettled$?: QRL<() => void>;
+  /** When true, opens a crop editor for selected images before upload. */
+  crop?: boolean;
+  /** Fixed crop ratio expressed as width/height, e.g. "3/4" for portrait. */
+  cropAspectRatio?: string;
+  /** Called immediately when a file is selected, with its blob URL for preview. */
+  onFileSelected$?: QRL<(blobUrl: string) => void>;
   /** Called for each successfully uploaded file with the API response. Useful in autoUpload mode. */
   onFileUploaded$?: QRL<(response: UploadedFileResponse) => void>;
   /** CSS aspect-ratio value for the widget (e.g. "16/9", "1/1", "4/3"). Defaults to "16/9". */
@@ -46,11 +54,19 @@ interface ImageUploaderProps {
 export const ImageUploader = component$((props: ImageUploaderProps) => {
   useStyles$(coreStyles);
   useStyles$(dashboardStyles);
+  useStyles$(imageEditorStyles);
 
   const containerRef = useSignal<Element>();
   const uppyRef = useSignal<NoSerialize<Uppy>>();
   const uploadedValues = useSignal<string[]>([]);
   const selectedPreviewUrl = useSignal<string | null>(null);
+
+  const cropAspectRatio = props.cropAspectRatio
+    ? (() => {
+        const [width, height] = props.cropAspectRatio.split("/").map(Number);
+        return width > 0 && height > 0 ? width / height : undefined;
+      })()
+    : undefined;
 
   // Initialise Uppy once the widget container is visible in the DOM.
   useVisibleTask$(({ cleanup }) => {
@@ -75,6 +91,30 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
         hideProgressDetails: false,
         hideUploadButton: !props.autoUpload,
         proudlyDisplayPoweredByUppy: false,
+        autoOpen: props.crop ? "imageEditor" : undefined,
+        plugins: props.crop ? ["ImageEditor"] : undefined,
+      })
+      .use(ImageEditor, {
+        target: Dashboard as any,
+        quality: 1,
+        cropperOptions: {
+          aspectRatio: cropAspectRatio,
+          viewMode: 1,
+          background: false,
+          autoCropArea: 1,
+          responsive: true,
+        },
+        actions: {
+          revert: true,
+          rotate: true,
+          granularRotate: true,
+          flip: true,
+          zoomIn: true,
+          zoomOut: true,
+          cropSquare: false,
+          cropWidescreen: false,
+          cropWidescreenVertical: false,
+        },
       })
       .use(XHRUpload, {
         endpoint: "/api/images",
@@ -85,13 +125,83 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
         },
       });
 
+    const updatePreview = (blob: Blob) => {
+      if (selectedPreviewUrl.value) {
+        URL.revokeObjectURL(selectedPreviewUrl.value);
+      }
+      selectedPreviewUrl.value = URL.createObjectURL(blob);
+      props.onFileSelected$?.(selectedPreviewUrl.value);
+    };
+
+    // For live crop preview updates, we'll use a polling approach
+    // that checks the file state while the image editor is open
+    let cropPollInterval: NodeJS.Timeout | null = null;
+    let lastCropUpdateTime = 0;
+
     uppy.on("file-added", (file) => {
       const data = file.data;
       if (data instanceof Blob) {
-        if (selectedPreviewUrl.value) {
-          URL.revokeObjectURL(selectedPreviewUrl.value);
-        }
-        selectedPreviewUrl.value = URL.createObjectURL(data);
+        updatePreview(data);
+      }
+
+      // Start polling for crop updates if crop is enabled
+      if (props.crop && !cropPollInterval) {
+        cropPollInterval = setInterval(() => {
+          // Check if image editor is active by looking for the editor UI in the DOM
+          const editorUI = document.querySelector('[data-testid="editor-view"]') ||
+                          document.querySelector('.uppy-ImageEditor-editor');
+          
+          if (!editorUI) {
+            // Editor is not active, stop polling
+            if (cropPollInterval) {
+              clearInterval(cropPollInterval);
+              cropPollInterval = null;
+            }
+            return;
+          }
+
+          // Try to access the cropper through the uppy instance
+          const imageEditorPlugin = uppy.getPlugin("ImageEditor");
+          if (!imageEditorPlugin) return;
+
+          const pluginState = (imageEditorPlugin as any);
+          
+          // The cropper instance might be in different locations depending on Uppy version
+          // Check common locations
+          const cropper = pluginState.cropper || 
+                         (pluginState as any).cropper_ ||
+                         (imageEditorPlugin as any).cropper;
+
+          if (cropper && typeof cropper.getCroppedCanvas === 'function') {
+            try {
+              const now = Date.now();
+              // Rate limit updates to avoid excessive blob creation
+              if (now - lastCropUpdateTime > 100) {
+                const canvas = cropper.getCroppedCanvas();
+                canvas.toBlob((blob: Blob) => {
+                  if (blob) {
+                    updatePreview(blob);
+                  }
+                }, "image/webp", 0.95);
+                lastCropUpdateTime = now;
+              }
+            } catch (_err) {
+              // Ignore errors during live crop updates
+            }
+          }
+        }, 50); // Poll every 50ms for smooth updates
+      }
+    });
+
+    uppy.on("file-editor:complete", (updatedFile) => {
+      const data = updatedFile.data;
+      if (data instanceof Blob) {
+        updatePreview(data);
+      }
+      // Stop polling when crop is complete
+      if (cropPollInterval) {
+        clearInterval(cropPollInterval);
+        cropPollInterval = null;
       }
     });
 

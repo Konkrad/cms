@@ -228,6 +228,8 @@ export default component$(() => {
                 path="public/events"
                 triggerSignal={triggerUpload}
                 aspectRatio="1/1"
+                crop
+                cropAspectRatio="1/1"
                 onSettled$={checkAndSubmit}
                 currentUrl={eventData.value.image1Url || undefined}
                 currentValue={eventData.value.image1 || undefined}
@@ -240,6 +242,8 @@ export default component$(() => {
                 path="public/events"
                 triggerSignal={triggerUpload}
                 aspectRatio="1/1"
+                crop
+                cropAspectRatio="1/1"
                 onSettled$={checkAndSubmit}
                 currentUrl={eventData.value.image2Url || undefined}
                 currentValue={eventData.value.image2 || undefined}

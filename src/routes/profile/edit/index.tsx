@@ -120,9 +120,11 @@ export default component$(() => {
           <p class="text-sm font-medium text-gray-700 mb-1">Profile Picture</p>
           <ImageUploader
             name="profilePicture"
-            pipeline="standard"
+            pipeline="profile-picture"
             path="public/profiles"
             aspectRatio="1/1"
+            crop
+            cropAspectRatio="1/1"
             triggerSignal={triggerUpload}
             onSettled$={onSettled}
             currentUrl={profile.value.profilePictureUrl || undefined}

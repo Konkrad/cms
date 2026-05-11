@@ -109,7 +109,9 @@ export default component$(() => {
           <ImageUploader
             name="featuredImage"
             path="public/posts"
-            aspectRatio="16/9"
+            aspectRatio="1/1"
+            crop
+            cropAspectRatio="1/1"
             triggerSignal={triggerUpload}
             onSettled$={onUploadDone}
           />

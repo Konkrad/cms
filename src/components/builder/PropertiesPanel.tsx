@@ -2,9 +2,11 @@ import { $, component$, type QRL, useSignal, useTask$ } from "@qwik.dev/core";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { TextArea } from "~/components/ui/TextArea";
+import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { TileEditor } from "~/components/builder/TileEditor";
 import { GridLayoutEditor } from "~/components/builder/GridLayoutEditor";
 import type { BlockData, BlockDefinition } from "~/db/schema";
+import { publicImageUrlFromKey } from "~/utils/images";
 
 interface PropertiesPanelProps {
   selectedBlock?: BlockData;
@@ -166,6 +168,33 @@ export const PropertiesPanel = component$<PropertiesPanelProps>((props) => {
                   </option>
                 ))}
               </Select>
+            );
+          }
+
+          if (field.type === "image-upload") {
+            const currentUrl =
+              typeof value === "string" && value.length > 0
+                ? publicImageUrlFromKey(value) ?? value
+                : undefined;
+
+            return (
+              <div key={field.name}>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  {field.label}
+                </label>
+                <ImageUploader
+                  path={field.uploadPath ?? "public/page-blocks"}
+                  pipeline={field.pipeline ?? "standard"}
+                  aspectRatio={field.aspectRatio ?? "1/1"}
+                  crop={field.crop}
+                  cropAspectRatio={field.cropAspectRatio}
+                  currentUrl={currentUrl}
+                  currentValue={typeof value === "string" ? value : undefined}
+                  onFileSelected$={$((blobUrl: string) => {
+                    handleChange(field.name, blobUrl);
+                  })}
+                />
+              </div>
             );
           }
 

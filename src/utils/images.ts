@@ -16,7 +16,12 @@ export function publicImageUrlFromKey(
   value: string | null | undefined,
 ): string | null {
   if (!value) return null;
-  if (value.startsWith("http://") || value.startsWith("https://")) {
+  if (
+    value.startsWith("http://") ||
+    value.startsWith("https://") ||
+    value.startsWith("blob:") ||
+    value.startsWith("data:")
+  ) {
     return value;
   }
 

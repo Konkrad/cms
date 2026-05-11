@@ -131,6 +131,8 @@ export default component$(() => {
                 path="public/groups"
                 triggerSignal={triggerUpload}
                 aspectRatio="1/1"
+                crop
+                cropAspectRatio="1/1"
                 onSettled$={checkAndSubmit}
               />
             </div>
@@ -142,6 +144,8 @@ export default component$(() => {
                 pipeline="standard"
                 triggerSignal={triggerUpload}
                 aspectRatio="4/3"
+                crop
+                cropAspectRatio="4/3"
                 onSettled$={checkAndSubmit}
               />
             </div>
@@ -153,6 +157,8 @@ export default component$(() => {
                 pipeline="standard"
                 triggerSignal={triggerUpload}
                 aspectRatio="1/1"
+                crop
+                cropAspectRatio="1/1"
                 onSettled$={checkAndSubmit}
               />
             </div>

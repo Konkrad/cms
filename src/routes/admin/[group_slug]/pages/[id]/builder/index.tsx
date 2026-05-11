@@ -173,11 +173,50 @@ export default component$(() => {
   });
 
   const handleSave = $(async () => {
+    // Clone blocks to avoid mutating the signal while we process uploads
+    let blocksToSave = JSON.parse(JSON.stringify(blocks.value));
+    
+    // Scan for blob URLs in feature blocks and upload them
+    for (const block of blocksToSave) {
+      if (block.componentType === "FeatureBlock" && block.data.tilesJson) {
+        try {
+          const tiles = JSON.parse(block.data.tilesJson);
+          for (const tile of tiles) {
+            if (tile.image?.startsWith("blob:")) {
+              // Convert blob URL to File and upload it
+              const response = await fetch(tile.image);
+              const blob = await response.blob();
+              const formData = new FormData();
+              formData.append("file", blob, "image.webp");
+              
+              const uploadResponse = await fetch("/api/images", {
+                method: "POST",
+                headers: {
+                  "x-upload-path": "public/page-blocks/feature-grid",
+                  "x-pipeline": "standard",
+                },
+                body: blob,
+              });
+              
+              if (uploadResponse.ok) {
+                const uploadedData = await uploadResponse.json();
+                tile.image = uploadedData.filePath;
+              }
+            }
+          }
+          block.data.tilesJson = JSON.stringify(tiles);
+        } catch (err) {
+          console.error("Failed to upload blob image:", err);
+        }
+      }
+    }
+    
     const formData = new FormData();
-    formData.append("content", JSON.stringify(blocks.value));
+    formData.append("content", JSON.stringify(blocksToSave));
 
     await saveAction.submit(formData);
     if (saveAction.value?.success) {
+      blocks.value = blocksToSave;
       hasUnsavedChanges.value = false;
     }
   });

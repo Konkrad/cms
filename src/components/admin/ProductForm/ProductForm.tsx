@@ -94,6 +94,9 @@ export const ProductForm = component$<ProductFormProps>(
                   pipeline="standard"
                   name="imageKey"
                   triggerSignal={uploadTrigger}
+                  aspectRatio="1/1"
+                  crop
+                  cropAspectRatio="1/1"
                   onFileUploaded$={(response: any) => {
                     if (response.filePath) {
                       currentImageKey.value = response.filePath;

@@ -319,14 +319,17 @@ export const TileEditor = component$<TileEditorProps>((props) => {
                       <ImageUploader
                         path="public/page-blocks/feature-grid"
                         pipeline="standard"
+                        crop
+                        cropAspectRatio="3/4"
+                        aspectRatio="3/4"
                         currentUrl={
-                          tile.image ? publicImageUrlFromKey(tile.image) ?? undefined : undefined
+                          tile.image && !tile.image.startsWith("blob:")
+                            ? publicImageUrlFromKey(tile.image) ?? undefined
+                            : tile.image
                         }
                         currentValue={tile.image}
-                        onFileUploaded$={(response: { filePath?: string }) => {
-                          if (response.filePath) {
-                            handleUpdateTile(index, "image", response.filePath);
-                          }
+                        onFileSelected$={(blobUrl: string) => {
+                          handleUpdateTile(index, "image", blobUrl);
                         }}
                       />
                     </div>

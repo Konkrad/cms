@@ -199,6 +199,8 @@ export default component$(() => {
                 path="public/events"
                 triggerSignal={triggerUpload}
                 aspectRatio="1/1"
+                crop
+                cropAspectRatio="1/1"
                 onSettled$={checkAndSubmit}
               />
             </div>
@@ -209,6 +211,8 @@ export default component$(() => {
                 path="public/events"
                 triggerSignal={triggerUpload}
                 aspectRatio="1/1"
+                crop
+                cropAspectRatio="1/1"
                 onSettled$={checkAndSubmit}
               />
             </div>

@@ -1,4 +1,4 @@
-import { component$, useSignal, useVisibleTask$, type Signal } from "@qwik.dev/core";
+import { $, component$, useSignal, useVisibleTask$, type Signal } from "@qwik.dev/core";
 import { Form, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
@@ -138,9 +138,11 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
           <p class="text-sm font-medium text-gray-700 mb-1">Profile Picture</p>
           <ImageUploader
             name="profilePicture"
-            pipeline="standard"
+            pipeline="profile-picture"
             path="public/profiles"
             aspectRatio="1/1"
+            crop
+            cropAspectRatio="1/1"
             triggerSignal={triggerUpload}
             onSettled$={$(() => void saveFn())}
           />

@@ -17,6 +17,10 @@ import dashboardStyles from "@uppy/dashboard/css/style.css?inline";
 import coreStyles from "@uppy/core/css/style.css?inline";
 import imageEditorStyles from "@uppy/image-editor/css/style.css?inline";
 
+const uploaderOverrides = `
+  .uppy-DashboardContent-title { display: none; }
+`;
+
 interface UploadedFileResponse {
   url?: string;
   filePath?: string;
@@ -55,6 +59,7 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
   useStyles$(coreStyles);
   useStyles$(dashboardStyles);
   useStyles$(imageEditorStyles);
+  useStyles$(uploaderOverrides);
 
   const containerRef = useSignal<Element>();
   const uppyRef = useSignal<NoSerialize<Uppy>>();

@@ -106,9 +106,9 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
         },
         actions: {
           revert: true,
-          rotate: true,
-          granularRotate: true,
-          flip: true,
+          rotate: false,
+          granularRotate: false,
+          flip: false,
           zoomIn: true,
           zoomOut: true,
           cropSquare: false,
@@ -133,10 +133,35 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
       props.onFileSelected$?.(selectedPreviewUrl.value);
     };
 
-    // For live crop preview updates, we'll use a polling approach
-    // that checks the file state while the image editor is open
-    let cropPollInterval: NodeJS.Timeout | null = null;
-    let lastCropUpdateTime = 0;
+    let cropMoveCleanup: (() => void) | null = null;
+
+    const attachCropMoveListener = () => {
+      const imageEditorPlugin = uppy.getPlugin("ImageEditor") as any;
+      if (!imageEditorPlugin?.cropper || !imageEditorPlugin?.imgElement) return;
+
+      const { cropper, imgElement } = imageEditorPlugin;
+
+      const onCropChange = () => {
+        try {
+          const canvas = cropper.getCroppedCanvas();
+          canvas.toBlob((blob: Blob | null) => {
+            if (blob) updatePreview(blob);
+          }, "image/webp", 0.95);
+        } catch (_err) {
+          // ignore
+        }
+      };
+
+      imgElement.addEventListener("cropmove", onCropChange);
+      imgElement.addEventListener("cropend", onCropChange);
+      imgElement.addEventListener("zoom", onCropChange);
+
+      cropMoveCleanup = () => {
+        imgElement.removeEventListener("cropmove", onCropChange);
+        imgElement.removeEventListener("cropend", onCropChange);
+        imgElement.removeEventListener("zoom", onCropChange);
+      };
+    };
 
     uppy.on("file-added", (file) => {
       const data = file.data;
@@ -144,64 +169,27 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
         updatePreview(data);
       }
 
-      // Start polling for crop updates if crop is enabled
-      if (props.crop && !cropPollInterval) {
-        cropPollInterval = setInterval(() => {
-          // Check if image editor is active by looking for the editor UI in the DOM
-          const editorUI = document.querySelector('[data-testid="editor-view"]') ||
-                          document.querySelector('.uppy-ImageEditor-editor');
-          
-          if (!editorUI) {
-            // Editor is not active, stop polling
-            if (cropPollInterval) {
-              clearInterval(cropPollInterval);
-              cropPollInterval = null;
-            }
-            return;
+      // Wait for ImageEditor to initialise the cropper, then attach live listeners
+      if (props.crop) {
+        // Retry a few times as the cropper may initialise lazily (on first edit action)
+        let attempts = 0;
+        const tryAttach = () => {
+          attachCropMoveListener();
+          const imageEditorPlugin = uppy.getPlugin("ImageEditor") as any;
+          if (!imageEditorPlugin?.cropper && attempts++ < 10) {
+            setTimeout(tryAttach, 200);
           }
-
-          // Try to access the cropper through the uppy instance
-          const imageEditorPlugin = uppy.getPlugin("ImageEditor");
-          if (!imageEditorPlugin) return;
-
-          const pluginState = (imageEditorPlugin as any);
-          
-          // The cropper instance might be in different locations depending on Uppy version
-          // Check common locations
-          const cropper = pluginState.cropper || 
-                         (pluginState as any).cropper_ ||
-                         (imageEditorPlugin as any).cropper;
-
-          if (cropper && typeof cropper.getCroppedCanvas === 'function') {
-            try {
-              const now = Date.now();
-              // Rate limit updates to avoid excessive blob creation
-              if (now - lastCropUpdateTime > 100) {
-                const canvas = cropper.getCroppedCanvas();
-                canvas.toBlob((blob: Blob) => {
-                  if (blob) {
-                    updatePreview(blob);
-                  }
-                }, "image/webp", 0.95);
-                lastCropUpdateTime = now;
-              }
-            } catch (_err) {
-              // Ignore errors during live crop updates
-            }
-          }
-        }, 50); // Poll every 50ms for smooth updates
+        };
+        setTimeout(tryAttach, 200);
       }
     });
 
     uppy.on("file-editor:complete", (updatedFile) => {
+      cropMoveCleanup?.();
+      cropMoveCleanup = null;
       const data = updatedFile.data;
       if (data instanceof Blob) {
         updatePreview(data);
-      }
-      // Stop polling when crop is complete
-      if (cropPollInterval) {
-        clearInterval(cropPollInterval);
-        cropPollInterval = null;
       }
     });
 
@@ -241,6 +229,7 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
     uppyRef.value = noSerialize(uppy);
 
     cleanup(() => {
+      cropMoveCleanup?.();
       if (selectedPreviewUrl.value) {
         URL.revokeObjectURL(selectedPreviewUrl.value);
       }

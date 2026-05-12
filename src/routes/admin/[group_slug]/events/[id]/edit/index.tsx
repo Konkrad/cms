@@ -32,7 +32,7 @@ export const useGroupContext = routeLoader$(async (event) => {
     return { isGlobal: true };
   }
   const group = await db.query.groups.findFirst({
-    where: eq(groups.slug, groupSlug),
+    where: { slug: groupSlug },
   });
   if (!group) {
     throw event.error(404, "Group not found");
@@ -43,7 +43,7 @@ export const useGroupContext = routeLoader$(async (event) => {
 export const useEventData = routeLoader$(async (event) => {
   const { id } = event.params;
   const data = await db.query.events.findFirst({
-    where: eq(events.id, id),
+    where: { id },
   });
   if (!data) {
     throw event.error(404, "Event not found");

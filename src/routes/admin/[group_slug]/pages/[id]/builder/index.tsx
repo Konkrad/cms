@@ -175,6 +175,44 @@ export default component$(() => {
   const handleSave = $(async () => {
     // Clone blocks to avoid mutating the signal while we process uploads
     let blocksToSave = JSON.parse(JSON.stringify(blocks.value));
+
+    // Upload any pending blob URLs for configured image-upload fields.
+    for (const block of blocksToSave) {
+      const definition = definitionsMap.value.get(block.componentType);
+      const fields = definition?.configSchema ?? [];
+
+      for (const field of fields) {
+        if (field.type !== "image-upload") continue;
+
+        const fieldValue = block.data?.[field.name];
+        if (typeof fieldValue !== "string" || !fieldValue.startsWith("blob:")) {
+          continue;
+        }
+
+        try {
+          const blobResponse = await fetch(fieldValue);
+          const blob = await blobResponse.blob();
+
+          const uploadResponse = await fetch("/api/images", {
+            method: "POST",
+            headers: {
+              "x-upload-path": field.uploadPath ?? "public/page-blocks",
+              "x-pipeline": field.pipeline ?? "standard",
+            },
+            body: blob,
+          });
+
+          if (uploadResponse.ok) {
+            const uploadedData = await uploadResponse.json();
+            if (uploadedData?.filePath) {
+              block.data[field.name] = uploadedData.filePath;
+            }
+          }
+        } catch (err) {
+          console.error(`Failed to upload blob image for field ${field.name}:`, err);
+        }
+      }
+    }
     
     // Scan for blob URLs in feature blocks and upload them
     for (const block of blocksToSave) {

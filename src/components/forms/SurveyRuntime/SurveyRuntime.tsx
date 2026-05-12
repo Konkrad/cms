@@ -97,7 +97,7 @@ export const SurveyRuntime = component$<SurveyRuntimeProps>(
         {requireAltcha && (
           <div class="forms-altcha">
             <altcha-widget
-              challengeurl="/api/altcha/challenge"
+              challenge="/api/altcha/challenge"
               name="altcha"
               auto="off"
             ></altcha-widget>

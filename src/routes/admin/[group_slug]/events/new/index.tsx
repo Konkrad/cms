@@ -10,7 +10,6 @@ import { eventsService } from "~/services/events.service";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { db } from "~/db/connection";
 import { groups } from "~/db/schema";
-import { eq } from "drizzle-orm";
 import { VisibilitySelector } from "~/components/admin/VisibilitySelector";
 
 export const useGroupContext = routeLoader$(async (event) => {
@@ -19,7 +18,7 @@ export const useGroupContext = routeLoader$(async (event) => {
     return { isGlobal: true };
   }
   const group = await db.query.groups.findFirst({
-    where: eq(groups.slug, groupSlug),
+    where: { slug: groupSlug },
   });
   if (!group) {
     throw event.error(404, "Group not found");
@@ -29,40 +28,47 @@ export const useGroupContext = routeLoader$(async (event) => {
 
 const eventSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  description: z.string().min(1, "Description is required"),
-  startTime: z.string().min(1, "Start time is required"),
-  endTime: z.string().min(1, "End time is required"),
-  location: z.string().min(1, "Location is required"),
+  body: z.string().min(1, "Description is required"),
+  startDate: z.string().min(1, "Start time is required"),
+  endDate: z.string().min(1, "End time is required"),
+  address: z.string().min(1, "Location is required"),
   locationType: z.enum(["in_person", "online", "hybrid"]),
   onlineUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
-  visibility: z.enum(["global", "group_only"]).default("global"),
+  visibility: z.enum(["global", "group-only"]).default("global"),
   image1: z.string().optional(),
   image2: z.string().optional(),
 });
 
 export const useCreateEvent = routeAction$(async (data, event) => {
   const user = await getCurrentUserData(event as any);
-  if (!user || (user.role !== "admin" && user.role !== "group_admin")) {
+  if (!user || (user.role !== "admin" && user.role !== "moderator")) {
     return { success: false, error: "Unauthorized" };
   }
 
-  const groupContext = await event.resolveValue(useGroupContext);
+  const groupSlug = event.params.group_slug;
+  const groupContext =
+    groupSlug === "global"
+      ? { isGlobal: true as const, group: undefined }
+      : {
+          isGlobal: false as const,
+          group: await db.query.groups.findFirst({ where: { slug: groupSlug } }),
+        };
   const groupId = groupContext.isGlobal ? null : groupContext.group?.id;
 
   try {
     await eventsService.create({
       title: data.title,
-      description: data.description,
-      startTime: new Date(data.startTime).toISOString(),
-      endTime: new Date(data.endTime).toISOString(),
-      location: data.location,
+      body: data.body,
+      startDate: new Date(data.startDate).toISOString(),
+      endDate: new Date(data.endDate).toISOString(),
+      address: data.address,
       locationType: data.locationType,
       onlineUrl: data.onlineUrl || null,
-      visibility: groupContext.isGlobal ? data.visibility : "group_only",
+      visibility: groupContext.isGlobal ? data.visibility : "group-only",
       groupId: groupId as any,
+      userId: user.id,
       image1: data.image1 || null,
       image2: data.image2 || null,
-      status: "published",
     });
 
     const redirectUrl = groupContext.isGlobal
@@ -127,43 +133,34 @@ export default component$(() => {
             required
           />
           <TextArea
-            name="description"
+            name="body"
             label="Description"
             placeholder="Describe the event..."
             required
           />
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <SmartDatePicker
-              name="startTime"
-              label="Start Time"
-              enableTime={true}
-              required
-            />
-            <SmartDatePicker
-              name="endTime"
-              label="End Time"
-              enableTime={true}
-              required
-            />
-          </div>
+          <SmartDatePicker
+            startDateName="startDate"
+            endDateName="endDate"
+            label="Date & Time"
+            required
+          />
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Select
               name="locationType"
               label="Location Type"
-              options={[
-                { label: "In Person", value: "in_person" },
-                { label: "Online", value: "online" },
-                { label: "Hybrid", value: "hybrid" },
-              ]}
               value={locationType.value}
               onChange$={(e) => {
                 locationType.value = (e.target as HTMLSelectElement).value;
               }}
-            />
+            >
+              <option value="in_person">In Person</option>
+              <option value="online">Online</option>
+              <option value="hybrid">Hybrid</option>
+            </Select>
             <Input
-              name="location"
+              name="address"
               label="Location/Address"
               placeholder="e.g. 123 Main St or 'Online'"
               required
@@ -176,7 +173,7 @@ export default component$(() => {
               name="onlineUrl"
               label="Online Meeting URL"
               placeholder="https://zoom.us/j/..."
-              required={locationType.value !== "in_person"}
+              required
             />
           )}
 

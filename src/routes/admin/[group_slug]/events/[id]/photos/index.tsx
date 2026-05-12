@@ -52,7 +52,7 @@ export const useCreatePhoto = routeAction$(
   async (data, requestEvent) => {
     const { params, fail } = requestEvent;
     const user = await getCurrentUserData(requestEvent as any);
-    if (!user || (user.role !== "admin" && user.role !== "group_admin")) {
+    if (!user || (user.role !== "admin" && user.role !== "moderator")) {
       return fail(403, { message: "Unauthorized" });
     }
 
@@ -82,7 +82,7 @@ export const useDeletePhoto = routeAction$(
   async (data, requestEvent) => {
     const { params, fail } = requestEvent;
     const user = await getCurrentUserData(requestEvent as any);
-    if (!user || (user.role !== "admin" && user.role !== "group_admin")) {
+    if (!user || (user.role !== "admin" && user.role !== "moderator")) {
       return fail(403, { message: "Unauthorized" });
     }
 

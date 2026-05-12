@@ -13,7 +13,6 @@ import { geocodingService } from "~/services/geocoding.service";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { db } from "~/db/connection";
 import { groups } from "~/db/schema";
-import { eq } from "drizzle-orm";
 import { publicImageUrlFromKey } from "~/utils/images";
 
 export const useGlobalOnly = routeLoader$(async ({ params, redirect }) => {
@@ -27,7 +26,7 @@ export const useGlobalOnly = routeLoader$(async ({ params, redirect }) => {
 export const useGroupData = routeLoader$(async (event) => {
   const { id } = event.params;
   const group = await db.query.groups.findFirst({
-    where: eq(groups.id, id),
+    where: { id },
   });
   if (!group) {
     throw event.error(404, "Group not found");

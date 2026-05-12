@@ -124,7 +124,7 @@ export default component$(() => {
         </Button>
       </div>
 
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-lg shadow-sm p-6">
         <form preventdefault:submit onSubmit$={handleSubmit} class="space-y-6">
           <Input
             name="title"

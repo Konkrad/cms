@@ -92,7 +92,7 @@ export default component$(() => {
 
       {/* Success Message */}
       {issueCompTicket.value?.success && (
-        <div class="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+        <div class="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-sm">
           {issueCompTicket.value.message}
         </div>
       )}
@@ -110,7 +110,7 @@ export default component$(() => {
 
       {/* Comp Ticket Form */}
       {showForm.value && (
-        <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 class="text-xl font-bold mb-4">Issue Comp Ticket</h2>
           <Form action={issueCompTicket} class="space-y-4">
             <Input
@@ -159,7 +159,7 @@ export default component$(() => {
       )}
 
       {/* Recent Comp Tickets List */}
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-lg shadow-sm p-6">
         <h2 class="text-xl font-bold mb-4">Recent Complimentary Tickets</h2>
         <p class="text-gray-600">
           This feature will display recently issued comp tickets.

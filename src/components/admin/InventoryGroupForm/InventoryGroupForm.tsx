@@ -11,7 +11,7 @@ interface InventoryGroupFormProps {
 export const InventoryGroupForm = component$<InventoryGroupFormProps>(
   ({ action, onCancel }) => {
     return (
-      <Form action={action} class="p-4 border rounded bg-white">
+      <Form action={action} class="p-4 border rounded-sm bg-white">
         <h3 class="font-bold mb-4 text-lg">New Inventory Group</h3>
         <div class="space-y-4">
           <Input name="name" label="Group Name" required />

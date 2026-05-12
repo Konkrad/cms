@@ -20,14 +20,14 @@ export const MemberList = component$<MemberListProps>(
   ({ members, promoteAction }) => {
     if (members.length === 0) {
       return (
-        <div class="bg-white rounded-lg shadow p-8 text-center">
+        <div class="bg-white rounded-lg shadow-sm p-8 text-center">
           <p class="text-gray-600">No members to display.</p>
         </div>
       );
     }
 
     return (
-      <div class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>

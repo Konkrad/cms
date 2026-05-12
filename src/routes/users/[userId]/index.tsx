@@ -107,10 +107,10 @@ export default component$(() => {
             alt={`${displayName}'s profile picture`}
             width={100}
             height={100}
-            class="w-[100px] h-[100px] rounded-full object-cover border-2 border-gray-200 shadow-sm flex-shrink-0"
+            class="w-[100px] h-[100px] rounded-full object-cover border-2 border-gray-200 shadow-xs shrink-0"
           />
         ) : (
-          <div class="w-[100px] h-[100px] rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-300 flex-shrink-0">
+          <div class="w-[100px] h-[100px] rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-300 shrink-0">
             <span class="text-gray-500 font-semibold text-2xl">{initials}</span>
           </div>
         )}

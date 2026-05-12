@@ -124,7 +124,7 @@ export default component$(() => {
         <Button href="/admin/global/groups" variant="secondary">Back to Groups</Button>
       </div>
 
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-lg shadow-sm p-6">
         <form preventdefault:submit onSubmit$={handleSubmit} class="space-y-6">
           <input type="hidden" name="id" value={groupData.value.id} />
           <Input
@@ -147,9 +147,9 @@ export default component$(() => {
             <div>
               <p class="text-sm font-medium text-gray-700 mb-1">Image 1 — Left bottom tile</p>
               {!showImage1Uploader.value && groupData.value.image1 ? (
-                <div class="relative rounded border border-gray-200 overflow-hidden">
+                <div class="relative rounded-sm border border-gray-200 overflow-hidden">
                   <img src={groupData.value.image1Url || ""} alt="Current" class="w-full object-cover" style={{ aspectRatio: "1/1" }} />
-                  <button type="button" class="absolute bottom-2 right-2 rounded bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow hover:bg-white" onClick$={() => { showImage1Uploader.value = true; }}>Change image</button>
+                  <button type="button" class="absolute bottom-2 right-2 rounded-sm bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-white" onClick$={() => { showImage1Uploader.value = true; }}>Change image</button>
                   <input type="hidden" name="image1" value={groupData.value.image1} />
                 </div>
               ) : (
@@ -167,9 +167,9 @@ export default component$(() => {
             <div>
               <p class="text-sm font-medium text-gray-700 mb-1">Image 2 — Middle tile (large)</p>
               {!showImage2Uploader.value && groupData.value.image2 ? (
-                <div class="relative rounded border border-gray-200 overflow-hidden">
+                <div class="relative rounded-sm border border-gray-200 overflow-hidden">
                   <img src={groupData.value.image2Url || ""} alt="Current" class="w-full object-cover" style={{ aspectRatio: "4/3" }} />
-                  <button type="button" class="absolute bottom-2 right-2 rounded bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow hover:bg-white" onClick$={() => { showImage2Uploader.value = true; }}>Change image</button>
+                  <button type="button" class="absolute bottom-2 right-2 rounded-sm bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-white" onClick$={() => { showImage2Uploader.value = true; }}>Change image</button>
                   <input type="hidden" name="image2" value={groupData.value.image2} />
                 </div>
               ) : (
@@ -188,9 +188,9 @@ export default component$(() => {
             <div>
               <p class="text-sm font-medium text-gray-700 mb-1">Image 3 — Right top tile</p>
               {!showImage3Uploader.value && groupData.value.image3 ? (
-                <div class="relative rounded border border-gray-200 overflow-hidden">
+                <div class="relative rounded-sm border border-gray-200 overflow-hidden">
                   <img src={groupData.value.image3Url || ""} alt="Current" class="w-full object-cover" style={{ aspectRatio: "1/1" }} />
-                  <button type="button" class="absolute bottom-2 right-2 rounded bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow hover:bg-white" onClick$={() => { showImage3Uploader.value = true; }}>Change image</button>
+                  <button type="button" class="absolute bottom-2 right-2 rounded-sm bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-white" onClick$={() => { showImage3Uploader.value = true; }}>Change image</button>
                   <input type="hidden" name="image3" value={groupData.value.image3} />
                 </div>
               ) : (

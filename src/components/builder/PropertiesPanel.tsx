@@ -145,7 +145,7 @@ export const PropertiesPanel = component$<PropertiesPanelProps>((props) => {
                   type="checkbox"
                   id={field.name}
                   checked={value || false}
-                  class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  class="w-4 h-4 text-blue-600 border-gray-300 rounded-sm focus:ring-blue-500"
                   onChange$={(e) => {
                     handleChange(
                       field.name,
@@ -262,7 +262,7 @@ export const PropertiesPanel = component$<PropertiesPanelProps>((props) => {
                 <input
                   type="color"
                   value={value || "#000000"}
-                  class="w-full h-10 border border-gray-300 rounded cursor-pointer"
+                  class="w-full h-10 border border-gray-300 rounded-sm cursor-pointer"
                   onChange$={(e) => {
                     handleChange(
                       field.name,

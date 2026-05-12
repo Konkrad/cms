@@ -92,7 +92,7 @@ export const PhotoGallery = component$<PhotoGalleryProps>(
                       )}
                     </div>
                   )}
-                  <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                  <div class="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/60 to-transparent p-2">
                     <p class="text-xs text-white">
                       {new Date(photo.uploadedAt).toLocaleDateString()}
                     </p>

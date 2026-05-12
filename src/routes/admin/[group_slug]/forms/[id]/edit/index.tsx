@@ -105,13 +105,13 @@ export default component$(() => {
       </div>
 
       {(action.value as { error?: string } | undefined)?.error && (
-        <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
           {(action.value as { error?: string }).error}
         </div>
       )}
 
       {action.value?.failed && action.value?.formErrors?.[0] && (
-        <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
           {action.value.formErrors[0]}
         </div>
       )}

@@ -36,7 +36,7 @@ export const ComponentsSidebar = component$<ComponentsSidebarProps>((props) => {
 				<input
 					type="text"
 					placeholder="Search components..."
-					class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+					class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
 					value={searchQuery.value}
 					onInput$={(e) => {
 						searchQuery.value = (e.target as HTMLInputElement).value;

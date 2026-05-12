@@ -13,7 +13,7 @@ export const ReadMoreButton = component$<ReadMoreButtonProps>(
     return (
       <a href={href} class="flex items-center gap-2 group">
         {/* Green Circle with Arrow */}
-        <div class="relative w-6 h-6 flex items-center justify-center flex-shrink-0">
+        <div class="relative w-6 h-6 flex items-center justify-center shrink-0">
           <svg class="w-full h-full" fill="none" viewBox="0 0 24 24">
             <circle cx="12" cy="12" fill="#96C247" r="12" />
           </svg>

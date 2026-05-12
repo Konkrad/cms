@@ -90,12 +90,12 @@ export default component$(() => {
       </div>
 
       {promote.value?.error && (
-        <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm">
           {promote.value.error}
         </div>
       )}
 
-      <div class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>

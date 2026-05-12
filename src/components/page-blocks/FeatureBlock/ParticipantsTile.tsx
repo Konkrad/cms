@@ -31,7 +31,7 @@ export const ParticipantsTile = component$<ParticipantsTileProps>((props) => {
   const bgClass =
     (props.variant ?? "blue") === "blue"
       ? "bg-[#034ea2]"
-      : "bg-gradient-to-b from-[#0e1148] to-[#0f1330]";
+      : "bg-linear-to-b from-[#0e1148] to-[#0f1330]";
 
   const count = props.participantCount;
   const hasEnough = count >= 5;
@@ -146,7 +146,7 @@ export const ParticipantsTile = component$<ParticipantsTileProps>((props) => {
 });
 
 const SeeAllIcon = component$(() => (
-  <span class="w-6 h-6 relative flex-shrink-0 inline-flex">
+  <span class="w-6 h-6 relative shrink-0 inline-flex">
     <svg class="w-full h-full" fill="none" viewBox="0 0 24 24">
       <circle cx="12" cy="12" r="12" fill="url(#paint0_linear_participants)" />
       <defs>

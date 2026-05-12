@@ -98,7 +98,7 @@ export default component$(() => {
                 alt={`${profile.value.displayName}'s profile picture`}
                 width={120}
                 height={120}
-                class="w-[120px] h-[120px] rounded-full object-cover border-2 border-gray-200 shadow-sm"
+                class="w-[120px] h-[120px] rounded-full object-cover border-2 border-gray-200 shadow-xs"
               />
             ) : (
               <div class="w-[120px] h-[120px] rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-300">
@@ -210,8 +210,8 @@ export default component$(() => {
                         <dl class="space-y-1">
                           {submission.responseEntries.map((entry) => (
                             <div key={entry.question} class="grid grid-cols-1 md:grid-cols-3 gap-1">
-                              <dt class="text-sm text-gray-600 break-words">{entry.question}</dt>
-                              <dd class="text-sm text-gray-900 md:col-span-2 break-words">{entry.answer}</dd>
+                              <dt class="text-sm text-gray-600 wrap-break-word">{entry.question}</dt>
+                              <dd class="text-sm text-gray-900 md:col-span-2 wrap-break-word">{entry.answer}</dd>
                             </div>
                           ))}
                         </dl>

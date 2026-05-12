@@ -59,7 +59,7 @@ export const BlockWrapper = component$<BlockWrapperProps>((props) => {
 
   return (
     <div
-      class={`relative group bg-white rounded-lg shadow-sm transition-all ${
+      class={`relative group bg-white rounded-lg shadow-xs transition-all ${
         props.isSelected
           ? "ring-2 ring-blue-500 shadow-lg"
           : "hover:ring-2 hover:ring-gray-300"
@@ -79,7 +79,7 @@ export const BlockWrapper = component$<BlockWrapperProps>((props) => {
           {!props.isFirst && (
             <button
               type="button"
-              class="px-2 py-1 hover:bg-gray-700 rounded transition-colors"
+              class="px-2 py-1 hover:bg-gray-700 rounded-sm transition-colors"
               onClick$={(e) => {
                 e.stopPropagation();
                 props.onMoveUp();
@@ -92,7 +92,7 @@ export const BlockWrapper = component$<BlockWrapperProps>((props) => {
           {!props.isLast && (
             <button
               type="button"
-              class="px-2 py-1 hover:bg-gray-700 rounded transition-colors"
+              class="px-2 py-1 hover:bg-gray-700 rounded-sm transition-colors"
               onClick$={(e) => {
                 e.stopPropagation();
                 props.onMoveDown();
@@ -104,7 +104,7 @@ export const BlockWrapper = component$<BlockWrapperProps>((props) => {
           )}
           <button
             type="button"
-            class="px-2 py-1 hover:bg-gray-700 rounded transition-colors"
+            class="px-2 py-1 hover:bg-gray-700 rounded-sm transition-colors"
             onClick$={(e) => {
               e.stopPropagation();
               props.onDuplicate();
@@ -115,7 +115,7 @@ export const BlockWrapper = component$<BlockWrapperProps>((props) => {
           </button>
           <button
             type="button"
-            class="px-2 py-1 hover:bg-red-600 rounded transition-colors"
+            class="px-2 py-1 hover:bg-red-600 rounded-sm transition-colors"
             onClick$={(e) => {
               e.stopPropagation();
               if (confirm("Delete this block?")) {

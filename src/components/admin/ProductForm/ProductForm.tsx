@@ -28,7 +28,7 @@ export const ProductForm = component$<ProductFormProps>(
                 </label>
                 <select
                   name="inventoryGroupId"
-                  class="w-full border rounded px-3 py-2"
+                  class="w-full border rounded-sm px-3 py-2"
                   required
                 >
                   {inventoryGroups.map((group) => (
@@ -79,7 +79,7 @@ export const ProductForm = component$<ProductFormProps>(
                 </label>
                 <textarea
                   name="features"
-                  class="w-full border rounded px-3 py-2"
+                  class="w-full border rounded-sm px-3 py-2"
                   rows={3}
                   placeholder="Feature 1, Feature 2, Feature 3"
                 />

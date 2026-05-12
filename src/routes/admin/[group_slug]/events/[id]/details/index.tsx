@@ -148,7 +148,7 @@ export default component$(() => {
         <Button href={eventsBase} variant="secondary">Back to Events</Button>
       </div>
 
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-lg shadow-sm p-6">
         <Form action={updateEventAction} class="space-y-6">
           <Input
             name="title"
@@ -216,7 +216,7 @@ export default component$(() => {
           )}
 
           {updateEventAction.value?.fieldErrors && (
-            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm">
               {Object.entries(updateEventAction.value.fieldErrors).map(
                 ([field, errors]) => (
                   <div key={field}>
@@ -229,13 +229,13 @@ export default component$(() => {
           )}
 
           {updateEventAction.value?.formErrors && (
-            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm">
               {updateEventAction.value.formErrors.join(", ")}
             </div>
           )}
 
           {updateEventAction.value?.success && (
-            <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+            <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-sm">
               Event updated successfully!
             </div>
           )}

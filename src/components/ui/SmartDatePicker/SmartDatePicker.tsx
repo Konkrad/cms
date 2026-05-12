@@ -215,7 +215,7 @@ export const SmartDatePicker = component$<SmartDatePickerProps>(
               onChange$={(e) =>
                 handleAllDayToggle$((e.target as HTMLInputElement).checked)
               }
-              class="w-4 h-4 text-primary border-border-strong rounded focus:ring-focus-ring"
+              class="w-4 h-4 text-primary border-border-strong rounded-sm focus:ring-focus-ring"
             />
             <span class="text-sm text-text">All day</span>
           </label>
@@ -227,7 +227,7 @@ export const SmartDatePicker = component$<SmartDatePickerProps>(
               onChange$={(e) =>
                 handleMultiDayToggle$((e.target as HTMLInputElement).checked)
               }
-              class="w-4 h-4 text-primary border-border-strong rounded focus:ring-focus-ring"
+              class="w-4 h-4 text-primary border-border-strong rounded-sm focus:ring-focus-ring"
             />
             <span class="text-sm text-text">Multi-day event</span>
           </label>

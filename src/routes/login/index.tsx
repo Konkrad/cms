@@ -148,13 +148,13 @@ export default component$(() => {
         <h1 class="text-3xl font-bold mb-6 text-center">Login</h1>
 
         {error.value && (
-          <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
             {error.value}
           </div>
         )}
 
         {info.value && (
-          <div class="mb-4 p-3 bg-green-50 border border-green-400 text-green-700 rounded">
+          <div class="mb-4 p-3 bg-green-50 border border-green-400 text-green-700 rounded-sm">
             {info.value}
           </div>
         )}

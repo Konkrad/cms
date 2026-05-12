@@ -51,7 +51,7 @@
     "typescript": "^6.0.0",
     "undici": "*",
     "vite": "^8.0.7",
-    "vitest": "^4.1.5"
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.958.0",

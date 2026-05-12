@@ -4,6 +4,7 @@ import type { BlockDefinition } from "~/db/schema";
 import type { Event } from "~/db/schemas/events";
 import { eventsService } from "~/services/events.service";
 import { ListCard } from "../ListCard/ListCard";
+import { publicImageUrlFromKey } from "~/utils/images";
 
 export const definition: BlockDefinition = {
   name: "Past Events",
@@ -19,7 +20,11 @@ const fetchYears = server$(async () => {
 });
 
 const fetchEventsByYear = server$(async (year: number) => {
-  return eventsService.getEventsByYear(year);
+  const events = await eventsService.getEventsByYear(year);
+  return events.map((event) => ({
+    ...event,
+    image1: publicImageUrlFromKey(event.image1),
+  }));
 });
 
 function formatEventDate(startDate: string, endDate?: string): string {

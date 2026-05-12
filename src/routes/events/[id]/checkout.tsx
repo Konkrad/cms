@@ -10,6 +10,7 @@ import { Button } from "~/components/ui/Button";
 import { inventoryGroupsService } from "~/services/inventory-groups.service";
 import { productsService } from "~/services/products.service";
 import { checkoutService } from "~/services/checkout.service";
+import { publicImageUrlFromKey } from "~/utils/images";
 import { getServerSession, getCurrentUserData } from "~/utils/server-auth";
 import { ParticipantsCollection } from "~/components/events/ParticipantForm";
 import { useSaveFoodPreference, FoodPreferenceStep } from "~/components/setup/FoodPreferenceStep";
@@ -369,9 +370,9 @@ export default component$(() => {
                                   </ul>
                                 )}
                             </div>
-                            {product.imageUrl && (
+                            {product.imageKey && (
                               <img
-                                src={product.imageUrl}
+                                src={publicImageUrlFromKey(product.imageKey) ?? undefined}
                                 alt={product.name}
                                 class="w-20 h-20 object-cover rounded ml-4"
                               />

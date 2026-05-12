@@ -28,7 +28,7 @@ export const useOnboardingLoader = routeLoader$(async (event) => {
 
   let profilePictureUrl: string | null = null;
   if (u.profilePicture) {
-    const key = u.profilePicture.replace(/^\//, "");
+    const key = u.profilePicture;
     profilePictureUrl = env.AWS_ENDPOINT
       ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${key}`
       : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;

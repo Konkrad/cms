@@ -3,6 +3,7 @@ import { server$ } from "@qwik.dev/router";
 import type { BlockDefinition } from "~/db/schema";
 import type { PostWithUser } from "~/services/posts.service";
 import { postsService } from "~/services/posts.service";
+import { publicImageUrlFromKey } from "~/utils/images";
 import { Button } from "~/components/ui/Button";
 import "./HeroSectionBlock.css";
 
@@ -15,9 +16,18 @@ export const definition: BlockDefinition = {
   defaultData: {},
 };
 
+interface HeroPost extends PostWithUser {
+  featuredImageUrl: string | null;
+}
+
 const fetchLatestGlobalPosts = server$(async () => {
   const res = await postsService.getVisiblePosts(null, 3);
-  return res.items;
+  // Resolve featured image keys to URLs for rendering
+  const postsWithUrls: HeroPost[] = res.items.map((post) => ({
+    ...post,
+    featuredImageUrl: publicImageUrlFromKey(post.featuredImage),
+  }));
+  return postsWithUrls;
 });
 
 const SLIDE_GRADIENTS = [
@@ -40,7 +50,7 @@ function getExcerpt(body: string, maxLength: number = 120): string {
 }
 
 export default component$(() => {
-  const posts = useSignal<PostWithUser[]>([]);
+  const posts = useSignal<HeroPost[]>([]);
   const isLoading = useSignal(true);
   const currentSlide = useSignal(0);
 
@@ -84,9 +94,9 @@ export default component$(() => {
       {/* ── Mobile Layout ── */}
       <div class="hero-section-mobile">
         <div class="hero-section-mobile-image-wrapper">
-          {slide.featuredImage ? (
+          {slide.featuredImageUrl ? (
             <img
-              src={slide.featuredImage}
+              src={slide.featuredImageUrl}
               alt={slide.title}
               class="hero-section-mobile-image"
             />
@@ -118,9 +128,9 @@ export default component$(() => {
       <div class="hero-section-desktop">
         <div class="hero-section-desktop-image-wrapper">
           <div class="hero-section-desktop-image-frame">
-            {slide.featuredImage ? (
+            {slide.featuredImageUrl ? (
               <img
-                src={slide.featuredImage}
+                src={slide.featuredImageUrl}
                 alt={slide.title}
                 class="hero-section-desktop-image"
               />

@@ -16,12 +16,18 @@ export interface FieldDefinition {
     | "select"
     | "color"
     | "url"
+    | "image-upload"
     | "tiles"
     | "grid-layout";
   defaultValue?: any;
   options?: { label: string; value: string }[];
   placeholder?: string;
   required?: boolean;
+  uploadPath?: string;
+  pipeline?: "standard" | "gallery" | "thumbnail" | "profile-picture";
+  aspectRatio?: string;
+  crop?: boolean;
+  cropAspectRatio?: string;
 }
 
 export interface BlockDefinition {

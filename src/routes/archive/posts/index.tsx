@@ -3,16 +3,21 @@ import { Link, routeLoader$ } from "@qwik.dev/router";
 import { ListCard } from "~/components/page-blocks/ListCard";
 import { postsService } from "~/services/posts.service";
 import { formatPostDate, toPlainText } from "~/utils/posts";
+import { publicImageUrlFromKey } from "~/utils/images";
 
 const POSTS_PER_PAGE = 10;
 
 export const useArchivePostsPage = routeLoader$(async () => {
   const page = 0;
   const result = await postsService.getPage(page, POSTS_PER_PAGE);
+  const items = result.items.map((post) => ({
+    ...post,
+    featuredImage: publicImageUrlFromKey(post.featuredImage),
+  }));
 
   return {
     page,
-    items: result.items,
+    items,
     totalPages: result.totalPages,
   };
 });

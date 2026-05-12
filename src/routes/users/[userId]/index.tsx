@@ -9,7 +9,7 @@ import { groupMembershipsService } from "~/services/group-memberships.service";
 import { participationService } from "~/services/participation.service";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { formatUserName, buildProfileUrl } from "~/utils/users";
-import { deriveProfilePicSmallKey } from "~/utils/images";
+import { deriveThumbnailKey } from "~/utils/images";
 
 export const usePublicProfile = routeLoader$(async (event) => {
   await requireAuth(event);
@@ -37,10 +37,9 @@ export const usePublicProfile = routeLoader$(async (event) => {
 
   const buildPicUrl = (s3Key: string | null) => {
     if (!s3Key) return null;
-    const key = s3Key.replace(/^\//, "");
     return env.AWS_ENDPOINT
-      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${key}`
-      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
+      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${s3Key}`
+      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${s3Key}`;
   };
 
   const [groups, participation] = await Promise.all([
@@ -56,7 +55,7 @@ export const usePublicProfile = routeLoader$(async (event) => {
     city: user.city ?? null,
     country: user.country ?? null,
     profilePictureUrl: buildPicUrl(user.profilePicture ?? null),
-    profilePictureSmallUrl: user.profilePicture ? buildPicUrl(deriveProfilePicSmallKey(user.profilePicture)) : null,
+    profilePictureSmallUrl: user.profilePicture ? buildPicUrl(deriveThumbnailKey(user.profilePicture)) : null,
     isOwner,
     email,
     yearOfBirth: user.yearOfBirth ?? null,

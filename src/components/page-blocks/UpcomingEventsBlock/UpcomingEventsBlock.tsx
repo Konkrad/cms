@@ -4,6 +4,7 @@ import type { BlockDefinition } from "~/db/schema";
 import type { Event } from "~/db/schemas/events";
 import { eventsService } from "~/services/events.service";
 import { ListCard } from "../ListCard/ListCard";
+import { publicImageUrlFromKey } from "~/utils/images";
 
 export const definition: BlockDefinition = {
   name: "Upcoming Events",
@@ -15,7 +16,11 @@ export const definition: BlockDefinition = {
 };
 
 const fetchUpcoming = server$(async () => {
-  return eventsService.getUpcoming();
+  const events = await eventsService.getUpcoming();
+  return events.map((event) => ({
+    ...event,
+    image1: publicImageUrlFromKey(event.image1),
+  }));
 });
 
 function formatEventDate(startDate: string, endDate?: string): string {

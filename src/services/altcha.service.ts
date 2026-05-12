@@ -1,4 +1,4 @@
-import { createChallenge, verifySolution } from "altcha-lib";
+import { createChallenge, verifySolution } from "altcha-lib/v1";
 import { env } from "~/env";
 
 export const altchaService = {

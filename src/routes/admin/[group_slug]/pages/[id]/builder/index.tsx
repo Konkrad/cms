@@ -70,6 +70,8 @@ export default component$(() => {
   const selectedBlockId = useSignal<string | null>(null);
   const hasUnsavedChanges = useSignal(false);
   const definitionsMap = useSignal<Map<string, BlockDefinition>>(new Map());
+  const uploadTrigger = useSignal(false);
+  const settledUploadGroups = useSignal(0);
 
   useTask$(({ track }) => {
     track(() => page.value);
@@ -172,12 +174,49 @@ export default component$(() => {
     hasUnsavedChanges.value = true;
   });
 
+  const handleUploadGroupSettled = $(() => {
+    settledUploadGroups.value += 1;
+  });
+
+  const waitForUploads = async (expectedGroups: number) => {
+    if (expectedGroups <= 0) return;
+
+    settledUploadGroups.value = 0;
+    uploadTrigger.value = false;
+    await new Promise<void>((resolve) => {
+      const check = () => {
+        if (settledUploadGroups.value >= expectedGroups) {
+          resolve();
+          return;
+        }
+        setTimeout(check, 25);
+      };
+      uploadTrigger.value = true;
+      check();
+    });
+    uploadTrigger.value = false;
+  };
+
   const handleSave = $(async () => {
+    const selectedBlock = blocks.value.find((block) => block.id === selectedBlockId.value);
+    const selectedDefinition = selectedBlock
+      ? definitionsMap.value.get(selectedBlock.componentType)
+      : undefined;
+    const hasTileEditor = !!selectedDefinition?.configSchema.some(
+      (field) => field.type === "tiles",
+    );
+    const expectedUploadGroups = 1 + (hasTileEditor ? 1 : 0);
+
+    await waitForUploads(expectedUploadGroups);
+
+    const blocksToSave = JSON.parse(JSON.stringify(blocks.value));
+
     const formData = new FormData();
-    formData.append("content", JSON.stringify(blocks.value));
+    formData.append("content", JSON.stringify(blocksToSave));
 
     await saveAction.submit(formData);
     if (saveAction.value?.success) {
+      blocks.value = blocksToSave;
       hasUnsavedChanges.value = false;
     }
   });
@@ -250,6 +289,8 @@ export default component$(() => {
               : undefined
           }
           onUpdateData={handleUpdateBlockData}
+          triggerSignal={uploadTrigger}
+          onSettled$={handleUploadGroupSettled}
         />
       </div>
     </div>

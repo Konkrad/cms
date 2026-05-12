@@ -8,12 +8,15 @@ import {
   type DocumentHead,
   Link,
 } from "@qwik.dev/router";
-import { PhotoUploader } from "~/components/events/PhotoUploader";
+import { ImageUploader } from "~/components/ui";
+import { Button } from "~/components/ui";
 import { Card } from "~/components/ui/Card";
 import { photosService } from "~/services/photos.service";
 import { eventsService } from "~/services/events.service";
-import { getServerSession } from "~/utils/server-auth";
+import { deleteS3Objects } from "~/services/image-processing.service";
+import { getCurrentUserData } from "~/utils/server-auth";
 import { generatePresignedGetUrl } from "~/utils/secure-urls";
+import { deriveThumbnailKey } from "~/utils/images";
 
 export const useEvent = routeLoader$(async ({ params }) => {
   const event = await eventsService.getById(params.id);
@@ -26,19 +29,13 @@ export const useEvent = routeLoader$(async ({ params }) => {
 export const usePhotos = routeLoader$(async ({ params }) => {
   const photos = await photosService.getByEventId(params.id);
 
-  // Generate presigned URLs for each photo
   const photosWithUrls = await Promise.all(
     photos.map(async (photo) => {
-      const thumbnailUrl = photo.thumbnailPath
-        ? await generatePresignedGetUrl(
-            photo.thumbnailPath.replace(/^\//, ""),
-            60 * 60,
-          )
-        : null;
-      const fullUrl = await generatePresignedGetUrl(
-        photo.filePath.replace(/^\//, ""),
+      const thumbnailUrl = await generatePresignedGetUrl(
+        deriveThumbnailKey(photo.filePath),
         60 * 60,
       );
+      const fullUrl = await generatePresignedGetUrl(photo.filePath, 60 * 60);
 
       return {
         ...photo,
@@ -54,33 +51,20 @@ export const usePhotos = routeLoader$(async ({ params }) => {
 export const useCreatePhoto = routeAction$(
   async (data, requestEvent) => {
     const { params, fail } = requestEvent;
-    const user = await getServerSession(requestEvent);
-    if (!user) {
-      return fail(401, { message: "Not authenticated" });
+    const user = await getCurrentUserData(requestEvent as any);
+    if (!user || (user.role !== "admin" && user.role !== "moderator")) {
+      return fail(403, { message: "Unauthorized" });
     }
 
-    // Get event and verify ownership
     const event = await eventsService.getById(params.id);
     if (!event) {
       return fail(404, { message: "Event not found" });
-    }
-
-    if (event.userId !== user.id) {
-      return fail(403, { message: "Not authorized - must be event organizer" });
-    }
-
-    // Check if event has started
-    const eventStartDate = new Date(event.startDate);
-    const now = new Date();
-    if (now < eventStartDate) {
-      return fail(400, { message: "Cannot upload photos before event starts" });
     }
 
     // Create photo record
     const photo = await photosService.create({
       eventId: params.id,
       filePath: data.filePath,
-      thumbnailPath: data.thumbnailPath,
       uploadedBy: user.id,
     });
 
@@ -90,8 +74,36 @@ export const useCreatePhoto = routeAction$(
     };
   },
   zod$({
-    filePath: z.string().startsWith("/private/events/").endsWith(".webp"),
-    thumbnailPath: z.string().optional(),
+    filePath: z.string().startsWith("private/events/").endsWith(".webp"),
+  }),
+);
+
+export const useDeletePhoto = routeAction$(
+  async (data, requestEvent) => {
+    const { params, fail } = requestEvent;
+    const user = await getCurrentUserData(requestEvent as any);
+    if (!user || (user.role !== "admin" && user.role !== "moderator")) {
+      return fail(403, { message: "Unauthorized" });
+    }
+
+    const event = await eventsService.getById(params.id);
+    if (!event) return fail(404, { message: "Event not found" });
+
+    const photo = await photosService.getById(data.photoId);
+    if (!photo || photo.eventId !== params.id) {
+      return fail(404, { message: "Photo not found" });
+    }
+
+    // Delete from S3 (main + thumbnail)
+    await deleteS3Objects([photo.filePath, deriveThumbnailKey(photo.filePath)]);
+
+    // Delete from DB
+    await photosService.delete(photo.id);
+
+    return { success: true };
+  },
+  zod$({
+    photoId: z.string().min(1),
   }),
 );
 
@@ -103,6 +115,7 @@ export default component$(() => {
   const groupSlug = parts[2] || "global";
   const backUrl = `/admin/${groupSlug}/events/${event.value.id}`;
   const createPhotoAction = useCreatePhoto();
+  const deletePhotoAction = useDeletePhoto();
   const uploadSuccess = useSignal<string | null>(null);
   const uploadError = useSignal<string | null>(null);
 
@@ -119,44 +132,34 @@ export default component$(() => {
 
       {/* Upload Section */}
       <Card class="mb-8">
-        <PhotoUploader
-          eventId={event.value.id}
-          onUploadSuccess={$(
-            async (filePath: string, thumbnailPath?: string) => {
-              console.log("Submitting photo to database:", {
-                filePath,
-                thumbnailPath,
-              });
+        <ImageUploader
+          path={`private/events/${event.value.id}/photos`}
+          pipeline="gallery"
+          autoUpload
+          aspectRatio="4/3"
+          onFileUploaded$={$(async (response: { filePath?: string }) => {
+            if (!response.filePath) {
+              uploadError.value = "Upload failed — no file path in response";
+              return;
+            }
 
-              // Register the photo in database
-              const result = await createPhotoAction.submit({
-                filePath,
-                thumbnailPath,
-              });
+            const result = await createPhotoAction.submit({
+              filePath: response.filePath,
+            });
 
-              console.log("Photo submission result:", result.value);
-
-              if (result.value?.success) {
-                uploadSuccess.value = "Photo uploaded successfully!";
-                uploadError.value = null;
-                // Reload photos list
-                window.location.reload();
-              } else {
-                const errorMsg =
-                  result.value?.message ||
-                  (result.value?.fieldErrors
-                    ? JSON.stringify(result.value.fieldErrors)
-                    : "Failed to register photo");
-                console.error("Photo submission failed:", result.value);
-                uploadError.value = errorMsg;
-                uploadSuccess.value = null;
-              }
-            },
-          )}
-          onUploadError={$((error: string) => {
-            console.error("Upload error:", error);
-            uploadError.value = error;
-            uploadSuccess.value = null;
+            if (result.value?.success) {
+              uploadSuccess.value = "Photo uploaded successfully!";
+              uploadError.value = null;
+              window.location.reload();
+            } else {
+              const errorMsg =
+                result.value?.message ||
+                (result.value?.fieldErrors
+                  ? JSON.stringify(result.value.fieldErrors)
+                  : "Failed to register photo");
+              uploadError.value = errorMsg;
+              uploadSuccess.value = null;
+            }
           })}
         />
 
@@ -197,7 +200,7 @@ export default component$(() => {
             {photos.value.map((photo) => (
               <div
                 key={photo.id}
-                class="relative aspect-square bg-gray-100 rounded-lg overflow-hidden group cursor-pointer"
+                class="relative aspect-square bg-gray-100 rounded-lg overflow-hidden group"
               >
                 <img
                   src={photo.thumbnailUrl || photo.fullUrl}
@@ -205,13 +208,28 @@ export default component$(() => {
                   class="w-full h-full object-cover"
                   loading="lazy"
                 />
-                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <p class="text-xs text-white truncate" title={photo.filePath}>
-                    {photo.filePath.split("/").pop()}
-                  </p>
-                  <p class="text-xs text-white/80">
-                    {new Date(photo.uploadedAt).toLocaleDateString()}
-                  </p>
+                <div class="absolute inset-0 flex flex-col justify-between bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div class="flex justify-end p-2">
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick$={async () => {
+                        if (!confirm("Delete this photo?")) return;
+                        await deletePhotoAction.submit({ photoId: photo.id });
+                        window.location.reload();
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                  <div class="p-2">
+                    <p class="text-xs text-white truncate" title={photo.filePath}>
+                      {photo.filePath.split("/").pop()}
+                    </p>
+                    <p class="text-xs text-white/80">
+                      {new Date(photo.uploadedAt).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
               </div>
             ))}

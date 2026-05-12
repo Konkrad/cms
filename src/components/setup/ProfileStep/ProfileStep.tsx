@@ -1,10 +1,10 @@
-import { component$, useSignal, useVisibleTask$, type Signal } from "@qwik.dev/core";
+import { $, component$, useSignal, useVisibleTask$, type Signal } from "@qwik.dev/core";
 import { Form, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { Alert } from "~/components/ui/Alert";
-import { ImageUpload } from "~/components/ui/ImageUpload";
+import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { requireAuth } from "~/utils/server-auth";
 import { usersService } from "~/services/users.service";
 import { markConsentStepComplete } from "~/utils/onboarding";
@@ -23,6 +23,7 @@ export const useUpdateProfile = routeAction$(
       country: data.country || null,
       yearOfBirth: data.year_of_birth ?? null,
       sex: data.sex || null,
+      ...(data.profilePicture ? { profilePicture: data.profilePicture } : {}),
     });
     await markConsentStepComplete(user.id, "lastProfileUpdate");
     return { success: true };
@@ -34,6 +35,7 @@ export const useUpdateProfile = routeAction$(
     country: z.string().optional(),
     year_of_birth: z.coerce.number().optional(),
     sex: z.string().optional(),
+    profilePicture: z.string().optional(),
   }),
 );
 
@@ -76,8 +78,9 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
     formData.set("country", country.value || "");
     if (yearOfBirth.value) formData.set("year_of_birth", yearOfBirth.value);
     formData.set("sex", sex.value || "");
+    const picInput = document.querySelector<HTMLInputElement>('input[name="profilePicture"][type="hidden"]');
+    if (picInput?.value) formData.set("profilePicture", picInput.value);
 
-    // Use the server action passed via props
     if (props.updateAction && typeof props.updateAction.submit === "function") {
       await props.updateAction.submit(formData);
       if (props.updateAction.value?.success) {
@@ -90,11 +93,12 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
   };
 
   const lastSaved = useSignal(props.saveTrigger?.value ?? 0);
+  const triggerUpload = useSignal(false);
   useVisibleTask$(({ track }) => {
     track(() => props.saveTrigger.value);
     if (props.saveTrigger.value !== lastSaved.value) {
       lastSaved.value = props.saveTrigger.value;
-      void saveFn();
+      triggerUpload.value = true;
     }
   });
 
@@ -131,12 +135,16 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
         </div>
 
         <div class="mt-4">
-          <ImageUpload
+          <p class="text-sm font-medium text-gray-700 mb-1">Profile Picture</p>
+          <ImageUploader
             name="profilePicture"
-            label="Profile Picture"
             pipeline="profile-picture"
-            previewShape="circle"
-            currentImageUrl={props.profile.profilePictureUrl}
+            path="public/profiles"
+            aspectRatio="1/1"
+            crop
+            cropAspectRatio="1/1"
+            triggerSignal={triggerUpload}
+            onSettled$={$(() => void saveFn())}
           />
         </div>
 

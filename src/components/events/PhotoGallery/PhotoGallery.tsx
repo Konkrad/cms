@@ -4,7 +4,6 @@ import { EmptyState } from "~/components/ui/EmptyState";
 
 interface PhotoData {
   id: string;
-  thumbnailPath: string | null;
   uploadedAt: string;
 }
 

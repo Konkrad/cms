@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/db/schema";
+import { publicImageUrlFromKey } from "~/utils/images";
 
 interface ImageBlockProps {
 	src?: string;
@@ -15,12 +16,15 @@ export const definition: BlockDefinition = {
 	configSchema: [
 		{
 			name: "src",
-			label: "Image URL",
-			type: "url",
-			defaultValue:
-				"https://images.pexels.com/photos/1169754/pexels-photo-1169754.jpeg",
+			label: "Image",
+			type: "image-upload",
+			defaultValue: "public/events/seed-1.webp",
 			required: true,
-			placeholder: "https://example.com/image.jpg",
+			uploadPath: "public/page-blocks/images",
+			pipeline: "standard",
+			aspectRatio: "1/1",
+			crop: true,
+			cropAspectRatio: "1/1",
 		},
 		{
 			name: "alt",
@@ -37,7 +41,7 @@ export const definition: BlockDefinition = {
 		},
 	],
 	defaultData: {
-		src: "https://images.pexels.com/photos/1169754/pexels-photo-1169754.jpeg",
+		src: "public/events/seed-1.webp",
 		alt: "Image description",
 		caption: "",
 	},
@@ -50,10 +54,7 @@ export default component$<ImageBlockProps>((props) => {
 		<div class="max-w-4xl mx-auto px-4 py-8">
 			<figure>
 				<img
-					src={
-						src ||
-						"https://images.pexels.com/photos/1169754/pexels-photo-1169754.jpeg"
-					}
+					src={publicImageUrlFromKey(src) ?? src ?? publicImageUrlFromKey("public/events/seed-1.webp") ?? ""}
 					alt={alt || "Image"}
 					class="w-full rounded-lg shadow-lg"
 				/>

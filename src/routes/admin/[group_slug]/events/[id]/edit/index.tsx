@@ -1,315 +1,262 @@
 import {
   component$,
   useSignal,
-  useComputed$,
-  useTask$,
 } from "@qwik.dev/core";
+import { $ } from "@qwik.dev/core";
 import {
-  Form,
   routeAction$,
   routeLoader$,
   z,
   zod$,
-  useLocation,
 } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
+import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Select } from "~/components/ui/Select";
 import { TextArea } from "~/components/ui/TextArea";
-import { AddressAutocomplete } from "~/components/ui/AddressAutocomplete";
 import { SmartDatePicker } from "~/components/ui/SmartDatePicker";
-import { ImageUpload } from "~/components/ui/ImageUpload";
 import { eventsService } from "~/services/events.service";
+import { getCurrentUserData } from "~/utils/server-auth";
+import { db } from "~/db/connection";
+import { groups } from "~/db/schema";
+import { VisibilitySelector } from "~/components/admin/VisibilitySelector";
+import { publicImageUrlFromKey } from "~/utils/images";
 
-export const useEvent = routeLoader$(async (event) => {
-  const eventId = event.params.id;
-  const eventData = await eventsService.getById(eventId);
-
-  if (!eventData) {
-    // Redirect back to the appropriate events list (global or group)
-    const groupSlug = event.params.group_slug || "global";
-    throw event.redirect(303, `/admin/${groupSlug}/events`);
+export const useGroupContext = routeLoader$(async (event) => {
+  const groupSlug = event.params.group_slug;
+  if (groupSlug === "global") {
+    return { isGlobal: true };
   }
-
-  return eventData;
+  const group = await db.query.groups.findFirst({
+    where: { slug: groupSlug },
+  });
+  if (!group) {
+    throw event.error(404, "Group not found");
+  }
+  return { isGlobal: false, group };
 });
 
-const eventSchema = z
-  .object({
-    title: z.string().min(1, "Title is required"),
-    body: z.string().min(1, "Description is required"),
-    startDate: z.string().min(1, "Start date is required"),
-    endDate: z.string().min(1, "End date is required"),
-    salesStartDate: z.string().optional(),
-    salesEndDate: z.string().optional(),
-    locationType: z.enum(["online", "in_person", "hybrid"]),
-    address: z.string().optional(),
-    city: z.string().optional(),
-    country: z.string().optional(),
-    latitude: z.string().optional(),
-    longitude: z.string().optional(),
-    onlineUrl: z.string().url("Please enter a valid URL").optional(),
-    image1: z.string().optional(),
-    image2: z.string().optional(),
-  })
-  .superRefine((data, ctx) => {
-    // Validate address is provided for in_person or hybrid events
-    if (
-      (data.locationType === "in_person" || data.locationType === "hybrid") &&
-      !data.address
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Address is required for in-person and hybrid events",
-        path: ["address"],
-      });
-    }
-
-    // Validate online URL is provided for online or hybrid events
-    if (
-      (data.locationType === "online" || data.locationType === "hybrid") &&
-      !data.onlineUrl
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Online URL is required for online and hybrid events",
-        path: ["onlineUrl"],
-      });
-    }
-
-    // Validate sales period dates
-    if (data.salesStartDate && data.salesEndDate) {
-      const salesStart = new Date(data.salesStartDate);
-      const salesEnd = new Date(data.salesEndDate);
-      if (salesStart >= salesEnd) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Sales start date must be before sales end date",
-          path: ["salesStartDate"],
-        });
-      }
-    }
-
-    if (data.salesEndDate && data.endDate) {
-      const salesEnd = new Date(data.salesEndDate);
-      const eventEnd = new Date(data.endDate);
-      if (salesEnd > eventEnd) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Sales end date must be before or equal to event end date",
-          path: ["salesEndDate"],
-        });
-      }
-    }
+export const useEventData = routeLoader$(async (event) => {
+  const { id } = event.params;
+  const data = await db.query.events.findFirst({
+    where: { id },
   });
+  if (!data) {
+    throw event.error(404, "Event not found");
+  }
+  return {
+    ...data,
+    image1Url: publicImageUrlFromKey(data.image1),
+    image2Url: publicImageUrlFromKey(data.image2),
+  };
+});
+
+const editEventSchema = z.object({
+  id: z.string(),
+  title: z.string().min(1, "Title is required"),
+  body: z.string().min(1, "Description is required"),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+  address: z.string().min(1, "Location is required"),
+  locationType: z.enum(["in_person", "online", "hybrid"]),
+  onlineUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
+  visibility: z.enum(["global", "group-only"]).default("global"),
+  image1: z.string().optional(),
+  image2: z.string().optional(),
+});
 
 export const useUpdateEvent = routeAction$(async (data, event) => {
-  const eventId = event.params.id;
+  const user = await getCurrentUserData(event as any);
+  if (!user || (user.role !== "admin" && user.role !== "moderator")) {
+    return { success: false, error: "Unauthorized" };
+  }
 
-  await eventsService.update(eventId, {
-    title: data.title,
-    body: data.body,
-    startDate: new Date(data.startDate).toISOString(),
-    endDate: new Date(data.endDate).toISOString(),
-    salesStartDate: data.salesStartDate
-      ? new Date(data.salesStartDate).toISOString()
-      : null,
-    salesEndDate: data.salesEndDate
-      ? new Date(data.salesEndDate).toISOString()
-      : null,
-    locationType: data.locationType,
-    address: data.address || null,
-    city: data.city || null,
-    country: data.country || null,
-    latitude: data.latitude || null,
-    longitude: data.longitude || null,
-    onlineUrl: data.onlineUrl || null,
-    image1: data.image1 || null,
-    image2: data.image2 || null,
-  } as any);
+  const groupSlug = event.params.group_slug;
+  const groupContext =
+    groupSlug === "global"
+      ? { isGlobal: true as const, group: undefined }
+      : {
+          isGlobal: false as const,
+          group: await db.query.groups.findFirst({ where: { slug: groupSlug } }),
+        };
 
-  return {
-    success: true,
-  };
-}, zod$(eventSchema));
+  try {
+    await eventsService.update(data.id, {
+      title: data.title,
+      body: data.body,
+      startDate: new Date(data.startDate).toISOString(),
+      endDate: new Date(data.endDate).toISOString(),
+      address: data.address,
+      locationType: data.locationType,
+      onlineUrl: data.onlineUrl || null,
+      visibility: groupContext.isGlobal ? data.visibility : "group-only",
+      image1: data.image1 || null,
+      image2: data.image2 || null,
+    });
+
+    const redirectUrl = groupContext.isGlobal
+      ? "/admin/global/events"
+      : `/admin/${groupContext.group?.slug}/events`;
+    throw event.redirect(303, redirectUrl);
+  } catch (error: any) {
+    if (error?.status === 303) throw error;
+    return {
+      success: false,
+      error: error?.message || "Failed to update event",
+    };
+  }
+}, zod$(editEventSchema));
 
 export default component$(() => {
-  const event = useEvent();
   const updateEventAction = useUpdateEvent();
-  const location = useLocation();
-
-  // compute group context from the current path
-  const pathParts = location.url.pathname.split("/");
-  const groupSlug = pathParts[2] || "global";
-  const eventsBase = `/admin/${groupSlug}/events`;
-
+  const groupContext = useGroupContext();
+  const eventData = useEventData();
   const isSubmitting = useSignal(false);
-  const locationType = useSignal<"online" | "in_person" | "hybrid">(
-    event.value.locationType as "online" | "in_person" | "hybrid",
-  );
+  const locationType = useSignal(eventData.value.locationType);
+  
+  const triggerUpload = useSignal(false);
+  const successCount = useSignal(0);
+  const showImage1Uploader = useSignal(!eventData.value.image1);
+  const showImage2Uploader = useSignal(!eventData.value.image2);
 
-  // Geocoding state
-  const latitude = useSignal(event.value.latitude?.toString() || "");
-  const longitude = useSignal(event.value.longitude?.toString() || "");
-  const city = useSignal(event.value.city || "");
-  const country = useSignal(event.value.country || "");
-
-  // Update location type when event data changes
-  useTask$(({ track }) => {
-    track(() => event.value);
-    locationType.value = event.value.locationType as
-      | "online"
-      | "in_person"
-      | "hybrid";
+  const handleSubmit = $(() => {
+    isSubmitting.value = true;
+    triggerUpload.value = true;
   });
 
-  // Computed visibility flags
-  const showAddress = useComputed$(() => {
-    return (
-      locationType.value === "in_person" || locationType.value === "hybrid"
-    );
+  const checkAndSubmit = $(() => {
+    successCount.value++;
+    // We have 2 uploaders
+    if (successCount.value === 2) {
+      const form = document.querySelector('form');
+      if (form) {
+        updateEventAction.submit(new FormData(form));
+      }
+    }
   });
-
-  const showOnlineUrl = useComputed$(() => {
-    return locationType.value === "online" || locationType.value === "hybrid";
-  });
-
-  const formatDatetimeLocal = (isoString: string) => {
-    if (!isoString) return "";
-    return isoString.slice(0, 16);
-  };
 
   return (
     <div>
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Edit Event</h2>
-        <Button href={eventsBase} variant="secondary">Back to Events</Button>
+        <Button
+          href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/events`}
+          variant="secondary"
+        >
+          Back to Events
+        </Button>
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
-        <Form action={updateEventAction} class="space-y-6">
+        <form preventdefault:submit onSubmit$={handleSubmit} class="space-y-6">
+          <input type="hidden" name="id" value={eventData.value.id} />
           <Input
             name="title"
             label="Title"
-            value={event.value.title}
-            placeholder="Enter event title"
+            value={eventData.value.title}
             required
           />
-
           <TextArea
             name="body"
             label="Description"
-            value={event.value.body}
-            placeholder="Describe your event..."
-            rows={4}
+            value={eventData.value.body}
             required
           />
 
           <SmartDatePicker
             startDateName="startDate"
             endDateName="endDate"
-            label="Event Date & Time"
+            label="Date & Time"
+            startValue={eventData.value.startDate}
+            endValue={eventData.value.endDate}
             required
-            startValue={event.value.startDate}
-            endValue={event.value.endDate}
           />
 
-          <SmartDatePicker
-            startDateName="salesStartDate"
-            endDateName="salesEndDate"
-            label="Sales Period (Optional)"
-            startValue={(event.value as any).salesStartDate || undefined}
-            endValue={(event.value as any).salesEndDate || undefined}
-            helpText="When can attendees purchase tickets? Leave empty for no restrictions."
-          />
-
-          <Select
-            name="locationType"
-            label="Location Type"
-            value={event.value.locationType}
-            required
-            onChange$={(e) => {
-              locationType.value = (e.target as HTMLSelectElement).value as any;
-            }}
-          >
-            <option value="in_person">In Person</option>
-            <option value="online">Online</option>
-            <option value="hybrid">Hybrid</option>
-          </Select>
-
-          {showAddress.value && (
-            <AddressAutocomplete
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Select
+              name="locationType"
+              label="Location Type"
+              value={locationType.value}
+              onChange$={(e) => {
+                locationType.value = (e.target as HTMLSelectElement).value;
+              }}
+            >
+              <option value="in_person">In Person</option>
+              <option value="online">Online</option>
+              <option value="hybrid">Hybrid</option>
+            </Select>
+            <Input
               name="address"
-              label="Address"
-              placeholder="Start typing an address..."
-              required={locationType.value !== "online"}
-              value={event.value.address || ""}
-              latitudeSignal={latitude}
-              longitudeSignal={longitude}
-              citySignal={city}
-              countrySignal={country}
+              label="Location/Address"
+              value={eventData.value.address || ""}
+              required
+            />
+          </div>
+
+          {(locationType.value === "online" ||
+            locationType.value === "hybrid") && (
+            <Input
+              name="onlineUrl"
+              label="Online Meeting URL"
+              value={eventData.value.onlineUrl || ""}
+              required
             />
           )}
 
-          {showOnlineUrl.value && (
-            <Input
-              name="onlineUrl"
-              label="Online URL"
-              type="url"
-              value={event.value.onlineUrl || ""}
-              placeholder="https://zoom.us/j/123456789"
-              required={locationType.value !== "in_person"}
+          {!groupContext.value.isGlobal && (
+            <VisibilitySelector
+              name="visibility"
+              value={eventData.value.visibility as any}
+              isGroupContext={true}
             />
           )}
 
           <hr class="border-gray-200" />
           <p class="text-sm font-semibold text-gray-700">Event Page Images</p>
 
-          <ImageUpload
-            name="image1"
-            label="Image Left (square)"
-            uploadPath="public/events/"
-            currentImageUrl={(event.value as any).image1}
-          />
-          <ImageUpload
-            name="image2"
-            label="Image Right (square)"
-            uploadPath="public/events/"
-            currentImageUrl={(event.value as any).image2}
-          />
-
-          {updateEventAction.value?.fieldErrors && (
-            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {Object.entries(updateEventAction.value.fieldErrors).map(
-                ([field, errors]) => (
-                  <div key={field}>
-                    <strong>{field}:</strong>{" "}
-                    {Array.isArray(errors) ? errors.join(", ") : errors}
-                  </div>
-                ),
-              )}
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm font-medium text-gray-700 mb-1">Image Left (square)</p>
+              <ImageUploader
+                name="image1"
+                path="public/events"
+                triggerSignal={triggerUpload}
+                aspectRatio="1/1"
+                crop
+                cropAspectRatio="1/1"
+                onSettled$={checkAndSubmit}
+                currentUrl={eventData.value.image1Url || undefined}
+                currentValue={eventData.value.image1 || undefined}
+              />
             </div>
-          )}
-
-          {updateEventAction.value?.formErrors && (
-            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {updateEventAction.value.formErrors.join(", ")}
+            <div>
+              <p class="text-sm font-medium text-gray-700 mb-1">Image Right (square)</p>
+              <ImageUploader
+                name="image2"
+                path="public/events"
+                triggerSignal={triggerUpload}
+                aspectRatio="1/1"
+                crop
+                cropAspectRatio="1/1"
+                onSettled$={checkAndSubmit}
+                currentUrl={eventData.value.image2Url || undefined}
+                currentValue={eventData.value.image2 || undefined}
+              />
             </div>
-          )}
-
-          {updateEventAction.value?.success && (
-            <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-              Event updated successfully!
-            </div>
-          )}
+          </div>
 
           <div class="flex gap-4">
             <Button type="submit" disabled={isSubmitting.value}>
-              {isSubmitting.value ? "Saving..." : "Save Changes"}
+              {isSubmitting.value ? "Saving Changes..." : "Update Event"}
             </Button>
-            <Button href={eventsBase} variant="secondary">Cancel</Button>
+            <Button
+              href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/events`}
+              variant="secondary"
+            >
+              Cancel
+            </Button>
           </div>
-        </Form>
+        </form>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { server$, type RequestEventCommon } from "@qwik.dev/router";
 import type { BlockDefinition } from "~/db/schema";
 import type { PostWithUser } from "~/services/posts.service";
 import { ListCard } from "../ListCard/ListCard";
+import { publicImageUrlFromKey } from "~/utils/images";
 
 interface PostsListBlockProps {
   limit?: number;
@@ -38,6 +39,7 @@ const fetchPosts = server$(async function (
 
   const items = res.items.map((post) => ({
     ...post,
+    featuredImage: publicImageUrlFromKey(post.featuredImage),
     user: post.user ? formatUser(post.user, !!session) : post.user,
   }));
 

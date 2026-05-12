@@ -1,7 +1,13 @@
 import { stripeService } from "./stripe.service";
 import { inventoryGroupsService } from "./inventory-groups.service";
 import { productsService } from "./products.service";
+import { publicImageUrlFromKey } from "~/utils/images";
 import { env } from "~/env";
+
+function absoluteImageUrlFromKey(value: string | null | undefined): string | null {
+  const path = publicImageUrlFromKey(value);
+  return path ? new URL(path, env.APP_URL).toString() : null;
+}
 
 interface CheckoutItem {
   productId: string;
@@ -117,7 +123,7 @@ export const checkoutService = {
           product_data: {
             name: p.product!.name,
             description: p.product!.features.join(", "),
-            images: p.product!.imageUrl ? [p.product!.imageUrl] : [],
+            images: p.product!.imageKey ? [absoluteImageUrlFromKey(p.product!.imageKey)].filter(Boolean) : [],
           },
           unit_amount: Math.round(p.product!.price * 100), // Convert to cents
         },

@@ -2,18 +2,36 @@ import { $, component$, type QRL, useSignal, useTask$ } from "@qwik.dev/core";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { TextArea } from "~/components/ui/TextArea";
+import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { TileEditor } from "~/components/builder/TileEditor";
 import { GridLayoutEditor } from "~/components/builder/GridLayoutEditor";
 import type { BlockData, BlockDefinition } from "~/db/schema";
+import { publicImageUrlFromKey } from "~/utils/images";
 
 interface PropertiesPanelProps {
   selectedBlock?: BlockData;
   definition?: BlockDefinition;
   onUpdateData: QRL<(blockId: string, data: Record<string, any>) => void>;
+  triggerSignal?: import("@qwik.dev/core").Signal<boolean>;
+  onSettled$?: QRL<() => void>;
 }
 
 export const PropertiesPanel = component$<PropertiesPanelProps>((props) => {
   const localData = useSignal<Record<string, any>>({});
+  const settledImageUploaders = useSignal(0);
+
+  const imageUploadFields =
+    props.definition?.configSchema.filter((field) => field.type === "image-upload") ?? [];
+
+  useTask$(({ track }) => {
+    const shouldTrigger = track(() => props.triggerSignal?.value);
+    if (shouldTrigger) {
+      settledImageUploaders.value = 0;
+      if (imageUploadFields.length === 0) {
+        void props.onSettled$?.();
+      }
+    }
+  });
 
   useTask$(({ track }) => {
     track(() => props.selectedBlock);
@@ -169,6 +187,46 @@ export const PropertiesPanel = component$<PropertiesPanelProps>((props) => {
             );
           }
 
+          if (field.type === "image-upload") {
+            const currentUrl =
+              typeof value === "string" && value.length > 0
+                ? publicImageUrlFromKey(value) ?? value
+                : undefined;
+
+            return (
+              <div key={field.name}>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  {field.label}
+                </label>
+                <ImageUploader
+                  path={field.uploadPath ?? "public/page-blocks"}
+                  pipeline={field.pipeline ?? "standard"}
+                  triggerSignal={props.triggerSignal}
+                  onSettled$={$(() => {
+                    settledImageUploaders.value += 1;
+                    if (settledImageUploaders.value >= imageUploadFields.length) {
+                      void props.onSettled$?.();
+                    }
+                  })}
+                  aspectRatio={field.aspectRatio ?? "1/1"}
+                  crop={field.crop}
+                  cropAspectRatio={field.cropAspectRatio}
+                  currentUrl={currentUrl}
+                  currentValue={typeof value === "string" ? value : undefined}
+                  onFileSelected$={$((blobUrl: string) => {
+                    handleChange(field.name, blobUrl);
+                  })}
+                  onFileUploaded$={$((response) => {
+                    // After upload succeeds, update with the actual key
+                    if (response.filePath) {
+                      handleChange(field.name, response.filePath);
+                    }
+                  })}
+                />
+              </div>
+            );
+          }
+
           if (field.type === "tiles") {
             return (
               <TileEditor
@@ -177,6 +235,8 @@ export const PropertiesPanel = component$<PropertiesPanelProps>((props) => {
                 onChange$={$((newValue: string) => {
                   handleChange(field.name, newValue);
                 })}
+                triggerSignal={props.triggerSignal}
+                onSettled$={props.onSettled$}
               />
             );
           }

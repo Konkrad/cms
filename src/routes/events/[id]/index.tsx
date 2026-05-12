@@ -23,7 +23,7 @@ import { groupMemberships } from "~/db/schemas/group-memberships";
 import { eq, and, isNotNull, inArray } from "drizzle-orm";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { env } from "~/env";
-import { deriveProfilePicSmallKey } from "~/utils/images";
+import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 
 import { FeatureGrid } from "~/components/page-blocks/FeatureBlock/FeatureGrid";
 import { EventDateTile } from "~/components/page-blocks/FeatureBlock/EventDateTile";
@@ -132,10 +132,9 @@ export const useEvent = routeLoader$(async (requestEvent) => {
   // Build profile picture URL helper
   const buildPicUrl = (s3Key: string | null) => {
     if (!s3Key) return null;
-    const key = s3Key.replace(/^\//, "");
     return env.AWS_ENDPOINT
-      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${key}`
-      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
+      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${s3Key}`
+      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${s3Key}`;
   };
 
   const participantsUnsorted = goingRows.map((r) => {
@@ -144,7 +143,7 @@ export const useEvent = routeLoader$(async (requestEvent) => {
       id: u.id,
       name: u.name as string,
       familyName: u.familyName as string,
-      profilePictureSmall: buildPicUrl(u.profilePicture ? deriveProfilePicSmallKey(u.profilePicture) : null),
+      profilePictureSmall: buildPicUrl(u.profilePicture ? deriveThumbnailKey(u.profilePicture) : null),
       groupLabel: userGroupLabels[u.id] ?? null,
       city: (u.city ?? null) as string | null,
       country: (u.country ?? null) as string | null,
@@ -253,8 +252,8 @@ export const useEvent = routeLoader$(async (requestEvent) => {
     locationDisplay,
     participants,
     mapboxAccessToken: env.PUBLIC_MAPBOX_ACCESS_TOKEN,
-    image1: event.image1 ?? null,
-    image2: event.image2 ?? null,
+    image1: publicImageUrlFromKey(event.image1),
+    image2: publicImageUrlFromKey(event.image2),
   };
 });
 

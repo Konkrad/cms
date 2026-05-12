@@ -1,4 +1,5 @@
 import { component$, Slot } from "@qwik.dev/core";
+import { publicImageUrlFromKey } from "~/utils/images";
 
 interface ImageTileProps {
   image: string;
@@ -9,6 +10,7 @@ interface ImageTileProps {
 
 export const ImageTile = component$<ImageTileProps>((props) => {
   const hasOverlay = props.overlayText;
+  const imageUrl = publicImageUrlFromKey(props.image) ?? props.image;
 
   return (
     <div
@@ -16,7 +18,7 @@ export const ImageTile = component$<ImageTileProps>((props) => {
       style={props.area ? { gridArea: props.area } : undefined}
     >
       <img
-        src={props.image}
+        src={imageUrl}
         alt={props.alt ?? ""}
         class="w-full h-full object-cover"
         width={800}

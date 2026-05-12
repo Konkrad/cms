@@ -150,7 +150,7 @@ test.describe('Tickets', () => {
     await fetch(`${stripeHost.origin}/v1/test_helpers/payment_intents/${paymentIntentId}/confirm`, { method: 'POST' });
 
     // Build a webhook event for payment_intent.succeeded and POST it to the app to run fulfillment
-    const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2026-02-25.clover', host: stripeHost.hostname, port: stripeHost.port ? Number(stripeHost.port) : 12111, protocol: (stripeHost.protocol.replace(':','') as any) });
+    const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2026-04-22.dahlia', host: stripeHost.hostname, port: stripeHost.port ? Number(stripeHost.port) : 12111, protocol: (stripeHost.protocol.replace(':','') as any) });
     // Retrieve the payment intent object from stripe-mock
     const pi = await stripeClient.paymentIntents.retrieve(paymentIntentId);
 

@@ -3,6 +3,8 @@ import { Form } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { Modal } from "~/components/ui/Modal";
+import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
+import { publicImageUrlFromKey } from "~/utils/images";
 
 interface ProductFormProps {
   action: any;
@@ -13,8 +15,8 @@ interface ProductFormProps {
 
 export const ProductForm = component$<ProductFormProps>(
   ({ action, inventoryGroups, selectedGroupId, onCancel }) => {
-    const imageUrl = useSignal("");
-    const imageFile = useSignal<File | null>(null);
+    const uploadTrigger = useSignal(false);
+    const currentImageKey = useSignal("");
 
     return (
       <Modal open={true} onClose$={onCancel} title="New Product" size="md">
@@ -87,45 +89,33 @@ export const ProductForm = component$<ProductFormProps>(
                 <label class="block text-sm font-medium mb-1">
                   Product Image
                 </label>
-                <div class="space-y-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    class="w-full text-sm"
-                    onChange$={(e) => {
-                      const target = e.target as HTMLInputElement;
-                      const file = target.files?.[0];
-                      if (file) {
-                        imageFile.value = file;
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                          imageUrl.value = event.target?.result as string;
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                  />
-                  <Input
-                    name="imageUrl"
-                    label="Or enter image URL"
-                    placeholder="https://example.com/image.jpg"
-                    value={imageUrl.value}
-                    onInput$={(e, el) => (imageUrl.value = el.value)}
-                  />
-                  {imageUrl.value && (
-                    <div class="mt-2">
-                      <img
-                        src={imageUrl.value}
-                        alt="Preview"
-                        class="w-32 h-32 object-cover rounded border"
-                      />
-                    </div>
-                  )}
-                </div>
+                <ImageUploader
+                  path="public/products"
+                  pipeline="standard"
+                  name="imageKey"
+                  triggerSignal={uploadTrigger}
+                  aspectRatio="1/1"
+                  crop
+                  cropAspectRatio="1/1"
+                  onFileUploaded$={(response: any) => {
+                    if (response.filePath) {
+                      currentImageKey.value = response.filePath;
+                    }
+                  }}
+                  currentUrl={currentImageKey.value ? publicImageUrlFromKey(currentImageKey.value) ?? undefined : undefined}
+                  currentValue={currentImageKey.value}
+                />
               </div>
 
               <div class="flex gap-2 pt-2">
-                <Button type="submit">Create Product</Button>
+                <Button 
+                  type="submit"
+                  onClick$={() => {
+                    uploadTrigger.value = true;
+                  }}
+                >
+                  Create Product
+                </Button>
                 <Button type="button" onClick$={onCancel}>
                   Cancel
                 </Button>

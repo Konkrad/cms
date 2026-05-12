@@ -1,9 +1,9 @@
 import { component$, useSignal, $ } from "@qwik.dev/core";
-import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
+import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { BlockNoteEditor } from "~/components/editor";
-import { ImageUpload } from "~/components/ui/ImageUpload";
+import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { VisibilitySelector } from "~/components/admin/VisibilitySelector";
 import { postsService } from "~/services/posts.service";
 import { groupsService } from "~/services/groups.service";
@@ -72,10 +72,21 @@ export default component$(() => {
   const isSubmitting = useSignal(false);
   const content = useSignal("");
   const editorState = useSignal<string | null>(null);
+  const triggerUpload = useSignal(false);
 
   const handleEditorChange$ = $((htmlContent: string, state: string) => {
     content.value = htmlContent;
     editorState.value = state;
+  });
+
+  const handleSubmit = $(() => {
+    isSubmitting.value = true;
+    triggerUpload.value = true;
+  });
+
+  const onUploadDone = $(() => {
+    const form = document.querySelector('form');
+    if (form) createPostAction.submit(new FormData(form));
   });
 
   return (
@@ -86,7 +97,7 @@ export default component$(() => {
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
-        <Form action={createPostAction} class="space-y-6">
+        <form preventdefault:submit onSubmit$={handleSubmit} class="space-y-6">
           <Input
             name="title"
             label="Title"
@@ -94,10 +105,15 @@ export default component$(() => {
             required
           />
 
-          <ImageUpload
+          <p class="text-sm font-medium text-gray-700 mb-1">Featured Image (optional)</p>
+          <ImageUploader
             name="featuredImage"
-            label="Featured Image (optional)"
-            uploadPath="public/posts/"
+            path="public/posts"
+            aspectRatio="1/1"
+            crop
+            cropAspectRatio="1/1"
+            triggerSignal={triggerUpload}
+            onSettled$={onUploadDone}
           />
 
           <div>
@@ -140,7 +156,7 @@ export default component$(() => {
             </Button>
             <Button href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/posts`} variant="secondary">Cancel</Button>
           </div>
-        </Form>
+        </form>
       </div>
     </div>
   );

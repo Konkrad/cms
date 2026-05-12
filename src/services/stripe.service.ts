@@ -1,16 +1,15 @@
 import Stripe from "stripe";
 import { env } from "~/env";
 
-const stripeConfig: Stripe.StripeConfig = {
-  apiVersion: "2026-02-25.clover",
+const stripeConfig: ConstructorParameters<typeof Stripe>[1] = {
+  apiVersion: "2026-04-22.dahlia",
 };
 
 if (env.STRIPE_API_BASE_URL) {
   const url = new URL(env.STRIPE_API_BASE_URL);
   stripeConfig.host = url.hostname;
 
-  // `StripeConfig.protocol` is strictly typed as 'http' | 'https'.
-  const protocol = url.protocol.replace(/:$/, "") as Stripe.HttpProtocol;
+  const protocol = url.protocol.replace(/:$/, "") as "http" | "https";
   if (protocol === "http" || protocol === "https") {
     stripeConfig.protocol = protocol;
   }

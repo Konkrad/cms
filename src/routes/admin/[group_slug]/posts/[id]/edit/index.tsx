@@ -1,6 +1,5 @@
 import { component$, useSignal, $ } from "@qwik.dev/core";
 import {
-  Form,
   routeAction$,
   routeLoader$,
   z,
@@ -9,8 +8,9 @@ import {
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { BlockNoteEditor } from "~/components/editor";
-import { ImageUpload } from "~/components/ui/ImageUpload";
+import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { postsService } from "~/services/posts.service";
+import { publicImageUrlFromKey } from "~/utils/images";
 
 const updateSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -28,7 +28,11 @@ export const usePost = routeLoader$(async (event) => {
     throw event.redirect(303, `/admin/${groupSlug}/posts`);
   }
 
-  return { post, groupSlug };
+  return {
+    post,
+    groupSlug,
+    featuredImageUrl: publicImageUrlFromKey(post.featuredImage),
+  };
 });
 
 export const useUpdatePost = routeAction$(async (data, event) => {
@@ -68,10 +72,22 @@ export default component$(() => {
   const isSubmitting = useSignal(false);
   const content = useSignal(data.value.post.body || "");
   const editorState = useSignal(data.value.post.editorState || null);
+  const triggerUpload = useSignal(false);
+  const showFeaturedUploader = useSignal(!data.value.post.featuredImage);
 
   const handleEditorChange$ = $((htmlContent: string, state: string) => {
     content.value = htmlContent;
     editorState.value = state;
+  });
+
+  const handleSubmit = $(() => {
+    isSubmitting.value = true;
+    triggerUpload.value = true;
+  });
+
+  const onUploadDone = $(() => {
+    const form = document.querySelector('form');
+    if (form) updatePostAction.submit(new FormData(form));
   });
 
   return (
@@ -82,7 +98,7 @@ export default component$(() => {
       </div>
 
       <div class="bg-white rounded-lg shadow p-6">
-        <Form action={updatePostAction} class="space-y-6">
+        <form preventdefault:submit onSubmit$={handleSubmit} class="space-y-6">
           <Input
             name="title"
             label="Title"
@@ -91,12 +107,24 @@ export default component$(() => {
             required
           />
 
-          <ImageUpload
-            name="featuredImage"
-            label="Featured Image (optional)"
-            uploadPath="public/posts/"
-            currentImageUrl={(data.value.post as any).featuredImage}
-          />
+          <p class="text-sm font-medium text-gray-700 mb-1">Featured Image (optional)</p>
+          {!showFeaturedUploader.value && data.value.post.featuredImage ? (
+            <div class="relative rounded border border-gray-200 overflow-hidden">
+              <img src={data.value.featuredImageUrl || ""} alt="Current" class="w-full object-cover" style={{ aspectRatio: "1/1" }} />
+              <button type="button" class="absolute bottom-2 right-2 rounded bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow hover:bg-white" onClick$={() => { showFeaturedUploader.value = true; }}>Change image</button>
+              <input type="hidden" name="featuredImage" value={data.value.post.featuredImage} />
+            </div>
+          ) : (
+            <ImageUploader
+              name="featuredImage"
+              path="public/posts"
+              aspectRatio="1/1"
+              crop
+              cropAspectRatio="1/1"
+              triggerSignal={triggerUpload}
+              onSettled$={onUploadDone}
+            />
+          )}
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -137,7 +165,7 @@ export default component$(() => {
             </Button>
             <Button href={`/admin/${data.value.groupSlug}/posts`} variant="secondary">Cancel</Button>
           </div>
-        </Form>
+        </form>
       </div>
     </div>
   );

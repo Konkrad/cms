@@ -83,10 +83,7 @@ export async function generateSecurePhotoUrl(
     throw new Error("Expiry must be in the future");
   }
 
-  // Normalize to S3 key (no leading slash)
-  const s3Key = filePath.replace(/^\//, "");
-
-  return generatePresignedGetUrl(s3Key, expiresIn);
+  return generatePresignedGetUrl(filePath, expiresIn);
 }
 
 /**

@@ -133,7 +133,7 @@ export const useCreateProduct = routeAction$(
         maxQuantity: validatedData.maxQuantity,
         participantCapacity: validatedData.participantCapacity,
         features,
-        imageUrl: validatedData.imageUrl || undefined,
+        imageKey: validatedData.imageKey || undefined,
       });
       return { success: true };
     } catch (error) {
@@ -166,9 +166,8 @@ export const useCreateProduct = routeAction$(
         )
         .default(1),
       features: z.string().default(""),
-      imageUrl: z
+      imageKey: z
         .string()
-        .url("Invalid image URL")
         .optional()
         .or(z.literal("")),
     }),

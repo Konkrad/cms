@@ -17,6 +17,7 @@ import { inventoryGroupsService } from "~/services/inventory-groups.service";
 import { productsService } from "~/services/products.service";
 import { checkoutService } from "~/services/checkout.service";
 import { stripeService } from "~/services/stripe.service";
+import { publicImageUrlFromKey } from "~/utils/images";
 import { getServerSession } from "~/utils/server-auth";
 import { env } from "~/env";
 
@@ -166,7 +167,7 @@ export const useCreateCheckoutSession = routeAction$(
           product_data: {
             name: p.product!.name,
             description: p.product!.features?.join(", ") || "",
-            images: p.product!.imageUrl ? [p.product!.imageUrl] : [],
+            images: p.product!.imageKey ? [publicImageUrlFromKey(p.product!.imageKey)].filter(Boolean) : [],
           },
           unit_amount: Math.round(p.product!.price * 100), // Convert to cents
         },
@@ -573,9 +574,9 @@ export default component$(() => {
                                     </ul>
                                   )}
                               </div>
-                              {product.imageUrl && (
+                              {product.imageKey && (
                                 <img
-                                  src={product.imageUrl}
+                                  src={publicImageUrlFromKey(product.imageKey) ?? undefined}
                                   alt={product.name}
                                   class="w-20 h-20 object-cover rounded ml-4"
                                 />

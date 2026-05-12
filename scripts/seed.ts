@@ -99,11 +99,6 @@ const seedImageSources = [
   "https://picsum.photos/id/1050/1400/900.jpg",
 ] as const;
 
-function publicObjectUrl(objectKey: string): string {
-  const endpoint = seedStorageConfig.publicEndpoint.replace(/\/$/, "");
-  return `${endpoint}/${seedStorageConfig.bucket}/${objectKey}`;
-}
-
 async function ensureBucketAndPublicReadPolicy(s3: S3Client): Promise<void> {
   try {
     await s3.send(new CreateBucketCommand({ Bucket: seedStorageConfig.bucket }));
@@ -146,13 +141,13 @@ async function downloadAndUploadSeedImages(): Promise<string[]> {
 
   await ensureBucketAndPublicReadPolicy(s3);
 
-  const uploadedUrls: string[] = [];
+  const uploadedKeys: string[] = [];
 
   for (let i = 0; i < seedImageSources.length; i++) {
     const sourceUrl = seedImageSources[i];
     const baseKey = `${seedStorageConfig.imagePrefix}/seed-${i + 1}`;
     const objectKey = `${baseKey}.webp`;
-    const smallObjectKey = `${baseKey}_200x200.webp`;
+    const smallObjectKey = `${baseKey}-thumb.webp`;
 
     const response = await fetch(sourceUrl);
     if (!response.ok) {
@@ -201,10 +196,10 @@ async function downloadAndUploadSeedImages(): Promise<string[]> {
       }),
     );
 
-    uploadedUrls.push(publicObjectUrl(objectKey));
+    uploadedKeys.push(objectKey);
   }
 
-  return uploadedUrls;
+  return uploadedKeys;
 }
 
 // ─── 4. Base users ───────────────────────────────────────────────────────────
@@ -731,22 +726,47 @@ console.log(`  events seeded (${eventDefs.length})`);
 
 // ─── 10. Participation statuses ──────────────────────────────────────────────
 
-const testEvent = db.select().from(schema.events).all().find((e) => e.title === "Berlin Summer Social");
-if (testEvent) {
-  const statuses = ["yes", "no", "maybe"] as const;
-  for (let i = 0; i < testUsers.length; i++) {
+const statusEvents = [
+  "Berlin Summer Social",
+  "Berlin Tech Talk: AI in 2025",
+  "Berlin New Members Welcome Night",
+  "Munich Community Hike – Englischer Garten",
+  "Munich Members Workshop: Public Speaking",
+  "Hamburg Harbour Morning Walk",
+  "Hamburg Open Meetup",
+  "Frankfurt Networking Breakfast",
+  "Frankfurt Startup Pitch Night",
+  "Cologne Members Dinner",
+  "Cologne Public Meet & Greet",
+  "All-Groups Online Town Hall",
+  "Past Meetup (E2E)",
+];
+
+const statuses = ["yes", "no", "maybe"] as const;
+let participationCount = 0;
+
+for (const eventTitle of statusEvents) {
+  const evt = db.select().from(schema.events).all().find((e) => e.title === eventTitle);
+  if (!evt) continue;
+
+  // Each event gets a random subset of users with varied statuses
+  const usersForEvent = [...testUsers, adminUser!, hostUser!];
+  for (let i = 0; i < usersForEvent.length; i++) {
+    // Skip some users randomly to create realistic variation
+    if (Math.random() < 0.3) continue;
     db.insert(schema.participationStatus)
       .values({
         id: uuid(),
-        userId: testUsers[i].id,
-        eventId: testEvent.id,
+        userId: usersForEvent[i].id,
+        eventId: evt.id,
         status: statuses[i % 3],
         updatedAt: now(),
       })
       .run();
+    participationCount++;
   }
-  console.log("  participation statuses seeded");
 }
+console.log(`  participation statuses seeded (${participationCount})`);
 
 // ─── 11. Inventory & products (ticket scenarios) ─────────────────────────────
 
@@ -801,7 +821,7 @@ function seedInventory(opts: {
         maxQuantity: p.maxQuantity,
         participantCapacity: p.participantCapacity ?? 1,
         features: [],
-        imageUrl: null,
+        imageKey: null,
         stripeProductId: null,
         soldQuantity: p.soldQuantity ?? 0,
         createdAt: now(),
@@ -812,60 +832,422 @@ function seedInventory(opts: {
 }
 
 seedInventory({
-  eventTitle: "Cologne Members Dinner",
-  inventoryName: "Dinner Tickets",
+  eventTitle: "Berlin Summer Social",
+  inventoryName: "General Admission",
+  maxCapacity: 50,
+  salesStartOffset: -7,
+  salesEndOffset: 13,
+  products: [
+    { name: "Free Entry", price: 0, maxQuantity: 50, soldQuantity: 8 },
+  ],
+});
+
+seedInventory({
+  eventTitle: "Berlin Tech Talk: AI in 2025",
+  inventoryName: "Seats",
+  maxCapacity: 30,
+  salesStartOffset: -5,
+  salesEndOffset: 20,
+  products: [
+    { name: "Standard Seat", price: 0, maxQuantity: 25, soldQuantity: 6 },
+    { name: "VIP Seat (front row + networking)", price: 15, maxQuantity: 5, soldQuantity: 2 },
+  ],
+});
+
+seedInventory({
+  eventTitle: "Berlin New Members Welcome Night",
+  inventoryName: "Welcome Night Spots",
   maxCapacity: 20,
-  salesStartOffset: -1,
-  salesEndOffset: 30,
-  products: [{ name: "Dinner Ticket", price: 25.0, maxQuantity: 20 }],
+  salesStartOffset: -3,
+  salesEndOffset: 6,
+  products: [
+    { name: "Welcome Night Ticket", price: 0, maxQuantity: 20, soldQuantity: 4 },
+  ],
+});
+
+seedInventory({
+  eventTitle: "Munich Community Hike – Englischer Garten",
+  inventoryName: "Hike Spots",
+  maxCapacity: 25,
+  salesStartOffset: -7,
+  salesEndOffset: 9,
+  products: [
+    { name: "Hiker Spot", price: 0, maxQuantity: 25, soldQuantity: 5 },
+  ],
 });
 
 seedInventory({
   eventTitle: "Munich Members Workshop: Public Speaking",
   inventoryName: "Workshop Seats",
-  maxCapacity: 2,
+  maxCapacity: 15,
   salesStartOffset: -10,
-  salesEndOffset: 30,
-  products: [{ name: "Workshop Ticket", price: 0, maxQuantity: 2, soldQuantity: 2 }],
+  salesEndOffset: 29,
+  products: [
+    { name: "Workshop Ticket", price: 10, maxQuantity: 15, soldQuantity: 7 },
+  ],
 });
 
 seedInventory({
   eventTitle: "Hamburg Harbour Morning Walk",
   inventoryName: "Walk Spots",
-  maxCapacity: 1,
+  maxCapacity: 15,
   salesStartOffset: -5,
-  salesEndOffset: 10,
-  products: [{ name: "Walk Ticket", price: 0, maxQuantity: 1, soldQuantity: 1 }],
+  salesEndOffset: 5,
+  products: [
+    { name: "Walk Ticket", price: 0, maxQuantity: 15, soldQuantity: 3 },
+  ],
+});
+
+seedInventory({
+  eventTitle: "Hamburg Open Meetup",
+  inventoryName: "Open Meetup Spots",
+  maxCapacity: 40,
+  salesStartOffset: -7,
+  salesEndOffset: 17,
+  products: [
+    { name: "Free Entry", price: 0, maxQuantity: 40, soldQuantity: 6 },
+  ],
+});
+
+seedInventory({
+  eventTitle: "Frankfurt Networking Breakfast",
+  inventoryName: "Breakfast Seats",
+  maxCapacity: 20,
+  salesStartOffset: -5,
+  salesEndOffset: 11,
+  products: [
+    { name: "Breakfast Ticket (incl. food)", price: 12, maxQuantity: 20, soldQuantity: 5 },
+  ],
+});
+
+seedInventory({
+  eventTitle: "Frankfurt Startup Pitch Night",
+  inventoryName: "Pitch Night Tickets",
+  maxCapacity: 60,
+  salesStartOffset: -10,
+  salesEndOffset: 24,
+  products: [
+    { name: "Audience Ticket", price: 10, maxQuantity: 50, soldQuantity: 12 },
+    { name: "Pitcher Ticket (present your startup)", price: 0, maxQuantity: 5, soldQuantity: 3 },
+  ],
+});
+
+seedInventory({
+  eventTitle: "Cologne Members Dinner",
+  inventoryName: "Dinner Tickets",
+  maxCapacity: 20,
+  salesStartOffset: -1,
+  salesEndOffset: 8,
+  products: [
+    { name: "Dinner Ticket (3-course meal)", price: 25, maxQuantity: 20, soldQuantity: 8 },
+  ],
+});
+
+seedInventory({
+  eventTitle: "Cologne Public Meet & Greet",
+  inventoryName: "Meet & Greet Spots",
+  maxCapacity: 40,
+  salesStartOffset: -5,
+  salesEndOffset: 34,
+  products: [
+    { name: "Free Entry", price: 0, maxQuantity: 40, soldQuantity: 4 },
+  ],
+});
+
+seedInventory({
+  eventTitle: "All-Groups Online Town Hall",
+  inventoryName: "Virtual Seats",
+  maxCapacity: 200,
+  salesStartOffset: -14,
+  salesEndOffset: 44,
+  products: [
+    { name: "Virtual Seat", price: 0, maxQuantity: 200, soldQuantity: 15 },
+  ],
+});
+
+seedInventory({
+  eventTitle: "Past Meetup (E2E)",
+  inventoryName: "Past Tickets",
+  maxCapacity: 30,
+  salesStartOffset: -60,
+  salesEndOffset: -31,
+  products: [
+    { name: "Entry Ticket", price: 5, maxQuantity: 30, soldQuantity: 10 },
+  ],
 });
 
 console.log("  inventory & products seeded");
 
-// ─── 12. Seed image assets in MinIO and link them in the DB ─────────────────
+// ─── 11b. Transactions, tickets, and participants ────────────────────────────
 
-const imgUrls = await downloadAndUploadSeedImages();
+const allProducts = db.select().from(schema.products).all();
+const productsByEvent: Record<string, typeof allProducts> = {};
+for (const p of allProducts) {
+  if (!productsByEvent[p.eventId]) productsByEvent[p.eventId] = [];
+  productsByEvent[p.eventId].push(p);
+}
+
+/**
+ * Create a transaction chain: transaction → transaction_items → tickets → ticket_participants.
+ * Some tickets get scannedAt set (for past events / simulating check-in).
+ */
+function seedTransaction(opts: {
+  eventTitle: string;
+  buyerIdx: number;
+  items: Array<{ productName: string; quantity: number }>;
+  daysAgo: number;
+  scanned?: boolean;
+}) {
+  const event = eventByTitle[opts.eventTitle];
+  if (!event) return;
+  const buyer = opts.buyerIdx >= 0 ? testUsers[opts.buyerIdx] : opts.buyerIdx === -1 ? adminUser! : hostUser!;
+  const eventProducts = productsByEvent[event.id] ?? [];
+
+  const txId = uuid();
+  let totalAmount = 0;
+  const itemValues: Array<{
+    id: string;
+    transactionId: string;
+    productId: string;
+    quantity: number;
+    unitPrice: number;
+  }> = [];
+  const ticketValues: Array<{
+    id: string;
+    qrCodeUuid: string;
+    transactionId: string;
+    productId: string;
+    eventId: string;
+    buyerId: string;
+    scannedAt: string | null;
+    createdAt: string;
+  }> = [];
+
+  for (const item of opts.items) {
+    const product = eventProducts.find((p) => p.name === item.productName);
+    if (!product) {
+      console.warn(`  skipping product '${item.productName}' for '${opts.eventTitle}'`);
+      continue;
+    }
+    totalAmount += product.price * item.quantity;
+    const itemId = uuid();
+    itemValues.push({
+      id: itemId,
+      transactionId: txId,
+      productId: product.id,
+      quantity: item.quantity,
+      unitPrice: product.price,
+    });
+
+    // Create one ticket per quantity
+    for (let q = 0; q < item.quantity; q++) {
+      const ticketId = uuid();
+      const purchaseDate = new Date();
+      purchaseDate.setDate(purchaseDate.getDate() - opts.daysAgo);
+      ticketValues.push({
+        id: ticketId,
+        qrCodeUuid: uuid(),
+        transactionId: txId,
+        productId: product.id,
+        eventId: event.id,
+        buyerId: buyer.id,
+        scannedAt: opts.scanned ? new Date(new Date(event.startDate).getTime() + 30 * 60000).toISOString() : null,
+        createdAt: purchaseDate.toISOString(),
+      });
+    }
+  }
+
+  const fee = totalAmount > 0 ? Math.round(totalAmount * 0.029 * 100) / 100 : 0;
+  const purchaseDate = new Date();
+  purchaseDate.setDate(purchaseDate.getDate() - opts.daysAgo);
+
+  db.insert(schema.transactions)
+    .values({
+      id: txId,
+      eventId: event.id,
+      userId: buyer.id,
+      totalAmount,
+      transactionFee: fee,
+      stripeSessionId: `cs_seed_${uuid().slice(0, 8)}`,
+      stripePaymentId: totalAmount > 0 ? `pi_seed_${uuid().slice(0, 8)}` : null,
+      paymentDate: purchaseDate.toISOString(),
+      createdAt: purchaseDate.toISOString(),
+    })
+    .run();
+
+  for (const iv of itemValues) {
+    db.insert(schema.transactionItems).values(iv).run();
+  }
+
+  for (const tv of ticketValues) {
+    db.insert(schema.tickets).values(tv).run();
+  }
+
+  // Add participants to each ticket
+  const FIRST_NAMES = ["Anna", "Ben", "Clara", "David", "Elena", "Felix", "Greta", "Hans", "Iris", "Jan"];
+  const LAST_NAMES = ["Müller", "Schmidt", "Schneider", "Fischer", "Weber", "Meyer", "Wagner", "Becker", "Schulz", "Koch"];
+
+  for (const tv of ticketValues) {
+    const product = eventProducts.find((p) => p.id === tv.productId);
+    const capacity = product?.participantCapacity ?? 1;
+    for (let p = 1; p <= capacity; p++) {
+      const nameIdx = Math.floor(Math.random() * FIRST_NAMES.length);
+      const lastIdx = Math.floor(Math.random() * LAST_NAMES.length);
+      const first = p === 1 ? buyer.name : FIRST_NAMES[nameIdx];
+      const last = p === 1 ? (buyer as any).familyName ?? "Seed" : LAST_NAMES[lastIdx];
+      db.insert(schema.ticketParticipants)
+        .values({
+          id: uuid(),
+          ticketId: tv.id,
+          participantOrder: p,
+          name: `${first} ${last}`,
+          email: p === 1 && (buyer as any).loginId
+            ? `seed-${tv.id.slice(0, 8)}@example.com`
+            : `${first.toLowerCase()}.${last.toLowerCase()}@example.com`,
+        })
+        .run();
+    }
+  }
+}
+
+// ── Past event — all tickets scanned ──
+seedTransaction({ eventTitle: "Past Meetup (E2E)", buyerIdx: 0, items: [{ productName: "Entry Ticket", quantity: 1 }], daysAgo: 35, scanned: true });
+seedTransaction({ eventTitle: "Past Meetup (E2E)", buyerIdx: 1, items: [{ productName: "Entry Ticket", quantity: 2 }], daysAgo: 34, scanned: true });
+seedTransaction({ eventTitle: "Past Meetup (E2E)", buyerIdx: 2, items: [{ productName: "Entry Ticket", quantity: 1 }], daysAgo: 33, scanned: true });
+seedTransaction({ eventTitle: "Past Meetup (E2E)", buyerIdx: 3, items: [{ productName: "Entry Ticket", quantity: 1 }], daysAgo: 32, scanned: true });
+seedTransaction({ eventTitle: "Past Meetup (E2E)", buyerIdx: -1, items: [{ productName: "Entry Ticket", quantity: 2 }], daysAgo: 38, scanned: true });
+seedTransaction({ eventTitle: "Past Meetup (E2E)", buyerIdx: -2, items: [{ productName: "Entry Ticket", quantity: 1 }], daysAgo: 36, scanned: true });
+seedTransaction({ eventTitle: "Past Meetup (E2E)", buyerIdx: 7, items: [{ productName: "Entry Ticket", quantity: 2 }], daysAgo: 31, scanned: true });
+
+// ── Berlin Summer Social — mixed ──
+seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 0, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 5 });
+seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 1, items: [{ productName: "Free Entry", quantity: 2 }], daysAgo: 4 });
+seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 3, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 3 });
+seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 5, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 2 });
+seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 7, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 2 });
+seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 9, items: [{ productName: "Free Entry", quantity: 2 }], daysAgo: 1 });
+
+// ── Berlin Tech Talk — standard + VIP ──
+seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 0, items: [{ productName: "Standard Seat", quantity: 1 }], daysAgo: 10 });
+seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 1, items: [{ productName: "Standard Seat", quantity: 2 }], daysAgo: 8 });
+seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 5, items: [{ productName: "VIP Seat (front row + networking)", quantity: 1 }], daysAgo: 7 });
+seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 7, items: [{ productName: "Standard Seat", quantity: 1 }], daysAgo: 6 });
+seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: -1, items: [{ productName: "VIP Seat (front row + networking)", quantity: 1 }], daysAgo: 12 });
+seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 3, items: [{ productName: "Standard Seat", quantity: 2 }], daysAgo: 5 });
+
+// ── Welcome Night ──
+seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: 3, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 2 });
+seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: 7, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 2 });
+seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: 9, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 1 });
+seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: -2, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 3 });
+
+// ── Munich Hike ──
+seedTransaction({ eventTitle: "Munich Community Hike – Englischer Garten", buyerIdx: 2, items: [{ productName: "Hiker Spot", quantity: 1 }], daysAgo: 6 });
+seedTransaction({ eventTitle: "Munich Community Hike – Englischer Garten", buyerIdx: 5, items: [{ productName: "Hiker Spot", quantity: 2 }], daysAgo: 4 });
+seedTransaction({ eventTitle: "Munich Community Hike – Englischer Garten", buyerIdx: 7, items: [{ productName: "Hiker Spot", quantity: 1 }], daysAgo: 3 });
+seedTransaction({ eventTitle: "Munich Community Hike – Englischer Garten", buyerIdx: -1, items: [{ productName: "Hiker Spot", quantity: 1 }], daysAgo: 5 });
+
+// ── Munich Workshop (paid) ──
+seedTransaction({ eventTitle: "Munich Members Workshop: Public Speaking", buyerIdx: 2, items: [{ productName: "Workshop Ticket", quantity: 1 }], daysAgo: 14 });
+seedTransaction({ eventTitle: "Munich Members Workshop: Public Speaking", buyerIdx: 5, items: [{ productName: "Workshop Ticket", quantity: 1 }], daysAgo: 12 });
+seedTransaction({ eventTitle: "Munich Members Workshop: Public Speaking", buyerIdx: 7, items: [{ productName: "Workshop Ticket", quantity: 2 }], daysAgo: 10 });
+seedTransaction({ eventTitle: "Munich Members Workshop: Public Speaking", buyerIdx: 0, items: [{ productName: "Workshop Ticket", quantity: 1 }], daysAgo: 9 });
+seedTransaction({ eventTitle: "Munich Members Workshop: Public Speaking", buyerIdx: -1, items: [{ productName: "Workshop Ticket", quantity: 2 }], daysAgo: 15 });
+
+// ── Hamburg Walk ──
+seedTransaction({ eventTitle: "Hamburg Harbour Morning Walk", buyerIdx: 1, items: [{ productName: "Walk Ticket", quantity: 1 }], daysAgo: 3 });
+seedTransaction({ eventTitle: "Hamburg Harbour Morning Walk", buyerIdx: 6, items: [{ productName: "Walk Ticket", quantity: 1 }], daysAgo: 2 });
+seedTransaction({ eventTitle: "Hamburg Harbour Morning Walk", buyerIdx: 3, items: [{ productName: "Walk Ticket", quantity: 1 }], daysAgo: 1 });
+
+// ── Hamburg Open Meetup ──
+seedTransaction({ eventTitle: "Hamburg Open Meetup", buyerIdx: 1, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 4 });
+seedTransaction({ eventTitle: "Hamburg Open Meetup", buyerIdx: 3, items: [{ productName: "Free Entry", quantity: 2 }], daysAgo: 3 });
+seedTransaction({ eventTitle: "Hamburg Open Meetup", buyerIdx: 6, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 2 });
+seedTransaction({ eventTitle: "Hamburg Open Meetup", buyerIdx: 8, items: [{ productName: "Free Entry", quantity: 2 }], daysAgo: 1 });
+
+// ── Frankfurt Breakfast (paid) ──
+seedTransaction({ eventTitle: "Frankfurt Networking Breakfast", buyerIdx: 2, items: [{ productName: "Breakfast Ticket (incl. food)", quantity: 1 }], daysAgo: 7 });
+seedTransaction({ eventTitle: "Frankfurt Networking Breakfast", buyerIdx: 4, items: [{ productName: "Breakfast Ticket (incl. food)", quantity: 2 }], daysAgo: 5 });
+seedTransaction({ eventTitle: "Frankfurt Networking Breakfast", buyerIdx: 8, items: [{ productName: "Breakfast Ticket (incl. food)", quantity: 1 }], daysAgo: 4 });
+seedTransaction({ eventTitle: "Frankfurt Networking Breakfast", buyerIdx: -2, items: [{ productName: "Breakfast Ticket (incl. food)", quantity: 1 }], daysAgo: 6 });
+
+// ── Frankfurt Pitch Night (paid + free pitcher) ──
+seedTransaction({ eventTitle: "Frankfurt Startup Pitch Night", buyerIdx: 4, items: [{ productName: "Audience Ticket", quantity: 2 }], daysAgo: 10 });
+seedTransaction({ eventTitle: "Frankfurt Startup Pitch Night", buyerIdx: 8, items: [{ productName: "Audience Ticket", quantity: 3 }], daysAgo: 8 });
+seedTransaction({ eventTitle: "Frankfurt Startup Pitch Night", buyerIdx: 2, items: [{ productName: "Audience Ticket", quantity: 2 }], daysAgo: 7 });
+seedTransaction({ eventTitle: "Frankfurt Startup Pitch Night", buyerIdx: 6, items: [{ productName: "Audience Ticket", quantity: 1 }], daysAgo: 6 });
+seedTransaction({ eventTitle: "Frankfurt Startup Pitch Night", buyerIdx: 0, items: [{ productName: "Pitcher Ticket (present your startup)", quantity: 1 }], daysAgo: 14 });
+seedTransaction({ eventTitle: "Frankfurt Startup Pitch Night", buyerIdx: 4, items: [{ productName: "Pitcher Ticket (present your startup)", quantity: 1 }], daysAgo: 12 });
+seedTransaction({ eventTitle: "Frankfurt Startup Pitch Night", buyerIdx: -1, items: [{ productName: "Audience Ticket", quantity: 4 }], daysAgo: 9 });
+seedTransaction({ eventTitle: "Frankfurt Startup Pitch Night", buyerIdx: 9, items: [{ productName: "Pitcher Ticket (present your startup)", quantity: 1 }], daysAgo: 11 });
+
+// ── Cologne Dinner (paid) ──
+seedTransaction({ eventTitle: "Cologne Members Dinner", buyerIdx: 3, items: [{ productName: "Dinner Ticket (3-course meal)", quantity: 2 }], daysAgo: 5 });
+seedTransaction({ eventTitle: "Cologne Members Dinner", buyerIdx: 8, items: [{ productName: "Dinner Ticket (3-course meal)", quantity: 1 }], daysAgo: 4 });
+seedTransaction({ eventTitle: "Cologne Members Dinner", buyerIdx: -2, items: [{ productName: "Dinner Ticket (3-course meal)", quantity: 2 }], daysAgo: 6 });
+seedTransaction({ eventTitle: "Cologne Members Dinner", buyerIdx: 4, items: [{ productName: "Dinner Ticket (3-course meal)", quantity: 1 }], daysAgo: 3 });
+seedTransaction({ eventTitle: "Cologne Members Dinner", buyerIdx: 0, items: [{ productName: "Dinner Ticket (3-course meal)", quantity: 2 }], daysAgo: 7 });
+
+// ── Cologne Meet & Greet ──
+seedTransaction({ eventTitle: "Cologne Public Meet & Greet", buyerIdx: 3, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 3 });
+seedTransaction({ eventTitle: "Cologne Public Meet & Greet", buyerIdx: 8, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 2 });
+seedTransaction({ eventTitle: "Cologne Public Meet & Greet", buyerIdx: -2, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 2 });
+seedTransaction({ eventTitle: "Cologne Public Meet & Greet", buyerIdx: 4, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 1 });
+
+// ── Town Hall (global, free) ──
+seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: -1, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 10 });
+seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 0, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 8 });
+seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 2, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 7 });
+seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 4, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 6 });
+seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 6, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 5 });
+seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 8, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 4 });
+seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: -2, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 3 });
+seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 1, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 2 });
+seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 3, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 2 });
+seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 5, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 1 });
+seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 7, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 1 });
+seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 9, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 1 });
+
+const txCount = db.select().from(schema.transactions).all().length;
+const ticketCount = db.select().from(schema.tickets).all().length;
+const participantCount = db.select().from(schema.ticketParticipants).all().length;
+console.log(`  transactions seeded (${txCount} transactions, ${ticketCount} tickets, ${participantCount} participants)`);
+
+// ─── 12. Placeholder images ──────────────────────────────────────────────────
+
+const imageKeys = await downloadAndUploadSeedImages();
 
 const eventsNoImg = sqlite
-  .prepare("SELECT id FROM events WHERE deleted_at IS NULL AND (image1 IS NULL OR image2 IS NULL)")
+  .prepare("SELECT id FROM events WHERE deleted_at IS NULL AND (image1 IS NULL OR image1 LIKE '%picsum.photos%' OR image2 IS NULL OR image2 LIKE '%picsum.photos%')")
   .all() as Array<{ id: string }>;
 const updateEvent = sqlite.prepare("UPDATE events SET image1 = ?, image2 = ? WHERE id = ?");
 for (let i = 0; i < eventsNoImg.length; i++) {
-  updateEvent.run(imgUrls[i % imgUrls.length], imgUrls[(i + 1) % imgUrls.length], eventsNoImg[i].id);
+  updateEvent.run(
+    imageKeys[i % imageKeys.length],
+    imageKeys[(i + 1) % imageKeys.length],
+    eventsNoImg[i].id,
+  );
 }
 
 const postsNoImg = sqlite
-  .prepare("SELECT id FROM posts WHERE deleted_at IS NULL AND featured_image IS NULL")
+  .prepare("SELECT id FROM posts WHERE deleted_at IS NULL AND (featured_image IS NULL OR featured_image LIKE '%picsum.photos%')")
   .all() as Array<{ id: string }>;
 const updatePost = sqlite.prepare("UPDATE posts SET featured_image = ? WHERE id = ?");
 for (let i = 0; i < postsNoImg.length; i++) {
-  updatePost.run(imgUrls[i % imgUrls.length], postsNoImg[i].id);
+  updatePost.run(imageKeys[i % imageKeys.length], postsNoImg[i].id);
 }
 
 const groupsNoImg = sqlite
-  .prepare("SELECT id FROM groups WHERE image1 IS NULL OR image2 IS NULL OR image3 IS NULL")
+  .prepare("SELECT id FROM groups WHERE (image1 IS NULL OR image1 LIKE '%picsum.photos%' OR image2 IS NULL OR image2 LIKE '%picsum.photos%' OR image3 IS NULL OR image3 LIKE '%picsum.photos%')")
   .all() as Array<{ id: string }>;
 const updateGroup = sqlite.prepare("UPDATE groups SET image1 = ?, image2 = ?, image3 = ? WHERE id = ?");
 for (let i = 0; i < groupsNoImg.length; i++) {
-  updateGroup.run(imgUrls[i % imgUrls.length], imgUrls[(i + 1) % imgUrls.length], imgUrls[(i + 2) % imgUrls.length], groupsNoImg[i].id);
+  updateGroup.run(
+    imageKeys[i % imageKeys.length],
+    imageKeys[(i + 1) % imageKeys.length],
+    imageKeys[(i + 2) % imageKeys.length],
+    groupsNoImg[i].id,
+  );
 }
 
 console.log(`  images downloaded/uploaded and linked (${eventsNoImg.length} events, ${postsNoImg.length} posts, ${groupsNoImg.length} groups)`);
@@ -1059,6 +1441,12 @@ const counts = {
   reps: db.select().from(schema.groupRepresentatives).all().length,
   posts: db.select().from(schema.posts).all().length,
   events: db.select().from(schema.events).all().length,
+  inventoryGroups: db.select().from(schema.inventoryGroups).all().length,
+  products: db.select().from(schema.products).all().length,
+  transactions: db.select().from(schema.transactions).all().length,
+  tickets: db.select().from(schema.tickets).all().length,
+  ticketParticipants: db.select().from(schema.ticketParticipants).all().length,
+  participationStatus: db.select().from(schema.participationStatus).all().length,
   pages: db.select().from(schema.pages).all().length,
   menuItems: db.select().from(schema.menuItems).all().length,
   forms: db.select().from(schema.forms).all().length,

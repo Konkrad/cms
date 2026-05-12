@@ -2,6 +2,9 @@ import { component$ } from "@qwik.dev/core";
 import { routeLoader$, Link } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { groupsService } from "~/services/groups.service";
+import { db } from "~/db/connection";
+import { groupMemberships } from "~/db/schema";
+import { eq, sql } from "drizzle-orm";
 
 export const useAdminGroups = routeLoader$(async ({ params, redirect }) => {
   const groupSlug = params.group_slug;
@@ -11,7 +14,23 @@ export const useAdminGroups = routeLoader$(async ({ params, redirect }) => {
   }
 
   const items = await groupsService.getAll();
-  return { groups: items };
+
+  // Fetch member counts per group
+  const memberCounts = await db
+    .select({
+      groupId: groupMemberships.groupId,
+      count: sql<number>`count(*)`.as("count"),
+    })
+    .from(groupMemberships)
+    .groupBy(groupMemberships.groupId);
+  const countMap = new Map(memberCounts.map((r) => [r.groupId, r.count]));
+
+  const groupsWithCounts = items.map((g) => ({
+    ...g,
+    memberCount: countMap.get(g.id) ?? 0,
+  }));
+
+  return { groups: groupsWithCounts };
 });
 
 export default component$(() => {
@@ -35,7 +54,7 @@ export default component$(() => {
                 Slug
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Location
+                Members
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Created
@@ -53,7 +72,7 @@ export default component$(() => {
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-500">{group.slug}</td>
                 <td class="px-6 py-4 text-sm text-gray-500">
-                  {group.latitude}, {group.longitude}
+                  {group.memberCount}
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-500">
                   {new Date(group.createdAt).toLocaleDateString()}

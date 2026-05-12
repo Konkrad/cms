@@ -45,7 +45,7 @@ export const BlogCard = component$<BlogCardProps>(
     return (
       <div class="relative w-full max-w-[457px] rounded-lg overflow-hidden shadow-[0px_0px_6px_0px_rgba(0,0,0,0.06)] bg-white flex flex-col h-full">
         {/* Image Section */}
-        <div class="relative h-[218px] w-full overflow-hidden flex-shrink-0">
+        <div class="relative h-[218px] w-full overflow-hidden shrink-0">
           <img
             src={image}
             alt={title ?? ""}

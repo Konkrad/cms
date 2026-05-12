@@ -26,14 +26,14 @@ export const Avatar = component$<AvatarProps>(
           alt={name}
           width={size === "sm" ? 32 : size === "md" ? 48 : 56}
           height={size === "sm" ? 32 : size === "md" ? 48 : 56}
-          class={`${container} rounded-full object-cover border-2 border-gray-200 flex-shrink-0 ${className || ""}`}
+          class={`${container} rounded-full object-cover border-2 border-gray-200 shrink-0 ${className || ""}`}
         />
       );
     }
 
     return (
       <div
-        class={`${container} rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 border-2 border-gray-200 ${className || ""}`}
+        class={`${container} rounded-full bg-gray-200 flex items-center justify-center shrink-0 border-2 border-gray-200 ${className || ""}`}
       >
         <span class={`text-text-muted font-semibold ${text}`}>
           {name.charAt(0).toUpperCase()}

@@ -73,25 +73,25 @@ export default component$(() => {
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {stats.value.isGlobal ? (
           <>
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
               <div class="text-sm text-gray-600 mb-1">Total Users</div>
               <div class="text-3xl font-bold text-gray-900">
                 {stats.value.stats.users}
               </div>
             </div>
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
               <div class="text-sm text-gray-600 mb-1">Total Posts</div>
               <div class="text-3xl font-bold text-blue-600">
                 {stats.value.stats.posts}
               </div>
             </div>
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
               <div class="text-sm text-gray-600 mb-1">Total Events</div>
               <div class="text-3xl font-bold text-green-600">
                 {stats.value.stats.events}
               </div>
             </div>
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
               <div class="text-sm text-gray-600 mb-1">Total Pages</div>
               <div class="text-3xl font-bold text-slate-600">
                 {stats.value.stats.pages}
@@ -100,19 +100,19 @@ export default component$(() => {
           </>
         ) : (
           <>
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
               <div class="text-sm text-gray-600 mb-1">Members</div>
               <div class="text-3xl font-bold text-gray-900">
                 {stats.value.stats.members}
               </div>
             </div>
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
               <div class="text-sm text-gray-600 mb-1">Group Posts</div>
               <div class="text-3xl font-bold text-blue-600">
                 {stats.value.stats.posts}
               </div>
             </div>
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
               <div class="text-sm text-gray-600 mb-1">Group Events</div>
               <div class="text-3xl font-bold text-green-600">
                 {stats.value.stats.events}
@@ -122,7 +122,7 @@ export default component$(() => {
         )}
       </div>
 
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-lg shadow-sm p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Button

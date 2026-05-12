@@ -164,7 +164,7 @@ export const TileEditor = component$<TileEditorProps>((props) => {
                 </span>
                 <span>{typeLabel}</span>
                 <span
-                  class="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                  class="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm"
                   style={{
                     backgroundColor: areaColor + "20",
                     color: areaColor,

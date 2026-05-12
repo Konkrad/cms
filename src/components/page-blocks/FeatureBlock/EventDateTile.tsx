@@ -69,7 +69,7 @@ export const EventDateTile = component$<EventDateTileProps>((props) => {
   const bgClass =
     (props.variant ?? "blue") === "blue"
       ? "bg-[#034ea2]"
-      : "bg-gradient-to-b from-[#0e1148] to-[#0f1330]";
+      : "bg-linear-to-b from-[#0e1148] to-[#0f1330]";
 
   const tz = props.timezone ?? "Europe/Paris";
   const isPast = props.isPast ?? false;

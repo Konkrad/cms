@@ -474,7 +474,7 @@ export default component$(() => {
               </div>
 
               {group.remainingCapacity === 0 ? (
-                <div class="p-4 bg-gray-100 text-gray-600 rounded text-center">
+                <div class="p-4 bg-gray-100 text-gray-600 rounded-sm text-center">
                   Sold Out
                 </div>
               ) : !group.isSalesOpen ? (
@@ -516,7 +516,7 @@ export default component$(() => {
                   </p>
                 </div>
               ) : ((group.availableProducts as any[]) || []).length === 0 ? (
-                <div class="p-4 bg-gray-100 text-gray-600 rounded text-center">
+                <div class="p-4 bg-gray-100 text-gray-600 rounded-sm text-center">
                   No products available
                 </div>
               ) : (
@@ -528,7 +528,7 @@ export default component$(() => {
                       return (
                         <label
                           key={product.id}
-                          class={`flex items-start gap-4 p-4 border rounded cursor-pointer hover:bg-gray-50 ${isSelected ? "border-blue-500 bg-blue-50" : ""}`}
+                          class={`flex items-start gap-4 p-4 border rounded-sm cursor-pointer hover:bg-gray-50 ${isSelected ? "border-blue-500 bg-blue-50" : ""}`}
                         >
                           <input
                             type="radio"
@@ -578,7 +578,7 @@ export default component$(() => {
                                 <img
                                   src={publicImageUrlFromKey(product.imageKey) ?? undefined}
                                   alt={product.name}
-                                  class="w-20 h-20 object-cover rounded ml-4"
+                                  class="w-20 h-20 object-cover rounded-sm ml-4"
                                 />
                               )}
                             </div>
@@ -655,7 +655,7 @@ export default component$(() => {
             <h2 class="text-xl font-bold mb-4">Payment Details</h2>
 
             {paymentError.value && (
-              <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded mb-4">
+              <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-sm mb-4">
                 {paymentError.value}
               </div>
             )}
@@ -725,7 +725,7 @@ export default component$(() => {
             <p class="text-gray-600 text-lg mb-6">
               Thank you for your purchase. Your tickets have been generated.
             </p>
-            <div class="p-6 bg-green-50 border border-green-200 rounded">
+            <div class="p-6 bg-green-50 border border-green-200 rounded-sm">
               <h3 class="font-bold mb-2">What's Next?</h3>
               <ul class="text-left space-y-2 text-sm">
                 <li>📧 Check your email for your tickets with QR codes</li>
@@ -738,13 +738,13 @@ export default component$(() => {
             <div class="flex gap-4 justify-center mt-6">
               <a
                 href={`/profile/tickets`}
-                class="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
+                class="px-6 py-3 bg-blue-600 text-white rounded-sm hover:bg-blue-700"
               >
                 View My Tickets
               </a>
               <a
                 href={`/events/${data.value.eventId}`}
-                class="px-6 py-3 border border-gray-300 rounded hover:bg-gray-50"
+                class="px-6 py-3 border border-gray-300 rounded-sm hover:bg-gray-50"
               >
                 Back to Event
               </a>

@@ -31,7 +31,7 @@ export default component$(() => {
       </div>
 
       {data.value.forms.length === 0 ? (
-        <div class="bg-white shadow rounded-lg p-8 text-center">
+        <div class="bg-white shadow-sm rounded-lg p-8 text-center">
           <p class="text-gray-500">No forms created yet.</p>
         </div>
       ) : (
@@ -66,7 +66,7 @@ export default component$(() => {
                   <tr key={form.id}>
                     <td class="px-6 py-4 font-medium">{form.title}</td>
                     <td class="px-6 py-4">
-                      <code class="text-sm bg-gray-100 px-2 py-1 rounded">{form.slug}</code>
+                      <code class="text-sm bg-gray-100 px-2 py-1 rounded-sm">{form.slug}</code>
                     </td>
                     <td class="px-6 py-4 capitalize">{form.visibility}</td>
                     <td class="px-6 py-4">{form.isSystemForm ? form.systemKey || "yes" : "-"}</td>

@@ -74,7 +74,7 @@ export default component$(() => {
       <h1 class="text-3xl font-bold text-gray-900 mb-8">Create New Page</h1>
 
       {action.value?.error && (
-        <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
           {action.value.error}
         </div>
       )}

@@ -214,7 +214,7 @@ export const Navigation = component$(() => {
             ) : (
               <Link
                 href="/login"
-                class="flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium transition-colors"
+                class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-sm hover:bg-blue-700 font-medium transition-colors"
               >
                 Login
               </Link>

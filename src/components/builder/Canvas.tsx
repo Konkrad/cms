@@ -22,7 +22,7 @@ export const Canvas = component$<CanvasProps>((props) => {
     <div class="flex-1 overflow-y-auto bg-gray-100">
       <div class="max-w-5xl mx-auto py-8">
         {props.blocks.length === 0 ? (
-          <div class="bg-white rounded-lg shadow-sm border-2 border-dashed border-gray-300 p-12 text-center">
+          <div class="bg-white rounded-lg shadow-xs border-2 border-dashed border-gray-300 p-12 text-center">
             <div class="text-6xl mb-4">🎨</div>
             <h3 class="text-xl font-semibold text-gray-700 mb-2">
               Start Building Your Page

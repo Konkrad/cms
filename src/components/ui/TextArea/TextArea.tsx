@@ -17,7 +17,7 @@ export const TextArea = component$<TextAreaProps>(
 				)}
 				<textarea
 					{...props}
-					class={`px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-focus-ring resize-y ${
+					class={`px-3 py-2 border rounded-lg focus:outline-hidden focus:ring-2 focus:ring-focus-ring resize-y ${
 						error ? "border-error" : "border-border-strong"
 					} ${className || ""}`}
 				/>

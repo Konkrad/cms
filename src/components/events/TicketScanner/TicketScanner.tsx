@@ -153,7 +153,7 @@ export const TicketScanner = component$<TicketScannerProps>(
             {scanResult.value && (
               <Alert variant={scanResult.value.success ? "success" : "error"}>
                 <div class="flex items-start">
-                  <div class="flex-shrink-0">
+                  <div class="shrink-0">
                     {scanResult.value.success ? (
                       <svg
                         class="h-6 w-6 text-green-600"

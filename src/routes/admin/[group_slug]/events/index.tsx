@@ -72,12 +72,12 @@ export default component$(() => {
       </div>
 
       {data.value.events.length === 0 ? (
-        <div class="bg-white rounded-lg shadow p-8 text-center">
+        <div class="bg-white rounded-lg shadow-sm p-8 text-center">
           <p class="text-gray-600 mb-4">No events found.</p>
           <Button href={`/admin/${data.value.groupSlug}/events/new`}>Create Your First Event</Button>
         </div>
       ) : (
-        <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="bg-white shadow-sm rounded-lg overflow-hidden">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>

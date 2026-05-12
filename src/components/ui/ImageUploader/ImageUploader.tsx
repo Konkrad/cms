@@ -279,7 +279,7 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
   return (
     <div class="w-full">
       {(selectedPreviewUrl.value || props.currentUrl) && (uploadedValues.value?.length ?? 0) === 0 && (
-        <div class="mb-3 rounded border border-gray-200 overflow-hidden">
+        <div class="mb-3 rounded-sm border border-gray-200 overflow-hidden">
           <img
             src={selectedPreviewUrl.value ?? props.currentUrl ?? undefined}
             alt={selectedPreviewUrl.value ? "Selected image preview" : "Current image"}

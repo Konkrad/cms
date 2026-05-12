@@ -215,12 +215,12 @@ export default component$(() => {
     <div class="space-y-8">
       {/* Success/Error Messages */}
       {successMessage.value && (
-        <div class="p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+        <div class="p-4 bg-green-100 border border-green-400 text-green-700 rounded-sm">
           {successMessage.value}
         </div>
       )}
       {errorMessage.value && (
-        <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-sm">
           {errorMessage.value}
         </div>
       )}
@@ -243,7 +243,7 @@ export default component$(() => {
         )}
 
         {data.value.groups.length === 0 && !showGroupForm.value && (
-          <div class="p-8 text-center text-gray-500 border rounded">
+          <div class="p-8 text-center text-gray-500 border rounded-sm">
             <p class="mb-2">No inventory groups yet.</p>
             <p class="text-sm">
               Create an inventory group to start adding products.
@@ -252,7 +252,7 @@ export default component$(() => {
         )}
 
         {data.value.groups.map((group) => (
-          <div key={group.id} class="mb-6 p-4 border rounded bg-white">
+          <div key={group.id} class="mb-6 p-4 border rounded-sm bg-white">
             <div class="flex justify-between items-center mb-4">
               <div>
                 <h3 class="text-lg font-bold">{group.name}</h3>
@@ -288,13 +288,13 @@ export default component$(() => {
                 {group.products.map((product) => (
                   <div
                     key={product.id}
-                    class="p-3 bg-gray-50 rounded flex gap-4"
+                    class="p-3 bg-gray-50 rounded-sm flex gap-4"
                   >
                     {product.imageUrl && (
                       <img
                         src={product.imageUrl}
                         alt={product.name}
-                        class="w-16 h-16 object-cover rounded flex-shrink-0"
+                        class="w-16 h-16 object-cover rounded-sm shrink-0"
                       />
                     )}
                     <div class="flex-1">

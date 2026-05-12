@@ -17,7 +17,7 @@ export const Select = component$<SelectProps>(
 				)}
 				<select
 					{...props}
-					class={`px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-focus-ring bg-white ${
+					class={`px-3 py-2 border rounded-lg focus:outline-hidden focus:ring-2 focus:ring-focus-ring bg-white ${
 						error ? "border-error" : "border-border-strong"
 					} ${className || ""}`}
 				>

@@ -97,7 +97,7 @@ export default component$(() => {
         <Button href={`/admin/${data.value.groupSlug}/posts`} variant="secondary">Back to Posts</Button>
       </div>
 
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-lg shadow-sm p-6">
         <form preventdefault:submit onSubmit$={handleSubmit} class="space-y-6">
           <Input
             name="title"
@@ -109,9 +109,9 @@ export default component$(() => {
 
           <p class="text-sm font-medium text-gray-700 mb-1">Featured Image (optional)</p>
           {!showFeaturedUploader.value && data.value.post.featuredImage ? (
-            <div class="relative rounded border border-gray-200 overflow-hidden">
+            <div class="relative rounded-sm border border-gray-200 overflow-hidden">
               <img src={data.value.featuredImageUrl || ""} alt="Current" class="w-full object-cover" style={{ aspectRatio: "1/1" }} />
-              <button type="button" class="absolute bottom-2 right-2 rounded bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow hover:bg-white" onClick$={() => { showFeaturedUploader.value = true; }}>Change image</button>
+              <button type="button" class="absolute bottom-2 right-2 rounded-sm bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-white" onClick$={() => { showFeaturedUploader.value = true; }}>Change image</button>
               <input type="hidden" name="featuredImage" value={data.value.post.featuredImage} />
             </div>
           ) : (
@@ -148,13 +148,13 @@ export default component$(() => {
           />
 
           {updatePostAction.value?.error && (
-            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm">
               {updatePostAction.value.error}
             </div>
           )}
 
           {updatePostAction.value?.success && (
-            <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+            <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-sm">
               Post updated successfully!
             </div>
           )}

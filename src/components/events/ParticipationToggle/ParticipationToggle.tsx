@@ -67,7 +67,7 @@ interface ParticipationSummaryProps {
 export const ParticipationSummary = component$<ParticipationSummaryProps>(
   ({ summary }) => {
     return (
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-lg shadow-sm p-6">
         <h3 class="text-lg font-semibold mb-4">Participation Summary</h3>
         <div class="grid grid-cols-3 gap-4">
           <div class="text-center">

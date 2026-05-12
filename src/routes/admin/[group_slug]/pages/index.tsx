@@ -121,25 +121,25 @@ export default component$(() => {
       </div>
 
       {deletePageAction.value?.success && (
-        <div class="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+        <div class="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-sm">
           Page deleted successfully
         </div>
       )}
 
       {deletePageAction.value?.error && (
-        <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
           {deletePageAction.value.error}
         </div>
       )}
 
       {addToMenuAction.value?.success && (
-        <div class="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+        <div class="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-sm">
           Page added to menu successfully
         </div>
       )}
 
       {addToMenuAction.value?.error && (
-        <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
           {addToMenuAction.value.error}
         </div>
       )}
@@ -176,7 +176,7 @@ export default component$(() => {
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <code class="text-sm bg-gray-100 px-2 py-1 rounded">
+                    <code class="text-sm bg-gray-100 px-2 py-1 rounded-sm">
                       {page.slug}
                     </code>
                   </td>

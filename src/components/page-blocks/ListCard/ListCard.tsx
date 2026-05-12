@@ -27,7 +27,7 @@ export const ListCard = component$<ListCardProps>(
       <div class="relative w-full bg-white rounded-[20px] shadow-[0px_0px_6px_0px_rgba(0,0,0,0.06)] overflow-hidden flex flex-row">
         {/* Left side: image */}
         {image && (
-          <div class="w-[140px] sm:w-[160px] md:w-[180px] flex-shrink-0">
+          <div class="w-[140px] sm:w-[160px] md:w-[180px] shrink-0">
             <img
               src={image}
               alt={imageAlt || title}
@@ -67,7 +67,7 @@ export const ListCard = component$<ListCardProps>(
           </h3>
 
           {description && (
-            <p class="font-['Lato',sans-serif] font-normal text-[15px] leading-[1.5] text-gray-700 mt-2">
+            <p class="font-['Lato',sans-serif] font-normal text-[15px] leading-normal text-gray-700 mt-2">
               {description}
             </p>
           )}

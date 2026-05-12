@@ -308,7 +308,7 @@ export default component$(() => {
               </div>
 
               {group.remainingCapacity === 0 ? (
-                <div class="p-4 bg-gray-100 text-gray-600 rounded text-center">
+                <div class="p-4 bg-gray-100 text-gray-600 rounded-sm text-center">
                   Sold Out
                 </div>
               ) : (
@@ -374,7 +374,7 @@ export default component$(() => {
                               <img
                                 src={publicImageUrlFromKey(product.imageKey) ?? undefined}
                                 alt={product.name}
-                                class="w-20 h-20 object-cover rounded ml-4"
+                                class="w-20 h-20 object-cover rounded-sm ml-4"
                               />
                             )}
                           </div>
@@ -578,13 +578,13 @@ export default component$(() => {
             <h2 class="text-xl font-bold mb-4">Payment Details</h2>
 
             {processPayment.value?.failed && (
-              <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded mb-4">
+              <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-sm mb-4">
                 {processPayment.value.message}
               </div>
             )}
 
             {processPayment.value?.success && (
-              <div class="p-4 bg-green-100 border border-green-400 text-green-700 rounded mb-4">
+              <div class="p-4 bg-green-100 border border-green-400 text-green-700 rounded-sm mb-4">
                 {processPayment.value.message}
               </div>
             )}
@@ -628,7 +628,7 @@ export default component$(() => {
               )}
 
               {/* TODO: Add Stripe Elements here */}
-              <div class="p-8 bg-gray-50 border-2 border-dashed border-gray-300 rounded text-center text-gray-600">
+              <div class="p-8 bg-gray-50 border-2 border-dashed border-gray-300 rounded-sm text-center text-gray-600">
                 <p class="mb-2 font-medium">Stripe Payment Integration</p>
                 <p class="text-sm">Payment form will be integrated here</p>
               </div>

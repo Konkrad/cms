@@ -104,7 +104,7 @@ export default component$(() => {
         <Button href="/admin/global/groups" variant="secondary">Back to Groups</Button>
       </div>
 
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-lg shadow-sm p-6">
         <form preventdefault:submit onSubmit$={handleSubmit} class="space-y-6">
           <Input
             name="name"
@@ -164,7 +164,7 @@ export default component$(() => {
           </div>
 
           {createGroupAction.value?.error && (
-            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm">
               {createGroupAction.value.error}
             </div>
           )}

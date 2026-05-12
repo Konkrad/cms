@@ -17,11 +17,6 @@ jobs:
         env:
           MINIO_ROOT_USER: test
           MINIO_ROOT_PASSWORD: testtest
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
         command: server /data --console-address ":9001"
 
       mailpit:
@@ -34,21 +29,11 @@ jobs:
           MP_DATABASE: /data/mailpit.db
           MP_SMTP_AUTH_ACCEPT_ANY: 1
           MP_SMTP_AUTH_ALLOW_INSECURE: 1
-        options: >-
-          --health-cmd "curl -f http://localhost:8025 || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
       stripe-mock:
         image: stripe/stripe-mock:latest
         ports:
           - 12111:12111
-        options: >-
-          --health-cmd "curl -f http://localhost:12111/ || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -60,6 +45,43 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Wait for services
+        run: |
+          set -euo pipefail
+
+          wait_for_http() {
+            local url="$1"
+            local label="$2"
+            for _ in $(seq 1 30); do
+              if curl -fsS "$url" >/dev/null; then
+                echo "$label is ready"
+                return 0
+              fi
+              sleep 2
+            done
+            echo "$label did not become ready" >&2
+            exit 1
+          }
+
+          wait_for_port() {
+            local host="$1"
+            local port="$2"
+            local label="$3"
+            for _ in $(seq 1 30); do
+              if (echo > "/dev/tcp/${host}/${port}") >/dev/null 2>&1; then
+                echo "$label is ready"
+                return 0
+              fi
+              sleep 2
+            done
+            echo "$label did not become ready" >&2
+            exit 1
+          }
+
+          wait_for_http http://localhost:9000/minio/health/live minio
+          wait_for_http http://localhost:8025/api/v1/messages?limit=1 mailpit
+          wait_for_port localhost 12111 stripe-mock
 
       - name: Run unit tests
         run: npm run test:unit

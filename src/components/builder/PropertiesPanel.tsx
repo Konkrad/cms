@@ -12,10 +12,26 @@ interface PropertiesPanelProps {
   selectedBlock?: BlockData;
   definition?: BlockDefinition;
   onUpdateData: QRL<(blockId: string, data: Record<string, any>) => void>;
+  triggerSignal?: import("@qwik.dev/core").Signal<boolean>;
+  onSettled$?: QRL<() => void>;
 }
 
 export const PropertiesPanel = component$<PropertiesPanelProps>((props) => {
   const localData = useSignal<Record<string, any>>({});
+  const settledImageUploaders = useSignal(0);
+
+  const imageUploadFields =
+    props.definition?.configSchema.filter((field) => field.type === "image-upload") ?? [];
+
+  useTask$(({ track }) => {
+    const shouldTrigger = track(() => props.triggerSignal?.value);
+    if (shouldTrigger) {
+      settledImageUploaders.value = 0;
+      if (imageUploadFields.length === 0) {
+        void props.onSettled$?.();
+      }
+    }
+  });
 
   useTask$(({ track }) => {
     track(() => props.selectedBlock);
@@ -185,6 +201,13 @@ export const PropertiesPanel = component$<PropertiesPanelProps>((props) => {
                 <ImageUploader
                   path={field.uploadPath ?? "public/page-blocks"}
                   pipeline={field.pipeline ?? "standard"}
+                  triggerSignal={props.triggerSignal}
+                  onSettled$={$(() => {
+                    settledImageUploaders.value += 1;
+                    if (settledImageUploaders.value >= imageUploadFields.length) {
+                      void props.onSettled$?.();
+                    }
+                  })}
                   aspectRatio={field.aspectRatio ?? "1/1"}
                   crop={field.crop}
                   cropAspectRatio={field.cropAspectRatio}
@@ -212,6 +235,8 @@ export const PropertiesPanel = component$<PropertiesPanelProps>((props) => {
                 onChange$={$((newValue: string) => {
                   handleChange(field.name, newValue);
                 })}
+                triggerSignal={props.triggerSignal}
+                onSettled$={props.onSettled$}
               />
             );
           }

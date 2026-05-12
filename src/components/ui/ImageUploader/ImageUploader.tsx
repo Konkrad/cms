@@ -174,6 +174,11 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
         updatePreview(data);
       }
 
+      // In auto-upload mode without crop editor, upload immediately.
+      if (props.autoUpload && !props.crop) {
+        void uppy.upload();
+      }
+
       // Wait for ImageEditor to initialise the cropper, then attach live listeners
       if (props.crop) {
         // Retry a few times as the cropper may initialise lazily (on first edit action)
@@ -200,6 +205,11 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
         if (fileId) {
           uppy.setFileState(fileId, { data });
         }
+      }
+
+      // In auto-upload mode with crop enabled, upload right after crop confirm.
+      if (props.autoUpload) {
+        void uppy.upload();
       }
     });
 

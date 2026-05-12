@@ -10,6 +10,8 @@ import { publicImageUrlFromKey } from "~/utils/images";
 interface TileEditorProps {
   value: string;
   onChange$: QRL<(value: string) => void>;
+  triggerSignal?: import("@qwik.dev/core").Signal<boolean>;
+  onSettled$?: QRL<() => void>;
 }
 
 const TILE_TYPE_OPTIONS = [
@@ -52,6 +54,18 @@ export const TileEditor = component$<TileEditorProps>((props) => {
   const tiles = useSignal<TileConfig[]>(parseTiles(props.value));
   const expandedIndex = useSignal<number | null>(null);
   const lastSerializedValue = useSignal(props.value);
+  const settledImageUploaders = useSignal(0);
+
+  useTask$(({ track }) => {
+    const shouldTrigger = track(() => props.triggerSignal?.value);
+    if (shouldTrigger) {
+      settledImageUploaders.value = 0;
+      const imageTileCount = tiles.value.filter((tile) => tile.type === "image").length;
+      if (imageTileCount === 0) {
+        void props.onSettled$?.();
+      }
+    }
+  });
 
   useTask$(({ track }) => {
     const val = track(() => props.value);
@@ -319,6 +333,14 @@ export const TileEditor = component$<TileEditorProps>((props) => {
                       <ImageUploader
                         path="public/page-blocks/feature-grid"
                         pipeline="standard"
+                        triggerSignal={props.triggerSignal}
+                        onSettled$={$(() => {
+                          settledImageUploaders.value += 1;
+                          const imageTileCount = tiles.value.filter((candidate) => candidate.type === "image").length;
+                          if (settledImageUploaders.value >= imageTileCount) {
+                            void props.onSettled$?.();
+                          }
+                        })}
                         crop
                         cropAspectRatio="3/4"
                         aspectRatio="3/4"

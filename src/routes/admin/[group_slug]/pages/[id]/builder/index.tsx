@@ -70,6 +70,8 @@ export default component$(() => {
   const selectedBlockId = useSignal<string | null>(null);
   const hasUnsavedChanges = useSignal(false);
   const definitionsMap = useSignal<Map<string, BlockDefinition>>(new Map());
+  const uploadTrigger = useSignal(false);
+  const settledUploadGroups = useSignal(0);
 
   useTask$(({ track }) => {
     track(() => page.value);
@@ -172,83 +174,43 @@ export default component$(() => {
     hasUnsavedChanges.value = true;
   });
 
+  const handleUploadGroupSettled = $(() => {
+    settledUploadGroups.value += 1;
+  });
+
+  const waitForUploads = async (expectedGroups: number) => {
+    if (expectedGroups <= 0) return;
+
+    settledUploadGroups.value = 0;
+    uploadTrigger.value = false;
+    await new Promise<void>((resolve) => {
+      const check = () => {
+        if (settledUploadGroups.value >= expectedGroups) {
+          resolve();
+          return;
+        }
+        setTimeout(check, 25);
+      };
+      uploadTrigger.value = true;
+      check();
+    });
+    uploadTrigger.value = false;
+  };
+
   const handleSave = $(async () => {
-    // Clone blocks to avoid mutating the signal while we process uploads
-    let blocksToSave = JSON.parse(JSON.stringify(blocks.value));
+    const selectedBlock = blocks.value.find((block) => block.id === selectedBlockId.value);
+    const selectedDefinition = selectedBlock
+      ? definitionsMap.value.get(selectedBlock.componentType)
+      : undefined;
+    const hasTileEditor = !!selectedDefinition?.configSchema.some(
+      (field) => field.type === "tiles",
+    );
+    const expectedUploadGroups = 1 + (hasTileEditor ? 1 : 0);
 
-    // Upload any pending blob URLs for configured image-upload fields.
-    for (const block of blocksToSave) {
-      const definition = definitionsMap.value.get(block.componentType);
-      const fields = definition?.configSchema ?? [];
+    await waitForUploads(expectedUploadGroups);
 
-      for (const field of fields) {
-        if (field.type !== "image-upload") continue;
+    const blocksToSave = JSON.parse(JSON.stringify(blocks.value));
 
-        const fieldValue = block.data?.[field.name];
-        if (typeof fieldValue !== "string" || !fieldValue.startsWith("blob:")) {
-          continue;
-        }
-
-        try {
-          const blobResponse = await fetch(fieldValue);
-          const blob = await blobResponse.blob();
-
-          const uploadResponse = await fetch("/api/images", {
-            method: "POST",
-            headers: {
-              "x-upload-path": field.uploadPath ?? "public/page-blocks",
-              "x-pipeline": field.pipeline ?? "standard",
-            },
-            body: blob,
-          });
-
-          if (uploadResponse.ok) {
-            const uploadedData = await uploadResponse.json();
-            if (uploadedData?.filePath) {
-              block.data[field.name] = uploadedData.filePath;
-            }
-          }
-        } catch (err) {
-          console.error(`Failed to upload blob image for field ${field.name}:`, err);
-        }
-      }
-    }
-    
-    // Scan for blob URLs in feature blocks and upload them
-    for (const block of blocksToSave) {
-      if (block.componentType === "FeatureBlock" && block.data.tilesJson) {
-        try {
-          const tiles = JSON.parse(block.data.tilesJson);
-          for (const tile of tiles) {
-            if (tile.image?.startsWith("blob:")) {
-              // Convert blob URL to File and upload it
-              const response = await fetch(tile.image);
-              const blob = await response.blob();
-              const formData = new FormData();
-              formData.append("file", blob, "image.webp");
-              
-              const uploadResponse = await fetch("/api/images", {
-                method: "POST",
-                headers: {
-                  "x-upload-path": "public/page-blocks/feature-grid",
-                  "x-pipeline": "standard",
-                },
-                body: blob,
-              });
-              
-              if (uploadResponse.ok) {
-                const uploadedData = await uploadResponse.json();
-                tile.image = uploadedData.filePath;
-              }
-            }
-          }
-          block.data.tilesJson = JSON.stringify(tiles);
-        } catch (err) {
-          console.error("Failed to upload blob image:", err);
-        }
-      }
-    }
-    
     const formData = new FormData();
     formData.append("content", JSON.stringify(blocksToSave));
 
@@ -327,6 +289,8 @@ export default component$(() => {
               : undefined
           }
           onUpdateData={handleUpdateBlockData}
+          triggerSignal={uploadTrigger}
+          onSettled$={handleUploadGroupSettled}
         />
       </div>
     </div>

@@ -178,7 +178,7 @@ export default component$(() => {
     settledUploadGroups.value += 1;
   });
 
-  const waitForUploads = async (expectedGroups: number) => {
+  const waitForUploads = $(async (expectedGroups: number) => {
     if (expectedGroups <= 0) return;
 
     settledUploadGroups.value = 0;
@@ -195,7 +195,7 @@ export default component$(() => {
       check();
     });
     uploadTrigger.value = false;
-  };
+  });
 
   const handleSave = $(async () => {
     const selectedBlock = blocks.value.find((block) => block.id === selectedBlockId.value);

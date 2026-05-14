@@ -269,16 +269,6 @@ export const MenuTable = (props: MenuTableProps) => {
     }
   };
 
-  const handleAddMainSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    setAddError(null);
-    const result = await onAdd({ menuName: "main", label: fd.get("label") as string, url: fd.get("url") as string });
-    if (result.success) form.reset();
-    else setAddError(result.error ?? "Add failed");
-  };
-
   const handleAddFooterSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
@@ -287,15 +277,6 @@ export const MenuTable = (props: MenuTableProps) => {
     const result = await onAdd({ menuName: "footer", label: fd.get("label") as string, url: fd.get("url") as string, icon: (fd.get("icon") as string) || undefined });
     if (result.success) form.reset();
     else setAddError(result.error ?? "Add failed");
-  };
-
-  const handleSvgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const text = await file.text();
-    const form = e.target.closest("form");
-    const iconField = form?.querySelector('textarea[name="icon"]') as HTMLTextAreaElement | null;
-    if (iconField) iconField.value = text;
   };
 
   const handleDelete = async (item: MenuItem) => {
@@ -356,39 +337,41 @@ export const MenuTable = (props: MenuTableProps) => {
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">{normalizeUrl(item.url)}</td>
                   <td className="px-4 py-3 text-sm">
-                    <div className="flex items-center gap-3">
-                      {pageIdByUrl[normalizeUrl(item.url)] ? (
-                        <>
-                          <a
-                            href={`/admin/global/pages/${pageIdByUrl[normalizeUrl(item.url)]}/edit`}
+                    {!staticUrlSet.has(normalizeUrl(item.url)) && (
+                      <div className="flex items-center gap-3">
+                        {pageIdByUrl[normalizeUrl(item.url)] ? (
+                          <>
+                            <a
+                              href={`/admin/global/pages/${pageIdByUrl[normalizeUrl(item.url)]}/edit`}
+                              className="text-blue-600 hover:text-blue-900"
+                            >
+                              Edit
+                            </a>
+                            <a
+                              href={`/admin/global/pages/${pageIdByUrl[normalizeUrl(item.url)]}/builder`}
+                              className="text-blue-600 hover:text-blue-900"
+                            >
+                              Builder
+                            </a>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
                             className="text-blue-600 hover:text-blue-900"
+                            onClick={() => setMainEditingId((prev) => (prev === item.id ? null : item.id))}
                           >
                             Edit
-                          </a>
-                          <a
-                            href={`/admin/global/pages/${pageIdByUrl[normalizeUrl(item.url)]}/builder`}
-                            className="text-blue-600 hover:text-blue-900"
-                          >
-                            Builder
-                          </a>
-                        </>
-                      ) : (
+                          </button>
+                        )}
                         <button
                           type="button"
-                          className="text-blue-600 hover:text-blue-900"
-                          onClick={() => setMainEditingId((prev) => (prev === item.id ? null : item.id))}
+                          className="text-red-600 hover:text-red-900"
+                          onClick={() => handleDelete(item)}
                         >
-                          Edit
+                          Delete
                         </button>
-                      )}
-                      <button
-                        type="button"
-                        className="text-red-600 hover:text-red-900"
-                        onClick={() => handleDelete(item)}
-                      >
-                        Delete
-                      </button>
-                    </div>
+                      </div>
+                    )}
                   </td>
                 </SortableRow>
               ))}
@@ -413,39 +396,41 @@ export const MenuTable = (props: MenuTableProps) => {
                   </td>
                   <td className="px-4 py-3 text-sm">{normalizeUrl(item.url)}</td>
                   <td className="px-4 py-3 text-sm">
-                    <div className="flex items-center gap-3">
-                      {pageIdByUrl[normalizeUrl(item.url)] ? (
-                        <>
-                          <a
-                            href={`/admin/global/pages/${pageIdByUrl[normalizeUrl(item.url)]}/edit`}
+                    {!staticUrlSet.has(normalizeUrl(item.url)) && (
+                      <div className="flex items-center gap-3">
+                        {pageIdByUrl[normalizeUrl(item.url)] ? (
+                          <>
+                            <a
+                              href={`/admin/global/pages/${pageIdByUrl[normalizeUrl(item.url)]}/edit`}
+                              className="text-blue-500 hover:text-blue-700"
+                            >
+                              Edit
+                            </a>
+                            <a
+                              href={`/admin/global/pages/${pageIdByUrl[normalizeUrl(item.url)]}/builder`}
+                              className="text-blue-500 hover:text-blue-700"
+                            >
+                              Builder
+                            </a>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
                             className="text-blue-500 hover:text-blue-700"
+                            onClick={() => setMainEditingId((prev) => (prev === item.id ? null : item.id))}
                           >
                             Edit
-                          </a>
-                          <a
-                            href={`/admin/global/pages/${pageIdByUrl[normalizeUrl(item.url)]}/builder`}
-                            className="text-blue-500 hover:text-blue-700"
-                          >
-                            Builder
-                          </a>
-                        </>
-                      ) : (
+                          </button>
+                        )}
                         <button
                           type="button"
-                          className="text-blue-500 hover:text-blue-700"
-                          onClick={() => setMainEditingId((prev) => (prev === item.id ? null : item.id))}
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => handleDelete(item)}
                         >
-                          Edit
+                          Delete
                         </button>
-                      )}
-                      <button
-                        type="button"
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => handleDelete(item)}
-                      >
-                        Delete
-                      </button>
-                    </div>
+                      </div>
+                    )}
                   </td>
                 </SortableRow>
               ))}
@@ -461,14 +446,6 @@ export const MenuTable = (props: MenuTableProps) => {
           </form>
         ))}
 
-        <details className="mt-4">
-          <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-800">+ Add custom link</summary>
-          <form className="mt-2 flex flex-wrap gap-2 border rounded-sm p-3 bg-gray-50" onSubmit={handleAddMainSubmit}>
-            <input type="text" name="label" placeholder="Label" className="border rounded-sm px-2 py-1 text-sm" required />
-            <input type="text" name="url" placeholder="/about or https://..." className="border rounded-sm px-2 py-1 text-sm" required />
-            <button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700">Add</button>
-          </form>
-        </details>
       </div>
 
       {/* ── Footer Links ── */}
@@ -478,11 +455,6 @@ export const MenuTable = (props: MenuTableProps) => {
         <form className="flex flex-wrap gap-2 mb-4 border rounded-sm p-3 bg-gray-50" onSubmit={handleAddFooterSubmit}>
           <input type="text" name="label" placeholder="Label" className="border rounded-sm px-2 py-1 text-sm" required />
           <input type="text" name="url" placeholder="/imprint or https://..." className="border rounded-sm px-2 py-1 text-sm" required />
-          <textarea name="icon" rows={1} placeholder="SVG text or badge label" className="border rounded-sm px-2 py-1 text-xs" />
-          <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
-            Upload SVG:
-            <input type="file" accept=".svg,image/svg+xml" className="text-xs" onChange={handleSvgUpload} />
-          </label>
           <button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700">Add</button>
         </form>
 
@@ -493,7 +465,6 @@ export const MenuTable = (props: MenuTableProps) => {
                 <th className="px-2 py-3 w-8" />
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Label</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Icon</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -507,9 +478,6 @@ export const MenuTable = (props: MenuTableProps) => {
                 >
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.label}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{normalizeUrl(item.url)}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500 max-w-[120px] truncate">
-                    {item.icon ? (item.icon.startsWith("<svg") ? "[SVG]" : item.icon) : "–"}
-                  </td>
                   <td className="px-4 py-3 text-sm">
                     <div className="flex items-center gap-3">
                       <button
@@ -538,8 +506,6 @@ export const MenuTable = (props: MenuTableProps) => {
           <form key={item.id} className="mt-3 flex flex-wrap gap-2 border rounded-sm p-3 bg-gray-50" onSubmit={(e) => handleUpdateSubmit(e, item)}>
             <input type="text" name="label" defaultValue={item.label} placeholder="Label" className="border rounded-sm px-2 py-1 text-sm" required />
             <input type="text" name="url" defaultValue={normalizeUrl(item.url)} placeholder="URL" className="border rounded-sm px-2 py-1 text-sm" required />
-            <textarea name="icon" rows={3} className="border rounded-sm px-2 py-1 text-xs w-full" defaultValue={item.icon ?? ""} placeholder="SVG text or badge label" />
-            <input type="file" accept=".svg,image/svg+xml" className="text-xs" onChange={handleSvgUpload} />
             <button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700">Save</button>
           </form>
         ))}

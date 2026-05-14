@@ -69,6 +69,8 @@ export interface MenuTableProps {
     icon?: string;
     hidden?: boolean;
   }) => Promise<ActionResult>;
+  onDelete: (params: { menuItemId: string }) => Promise<ActionResult>;
+  pageIdByUrl: Record<string, string>;
 }
 
 interface DropInfo {
@@ -147,13 +149,14 @@ function SeparatorRow() {
 // ── Main component ──
 
 export const MenuTable = (props: MenuTableProps) => {
-  const { mainItems, footerItems, staticUrls, onMove, onUpdate, onAdd } = props;
+  const { mainItems, footerItems, staticUrls, onMove, onUpdate, onAdd, onDelete, pageIdByUrl } = props;
 
   const [mainEditingId, setMainEditingId] = useState<string | null>(null);
   const [footerEditingId, setFooterEditingId] = useState<string | null>(null);
   const [moveError, setMoveError] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [dropInfo, setDropInfoState] = useState<DropInfo | null>(null);
   const dropInfoRef = useRef<DropInfo | null>(null);
   const setDropInfo = useCallback((info: DropInfo | null) => {
@@ -175,7 +178,6 @@ export const MenuTable = (props: MenuTableProps) => {
   // Track which half the pointer is over to determine before/child mode
   const handleDragMove = useCallback((event: any) => {
     const rawTargetId = event.operation?.target?.id as string | undefined;
-    console.log("[drag-move] rawTargetId:", rawTargetId);
     if (!rawTargetId) {
       setDropInfo(null);
       return;
@@ -220,7 +222,6 @@ export const MenuTable = (props: MenuTableProps) => {
     if (!sourceId) return;
 
     const { targetId, mode } = lastDropInfo;
-    console.log("[drag-end] sourceId:", sourceId, "targetId:", targetId, "mode:", mode);
 
     if (targetId === "separator") {
       setMoveError(null);
@@ -297,6 +298,13 @@ export const MenuTable = (props: MenuTableProps) => {
     if (iconField) iconField.value = text;
   };
 
+  const handleDelete = async (item: MenuItem) => {
+    if (!confirm(`Remove "${item.label}" from the menu?`)) return;
+    setDeleteError(null);
+    const result = await onDelete({ menuItemId: item.id });
+    if (!result.success) setDeleteError(result.error ?? "Delete failed");
+  };
+
   return (
     <DragDropProvider onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
       {moveError && (
@@ -307,6 +315,9 @@ export const MenuTable = (props: MenuTableProps) => {
       )}
       {addError && (
         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">{addError}</div>
+      )}
+      {deleteError && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">{deleteError}</div>
       )}
 
       {/* ── Main Menu ── */}
@@ -345,13 +356,39 @@ export const MenuTable = (props: MenuTableProps) => {
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">{normalizeUrl(item.url)}</td>
                   <td className="px-4 py-3 text-sm">
-                    <button
-                      type="button"
-                      className="text-blue-600 hover:text-blue-900"
-                      onClick={() => setMainEditingId((prev) => (prev === item.id ? null : item.id))}
-                    >
-                      Edit
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {pageIdByUrl[normalizeUrl(item.url)] ? (
+                        <>
+                          <a
+                            href={`/admin/global/pages/${pageIdByUrl[normalizeUrl(item.url)]}/edit`}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            Edit
+                          </a>
+                          <a
+                            href={`/admin/global/pages/${pageIdByUrl[normalizeUrl(item.url)]}/builder`}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            Builder
+                          </a>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          className="text-blue-600 hover:text-blue-900"
+                          onClick={() => setMainEditingId((prev) => (prev === item.id ? null : item.id))}
+                        >
+                          Edit
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="text-red-600 hover:text-red-900"
+                        onClick={() => handleDelete(item)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </SortableRow>
               ))}
@@ -376,13 +413,39 @@ export const MenuTable = (props: MenuTableProps) => {
                   </td>
                   <td className="px-4 py-3 text-sm">{normalizeUrl(item.url)}</td>
                   <td className="px-4 py-3 text-sm">
-                    <button
-                      type="button"
-                      className="text-blue-500 hover:text-blue-700"
-                      onClick={() => setMainEditingId((prev) => (prev === item.id ? null : item.id))}
-                    >
-                      Edit
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {pageIdByUrl[normalizeUrl(item.url)] ? (
+                        <>
+                          <a
+                            href={`/admin/global/pages/${pageIdByUrl[normalizeUrl(item.url)]}/edit`}
+                            className="text-blue-500 hover:text-blue-700"
+                          >
+                            Edit
+                          </a>
+                          <a
+                            href={`/admin/global/pages/${pageIdByUrl[normalizeUrl(item.url)]}/builder`}
+                            className="text-blue-500 hover:text-blue-700"
+                          >
+                            Builder
+                          </a>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          className="text-blue-500 hover:text-blue-700"
+                          onClick={() => setMainEditingId((prev) => (prev === item.id ? null : item.id))}
+                        >
+                          Edit
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="text-red-500 hover:text-red-700"
+                        onClick={() => handleDelete(item)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </SortableRow>
               ))}
@@ -448,13 +511,22 @@ export const MenuTable = (props: MenuTableProps) => {
                     {item.icon ? (item.icon.startsWith("<svg") ? "[SVG]" : item.icon) : "–"}
                   </td>
                   <td className="px-4 py-3 text-sm">
-                    <button
-                      type="button"
-                      className="text-blue-600 hover:text-blue-900"
-                      onClick={() => setFooterEditingId((prev) => (prev === item.id ? null : item.id))}
-                    >
-                      Edit
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        className="text-blue-600 hover:text-blue-900"
+                        onClick={() => setFooterEditingId((prev) => (prev === item.id ? null : item.id))}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="text-red-600 hover:text-red-900"
+                        onClick={() => handleDelete(item)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </SortableRow>
               ))}

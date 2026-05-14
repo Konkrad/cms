@@ -18,6 +18,7 @@ interface MenuTableProps {
   mainItems: MenuItem[];
   footerItems: MenuItem[];
   staticUrls: string[];
+  pageIdByUrl: Record<string, string>;
   onMove$: QRL<
     (params: {
       movedItemId: string;
@@ -46,6 +47,7 @@ interface MenuTableProps {
       hidden?: boolean;
     }) => Promise<ActionResult>
   >;
+  onDelete$: QRL<(params: { menuItemId: string }) => Promise<ActionResult>>;
 }
 
 export const MenuTable = component$<MenuTableProps>((props) => {
@@ -54,9 +56,11 @@ export const MenuTable = component$<MenuTableProps>((props) => {
       mainItems={props.mainItems}
       footerItems={props.footerItems}
       staticUrls={props.staticUrls}
+      pageIdByUrl={props.pageIdByUrl}
       onMove$={props.onMove$}
       onUpdate$={props.onUpdate$}
       onAdd$={props.onAdd$}
+      onDelete$={props.onDelete$}
     />
   );
 });

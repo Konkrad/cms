@@ -3,6 +3,8 @@ import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { MenuTable } from "~/components/admin/MenuTable/MenuTable";
 import type { MenuItem } from "~/db/schemas/menu-items";
+import { db } from "~/db/connection";
+import { pages } from "~/db/schemas/pages";
 import { menuItemsService } from "~/services/menu-items.service";
 import { STATIC_MENU_LINKS } from "~/services/static-menu-links";
 import { requireAdmin } from "~/utils/server-auth";
@@ -50,9 +52,16 @@ export const useMenuItems = routeLoader$(async () => {
 
   const footer = await menuItemsService.getAll("footer", { includeHidden: true });
 
+  const allPages = await db.select({ id: pages.id, slug: pages.slug }).from(pages);
+  const pageIdByUrl: Record<string, string> = {};
+  for (const p of allPages) {
+    pageIdByUrl[normalizeUrl(p.slug)] = p.id;
+  }
+
   return {
     main,
     footer,
+    pageIdByUrl,
   };
 });
 
@@ -101,6 +110,19 @@ const getDescendantIds = (items: MenuItem[], itemId: string): string[] => {
 
   return descendants;
 };
+
+export const useDeleteMenuItem = routeAction$(
+  async (data, event) => {
+    await requireAdmin(event);
+    try {
+      await menuItemsService.delete(data.menuItemId);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message ?? "Delete failed" };
+    }
+  },
+  zod$({ menuItemId: z.string().min(1) }),
+);
 
 export const useAddToMenu = routeAction$(
   async (data, event) => {
@@ -363,6 +385,7 @@ export default component$(() => {
   const addToMenuAction = useAddToMenu();
   const updateMenuItemAction = useUpdateMenuItem();
   const moveMenuItemAction = useMoveMenuItem();
+  const deleteMenuItemAction = useDeleteMenuItem();
 
   return (
     <div>
@@ -376,6 +399,7 @@ export default component$(() => {
       <MenuTable
         mainItems={menuItemsData.value.main}
         footerItems={menuItemsData.value.footer}
+        pageIdByUrl={menuItemsData.value.pageIdByUrl}
         staticUrls={STATIC_MENU_LINKS.map((l) => normalizeUrl(l.url))}
         onMove$={$(async (params) => {
           const result = await moveMenuItemAction.submit(params);
@@ -393,6 +417,11 @@ export default component$(() => {
         })}
         onAdd$={$(async (params) => {
           const result = await addToMenuAction.submit(params);
+          if (!result.value || "failed" in result.value) return { success: false };
+          return { success: result.value.success ?? false, error: result.value.error };
+        })}
+        onDelete$={$(async (params) => {
+          const result = await deleteMenuItemAction.submit(params);
           if (!result.value || "failed" in result.value) return { success: false };
           return { success: result.value.success ?? false, error: result.value.error };
         })}

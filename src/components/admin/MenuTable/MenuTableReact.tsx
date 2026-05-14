@@ -72,6 +72,7 @@ export interface MenuTableProps {
   }) => Promise<ActionResult>;
   onDelete: (params: { menuItemId: string }) => Promise<ActionResult>;
   pageIdByUrl: Record<string, string>;
+  pageStatusByUrl: Record<string, string>;
 }
 
 interface DropInfo {
@@ -150,7 +151,17 @@ function SeparatorRow() {
 // ── Main component ──
 
 export const MenuTable = (props: MenuTableProps) => {
-  const { mainItems, footerItems, staticUrls, onMove, onUpdate, onAdd, onDelete, pageIdByUrl } = props;
+  const { mainItems, footerItems, staticUrls, onMove, onUpdate, onAdd, onDelete, pageIdByUrl, pageStatusByUrl } = props;
+
+  const statusBadge = (url: string) => {
+    const status = pageStatusByUrl[normalizeUrl(url)];
+    if (!status) return null;
+    return status === "published" ? (
+      <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-green-700 bg-green-100 rounded px-1 py-0.5">published</span>
+    ) : (
+      <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-yellow-700 bg-yellow-100 rounded px-1 py-0.5">draft</span>
+    );
+  };
 
   const [mainEditingId, setMainEditingId] = useState<string | null>(null);
   const [footerEditingId, setFooterEditingId] = useState<string | null>(null);
@@ -344,10 +355,19 @@ export const MenuTable = (props: MenuTableProps) => {
                     {staticUrlSet.has(normalizeUrl(item.url)) && (
                       <span className="ml-2 text-xs text-gray-400">[static]</span>
                     )}
+                    {statusBadge(item.url)}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">{normalizeUrl(item.url)}</td>
                   <td className="px-4 py-3 text-sm">
-                    {!staticUrlSet.has(normalizeUrl(item.url)) && (
+                    {staticUrlSet.has(normalizeUrl(item.url)) ? (
+                      <button
+                        type="button"
+                        className="text-blue-600 hover:text-blue-900"
+                        onClick={() => setMainEditingId((prev) => (prev === item.id ? null : item.id))}
+                      >
+                        Rename
+                      </button>
+                    ) : (
                       <div className="flex items-center gap-3">
                         {pageIdByUrl[normalizeUrl(item.url)] ? (
                           <>
@@ -403,10 +423,19 @@ export const MenuTable = (props: MenuTableProps) => {
                     {staticUrlSet.has(normalizeUrl(item.url)) && (
                       <span className="ml-2 text-xs">[static]</span>
                     )}
+                    {statusBadge(item.url)}
                   </td>
                   <td className="px-4 py-3 text-sm">{normalizeUrl(item.url)}</td>
                   <td className="px-4 py-3 text-sm">
-                    {!staticUrlSet.has(normalizeUrl(item.url)) && (
+                    {staticUrlSet.has(normalizeUrl(item.url)) ? (
+                      <button
+                        type="button"
+                        className="text-blue-500 hover:text-blue-700"
+                        onClick={() => setMainEditingId((prev) => (prev === item.id ? null : item.id))}
+                      >
+                        Rename
+                      </button>
+                    ) : (
                       <div className="flex items-center gap-3">
                         {pageIdByUrl[normalizeUrl(item.url)] ? (
                           <>
@@ -451,7 +480,11 @@ export const MenuTable = (props: MenuTableProps) => {
         {mainItems.filter((item) => mainEditingId === item.id).map((item) => (
           <form key={item.id} className="mt-3 flex flex-wrap gap-2 border rounded-sm p-3 bg-gray-50" onSubmit={(e) => handleUpdateSubmit(e, item)}>
             <input type="text" name="label" defaultValue={item.label} placeholder="Label" className="border rounded-sm px-2 py-1 text-sm" required />
-            <input type="text" name="url" defaultValue={normalizeUrl(item.url)} placeholder="URL" className="border rounded-sm px-2 py-1 text-sm" required />
+            {staticUrlSet.has(normalizeUrl(item.url)) ? (
+              <input type="hidden" name="url" value={normalizeUrl(item.url)} />
+            ) : (
+              <input type="text" name="url" defaultValue={normalizeUrl(item.url)} placeholder="URL" className="border rounded-sm px-2 py-1 text-sm" required />
+            )}
             <button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700">Save</button>
           </form>
         ))}

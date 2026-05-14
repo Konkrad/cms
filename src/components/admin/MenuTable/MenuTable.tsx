@@ -19,6 +19,7 @@ interface MenuTableProps {
   footerItems: MenuItem[];
   staticUrls: string[];
   pageIdByUrl: Record<string, string>;
+  pageStatusByUrl: Record<string, string>;
   onMove$: QRL<
     (params: {
       movedItemId: string;
@@ -57,6 +58,7 @@ export const MenuTable = component$<MenuTableProps>((props) => {
       footerItems={props.footerItems}
       staticUrls={props.staticUrls}
       pageIdByUrl={props.pageIdByUrl}
+      pageStatusByUrl={props.pageStatusByUrl}
       onMove$={props.onMove$}
       onUpdate$={props.onUpdate$}
       onAdd$={props.onAdd$}

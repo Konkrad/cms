@@ -53,16 +53,19 @@ export const useMenuItems = routeLoader$(async () => {
 
   const footer = await menuItemsService.getAll("footer", { includeHidden: true });
 
-  const allPages = await db.select({ id: pages.id, slug: pages.slug }).from(pages);
+  const allPages = await db.select({ id: pages.id, slug: pages.slug, status: pages.status }).from(pages);
   const pageIdByUrl: Record<string, string> = {};
+  const pageStatusByUrl: Record<string, string> = {};
   for (const p of allPages) {
     pageIdByUrl[normalizeUrl(p.slug)] = p.id;
+    pageStatusByUrl[normalizeUrl(p.slug)] = p.status;
   }
 
   return {
     main,
     footer,
     pageIdByUrl,
+    pageStatusByUrl,
   };
 });
 
@@ -405,6 +408,7 @@ export default component$(() => {
         mainItems={menuItemsData.value.main}
         footerItems={menuItemsData.value.footer}
         pageIdByUrl={menuItemsData.value.pageIdByUrl}
+        pageStatusByUrl={menuItemsData.value.pageStatusByUrl}
         staticUrls={STATIC_MENU_LINKS.map((l) => normalizeUrl(l.url))}
         onMove$={$(async (params) => {
           const result = await moveMenuItemAction.submit(params);

@@ -26,7 +26,7 @@ export const SiteFooter = component$(() => {
                 rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
                 class="hover:text-blue-600"
               >
-                {item.label}
+                {item.title}
               </a>
             ))}
           </div>
@@ -38,7 +38,7 @@ export const SiteFooter = component$(() => {
                   href={item.url}
                   target={item.target}
                   rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
-                  title={item.label}
+                  title={item.title}
                   class="inline-flex items-center justify-center w-5 h-5 shrink-0 text-gray-500 hover:text-blue-600 [&_svg]:w-full [&_svg]:h-full [&_svg]:block"
                 >
                   {(() => {
@@ -49,7 +49,7 @@ export const SiteFooter = component$(() => {
                         dangerouslySetInnerHTML={svg}
                       />
                     ) : (
-                      <span class="text-[10px] font-semibold">{item.label}</span>
+                      <span class="text-[10px] font-semibold">{item.title}</span>
                     );
                   })()}
                 </a>

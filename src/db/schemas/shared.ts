@@ -24,7 +24,7 @@ export interface FieldDefinition {
   placeholder?: string;
   required?: boolean;
   uploadPath?: string;
-  pipeline?: "standard" | "gallery" | "thumbnail" | "profile-picture";
+  pipeline?: "standard" | "gallery" | "thumbnail" | "profile-picture" | "svg";
   aspectRatio?: string;
   crop?: boolean;
   cropAspectRatio?: string;

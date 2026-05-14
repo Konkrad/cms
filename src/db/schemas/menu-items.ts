@@ -7,11 +7,12 @@ import crypto from "crypto";
 export const menuItems = sqliteTable("menu_items", {
   id: text("id").primaryKey(),
   menuName: text("menu_name").notNull(),
-  label: text("label").notNull(),
+  title: text("title").notNull(),
   url: text("url").notNull(),
+  pageId: text("page_id"),
   parentId: text("parent_id"),
   position: integer("position").notNull().default(0),
-  hidden: integer("hidden", { mode: "boolean" }).notNull().default(false),
+  status: text("status", { enum: ["visible", "hidden"] }).notNull().default("hidden"),
   icon: text("icon"),
   target: text("target", { enum: ["_self", "_blank", "_parent", "_top"] })
     .notNull()
@@ -42,6 +43,7 @@ export const insertMenuItemSchema = baseInsertSchema
     updatedAt: true,
     position: true,
     target: true,
+    pageId: true,
   });
 
 export const updateMenuItemSchema = baseInsertSchema

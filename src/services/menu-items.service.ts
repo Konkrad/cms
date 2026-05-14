@@ -57,7 +57,7 @@ export const menuItemsService = {
       whereClause.push(eq(menuItems.menuName, menuName));
     }
     if (!options?.includeHidden) {
-      whereClause.push(eq(menuItems.hidden, false));
+      whereClause.push(eq(menuItems.status, "visible"));
     }
 
     const rows = await db
@@ -107,11 +107,11 @@ export const menuItemsService = {
       .values({
         id: randomUUID(),
         menuName: data.menuName,
-        label: data.label,
+        title: data.title,
         url: data.url,
         parentId: data.parentId ?? null,
         position: data.position !== undefined ? data.position : nextPosition,
-        hidden: data.hidden ?? false,
+        status: data.status ?? "hidden",
         icon: data.icon ?? null,
         target: data.target ?? "_self",
       })
@@ -129,11 +129,11 @@ export const menuItemsService = {
     };
 
     if (data.menuName !== undefined) updateData.menuName = data.menuName;
-    if (data.label !== undefined) updateData.label = data.label;
+    if (data.title !== undefined) updateData.title = data.title;
     if (data.url !== undefined) updateData.url = data.url;
     if (data.parentId !== undefined) updateData.parentId = data.parentId;
     if (data.position !== undefined) updateData.position = data.position;
-    if (data.hidden !== undefined) updateData.hidden = data.hidden;
+    if (data.status !== undefined) updateData.status = data.status;
     if (data.icon !== undefined) updateData.icon = data.icon;
     if (data.target !== undefined) updateData.target = data.target;
 

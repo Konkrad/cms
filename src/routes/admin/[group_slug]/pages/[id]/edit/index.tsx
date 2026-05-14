@@ -11,6 +11,7 @@ import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { pagesService } from "~/services/pages.service";
+import { menuItemsService } from "~/services/menu-items.service";
 import { requireAdmin } from "~/utils/server-auth";
 
 // Pages are only accessible in global context
@@ -36,23 +37,28 @@ export const usePage = routeLoader$(async ({ params }) => {
   return page;
 });
 
-export const usePages = routeLoader$(async ({ params }) => {
-  const res = await pagesService.getAll();
-  const allPages = res.items;
-  return allPages.filter((p) => p.id !== params.id);
-});
-
 export const useUpdatePage = routeAction$(
   async (data, event) => {
     await requireAdmin(event);
 
     try {
+      const page = await pagesService.getById(event.params.id);
+      if (!page) return { success: false, error: "Page not found" };
+
+      // Update the linked menu item's title, url and visibility if one exists
+      if (page.menuItem) {
+        await menuItemsService.update(page.menuItem.id, {
+          title: data.title,
+          url: data.url,
+          status: data.visibility as "visible" | "hidden",
+        });
+      }
+
+      // Update the page's publication status
       await pagesService.update(event.params.id, {
-        title: data.title,
-        slug: data.slug,
-        parentId: data.parentId || null,
-        status: data.status as "draft" | "published",
+        status: data.pageStatus as "draft" | "published",
       });
+
       throw event.redirect(303, "/admin/global/pages");
     } catch (err: any) {
       if (err?.status === 303) throw err;
@@ -61,22 +67,18 @@ export const useUpdatePage = routeAction$(
   },
   zod$({
     title: z.string().min(1, "Title is required"),
-    slug: z
-      .string()
-      .min(1, "Slug is required")
-      .regex(
-        /^\/?[a-z0-9-]+(\/[a-z0-9-]+)*$|^\/$/,
-        'Slug must be "/" for home page, or a path of lowercase letters, numbers, and hyphens (e.g. "groups" or "/groups/subpage")',
-      ),
-    parentId: z.string().optional(),
-    status: z.enum(["draft", "published"]).default("draft"),
+    url: z.string().min(1, "URL is required"),
+    pageStatus: z.enum(["draft", "published"]).default("draft"),
+    visibility: z.enum(["visible", "hidden"]).default("hidden"),
   }),
 );
 
 export default component$(() => {
   const page = usePage();
-  const pages = usePages();
   const action = useUpdatePage();
+
+  const pageStatus = (action.formData?.get("pageStatus") as string) || page.value.status || "draft";
+  const visibility = (action.formData?.get("visibility") as string) || page.value.menuItem?.status || "hidden";
 
   return (
     <div class="max-w-2xl mx-auto px-4 py-8">
@@ -94,53 +96,41 @@ export default component$(() => {
             name="title"
             label="Page Title"
             required
-            value={action.formData?.get("title") || page.value.title}
+            value={action.formData?.get("title") || page.value.menuItem?.title || ""}
             error={action.value?.fieldErrors?.title?.[0]}
           />
 
           <div>
             <Input
-              name="slug"
-              label="URL Slug"
+              name="url"
+              label="URL"
               required
-              value={action.formData?.get("slug") || page.value.slug}
-              error={action.value?.fieldErrors?.slug?.[0]}
+              value={action.formData?.get("url") || page.value.menuItem?.url || ""}
+              error={action.value?.fieldErrors?.url?.[0]}
             />
             <p class="mt-1 text-sm text-gray-500">
-              The URL path for this page. Use "/" for home page, or lowercase
-              letters, numbers, and hyphens.
+              The URL path for this page (e.g. /about-us) or an external URL.
             </p>
           </div>
 
           <Select
-            name="parentId"
-            label="Parent Page"
-            value={
-              (action.formData?.get("parentId") as string) ||
-              page.value.parentId ||
-              ""
-            }
-            error={action.value?.fieldErrors?.parentId?.[0]}
+            name="pageStatus"
+            label="Page Status"
+            required
+            error={action.value?.fieldErrors?.pageStatus?.[0]}
           >
-            <option value="">None (Top Level)</option>
-            {pages.value.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
-              </option>
-            ))}
+            <option value="draft" selected={pageStatus === "draft"}>Draft — page is not publicly accessible</option>
+            <option value="published" selected={pageStatus === "published"}>Published — page is publicly accessible</option>
           </Select>
 
           <Select
-            name="status"
-            label="Status"
+            name="visibility"
+            label="Menu Visibility"
             required
-            value={
-              (action.formData?.get("status") as string) || page.value.status
-            }
-            error={action.value?.fieldErrors?.status?.[0]}
+            error={action.value?.fieldErrors?.visibility?.[0]}
           >
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
+            <option value="visible" selected={visibility === "visible"}>Visible — shown in navigation</option>
+            <option value="hidden" selected={visibility === "hidden"}>Hidden — not shown in navigation</option>
           </Select>
 
           <div class="flex gap-4">

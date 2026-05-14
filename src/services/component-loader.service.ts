@@ -16,6 +16,7 @@ const componentModules = {
   HeroSectionBlock: () => import("~/components/page-blocks/HeroSectionBlock"),
   GroupsListBlock: () => import("~/components/page-blocks/GroupsListBlock"),
   SurveyFormBlock: () => import("~/components/page-blocks/SurveyFormBlock"),
+  DealsListBlock: () => import("~/components/page-blocks/DealsListBlock"),
 };
 
 type ComponentModuleLoader = () => Promise<{

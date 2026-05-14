@@ -41,6 +41,7 @@ export * from "./schemas/participation-status";
 export * from "./schemas/event-photos";
 export * from "./schemas/forms";
 export * from "./schemas/form-results";
+export * from "./schemas/deals";
 
 export const schemaRelations = defineRelations(
 	{
@@ -81,9 +82,17 @@ export const schemaRelations = defineRelations(
 		eventPhotos,
 		forms,
 		formResults,
+		menuItems,
+		pages,
 		one,
 		many,
 	}) => ({
+		menuItems: {
+			page: one.pages({ from: menuItems.pageId, to: pages.id, optional: true }),
+		},
+		pages: {
+			menuItem: one.menuItems({ from: pages.id, to: menuItems.pageId, optional: true }),
+		},
 		users: {
 			posts: many.posts({ from: users.id, to: posts.userId }),
 			events: many.events({ from: users.id, to: events.userId }),

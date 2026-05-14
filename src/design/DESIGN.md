@@ -269,3 +269,33 @@ Wraps a `<table>` in a white rounded shadow container. Add standard `<thead>` / 
 | `onUploadComplete$` | `QRL<(urls) => void>` | — | Called with `{ original, thumbnail?, ... }` after upload |
 
 `pipeline="profile-picture"` posts to `/api/images/profile-picture`. All other pipelines post to `/api/images?pipeline=<value>`.
+
+---
+
+## Icons
+
+There is no icon library dependency. Icons are **inline SVGs** copied directly from [icones.js.org](https://icones.js.org/).
+
+### How to add an icon
+
+1. Go to [icones.js.org](https://icones.js.org/) and find the icon you need (the project uses the **Lucide** set as the default — search with the `lucide:` prefix, e.g. `lucide:lock`).
+2. Click the icon → select **SVG** → copy the raw `<svg>` markup.
+3. Paste it inline where needed. Adjust `width`/`height` and `stroke` (or `fill`) as required.
+
+### Conventions
+
+- Use `currentColor` for `stroke` or `fill` so the icon inherits text color from its parent.
+- Set explicit `width` and `height` attributes (e.g. `width="20" height="20"`).
+- Do **not** create an icon wrapper component — inline SVG directly in JSX.
+
+### Example
+
+```tsx
+{/* Lucide "lock" icon at 20 px, inheriting parent text color */}
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+  fill="none" stroke="currentColor" stroke-width="2"
+  stroke-linecap="round" stroke-linejoin="round">
+  <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+</svg>
+```

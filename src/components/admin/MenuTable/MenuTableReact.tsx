@@ -19,6 +19,13 @@ const getDepth = (items: MenuItem[], id: string): number => {
   return calc(id);
 };
 
+// DFS walk: produces items in visual tree order (parent immediately followed by its children)
+const treeOrder = (items: MenuItem[], parentId: string | null): MenuItem[] =>
+  items
+    .filter((i) => i.parentId === parentId)
+    .sort((a, b) => a.position - b.position)
+    .flatMap((item) => [item, ...treeOrder(items, item.id)]);
+
 export interface MenuItem {
   id: string;
   label: string;
@@ -82,7 +89,9 @@ interface SortableRowProps {
 
 function SortableRow({ id, dropInfo, allowChild, baseStyle, className, children }: SortableRowProps) {
   const { ref: dragRef, handleRef, isDragging } = useDraggable({ id });
-  const { ref: dropRef } = useDroppable({ id });
+  // Use a distinct droppable id so dnd-kit never confuses the draggable source
+  // with a droppable target during collision detection.
+  const { ref: dropRef } = useDroppable({ id: `drop-${id}` });
 
   // Merge drag + drop refs onto the same <tr>
   const ref = (el: HTMLTableRowElement | null) => {
@@ -99,7 +108,7 @@ function SortableRow({ id, dropInfo, allowChild, baseStyle, className, children 
   }
 
   return (
-    <tr ref={ref} style={style} className={className}>
+    <tr ref={ref} id={`row-${id}`} style={style} className={className}>
       <td
         ref={handleRef as React.RefCallback<HTMLTableCellElement>}
         className="px-2 py-3 text-gray-300 cursor-grab select-none text-center"
@@ -153,18 +162,30 @@ export const MenuTable = (props: MenuTableProps) => {
   }, []);
 
   const staticUrlSet = new Set(staticUrls);
-  const visibleItems = [...mainItems].filter((i) => !i.hidden).sort((a, b) => a.position - b.position);
+  // Use tree-order (DFS) so children always render immediately after their parent,
+  // regardless of the raw position values (which are relative within each sibling group).
+  const visibleItems = treeOrder(mainItems.filter((i) => !i.hidden), null);
   const hiddenItems = [...mainItems].filter((i) => i.hidden).sort((a, b) => a.position - b.position);
-  const sortedFooter = [...footerItems].sort((a, b) => a.position - b.position);
+  const sortedFooter = treeOrder(footerItems, null);
 
-  const visibleIdSet = new Set(visibleItems.map((i) => i.id));
+  // Only root-level (depth-0) items may accept children — enforces 2-level max
+  const rootVisibleIdSet = new Set(visibleItems.filter((i) => !i.parentId).map((i) => i.id));
   const footerIdSet = new Set(sortedFooter.map((i) => i.id));
 
   // Track which half the pointer is over to determine before/child mode
   const handleDragMove = useCallback((event: any) => {
-    const targetId = event.operation?.target?.id;
-    if (!targetId || targetId === "separator") {
+    const rawTargetId = event.operation?.target?.id as string | undefined;
+    console.log("[drag-move] rawTargetId:", rawTargetId);
+    if (!rawTargetId) {
       setDropInfo(null);
+      return;
+    }
+    // SortableRow droppables are registered as "drop-{itemId}" — strip the prefix
+    const targetId = rawTargetId.startsWith("drop-") ? rawTargetId.slice(5) : rawTargetId;
+    if (targetId === "separator") {
+      if (dropInfoRef.current?.targetId !== "separator") {
+        setDropInfo({ targetId: "separator", mode: "before" });
+      }
       return;
     }
     if (targetId === "visible-end") {
@@ -178,24 +199,28 @@ export const MenuTable = (props: MenuTableProps) => {
     const rect = targetEl.getBoundingClientRect();
     const pointerY = event.operation?.position?.current?.y ?? 0;
     const isTopHalf = pointerY < rect.top + rect.height / 2;
-    const allowChild = visibleIdSet.has(String(targetId));
+    // Only depth-0 items can accept children (2-level max)
+    const allowChild = rootVisibleIdSet.has(targetId);
     const mode: "before" | "child" = isTopHalf || !allowChild ? "before" : "child";
-    const id = String(targetId);
-    if (dropInfoRef.current?.targetId !== id || dropInfoRef.current?.mode !== mode) {
-      setDropInfo({ targetId: id, mode });
+    if (dropInfoRef.current?.targetId !== targetId || dropInfoRef.current?.mode !== mode) {
+      setDropInfo({ targetId, mode });
     }
-  }, [visibleIdSet]);
+  }, [rootVisibleIdSet]);
 
   const handleDragEnd = useCallback(async (event: any) => {
-    // Capture the last dropInfo before clearing — the ref always has the freshest value
-    // because handleDragMove updates it on every pointer-move event.
+    // Use dropInfoRef exclusively — it is always up-to-date from handleDragMove.
+    // Relying on event.operation?.target?.id is unreliable when the same element is
+    // registered as both draggable and droppable (dnd-kit collision can resolve to the
+    // wrong droppable), so we bypass it entirely for item targets.
     const lastDropInfo = dropInfoRef.current;
     setDropInfo(null);
-    if (event.canceled) return;
+    if (event.canceled || !lastDropInfo) return;
 
     const sourceId = String(event.operation?.source?.id ?? "");
-    const targetId = event.operation?.target?.id;
     if (!sourceId) return;
+
+    const { targetId, mode } = lastDropInfo;
+    console.log("[drag-end] sourceId:", sourceId, "targetId:", targetId, "mode:", mode);
 
     if (targetId === "separator") {
       setMoveError(null);
@@ -205,23 +230,18 @@ export const MenuTable = (props: MenuTableProps) => {
     }
 
     if (targetId === "visible-end") {
-      // Append to end of visible list
       setMoveError(null);
       const result = await onMove({ movedItemId: sourceId, mode: "to-visible-root", menuName: "main" });
       if (!result.success) setMoveError(result.error ?? "Move failed");
       return;
     }
 
-    if (!targetId || String(targetId) === sourceId) return;
-    const targetIdStr = String(targetId);
+    if (targetId === sourceId) return;
 
-    // Use the mode determined by the last onDragMove — it tracks top/bottom half reliably.
-    const mode: "before" | "as-child" =
-      lastDropInfo?.targetId === targetIdStr && lastDropInfo?.mode === "child" ? "as-child" : "before";
-
-    const menuName = footerIdSet.has(targetIdStr) ? "footer" : "main";
+    const moveMode: "before" | "as-child" = mode === "child" ? "as-child" : "before";
+    const menuName = footerIdSet.has(targetId) ? "footer" : "main";
     setMoveError(null);
-    const result = await onMove({ movedItemId: sourceId, targetItemId: targetIdStr, mode, menuName });
+    const result = await onMove({ movedItemId: sourceId, targetItemId: targetId, mode: moveMode, menuName });
     if (!result.success) setMoveError(result.error ?? "Move failed");
   }, [onMove, footerIdSet, setDropInfo]);
 

@@ -13,6 +13,7 @@ import LocalCommunitiesMapBlock from "~/components/page-blocks/LocalCommunitiesM
 import HeroSectionBlock from "~/components/page-blocks/HeroSectionBlock";
 import GroupsListBlock from "~/components/page-blocks/GroupsListBlock";
 import SurveyFormBlock from "~/components/page-blocks/SurveyFormBlock";
+import DealsListBlock from "~/components/page-blocks/DealsListBlock";
 
 interface BlockRendererProps {
   block: BlockData;
@@ -32,6 +33,7 @@ const RUNTIME_COMPONENTS: Record<string, any> = {
   HeroSectionBlock,
   GroupsListBlock,
   SurveyFormBlock,
+  DealsListBlock,
 };
 
 export const BlockRenderer = component$<BlockRendererProps>((props) => {

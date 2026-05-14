@@ -240,3 +240,36 @@ export async function deleteS3Objects(keys: string[]): Promise<void> {
     }),
   );
 }
+
+/**
+ * Upload a raw file to S3 without any processing (e.g. SVG files).
+ */
+export async function uploadRawFile(
+  bodyStream: ReadableStream | Buffer,
+  s3Key: string,
+  contentType: string,
+): Promise<ImageUploadResult> {
+  const s3Client = createS3Client();
+  const nodeReadable =
+    bodyStream instanceof Buffer
+      ? Readable.from(bodyStream)
+      : Readable.fromWeb(bodyStream as any);
+
+  const upload = new Upload({
+    client: s3Client,
+    params: {
+      Bucket: env.S3_BUCKET,
+      Key: s3Key,
+      Body: nodeReadable,
+      ContentType: contentType,
+    },
+  });
+
+  await upload.done();
+
+  const url = env.AWS_ENDPOINT
+    ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${s3Key}`
+    : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${s3Key}`;
+
+  return { key: s3Key, bucket: env.S3_BUCKET, url };
+}

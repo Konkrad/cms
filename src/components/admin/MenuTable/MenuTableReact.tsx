@@ -29,11 +29,12 @@ const treeOrder = (items: MenuItem[], parentId: string | null): MenuItem[] =>
 
 export interface MenuItem {
   id: string;
-  label: string;
+  title: string;
   url: string;
+  pageId: string | null;
   parentId: string | null;
   position: number;
-  hidden: boolean;
+  status: "visible" | "hidden";
   menuName: string;
   icon: string | null;
   target: string;
@@ -57,7 +58,7 @@ export interface MenuTableProps {
   onUpdate: (params: {
     menuName: string;
     menuItemId: string;
-    label: string;
+    title: string;
     url: string;
     parentId?: string;
     target: string;
@@ -65,14 +66,13 @@ export interface MenuTableProps {
   }) => Promise<ActionResult>;
   onAdd: (params: {
     menuName: "main" | "footer";
-    label: string;
+    title: string;
     url: string;
     icon?: string;
-    hidden?: boolean;
+    hidden?: boolean; // kept for legacy onAdd calls; use status instead
+    status?: "visible" | "hidden";
   }) => Promise<ActionResult>;
   onDelete: (params: { menuItemId: string }) => Promise<ActionResult>;
-  pageIdByUrl: Record<string, string>;
-  pageStatusByUrl: Record<string, string>;
 }
 
 interface DropInfo {
@@ -151,15 +151,14 @@ function SeparatorRow() {
 // ── Main component ──
 
 export const MenuTable = (props: MenuTableProps) => {
-  const { mainItems, footerItems, staticUrls, onMove, onUpdate, onAdd, onDelete, pageIdByUrl, pageStatusByUrl } = props;
+  const { mainItems, footerItems, staticUrls, onMove, onUpdate, onAdd, onDelete } = props;
 
-  const statusBadge = (url: string) => {
-    const status = pageStatusByUrl[normalizeUrl(url)];
-    if (!status) return null;
-    return status === "published" ? (
-      <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-green-700 bg-green-100 rounded px-1 py-0.5">published</span>
+  const statusBadge = (item: MenuItem) => {
+    if (!item.pageId) return null;
+    return item.status === "visible" ? (
+      <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-green-700 bg-green-100 rounded px-1 py-0.5">visible</span>
     ) : (
-      <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-yellow-700 bg-yellow-100 rounded px-1 py-0.5">draft</span>
+      <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-yellow-700 bg-yellow-100 rounded px-1 py-0.5">hidden</span>
     );
   };
 
@@ -179,8 +178,8 @@ export const MenuTable = (props: MenuTableProps) => {
   const staticUrlSet = new Set(staticUrls);
   // Use tree-order (DFS) so children always render immediately after their parent,
   // regardless of the raw position values (which are relative within each sibling group).
-  const visibleItems = treeOrder(mainItems.filter((i) => !i.hidden), null);
-  const hiddenItems = [...mainItems].filter((i) => i.hidden).sort((a, b) => a.position - b.position);
+  const visibleItems = treeOrder(mainItems.filter((i) => i.status === "visible"), null);
+  const hiddenItems = [...mainItems].filter((i) => i.status === "hidden").sort((a, b) => a.position - b.position);
   const sortedFooter = treeOrder(footerItems, null);
 
   // Only root-level (depth-0) items may accept children — enforces 2-level max
@@ -267,7 +266,7 @@ export const MenuTable = (props: MenuTableProps) => {
     const result = await onUpdate({
       menuName: item.menuName,
       menuItemId: item.id,
-      label: fd.get("label") as string,
+      title: fd.get("title") as string,
       url: fd.get("url") as string,
       parentId: item.parentId ?? undefined,
       target: item.target,
@@ -286,7 +285,7 @@ export const MenuTable = (props: MenuTableProps) => {
     const form = e.currentTarget;
     const fd = new FormData(form);
     setAddError(null);
-    const result = await onAdd({ menuName: "footer", label: fd.get("label") as string, url: fd.get("url") as string, icon: (fd.get("icon") as string) || undefined });
+    const result = await onAdd({ menuName: "footer", title: fd.get("title") as string, url: fd.get("url") as string, icon: (fd.get("icon") as string) || undefined });
     if (result.success) form.reset();
     else setAddError(result.error ?? "Add failed");
   };
@@ -301,7 +300,7 @@ export const MenuTable = (props: MenuTableProps) => {
   };
 
   const handleDelete = async (item: MenuItem) => {
-    if (!confirm(`Remove "${item.label}" from the menu?`)) return;
+    if (!confirm(`Remove "${item.title}" from the menu?`)) return;
     setDeleteError(null);
     const result = await onDelete({ menuItemId: item.id });
     if (!result.success) setDeleteError(result.error ?? "Delete failed");
@@ -351,11 +350,11 @@ export const MenuTable = (props: MenuTableProps) => {
                     className="px-4 py-3 text-sm font-medium text-gray-900"
                     style={{ paddingLeft: 16 + getDepth(mainItems, item.id) * 24 }}
                   >
-                    {item.label}
+                    {item.title}
                     {staticUrlSet.has(normalizeUrl(item.url)) && (
                       <span className="ml-2 text-xs text-gray-400">[static]</span>
                     )}
-                    {statusBadge(item.url)}
+                    {statusBadge(item)}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">{normalizeUrl(item.url)}</td>
                   <td className="px-4 py-3 text-sm">
@@ -369,16 +368,16 @@ export const MenuTable = (props: MenuTableProps) => {
                       </button>
                     ) : (
                       <div className="flex items-center gap-3">
-                        {pageIdByUrl[normalizeUrl(item.url)] ? (
+                        {item.pageId ? (
                           <>
                             <a
-                              href={`/admin/global/pages/${pageIdByUrl[normalizeUrl(item.url)]}/edit`}
+                              href={`/admin/global/pages/${item.pageId}/edit`}
                               className="text-blue-600 hover:text-blue-900"
                             >
                               Edit
                             </a>
                             <a
-                              href={`/admin/global/pages/${pageIdByUrl[normalizeUrl(item.url)]}/builder`}
+                              href={`/admin/global/pages/${item.pageId}/builder`}
                               className="text-blue-600 hover:text-blue-900"
                             >
                               Builder
@@ -419,11 +418,11 @@ export const MenuTable = (props: MenuTableProps) => {
                   className="text-gray-400"
                 >
                   <td className="px-4 py-3 text-sm">
-                    {item.label}
+                    {item.title}
                     {staticUrlSet.has(normalizeUrl(item.url)) && (
                       <span className="ml-2 text-xs">[static]</span>
                     )}
-                    {statusBadge(item.url)}
+                    {statusBadge(item)}
                   </td>
                   <td className="px-4 py-3 text-sm">{normalizeUrl(item.url)}</td>
                   <td className="px-4 py-3 text-sm">
@@ -437,16 +436,16 @@ export const MenuTable = (props: MenuTableProps) => {
                       </button>
                     ) : (
                       <div className="flex items-center gap-3">
-                        {pageIdByUrl[normalizeUrl(item.url)] ? (
+                        {item.pageId ? (
                           <>
                             <a
-                              href={`/admin/global/pages/${pageIdByUrl[normalizeUrl(item.url)]}/edit`}
+                              href={`/admin/global/pages/${item.pageId}/edit`}
                               className="text-blue-500 hover:text-blue-700"
                             >
                               Edit
                             </a>
                             <a
-                              href={`/admin/global/pages/${pageIdByUrl[normalizeUrl(item.url)]}/builder`}
+                              href={`/admin/global/pages/${item.pageId}/builder`}
                               className="text-blue-500 hover:text-blue-700"
                             >
                               Builder
@@ -479,7 +478,7 @@ export const MenuTable = (props: MenuTableProps) => {
 
         {mainItems.filter((item) => mainEditingId === item.id).map((item) => (
           <form key={item.id} className="mt-3 flex flex-wrap gap-2 border rounded-sm p-3 bg-gray-50" onSubmit={(e) => handleUpdateSubmit(e, item)}>
-            <input type="text" name="label" defaultValue={item.label} placeholder="Label" className="border rounded-sm px-2 py-1 text-sm" required />
+            <input type="text" name="title" defaultValue={item.title} placeholder="Title" className="border rounded-sm px-2 py-1 text-sm" required />
             {staticUrlSet.has(normalizeUrl(item.url)) ? (
               <input type="hidden" name="url" value={normalizeUrl(item.url)} />
             ) : (
@@ -496,7 +495,7 @@ export const MenuTable = (props: MenuTableProps) => {
         <h3 className="text-xl font-bold mb-3">Footer Links</h3>
 
         <form className="flex flex-wrap gap-2 mb-4 border rounded-sm p-3 bg-gray-50" onSubmit={handleAddFooterSubmit}>
-          <input type="text" name="label" placeholder="Label (also used as tooltip when an icon is set)" className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]" required />
+          <input type="text" name="title" placeholder="Label (also used as tooltip when an icon is set)" className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]" required />
           <input type="text" name="url" placeholder="/imprint or https://..." className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]" required />
           <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer border rounded-sm px-2 py-1">
             SVG icon (optional):
@@ -524,7 +523,7 @@ export const MenuTable = (props: MenuTableProps) => {
                   dropInfo={dropInfo}
                   allowChild={false}
                 >
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.label}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.title}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{normalizeUrl(item.url)}</td>
                   <td className="px-4 py-3 text-sm">
                     {(() => {
@@ -532,7 +531,7 @@ export const MenuTable = (props: MenuTableProps) => {
                       return svg ? (
                         <span
                           className="inline-block w-5 h-5 text-gray-600"
-                          title={item.label}
+                          title={item.title}
                           dangerouslySetInnerHTML={{ __html: svg }}
                         />
                       ) : (
@@ -566,7 +565,7 @@ export const MenuTable = (props: MenuTableProps) => {
 
         {sortedFooter.filter((item) => footerEditingId === item.id).map((item) => (
           <form key={item.id} className="mt-3 flex flex-wrap gap-2 border rounded-sm p-3 bg-gray-50" onSubmit={(e) => handleUpdateSubmit(e, item)}>
-            <input type="text" name="label" defaultValue={item.label} placeholder="Label (also used as tooltip when an icon is set)" className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]" required />
+            <input type="text" name="title" defaultValue={item.title} placeholder="Label (also used as tooltip when an icon is set)" className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]" required />
             <input type="text" name="url" defaultValue={normalizeUrl(item.url)} placeholder="URL" className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]" required />
             <div className="w-full flex items-center gap-2">
               <label className="text-xs text-gray-500">SVG icon (replaces label visually, label becomes tooltip):</label>

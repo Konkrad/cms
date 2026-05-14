@@ -11,6 +11,7 @@ import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { pagesService } from "~/services/pages.service";
+import { menuItemsService } from "~/services/menu-items.service";
 import { requireAdmin } from "~/utils/server-auth";
 
 // Pages are only accessible in global context
@@ -28,23 +29,41 @@ export const useAdminAuth = routeLoader$(async (event) => {
   return true;
 });
 
-export const usePages = routeLoader$(async () => {
-  const res = await pagesService.getAll();
-  return res.items;
-});
-
 export const useCreatePage = routeAction$(
   async (data, event) => {
     await requireAdmin(event);
 
     try {
+      const normalizedUrl = data.url.trim().startsWith("/") ? data.url.trim() : `/${data.url.trim()}`;
+      const menuName = data.menuName as "main" | "footer";
+
+      // Reject if the URL is already taken in any menu
+      const allItems = await menuItemsService.getAll(undefined, { includeHidden: true });
+      const duplicate = allItems.find((item) => item.url === normalizedUrl);
+      if (duplicate) {
+        return { success: false, error: `The URL "${normalizedUrl}" is already in use by another menu item.` };
+      }
+
+      // Create the page first
       const page = await pagesService.create({
-        title: data.title,
-        slug: data.slug,
-        parentId: data.parentId || null,
         status: (data.status as "draft" | "published") || "draft",
         content: [],
       });
+
+      const existing = await menuItemsService.getAll(menuName, { includeHidden: true });
+      const maxPosition = existing.reduce((max, item) => Math.max(max, item.position), -1);
+      await menuItemsService.create({
+        menuName,
+        title: data.title,
+        url: normalizedUrl,
+        pageId: page.id,
+        parentId: null,
+        position: maxPosition + 1,
+        status: "hidden",
+        icon: null,
+        target: "_self",
+      });
+
       throw event.redirect(303, `/admin/global/pages/${page.id}/builder`);
     } catch (err: any) {
       if (err?.status === 303) throw err;
@@ -53,20 +72,13 @@ export const useCreatePage = routeAction$(
   },
   zod$({
     title: z.string().min(1, "Title is required"),
-    slug: z
-      .string()
-      .min(1, "Slug is required")
-      .regex(
-        /^\/?[a-z0-9-]+(\/[a-z0-9-]+)*$|^\/$/,
-        'Slug must be "/" for home page, or a path of lowercase letters, numbers, and hyphens (e.g. "groups" or "/groups/subpage")',
-      ),
-    parentId: z.string().optional(),
+    url: z.string().min(1, "URL is required"),
+    menuName: z.enum(["main", "footer"]).default("main"),
     status: z.enum(["draft", "published"]).default("draft"),
   }),
 );
 
 export default component$(() => {
-  const pages = usePages();
   const action = useCreatePage();
 
   return (
@@ -92,31 +104,26 @@ export default component$(() => {
 
           <div>
             <Input
-              name="slug"
-              label="URL Slug"
+              name="url"
+              label="URL"
               required
-              value={action.formData?.get("slug")}
-              error={action.value?.fieldErrors?.slug?.[0]}
-              placeholder="about-us"
+              value={action.formData?.get("url")}
+              error={action.value?.fieldErrors?.url?.[0]}
+              placeholder="/about-us"
             />
             <p class="mt-1 text-sm text-gray-500">
-              The URL path for this page. Use "/" for home page, or lowercase
-              letters, numbers, and hyphens.
+              The URL path for this page (e.g. /about-us) or an external URL.
             </p>
           </div>
 
           <Select
-            name="parentId"
-            label="Parent Page"
-            value={(action.formData?.get("parentId") as string) || ""}
-            error={action.value?.fieldErrors?.parentId?.[0]}
+            name="menuName"
+            label="Menu"
+            value={(action.formData?.get("menuName") as string) || "main"}
+            error={action.value?.fieldErrors?.menuName?.[0]}
           >
-            <option value="">None (Top Level)</option>
-            {pages.value.map((page) => (
-              <option key={page.id} value={page.id}>
-                {page.title}
-              </option>
-            ))}
+            <option value="main">Main</option>
+            <option value="footer">Footer</option>
           </Select>
 
           <Select

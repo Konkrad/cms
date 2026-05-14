@@ -23,6 +23,7 @@ import {
   processAndUploadVariants,
   getPipeline,
   PROCESSING_PIPELINES,
+  uploadRawFile,
 } from "~/services/image-processing.service";
 import { generatePresignedGetUrl } from "~/utils/secure-urls";
 import { requireAuth } from "~/utils/server-auth";
@@ -67,6 +68,21 @@ export const onPost: RequestHandler = async ({
     }
 
     const fileId = query.get("filename") || crypto.randomUUID();
+
+    // SVG: upload raw, skip image processing
+    if (pipelineName === "svg") {
+      const contentType = request.headers.get("content-type") || "image/svg+xml";
+      if (!contentType.includes("svg")) {
+        throw error(400, "Expected SVG content type for svg pipeline");
+      }
+      const s3Key = `${uploadPrefix}/${fileId}.svg`;
+      const result = await uploadRawFile(bodyStream, s3Key, "image/svg+xml");
+      const accessUrl = env.AWS_ENDPOINT
+        ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${result.key}`
+        : await generatePresignedGetUrl(result.key, 60 * 60);
+      json(200, { success: true, filePath: result.key, url: accessUrl });
+      return;
+    }
 
     // Profile picture: 1000x1000 + 400x400 thumbnail, no DB write (action handles persistence)
     if (pipelineName === "profile-picture") {

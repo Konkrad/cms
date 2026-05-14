@@ -7,9 +7,6 @@ import crypto from "crypto";
 
 export const pages = sqliteTable("pages", {
   id: text("id").primaryKey(),
-  title: text("title").notNull(),
-  slug: text("slug").notNull().unique(),
-  parentId: text("parent_id"),
   content: text("content", { mode: "json" }).$type<BlockData[]>(),
   status: text("status", { enum: ["draft", "published"] })
     .notNull()
@@ -25,22 +22,12 @@ export const pages = sqliteTable("pages", {
 const baseInsertSchema = createInsertSchema(pages);
 const baseSelectSchema = createSelectSchema(pages);
 
-const slugValidation = z
-  .string()
-  .min(1, "Slug is required")
-  .regex(
-    /^\/?[a-z0-9-]+(\/[a-z0-9-]+)*$|^\/$/,
-    'Slug must be "/" for home page, or a path of lowercase letters, numbers, and hyphens (e.g. "groups" or "/groups/subpage")',
-  );
-
 export const insertPageSchema = baseInsertSchema
   .extend({
     id: z
       .string()
       .uuid()
       .default(() => crypto.randomUUID()),
-    title: z.string().min(1, "Title is required"),
-    slug: slugValidation,
     createdAt: z.string().default(() => new Date().toISOString()),
     updatedAt: z.string().default(() => new Date().toISOString()),
   })
@@ -57,8 +44,6 @@ export const updatePageSchema = baseInsertSchema
     createdAt: true,
   })
   .extend({
-    title: z.string().min(1, "Title is required").optional(),
-    slug: slugValidation.optional(),
     updatedAt: z
       .string()
       .default(() => new Date().toISOString())

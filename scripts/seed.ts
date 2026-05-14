@@ -15,6 +15,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "../src/db/schema.ts";
 import crypto from "crypto";
 import fs from "fs";
+import path from "path";
 import { execSync } from "child_process";
 import dotenv from "dotenv";
 import sharp from "sharp";
@@ -1390,40 +1391,67 @@ const pageDefs: Array<{ title: string; slug: string; status: "published" | "draf
       { id: uuid(), componentType: "GroupsListBlock", order: 5, data: {} },
     ],
   },
+  {
+    title: "Deals",
+    slug: "/deals",
+    status: "published",
+    content: [
+      { id: uuid(), componentType: "TitleBlock", order: 0, data: { text: "Member Deals", level: "1", align: "center" } },
+      { id: uuid(), componentType: "SpacerBlock", order: 1, data: { height: 20 } },
+      { id: uuid(), componentType: "TextBlock", order: 2, data: { content: "<p>Exclusive discounts and offers for community members.</p>" } },
+      { id: uuid(), componentType: "SpacerBlock", order: 3, data: { height: 20 } },
+      { id: uuid(), componentType: "DealsListBlock", order: 4, data: {} },
+    ],
+  },
 ];
 
+// Create pages and capture their IDs keyed by URL (slug), so menu items can link back.
+const pageIdByUrl = new Map<string, string>();
+
 for (const p of pageDefs) {
+  const pageId = uuid();
   db.insert(schema.pages)
     .values({
-      id: uuid(),
-      title: p.title,
-      slug: p.slug,
+      id: pageId,
       content: p.content,
       status: p.status,
       createdAt: now(),
       updatedAt: now(),
     })
     .run();
+  pageIdByUrl.set(p.slug, pageId);
 }
 console.log(`  pages seeded (${pageDefs.length})`);
 
 // ─── 15. Menu items ──────────────────────────────────────────────────────────
 
-const menuDefs: Array<{ label: string; url: string; position: number }> = [
-  { label: "Home", url: "/", position: 0 },
-  { label: "Events", url: "/events", position: 1 },
-  { label: "Communities", url: "/communities", position: 2 },
-  { label: "About Us", url: "/about-us", position: 3 },
+// Pages that have a builder-managed content page are linked via pageId.
+// Footer-only items (Contact, Privacy, Terms) are plain links with no page.
+const menuDefs: Array<{ title: string; url: string; position: number; menuName: string; hasPage?: boolean }> = [
+  { menuName: "main", title: "Home", url: "/", position: 0, hasPage: true },
+  { menuName: "main", title: "Events", url: "/events", position: 1, hasPage: true },
+  { menuName: "main", title: "Communities", url: "/communities", position: 2, hasPage: true },
+  { menuName: "main", title: "About Us", url: "/about-us", position: 3, hasPage: true },
+  { menuName: "footer", title: "Home", url: "/", position: 0, hasPage: true },
+  { menuName: "footer", title: "Events", url: "/events", position: 1, hasPage: true },
+  { menuName: "footer", title: "Communities", url: "/communities", position: 2, hasPage: true },
+  { menuName: "footer", title: "About Us", url: "/about-us", position: 3, hasPage: true },
+  { menuName: "footer", title: "Deals", url: "/deals", position: 4, hasPage: true },
+  { menuName: "footer", title: "Contact", url: "/contact", position: 5 },
+  { menuName: "footer", title: "Privacy Policy", url: "/privacy", position: 6 },
+  { menuName: "footer", title: "Terms of Service", url: "/terms", position: 7 },
 ];
 
 for (const m of menuDefs) {
   db.insert(schema.menuItems)
     .values({
       id: uuid(),
-      menuName: "main",
-      label: m.label,
+      menuName: m.menuName,
+      title: m.title,
       url: m.url,
+      pageId: m.hasPage ? (pageIdByUrl.get(m.url) ?? null) : null,
       position: m.position,
+      status: "visible",
       target: "_self",
       createdAt: now(),
       updatedAt: now(),
@@ -1431,6 +1459,156 @@ for (const m of menuDefs) {
     .run();
 }
 console.log(`  menu items seeded (${menuDefs.length})`);
+
+// ─── 16. Deals ───────────────────────────────────────────────────────────────
+
+// Upload the seed SVG logo to S3 once, reuse the key for all deals
+async function uploadSeedSvg(): Promise<string | null> {
+  const svgPath = path.join(process.cwd(), "instagram-logo-facebook-2-svgrepo-com.svg");
+  if (!fs.existsSync(svgPath)) {
+    console.warn("  SVG file not found, skipping logo upload for deals");
+    return null;
+  }
+
+  const s3 = new S3Client({
+    region: seedStorageConfig.region,
+    endpoint: seedStorageConfig.endpoint,
+    forcePathStyle: true,
+    credentials: {
+      accessKeyId: seedStorageConfig.accessKeyId,
+      secretAccessKey: seedStorageConfig.secretAccessKey,
+    },
+  });
+
+  const svgKey = "public/deals/logos/seed-logo.svg";
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: seedStorageConfig.bucket,
+      Key: svgKey,
+      Body: fs.readFileSync(svgPath),
+      ContentType: "image/svg+xml",
+      CacheControl: "public, max-age=86400",
+    }),
+  );
+  return svgKey;
+}
+
+const svgLogoKey = await uploadSeedSvg();
+
+const dealDefs: Array<{
+  name: string;
+  description: string;
+  validUntilOffsetDays: number | null;
+  steps: schema.DealStep[];
+}> = [
+  {
+    name: "10% Off at Partner Café",
+    description: "Enjoy an exclusive 10% discount at our partner café chain across all German locations.",
+    validUntilOffsetDays: 90,
+    steps: [
+      {
+        type: "text",
+        title: "Who qualifies",
+        text: "Available to all active community members.",
+        requiresLogin: false,
+      },
+      {
+        type: "link",
+        title: "Find a Location",
+        text: "Browse all café locations near you.",
+        link: "https://example.com/cafe-locations",
+        linkText: "Browse Locations",
+        requiresLogin: false,
+      },
+      {
+        type: "promo",
+        title: "Your Promo Code",
+        text: "Use this code at checkout or show it in-store.",
+        promoCode: "COMMUNITY10",
+        requiresLogin: true,
+      },
+    ],
+  },
+  {
+    name: "Free Month at FitSpace Gym",
+    description: "Get your first month completely free at any FitSpace gym in Germany.",
+    validUntilOffsetDays: 60,
+    steps: [
+      {
+        type: "text",
+        title: "How it works",
+        text: "Show your membership confirmation email at the front desk when signing up.",
+        requiresLogin: false,
+      },
+      {
+        type: "link",
+        title: "Sign Up Online",
+        text: "Start your free trial directly on the FitSpace website.",
+        link: "https://example.com/fitspace-signup",
+        linkText: "Start Free Trial",
+        requiresLogin: true,
+      },
+      {
+        type: "promo",
+        title: "Referral Code",
+        text: "Enter this code during online sign-up to activate the free month.",
+        promoCode: "FITFREE2026",
+        requiresLogin: true,
+      },
+    ],
+  },
+  {
+    name: "20% Off Co-Working Day Pass",
+    description: "Work from one of our co-working partner spaces at a special member rate.",
+    validUntilOffsetDays: null,
+    steps: [
+      {
+        type: "text",
+        title: "Valid Locations",
+        text: "Valid at all SpaceHub co-working locations in Berlin, Munich, Hamburg, Frankfurt and Cologne.",
+        requiresLogin: false,
+      },
+      {
+        type: "promo",
+        title: "Day Pass Code",
+        text: "Present this code at reception or enter it when booking online.",
+        promoCode: "SPACE20",
+        requiresLogin: true,
+      },
+    ],
+  },
+  {
+    name: "Expired Deal (Seed)",
+    description: "This deal has already expired — used to test expiry filtering.",
+    validUntilOffsetDays: -10,
+    steps: [
+      {
+        type: "text",
+        title: "Expired",
+        text: "This deal is no longer active.",
+        requiresLogin: false,
+      },
+    ],
+  },
+];
+
+for (const d of dealDefs) {
+  const validUntil =
+    d.validUntilOffsetDays !== null ? daysFromNow(d.validUntilOffsetDays) : null;
+  db.insert(schema.deals)
+    .values({
+      id: uuid(),
+      name: d.name,
+      description: d.description,
+      logo: svgLogoKey,
+      validUntil,
+      steps: d.steps,
+      createdAt: now(),
+      updatedAt: now(),
+    })
+    .run();
+}
+console.log(`  deals seeded (${dealDefs.length})`);
 
 // ─── Done ────────────────────────────────────────────────────────────────────
 
@@ -1450,6 +1628,7 @@ const counts = {
   pages: db.select().from(schema.pages).all().length,
   menuItems: db.select().from(schema.menuItems).all().length,
   forms: db.select().from(schema.forms).all().length,
+  deals: db.select().from(schema.deals).all().length,
 };
 
 console.log("\n✅ Seed complete:");

@@ -117,7 +117,7 @@ export const Navigation = component$(() => {
                         href={item.url || "#"}
                         class="px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
                       >
-                        {item.label}
+                        {item.title}
                       </a>
 
                       <div class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden group-hover:block">
@@ -127,7 +127,7 @@ export const Navigation = component$(() => {
                             href={child.url}
                             class="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                           >
-                            {child.label}
+                            {child.title}
                           </a>
                         ))}
                       </div>
@@ -138,7 +138,7 @@ export const Navigation = component$(() => {
                       href={item.url}
                       class="px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
                     >
-                      {item.label}
+                      {item.title}
                     </a>
                   ),
                 )}

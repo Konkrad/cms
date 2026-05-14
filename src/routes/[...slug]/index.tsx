@@ -9,14 +9,14 @@ export const usePage = routeLoader$(async ({ params, status }) => {
   const slug = params.slug ? `/${params.slug}` : "/";
   console.log("[Page route] usePage - resolved slug:", slug);
 
-  const page = await pagesService.getBySlug(slug);
+  const page = await pagesService.getByUrl(slug);
   console.log(
     "[Page route] usePage - fetched page summary:",
     page
       ? {
           id: (page as any).id ?? null,
           status: (page as any).status ?? null,
-          title: (page as any).title ?? null,
+          title: (page as any).menuItem?.title ?? null,
         }
       : null,
   );
@@ -57,7 +57,7 @@ export default component$(() => {
     page.value
       ? {
           id: (page.value as any).id ?? null,
-          title: (page.value as any).title ?? null,
+          title: (page.value as any).menuItem?.title ?? null,
           status: (page.value as any).status ?? null,
           contentLength: Array.isArray((page.value as any).content)
             ? (page.value as any).content.length
@@ -95,7 +95,7 @@ export default component$(() => {
       ) : (
         <div class="max-w-4xl mx-auto px-4 py-16">
           <h1 class="text-4xl font-bold text-gray-900 mb-4">
-            {page.value.title}
+            {page.value.menuItem?.title}
           </h1>
           <p class="text-gray-600">
             This page is empty. Add content in the page builder.
@@ -119,7 +119,7 @@ export const head: DocumentHead = ({ resolveValue }) => {
     }
 
     return {
-      title: page.title,
+      title: page.menuItem?.title ?? "Community Hub",
     };
   } catch {
     return {

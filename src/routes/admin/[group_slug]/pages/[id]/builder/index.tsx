@@ -233,7 +233,7 @@ export default component$(() => {
           </a>
           <div class="border-l border-gray-300 h-6"></div>
           <h1 class="text-lg font-semibold text-gray-900">
-            {page.value.title}
+            {page.value.menuItem?.title}
           </h1>
           {hasUnsavedChanges.value && (
             <span class="text-sm text-orange-600 font-medium">

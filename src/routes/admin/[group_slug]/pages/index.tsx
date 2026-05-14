@@ -3,8 +3,6 @@ import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { MenuTable } from "~/components/admin/MenuTable/MenuTable";
 import type { MenuItem } from "~/db/schemas/menu-items";
-import { db } from "~/db/connection";
-import { pages } from "~/db/schemas/pages";
 import { menuItemsService } from "~/services/menu-items.service";
 import { STATIC_MENU_LINKS } from "~/services/static-menu-links";
 import { requireAdmin } from "~/utils/server-auth";
@@ -24,49 +22,42 @@ export const useAdminAuth = routeLoader$(async (event) => {
 });
 
 export const useMenuItems = routeLoader$(async () => {
-  let main = await menuItemsService.getAll("main", { includeHidden: true });
+  // Auto-sync: ensure every static link appears in the main menu (draft by default).
+  async function syncMenu(menuName: "main" | "footer") {
+    let items = await menuItemsService.getAll(menuName, { includeHidden: true });
+    const knownUrls = new Set(items.map((item) => normalizeUrl(item.url)));
+    let maxPosition = items.reduce((max, item) => Math.max(max, item.position), 0);
+    let changed = false;
 
-  const knownUrls = new Set(main.map((item) => normalizeUrl(item.url)));
-  let maxPosition = main.reduce((max, item) => Math.max(max, item.position), 0);
-  let created = false;
+    // Static links (main menu only)
+    if (menuName === "main") {
+      for (const staticLink of STATIC_MENU_LINKS) {
+        const url = normalizeUrl(staticLink.url);
+        if (knownUrls.has(url)) continue;
+        maxPosition += 1;
+        await menuItemsService.create({
+          menuName,
+          title: staticLink.label,
+          url,
+          parentId: null,
+          position: maxPosition,
+          status: "hidden",
+          icon: null,
+          target: "_self",
+        });
+        changed = true;
+      }
+    }
 
-  for (const staticLink of STATIC_MENU_LINKS) {
-    if (knownUrls.has(normalizeUrl(staticLink.url))) continue;
-
-    maxPosition += 1;
-    await menuItemsService.create({
-      menuName: "main",
-      label: staticLink.label,
-      url: normalizeUrl(staticLink.url),
-      parentId: null,
-      position: maxPosition,
-      hidden: true,
-      icon: null,
-      target: "_self",
-    });
-    created = true;
+    if (changed) {
+      items = await menuItemsService.getAll(menuName, { includeHidden: true });
+    }
+    return items;
   }
 
-  if (created) {
-    main = await menuItemsService.getAll("main", { includeHidden: true });
-  }
+  const [main, footer] = await Promise.all([syncMenu("main"), syncMenu("footer")]);
 
-  const footer = await menuItemsService.getAll("footer", { includeHidden: true });
-
-  const allPages = await db.select({ id: pages.id, slug: pages.slug, status: pages.status }).from(pages);
-  const pageIdByUrl: Record<string, string> = {};
-  const pageStatusByUrl: Record<string, string> = {};
-  for (const p of allPages) {
-    pageIdByUrl[normalizeUrl(p.slug)] = p.id;
-    pageStatusByUrl[normalizeUrl(p.slug)] = p.status;
-  }
-
-  return {
-    main,
-    footer,
-    pageIdByUrl,
-    pageStatusByUrl,
-  };
+  return { main, footer };
 });
 
 const normalizeUrl = (url: string) => {
@@ -153,11 +144,11 @@ export const useAddToMenu = routeAction$(
 
       await menuItemsService.create({
         menuName: data.menuName,
-        label: data.label,
+        title: data.title,
         url: normalizedUrl,
         parentId: null,
         position: maxPosition + 1,
-        hidden: data.hidden ?? false,
+        status: data.status ?? "hidden",
         icon: sanitizedIcon,
         target: "_self",
       });
@@ -172,10 +163,10 @@ export const useAddToMenu = routeAction$(
   },
   zod$({
     menuName: z.enum(["main", "footer"]).default("main"),
-    label: z.string().min(1),
+    title: z.string().min(1),
     url: z.string().min(1),
     icon: z.string().optional(),
-    hidden: z.coerce.boolean().optional(),
+    status: z.enum(["visible", "hidden"]).optional(),
   }),
 );
 
@@ -217,7 +208,7 @@ export const useUpdateMenuItem = routeAction$(
             (item) =>
               item.id !== data.menuItemId &&
               item.parentId === nextParentId &&
-              item.hidden === existing.hidden,
+              item.status === existing.status,
           )
           .map((item) => item.position);
         nextPosition = siblingPositions.length > 0 ? Math.max(...siblingPositions) + 1 : 0;
@@ -226,7 +217,7 @@ export const useUpdateMenuItem = routeAction$(
       const sanitizedIcon = data.icon ? sanitizeSvg(data.icon) || null : null;
 
       await menuItemsService.update(data.menuItemId, {
-        label: data.label,
+        title: data.title,
         url: normalizedUrl,
         parentId: nextParentId,
         target: data.target,
@@ -245,7 +236,7 @@ export const useUpdateMenuItem = routeAction$(
   zod$({
     menuName: z.enum(["main", "footer"]).default("main"),
     menuItemId: z.string(),
-    label: z.string().min(1),
+    title: z.string().min(1),
     url: z.string().min(1),
     parentId: z.string().optional(),
     icon: z.string().optional(),
@@ -285,43 +276,43 @@ export const useMoveMenuItem = routeAction$(
       }
 
       const oldParentId = movedItem.parentId;
-      const oldHidden = movedItem.hidden;
+      const oldStatus = movedItem.status;
 
       let nextParentId: string | null = data.menuName === "main" ? null : movedItem.parentId;
-      let nextHidden = false;
+      let nextStatus: "visible" | "hidden" = "visible";
       let insertBeforeId: string | null = null;
 
       if (data.menuName === "main" && data.mode === "before" && targetItem) {
         nextParentId = targetItem.parentId;
-        nextHidden = targetItem.hidden;
+        nextStatus = targetItem.status as "visible" | "hidden";
         insertBeforeId = targetItem.id;
       } else if (data.menuName === "main" && data.mode === "as-child" && targetItem) {
         nextParentId = targetItem.id;
-        nextHidden = targetItem.hidden;
+        nextStatus = targetItem.status as "visible" | "hidden";
       } else if (data.menuName === "main" && data.mode === "to-hidden") {
         nextParentId = null;
-        nextHidden = true;
+        nextStatus = "hidden";
       } else if (data.menuName === "main") {
         nextParentId = null;
-        nextHidden = false;
+        nextStatus = "visible";
       } else if (data.mode === "before" && targetItem) {
         nextParentId = null;
-        nextHidden = false;
+        nextStatus = "visible";
         insertBeforeId = targetItem.id;
       } else {
         nextParentId = null;
-        nextHidden = false;
+        nextStatus = "visible";
       }
 
       await menuItemsService.update(movedItem.id, {
         parentId: nextParentId,
-        hidden: nextHidden,
+        status: nextStatus,
       });
 
-      if (oldHidden !== nextHidden) {
+      if (oldStatus !== nextStatus) {
         const descendantIds = getDescendantIds(allItems, movedItem.id);
         for (const descendantId of descendantIds) {
-          await menuItemsService.update(descendantId, { hidden: nextHidden });
+          await menuItemsService.update(descendantId, { status: nextStatus });
         }
       }
 
@@ -336,7 +327,7 @@ export const useMoveMenuItem = routeAction$(
           (item) =>
             item.id !== movedItem.id &&
             item.parentId === nextParentId &&
-            item.hidden === nextHidden,
+            item.status === nextStatus,
         )
         .sort((a, b) => a.position - b.position);
 
@@ -355,14 +346,14 @@ export const useMoveMenuItem = routeAction$(
         position: index,
       }));
 
-      const changedGroup = oldParentId !== nextParentId || oldHidden !== nextHidden;
+      const changedGroup = oldParentId !== nextParentId || oldStatus !== nextStatus;
       if (changedGroup) {
         const oldSiblings = refreshed
           .filter(
             (item) =>
               item.id !== movedItem.id &&
               item.parentId === oldParentId &&
-              item.hidden === oldHidden,
+              item.status === oldStatus,
           )
           .sort((a, b) => a.position - b.position)
           .map((item, index) => ({ id: item.id, position: index }));
@@ -407,8 +398,6 @@ export default component$(() => {
       <MenuTable
         mainItems={menuItemsData.value.main}
         footerItems={menuItemsData.value.footer}
-        pageIdByUrl={menuItemsData.value.pageIdByUrl}
-        pageStatusByUrl={menuItemsData.value.pageStatusByUrl}
         staticUrls={STATIC_MENU_LINKS.map((l) => normalizeUrl(l.url))}
         onMove$={$(async (params) => {
           const result = await moveMenuItemAction.submit(params);

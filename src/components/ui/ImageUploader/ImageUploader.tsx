@@ -30,7 +30,7 @@ interface ImageUploaderProps {
   /** Storage path prefix in S3 (e.g. 'public/events', 'public/profiles') */
   path: string;
   /** Processing pipeline — determines resize logic on the backend. Defaults to 'standard'. */
-  pipeline?: "standard" | "gallery" | "thumbnail" | "profile-picture";
+  pipeline?: "standard" | "gallery" | "thumbnail" | "profile-picture" | "svg";
   /** Set to true to trigger the upload (e.g. on form submit). Required unless autoUpload is true. */
   triggerSignal?: Signal<boolean>;
   /** When true, shows the Uppy upload button and uploads immediately. No triggerSignal needed. */

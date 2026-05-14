@@ -279,6 +279,15 @@ export const MenuTable = (props: MenuTableProps) => {
     else setAddError(result.error ?? "Add failed");
   };
 
+  const handleSvgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    const form = e.target.closest("form");
+    const iconField = form?.querySelector('input[name="icon"]') as HTMLInputElement | null;
+    if (iconField) iconField.value = text;
+  };
+
   const handleDelete = async (item: MenuItem) => {
     if (!confirm(`Remove "${item.label}" from the menu?`)) return;
     setDeleteError(null);
@@ -453,8 +462,13 @@ export const MenuTable = (props: MenuTableProps) => {
         <h3 className="text-xl font-bold mb-3">Footer Links</h3>
 
         <form className="flex flex-wrap gap-2 mb-4 border rounded-sm p-3 bg-gray-50" onSubmit={handleAddFooterSubmit}>
-          <input type="text" name="label" placeholder="Label" className="border rounded-sm px-2 py-1 text-sm" required />
-          <input type="text" name="url" placeholder="/imprint or https://..." className="border rounded-sm px-2 py-1 text-sm" required />
+          <input type="text" name="label" placeholder="Label (also used as tooltip when an icon is set)" className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]" required />
+          <input type="text" name="url" placeholder="/imprint or https://..." className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]" required />
+          <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer border rounded-sm px-2 py-1">
+            SVG icon (optional):
+            <input type="file" accept=".svg,image/svg+xml" className="text-xs" onChange={handleSvgUpload} />
+            <input type="hidden" name="icon" />
+          </label>
           <button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700">Add</button>
         </form>
 
@@ -478,6 +492,19 @@ export const MenuTable = (props: MenuTableProps) => {
                 >
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.label}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{normalizeUrl(item.url)}</td>
+                  <td className="px-4 py-3 text-sm">
+                    {item.icon?.startsWith("<svg") ? (
+                      <span
+                        className="inline-block w-5 h-5 text-gray-600"
+                        title={item.label}
+                        dangerouslySetInnerHTML={{ __html: item.icon }}
+                      />
+                    ) : item.icon ? (
+                      <span className="text-xs text-gray-500">{item.icon}</span>
+                    ) : (
+                      <span className="text-xs text-gray-300">–</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-sm">
                     <div className="flex items-center gap-3">
                       <button
@@ -504,8 +531,16 @@ export const MenuTable = (props: MenuTableProps) => {
 
         {sortedFooter.filter((item) => footerEditingId === item.id).map((item) => (
           <form key={item.id} className="mt-3 flex flex-wrap gap-2 border rounded-sm p-3 bg-gray-50" onSubmit={(e) => handleUpdateSubmit(e, item)}>
-            <input type="text" name="label" defaultValue={item.label} placeholder="Label" className="border rounded-sm px-2 py-1 text-sm" required />
-            <input type="text" name="url" defaultValue={normalizeUrl(item.url)} placeholder="URL" className="border rounded-sm px-2 py-1 text-sm" required />
+            <input type="text" name="label" defaultValue={item.label} placeholder="Label (also used as tooltip when an icon is set)" className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]" required />
+            <input type="text" name="url" defaultValue={normalizeUrl(item.url)} placeholder="URL" className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]" required />
+            <div className="w-full flex items-center gap-2">
+              <label className="text-xs text-gray-500">SVG icon (replaces label visually, label becomes tooltip):</label>
+              <input type="file" accept=".svg,image/svg+xml" className="text-xs" onChange={handleSvgUpload} />
+              {item.icon?.startsWith("<svg") && (
+                <span className="text-xs text-gray-400">current icon set — upload to replace</span>
+              )}
+              <input type="hidden" name="icon" defaultValue={item.icon ?? ""} />
+            </div>
             <button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700">Save</button>
           </form>
         ))}

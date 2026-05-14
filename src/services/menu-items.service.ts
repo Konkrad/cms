@@ -31,22 +31,33 @@ function buildMenuTree(items: MenuItem[]): MenuItemTree[] {
   const sortByPosition = (a: MenuItemTree, b: MenuItemTree) =>
     a.position - b.position;
 
-  roots.sort(sortByPosition);
-  roots.forEach((root) => {
-    if (root.children) {
-      root.children.sort(sortByPosition);
+  const sortTree = (nodes: MenuItemTree[]) => {
+    nodes.sort(sortByPosition);
+    for (const node of nodes) {
+      if (node.children && node.children.length > 0) {
+        sortTree(node.children);
+      }
     }
-  });
+  };
+
+  sortTree(roots);
 
   return roots;
 }
 
+type GetAllOptions = {
+  includeHidden?: boolean;
+};
+
 export const menuItemsService = {
   // Return all menu items for the given menu name (no pagination)
-  async getAll(menuName?: string): Promise<MenuItem[]> {
+  async getAll(menuName?: string, options?: GetAllOptions): Promise<MenuItem[]> {
     const whereClause: any[] = [];
     if (menuName) {
       whereClause.push(eq(menuItems.menuName, menuName));
+    }
+    if (!options?.includeHidden) {
+      whereClause.push(eq(menuItems.hidden, false));
     }
 
     const rows = await db
@@ -55,31 +66,17 @@ export const menuItemsService = {
       .where(whereClause.length ? and(...whereClause) : undefined)
       .orderBy(asc(menuItems.position), asc(menuItems.id));
 
-    console.log(
-      "[menuItemsService] getAll - completed, items count:",
-      (rows || []).length,
-    );
-
     return rows as MenuItem[];
   },
 
   async getMenuTree(menuName: string): Promise<MenuItemTree[]> {
-    console.log(
-      "[menuItemsService] getMenuTree - starting, menuName:",
-      menuName,
-    );
-    try {
-      const items = await this.getAll(menuName);
-      const tree = buildMenuTree(items);
-      console.log(
-        "[menuItemsService] getMenuTree - completed, root count:",
-        (tree || []).length,
-      );
-      return tree;
-    } catch (err) {
-      console.error("[menuItemsService] getMenuTree - error:", err);
-      throw err;
-    }
+    const items = await this.getAll(menuName);
+    return buildMenuTree(items);
+  },
+
+  async getAdminMenuTree(menuName: string): Promise<MenuItemTree[]> {
+    const items = await this.getAll(menuName, { includeHidden: true });
+    return buildMenuTree(items);
   },
 
   async getById(id: string): Promise<MenuItem | undefined> {
@@ -114,6 +111,7 @@ export const menuItemsService = {
         url: data.url,
         parentId: data.parentId ?? null,
         position: data.position !== undefined ? data.position : nextPosition,
+        hidden: data.hidden ?? false,
         icon: data.icon ?? null,
         target: data.target ?? "_self",
       })
@@ -135,6 +133,7 @@ export const menuItemsService = {
     if (data.url !== undefined) updateData.url = data.url;
     if (data.parentId !== undefined) updateData.parentId = data.parentId;
     if (data.position !== undefined) updateData.position = data.position;
+    if (data.hidden !== undefined) updateData.hidden = data.hidden;
     if (data.icon !== undefined) updateData.icon = data.icon;
     if (data.target !== undefined) updateData.target = data.target;
 

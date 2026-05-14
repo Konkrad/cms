@@ -1,6 +1,11 @@
 import { component$, Slot } from "@qwik.dev/core";
+import type { RequestHandler } from "@qwik.dev/router";
 import { routeLoader$ } from "@qwik.dev/router";
 import { requireAdmin } from "~/utils/server-auth";
+
+export const onGet: RequestHandler = ({ cacheControl }) => {
+  cacheControl({ noCache: true });
+};
 
 export const useAdminAuth = routeLoader$(async (event) => {
   await requireAdmin(event);

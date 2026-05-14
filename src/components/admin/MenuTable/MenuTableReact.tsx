@@ -1,0 +1,433 @@
+/** @jsxImportSource react */
+import React, { useState, useCallback, useRef } from "react";
+import { DragDropProvider, useDraggable, useDroppable } from "@dnd-kit/react";
+
+const normalizeUrl = (url: string): string => {
+  const trimmed = url.trim();
+  if (!trimmed) return "/";
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+};
+
+const getDepth = (items: MenuItem[], id: string): number => {
+  const byId = new Map(items.map((i) => [i.id, i]));
+  const calc = (currentId: string): number => {
+    const item = byId.get(currentId);
+    if (!item?.parentId) return 0;
+    return calc(item.parentId) + 1;
+  };
+  return calc(id);
+};
+
+export interface MenuItem {
+  id: string;
+  label: string;
+  url: string;
+  parentId: string | null;
+  position: number;
+  hidden: boolean;
+  menuName: string;
+  icon: string | null;
+  target: string;
+}
+
+interface ActionResult {
+  success: boolean;
+  error?: string;
+}
+
+export interface MenuTableProps {
+  mainItems: MenuItem[];
+  footerItems: MenuItem[];
+  staticUrls: string[];
+  onMove: (params: {
+    movedItemId: string;
+    targetItemId?: string;
+    mode: "before" | "as-child" | "to-hidden";
+    menuName: "main" | "footer";
+  }) => Promise<ActionResult>;
+  onUpdate: (params: {
+    menuName: string;
+    menuItemId: string;
+    label: string;
+    url: string;
+    parentId?: string;
+    target: string;
+    icon?: string;
+  }) => Promise<ActionResult>;
+  onAdd: (params: {
+    menuName: "main" | "footer";
+    label: string;
+    url: string;
+    icon?: string;
+    hidden?: boolean;
+  }) => Promise<ActionResult>;
+}
+
+interface DropInfo {
+  targetId: string;
+  mode: "before" | "child";
+}
+
+// ── Sub-components (hooks must live here, not in .map callbacks) ──
+
+interface SortableRowProps {
+  id: string;
+  dropInfo: DropInfo | null;
+  allowChild: boolean;
+  baseStyle?: React.CSSProperties;
+  className?: string;
+  children: React.ReactNode;
+}
+
+function SortableRow({ id, dropInfo, allowChild, baseStyle, className, children }: SortableRowProps) {
+  const { ref: dragRef, handleRef, isDragging } = useDraggable({ id });
+  const { ref: dropRef } = useDroppable({ id });
+
+  // Merge drag + drop refs onto the same <tr>
+  const ref = (el: HTMLTableRowElement | null) => {
+    dragRef(el);
+    dropRef(el);
+  };
+
+  const style: React.CSSProperties = { ...baseStyle };
+  if (isDragging) style.opacity = 0.4;
+  const isHovered = dropInfo?.targetId === id;
+  if (isHovered) {
+    if (dropInfo!.mode === "before") style.boxShadow = "inset 0 2px 0 #3b82f6";
+    else if (dropInfo!.mode === "child") style.background = "#f5f3ff";
+  }
+
+  return (
+    <tr ref={ref} style={style} className={className}>
+      <td
+        ref={handleRef as React.RefCallback<HTMLTableCellElement>}
+        className="px-2 py-3 text-gray-300 cursor-grab select-none text-center"
+      >
+        ⠿
+      </td>
+      {children}
+    </tr>
+  );
+}
+
+function SeparatorRow() {
+  const { ref, isDropTarget } = useDroppable({ id: "separator" });
+  return (
+    <tr ref={ref} style={{ background: isDropTarget ? "#fef2f2" : undefined }}>
+      <td colSpan={4} className="px-4 py-2">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 border-t-2 border-dashed border-gray-300" />
+          <span className="text-xs text-gray-400 whitespace-nowrap">hidden below</span>
+          <div className="flex-1 border-t-2 border-dashed border-gray-300" />
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// ── Main component ──
+
+export const MenuTable = (props: MenuTableProps) => {
+  const { mainItems, footerItems, staticUrls, onMove, onUpdate, onAdd } = props;
+
+  const [mainEditingId, setMainEditingId] = useState<string | null>(null);
+  const [footerEditingId, setFooterEditingId] = useState<string | null>(null);
+  const [moveError, setMoveError] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const [addError, setAddError] = useState<string | null>(null);
+  const [dropInfo, setDropInfoState] = useState<DropInfo | null>(null);
+  const dropInfoRef = useRef<DropInfo | null>(null);
+  const setDropInfo = useCallback((info: DropInfo | null) => {
+    dropInfoRef.current = info;
+    setDropInfoState(info);
+  }, []);
+
+  const staticUrlSet = new Set(staticUrls);
+  const visibleItems = [...mainItems].filter((i) => !i.hidden).sort((a, b) => a.position - b.position);
+  const hiddenItems = [...mainItems].filter((i) => i.hidden).sort((a, b) => a.position - b.position);
+  const sortedFooter = [...footerItems].sort((a, b) => a.position - b.position);
+
+  const visibleIdSet = new Set(visibleItems.map((i) => i.id));
+  const footerIdSet = new Set(sortedFooter.map((i) => i.id));
+
+  // Track which half the pointer is over to determine before/child mode
+  const handleDragMove = useCallback((event: any) => {
+    const targetId = event.operation?.target?.id;
+    if (!targetId || targetId === "separator") {
+      setDropInfo(null);
+      return;
+    }
+    const targetEl = event.operation?.target?.element as HTMLElement | undefined;
+    if (!targetEl) return;
+    const rect = targetEl.getBoundingClientRect();
+    const pointerY = event.operation?.position?.current?.y ?? 0;
+    const isTopHalf = pointerY < rect.top + rect.height / 2;
+    const allowChild = visibleIdSet.has(String(targetId));
+    const mode: "before" | "child" = isTopHalf || !allowChild ? "before" : "child";
+    const id = String(targetId);
+    if (dropInfoRef.current?.targetId !== id || dropInfoRef.current?.mode !== mode) {
+      setDropInfo({ targetId: id, mode });
+    }
+  }, [visibleIdSet]);
+
+  const handleDragEnd = useCallback(async (event: any) => {
+    // Capture the last dropInfo before clearing — the ref always has the freshest value
+    // because handleDragMove updates it on every pointer-move event.
+    const lastDropInfo = dropInfoRef.current;
+    setDropInfo(null);
+    if (event.canceled) return;
+
+    const sourceId = String(event.operation?.source?.id ?? "");
+    const targetId = event.operation?.target?.id;
+    if (!sourceId) return;
+
+    if (targetId === "separator") {
+      setMoveError(null);
+      const result = await onMove({ movedItemId: sourceId, mode: "to-hidden", menuName: "main" });
+      if (!result.success) setMoveError(result.error ?? "Move failed");
+      return;
+    }
+
+    if (!targetId || String(targetId) === sourceId) return;
+    const targetIdStr = String(targetId);
+
+    // Use the mode determined by the last onDragMove — it tracks top/bottom half reliably.
+    const mode: "before" | "as-child" =
+      lastDropInfo?.targetId === targetIdStr && lastDropInfo?.mode === "child" ? "as-child" : "before";
+
+    const menuName = footerIdSet.has(targetIdStr) ? "footer" : "main";
+    setMoveError(null);
+    const result = await onMove({ movedItemId: sourceId, targetItemId: targetIdStr, mode, menuName });
+    if (!result.success) setMoveError(result.error ?? "Move failed");
+  }, [onMove, footerIdSet, setDropInfo]);
+
+  // ── Form submit handlers ──
+
+  const handleUpdateSubmit = async (e: React.FormEvent<HTMLFormElement>, item: MenuItem) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    setUpdateError(null);
+    const result = await onUpdate({
+      menuName: item.menuName,
+      menuItemId: item.id,
+      label: fd.get("label") as string,
+      url: fd.get("url") as string,
+      parentId: item.parentId ?? undefined,
+      target: item.target,
+      icon: item.menuName === "footer" ? ((fd.get("icon") as string) || undefined) : undefined,
+    });
+    if (result.success) {
+      if (item.menuName === "main") setMainEditingId(null);
+      else setFooterEditingId(null);
+    } else {
+      setUpdateError(result.error ?? "Update failed");
+    }
+  };
+
+  const handleAddMainSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    setAddError(null);
+    const result = await onAdd({ menuName: "main", label: fd.get("label") as string, url: fd.get("url") as string });
+    if (result.success) form.reset();
+    else setAddError(result.error ?? "Add failed");
+  };
+
+  const handleAddFooterSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    setAddError(null);
+    const result = await onAdd({ menuName: "footer", label: fd.get("label") as string, url: fd.get("url") as string, icon: (fd.get("icon") as string) || undefined });
+    if (result.success) form.reset();
+    else setAddError(result.error ?? "Add failed");
+  };
+
+  const handleSvgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    const form = e.target.closest("form");
+    const iconField = form?.querySelector('textarea[name="icon"]') as HTMLTextAreaElement | null;
+    if (iconField) iconField.value = text;
+  };
+
+  return (
+    <DragDropProvider onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
+      {moveError && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">{moveError}</div>
+      )}
+      {updateError && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">{updateError}</div>
+      )}
+      {addError && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">{addError}</div>
+      )}
+
+      {/* ── Main Menu ── */}
+      <div className="mt-6">
+        <h3 className="text-xl font-bold mb-1">Main Menu</h3>
+        <p className="text-sm text-gray-500 mb-3">
+          Drag to reorder · drop <em>onto</em> an item to nest it · drag below the dashed line to hide
+        </p>
+
+        <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-2 py-3 w-8" />
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Label</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 bg-white">
+              {visibleItems.map((item) => (
+                <SortableRow
+                  key={item.id}
+                  id={item.id}
+                  dropInfo={dropInfo}
+                  allowChild
+                >
+                  <td
+                    className="px-4 py-3 text-sm font-medium text-gray-900"
+                    style={{ paddingLeft: 16 + getDepth(mainItems, item.id) * 24 }}
+                  >
+                    {item.label}
+                    {staticUrlSet.has(normalizeUrl(item.url)) && (
+                      <span className="ml-2 text-xs text-gray-400">[static]</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{normalizeUrl(item.url)}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <button
+                      type="button"
+                      className="text-blue-600 hover:text-blue-900"
+                      onClick={() => setMainEditingId((prev) => (prev === item.id ? null : item.id))}
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </SortableRow>
+              ))}
+
+              <SeparatorRow />
+
+              {hiddenItems.map((item) => (
+                <SortableRow
+                  key={item.id}
+                  id={item.id}
+                  dropInfo={dropInfo}
+                  allowChild={false}
+                  baseStyle={{ background: "#f9fafb" }}
+                  className="text-gray-400"
+                >
+                  <td className="px-4 py-3 text-sm">
+                    {item.label}
+                    {staticUrlSet.has(normalizeUrl(item.url)) && (
+                      <span className="ml-2 text-xs">[static]</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-sm">{normalizeUrl(item.url)}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <button
+                      type="button"
+                      className="text-blue-500 hover:text-blue-700"
+                      onClick={() => setMainEditingId((prev) => (prev === item.id ? null : item.id))}
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </SortableRow>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {mainItems.filter((item) => mainEditingId === item.id).map((item) => (
+          <form key={item.id} className="mt-3 flex flex-wrap gap-2 border rounded-sm p-3 bg-gray-50" onSubmit={(e) => handleUpdateSubmit(e, item)}>
+            <input type="text" name="label" defaultValue={item.label} placeholder="Label" className="border rounded-sm px-2 py-1 text-sm" required />
+            <input type="text" name="url" defaultValue={normalizeUrl(item.url)} placeholder="URL" className="border rounded-sm px-2 py-1 text-sm" required />
+            <button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700">Save</button>
+          </form>
+        ))}
+
+        <details className="mt-4">
+          <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-800">+ Add custom link</summary>
+          <form className="mt-2 flex flex-wrap gap-2 border rounded-sm p-3 bg-gray-50" onSubmit={handleAddMainSubmit}>
+            <input type="text" name="label" placeholder="Label" className="border rounded-sm px-2 py-1 text-sm" required />
+            <input type="text" name="url" placeholder="/about or https://..." className="border rounded-sm px-2 py-1 text-sm" required />
+            <button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700">Add</button>
+          </form>
+        </details>
+      </div>
+
+      {/* ── Footer Links ── */}
+      <div className="mt-10">
+        <h3 className="text-xl font-bold mb-3">Footer Links</h3>
+
+        <form className="flex flex-wrap gap-2 mb-4 border rounded-sm p-3 bg-gray-50" onSubmit={handleAddFooterSubmit}>
+          <input type="text" name="label" placeholder="Label" className="border rounded-sm px-2 py-1 text-sm" required />
+          <input type="text" name="url" placeholder="/imprint or https://..." className="border rounded-sm px-2 py-1 text-sm" required />
+          <textarea name="icon" rows={1} placeholder="SVG text or badge label" className="border rounded-sm px-2 py-1 text-xs" />
+          <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
+            Upload SVG:
+            <input type="file" accept=".svg,image/svg+xml" className="text-xs" onChange={handleSvgUpload} />
+          </label>
+          <button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700">Add</button>
+        </form>
+
+        <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-2 py-3 w-8" />
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Label</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Icon</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 bg-white">
+              {sortedFooter.map((item) => (
+                <SortableRow
+                  key={item.id}
+                  id={item.id}
+                  dropInfo={dropInfo}
+                  allowChild={false}
+                >
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.label}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{normalizeUrl(item.url)}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500 max-w-[120px] truncate">
+                    {item.icon ? (item.icon.startsWith("<svg") ? "[SVG]" : item.icon) : "–"}
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    <button
+                      type="button"
+                      className="text-blue-600 hover:text-blue-900"
+                      onClick={() => setFooterEditingId((prev) => (prev === item.id ? null : item.id))}
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </SortableRow>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {sortedFooter.filter((item) => footerEditingId === item.id).map((item) => (
+          <form key={item.id} className="mt-3 flex flex-wrap gap-2 border rounded-sm p-3 bg-gray-50" onSubmit={(e) => handleUpdateSubmit(e, item)}>
+            <input type="text" name="label" defaultValue={item.label} placeholder="Label" className="border rounded-sm px-2 py-1 text-sm" required />
+            <input type="text" name="url" defaultValue={normalizeUrl(item.url)} placeholder="URL" className="border rounded-sm px-2 py-1 text-sm" required />
+            <textarea name="icon" rows={3} className="border rounded-sm px-2 py-1 text-xs w-full" defaultValue={item.icon ?? ""} placeholder="SVG text or badge label" />
+            <input type="file" accept=".svg,image/svg+xml" className="text-xs" onChange={handleSvgUpload} />
+            <button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700">Save</button>
+          </form>
+        ))}
+      </div>
+    </DragDropProvider>
+  );
+};

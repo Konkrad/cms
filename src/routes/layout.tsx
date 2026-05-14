@@ -2,6 +2,7 @@ import { component$, Slot } from "@qwik.dev/core";
 import type { RequestHandler } from "@qwik.dev/router";
 import { routeAction$, routeLoader$ } from "@qwik.dev/router";
 import { Navigation } from "~/components/ui/Navigation";
+import { SiteFooter } from "~/components/ui/SiteFooter/SiteFooter";
 import { menuItemsService } from "~/services/menu-items.service";
 import { deriveThumbnailKey } from "~/utils/images";
 import { getCurrentUserData } from "~/utils/server-auth";
@@ -55,6 +56,16 @@ export const useMenuItems = routeLoader$(async () => {
     return menuTree;
   } catch (error) {
     console.error("[Layout] Failed to load menu items:", error);
+    return [];
+  }
+});
+
+export const useFooterMenuItems = routeLoader$(async () => {
+  try {
+    const items = await menuItemsService.getAll("footer");
+    return items;
+  } catch (error) {
+    console.error("[Layout] Failed to load footer items:", error);
     return [];
   }
 });
@@ -128,6 +139,7 @@ export default component$(() => {
       <main class="min-h-screen">
         <Slot />
       </main>
+      <SiteFooter />
     </>
   );
 });

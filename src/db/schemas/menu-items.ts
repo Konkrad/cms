@@ -11,6 +11,7 @@ export const menuItems = sqliteTable("menu_items", {
   url: text("url").notNull(),
   parentId: text("parent_id"),
   position: integer("position").notNull().default(0),
+  hidden: integer("hidden", { mode: "boolean" }).notNull().default(false),
   icon: text("icon"),
   target: text("target", { enum: ["_self", "_blank", "_parent", "_top"] })
     .notNull()

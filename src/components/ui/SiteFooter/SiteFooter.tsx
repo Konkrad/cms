@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { useFooterMenuItems } from "~/routes/layout";
+import { sanitizeSvg } from "~/utils/svg-sanitize";
 
 export const SiteFooter = component$(() => {
   const footerItems = useFooterMenuItems();
@@ -38,16 +39,19 @@ export const SiteFooter = component$(() => {
                   target={item.target}
                   rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
                   title={item.label}
-                  class="inline-flex items-center justify-center w-5 h-5 text-gray-500 hover:text-blue-600"
+                  class="inline-flex items-center justify-center w-5 h-5 shrink-0 text-gray-500 hover:text-blue-600 [&_svg]:w-full [&_svg]:h-full [&_svg]:block"
                 >
-                  {item.icon!.trim().startsWith("<svg") ? (
-                    <span
-                      class="w-full h-full"
-                      dangerouslySetInnerHTML={item.icon!}
-                    />
-                  ) : (
-                    <span class="text-[10px] font-semibold">{item.icon}</span>
-                  )}
+                  {(() => {
+                    const svg = sanitizeSvg(item.icon!);
+                    return svg ? (
+                      <span
+                        class="w-full h-full"
+                        dangerouslySetInnerHTML={svg}
+                      />
+                    ) : (
+                      <span class="text-[10px] font-semibold">{item.label}</span>
+                    );
+                  })()}
                 </a>
               ))}
             </div>

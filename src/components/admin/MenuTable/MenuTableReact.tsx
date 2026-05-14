@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import React, { useState, useCallback, useRef } from "react";
+import { sanitizeSvg } from "~/utils/svg-sanitize";
 import { DragDropProvider, useDraggable, useDroppable } from "@dnd-kit/react";
 
 const normalizeUrl = (url: string): string => {
@@ -493,17 +494,18 @@ export const MenuTable = (props: MenuTableProps) => {
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.label}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{normalizeUrl(item.url)}</td>
                   <td className="px-4 py-3 text-sm">
-                    {item.icon?.startsWith("<svg") ? (
-                      <span
-                        className="inline-block w-5 h-5 text-gray-600"
-                        title={item.label}
-                        dangerouslySetInnerHTML={{ __html: item.icon }}
-                      />
-                    ) : item.icon ? (
-                      <span className="text-xs text-gray-500">{item.icon}</span>
-                    ) : (
-                      <span className="text-xs text-gray-300">–</span>
-                    )}
+                    {(() => {
+                      const svg = item.icon ? sanitizeSvg(item.icon) : "";
+                      return svg ? (
+                        <span
+                          className="inline-block w-5 h-5 text-gray-600"
+                          title={item.label}
+                          dangerouslySetInnerHTML={{ __html: svg }}
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-300">–</span>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <div className="flex items-center gap-3">

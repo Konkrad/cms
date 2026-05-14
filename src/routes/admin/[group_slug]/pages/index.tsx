@@ -8,6 +8,7 @@ import { pages } from "~/db/schemas/pages";
 import { menuItemsService } from "~/services/menu-items.service";
 import { STATIC_MENU_LINKS } from "~/services/static-menu-links";
 import { requireAdmin } from "~/utils/server-auth";
+import { sanitizeSvg } from "~/utils/svg-sanitize";
 
 // Pages are only accessible in global context
 export const useCheckGlobalContext = routeLoader$(async ({ params, redirect }) => {
@@ -145,6 +146,8 @@ export const useAddToMenu = routeAction$(
         0,
       );
 
+      const sanitizedIcon = data.icon ? sanitizeSvg(data.icon) || null : null;
+
       await menuItemsService.create({
         menuName: data.menuName,
         label: data.label,
@@ -152,7 +155,7 @@ export const useAddToMenu = routeAction$(
         parentId: null,
         position: maxPosition + 1,
         hidden: data.hidden ?? false,
-        icon: data.icon || null,
+        icon: sanitizedIcon,
         target: "_self",
       });
 
@@ -217,12 +220,14 @@ export const useUpdateMenuItem = routeAction$(
         nextPosition = siblingPositions.length > 0 ? Math.max(...siblingPositions) + 1 : 0;
       }
 
+      const sanitizedIcon = data.icon ? sanitizeSvg(data.icon) || null : null;
+
       await menuItemsService.update(data.menuItemId, {
         label: data.label,
         url: normalizedUrl,
         parentId: nextParentId,
         target: data.target,
-        icon: data.icon || null,
+        icon: sanitizedIcon,
         position: nextPosition,
       });
 

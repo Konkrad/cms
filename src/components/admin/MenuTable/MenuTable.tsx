@@ -22,7 +22,7 @@ interface MenuTableProps {
     (params: {
       movedItemId: string;
       targetItemId?: string;
-      mode: "before" | "as-child" | "to-hidden";
+      mode: "before" | "as-child" | "to-hidden" | "to-visible-root";
       menuName: "main" | "footer";
     }) => Promise<ActionResult>
   >;

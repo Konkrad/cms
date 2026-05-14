@@ -43,7 +43,7 @@ export interface MenuTableProps {
   onMove: (params: {
     movedItemId: string;
     targetItemId?: string;
-    mode: "before" | "as-child" | "to-hidden";
+    mode: "before" | "as-child" | "to-hidden" | "to-visible-root";
     menuName: "main" | "footer";
   }) => Promise<ActionResult>;
   onUpdate: (params: {
@@ -111,6 +111,15 @@ function SortableRow({ id, dropInfo, allowChild, baseStyle, className, children 
   );
 }
 
+function EndOfVisibleRow({ isActive }: { isActive: boolean }) {
+  const { ref } = useDroppable({ id: "visible-end" });
+  return (
+    <tr ref={ref} style={{ height: 6 }}>
+      <td colSpan={4} style={{ padding: 0, borderTop: isActive ? "2px solid #3b82f6" : "2px solid transparent" }} />
+    </tr>
+  );
+}
+
 function SeparatorRow() {
   const { ref, isDropTarget } = useDroppable({ id: "separator" });
   return (
@@ -158,6 +167,12 @@ export const MenuTable = (props: MenuTableProps) => {
       setDropInfo(null);
       return;
     }
+    if (targetId === "visible-end") {
+      if (dropInfoRef.current?.targetId !== "visible-end") {
+        setDropInfo({ targetId: "visible-end", mode: "before" });
+      }
+      return;
+    }
     const targetEl = event.operation?.target?.element as HTMLElement | undefined;
     if (!targetEl) return;
     const rect = targetEl.getBoundingClientRect();
@@ -185,6 +200,14 @@ export const MenuTable = (props: MenuTableProps) => {
     if (targetId === "separator") {
       setMoveError(null);
       const result = await onMove({ movedItemId: sourceId, mode: "to-hidden", menuName: "main" });
+      if (!result.success) setMoveError(result.error ?? "Move failed");
+      return;
+    }
+
+    if (targetId === "visible-end") {
+      // Append to end of visible list
+      setMoveError(null);
+      const result = await onMove({ movedItemId: sourceId, mode: "to-visible-root", menuName: "main" });
       if (!result.success) setMoveError(result.error ?? "Move failed");
       return;
     }
@@ -313,6 +336,7 @@ export const MenuTable = (props: MenuTableProps) => {
                 </SortableRow>
               ))}
 
+              <EndOfVisibleRow isActive={dropInfo?.targetId === "visible-end"} />
               <SeparatorRow />
 
               {hiddenItems.map((item) => (

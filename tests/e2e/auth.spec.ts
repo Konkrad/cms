@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures-e2e';
+import { test, expect } from '../fixtures';
 import { waitForEmailHtml, extractAllLinks } from '../utils/mailpit-client';
 
 function uniqueEmail(prefix = 'e2e') {
@@ -23,7 +23,7 @@ function extractOtpFromEmailHtml(html: string) {
   return match?.[1] ?? null;
 }
 
-test('login works via 6-letter code', async ({ page }) => {
+test('login works via 6-letter code', async ({ guestPage: page }) => {
   const email = uniqueEmail('code');
 
   await page.goto('/login');
@@ -48,7 +48,7 @@ test('login works via 6-letter code', async ({ page }) => {
   await expect(page.locator('[aria-label="profile-menu"]')).toBeVisible({ timeout: 15000 });
 });
 
-test('login works via magic link', async ({ page }) => {
+test('login works via magic link', async ({ guestPage: page }) => {
   const email = uniqueEmail('link');
 
   await page.goto('/login');

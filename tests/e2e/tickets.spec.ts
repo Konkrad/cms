@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures-e2e';
+import { test, expect } from '../fixtures';
 import { waitForEmailHtml } from '../utils/mailpit-client';
 import { createEventWithInventory } from '../utils/test-data';
 import { SHARED_E2E_EMAIL } from './auth.setup';

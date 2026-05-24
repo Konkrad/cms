@@ -1,13 +1,19 @@
 /**
- * Shared Playwright fixtures.
+ * Shared Playwright fixtures and DB helpers.
  *
- * `adminPage`  – a Page already authenticated as the Konrad admin user.
- *               The session is created directly in the DB before the test
- *               and cleaned up automatically after.
+ * Fixtures:
+ *  - `guestPage`     – unauthenticated page (no session cookie)
+ *  - `memberPage`    – authenticated as a regular user  (role: "user")
+ *  - `moderatorPage` – authenticated as a moderator     (role: "moderator")
+ *  - `adminPage`     – authenticated as an admin        (role: "admin")
+ *
+ * Each authenticated fixture creates a temporary user+login+session in the DB
+ * and removes all three rows automatically after the test.
  */
 
-import { test as base, type Page } from "@playwright/test";
+import { test as base, type BrowserContext, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
+import { execSync } from "child_process";
 import crypto from "crypto";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -15,7 +21,7 @@ import { fileURLToPath } from "url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DB_PATH = process.env.DB_PATH ?? path.join(ROOT, "my-database.db");
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// ── DB helpers ────────────────────────────────────────────────────────────────
 
 export function openDb() {
   return new Database(DB_PATH);
@@ -67,46 +73,435 @@ export function getPageBySlug(
   return row;
 }
 
-// ── fixtures ──────────────────────────────────────────────────────────────────
+// ── Auth session helpers ──────────────────────────────────────────────────────
+
+export type UserRole = "user" | "moderator" | "admin";
+
+export interface CreatedSession {
+  userId: string;
+  sessionToken: string;
+  cleanup(): void;
+}
+
+/**
+ * Create a temporary user + login + session row in the DB.
+ * Call `cleanup()` to remove all three rows after the test.
+ */
+export function createUserSession(role: UserRole, prefix = "e2e"): CreatedSession {
+  const db = openDb();
+  const userId = crypto.randomUUID();
+  const loginId = crypto.randomUUID();
+  const sessionId = crypto.randomUUID();
+  const email = `${prefix}-${role}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}@example.com`;
+  const sessionToken = crypto.randomBytes(48).toString("hex");
+  const expiresAt = new Date(Date.now() + 3_600_000).toISOString();
+
+  db.prepare("INSERT INTO logins (id, email, expires_at) VALUES (?, ?, ?)").run(
+    loginId, email, expiresAt,
+  );
+  db.prepare(
+    "INSERT INTO users (id, name, family_name, login_id, role) VALUES (?, ?, ?, ?, ?)",
+  ).run(userId, "Test", "User", loginId, role);
+  db.prepare(
+    "INSERT INTO sessions (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)",
+  ).run(sessionId, userId, sessionToken, expiresAt);
+  db.close();
+
+  return {
+    userId,
+    sessionToken,
+    cleanup() {
+      const db2 = openDb();
+      db2.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
+      db2.prepare("DELETE FROM users WHERE id = ?").run(userId);
+      db2.prepare("DELETE FROM logins WHERE id = ?").run(loginId);
+      db2.close();
+    },
+  };
+}
+
+// ── User helpers ─────────────────────────────────────────────────────────────
+
+export function getUserById(id: string): Record<string, unknown> | undefined {
+  const db = openDb();
+  const row = db.prepare("SELECT * FROM users WHERE id = ?").get(id) as
+    | Record<string, unknown>
+    | undefined;
+  db.close();
+  return row;
+}
+
+/** Delete the user and login rows associated with a given login email (mailpit test cleanup). */
+export function deleteUserByEmail(email: string): void {
+  const db = openDb();
+  const login = db.prepare("SELECT id FROM logins WHERE email = ?").get(email) as
+    | { id: string }
+    | undefined;
+  if (login) {
+    const user = db
+      .prepare("SELECT id FROM users WHERE login_id = ?")
+      .get(login.id) as { id: string } | undefined;
+    if (user) db.prepare("DELETE FROM users WHERE id = ?").run(user.id);
+    db.prepare("DELETE FROM logins WHERE id = ?").run(login.id);
+  }
+  db.close();
+}
+
+/** Update the consent JSON for the user identified by their login email. */
+export function setUserConsentByEmail(
+  email: string,
+  consent: Record<string, string>,
+): void {
+  const db = openDb();
+  const login = db.prepare("SELECT id FROM logins WHERE email = ?").get(email) as
+    | { id: string }
+    | undefined;
+  if (!login) {
+    db.close();
+    return;
+  }
+  const user = db
+    .prepare("SELECT id FROM users WHERE login_id = ?")
+    .get(login.id) as { id: string } | undefined;
+  if (!user) {
+    db.close();
+    return;
+  }
+  db.prepare("UPDATE users SET consent = ? WHERE id = ?").run(
+    JSON.stringify(consent),
+    user.id,
+  );
+  db.close();
+}
+
+/** Create a user with specific consent/food/photo fields (for profile-setup tests). */
+export function createTestUser(opts: {
+  consent: Record<string, string>;
+  foodPreference?: string | null;
+  photoConsentGiven?: boolean | null;
+}): CreatedSession {
+  const session = createUserSession("user");
+  const db = openDb();
+  db.prepare(
+    "UPDATE users SET consent = ?, food_preference = ?, photo_consent_given = ? WHERE id = ?",
+  ).run(
+    JSON.stringify(opts.consent),
+    opts.foodPreference ?? null,
+    opts.photoConsentGiven == null ? null : opts.photoConsentGiven ? 1 : 0,
+    session.userId,
+  );
+  db.close();
+  return session;
+}
+
+// ── Group helpers ─────────────────────────────────────────────────────────────
+
+export function getGroupBySlug(
+  slug: string,
+): { id: string; name: string; slug: string } | undefined {
+  const db = openDb();
+  const row = db
+    .prepare("SELECT id, name, slug FROM groups WHERE slug = ? LIMIT 1")
+    .get(slug) as { id: string; name: string; slug: string } | undefined;
+  db.close();
+  return row;
+}
+
+/** Add a user to a group. Returns the new membership id. */
+export function addGroupMember(userId: string, groupId: string): string {
+  const db = openDb();
+  const id = crypto.randomUUID();
+  db.prepare(
+    "INSERT OR IGNORE INTO group_memberships (id, user_id, group_id) VALUES (?, ?, ?)",
+  ).run(id, userId, groupId);
+  db.close();
+  return id;
+}
+
+export function deleteGroupMember(userId: string, groupId: string): void {
+  const db = openDb();
+  db.prepare(
+    "DELETE FROM group_memberships WHERE user_id = ? AND group_id = ?",
+  ).run(userId, groupId);
+  db.close();
+}
+
+export function deleteGroupRepresentative(userId: string, groupId: string): void {
+  const db = openDb();
+  db.prepare(
+    "DELETE FROM group_representatives WHERE user_id = ? AND group_id = ?",
+  ).run(userId, groupId);
+  db.close();
+}
+
+// ── Event helpers ─────────────────────────────────────────────────────────────
+
+/** Create a minimal event with one paid product (for consent/checkout tests). */
+export function createTestEvent(userId: string): { eventId: string; cleanup(): void } {
+  const db = openDb();
+  const eventId = crypto.randomUUID();
+  const inventoryGroupId = crypto.randomUUID();
+  const productId = crypto.randomUUID();
+  const start = new Date(Date.now() + 14 * 86400000).toISOString();
+  const end = new Date(Date.now() + 14 * 86400000 + 7200000).toISOString();
+
+  db.prepare(
+    `INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, visibility)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(eventId, "Consent Test Event", "<p>test</p>", start, end, "online", userId, "global");
+  db.prepare(
+    `INSERT INTO inventory_groups (id, event_id, name, max_capacity, needs_ticket)
+     VALUES (?, ?, ?, ?, ?)`,
+  ).run(inventoryGroupId, eventId, "General", 100, 1);
+  db.prepare(
+    `INSERT INTO products (id, event_id, inventory_group_id, name, price, max_quantity, participant_capacity, features)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(productId, eventId, inventoryGroupId, "Standard", 10.0, 1, 1, "[]");
+  db.close();
+
+  return {
+    eventId,
+    cleanup() {
+      const db2 = openDb();
+      db2.prepare("DELETE FROM products WHERE id = ?").run(productId);
+      db2.prepare("DELETE FROM inventory_groups WHERE id = ?").run(inventoryGroupId);
+      db2.prepare("DELETE FROM events WHERE id = ?").run(eventId);
+      db2.close();
+    },
+  };
+}
+
+// ── Post helpers ──────────────────────────────────────────────────────────────
+
+export function getPostByTitle(
+  title: string,
+): { id: string; title: string; featured_image: string | null } | null {
+  const db = openDb();
+  const row = db
+    .prepare(
+      "SELECT id, title, featured_image FROM posts WHERE title = ? ORDER BY created_at DESC LIMIT 1",
+    )
+    .get(title) as
+    | { id: string; title: string; featured_image: string | null }
+    | undefined;
+  db.close();
+  return row ?? null;
+}
+
+export function deletePostByTitle(title: string): void {
+  const db = openDb();
+  db.prepare("DELETE FROM posts WHERE title = ?").run(title);
+  db.close();
+}
+
+// ── Page / menu helpers ───────────────────────────────────────────────────────
+
+export function createPageInDb(opts: {
+  title: string;
+  url: string;
+  menuName: "main" | "footer";
+  status: "draft" | "published";
+}): { pageId: string; menuItemId: string } {
+  const db = openDb();
+  const pageId = crypto.randomUUID();
+  const menuItemId = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  db.prepare(
+    "INSERT INTO pages (id, content, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+  ).run(pageId, JSON.stringify([]), opts.status, now, now);
+
+  const maxPosRow = db
+    .prepare("SELECT MAX(position) as pos FROM menu_items WHERE menu_name = ?")
+    .get(opts.menuName) as { pos: number | null } | undefined;
+  const position = (maxPosRow?.pos ?? 0) + 1;
+
+  db.prepare(
+    "INSERT INTO menu_items (id, menu_name, title, url, page_id, parent_id, position, status, icon, target, created_at, updated_at) VALUES (?, ?, ?, ?, ?, null, ?, 'hidden', null, '_self', ?, ?)",
+  ).run(menuItemId, opts.menuName, opts.title, opts.url, pageId, position, now, now);
+
+  db.close();
+  return { pageId, menuItemId };
+}
+
+export function createMenuItemInDb(opts: {
+  menuName: "main" | "footer";
+  title: string;
+  url: string;
+  position: number;
+  status?: "visible" | "hidden";
+}): string {
+  const db = openDb();
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  db.prepare(
+    "INSERT INTO menu_items (id, menu_name, title, url, page_id, parent_id, position, status, icon, target, created_at, updated_at) VALUES (?, ?, ?, ?, null, null, ?, ?, null, '_self', ?, ?)",
+  ).run(id, opts.menuName, opts.title, opts.url, opts.position, opts.status ?? "visible", now, now);
+  db.close();
+  return id;
+}
+
+/** Delete a page and all its linked menu items. */
+export function deletePageAndMenuItems(pageId: string): void {
+  const db = openDb();
+  db.prepare("DELETE FROM menu_items WHERE page_id = ?").run(pageId);
+  db.prepare("DELETE FROM pages WHERE id = ?").run(pageId);
+  db.close();
+}
+
+export function deleteMenuItemById(id: string): void {
+  const db = openDb();
+  db.prepare("DELETE FROM menu_items WHERE id = ?").run(id);
+  db.close();
+}
+
+export function getMenuItemByUrl(
+  url: string,
+): { id: string; title: string; url: string; status: string } | undefined {
+  const db = openDb();
+  const row = db
+    .prepare("SELECT id, title, url, status FROM menu_items WHERE url = ? LIMIT 1")
+    .get(url) as { id: string; title: string; url: string; status: string } | undefined;
+  db.close();
+  return row;
+}
+
+export function getMenuItemPosition(id: string): number | null {
+  const db = openDb();
+  const row = db.prepare("SELECT position FROM menu_items WHERE id = ?").get(id) as
+    | { position: number }
+    | undefined;
+  db.close();
+  return row?.position ?? null;
+}
+
+export function getPageContent(pageId: string): Array<Record<string, unknown>> {
+  const db = openDb();
+  const row = db.prepare("SELECT content FROM pages WHERE id = ?").get(pageId) as
+    | { content: string }
+    | undefined;
+  db.close();
+  if (!row?.content) return [];
+  try {
+    return JSON.parse(row.content) as Array<Record<string, unknown>>;
+  } catch {
+    return [];
+  }
+}
+
+// ── Internal helpers ──────────────────────────────────────────────────────────
+
+async function injectSessionCookie(context: BrowserContext, token: string) {
+  await context.addCookies([
+    {
+      name: "session",
+      value: token,
+      domain: "localhost",
+      path: "/",
+      httpOnly: true,
+      secure: false,
+      sameSite: "Strict",
+    },
+  ]);
+}
+
+// ── Fixtures ──────────────────────────────────────────────────────────────────
+
+type DbHelper = {
+  getEventIdByTitle: (title: string) => string | null;
+  getProductsByEventId: (eventId: string) => unknown[];
+  getInventoryGroupsByEventId: (eventId: string) => unknown[];
+};
 
 type Fixtures = {
+  /** Unauthenticated browser page (no session cookie). */
+  guestPage: Page;
+  /** Browser page authenticated as a regular user (role: "user"). */
+  memberPage: Page;
+  /** Browser page authenticated as a moderator (role: "moderator"). */
+  moderatorPage: Page;
+  /** Browser page authenticated as an admin (role: "admin"). */
   adminPage: Page;
+  /** Runs the seed script before the test (requires E2E_ALLOW_DB_WRITE=true). */
+  dbSeed: null;
+  /** DB query helpers for events and products. */
+  db: DbHelper;
 };
 
 export const test = base.extend<Fixtures>({
-  adminPage: async ({ browser }, use) => {
-    // Look up admin user
-    const db = openDb();
-    const admin = db
-      .prepare(
-        "SELECT id FROM users WHERE role = 'admin' AND name = 'Konrad' LIMIT 1",
-      )
-      .get() as { id: string } | undefined;
-    db.close();
-
-    if (!admin) throw new Error("Admin user 'Konrad' not found in DB");
-
-    const { sessionId, sessionToken } = createDbSession(admin.id);
-
+  guestPage: async ({ browser }, use) => {
     const context = await browser.newContext();
-    await context.addCookies([
-      {
-        name: "session",
-        value: sessionToken,
-        domain: "localhost",
-        path: "/",
-        httpOnly: true,
-        secure: false,
-        sameSite: "Strict",
-      },
-    ]);
-
     const page = await context.newPage();
-
     await use(page);
-
     await context.close();
-    deleteDbSession(sessionId);
+  },
+
+  memberPage: async ({ browser }, use) => {
+    const session = createUserSession("user");
+    const context = await browser.newContext();
+    await injectSessionCookie(context, session.sessionToken);
+    const page = await context.newPage();
+    await use(page);
+    await context.close();
+    session.cleanup();
+  },
+
+  moderatorPage: async ({ browser }, use) => {
+    const session = createUserSession("moderator");
+    const context = await browser.newContext();
+    await injectSessionCookie(context, session.sessionToken);
+    const page = await context.newPage();
+    await use(page);
+    await context.close();
+    session.cleanup();
+  },
+
+  adminPage: async ({ browser }, use) => {
+    const session = createUserSession("admin");
+    const context = await browser.newContext();
+    await injectSessionCookie(context, session.sessionToken);
+    const page = await context.newPage();
+    await use(page);
+    await context.close();
+    session.cleanup();
+  },
+
+  dbSeed: [
+    async ({}, use) => {
+      const allow = process.env.E2E_ALLOW_DB_WRITE;
+      if (!(allow === "true" || allow === "1")) {
+        throw new Error(
+          'E2E_ALLOW_DB_WRITE must be set to "true" or "1" to run e2e fixtures',
+        );
+      }
+      execSync("node ./scripts/run-seed.js", { stdio: "inherit" });
+      await use(null);
+    },
+    { auto: false },
+  ],
+
+  db: async ({}, use) => {
+    const sqlite = openDb();
+    const helper: DbHelper = {
+      getEventIdByTitle(title) {
+        const row = sqlite
+          .prepare(
+            "SELECT id FROM events WHERE title = ? ORDER BY created_at DESC LIMIT 1",
+          )
+          .get(title) as { id: string } | undefined;
+        return row ? row.id : null;
+      },
+      getProductsByEventId(eventId) {
+        return sqlite.prepare("SELECT * FROM products WHERE event_id = ?").all(eventId);
+      },
+      getInventoryGroupsByEventId(eventId) {
+        return sqlite
+          .prepare("SELECT * FROM inventory_groups WHERE event_id = ?")
+          .all(eventId);
+      },
+    };
+    await use(helper);
+    sqlite.close();
   },
 });
 

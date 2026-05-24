@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures-e2e';
+import { test, expect } from '../fixtures';
 import { createEventWithInventory } from '../utils/test-data';
 
 // Helper: find a representative event link from the groups index (first group with events)

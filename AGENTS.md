@@ -31,12 +31,94 @@
 
 - Every new feature requires a test plan before implementation begins. The plan must identify: what to test (happy path, edge cases, error states), which test type to use (unit, integration, or e2e), and where the test files live.
 - Unit tests go in `tests/unit/` and use Vitest. Use them for pure functions, service logic, and utilities.
-- E2E tests go in `tests/e2e/` and use Playwright. Use them for user-facing flows, form submissions, and anything requiring a real browser or server.
-- For login-gated flows, use the mailpit flow in `tests/utils/mailpit-client.ts` or the magic-link flow through `/login`.
+- E2E tests go in `tests/e2e/` and use Playwright (`testDir: "./tests/e2e"`). Use them for user-facing flows, form submissions, and anything requiring a real browser or server.
 - Do not ship a feature without at least one automated test covering the primary happy path.
-- Run `npm test` (unit) and `npm playwright test` (e2e) before considering a feature complete.
+- Run `npm test` (unit) and `npx playwright test` (e2e) before considering a feature complete.
 
-Mailpit API runs at `http://localhost:8025`.
+### E2E fixtures — always import from `tests/fixtures.ts`
+
+All e2e tests import `{ test, expect }` from `"../fixtures"` (relative to `tests/e2e/`). The `test` object provides four role-based page fixtures:
+
+| Fixture | Auth state |
+|---|---|
+| `guestPage` | No session cookie (unauthenticated) |
+| `memberPage` | Logged in as role `"user"` |
+| `moderatorPage` | Logged in as role `"moderator"` |
+| `adminPage` | Logged in as role `"admin"` |
+
+Use the fixture that matches the access level the test needs:
+
+```typescript
+import { test, expect } from "../fixtures";
+
+test("admin can see the dashboard", async ({ adminPage: page }) => {
+  await page.goto("/admin");
+  await expect(page.locator("h1")).toBeVisible();
+});
+```
+
+When a test needs the `userId` (e.g. to verify a DB column after form submit), call `createUserSession(role)` directly and inject the cookie manually. Use the named DB helpers from `tests/fixtures.ts` — **never call `openDb()` or `new Database()` directly in a test file**:
+
+```typescript
+import { test, expect, createUserSession, getUserById } from "../fixtures";
+
+test("saves profile picture", async ({ browser }) => {
+  const session = createUserSession("admin");
+  const ctx = await browser.newContext();
+  await ctx.addCookies([{ name: "session", value: session.sessionToken, domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Strict" }]);
+  const page = await ctx.newPage();
+  try {
+    // ... test ...
+    const user = getUserById(session.userId);
+    expect(user?.profile_picture as string).toMatch(/^https?:\/\//);
+  } finally {
+    await ctx.close();
+    session.cleanup();
+  }
+});
+```
+
+All DB helpers live in `tests/fixtures.ts`. Available helpers include:
+
+| Helper | Purpose |
+|---|---|
+| `getUserById(id)` | Fetch a full user row |
+| `deleteUserByEmail(email)` | Delete user + login by email (mailpit test cleanup) |
+| `setUserConsentByEmail(email, consent)` | Update consent JSON for a user |
+| `createTestUser(opts)` | Create user with preset consent/food/photo fields |
+| `getGroupBySlug(slug)` | Look up a group by slug |
+| `addGroupMember(userId, groupId)` | Add user to a group |
+| `deleteGroupMember(userId, groupId)` | Remove user from a group |
+| `deleteGroupRepresentative(userId, groupId)` | Remove a group representative |
+| `createTestEvent(userId)` | Create a minimal event with one product |
+| `getPostByTitle(title)` | Fetch a post row by title |
+| `deletePostByTitle(title)` | Delete posts by title |
+| `createPageInDb(opts)` | Insert a page + menu item |
+| `createMenuItemInDb(opts)` | Insert a standalone menu item |
+| `deletePageAndMenuItems(pageId)` | Delete a page and its linked menu items |
+| `deleteMenuItemById(id)` | Delete a single menu item |
+| `getMenuItemByUrl(url)` | Fetch a menu item by URL |
+| `getMenuItemPosition(id)` | Get the position of a menu item |
+| `getPageContent(pageId)` | Get the parsed content blocks of a page |
+
+If you need DB access that none of the above covers, **add a new named helper to `tests/fixtures.ts`** rather than calling `openDb()` in the test.
+
+### Auth flows (login tests)
+
+For tests that exercise the login flow itself, use `guestPage` and the mailpit helpers in `tests/utils/mailpit-client.ts`. Mailpit API runs at `http://localhost:8025`.
+
+### Running e2e tests
+
+```bash
+# All e2e tests
+npx playwright test
+
+# Single file, skip auth setup
+npx playwright test tests/e2e/pages.spec.ts --project chromium --no-deps
+
+# Auth flow tests (no stored session)
+npx playwright test --project auth-flows
+```
 
 ## Verification
 

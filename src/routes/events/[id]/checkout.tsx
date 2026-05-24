@@ -423,7 +423,7 @@ export default component$(() => {
                 participantData.value = newParticipantData;
                 
                 // Skip to payment if no participant data needed
-                currentStep.value = requiresParticipantData.value ? 2 : 3;
+                currentStep.value = 2;
               }}
             >
               {requiresParticipantData.value ? "Continue to Participant Details" : "Proceed to Payment"}

@@ -84,6 +84,43 @@ export interface CreatedSession {
 }
 
 /**
+ * Delete all rows that reference the given userId (and the login row identified
+ * by loginId) in the correct FK-safe order, then delete the user itself.
+ * This prevents "FOREIGN KEY constraint failed" errors during test cleanup.
+ */
+function deleteUserCascade(
+  db: ReturnType<typeof openDb>,
+  userId: string,
+  loginId: string,
+): void {
+  // Child rows of events owned by this user (no cascade on transactions/tickets)
+  db.prepare(
+    "DELETE FROM tickets WHERE event_id IN (SELECT id FROM events WHERE user_id = ?)",
+  ).run(userId);
+  db.prepare(
+    "DELETE FROM transactions WHERE event_id IN (SELECT id FROM events WHERE user_id = ?)",
+  ).run(userId);
+  // Events (CASCADE: inventory_groups, products, participation_status, event_photos)
+  db.prepare("DELETE FROM events WHERE user_id = ?").run(userId);
+  // Tickets/transactions owned by the user (from their own purchases)
+  db.prepare(
+    "DELETE FROM tickets WHERE transaction_id IN (SELECT id FROM transactions WHERE user_id = ?)",
+  ).run(userId);
+  db.prepare("DELETE FROM transactions WHERE user_id = ?").run(userId);
+  // Group membership and representatives
+  db.prepare("DELETE FROM group_representatives WHERE user_id = ?").run(userId);
+  db.prepare("DELETE FROM group_memberships WHERE user_id = ?").run(userId);
+  // Misc user-linked data
+  db.prepare("DELETE FROM form_results WHERE user_id = ?").run(userId);
+  db.prepare("DELETE FROM participation_status WHERE user_id = ?").run(userId);
+  db.prepare("DELETE FROM posts WHERE user_id = ?").run(userId);
+  // Sessions and user/login rows
+  db.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
+  db.prepare("DELETE FROM users WHERE id = ?").run(userId);
+  db.prepare("DELETE FROM logins WHERE id = ?").run(loginId);
+}
+
+/**
  * Create a temporary user + login + session row in the DB.
  * Call `cleanup()` to remove all three rows after the test.
  */
@@ -112,9 +149,7 @@ export function createUserSession(role: UserRole, prefix = "e2e"): CreatedSessio
     sessionToken,
     cleanup() {
       const db2 = openDb();
-      db2.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
-      db2.prepare("DELETE FROM users WHERE id = ?").run(userId);
-      db2.prepare("DELETE FROM logins WHERE id = ?").run(loginId);
+      deleteUserCascade(db2, userId, loginId);
       db2.close();
     },
   };
@@ -141,8 +176,11 @@ export function deleteUserByEmail(email: string): void {
     const user = db
       .prepare("SELECT id FROM users WHERE login_id = ?")
       .get(login.id) as { id: string } | undefined;
-    if (user) db.prepare("DELETE FROM users WHERE id = ?").run(user.id);
-    db.prepare("DELETE FROM logins WHERE id = ?").run(login.id);
+    if (user) {
+      deleteUserCascade(db, user.id, login.id);
+    } else {
+      db.prepare("DELETE FROM logins WHERE id = ?").run(login.id);
+    }
   }
   db.close();
 }
@@ -506,3 +544,6 @@ export const test = base.extend<Fixtures>({
 });
 
 export { expect } from "@playwright/test";
+
+/** Email used by the shared pre-authenticated session created in auth.setup.ts. */
+export const SHARED_E2E_EMAIL = "e2e-shared@example.com";

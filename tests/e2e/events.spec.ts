@@ -1,21 +1,5 @@
 import { test, expect } from '../fixtures-e2e';
-import { waitForEmailHtml, extractAllLinks } from '../utils/mailpit-client';
 import { createEventWithInventory } from '../utils/test-data';
-
-function uniqueEmail(prefix = 'e2e') {
-  return `${prefix}+${Date.now()}@example.com`;
-}
-
-async function signInViaMagicLink(page: any, email: string) {
-  await page.goto('/login');
-  await page.locator('input[type="email"]').fill(email);
-  await page.click('button[type="submit"]');
-  const html = await waitForEmailHtml(email);
-  const links = extractAllLinks(html).filter((l) => l.includes('/auth/verify'));
-  if (!links.length) throw new Error('No magic link found');
-  await page.goto(links[0]);
-  await page.waitForSelector('[aria-label="profile-menu"]', { timeout: 15000 });
-}
 
 // Helper: find a representative event link from the groups index (first group with events)
 async function findEventLinkFromGroups(page: any) {
@@ -61,9 +45,6 @@ test.describe('Events', () => {
   });
 
   test('logged-in user can RSVP / join waitlist or go to checkout', async ({ page, db }) => {
-    const email = uniqueEmail('event');
-    await signInViaMagicLink(page, email);
-
     const ev = await createEventWithInventory({
       title: 'Berlin Summer Social (per-test)',
       startOffsetDays: 14,
@@ -126,9 +107,6 @@ test.describe('Events', () => {
   });
 
   test('ticketed event shows buy tickets and opens checkout', async ({ page, db }) => {
-    const email = uniqueEmail('ticket');
-    await signInViaMagicLink(page, email);
-
     const ev = await createEventWithInventory({
       title: 'Cologne Members Dinner (per-test)',
       startOffsetDays: 9,
@@ -184,8 +162,6 @@ test.describe('Events', () => {
       salesStartOffset: -5,
       salesEndOffset: 10,
     }, true);
-    const email = uniqueEmail('waitlist');
-    await signInViaMagicLink(page, email);
     const link = `/events/${ev.id}`;
     await page.goto(link as string);
     // Either Join Waitlist is available (click it) or the event is Sold Out

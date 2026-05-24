@@ -160,8 +160,9 @@ test.describe("profile/setup — redirect behaviour", () => {
 
     await page.goto("/login");
     await page.locator('input[type="email"]').fill(email);
+    const since = new Date();
     await page.click('button[type="submit"]');
-    const html = await waitForEmailHtml(email);
+    const html = await waitForEmailHtml(email, 30000, since);
     const links = extractAllLinks(html).filter((l) => l.includes("/auth/verify"));
     await page.goto(links[0]);
     await page.waitForLoadState("networkidle");

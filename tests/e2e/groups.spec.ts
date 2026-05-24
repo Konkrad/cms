@@ -1,20 +1,4 @@
 import { test, expect } from '../fixtures-e2e';
-import { waitForEmailHtml, extractAllLinks } from '../utils/mailpit-client';
-
-function uniqueEmail(prefix = 'e2e') {
-  return `${prefix}+${Date.now()}@example.com`;
-}
-
-async function signInViaMagicLink(page: any, email: string) {
-  await page.goto('/login');
-  await page.locator('input[type="email"]').fill(email);
-  await page.click('button[type="submit"]');
-  const html = await waitForEmailHtml(email);
-  const links = extractAllLinks(html).filter((l) => l.includes('/auth/verify'));
-  if (!links.length) throw new Error('No magic link found');
-  await page.goto(links[0]);
-  await page.waitForSelector('[aria-label="profile-menu"]', { timeout: 15000 });
-}
 
 // NOTE: These tests assume a group exists at /groups/<slug>. Use a known slug.
 const GROUP_SLUG = 'berlin';
@@ -29,9 +13,6 @@ test.describe('Groups page', () => {
   });
 
   test('logged-in user can join group', async ({ page }) => {
-    const email = uniqueEmail('group-join');
-    await signInViaMagicLink(page, email);
-
     await page.goto(GROUP_URL);
     const joinBtn = page.locator('button:has-text("Join This Group")').first();
     await expect(joinBtn).toBeVisible();
@@ -43,10 +24,6 @@ test.describe('Groups page', () => {
   });
 
   test('group admin can promote a member to admin and sees user list', async ({ page }) => {
-    // Sign in as admin user (use distinct email)
-    const adminEmail = uniqueEmail('group-admin');
-    await signInViaMagicLink(page, adminEmail);
-
     // Visit group and open members modal via the 'See All Members' CTA
     await page.goto(GROUP_URL);
     await expect(page.locator('text=See All Members')).toBeVisible({ timeout: 5000 });

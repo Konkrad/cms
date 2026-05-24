@@ -8,8 +8,9 @@ const mailpit = new MailpitClient(MAILPIT_BASE);
  * Polls Mailpit for a specific recipient and returns the processed HTML content.
  * @param recipient - The email address to look for.
  * @param timeout - Max time to wait in milliseconds (default 30s).
+ * @param since - If provided, only consider emails received after this timestamp.
  */
-export async function waitForEmailHtml(recipient: string, timeout = 30000): Promise<string> {
+export async function waitForEmailHtml(recipient: string, timeout = 30000, since?: Date): Promise<string> {
   const endTime = Date.now() + timeout;
 
   while (Date.now() < endTime) {
@@ -17,10 +18,12 @@ export async function waitForEmailHtml(recipient: string, timeout = 30000): Prom
     const res = await mailpit.listMessages(0, 50)
     const messages = res?.messages || [];
 
-    // 2. Find the message for our user
-    const found = messages.find(m => 
-      m.To?.some(r => r.Address.toLowerCase() === recipient.toLowerCase())
-    );
+    // 2. Find the message for our user (optionally filtered by receive time)
+    const found = messages.find(m => {
+      if (!m.To?.some(r => r.Address.toLowerCase() === recipient.toLowerCase())) return false;
+      if (since && m.Date && new Date(m.Date) < since) return false;
+      return true;
+    });
 
     if (found) {
       // 3. Get the full summary for the HTML body

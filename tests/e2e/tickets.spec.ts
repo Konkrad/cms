@@ -1,28 +1,11 @@
 import { test, expect } from '../fixtures-e2e';
-import { waitForEmailHtml, extractAllLinks } from '../utils/mailpit-client';
+import { waitForEmailHtml } from '../utils/mailpit-client';
 import { createEventWithInventory } from '../utils/test-data';
+import { SHARED_E2E_EMAIL } from './auth.setup';
 import Stripe from 'stripe';
-
-function uniqueEmail(prefix = 'e2e') {
-  return `${prefix}+${Date.now()}@example.com`;
-}
-
-async function signInViaMagicLink(page: any, email: string) {
-  await page.goto('/login');
-  await page.locator('input[type="email"]').fill(email);
-  await page.click('button[type="submit"]');
-  const html = await waitForEmailHtml(email);
-  const links = extractAllLinks(html).filter((l) => l.includes('/auth/verify'));
-  if (!links.length) throw new Error('No magic link found');
-  await page.goto(links[0]);
-  await page.waitForSelector('[aria-label="profile-menu"]', { timeout: 15000 });
-}
 
 test.describe('Tickets', () => {
   test('free ticket checkout creates tickets immediately', async ({ page, db }) => {
-    const email = uniqueEmail('free-checkout');
-    await signInViaMagicLink(page, email);
-
     // Create an event with multiple free products so the page shows the checkout flow
     const ev = await createEventWithInventory({
       title: 'Free Tickets Checkout Event (per-test)',
@@ -55,9 +38,6 @@ test.describe('Tickets', () => {
   });
 
   test('free ticket RSVP creates attendance and ticket', async ({ page, db }) => {
-    const email = uniqueEmail('free-rsvp');
-    await signInViaMagicLink(page, email);
-
     // Create an event with a single free product so the page shows RSVP-style flow
     const ev = await createEventWithInventory({
       title: 'Free Tickets RSVP Event (per-test)',
@@ -73,19 +53,17 @@ test.describe('Tickets', () => {
     // Expect RSVP button and submit it
     const rsvpBtn = page.locator("text=RSVP — I'm Going").first();
     if ((await rsvpBtn.count()) === 0) throw new Error('Expected RSVP button for single-product free event');
+    const since = new Date();
     await rsvpBtn.click();
 
     // Inline confirmation should appear
     await expect(page.locator("text=✓ You're attending! Your free ticket has been created.")).toBeVisible({ timeout: 5000 });
 
     // Also verify that confirmation email was sent
-    await waitForEmailHtml(email);
+    await waitForEmailHtml(SHARED_E2E_EMAIL, 30000, since);
   });
 
   test('paid ticket purchase creates payment intent and processes webhook', async ({ page, db }) => {
-    const email = uniqueEmail('paid');
-    await signInViaMagicLink(page, email);
-
     const productName = 'VIP Ticket';
     const ev = await createEventWithInventory({
       title: 'Paid Tickets Event (per-test)',
@@ -150,6 +128,7 @@ test.describe('Tickets', () => {
     await fetch(`${stripeHost.origin}/v1/test_helpers/payment_intents/${paymentIntentId}/confirm`, { method: 'POST' });
 
     // Build a webhook event for payment_intent.succeeded and POST it to the app to run fulfillment
+    const since = new Date();
     const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2026-04-22.dahlia', host: stripeHost.hostname, port: stripeHost.port ? Number(stripeHost.port) : 12111, protocol: (stripeHost.protocol.replace(':','') as any) });
     // Retrieve the payment intent object from stripe-mock
     const pi = await stripeClient.paymentIntents.retrieve(paymentIntentId);
@@ -175,7 +154,7 @@ test.describe('Tickets', () => {
     });
 
     // Wait for the app to process webhook and send confirmation email
-    await waitForEmailHtml(email);
+    await waitForEmailHtml(SHARED_E2E_EMAIL, 30000, since);
   });
 });
 

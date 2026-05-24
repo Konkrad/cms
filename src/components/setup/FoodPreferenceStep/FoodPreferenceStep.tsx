@@ -1,4 +1,4 @@
-import { component$, useSignal, useVisibleTask$, type Signal } from "@qwik.dev/core";
+import { $, component$, useSignal, useVisibleTask$, type Signal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
@@ -35,7 +35,7 @@ export const FoodPreferenceStep = component$<FoodPreferenceStepProps>((props) =>
   const preference = useSignal(props.initialPreference || "");
   const completed = useSignal(props.isComplete ?? false);
 
-  const saveFn = async () => {
+  const saveFn = $(async () => {
     if (props.updateAction && typeof props.updateAction.submit === "function") {
       const formData = new FormData();
       formData.set("preference", preference.value);
@@ -48,7 +48,7 @@ export const FoodPreferenceStep = component$<FoodPreferenceStepProps>((props) =>
     }
 
     return { error: "No server action provided" };
-  };
+  });
 
   const lastSaved = useSignal(props.saveTrigger?.value ?? 0);
   useVisibleTask$(({ track }) => {

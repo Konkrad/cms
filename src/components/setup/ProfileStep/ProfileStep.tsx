@@ -70,7 +70,7 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
     props.onComplete();
   }
 
-  const saveFn = async () => {
+  const saveFn = $(async () => {
     const formData = new FormData();
     formData.set("name", name.value);
     formData.set("family_name", familyName.value);
@@ -90,7 +90,7 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
     }
 
     return { error: "No server action available" };
-  };
+  });
 
   const lastSaved = useSignal(props.saveTrigger?.value ?? 0);
   const triggerUpload = useSignal(false);

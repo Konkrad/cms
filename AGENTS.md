@@ -27,9 +27,18 @@
 - Authentication is magic-link plus OTP email-based; follow the helpers in `src/utils/server-auth.ts` and the existing login flow.
 - Uploaded images only store the main path in the database; derive thumbnails with `deriveThumbnailKey(mainPath)` from `~/utils/images`.
 
+## Testing
+
+- Every new feature requires a test plan before implementation begins. The plan must identify: what to test (happy path, edge cases, error states), which test type to use (unit, integration, or e2e), and where the test files live.
+- Unit tests go in `tests/unit/` and use Vitest. Use them for pure functions, service logic, and utilities.
+- E2E tests go in `tests/e2e/` and use Playwright. Use them for user-facing flows, form submissions, and anything requiring a real browser or server.
+- For login-gated flows, use the mailpit flow in `tests/utils/mailpit-client.ts` or the magic-link flow through `/login`.
+- Do not ship a feature without at least one automated test covering the primary happy path.
+- Run `npm test` (unit) and `npm playwright test` (e2e) before considering a feature complete.
+
+Mailpit API runs at `http://localhost:8025`.
+
 ## Verification
 
 - Use Playwright to verify behavior when the user wants runtime confirmation or mentions endpoint behavior.
 - For login tests, use the mailpit flow in `tests/utils/mailpit-client.ts` or the magic-link flow through `/login`.
-
-Mailpit API runs at `http://localhost:8025`.

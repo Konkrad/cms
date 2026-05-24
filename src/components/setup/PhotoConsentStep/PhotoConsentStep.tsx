@@ -1,4 +1,4 @@
-import { component$, useSignal, useVisibleTask$, type Signal } from "@qwik.dev/core";
+import { $, component$, useSignal, useVisibleTask$, type Signal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { Alert } from "~/components/ui/Alert";
 import { requireAuth } from "~/utils/server-auth";
@@ -32,7 +32,7 @@ export const PhotoConsentStep = component$<PhotoConsentStepProps>((props) => {
   const given = useSignal<boolean | null>(props.initialValue);
   const completed = useSignal(props.initialValue !== null);
 
-  const saveFn = async () => {
+  const saveFn = $(async () => {
     if (given.value === null) return;
     if (props.updateAction && typeof props.updateAction.submit === "function") {
       const formData = new FormData();
@@ -43,7 +43,7 @@ export const PhotoConsentStep = component$<PhotoConsentStepProps>((props) => {
         props.onComplete?.();
       }
     }
-  };
+  });
 
   const lastSaved = useSignal(props.saveTrigger.value);
   useVisibleTask$(({ track }) => {

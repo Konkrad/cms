@@ -31,29 +31,7 @@ export const stripeService = {
     });
   },
 
-  async createCheckoutSession(params: {
-    lineItems: Array<{
-      price_data: {
-        currency: string;
-        product_data: { name: string };
-        unit_amount: number;
-      };
-      quantity: number;
-    }>;
-    successUrl: string;
-    cancelUrl: string;
-    metadata: Record<string, string>;
-  }) {
-    return stripe.checkout.sessions.create({
-      mode: "payment",
-      line_items: params.lineItems,
-      success_url: params.successUrl,
-      cancel_url: params.cancelUrl,
-      metadata: params.metadata,
-    });
-  },
-
-  async getSession(sessionId: string) {
-    return stripe.checkout.sessions.retrieve(sessionId);
+  async getPaymentIntent(paymentIntentId: string) {
+    return stripe.paymentIntents.retrieve(paymentIntentId);
   },
 };

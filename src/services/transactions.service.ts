@@ -21,17 +21,6 @@ export const transactionsService = {
     return transaction;
   },
 
-  async findBySessionId(
-    stripeSessionId: string,
-  ): Promise<Transaction | undefined> {
-    const [transaction] = await db
-      .select()
-      .from(transactions)
-      .where(eq(transactions.stripeSessionId, stripeSessionId))
-      .limit(1);
-    return transaction;
-  },
-
   async findByPaymentId(
     stripePaymentId: string,
   ): Promise<Transaction | undefined> {
@@ -40,21 +29,6 @@ export const transactionsService = {
       .from(transactions)
       .where(eq(transactions.stripePaymentId, stripePaymentId))
       .limit(1);
-    return transaction;
-  },
-
-  async processCheckout(
-    stripeSessionId: string,
-    stripePaymentId: string,
-  ): Promise<Transaction | undefined> {
-    const [transaction] = await db
-      .update(transactions)
-      .set({
-        stripePaymentId,
-        paymentDate: new Date().toISOString(),
-      })
-      .where(eq(transactions.stripeSessionId, stripeSessionId))
-      .returning();
     return transaction;
   },
 

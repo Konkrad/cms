@@ -18,19 +18,11 @@ export const emailNotificationsService = {
     subject?: string;
   }): Promise<void> {
     const appName = env.APP_NAME;
-    const html = await render(
-      React.createElement(LoginEmail, { link, code, appName, baseUrl: env.APP_URL }),
-    );
-
-    const text = [
-      `Sign in to ${appName}`,
-      "",
-      `Sign-in link: ${link}`,
-      "",
-      `Your code: ${code}`,
-      "",
-      `This link & code expire soon.`,
-    ].join("\n");
+    const element = React.createElement(LoginEmail, { link, code, appName, baseUrl: env.APP_URL });
+    const [html, text] = await Promise.all([
+      render(element),
+      render(element, { plainText: true }),
+    ]);
 
     await sendEmail({
       to,
@@ -65,29 +57,17 @@ export const emailNotificationsService = {
     const eventDate = new Date(event.startDate).toLocaleString();
     const location = event.address || event.onlineUrl || undefined;
 
-    const html = await render(
-      React.createElement(TicketConfirmationEmail, {
-        baseUrl: env.APP_URL,
-        event: { title: event.title, date: eventDate, location },
-        transaction: { buyerName, transactionId, products, totalAmount },
-        hasTickets: ticketIds.length > 0,
-        ticketIds,
-      }),
-    );
-
-    const text = [
-      `Your tickets for ${event.title}`,
-      "",
-      `Event: ${event.title}`,
-      `Date: ${eventDate}`,
-      ...(event.address ? [`Location: ${event.address}`] : []),
-      "",
-      `Transaction ID: ${transactionId}`,
-      "",
-      ...(ticketIds.length > 0
-        ? [`You have ${ticketIds.length} ticket(s).`]
-        : []),
-    ].join("\n");
+    const element = React.createElement(TicketConfirmationEmail, {
+      baseUrl: env.APP_URL,
+      event: { title: event.title, date: eventDate, location },
+      transaction: { buyerName, transactionId, products, totalAmount },
+      hasTickets: ticketIds.length > 0,
+      ticketIds,
+    });
+    const [html, text] = await Promise.all([
+      render(element),
+      render(element, { plainText: true }),
+    ]);
 
     await sendEmail({
       to,

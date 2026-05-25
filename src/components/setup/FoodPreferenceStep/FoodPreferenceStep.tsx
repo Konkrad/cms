@@ -28,7 +28,8 @@ export type FoodPreferenceStepProps = {
   /** Pass the result of useSaveFoodPreference() called in the parent route. */
   updateAction: any;
   onComplete?: () => void;
-  saveTrigger: Signal<number>;
+  /** When provided: parent controls saving; no save button rendered. When omitted: auto-saves on selection change. */
+  saveTrigger?: Signal<number>;
 };
 
 export const FoodPreferenceStep = component$<FoodPreferenceStepProps>((props) => {
@@ -52,7 +53,8 @@ export const FoodPreferenceStep = component$<FoodPreferenceStepProps>((props) =>
 
   const lastSaved = useSignal(props.saveTrigger?.value ?? 0);
   useVisibleTask$(({ track }) => {
-    track(() => props.saveTrigger.value);
+    if (!props.saveTrigger) return;
+    track(() => props.saveTrigger!.value);
     if (props.saveTrigger.value !== lastSaved.value) {
       lastSaved.value = props.saveTrigger.value;
       void saveFn();
@@ -78,6 +80,7 @@ export const FoodPreferenceStep = component$<FoodPreferenceStepProps>((props) =>
             value={preference.value}
             onChange$={(event) => {
               preference.value = (event.target as HTMLSelectElement).value;
+              if (!props.saveTrigger) void saveFn();
             }}
           >
             <option value="">No preference</option>

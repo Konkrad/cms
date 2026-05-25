@@ -171,7 +171,7 @@ test.describe("checkout — consent steps", () => {
     await page.locator("button:has-text('Proceed to Payment'), button:has-text('Continue')").first().click();
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator("text=Dietary preference")).toBeVisible();
+    await expect(page.locator("text=Food preferences")).toBeVisible();
     await expect(page.locator("text=Photo consent")).toBeVisible();
     await expect(page.locator("button:has-text('Complete Payment')")).toBeDisabled();
 
@@ -202,7 +202,7 @@ test.describe("checkout — consent steps", () => {
     await page.locator("button:has-text('Proceed to Payment'), button:has-text('Continue')").first().click();
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator("text=Dietary preference")).not.toBeVisible();
+    await expect(page.locator("text=Food preferences")).not.toBeVisible();
     await expect(page.locator("text=Photo consent")).toBeVisible();
     await expect(page.locator("button:has-text('Complete Payment')")).toBeDisabled();
 
@@ -233,7 +233,7 @@ test.describe("checkout — consent steps", () => {
     await page.locator("button:has-text('Proceed to Payment'), button:has-text('Continue')").first().click();
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator("text=Dietary preference")).not.toBeVisible();
+    await expect(page.locator("text=Food preferences")).not.toBeVisible();
     await expect(page.locator("text=Photo consent")).not.toBeVisible();
     await expect(page.locator("button:has-text('Complete Payment')")).toBeEnabled();
 

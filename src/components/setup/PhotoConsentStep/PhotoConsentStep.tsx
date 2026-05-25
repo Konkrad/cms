@@ -25,7 +25,8 @@ export type PhotoConsentStepProps = {
   /** Pass the result of useSavePhotoConsent() called in the parent route. */
   updateAction: any;
   onComplete?: () => void;
-  saveTrigger: Signal<number>;
+  /** When provided: parent controls saving. When omitted: auto-saves on selection change. */
+  saveTrigger?: Signal<number>;
 };
 
 export const PhotoConsentStep = component$<PhotoConsentStepProps>((props) => {
@@ -45,9 +46,10 @@ export const PhotoConsentStep = component$<PhotoConsentStepProps>((props) => {
     }
   });
 
-  const lastSaved = useSignal(props.saveTrigger.value);
+  const lastSaved = useSignal(props.saveTrigger?.value ?? 0);
   useVisibleTask$(({ track }) => {
-    track(() => props.saveTrigger.value);
+    if (!props.saveTrigger) return;
+    track(() => props.saveTrigger!.value);
     if (props.saveTrigger.value !== lastSaved.value) {
       lastSaved.value = props.saveTrigger.value;
       void saveFn();
@@ -79,7 +81,7 @@ export const PhotoConsentStep = component$<PhotoConsentStepProps>((props) => {
               type="radio"
               name="photo_consent"
               checked={given.value === true}
-              onChange$={() => { given.value = true; }}
+              onChange$={() => { given.value = true; if (!props.saveTrigger) void saveFn(); }}
               class="sr-only"
             />
             <span class="text-2xl">📷</span>
@@ -98,7 +100,7 @@ export const PhotoConsentStep = component$<PhotoConsentStepProps>((props) => {
               type="radio"
               name="photo_consent"
               checked={given.value === false}
-              onChange$={() => { given.value = false; }}
+              onChange$={() => { given.value = false; if (!props.saveTrigger) void saveFn(); }}
               class="sr-only"
             />
             <span class="text-2xl">🚫</span>

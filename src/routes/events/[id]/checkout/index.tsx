@@ -13,6 +13,8 @@ import {
   zod$,
 } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
+import { FoodPreferenceStep, useSaveFoodPreference } from "~/components/setup/FoodPreferenceStep";
+import { PhotoConsentStep, useSavePhotoConsent } from "~/components/setup/PhotoConsentStep";
 import { inventoryGroupsService } from "~/services/inventory-groups.service";
 import { productsService } from "~/services/products.service";
 import { checkoutService } from "~/services/checkout.service";
@@ -20,6 +22,8 @@ import { stripeService } from "~/services/stripe.service";
 import { publicImageUrlFromKey } from "~/utils/images";
 import { getServerSession } from "~/utils/server-auth";
 import { env } from "~/env";
+
+export { useSaveFoodPreference, useSavePhotoConsent };
 
 export const useProductsData = routeLoader$(async (event) => {
   const eventId = event.params.id;
@@ -232,6 +236,8 @@ export default component$(() => {
   const data = useProductsData();
   const createCheckoutSession = useCreateCheckoutSession();
   const checkPaymentStatus = useCheckPaymentStatus();
+  const saveFood = useSaveFoodPreference();
+  const savePhoto = useSavePhotoConsent();
 
   const currentStep = useSignal<1 | 2 | 3>(1);
   const selectedProducts = useSignal<Record<string, number>>({});
@@ -658,54 +664,19 @@ export default component$(() => {
 
           {/* Consent sections required before payment */}
           {data.value.foodPreference === null && (
-            <div class="border rounded-lg p-6 bg-white">
-              <h2 class="text-xl font-bold mb-2">Dietary preference</h2>
-              <p class="text-gray-600 mb-4">
-                Let us know your dietary requirements so we can plan catering accordingly.
-              </p>
-              <select
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                onChange$={(_, el) => {
-                  if (el.value) foodConsentReady.value = true;
-                }}
-              >
-                <option value="">Select preference</option>
-                <option value="none">No preference</option>
-                <option value="vegetarian">Vegetarian</option>
-                <option value="vegan">Vegan</option>
-                <option value="gluten_free">Gluten-free</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
+            <FoodPreferenceStep
+              initialPreference={null}
+              updateAction={saveFood}
+              onComplete$={$(() => { foodConsentReady.value = true; })}
+            />
           )}
 
           {data.value.photoConsentGiven === null && (
-            <div class="border rounded-lg p-6 bg-white">
-              <h2 class="text-xl font-bold mb-2">Photo consent</h2>
-              <p class="text-gray-600 mb-4">
-                Photos and videos may be taken at this event. Do you consent to being photographed?
-              </p>
-              <div class="flex gap-4">
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="checkout_photo_consent"
-                    value="yes"
-                    onChange$={() => { photoConsentReady.value = true; }}
-                  />
-                  <span>Yes, I consent</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="checkout_photo_consent"
-                    value="no"
-                    onChange$={() => { photoConsentReady.value = true; }}
-                  />
-                  <span>No, I opt out</span>
-                </label>
-              </div>
-            </div>
+            <PhotoConsentStep
+              initialValue={null}
+              updateAction={savePhoto}
+              onComplete$={$(() => { photoConsentReady.value = true; })}
+            />
           )}
 
           {/* Payment Form */}

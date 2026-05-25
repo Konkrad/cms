@@ -200,6 +200,11 @@ export default component$(() => {
 
     await waitForUploads(expectedUploadGroups);
 
+    // Allow in-flight QRL signal-update chains (e.g. onFileUploaded$) to settle
+    // before reading blocks.value. QRL calls are async and may not have resolved
+    // by the time the last onSettled$ fires.
+    await new Promise((r) => setTimeout(r, 50));
+
     const blocksToSave = JSON.parse(JSON.stringify(blocks.value));
 
     const formData = new FormData();

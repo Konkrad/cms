@@ -197,17 +197,24 @@ export async function processAndUploadVariants(
     return upload.done();
   }
 
-  let mainNode: Readable;
-  let thumbNode: Readable;
-
+  // Buffer the stream to allow both variants to read the same data independently.
+  // Using tee() can cause issues with some ReadableStream implementations in Vite's dev server.
+  let buffer: Buffer;
   if (input instanceof Buffer) {
-    mainNode = Readable.from(input);
-    thumbNode = Readable.from(input);
+    buffer = input;
   } else {
-    const [sA, sB] = (input as ReadableStream).tee();
-    mainNode = Readable.fromWeb(sA as any);
-    thumbNode = Readable.fromWeb(sB as any);
+    const chunks: Uint8Array[] = [];
+    const reader = (input as ReadableStream<Uint8Array>).getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) chunks.push(value);
+    }
+    buffer = Buffer.concat(chunks);
   }
+
+  const mainNode = Readable.from(buffer);
+  const thumbNode = Readable.from(buffer);
 
   const [mainResult, thumbResult] = await Promise.all([
     uploadVariant(mainNode, mainPipeline, mainS3Key),
@@ -225,7 +232,9 @@ export async function processAndUploadVariants(
 }
 
 export function getPipeline(name: string): ImageProcessingPipeline {
-  const pipeline = (PROCESSING_PIPELINES as any)[name];
+  // Support kebab-case names as aliases for camelCase keys (e.g. "profile-picture" → "profilePicture")
+  const camelName = name.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+  const pipeline = (PROCESSING_PIPELINES as any)[name] ?? (PROCESSING_PIPELINES as any)[camelName];
   if (!pipeline) throw new Error(`Pipeline ${name} not found`);
   return pipeline;
 }

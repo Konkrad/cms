@@ -22,7 +22,7 @@ test.describe("ImageUpload — deferred upload (uploadRegistry)", () => {
       await page.locator('input[name="title"]').fill(postTitle);
 
       // Attach test image to the hidden file input
-      await page.locator('input[type="file"]').setInputFiles({
+      await page.locator('input[type="file"]').first().setInputFiles({
         name: "test.png",
         mimeType: "image/png",
         buffer: Buffer.from(TEST_PNG_BASE64, "base64"),
@@ -72,7 +72,7 @@ test.describe("ImageUpload — deferred upload (uploadRegistry)", () => {
       await page.locator('input[name="family_name"]').fill("Tester");
 
       // Attach test image
-      await page.locator('input[type="file"]').setInputFiles({
+      await page.locator('input[type="file"]').first().setInputFiles({
         name: "avatar.png",
         mimeType: "image/png",
         buffer: Buffer.from(TEST_PNG_BASE64, "base64"),

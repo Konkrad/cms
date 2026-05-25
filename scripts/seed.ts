@@ -345,12 +345,12 @@ console.log("  memberships seeded");
 // ─── 7. Representatives ──────────────────────────────────────────────────────
 
 const repPlan: Array<{ userId: string; groupSlug: string }> = [
-  { userId: testUsers[0]?.id, groupSlug: "berlin" },
+  { userId: testUsers[0]?.id, groupSlug: "munich" },
   { userId: testUsers[2]?.id, groupSlug: "munich" },
   { userId: testUsers[6]?.id, groupSlug: "hamburg" },
   { userId: testUsers[4]?.id, groupSlug: "frankfurt" },
   { userId: testUsers[8]?.id, groupSlug: "cologne" },
-  { userId: hostUser.id, groupSlug: "berlin" },
+  { userId: hostUser.id, groupSlug: "hamburg" },
 ].filter((r) => r.userId);
 
 const existingReps = db.select().from(schema.groupRepresentatives).all();

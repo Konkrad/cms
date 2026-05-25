@@ -226,21 +226,12 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
       }
     });
 
-    // Per-file callback — useful for gallery/auto-upload mode
-    uppy.on("upload-success", (_file, response) => {
-      const body = (response as any).body ?? {};
-      props.onFileUploaded$?.({
-        url: body.url,
-        filePath: body.filePath,
-      });
-    });
-
     // Handle completion inline — avoids QRL-as-callback issues
     uppy.on("complete", async (result) => {
       const successful = Array.isArray(result.successful) ? result.successful : [];
 
       const values = successful
-        .map((f: any) => f.response?.body?.filePath || f.response?.body?.url)
+        .map((f: any) => f.response?.body?.url || f.response?.body?.filePath)
         .filter(Boolean) as string[];
 
       if (values.length > 0) {
@@ -248,6 +239,18 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
           ? uploadedValues.value
           : [];
         uploadedValues.value = [...existingValues, ...values];
+      }
+
+      // Notify per-file callbacks and wait for signal updates to propagate
+      // (must happen before onSettled$ so callers see the updated URLs)
+      for (const f of successful) {
+        const body = (f as any).response?.body ?? {};
+        if (body.url || body.filePath) {
+          await props.onFileUploaded$?.({
+            url: body.url,
+            filePath: body.filePath,
+          });
+        }
       }
 
       // Wait for Qwik to reconcile the DOM (hidden inputs) before notifying

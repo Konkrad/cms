@@ -40,14 +40,14 @@ export const PropertiesPanel = component$<PropertiesPanelProps>((props) => {
     }
   });
 
-  const handleChange = $((fieldName: string, value: any) => {
+  const handleChange = $(async (fieldName: string, value: any) => {
     localData.value = {
       ...localData.value,
       [fieldName]: value,
     };
 
     if (props.selectedBlock) {
-      props.onUpdateData(props.selectedBlock.id, localData.value);
+      await props.onUpdateData(props.selectedBlock.id, localData.value);
     }
   });
 
@@ -213,13 +213,14 @@ export const PropertiesPanel = component$<PropertiesPanelProps>((props) => {
                   cropAspectRatio={field.cropAspectRatio}
                   currentUrl={currentUrl}
                   currentValue={typeof value === "string" ? value : undefined}
-                  onFileSelected$={$((blobUrl: string) => {
-                    handleChange(field.name, blobUrl);
+                  onFileSelected$={$(() => {
+                    // Preview only — do not write blob URL into block data
                   })}
-                  onFileUploaded$={$((response) => {
-                    // After upload succeeds, update with the actual key
-                    if (response.filePath) {
-                      handleChange(field.name, response.filePath);
+                  onFileUploaded$={$(async (response) => {
+                    // Store the full URL (not just the key) so renders work directly
+                    const value = response.url || response.filePath;
+                    if (value) {
+                      await handleChange(field.name, value);
                     }
                   })}
                 />

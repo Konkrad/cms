@@ -292,11 +292,59 @@ export const useRSVPWithTicket = routeAction$(
 
     if (data.status === "yes" && data.productId) {
       const { ticketsService } = await import("~/services/tickets.service");
-      await ticketsService.createFreeTicket({
+      const ticket = await ticketsService.createFreeTicket({
         productId: data.productId,
         eventId: event.params.id,
         buyerId: userData.id,
       });
+
+      // Send confirmation email
+      try {
+        const userEmail = userData.email;
+        if (userEmail) {
+          const { productsService } = await import("~/services/products.service");
+          const { sendEmail } = await import("~/utils/send-email");
+          const { render } = await import("@react-email/render");
+          const React = await import("react");
+          const { default: TicketConfirmationEmail } = await import("~/emails/TicketConfirmation");
+
+          const [ev, product] = await Promise.all([
+            eventsService.getById(event.params.id),
+            productsService.getById(data.productId),
+          ]);
+
+          if (ev && product) {
+            const emailHtml = await render(
+              React.createElement(TicketConfirmationEmail, {
+                baseUrl: env.APP_URL || "https://yourdomain.com",
+                event: {
+                  title: ev.title,
+                  date: new Date(ev.startDate).toLocaleString(),
+                  location: (ev as any).address || (ev as any).onlineUrl || undefined,
+                },
+                transaction: {
+                  buyerName: userData.name || userEmail,
+                  transactionId: ticket.transactionId || ticket.id,
+                  products: [{ name: product.name, quantity: 1, amount: 0 }],
+                  totalAmount: 0,
+                },
+                hasTickets: true,
+                ticketIds: [ticket.id],
+              } as any),
+            );
+
+            await sendEmail({
+              to: userEmail,
+              subject: `Your ticket for ${ev.title}`,
+              html: emailHtml,
+              text: `Your free ticket for ${ev.title} has been created. Ticket ID: ${ticket.id}`,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Failed to send RSVP confirmation email:", error);
+        // Don't fail the RSVP if email sending fails
+      }
     }
 
     return { success: true };
@@ -405,7 +453,7 @@ export default component$(() => {
               >
                 Buy Your Tickets
               </Link>
-            ) : showFreeRSVP ? (
+            ) : showFreeRSVP && event.value.userParticipation?.status !== "yes" ? (
               <Form action={rsvpWithTicket} class="flex gap-3">
                 <input
                   type="hidden"
@@ -418,9 +466,7 @@ export default component$(() => {
                   value="yes"
                   size="lg"
                 >
-                  {event.value.userParticipation?.status === "yes"
-                    ? "✓ You're Going!"
-                    : "RSVP — I'm Going"}
+                  RSVP — I'm Going
                 </Button>
               </Form>
             ) : showWaitlist ? (

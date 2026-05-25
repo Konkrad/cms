@@ -95,9 +95,19 @@ test.describe('Tickets', () => {
     function findPaymentIntent(obj: any): string | null {
       if (!obj || typeof obj !== 'object') return null;
       if (obj.paymentIntentId) return obj.paymentIntentId;
-      for (const k of Object.keys(obj)) {
+      const keys = Object.keys(obj);
+      for (let i = 0; i < keys.length; i++) {
+        const k = keys[i];
+        const v = obj[k];
+        // Handle Qwik SSR serialization: "paymentIntentId" appears as a string
+        // value in an array followed 2 positions later by the actual ID (due to type tags)
+        if (v === 'paymentIntentId' && i + 2 < keys.length) {
+          const maybeId = obj[keys[i + 2]];
+          if (typeof maybeId === 'string' && maybeId.startsWith('pi_')) {
+            return maybeId;
+          }
+        }
         try {
-          const v = obj[k];
           const found = findPaymentIntent(v);
           if (found) return found;
         } catch (e) {

@@ -15,6 +15,12 @@ export default defineConfig({
     url: "http://localhost:5173",
     reuseExistingServer: true,
     timeout: 60_000,
+    env: {
+      // Route Telegram calls to the in-process mock server started by tests.
+      // This variable is only injected when Playwright launches the dev server;
+      // it has no effect on production or normal `npm run dev` sessions.
+      TELEGRAM_API_URL: "http://localhost:8099",
+    },
   },
   use: {
     baseURL: process.env.BASE_URL || "http://localhost:5173",

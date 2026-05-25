@@ -132,8 +132,9 @@ test.describe("profile/setup — saving", () => {
 
     await page.locator("input[name='name']").fill("Alice");
     await page.locator("input[name='family_name']").fill("Smith");
+    const postDone = page.waitForResponse(r => r.request().method() === "POST");
     await page.locator("button:has-text('Continue')").click();
-    await page.waitForLoadState("networkidle");
+    await postDone;
 
     const userRow = getUserById(userId);
     const consent = JSON.parse(String(userRow?.consent ?? "{}"));

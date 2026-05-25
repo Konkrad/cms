@@ -43,6 +43,7 @@ export default component$(() => {
   const markLocation = useMarkLocation();
   const saveConsent = useSavePhotoConsent();
   const consentTrigger = useSignal(0);
+  const saveTrigger = useSignal(0);
   const nav = useNavigate();
 
   const { user, consent, form } = loader.value;
@@ -62,6 +63,11 @@ export default component$(() => {
 
     const profileOk = !needsProfile || !!updateAction.value?.success;
     const locationOk = !needsLocation || !!markLocation.value?.success;
+
+    // Once profile saves, auto-trigger location save so both complete together.
+    if (needsLocation && updateAction.value?.success && !markLocation.value?.success) {
+      saveTrigger.value++;
+    }
 
     if (profileOk && locationOk) {
       if (needsConsent) {
@@ -117,27 +123,27 @@ export default component$(() => {
         </div>
       ) : (
         <div class="space-y-6">
-          {needsProfile && !updateAction.value?.success ? (
-            <>
-              <ProfileStep
-                profile={user}
-                updateAction={updateAction}
-              />
-              <div class="pt-4">
-                <Button type="submit" form="profile-step-form">Continue</Button>
-              </div>
-            </>
-          ) : needsLocation && !markLocation.value?.success ? (
-            <>
-              <LocationStep
-                isComplete={false}
-                updateAction={markLocation}
-              />
-              <div class="pt-4">
-                <Button type="submit" form="location-step-form">Continue</Button>
-              </div>
-            </>
-          ) : null}
+          {needsProfile && (
+            <ProfileStep
+              profile={user}
+              updateAction={updateAction}
+              saveTrigger={saveTrigger}
+            />
+          )}
+          {needsLocation && (
+            <LocationStep
+              isComplete={false}
+              updateAction={markLocation}
+              saveTrigger={saveTrigger}
+            />
+          )}
+          <div class="pt-4">
+            {needsProfile ? (
+              <Button type="submit" form="profile-step-form">Continue</Button>
+            ) : (
+              <Button onClick$={$(() => { saveTrigger.value++; })}>Continue</Button>
+            )}
+          </div>
         </div>
       )}
     </SetupLayout>

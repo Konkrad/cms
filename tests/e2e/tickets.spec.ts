@@ -1,4 +1,4 @@
-import { test, expect, SHARED_E2E_EMAIL } from '../fixtures';
+import { test, expect, SHARED_E2E_EMAIL, getUserIdByEmail } from '../fixtures';
 import { waitForEmailHtml } from '../utils/mailpit-client';
 import { createEventWithInventory } from '../utils/test-data';
 import Stripe from 'stripe';
@@ -139,8 +139,21 @@ test.describe('Tickets', () => {
     // Build a webhook event for payment_intent.succeeded and POST it to the app to run fulfillment
     const since = new Date();
     const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2026-04-22.dahlia', host: stripeHost.hostname, port: stripeHost.port ? Number(stripeHost.port) : 12111, protocol: (stripeHost.protocol.replace(':','') as any) });
-    // Retrieve the payment intent object from stripe-mock
+    // Retrieve the payment intent object from stripe-mock.
+    // stripe-mock is stateless: it ignores metadata on create and returns a canned
+    // amount/metadata on retrieve. Inject the real values from the test context so
+    // the webhook handler can look up the event/user and calculate fees correctly.
     const pi = await stripeClient.paymentIntents.retrieve(paymentIntentId);
+    const sharedUserId = getUserIdByEmail(SHARED_E2E_EMAIL);
+    const eventProducts = db.getProductsByEventId(ev.id) as Array<{ id: string; name: string; price: number }>;
+    const chosenProduct = eventProducts.find(p => p.name === productName) ?? eventProducts[0];
+    const totalAmountCents = Math.round(chosenProduct.price * 100);
+    (pi as any).amount = totalAmountCents;
+    (pi as any).metadata = {
+      eventId: ev.id,
+      userId: sharedUserId,
+      items: JSON.stringify([{ productId: chosenProduct.id, quantity: 1 }]),
+    };
 
     const eventPayload = {
       id: `evt_test_${Date.now()}`,

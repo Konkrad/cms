@@ -166,6 +166,16 @@ export function getUserById(id: string): Record<string, unknown> | undefined {
   return row;
 }
 
+/** Return the user id for the given login email, or undefined if not found. */
+export function getUserIdByEmail(email: string): string | undefined {
+  const db = openDb();
+  const login = db.prepare("SELECT id FROM logins WHERE email = ?").get(email) as { id: string } | undefined;
+  if (!login) { db.close(); return undefined; }
+  const user = db.prepare("SELECT id FROM users WHERE login_id = ?").get(login.id) as { id: string } | undefined;
+  db.close();
+  return user?.id;
+}
+
 /** Delete the user and login rows associated with a given login email (mailpit test cleanup). */
 export function deleteUserByEmail(email: string): void {
   const db = openDb();

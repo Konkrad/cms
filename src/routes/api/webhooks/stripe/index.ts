@@ -103,14 +103,14 @@ async function processCheckoutSession(session: Stripe.Checkout.Session) {
   const [login] = await db
     .select()
     .from(logins)
-    .where(eq(logins.email, user?.loginId || ""))
+    .where(eq(logins.id, user?.loginId || ""))
     .limit(1);
 
   if (!event || !user) {
     throw new Error("Event or user not found");
   }
 
-  const userEmail = login?.email || user.loginId || "";
+  const userEmail = login?.email || "";
 
   // Parse items
   const purchasedItems: Array<{ productId: string; quantity: number }> =
@@ -331,14 +331,14 @@ async function processPaymentIntent(paymentIntent: Stripe.PaymentIntent) {
   const [login] = await db
     .select()
     .from(logins)
-    .where(eq(logins.email, user?.loginId || ""))
+    .where(eq(logins.id, user?.loginId || ""))
     .limit(1);
 
   if (!event || !user) {
     throw new Error("Event or user not found");
   }
 
-  const userEmail = login?.email || user.loginId || "";
+  const userEmail = login?.email || "";
 
   // Parse items
   const purchasedItems: Array<{ productId: string; quantity: number }> =

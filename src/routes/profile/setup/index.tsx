@@ -43,7 +43,6 @@ export default component$(() => {
   const markLocation = useMarkLocation();
   const saveConsent = useSavePhotoConsent();
   const saving = useSignal(false);
-  const saveTrigger = useSignal(0);
   const consentTrigger = useSignal(0);
   const nav = useNavigate();
 
@@ -126,21 +125,20 @@ export default component$(() => {
             <ProfileStep
               profile={user}
               updateAction={updateAction}
-              saveTrigger={saveTrigger}
             />
           )}
           {needsLocation && (
             <LocationStep
               isComplete={false}
               updateAction={markLocation}
-              saveTrigger={saveTrigger}
             />
           )}
           <div class="pt-4">
             <Button
               onClick$={$(() => {
                 saving.value = true;
-                saveTrigger.value++;
+                if (needsProfile) (document.getElementById("profile-step-form") as HTMLFormElement)?.requestSubmit();
+                if (needsLocation) (document.getElementById("location-step-form") as HTMLFormElement)?.requestSubmit();
               })}
             >
               Continue

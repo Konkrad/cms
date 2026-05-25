@@ -21,7 +21,7 @@ export async function waitForEmailHtml(recipient: string, timeout = 30000, since
     // 2. Find the message for our user (optionally filtered by receive time)
     const found = messages.find(m => {
       if (!m.To?.some(r => r.Address.toLowerCase() === recipient.toLowerCase())) return false;
-      if (since && m.Date && new Date(m.Date) < since) return false;
+      if (since && m.Created && new Date(m.Created) < since) return false;
       return true;
     });
 

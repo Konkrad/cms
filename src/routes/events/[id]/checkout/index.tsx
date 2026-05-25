@@ -68,10 +68,14 @@ export const useProductsData = routeLoader$(async (event) => {
     }),
   );
 
+  const session = await getServerSession(event);
+
   return {
     eventId,
     groups: groupsWithCapacity,
     stripePublishableKey: env.STRIPE_PUBLISHABLE_KEY,
+    foodPreference: (session as any)?.foodPreference ?? null,
+    photoConsentGiven: (session as any)?.photoConsentGiven ?? null,
   };
 });
 
@@ -237,6 +241,8 @@ export default component$(() => {
   const checkoutMounted = useSignal(false);
   const isProcessing = useSignal(false);
   const paymentError = useSignal<string>("");
+  const foodConsentReady = useSignal(data.value.foodPreference !== null);
+  const photoConsentReady = useSignal(data.value.photoConsentGiven !== null);
 
   const calculateTotal = useComputed$(() => {
     let total = 0;
@@ -650,6 +656,58 @@ export default component$(() => {
             </div>
           </div>
 
+          {/* Consent sections required before payment */}
+          {data.value.foodPreference === null && (
+            <div class="border rounded-lg p-6 bg-white">
+              <h2 class="text-xl font-bold mb-2">Dietary preference</h2>
+              <p class="text-gray-600 mb-4">
+                Let us know your dietary requirements so we can plan catering accordingly.
+              </p>
+              <select
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                onChange$={(_, el) => {
+                  if (el.value) foodConsentReady.value = true;
+                }}
+              >
+                <option value="">Select preference</option>
+                <option value="none">No preference</option>
+                <option value="vegetarian">Vegetarian</option>
+                <option value="vegan">Vegan</option>
+                <option value="gluten_free">Gluten-free</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          )}
+
+          {data.value.photoConsentGiven === null && (
+            <div class="border rounded-lg p-6 bg-white">
+              <h2 class="text-xl font-bold mb-2">Photo consent</h2>
+              <p class="text-gray-600 mb-4">
+                Photos and videos may be taken at this event. Do you consent to being photographed?
+              </p>
+              <div class="flex gap-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="checkout_photo_consent"
+                    value="yes"
+                    onChange$={() => { photoConsentReady.value = true; }}
+                  />
+                  <span>Yes, I consent</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="checkout_photo_consent"
+                    value="no"
+                    onChange$={() => { photoConsentReady.value = true; }}
+                  />
+                  <span>No, I opt out</span>
+                </label>
+              </div>
+            </div>
+          )}
+
           {/* Payment Form */}
           <div class="border rounded-lg p-6 bg-white">
             <h2 class="text-xl font-bold mb-4">Payment Details</h2>
@@ -696,7 +754,7 @@ export default component$(() => {
                 <Button
                   type="button"
                   class="flex-1"
-                  disabled={!clientSecret.value || isProcessing.value}
+                  disabled={!clientSecret.value || isProcessing.value || !foodConsentReady.value || !photoConsentReady.value}
                   onClick$={handlePaymentSubmit}
                 >
                   {isProcessing.value ? (

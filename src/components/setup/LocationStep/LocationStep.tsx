@@ -1,5 +1,5 @@
-import { $, component$, useVisibleTask$, type Signal, useSignal } from "@qwik.dev/core";
-import { routeAction$, z, zod$ } from "@qwik.dev/router";
+import { component$, type Signal, useSignal } from "@qwik.dev/core";
+import { Form, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { AddressAutocomplete } from "~/components/ui/AddressAutocomplete";
 import { Alert } from "~/components/ui/Alert";
@@ -36,7 +36,7 @@ export type LocationStepProps = {
   /** Pass the result of useMarkLocation() called in the parent route. */
   updateAction: any;
   onComplete?: () => void;
-  saveTrigger: Signal<number>;
+  saveTrigger?: Signal<number>;
 };
 
 export const LocationStep = component$<LocationStepProps>((props) => {
@@ -45,57 +45,39 @@ export const LocationStep = component$<LocationStepProps>((props) => {
   const city = useSignal("");
   const country = useSignal("");
 
-  const handleComplete = $(async () => {
-    if (props.updateAction && typeof props.updateAction.submit === "function") {
-      const formData = new FormData();
-      if (city.value) formData.set("city", city.value);
-      if (country.value) formData.set("country", country.value);
-      if (latitude.value) formData.set("latitude", latitude.value);
-      if (longitude.value) formData.set("longitude", longitude.value);
-
-      await props.updateAction.submit(formData);
-      if (props.updateAction.value?.success) {
-        props.onComplete?.();
-      }
-      return props.updateAction.value;
-    }
-
-    return { error: "No server action provided" };
-  });
-
-  const lastSaved = useSignal(props.saveTrigger?.value ?? 0);
-  useVisibleTask$(({ track }) => {
-    track(() => props.saveTrigger.value);
-    if (props.saveTrigger.value !== lastSaved.value) {
-      lastSaved.value = props.saveTrigger.value;
-      void handleComplete();
-    }
-  });
-
   return (
-    <div class="space-y-4 p-6 border border-gray-200 rounded-lg bg-white">
-      <div>
-        <h2 class="text-xl font-semibold">Location verification</h2>
-        <p class="text-gray-600 mt-1">
-          Confirm your location so we can keep your profile up to date.
-        </p>
-      </div>
-
-      {props.isComplete ? (
-        <Alert variant="success">Verified — thank you!</Alert>
-      ) : (
-        <div class="space-y-3">
-          <AddressAutocomplete
-            name="onboarding_location"
-            label="Address"
-            placeholder="Start typing your city or address..."
-            latitudeSignal={latitude}
-            longitudeSignal={longitude}
-            citySignal={city}
-            countrySignal={country}
-          />
+    <Form action={props.updateAction} id="location-step-form">
+      <div class="space-y-4 p-6 border border-gray-200 rounded-lg bg-white">
+        <div>
+          <h2 class="text-xl font-semibold">Location verification</h2>
+          <p class="text-gray-600 mt-1">
+            Confirm your location so we can keep your profile up to date.
+          </p>
         </div>
-      )}
-    </div>
+
+        <input type="hidden" name="city" value={city.value} />
+        <input type="hidden" name="country" value={country.value} />
+        <input type="hidden" name="latitude" value={latitude.value} />
+        <input type="hidden" name="longitude" value={longitude.value} />
+
+        {props.isComplete ? (
+          <Alert variant="success">Verified — thank you!</Alert>
+        ) : (
+          <div class="space-y-3">
+            <AddressAutocomplete
+              name="onboarding_location"
+              label="Address"
+              placeholder="Start typing your city or address..."
+              latitudeSignal={latitude}
+              longitudeSignal={longitude}
+              citySignal={city}
+              countrySignal={country}
+            />
+          </div>
+        )}
+
+        <button type="submit" id="location-form-save" class="hidden" />
+      </div>
+    </Form>
   );
 });

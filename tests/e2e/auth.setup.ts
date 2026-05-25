@@ -46,13 +46,13 @@ setup('create shared test session', async ({ page }) => {
   const userId = crypto.randomUUID();
   const sessionToken = crypto.randomBytes(48).toString('hex');
   const sessionId = crypto.randomUUID();
-  const consent = JSON.stringify({ lastProfileUpdate: now, locationVerification: now });
+  const consent = JSON.stringify({ lastProfileUpdate: now, locationVerification: now, foodPreference: now, photoConsent: now });
   const expiresAt = new Date(Date.now() + 86400000).toISOString();
 
   db.prepare('INSERT INTO logins (id, email, expires_at) VALUES (?, ?, ?)').run(loginId, email, expiresAt);
   db.prepare(
-    'INSERT INTO users (id, name, family_name, login_id, role, consent) VALUES (?, ?, ?, ?, ?, ?)',
-  ).run(userId, 'E2E', 'User', loginId, 'member', consent);
+    'INSERT INTO users (id, name, family_name, login_id, role, consent, food_preference, photo_consent_given) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+  ).run(userId, 'E2E', 'User', loginId, 'member', consent, 'none', 1);
   db.prepare(
     'INSERT INTO sessions (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)',
   ).run(sessionId, userId, sessionToken, expiresAt);

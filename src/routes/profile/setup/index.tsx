@@ -42,7 +42,6 @@ export default component$(() => {
   const updateAction = useUpdateProfile();
   const markLocation = useMarkLocation();
   const saveConsent = useSavePhotoConsent();
-  const saving = useSignal(false);
   const consentTrigger = useSignal(0);
   const nav = useNavigate();
 
@@ -61,13 +60,10 @@ export default component$(() => {
     track(() => updateAction.value);
     track(() => markLocation.value);
 
-    if (!saving.value) return;
-
     const profileOk = !needsProfile || !!updateAction.value?.success;
     const locationOk = !needsLocation || !!markLocation.value?.success;
 
     if (profileOk && locationOk) {
-      saving.value = false;
       if (needsConsent) {
         phase.value = "consent";
       } else if (form) {
@@ -121,29 +117,27 @@ export default component$(() => {
         </div>
       ) : (
         <div class="space-y-6">
-          {needsProfile && (
-            <ProfileStep
-              profile={user}
-              updateAction={updateAction}
-            />
-          )}
-          {needsLocation && (
-            <LocationStep
-              isComplete={false}
-              updateAction={markLocation}
-            />
-          )}
-          <div class="pt-4">
-            <Button
-              onClick$={$(() => {
-                saving.value = true;
-                if (needsProfile) (document.getElementById("profile-step-form") as HTMLFormElement)?.requestSubmit();
-                if (needsLocation) (document.getElementById("location-step-form") as HTMLFormElement)?.requestSubmit();
-              })}
-            >
-              Continue
-            </Button>
-          </div>
+          {needsProfile && !updateAction.value?.success ? (
+            <>
+              <ProfileStep
+                profile={user}
+                updateAction={updateAction}
+              />
+              <div class="pt-4">
+                <Button type="submit" form="profile-step-form">Continue</Button>
+              </div>
+            </>
+          ) : needsLocation && !markLocation.value?.success ? (
+            <>
+              <LocationStep
+                isComplete={false}
+                updateAction={markLocation}
+              />
+              <div class="pt-4">
+                <Button type="submit" form="location-step-form">Continue</Button>
+              </div>
+            </>
+          ) : null}
         </div>
       )}
     </SetupLayout>

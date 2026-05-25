@@ -373,7 +373,7 @@ test.describe("Pages — builder: content blocks", () => {
       await addBlock(page, "UpcomingEventsBlock");
 
       // PropertiesPanel shows the block name when no configSchema fields
-      await expect(page.locator("text=Upcoming Events")).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByRole('heading', { name: 'Upcoming Events' })).toBeVisible({ timeout: 5_000 });
 
       await saveAndConfirm(page);
 
@@ -458,14 +458,14 @@ test.describe("Pages — builder: block toolbar", () => {
       await addBlock(page, "TitleBlock");
 
       // Select the block to make toolbar visible
-      await page.locator(".space-y-4 > div").first().click();
+      await page.locator(".max-w-5xl .space-y-4 > div").first().click();
 
       const dupBtn = page.locator('button[title="Duplicate"]');
       await expect(dupBtn).toBeVisible({ timeout: 5_000 });
       await dupBtn.click();
 
       // Canvas should now have 2 blocks
-      const blocks = page.locator(".space-y-4 > div");
+      const blocks = page.locator(".max-w-5xl .space-y-4 > div");
       await expect(blocks).toHaveCount(2, { timeout: 5_000 });
 
       await saveAndConfirm(page);
@@ -529,7 +529,7 @@ test.describe("Pages — builder: image upload", () => {
 
       // ImageBlock is auto-selected; PropertiesPanel should show the Image upload field
       // The ImageUploader renders an <input type="file"> (may be visually hidden)
-      const fileInput = page.locator('input[type="file"]');
+      const fileInput = page.locator('input[type="file"]').first();
       await expect(fileInput).toBeAttached({ timeout: 10_000 });
 
       await fileInput.setInputFiles({
@@ -586,7 +586,7 @@ test.describe("Pages — builder: complex blocks", () => {
       await addBlock(page, "FeatureBlock");
 
       // PropertiesPanel should show "Feature Grid" heading and gap number field
-      await expect(page.locator("text=Feature Grid")).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByRole('heading', { name: 'Feature Grid' })).toBeVisible({ timeout: 5_000 });
       await expect(page.locator('input[name="gap"]')).toBeVisible({ timeout: 5_000 });
       await page.locator('input[name="gap"]').fill("16");
 

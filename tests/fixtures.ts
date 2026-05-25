@@ -468,7 +468,7 @@ type Fixtures = {
 
 export const test = base.extend<Fixtures>({
   guestPage: async ({ browser }, use) => {
-    const context = await browser.newContext();
+    const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
     const page = await context.newPage();
     await use(page);
     await context.close();

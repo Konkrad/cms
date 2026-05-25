@@ -65,6 +65,7 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
   const uppyRef = useSignal<NoSerialize<Uppy>>();
   const uploadedValues = useSignal<string[]>([]);
   const selectedPreviewUrl = useSignal<string | null>(null);
+  const isImageReady = useSignal(false);
 
   const cropAspectRatio = props.cropAspectRatio
     ? (() => {
@@ -98,6 +99,9 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
         proudlyDisplayPoweredByUppy: false,
         autoOpen: props.crop ? "imageEditor" : undefined,
         plugins: props.crop ? ["ImageEditor"] : undefined,
+        locale: props.crop
+          ? { strings: { save: "Confirm Crop" } }
+          : undefined,
       })
       .use(ImageEditor, {
         target: Dashboard as any,
@@ -210,6 +214,8 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
       // In auto-upload mode with crop enabled, upload right after crop confirm.
       if (props.autoUpload) {
         void uppy.upload();
+      } else if (props.crop) {
+        isImageReady.value = true;
       }
     });
 
@@ -287,6 +293,12 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
             loading="lazy"
           />
         </div>
+      )}
+
+      {!props.autoUpload && isImageReady.value && (
+        <p class="text-sm text-green-600 font-medium mt-2">
+          Image ready &mdash; will be uploaded on save.
+        </p>
       )}
 
       <div

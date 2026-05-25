@@ -29,7 +29,7 @@ test.describe('Events — guest visibility', () => {
     await expect(page.locator('img[src="/online.png"]').first()).toBeVisible({ timeout: 5_000 });
   });
 
-  test('ticketed event shows a checkout link', async ({ guestPage: page }) => {
+  test('ticketed event shows a checkout link', async ({ memberPage: page }) => {
     const ev = await createEventWithInventory({
       title: 'Cologne Members Dinner (per-test)',
       startOffsetDays: 9,
@@ -44,7 +44,7 @@ test.describe('Events — guest visibility', () => {
     ).toBeVisible({ timeout: 5_000 });
   });
 
-  test('sold-out event shows Sold Out badge', async ({ guestPage: page }) => {
+  test('sold-out event shows Sold Out badge', async ({ memberPage: page }) => {
     const ev = await createEventWithInventory({
       title: 'Munich Members Workshop: Public Speaking (per-test)',
       startOffsetDays: 30,
@@ -82,8 +82,11 @@ test.describe('Events — logged-in interactions', () => {
       title: 'Berlin Summer Social (per-test)',
       startOffsetDays: 14,
       city: 'Berlin',
-      products: [],
-    }, false);
+      products: [{ name: 'Free Entry', price: 0, maxQuantity: 100 }],
+      salesStartOffset: -1,
+      salesEndOffset: 30,
+      needsTicket: false,
+    }, true);
     await page.goto(`/events/${ev.id}`);
     await expect(page.locator("text=RSVP — I'm Going")).toBeVisible({ timeout: 5_000 });
     await page.click("text=RSVP — I'm Going");
@@ -109,15 +112,13 @@ test.describe('Events — logged-in interactions', () => {
     ).toBeVisible();
   });
 
-  test('logged-in user can join the waitlist for a sold-out event', async ({ memberPage: page }) => {
+  test('logged-in user can join the waitlist for an event without ticket sales', async ({ memberPage: page }) => {
     const ev = await createEventWithInventory({
       title: 'Hamburg Harbour Morning Walk (per-test)',
       startOffsetDays: 6,
       city: 'Hamburg',
-      products: [{ name: 'Walk Ticket', price: 0, maxQuantity: 1, soldQuantity: 1 }],
-      salesStartOffset: -5,
-      salesEndOffset: 10,
-    }, true);
+      products: [],
+    }, false);
     await page.goto(`/events/${ev.id}`);
     await expect(page.locator('text=Join Waitlist')).toBeVisible({ timeout: 5_000 });
     await page.click('text=Join Waitlist');

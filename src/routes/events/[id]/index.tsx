@@ -303,10 +303,7 @@ export const useRSVPWithTicket = routeAction$(
         const userEmail = userData.email;
         if (userEmail) {
           const { productsService } = await import("~/services/products.service");
-          const { sendEmail } = await import("~/utils/send-email");
-          const { render } = await import("@react-email/render");
-          const React = await import("react");
-          const { default: TicketConfirmationEmail } = await import("~/emails/TicketConfirmation");
+          const { emailNotificationsService } = await import("~/services/email-notifications.service");
 
           const [ev, product] = await Promise.all([
             eventsService.getById(event.params.id),
@@ -314,30 +311,19 @@ export const useRSVPWithTicket = routeAction$(
           ]);
 
           if (ev && product) {
-            const emailHtml = await render(
-              React.createElement(TicketConfirmationEmail, {
-                baseUrl: env.APP_URL || "https://yourdomain.com",
-                event: {
-                  title: ev.title,
-                  date: new Date(ev.startDate).toLocaleString(),
-                  location: (ev as any).address || (ev as any).onlineUrl || undefined,
-                },
-                transaction: {
-                  buyerName: userData.name || userEmail,
-                  transactionId: ticket.transactionId || ticket.id,
-                  products: [{ name: product.name, quantity: 1, amount: 0 }],
-                  totalAmount: 0,
-                },
-                hasTickets: true,
-                ticketIds: [ticket.id],
-              } as any),
-            );
-
-            await sendEmail({
+            await emailNotificationsService.sendTicketConfirmation({
               to: userEmail,
-              subject: `Your ticket for ${ev.title}`,
-              html: emailHtml,
-              text: `Your free ticket for ${ev.title} has been created. Ticket ID: ${ticket.id}`,
+              buyerName: userData.name || userEmail,
+              event: {
+                title: ev.title,
+                startDate: ev.startDate,
+                address: (ev as any).address,
+                onlineUrl: (ev as any).onlineUrl,
+              },
+              transactionId: ticket.transactionId || ticket.id,
+              products: [{ name: product.name, quantity: 1, amount: 0 }],
+              totalAmount: 0,
+              ticketIds: [ticket.id],
             });
           }
         }

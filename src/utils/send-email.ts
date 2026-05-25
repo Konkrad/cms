@@ -1,7 +1,4 @@
-import { render } from "@react-email/render";
 import nodemailer, { type Transporter } from "nodemailer";
-import * as React from "react";
-import LoginEmail from "~/emails/LoginEmail";
 import { env } from "~/env";
 
 type MailResult = any;
@@ -32,63 +29,6 @@ function getTransporter(): Transporter {
 }
 
 /**
- * Send a login email that contains both a magic link and the 6-letter code.
- *
- * - `to` - destination email
- * - `link` - fully-qualified magic link (e.g. https://yourapp.com/auth/verify?token=...)
- * - `code` - the 6-letter OTP (raw, human-readable)
- * - `subject` - optional subject line override
- *
- * Returns nodemailer's sendMail result object.
- */
-export async function sendLoginEmail({
-  to,
-  link,
-  code,
-  subject,
-}: {
-  to: string;
-  link: string;
-  code: string;
-  subject?: string;
-}): Promise<MailResult> {
-  const appName = env.APP_NAME;
-  const html = await render(
-    React.createElement(LoginEmail, { link, code, appName, baseUrl: env.APP_URL }),
-  );
-
-  const text = [
-    `Sign in to ${appName}`,
-    "",
-    `Sign-in link: ${link}`,
-    "",
-    `Your code: ${code}`,
-    "",
-    `This link & code expire soon.`,
-  ].join("\n");
-
-  const mailOptions = {
-    from: SMTP_FROM,
-    to,
-    subject: subject ?? `Sign in to ${appName}`,
-    html,
-    text,
-  };
-
-  const transporter = getTransporter();
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    // optionally: transporter.verify() on first send if you want to check connectivity
-    return info;
-  } catch (err) {
-    // surface useful error to caller
-    console.error("Failed to send login email:", err);
-    throw err;
-  }
-}
-
-/**
  * Generic helper for sending arbitrary HTML emails.
  */
 export async function sendEmail({
@@ -104,19 +44,12 @@ export async function sendEmail({
 }): Promise<MailResult> {
   const transporter = getTransporter();
 
-  try {
-    const info = await transporter.sendMail({
-      from: SMTP_FROM,
-      to,
-      subject,
-      html,
-      text,
-    });
-    return info;
-  } catch (err) {
-    console.error("Failed to send email:", err);
-    throw err;
-  }
+  const info = await transporter.sendMail({
+    from: SMTP_FROM,
+    to,
+    subject,
+    html,
+    text,
+  });
+  return info;
 }
-
-export default sendLoginEmail;

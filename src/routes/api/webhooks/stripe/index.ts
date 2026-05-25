@@ -8,10 +8,7 @@ import { inventoryGroupsService } from "~/services/inventory-groups.service";
 import { qrcodeService } from "~/services/qrcode.service";
 import { telegramService } from "~/services/telegram.service";
 import { icalService } from "~/services/ical.service";
-import { sendEmail } from "~/utils/send-email";
-import { render } from "@react-email/render";
-import * as React from "react";
-import TicketConfirmationEmail from "~/emails/TicketConfirmation";
+import { emailNotificationsService } from "~/services/email-notifications.service";
 import { env } from "~/env";
 import Stripe from "stripe";
 import { db } from "~/db/connection";
@@ -230,44 +227,20 @@ async function processCheckoutSession(session: Stripe.Checkout.Session) {
 
   // Send confirmation email
   try {
-    const emailHtml = await render(
-      React.createElement(TicketConfirmationEmail, {
-        baseUrl: env.APP_URL || "https://yourdomain.com",
-        event: {
-          title: event.title,
-          date: new Date(event.startDate).toLocaleString(),
-          location: event.address || event.onlineUrl || undefined,
-        },
-        transaction: {
-          buyerName: user.name || userEmail,
-          transactionId: transaction.id,
-          products: productsForEmail,
-          totalAmount,
-        },
-        hasTickets: ticketsForEmail.length > 0,
-        ticketIds: ticketsForEmail.map((t) => t.id),
-      }),
-    );
-
-    const emailText = `
-Your tickets for ${event.title}
-
-Event: ${event.title}
-Date: ${new Date(event.startDate).toLocaleString()}
-${event.address ? `Location: ${event.address}` : ""}
-
-Transaction ID: ${transaction.id}
-
-${ticketsForEmail.length > 0 ? `You have ${ticketsForEmail.length} ticket(s) attached.` : ""}
-    `.trim();
-
-    await sendEmail({
+    await emailNotificationsService.sendTicketConfirmation({
       to: userEmail,
-      subject: `Your tickets for ${event.title}`,
-      html: emailHtml,
-      text: emailText,
+      buyerName: user.name || userEmail,
+      event: {
+        title: event.title,
+        startDate: event.startDate,
+        address: event.address,
+        onlineUrl: event.onlineUrl,
+      },
+      transactionId: transaction.id,
+      products: productsForEmail,
+      totalAmount,
+      ticketIds: ticketsForEmail.map((t) => t.id),
     });
-
     console.log("Confirmation email sent to:", userEmail);
   } catch (error) {
     console.error("Failed to send confirmation email:", error);
@@ -456,44 +429,20 @@ async function processPaymentIntent(paymentIntent: Stripe.PaymentIntent) {
 
   // Send confirmation email
   try {
-    const emailHtml = await render(
-      React.createElement(TicketConfirmationEmail, {
-        baseUrl: env.APP_URL || "https://yourdomain.com",
-        event: {
-          title: event.title,
-          date: new Date(event.startDate).toLocaleString(),
-          location: event.address || event.onlineUrl || undefined,
-        },
-        transaction: {
-          buyerName: user.name || userEmail,
-          transactionId: transaction.id,
-          products: productsForEmail,
-          totalAmount: calculatedAmount,
-        },
-        hasTickets: ticketsForEmail.length > 0,
-        ticketIds: ticketsForEmail.map((t) => t.id),
-      }),
-    );
-
-    const emailText = `
-Your tickets for ${event.title}
-
-Event: ${event.title}
-Date: ${new Date(event.startDate).toLocaleString()}
-${event.address ? `Location: ${event.address}` : ""}
-
-Transaction ID: ${transaction.id}
-
-${ticketsForEmail.length > 0 ? `You have ${ticketsForEmail.length} ticket(s) attached.` : ""}
-    `.trim();
-
-    await sendEmail({
+    await emailNotificationsService.sendTicketConfirmation({
       to: userEmail,
-      subject: `Your tickets for ${event.title}`,
-      html: emailHtml,
-      text: emailText,
+      buyerName: user.name || userEmail,
+      event: {
+        title: event.title,
+        startDate: event.startDate,
+        address: event.address,
+        onlineUrl: event.onlineUrl,
+      },
+      transactionId: transaction.id,
+      products: productsForEmail,
+      totalAmount: calculatedAmount,
+      ticketIds: ticketsForEmail.map((t) => t.id),
     });
-
     console.log("Confirmation email sent to:", userEmail);
   } catch (error) {
     console.error("Failed to send confirmation email:", error);

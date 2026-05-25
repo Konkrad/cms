@@ -1,9 +1,17 @@
 import { test, expect, SHARED_E2E_EMAIL, getUserIdByEmail } from '../fixtures';
 import { waitForEmailHtml } from '../utils/mailpit-client';
+import { startTelegramMock, stopTelegramMock, getTelegramMessages, clearTelegramMessages } from '../utils/telegram-mock';
 import { createEventWithInventory } from '../utils/test-data';
 import Stripe from 'stripe';
 
 test.describe('Tickets', () => {
+  test.beforeAll(async () => {
+    await startTelegramMock();
+  });
+
+  test.afterAll(async () => {
+    await stopTelegramMock();
+  });
   test('free ticket checkout creates tickets immediately', async ({ page, db }) => {
     // Create an event with multiple free products so the page shows the checkout flow
     const ev = await createEventWithInventory({
@@ -165,6 +173,7 @@ test.describe('Tickets', () => {
     const sig = stripeClient.webhooks.generateTestHeaderString({ payload: payloadString, secret: process.env.STRIPE_WEBHOOK_SECRET || '' });
 
     // Post webhook to the app
+    clearTelegramMessages();
     const webhookUrl = new URL('/api/webhooks/stripe', page.url()).toString();
     await fetch(webhookUrl, {
       method: 'POST',
@@ -177,6 +186,11 @@ test.describe('Tickets', () => {
 
     // Wait for the app to process webhook and send confirmation email
     await waitForEmailHtml(SHARED_E2E_EMAIL, 30000, since);
+
+    // Verify Telegram notification was sent with purchase details
+    const telegramMsgs = getTelegramMessages();
+    expect(telegramMsgs.length).toBeGreaterThan(0);
+    expect(telegramMsgs[0].text).toContain(productName);
   });
 });
 

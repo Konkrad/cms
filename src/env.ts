@@ -74,6 +74,8 @@ const envSchema = z.object({
   // Telegram
   TELEGRAM_BOT_TOKEN: z.string(),
   TELEGRAM_CHANNEL_ID: z.string(),
+  // Optional: point to a local mock server (e.g. http://localhost:8099) in tests
+  TELEGRAM_API_URL: z.url().optional(),
 
   // Mapbox
   PUBLIC_MAPBOX_ACCESS_TOKEN: z.string(),
@@ -127,6 +129,7 @@ export const env = {
   STRIPE_API_BASE_URL: _env.STRIPE_API_BASE_URL,
   TELEGRAM_BOT_TOKEN: _env.TELEGRAM_BOT_TOKEN,
   TELEGRAM_CHANNEL_ID: _env.TELEGRAM_CHANNEL_ID,
+  TELEGRAM_API_URL: _env.TELEGRAM_API_URL,
   PUBLIC_MAPBOX_ACCESS_TOKEN: _env.PUBLIC_MAPBOX_ACCESS_TOKEN,
   ALTCHA_HMAC_KEY: _env.ALTCHA_HMAC_KEY,
 

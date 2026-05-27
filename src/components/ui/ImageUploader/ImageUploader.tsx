@@ -231,7 +231,8 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
       const successful = Array.isArray(result.successful) ? result.successful : [];
 
       const values = successful
-        .map((f: any) => f.response?.body?.url || f.response?.body?.filePath)
+        // Persist object keys in forms; URLs may be presigned/temporary.
+        .map((f: any) => f.response?.body?.filePath || f.response?.body?.url)
         .filter(Boolean) as string[];
 
       if (values.length > 0) {

@@ -16,6 +16,10 @@ export function publicImageUrlFromKey(
   value: string | null | undefined,
 ): string | null {
   if (!value) return null;
+  // Preserve already-built local image middleware URLs to avoid double-encoding.
+  if (/^\/?api\/images(?:\?|$)/.test(value)) {
+    return value.startsWith("/") ? value : `/${value}`;
+  }
   if (
     value.startsWith("http://") ||
     value.startsWith("https://") ||

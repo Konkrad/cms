@@ -64,4 +64,13 @@ export const productsService = {
       .set({ soldQuantity: sql`${products.soldQuantity} + ${quantity}` })
       .where(eq(products.id, id));
   },
+
+  async decrementSold(id: string, quantity: number): Promise<void> {
+    await db
+      .update(products)
+      .set({
+        soldQuantity: sql`CASE WHEN ${products.soldQuantity} > ${quantity} THEN ${products.soldQuantity} - ${quantity} ELSE 0 END`,
+      })
+      .where(eq(products.id, id));
+  },
 };

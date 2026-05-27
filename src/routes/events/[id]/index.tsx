@@ -2,6 +2,7 @@ import { component$, $, useSignal } from "@qwik.dev/core";
 import {
   Link,
   type DocumentHead,
+  type RequestHandler,
   routeLoader$,
   routeAction$,
   z,
@@ -12,15 +13,18 @@ import {
 import { Button } from "~/components/ui/Button";
 import { eventsService } from "~/services/events.service";
 import { participationService } from "~/services/participation.service";
+import { productsService } from "~/services/products.service";
 import { ParticipationToggle } from "~/components/events/ParticipationToggle";
 import { db } from "~/db/connection";
 import { inventoryGroups } from "~/db/schemas/inventory-groups";
+import { products as productsTable } from "~/db/schemas/products";
 import { tickets } from "~/db/schemas/tickets";
+import { transactions } from "~/db/schemas/transactions";
 import { participationStatus as participationStatusTable } from "~/db/schemas/participation-status";
 import { groupRepresentatives } from "~/db/schemas/group-representatives";
 import { groups as groupsTable } from "~/db/schemas/groups";
 import { groupMemberships } from "~/db/schemas/group-memberships";
-import { eq, and, isNotNull, inArray } from "drizzle-orm";
+import { eq, and, isNotNull, isNull, inArray, like } from "drizzle-orm";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { env } from "~/env";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
@@ -32,6 +36,90 @@ import { ImageTile } from "~/components/page-blocks/FeatureBlock/ImageTile";
 import { ParticipantsTile } from "~/components/page-blocks/FeatureBlock/ParticipantsTile";
 import { ParticipantsModal } from "~/components/events/ParticipantsModal";
 import { formatUser, buildProfileUrl } from "~/utils/users";
+
+export const onGet: RequestHandler = ({ cacheControl }) => {
+  cacheControl({ noCache: true });
+};
+
+async function getSingleFreeRsvpProduct(eventId: string) {
+  const rows = await db
+    .select()
+    .from(productsTable)
+    .where(eq(productsTable.eventId, eventId))
+    .limit(2);
+
+  if (rows.length !== 1) return null;
+  const [product] = rows;
+  return product.price === 0 ? product : null;
+}
+
+async function syncFreeRsvpTicketForStatus(
+  eventId: string,
+  userId: string,
+  status: "yes" | "no" | "maybe",
+  productId?: string,
+) {
+  let freeProduct = null;
+
+  if (productId) {
+    const product = await productsService.getById(productId);
+    if (
+      product &&
+      product.eventId === eventId &&
+      product.price === 0
+    ) {
+      freeProduct = product;
+    }
+  }
+
+  if (!freeProduct) {
+    freeProduct = await getSingleFreeRsvpProduct(eventId);
+  }
+
+  if (!freeProduct) return;
+
+  const { ticketsService } = await import("~/services/tickets.service");
+  const existingTickets = await db
+    .select({ id: tickets.id, transactionId: tickets.transactionId })
+    .from(tickets)
+    .where(
+      and(
+        eq(tickets.productId, freeProduct.id),
+        eq(tickets.eventId, eventId),
+        eq(tickets.buyerId, userId),
+        isNull(tickets.scannedAt),
+      ),
+    );
+
+  if (status === "no") {
+    if (existingTickets.length > 0) {
+      const ticketIds = existingTickets.map((ticket) => ticket.id);
+      const txIds = existingTickets.map((ticket) => ticket.transactionId);
+
+      await db.delete(tickets).where(inArray(tickets.id, ticketIds));
+      await db
+        .delete(transactions)
+        .where(
+          and(
+            inArray(transactions.id, txIds),
+            like(transactions.stripeSessionId, "free_%"),
+          ),
+        );
+
+      await productsService.decrementSold(freeProduct.id, existingTickets.length);
+    }
+    return;
+  }
+
+  if (existingTickets.length === 0) {
+    await ticketsService.createFreeTicket({
+      productId: freeProduct.id,
+      eventId,
+      buyerId: userId,
+    });
+    await productsService.incrementSold(freeProduct.id, 1);
+  }
+}
 
 export const useEvent = routeLoader$(async (requestEvent) => {
   const { params, status } = requestEvent;
@@ -280,10 +368,18 @@ export const useUpdateParticipation = routeAction$(
       data.status,
     );
 
+    await syncFreeRsvpTicketForStatus(
+      event.params.id,
+      userData.id,
+      data.status,
+      data.productId,
+    );
+
     throw event.redirect(303, event.url.pathname);
   },
   zod$({
     status: z.enum(["yes", "no", "maybe"]),
+    productId: z.string().optional(),
   }),
 );
 
@@ -300,6 +396,15 @@ export const useRSVPWithTicket = routeAction$(
       data.status,
     );
 
+    if (data.productId) {
+      await syncFreeRsvpTicketForStatus(
+        event.params.id,
+        userData.id,
+        data.status,
+        data.productId,
+      );
+    }
+
     if (data.status === "yes" && data.productId) {
       const { ticketsService } = await import("~/services/tickets.service");
       const existingTicket = await db.query.tickets.findFirst({
@@ -309,17 +414,12 @@ export const useRSVPWithTicket = routeAction$(
           buyerId: userData.id,
         },
       });
-      const ticket = existingTicket ?? await ticketsService.createFreeTicket({
-        productId: data.productId,
-        eventId: event.params.id,
-        buyerId: userData.id,
-      });
+      const ticket = existingTicket;
 
       // Send confirmation email
-      try {
+      if (ticket) try {
         const userEmail = userData.email;
         if (userEmail) {
-          const { productsService } = await import("~/services/products.service");
           const { emailNotificationsService } = await import("~/services/email-notifications.service");
 
           const [ev, product] = await Promise.all([
@@ -354,7 +454,7 @@ export const useRSVPWithTicket = routeAction$(
   },
   zod$({
     status: z.enum(["yes", "no", "maybe"]),
-    productId: z.string().optional(),
+    productId: z.string().min(1),
   }),
 );
 
@@ -474,17 +574,26 @@ export default component$(() => {
                   name="status"
                   value="yes"
                   size="lg"
+                  disabled={rsvpWithTicket.isRunning}
                 >
-                  RSVP — I'm Going
+                  {rsvpWithTicket.isRunning ? "Saving..." : "RSVP — I'm Going"}
                 </Button>
               </Form>
             ) : showWaitlist ? (
               <Form action={updateParticipation}>
+                {event.value.isFreeEvent && event.value.hasSingleProduct && event.value.products[0]?.id && (
+                  <input
+                    type="hidden"
+                    name="productId"
+                    value={event.value.products[0].id}
+                  />
+                )}
                 <Button
                   type="submit"
                   name="status"
                   value="maybe"
                   size="lg"
+                  disabled={updateParticipation.isRunning}
                 >
                   {effectiveParticipationStatus === "maybe"
                     ? "✓ On Waitlist"
@@ -501,8 +610,16 @@ export default component$(() => {
               </span>
             ) : (
               <Form action={updateParticipation}>
+                {event.value.isFreeEvent && event.value.hasSingleProduct && event.value.products[0]?.id && (
+                  <input
+                    type="hidden"
+                    name="productId"
+                    value={event.value.products[0].id}
+                  />
+                )}
                 <ParticipationToggle
                   currentStatus={effectiveParticipationStatus}
+                  disabled={updateParticipation.isRunning}
                   onStatusChange={$((status: "yes" | "no" | "maybe") => {
                     optimisticParticipationStatus.value = status;
                   })}

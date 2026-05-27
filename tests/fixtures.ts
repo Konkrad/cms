@@ -459,6 +459,11 @@ type DbHelper = {
   getEventIdByTitle: (title: string) => string | null;
   getProductsByEventId: (eventId: string) => unknown[];
   getInventoryGroupsByEventId: (eventId: string) => unknown[];
+  getTicketCountByEventId: (eventId: string) => number;
+  getTicketCountByEventIdAndEmail: (eventId: string, email: string) => number;
+  getTicketCountByEventIdAndUserId: (eventId: string, userId: string) => number;
+  getParticipationStatusByEventIdAndUserId: (eventId: string, userId: string) => string | null;
+  getProductSoldQuantityById: (productId: string) => number;
 };
 
 type Fixtures = {
@@ -546,6 +551,55 @@ export const test = base.extend<Fixtures>({
         return sqlite
           .prepare("SELECT * FROM inventory_groups WHERE event_id = ?")
           .all(eventId);
+      },
+      getTicketCountByEventId(eventId) {
+        const row = sqlite.prepare(
+          `SELECT COUNT(*) AS count
+           FROM tickets
+           WHERE event_id = ?`,
+        ).get(eventId) as { count: number };
+        return row.count;
+      },
+      getTicketCountByEventIdAndEmail(eventId, email) {
+        const row = sqlite.prepare(
+          `SELECT COUNT(*) AS count
+           FROM tickets
+           WHERE event_id = ?
+             AND buyer_id = (
+               SELECT users.id
+               FROM users
+               INNER JOIN logins ON logins.id = users.login_id
+               WHERE logins.email = ?
+               LIMIT 1
+             )`,
+        ).get(eventId, email) as { count: number };
+        return row.count;
+      },
+      getTicketCountByEventIdAndUserId(eventId, userId) {
+        const row = sqlite.prepare(
+          `SELECT COUNT(*) AS count
+           FROM tickets
+           WHERE event_id = ? AND buyer_id = ?`,
+        ).get(eventId, userId) as { count: number };
+        return row.count;
+      },
+      getParticipationStatusByEventIdAndUserId(eventId, userId) {
+        const row = sqlite.prepare(
+          `SELECT status
+           FROM participation_status
+           WHERE event_id = ? AND user_id = ?
+           LIMIT 1`,
+        ).get(eventId, userId) as { status: string } | undefined;
+        return row?.status ?? null;
+      },
+      getProductSoldQuantityById(productId) {
+        const row = sqlite.prepare(
+          `SELECT sold_quantity
+           FROM products
+           WHERE id = ?
+           LIMIT 1`,
+        ).get(productId) as { sold_quantity: number } | undefined;
+        return row?.sold_quantity ?? 0;
       },
     };
     await use(helper);

@@ -10,7 +10,8 @@ import { users } from "~/db/schemas/users";
 import { products } from "~/db/schemas/products";
 import { events } from "~/db/schemas/events";
 import { ticketParticipants } from "~/db/schemas/ticket-participants";
-import { eq, and, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, inArray } from "drizzle-orm";
+import { transactions } from "~/db/schemas/transactions";
 import { parseAndValidateQR } from "~/utils/qr-code";
 import crypto from "crypto";
 
@@ -257,5 +258,42 @@ export const ticketsService = {
     });
 
     return ticket;
+  },
+
+  async findUnscannedByBuyerEventProduct(data: {
+    productId: string;
+    eventId: string;
+    buyerId: string;
+  }): Promise<Ticket[]> {
+    const results = await db.query.tickets.findMany({
+      where: {
+        productId: data.productId,
+        eventId: data.eventId,
+        buyerId: data.buyerId,
+        scannedAt: null,
+      },
+    });
+    return results as Ticket[];
+  },
+
+  async deleteFreeTicketsByIds(ticketIds: string[]): Promise<void> {
+    if (ticketIds.length === 0) return;
+
+    const rows = await db
+      .select({
+        ticketId: tickets.id,
+        transactionId: transactions.id,
+        stripeSessionId: transactions.stripeSessionId,
+      })
+      .from(tickets)
+      .innerJoin(transactions, eq(tickets.transactionId, transactions.id))
+      .where(inArray(tickets.id, ticketIds));
+
+    for (const row of rows) {
+      await db.delete(tickets).where(eq(tickets.id, row.ticketId));
+      if (row.stripeSessionId.startsWith("free_")) {
+        await db.delete(transactions).where(eq(transactions.id, row.transactionId));
+      }
+    }
   },
 };

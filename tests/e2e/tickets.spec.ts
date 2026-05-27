@@ -70,6 +70,73 @@ test.describe('Tickets', () => {
     await waitForEmailHtml(SHARED_E2E_EMAIL, 30000, since);
   });
 
+  test('free ticket RSVP does not create duplicate tickets on repeated clicks', async ({ memberPage: page, db }) => {
+    const ev = await createEventWithInventory({
+      title: 'Free Tickets RSVP Idempotent Event (per-test)',
+      startOffsetDays: 7,
+      city: 'Berlin',
+      products: [{ name: 'Free Pass', price: 0, maxQuantity: 10 }],
+      salesStartOffset: -1,
+      salesEndOffset: 10,
+    }, true);
+
+    await page.goto(`/events/${ev.id}`);
+
+    const rsvpBtn = page.locator("text=RSVP — I'm Going").first();
+    await expect(rsvpBtn).toBeVisible({ timeout: 5_000 });
+
+    await rsvpBtn.click({ clickCount: 2, delay: 50 });
+
+    await expect(page.locator("text=✓ You're attending! Your free ticket has been created.")).toBeVisible({ timeout: 5_000 });
+
+    await expect.poll(
+      () => db.getTicketCountByEventId(ev.id),
+      { timeout: 5_000 },
+    ).toBe(1);
+  });
+
+  test('free single-product RSVP maybe/no manages ticket and sold quantity', async ({ memberPage: page, db }) => {
+    const ev = await createEventWithInventory({
+      title: 'Free RSVP Maybe No Lifecycle Event (per-test)',
+      startOffsetDays: 7,
+      city: 'Berlin',
+      products: [{ name: 'Free Pass', price: 0, maxQuantity: 10 }],
+      salesStartOffset: -1,
+      salesEndOffset: 10,
+    }, true);
+
+    const product = db.getProductsByEventId(ev.id)[0] as { id: string; sold_quantity: number };
+
+    await page.goto(`/events/${ev.id}`);
+
+    await expect(page.locator("text=RSVP — I'm Going")).toBeVisible({ timeout: 5_000 });
+    await page.click("text=RSVP — I'm Going");
+
+    await expect(page.locator('button:has-text("? Maybe")')).toBeVisible({ timeout: 5_000 });
+    await page.click('button:has-text("? Maybe")');
+
+    await expect.poll(
+      () => db.getTicketCountByEventId(ev.id),
+      { timeout: 5_000 },
+    ).toBe(1);
+    await expect.poll(
+      () => db.getProductSoldQuantityById(product.id),
+      { timeout: 5_000 },
+    ).toBe(product.sold_quantity + 1);
+
+    await expect(page.locator('button:has-text("✗ Not Going")')).toBeVisible({ timeout: 5_000 });
+    await page.click('button:has-text("✗ Not Going")');
+
+    await expect.poll(
+      () => db.getTicketCountByEventId(ev.id),
+      { timeout: 5_000 },
+    ).toBe(0);
+    await expect.poll(
+      () => db.getProductSoldQuantityById(product.id),
+      { timeout: 5_000 },
+    ).toBe(product.sold_quantity);
+  });
+
   test('paid ticket purchase creates payment intent and processes webhook', async ({ page, db }) => {
     const productName = 'VIP Ticket';
     const ev = await createEventWithInventory({

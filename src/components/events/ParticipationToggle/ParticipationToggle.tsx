@@ -2,7 +2,7 @@ import { component$, type QRL } from "@qwik.dev/core";
 
 interface ParticipationToggleProps {
   currentStatus: "yes" | "no" | "maybe" | null;
-  onStatusChange: QRL<(status: "yes" | "no" | "maybe") => void>;
+  onStatusChange?: QRL<(status: "yes" | "no" | "maybe") => void>;
   disabled?: boolean;
 }
 
@@ -36,9 +36,11 @@ export const ParticipationToggle = component$<ParticipationToggleProps>(
           return (
             <button
               key={status.value}
-              type="button"
+              type="submit"
+              name="status"
+              value={status.value}
               disabled={disabled}
-              onClick$={() => onStatusChange(status.value)}
+              onClick$={() => onStatusChange?.(status.value)}
               class={`
                 px-4 py-2 rounded-lg font-medium transition-all
                 ${isActive ? status.activeColor : status.color}

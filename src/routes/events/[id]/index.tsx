@@ -58,11 +58,20 @@ export const useEvent = routeLoader$(async (requestEvent) => {
   const isLoggedIn = !!userData;
   let participationStatus = null;
   let hasAttended = false;
+  let hasUserTicket = false;
   if (userData) {
     participationStatus = await participationService.getStatus(
       userData.id,
       params.id,
     );
+
+    const userTicket = await db.query.tickets.findFirst({
+      where: {
+        eventId: params.id,
+        buyerId: userData.id,
+      },
+    });
+    hasUserTicket = !!userTicket;
 
     const scannedTicket = await db.query.tickets.findFirst({
       where: {
@@ -246,6 +255,7 @@ export const useEvent = routeLoader$(async (requestEvent) => {
     isEventPast,
     isEventFuture,
     hasAttended,
+    hasUserTicket,
     isLoggedIn,
     participationSummary,
     mapImageUrl,
@@ -270,7 +280,7 @@ export const useUpdateParticipation = routeAction$(
       data.status,
     );
 
-    return { success: true };
+    throw event.redirect(303, event.url.pathname);
   },
   zod$({
     status: z.enum(["yes", "no", "maybe"]),
@@ -292,7 +302,14 @@ export const useRSVPWithTicket = routeAction$(
 
     if (data.status === "yes" && data.productId) {
       const { ticketsService } = await import("~/services/tickets.service");
-      const ticket = await ticketsService.createFreeTicket({
+      const existingTicket = await db.query.tickets.findFirst({
+        where: {
+          productId: data.productId,
+          eventId: event.params.id,
+          buyerId: userData.id,
+        },
+      });
+      const ticket = existingTicket ?? await ticketsService.createFreeTicket({
         productId: data.productId,
         eventId: event.params.id,
         buyerId: userData.id,
@@ -333,7 +350,7 @@ export const useRSVPWithTicket = routeAction$(
       }
     }
 
-    return { success: true };
+    throw event.redirect(303, event.url.pathname);
   },
   zod$({
     status: z.enum(["yes", "no", "maybe"]),
@@ -406,6 +423,12 @@ export default component$(() => {
       : (event.value.mapImageUrl ?? "https://picsum.photos/600/600?grayscale");
 
   const showParticipantsModal = useSignal(false);
+  const optimisticParticipationStatus = useSignal<"yes" | "no" | "maybe" | null>(null);
+
+  const effectiveParticipationStatus =
+    optimisticParticipationStatus.value ?? event.value.userParticipation?.status ?? null;
+  const showInitialFreeRsvpButton =
+    showFreeRSVP && !effectiveParticipationStatus && !event.value.hasUserTicket;
 
   return (
     <div class="min-h-screen bg-white">
@@ -439,7 +462,7 @@ export default component$(() => {
               >
                 Buy Your Tickets
               </Link>
-            ) : showFreeRSVP && event.value.userParticipation?.status !== "yes" ? (
+            ) : showInitialFreeRsvpButton ? (
               <Form action={rsvpWithTicket} class="flex gap-3">
                 <input
                   type="hidden"
@@ -463,7 +486,7 @@ export default component$(() => {
                   value="maybe"
                   size="lg"
                 >
-                  {event.value.userParticipation?.status === "maybe"
+                  {effectiveParticipationStatus === "maybe"
                     ? "✓ On Waitlist"
                     : "Join Waitlist"}
                 </Button>
@@ -479,9 +502,9 @@ export default component$(() => {
             ) : (
               <Form action={updateParticipation}>
                 <ParticipationToggle
-                  currentStatus={event.value.userParticipation?.status || null}
+                  currentStatus={effectiveParticipationStatus}
                   onStatusChange={$((status: "yes" | "no" | "maybe") => {
-                    updateParticipation.submit({ status });
+                    optimisticParticipationStatus.value = status;
                   })}
                 />
               </Form>
@@ -489,13 +512,24 @@ export default component$(() => {
           </div>
         )}
 
+        {(updateParticipation.value && "message" in updateParticipation.value) && (
+          <div class="max-w-xl mx-auto mb-8 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-center text-sm">
+            {updateParticipation.value.message}
+          </div>
+        )}
+        {(rsvpWithTicket.value && "message" in rsvpWithTicket.value) && (
+          <div class="max-w-xl mx-auto mb-8 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-center text-sm">
+            {rsvpWithTicket.value.message}
+          </div>
+        )}
+
         {/* RSVP confirmation messages */}
-        {event.value.userParticipation?.status === "yes" && showFreeRSVP && (
+        {effectiveParticipationStatus === "yes" && showFreeRSVP && (
           <div class="max-w-xl mx-auto mb-8 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-center text-sm">
             ✓ You're attending! Your free ticket has been created.
           </div>
         )}
-        {event.value.userParticipation?.status === "maybe" && showWaitlist && (
+        {effectiveParticipationStatus === "maybe" && showWaitlist && (
           <div class="max-w-xl mx-auto mb-8 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-center text-sm">
             ✓ You're on the waitlist!
           </div>

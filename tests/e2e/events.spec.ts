@@ -95,6 +95,31 @@ test.describe('Events — logged-in interactions', () => {
     ).toBeVisible({ timeout: 5_000 });
   });
 
+  test('free-event RSVP can be changed without page reload', async ({ memberPage: page }) => {
+    const ev = await createEventWithInventory({
+      title: 'RSVP Toggle State Event (per-test)',
+      startOffsetDays: 10,
+      city: 'Berlin',
+      products: [{ name: 'Free Entry', price: 0, maxQuantity: 100 }],
+      salesStartOffset: -1,
+      salesEndOffset: 30,
+      needsTicket: false,
+    }, true);
+
+    await page.goto(`/events/${ev.id}`);
+
+    await expect(page.locator("text=RSVP — I'm Going")).toBeVisible({ timeout: 5_000 });
+    await page.click("text=RSVP — I'm Going");
+
+    // After successful RSVP=yes, the tri-state participation toggle should render.
+    await expect(page.locator('button:has-text("? Maybe")')).toBeVisible({ timeout: 5_000 });
+
+    await page.click('button:has-text("? Maybe")');
+
+    // Status change is reflected after submit and route refresh, and the toggle remains available.
+    await expect(page.locator('button:has-text("? Maybe")')).toHaveClass(/ring-2/, { timeout: 5_000 });
+  });
+
   test('logged-in user can navigate to checkout for a ticketed event', async ({ memberPage: page }) => {
     const ev = await createEventWithInventory({
       title: 'Cologne Members Dinner (per-test)',

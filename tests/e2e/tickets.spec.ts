@@ -57,9 +57,9 @@ test.describe('Tickets', () => {
 
     await page.goto(`/events/${ev.id}`);
 
-    // Expect RSVP button and submit it
-    const rsvpBtn = page.locator("text=RSVP — I'm Going").first();
-    if ((await rsvpBtn.count()) === 0) throw new Error('Expected RSVP button for single-product free event');
+    // Expect participation toggle and select yes.
+    const rsvpBtn = page.locator('button:has-text("✓ Going")').first();
+    if ((await rsvpBtn.count()) === 0) throw new Error('Expected participation toggle for single-product free event');
     const since = new Date();
     await rsvpBtn.click();
 
@@ -82,7 +82,7 @@ test.describe('Tickets', () => {
 
     await page.goto(`/events/${ev.id}`);
 
-    const rsvpBtn = page.locator("text=RSVP — I'm Going").first();
+    const rsvpBtn = page.locator('button:has-text("✓ Going")').first();
     await expect(rsvpBtn).toBeVisible({ timeout: 5_000 });
 
     await rsvpBtn.click({ clickCount: 2, delay: 50 });
@@ -109,8 +109,8 @@ test.describe('Tickets', () => {
 
     await page.goto(`/events/${ev.id}`);
 
-    await expect(page.locator("text=RSVP — I'm Going")).toBeVisible({ timeout: 5_000 });
-    await page.click("text=RSVP — I'm Going");
+    await expect(page.locator('button:has-text("✓ Going")')).toBeVisible({ timeout: 5_000 });
+    await page.click('button:has-text("✓ Going")');
 
     await expect(page.locator('button:has-text("? Maybe")')).toBeVisible({ timeout: 5_000 });
     await page.click('button:has-text("? Maybe")');

@@ -67,7 +67,7 @@ test.describe('Events — guest visibility', () => {
     }, false);
     await page.goto(`/events/${ev.id}`);
     await expect(page.locator('text=Buy Your Tickets')).toHaveCount(0);
-    await expect(page.locator("text=RSVP — I'm Going")).toHaveCount(0);
+    await expect(page.locator('button:has-text("✓ Going")')).toHaveCount(0);
     await expect(page.locator('text=Join Waitlist')).toHaveCount(0);
   });
 });
@@ -88,8 +88,8 @@ test.describe('Events — logged-in interactions', () => {
       needsTicket: false,
     }, true);
     await page.goto(`/events/${ev.id}`);
-    await expect(page.locator("text=RSVP — I'm Going")).toBeVisible({ timeout: 5_000 });
-    await page.click("text=RSVP — I'm Going");
+    await expect(page.locator('button:has-text("✓ Going")')).toBeVisible({ timeout: 5_000 });
+    await page.click('button:has-text("✓ Going")');
     await expect(
       page.locator("text=✓ You're attending!").or(page.locator("text=✓ You're Going!")),
     ).toBeVisible({ timeout: 5_000 });
@@ -108,8 +108,8 @@ test.describe('Events — logged-in interactions', () => {
 
     await page.goto(`/events/${ev.id}`);
 
-    await expect(page.locator("text=RSVP — I'm Going")).toBeVisible({ timeout: 5_000 });
-    await page.click("text=RSVP — I'm Going");
+    await expect(page.locator('button:has-text("✓ Going")')).toBeVisible({ timeout: 5_000 });
+    await page.click('button:has-text("✓ Going")');
 
     // After successful RSVP=yes, the tri-state participation toggle should render.
     await expect(page.locator('button:has-text("? Maybe")')).toBeVisible({ timeout: 5_000 });

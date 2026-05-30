@@ -1,4 +1,4 @@
-import { test, expect, SHARED_E2E_EMAIL, getUserIdByEmail } from '../fixtures';
+import { test, expect, SHARED_E2E_EMAIL, getUserIdByEmail, createTestUser } from '../fixtures';
 import { waitForEmailHtml } from '../utils/mailpit-client';
 import { startTelegramMock, stopTelegramMock, getTelegramMessages, clearTelegramMessages } from '../utils/telegram-mock';
 import { createEventWithInventory } from '../utils/test-data';
@@ -260,6 +260,194 @@ test.describe('Tickets', () => {
     const telegramMsgs = getTelegramMessages();
     if (telegramMsgs.length > 0) {
       expect(telegramMsgs[0].text).toContain(productName);
+    }
+  });
+});
+
+test.describe('Participant Assignment Step', () => {
+  /**
+   * Helper: navigate to the participant assignment step for an event.
+   * Returns the page already at step 2.
+   */
+  async function reachParticipantStep(
+    page: import('@playwright/test').Page,
+    eventId: string,
+    productName: string,
+  ) {
+    await page.goto(`/events/${eventId}/checkout`);
+    await expect(page.locator('h1:has-text("Purchase Tickets")')).toBeVisible();
+    // Select the product (radio or +/- control)
+    const radio = page.locator(`div:has-text("${productName}") input[type="radio"]`).first();
+    if (await radio.count() > 0) {
+      await radio.check();
+    }
+    await page.click('button:has-text("Continue to Participants")');
+    await expect(page.locator('h2:has-text("Participant Assignment")')).toBeVisible();
+  }
+
+  test('buyer is pre-assigned to the first slot of each product', async ({ browser }) => {
+    const session = createTestUser({
+      consent: { terms: 'yes' },
+      foodPreference: 'none',
+      photoConsentGiven: true,
+    });
+
+    const ev = await createEventWithInventory({
+      title: 'Participant Pre-assign Test',
+      startOffsetDays: 7,
+      city: 'Berlin',
+      products: [
+        { name: 'Product A', price: 0, maxQuantity: 10, participantCapacity: 1 },
+        { name: 'Product B', price: 0, maxQuantity: 10, participantCapacity: 1 },
+      ],
+      salesStartOffset: -1,
+      salesEndOffset: 10,
+    });
+
+    const ctx = await browser.newContext();
+    await ctx.addCookies([{
+      name: 'session',
+      value: session.sessionToken,
+      domain: 'localhost',
+      path: '/',
+      httpOnly: true,
+      secure: false,
+      sameSite: 'Strict',
+    }]);
+    const page = await ctx.newPage();
+
+    try {
+      await page.goto(`/events/${ev.id}/checkout`);
+      await expect(page.locator('h1:has-text("Purchase Tickets")')).toBeVisible();
+
+      // Select 1 of Product A and 1 of Product B
+      const quantityInputs = page.locator('input[type="number"]');
+      if (await quantityInputs.count() >= 2) {
+        await quantityInputs.nth(0).fill('1');
+        await quantityInputs.nth(1).fill('1');
+      }
+
+      await page.click('button:has-text("Continue to Participants")');
+      await expect(page.locator('h2:has-text("Participant Assignment")')).toBeVisible();
+
+      // Buyer "Test User" should appear once per product card
+      const buyerRows = page.locator('text=Test User');
+      await expect(buyerRows).toHaveCount(2);
+    } finally {
+      await ctx.close();
+      session.cleanup();
+    }
+  });
+
+  test('can proceed to payment with unfilled capacity slots', async ({ browser }) => {
+    const session = createTestUser({
+      consent: { terms: 'yes' },
+      foodPreference: 'none',
+      photoConsentGiven: true,
+    });
+
+    const ev = await createEventWithInventory({
+      title: 'Empty Slot Proceed Test',
+      startOffsetDays: 7,
+      city: 'Berlin',
+      products: [
+        { name: 'Pair Pass', price: 0, maxQuantity: 10, participantCapacity: 2 },
+      ],
+      salesStartOffset: -1,
+      salesEndOffset: 10,
+    });
+
+    const ctx = await browser.newContext();
+    await ctx.addCookies([{
+      name: 'session',
+      value: session.sessionToken,
+      domain: 'localhost',
+      path: '/',
+      httpOnly: true,
+      secure: false,
+      sameSite: 'Strict',
+    }]);
+    const page = await ctx.newPage();
+
+    try {
+      await page.goto(`/events/${ev.id}/checkout`);
+      await expect(page.locator('h1:has-text("Purchase Tickets")')).toBeVisible();
+
+      const radio = page.locator('input[type="radio"]').first();
+      if (await radio.count() > 0) await radio.check();
+
+      await page.click('button:has-text("Continue to Participants")');
+      await expect(page.locator('h2:has-text("Participant Assignment")')).toBeVisible();
+
+      // Slot counter should show 1/2 (buyer assigned, second empty)
+      await expect(page.locator('text=1/2 assigned')).toBeVisible();
+
+      // Continue to payment — empty second slot must not block
+      await page.click('button:has-text("Continue to Payment")');
+      await expect(page.locator('h2:has-text("Payment Details"), text=Payment Successful!')).toBeVisible({ timeout: 10000 });
+    } finally {
+      await ctx.close();
+      session.cleanup();
+    }
+  });
+
+  test('manual participant entry fills an open slot', async ({ browser }) => {
+    const session = createTestUser({
+      consent: { terms: 'yes' },
+      foodPreference: 'none',
+      photoConsentGiven: true,
+    });
+
+    const ev = await createEventWithInventory({
+      title: 'Manual Entry Test',
+      startOffsetDays: 7,
+      city: 'Berlin',
+      products: [
+        { name: 'Duo Pass', price: 0, maxQuantity: 10, participantCapacity: 2 },
+      ],
+      salesStartOffset: -1,
+      salesEndOffset: 10,
+    });
+
+    const ctx = await browser.newContext();
+    await ctx.addCookies([{
+      name: 'session',
+      value: session.sessionToken,
+      domain: 'localhost',
+      path: '/',
+      httpOnly: true,
+      secure: false,
+      sameSite: 'Strict',
+    }]);
+    const page = await ctx.newPage();
+
+    try {
+      await page.goto(`/events/${ev.id}/checkout`);
+      await expect(page.locator('h1:has-text("Purchase Tickets")')).toBeVisible();
+
+      const radio = page.locator('input[type="radio"]').first();
+      if (await radio.count() > 0) await radio.check();
+
+      await page.click('button:has-text("Continue to Participants")');
+      await expect(page.locator('h2:has-text("Participant Assignment")')).toBeVisible();
+
+      // Open the dropdown and click "Add manually"
+      await page.locator('input[placeholder="Search participant by name…"]').click();
+      await page.click('text=Add manually');
+
+      // Fill in the manual form
+      await page.locator('input[placeholder="Full name"]').fill('Jane Doe');
+      await page.locator('input[placeholder="Email address"]').fill('jane@example.com');
+      await page.click('button:has-text("Add")');
+
+      // Jane should now appear in the slot list
+      await expect(page.locator('text=Jane Doe')).toBeVisible();
+
+      // Counter should now show 2/2
+      await expect(page.locator('text=2/2 assigned')).toBeVisible();
+    } finally {
+      await ctx.close();
+      session.cleanup();
     }
   });
 });

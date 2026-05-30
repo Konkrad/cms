@@ -20,6 +20,7 @@ import { checkoutService } from "~/services/checkout.service";
 import { stripeService } from "~/services/stripe.service";
 import { publicImageUrlFromKey, deriveThumbnailKey } from "~/utils/images";
 import { getServerSession } from "~/utils/server-auth";
+import { isValidEmail, validateParticipantSlots } from "~/utils/participant-validation";
 import { env } from "~/env";
 import { StepIndicator } from "~/components/events/checkout/StepIndicator";
 import { ProductSelectionStep } from "~/components/events/checkout/ProductSelectionStep";
@@ -41,10 +42,6 @@ function splitIntoChunks(value: string, maxChunkSize = 450): string[] {
     chunks.push(value.slice(i, i + maxChunkSize));
   }
   return chunks;
-}
-
-function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 export const useProductsData = routeLoader$(async (event) => {
@@ -504,27 +501,10 @@ export default component$(() => {
   });
 
   const handleContinueToPayment = $(() => {
-    for (const unit of participantAssignments.value) {
-      for (let i = 0; i < unit.slots.length; i++) {
-        const slot = unit.slots[i];
-        const name = slot.name.trim();
-        const email = slot.email.trim();
-        // Completely empty slots are fine — participant can be assigned later
-        if (!name && !email) continue;
-        const participantLabel = `"${unit.productName}" — participant ${i + 1}`;
-        if (!name) {
-          paymentError.value = `Please enter a name for ${participantLabel}.`;
-          return;
-        }
-        if (!email) {
-          paymentError.value = `Please enter an email for ${participantLabel}.`;
-          return;
-        }
-        if (!isValidEmail(email)) {
-          paymentError.value = `"${email}" is not a valid email address (${participantLabel}).`;
-          return;
-        }
-      }
+    const error = validateParticipantSlots(participantAssignments.value);
+    if (error) {
+      paymentError.value = error;
+      return;
     }
     paymentError.value = "";
     currentStep.value = 3;

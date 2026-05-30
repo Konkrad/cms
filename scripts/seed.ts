@@ -12,6 +12,7 @@
 
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
+import { eq } from "drizzle-orm";
 import * as schema from "../src/db/schema.ts";
 import crypto from "crypto";
 import fs from "fs";
@@ -245,6 +246,80 @@ let testUsers = db
   .all()
   .filter((u) => u.role === "user" && u.familyName === "Test");
 
+const qaCheckoutUserDefs = [
+  { name: "Marta", familyName: "Keller", email: "qa.marta@example.com" },
+  { name: "Jonas", familyName: "Richter", email: "qa.jonas@example.com" },
+  { name: "Leonie", familyName: "Baumann", email: "qa.leonie@example.com" },
+  { name: "Tariq", familyName: "Hassan", email: "qa.tariq@example.com" },
+] as const;
+
+const qaCheckoutUsers: Array<typeof schema.users.$inferSelect> = [];
+
+for (const qaUser of qaCheckoutUserDefs) {
+  const existingLogin = db
+    .select()
+    .from(schema.logins)
+    .all()
+    .find((login) => login.email === qaUser.email);
+
+  if (!existingLogin) {
+    const loginId = uuid();
+    db.insert(schema.logins)
+      .values({ id: loginId, email: qaUser.email, expiresAt: "2099-01-01T00:00:00.000Z" })
+      .run();
+
+    db.insert(schema.users)
+      .values({
+        id: uuid(),
+        name: qaUser.name,
+        familyName: qaUser.familyName,
+        role: "user",
+        loginId,
+        createdAt: now(),
+        updatedAt: now(),
+      })
+      .run();
+    continue;
+  }
+
+  const existingUser = db
+    .select()
+    .from(schema.users)
+    .all()
+    .find((user) => user.loginId === existingLogin.id);
+
+  if (!existingUser) {
+    db.insert(schema.users)
+      .values({
+        id: uuid(),
+        name: qaUser.name,
+        familyName: qaUser.familyName,
+        role: "user",
+        loginId: existingLogin.id,
+        createdAt: now(),
+        updatedAt: now(),
+      })
+      .run();
+  }
+}
+
+for (const qaUser of qaCheckoutUserDefs) {
+  const login = db
+    .select()
+    .from(schema.logins)
+    .all()
+    .find((l) => l.email === qaUser.email);
+  if (!login) continue;
+  const user = db
+    .select()
+    .from(schema.users)
+    .all()
+    .find((u) => u.loginId === login.id);
+  if (user) {
+    qaCheckoutUsers.push(user);
+  }
+}
+
 if (testUsers.length < 10) {
   for (let i = testUsers.length; i < 10; i++) {
     const loginId = uuid();
@@ -267,6 +342,7 @@ if (testUsers.length < 10) {
 console.log(
   `Users: admin=${adminUser.name}, host=${hostUser.name}, test=${testUsers.length}`,
 );
+console.log(`  checkout QA users ensured (${qaCheckoutUsers.length})`);
 
 // ─── 5. Groups ───────────────────────────────────────────────────────────────
 
@@ -682,6 +758,20 @@ const eventDefs: Array<{
     longitude: "13.3903",
   },
   {
+    title: "Checkout QA Multi-Quantity & Participant Capacity",
+    body: "<p>Purpose-built QA event for manual checkout validation: quantity controls, participant assignment, and autocomplete by name.</p>",
+    groupSlug: "berlin",
+    visibility: "global",
+    authorIdx: -1,
+    startOffsetDays: 16,
+    durationHours: 4,
+    city: "Berlin",
+    country: "Germany",
+    address: "MotionLab Berlin, Bouchestr. 12, 12435 Berlin",
+    latitude: "52.4899",
+    longitude: "13.4450",
+  },
+  {
     title: "All-Groups Online Town Hall",
     body: "<p>Quarterly online town hall open to all groups. Platform updates, Q&A, and upcoming features.</p>",
     groupSlug: null,
@@ -994,6 +1084,61 @@ seedInventory({
 });
 
 seedInventory({
+  eventTitle: "Checkout QA Multi-Quantity & Participant Capacity",
+  inventoryName: "QA Main Passes",
+  maxCapacity: 80,
+  salesStartOffset: -5,
+  salesEndOffset: 25,
+  products: [
+    {
+      name: "QA Standard Pass",
+      price: 19,
+      maxQuantity: 6,
+      soldQuantity: 1,
+      participantCapacity: 1,
+    },
+    {
+      name: "QA One-Time VIP Seat",
+      price: 49,
+      maxQuantity: 1,
+      soldQuantity: 0,
+      participantCapacity: 1,
+    },
+    {
+      name: "QA Premium Pass",
+      price: 34,
+      maxQuantity: 4,
+      soldQuantity: 0,
+      participantCapacity: 1,
+    },
+  ],
+});
+
+seedInventory({
+  eventTitle: "Checkout QA Multi-Quantity & Participant Capacity",
+  inventoryName: "QA Team Workshops",
+  maxCapacity: 36,
+  salesStartOffset: -5,
+  salesEndOffset: 25,
+  products: [
+    {
+      name: "QA Pair Workshop (2 participants)",
+      price: 54,
+      maxQuantity: 6,
+      soldQuantity: 1,
+      participantCapacity: 2,
+    },
+    {
+      name: "QA Trio Lab (3 participants)",
+      price: 72,
+      maxQuantity: 4,
+      soldQuantity: 0,
+      participantCapacity: 3,
+    },
+  ],
+});
+
+seedInventory({
   eventTitle: "All-Groups Online Town Hall",
   inventoryName: "Virtual Seats",
   maxCapacity: 200,
@@ -1256,6 +1401,32 @@ console.log(`  transactions seeded (${txCount} transactions, ${ticketCount} tick
 
 const imageKeys = await downloadAndUploadSeedImages();
 
+const usersWithoutProfile = db
+  .select()
+  .from(schema.users)
+  .all()
+  .filter((u) => !u.profilePicture);
+
+for (let i = 0; i < usersWithoutProfile.length; i++) {
+  db.update(schema.users)
+    .set({
+      profilePicture: imageKeys[i % imageKeys.length],
+      updatedAt: now(),
+    })
+    .where(eq(schema.users.id, usersWithoutProfile[i].id))
+    .run();
+}
+
+for (let i = 0; i < qaCheckoutUsers.length; i++) {
+  db.update(schema.users)
+    .set({
+      profilePicture: imageKeys[(i + 2) % imageKeys.length],
+      updatedAt: now(),
+    })
+    .where(eq(schema.users.id, qaCheckoutUsers[i].id))
+    .run();
+}
+
 const eventsNoImg = sqlite
   .prepare("SELECT id FROM events WHERE deleted_at IS NULL AND (image1 IS NULL OR image1 LIKE '%picsum.photos%' OR image2 IS NULL OR image2 LIKE '%picsum.photos%')")
   .all() as Array<{ id: string }>;
@@ -1290,6 +1461,11 @@ for (let i = 0; i < groupsNoImg.length; i++) {
 }
 
 console.log(`  images downloaded/uploaded and linked (${eventsNoImg.length} events, ${postsNoImg.length} posts, ${groupsNoImg.length} groups)`);
+console.log(`  user profile pictures assigned (${usersWithoutProfile.length} users, QA users emphasized=${qaCheckoutUsers.length})`);
+console.log("  checkout QA scenario ready:");
+console.log("    Event: Checkout QA Multi-Quantity & Participant Capacity");
+console.log("    Products: QA Standard Pass, QA Premium Pass, QA Pair Workshop (2 participants), QA Trio Lab (3 participants)");
+console.log("    Search users: Marta Keller, Jonas Richter, Leonie Baumann, Tariq Hassan");
 
 // ─── 13. Forms ───────────────────────────────────────────────────────────────
 

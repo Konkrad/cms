@@ -750,7 +750,20 @@ export default component$(() => {
                       return (
                         <div
                           key={product.id}
-                          class={`flex items-start gap-4 p-4 border rounded-sm cursor-pointer hover:bg-gray-50 ${isSelected ? "border-blue-500 bg-blue-50" : ""}`}
+                          class={`flex items-center gap-4 p-4 border rounded-sm cursor-pointer hover:bg-gray-50 ${isSelected ? "border-blue-500 bg-blue-50" : ""}`}
+                          onClick$={() => {
+                            const newSelection = {
+                              ...selectedProducts.value,
+                            };
+                            ((group.products as any[]) || []).forEach((p: any) => {
+                              if (p.id !== product.id) {
+                                delete newSelection[p.id];
+                              }
+                            });
+                            newSelection[product.id] =
+                              Math.max(1, selectedProducts.value[product.id] || 1);
+                            selectedProducts.value = newSelection;
+                          }}
                         >
                           <input
                             type="radio"
@@ -758,28 +771,29 @@ export default component$(() => {
                             value={product.id}
                             checked={isSelected}
                             class="mt-1"
-                            onChange$={(e, el) => {
+                            onClick$={(e) => {
+                              e.stopPropagation();
+                            }}
+                            onChange$={(_, el) => {
                               if (el.checked) {
-                                // Clear other products in the same group (iterate all products to ensure cleanup)
                                 const newSelection = {
                                   ...selectedProducts.value,
                                 };
-                                ((group.products as any[]) || []).forEach(
-                                  (p: any) => {
-                                    if (p.id !== product.id) {
-                                      delete newSelection[p.id];
-                                    }
-                                  },
-                                );
-                                newSelection[product.id] = 1;
+                                ((group.products as any[]) || []).forEach((p: any) => {
+                                  if (p.id !== product.id) {
+                                    delete newSelection[p.id];
+                                  }
+                                });
+                                newSelection[product.id] =
+                                  Math.max(1, selectedProducts.value[product.id] || 1);
                                 selectedProducts.value = newSelection;
                               }
                             }}
                           />
 
                           <div class="flex-1">
-                            <div class="flex justify-between items-start">
-                              <div>
+                            <div class="flex justify-between items-center gap-4">
+                              <div class="min-w-0">
                                 <h3 class="font-semibold">{product.name}</h3>
                                 {product.features &&
                                   product.features.length > 0 && (
@@ -791,7 +805,53 @@ export default component$(() => {
                                       )}
                                     </ul>
                                   )}
+                                <p class="text-sm text-gray-600 mt-2">
+                                  €{product.price.toFixed(2)} | Sold:{" "}
+                                  {product.soldQuantity} /{" "}
+                                  {product.maxQuantity || "∞"}
+                                </p>
                               </div>
+
+                              {isSelected && maxSelectable > 1 && (
+                                <div class="shrink-0">
+                                  <div class="inline-flex items-center bg-black text-white rounded-full overflow-hidden">
+                                    <button
+                                      type="button"
+                                      class="w-8 h-8 text-lg leading-none hover:bg-gray-800"
+                                      onClick$={(e) => {
+                                        e.stopPropagation();
+                                        const current = selectedProducts.value[product.id] || 1;
+                                        selectedProducts.value = {
+                                          ...selectedProducts.value,
+                                          [product.id]: Math.max(1, current - 1),
+                                        };
+                                      }}
+                                      disabled={quantity <= 1}
+                                    >
+                                      -
+                                    </button>
+                                    <span class="h-8 min-w-8 px-2 bg-white text-black text-sm font-semibold flex items-center justify-center">
+                                      {quantity}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      class="w-8 h-8 text-lg leading-none hover:bg-gray-800"
+                                      onClick$={(e) => {
+                                        e.stopPropagation();
+                                        const current = selectedProducts.value[product.id] || 1;
+                                        selectedProducts.value = {
+                                          ...selectedProducts.value,
+                                          [product.id]: Math.min(maxSelectable, current + 1),
+                                        };
+                                      }}
+                                      disabled={quantity >= maxSelectable}
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+
                               {product.imageKey && (
                                 <img
                                   src={publicImageUrlFromKey(product.imageKey) ?? undefined}
@@ -800,50 +860,6 @@ export default component$(() => {
                                 />
                               )}
                             </div>
-                            <p class="text-sm text-gray-600 mt-2">
-                              €{product.price.toFixed(2)} | Sold:{" "}
-                              {product.soldQuantity} /{" "}
-                              {product.maxQuantity || "∞"}
-                            </p>
-
-                            {isSelected && (
-                              <div class="mt-3 inline-flex items-center gap-3">
-                                <button
-                                  type="button"
-                                  class="w-8 h-8 rounded border border-gray-300 text-lg leading-none"
-                                  onClick$={() => {
-                                    const current = selectedProducts.value[product.id] || 1;
-                                    selectedProducts.value = {
-                                      ...selectedProducts.value,
-                                      [product.id]: Math.max(1, current - 1),
-                                    };
-                                  }}
-                                  disabled={quantity <= 1}
-                                >
-                                  -
-                                </button>
-                                <span class="font-semibold min-w-8 text-center">
-                                  {quantity}
-                                </span>
-                                <button
-                                  type="button"
-                                  class="w-8 h-8 rounded border border-gray-300 text-lg leading-none"
-                                  onClick$={() => {
-                                    const current = selectedProducts.value[product.id] || 1;
-                                    selectedProducts.value = {
-                                      ...selectedProducts.value,
-                                      [product.id]: Math.min(maxSelectable, current + 1),
-                                    };
-                                  }}
-                                  disabled={quantity >= maxSelectable}
-                                >
-                                  +
-                                </button>
-                                <span class="text-sm text-gray-600">
-                                  Max {maxSelectable}
-                                </span>
-                              </div>
-                            )}
                           </div>
                         </div>
                       );

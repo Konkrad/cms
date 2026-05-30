@@ -18,23 +18,21 @@ import { inventoryGroupsService } from "~/services/inventory-groups.service";
 import { productsService } from "~/services/products.service";
 import { checkoutService } from "~/services/checkout.service";
 import { stripeService } from "~/services/stripe.service";
-import { publicImageUrlFromKey } from "~/utils/images";
+import { publicImageUrlFromKey, deriveThumbnailKey } from "~/utils/images";
 import { getServerSession } from "~/utils/server-auth";
 import { env } from "~/env";
+import { StepIndicator } from "~/components/events/checkout/StepIndicator";
+import { ProductSelectionStep } from "~/components/events/checkout/ProductSelectionStep";
+import { ParticipantAssignmentStep } from "~/components/events/checkout/ParticipantAssignmentStep";
+import type {
+  CheckoutItemInput,
+  GroupedAssignments,
+  ParticipantAssignmentUnit,
+  ParticipantSlotInput,
+  SearchUserResult,
+} from "~/components/events/checkout/types";
 
 export { useSaveFoodPreference, useSavePhotoConsent };
-
-type ParticipantSlotInput = {
-  name: string;
-  email: string;
-  existingUserId?: string | null;
-};
-
-type CheckoutItemInput = {
-  productId: string;
-  quantity: number;
-  participantUnits?: ParticipantSlotInput[][];
-};
 
 function splitIntoChunks(value: string, maxChunkSize = 450): string[] {
   if (!value) return [];
@@ -114,6 +112,9 @@ export const useProductsData = routeLoader$(async (event) => {
         .join(" ")
         .trim(),
       email: (session as any)?.email ?? "",
+      avatarUrl: (session as any)?.profilePicture
+        ? publicImageUrlFromKey(deriveThumbnailKey((session as any).profilePicture))
+        : null,
     },
   };
 });
@@ -382,32 +383,13 @@ export default component$(() => {
 
   const currentStep = useSignal<1 | 2 | 3 | 4>(1);
   const selectedProducts = useSignal<Record<string, number>>({});
-  const participantAssignments = useSignal<
-    Array<{
-      unitKey: string;
-      productId: string;
-      productName: string;
-      unitNumber: number;
-      slots: Array<{
-        name: string;
-        email: string;
-        existingUserId?: string | null;
-        locked?: boolean;
-      }>;
-    }>
-  >([]);
+  const participantAssignments = useSignal<ParticipantAssignmentUnit[]>([]);
   const slotSearchQuery = useSignal<Record<string, string>>({});
   const slotSearchResults = useSignal<
-    Record<
-      string,
-      Array<{
-        id: string;
-        displayName: string;
-        email: string;
-        avatarUrl: string | null;
-      }>
-    >
+    Record<string, SearchUserResult[]>
   >({});
+  const slotSearchLoading = useSignal<Record<string, boolean>>({});
+  const slotSearchError = useSignal<Record<string, string>>({});
   const clientSecret = useSignal<string>("");
   const paymentIntentId = useSignal<string>("");
   const stripeLoaded = useSignal(false);
@@ -449,6 +431,91 @@ export default component$(() => {
 
   const totalTickets = useComputed$(() => {
     return Object.values(selectedProducts.value).reduce((sum, value) => sum + value, 0);
+  });
+
+  const participantAssignmentsByProduct = useComputed$(() => {
+    const grouped = new Map<string, GroupedAssignments>();
+
+    for (const unit of participantAssignments.value) {
+      const existing = grouped.get(unit.productId);
+      if (existing) {
+        existing.units.push(unit);
+      } else {
+        grouped.set(unit.productId, {
+          productId: unit.productId,
+          productName: unit.productName,
+          units: [unit],
+        });
+      }
+    }
+
+    return Array.from(grouped.values());
+  });
+
+  const handleSelectionChange = $((next: Record<string, number>) => {
+    selectedProducts.value = next;
+  });
+
+  const handleStartParticipants = $((units: ParticipantAssignmentUnit[]) => {
+    participantAssignments.value = units;
+    slotSearchQuery.value = {};
+    slotSearchResults.value = {};
+    slotSearchLoading.value = {};
+    slotSearchError.value = {};
+    currentStep.value = 2;
+    paymentError.value = "";
+  });
+
+  const handleAssignmentsChange = $((next: ParticipantAssignmentUnit[]) => {
+    participantAssignments.value = next;
+  });
+
+  const handleSearchQueryChange = $((slotKey: string, query: string) => {
+    slotSearchQuery.value = {
+      ...slotSearchQuery.value,
+      [slotKey]: query,
+    };
+  });
+
+  const handleSearchResultsChange = $((slotKey: string, users: SearchUserResult[]) => {
+    slotSearchResults.value = {
+      ...slotSearchResults.value,
+      [slotKey]: users,
+    };
+  });
+
+  const handleSearchLoadingChange = $((slotKey: string, isLoading: boolean) => {
+    slotSearchLoading.value = {
+      ...slotSearchLoading.value,
+      [slotKey]: isLoading,
+    };
+  });
+
+  const handleSearchErrorChange = $((slotKey: string, message: string) => {
+    slotSearchError.value = {
+      ...slotSearchError.value,
+      [slotKey]: message,
+    };
+  });
+
+  const handleBackToProducts = $(() => {
+    currentStep.value = 1;
+    paymentError.value = "";
+  });
+
+  const handleContinueToPayment = $(() => {
+    for (const unit of participantAssignments.value) {
+      for (const slot of unit.slots) {
+        const name = slot.name.trim();
+        const email = slot.email.trim();
+        if (!name || !email || !isValidEmail(email)) {
+          paymentError.value = "Please complete all participant names and valid emails.";
+          return;
+        }
+      }
+    }
+    paymentError.value = "";
+    currentStep.value = 3;
   });
 
   // Load Stripe.js and create checkout session when reaching payment step.
@@ -611,550 +678,48 @@ export default component$(() => {
     <div class="max-w-4xl mx-auto p-6">
       <h1 class="text-3xl font-bold mb-6">Purchase Tickets</h1>
 
-      {/* Step Indicator */}
-      <div class="flex items-center justify-center mb-8">
-        <div class="flex items-center">
-          <div
-            class={`flex items-center justify-center w-10 h-10 rounded-full ${
-              currentStep.value === 1
-                ? "bg-blue-600 text-white"
-                : "bg-green-600 text-white"
-            }`}
-          >
-            {currentStep.value > 1 ? "✓" : "1"}
-          </div>
-          <span
-            class={`ml-2 font-medium ${currentStep.value === 1 ? "text-blue-600" : "text-gray-600"}`}
-          >
-            Select Products
-          </span>
-        </div>
-
-        <div class="w-24 h-1 bg-gray-300 mx-4"></div>
-
-        <div class="flex items-center">
-          <div
-            class={`flex items-center justify-center w-10 h-10 rounded-full ${
-              currentStep.value === 2
-                ? "bg-blue-600 text-white"
-                : currentStep.value > 2
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-300 text-gray-600"
-            }`}
-          >
-            2
-          </div>
-          <span
-            class={`ml-2 font-medium ${currentStep.value === 2 ? "text-blue-600" : "text-gray-600"}`}
-          >
-            Participants
-          </span>
-        </div>
-
-        <div class="w-24 h-1 bg-gray-300 mx-4"></div>
-
-        <div class="flex items-center">
-          <div
-            class={`flex items-center justify-center w-10 h-10 rounded-full ${
-              currentStep.value === 3
-                ? "bg-blue-600 text-white"
-                : currentStep.value > 3
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-300 text-gray-600"
-            }`}
-          >
-            3
-          </div>
-          <span
-            class={`ml-2 font-medium ${currentStep.value === 3 ? "text-blue-600" : "text-gray-600"}`}
-          >
-            Payment
-          </span>
-        </div>
-      </div>
+      <StepIndicator currentStep={currentStep.value} />
 
       {/* Step 1: Product Selection */}
       {currentStep.value === 1 && (
-        <div class="space-y-6">
-          {data.value.groups.map((group) => (
-            <div key={group.id} class="border rounded-lg p-6 bg-white">
-              <div class="mb-4">
-                <h2 class="text-xl font-bold">{group.name}</h2>
-                <p class="text-sm text-gray-600">
-                  {group.remainingCapacity} of {group.maxCapacity} spots
-                  remaining
-                </p>
-              </div>
-
-              {group.remainingCapacity === 0 ? (
-                <div class="p-4 bg-gray-100 text-gray-600 rounded-sm text-center">
-                  Sold Out
-                </div>
-              ) : !group.isSalesOpen ? (
-                <div
-                  class={`rounded-lg p-4 mb-4 ${
-                    group.salesStartDate &&
-                    new Date(group.salesStartDate) > new Date()
-                      ? "bg-yellow-50 border border-yellow-200 text-yellow-700"
-                      : "bg-red-50 border border-red-200 text-red-700"
-                  }`}
-                >
-                  <div
-                    class={`text-lg font-semibold mb-2 ${
-                      group.salesStartDate &&
-                      new Date(group.salesStartDate) > new Date()
-                        ? "text-yellow-900"
-                        : "text-red-900"
-                    }`}
-                  >
-                    {group.salesStartDate &&
-                    new Date(group.salesStartDate) > new Date()
-                      ? "🕒 Sales Not Yet Open"
-                      : "🔒 Sales Closed"}
-                  </div>
-                  <p
-                    class={
-                      group.salesStartDate &&
-                      new Date(group.salesStartDate) > new Date()
-                        ? "text-yellow-800"
-                        : "text-red-800"
-                    }
-                  >
-                    {group.salesStartDate &&
-                    new Date(group.salesStartDate) > new Date()
-                      ? `Opens ${new Date(group.salesStartDate).toLocaleString()}`
-                      : group.salesEndDate
-                        ? `Closed ${new Date(group.salesEndDate).toLocaleString()}`
-                        : "Sales are not available for this group"}
-                  </p>
-                </div>
-              ) : ((group.availableProducts as any[]) || []).length === 0 ? (
-                <div class="p-4 bg-gray-100 text-gray-600 rounded-sm text-center">
-                  No products available
-                </div>
-              ) : (
-                <div class="space-y-4">
-                  {((group.availableProducts as any[]) || []).map(
-                    (product: any) => {
-                      const isSelected = selectedProducts.value[product.id] > 0;
-                      const productRemaining =
-                        product.maxQuantity && product.maxQuantity > 0
-                          ? product.maxQuantity - (product.soldQuantity || 0)
-                          : group.remainingCapacity;
-                      const maxSelectable = Math.max(
-                        1,
-                        Math.min(group.remainingCapacity, productRemaining),
-                      );
-                      const quantity = selectedProducts.value[product.id] || 0;
-
-                      return (
-                        <div
-                          key={product.id}
-                          class={`flex items-center gap-4 p-4 border rounded-sm cursor-pointer hover:bg-gray-50 ${isSelected ? "border-blue-500 bg-blue-50" : ""}`}
-                          onClick$={() => {
-                            const newSelection = {
-                              ...selectedProducts.value,
-                            };
-                            ((group.products as any[]) || []).forEach((p: any) => {
-                              if (p.id !== product.id) {
-                                delete newSelection[p.id];
-                              }
-                            });
-                            newSelection[product.id] =
-                              Math.max(1, selectedProducts.value[product.id] || 1);
-                            selectedProducts.value = newSelection;
-                          }}
-                        >
-                          <input
-                            type="radio"
-                            name={`group_${group.id}`}
-                            value={product.id}
-                            checked={isSelected}
-                            class="mt-1"
-                            onClick$={(e) => {
-                              e.stopPropagation();
-                            }}
-                            onChange$={(_, el) => {
-                              if (el.checked) {
-                                const newSelection = {
-                                  ...selectedProducts.value,
-                                };
-                                ((group.products as any[]) || []).forEach((p: any) => {
-                                  if (p.id !== product.id) {
-                                    delete newSelection[p.id];
-                                  }
-                                });
-                                newSelection[product.id] =
-                                  Math.max(1, selectedProducts.value[product.id] || 1);
-                                selectedProducts.value = newSelection;
-                              }
-                            }}
-                          />
-
-                          <div class="flex-1">
-                            <div class="flex justify-between items-center gap-4">
-                              <div class="min-w-0">
-                                <h3 class="font-semibold">{product.name}</h3>
-                                {product.features &&
-                                  product.features.length > 0 && (
-                                    <ul class="text-sm text-gray-600 mt-1 space-y-1">
-                                      {product.features.map(
-                                        (feature: string, idx: number) => (
-                                          <li key={idx}>• {feature}</li>
-                                        ),
-                                      )}
-                                    </ul>
-                                  )}
-                                <p class="text-sm text-gray-600 mt-2">
-                                  €{product.price.toFixed(2)} | Sold:{" "}
-                                  {product.soldQuantity} /{" "}
-                                  {product.maxQuantity || "∞"}
-                                </p>
-                              </div>
-
-                              {isSelected && maxSelectable > 1 && (
-                                <div class="shrink-0">
-                                  <div class="inline-flex items-center bg-black text-white rounded-full overflow-hidden">
-                                    <button
-                                      type="button"
-                                      class="w-8 h-8 text-lg leading-none hover:bg-gray-800"
-                                      onClick$={(e) => {
-                                        e.stopPropagation();
-                                        const current = selectedProducts.value[product.id] || 1;
-                                        selectedProducts.value = {
-                                          ...selectedProducts.value,
-                                          [product.id]: Math.max(1, current - 1),
-                                        };
-                                      }}
-                                      disabled={quantity <= 1}
-                                    >
-                                      -
-                                    </button>
-                                    <span class="h-8 min-w-8 px-2 bg-white text-black text-sm font-semibold flex items-center justify-center">
-                                      {quantity}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      class="w-8 h-8 text-lg leading-none hover:bg-gray-800"
-                                      onClick$={(e) => {
-                                        e.stopPropagation();
-                                        const current = selectedProducts.value[product.id] || 1;
-                                        selectedProducts.value = {
-                                          ...selectedProducts.value,
-                                          [product.id]: Math.min(maxSelectable, current + 1),
-                                        };
-                                      }}
-                                      disabled={quantity >= maxSelectable}
-                                    >
-                                      +
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-
-                              {product.imageKey && (
-                                <img
-                                  src={publicImageUrlFromKey(product.imageKey) ?? undefined}
-                                  alt={product.name}
-                                  class="w-20 h-20 object-cover rounded-sm ml-4"
-                                />
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    },
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-
-          <div class="sticky bottom-0 bg-white border-t pt-4 pb-2">
-            <div class="flex justify-between items-center mb-4">
-              <span class="text-xl font-bold">Total:</span>
-              <span class="text-2xl font-bold">
-                €{calculateTotal.value.toFixed(2)}
-              </span>
-            </div>
-            <Button
-              class="w-full"
-              disabled={!canProceedFromProducts.value}
-              onClick$={() => {
-                const details = selectedProductDetails.value as any[];
-                const buyerName = data.value.buyer.name || "";
-                const buyerEmail = data.value.buyer.email || "";
-                const units: Array<{
-                  unitKey: string;
-                  productId: string;
-                  productName: string;
-                  unitNumber: number;
-                  slots: Array<{
-                    name: string;
-                    email: string;
-                    existingUserId?: string | null;
-                    locked?: boolean;
-                  }>;
-                }> = [];
-
-                let globalUnitIndex = 0;
-                for (const item of details) {
-                  const capacity = Math.max(1, item.participantCapacity || 1);
-                  for (let unitNumber = 1; unitNumber <= item.quantity; unitNumber++) {
-                    const slots = Array.from({ length: capacity }, (_, slotIdx) => ({
-                      name: globalUnitIndex === 0 && slotIdx === 0 ? buyerName : "",
-                      email: globalUnitIndex === 0 && slotIdx === 0 ? buyerEmail : "",
-                      existingUserId:
-                        globalUnitIndex === 0 && slotIdx === 0
-                          ? data.value.buyer.id
-                          : null,
-                      locked: globalUnitIndex === 0 && slotIdx === 0,
-                    }));
-
-                    units.push({
-                      unitKey: `${item.id}-${unitNumber}`,
-                      productId: item.id,
-                      productName: item.name,
-                      unitNumber,
-                      slots,
-                    });
-
-                    globalUnitIndex += 1;
-                  }
-                }
-
-                participantAssignments.value = units;
-                slotSearchQuery.value = {};
-                slotSearchResults.value = {};
-                currentStep.value = 2;
-              }}
-            >
-              Continue to Participants ({totalTickets.value} tickets)
-            </Button>
-          </div>
-        </div>
+        <ProductSelectionStep
+          groups={data.value.groups as any[]}
+          selectedProducts={selectedProducts.value}
+          selectedProductDetails={selectedProductDetails.value as any[]}
+          canProceedFromProducts={canProceedFromProducts.value}
+          totalTickets={totalTickets.value}
+          total={calculateTotal.value}
+          buyer={{
+            id: data.value.buyer.id,
+            name: data.value.buyer.name || "",
+            email: data.value.buyer.email || "",
+          }}
+          onSelectionChange$={handleSelectionChange}
+          onContinue$={handleStartParticipants}
+        />
       )}
 
       {/* Step 2: Participant Assignment */}
       {currentStep.value === 2 && (
-        <div class="space-y-6">
-          <div class="border rounded-lg p-6 bg-white">
-            <h2 class="text-xl font-bold mb-1">Participant Assignment</h2>
-            <p class="text-sm text-gray-600">
-              Assign each ticket slot. You can search existing users by name or type details manually.
-            </p>
-          </div>
-
-          {participantAssignments.value.map((unit, unitIdx) => (
-            <div key={unit.unitKey} class="border rounded-lg p-6 bg-white space-y-4">
-              <div>
-                <h3 class="text-lg font-semibold">{unit.productName}</h3>
-                <p class="text-sm text-gray-600">Ticket {unit.unitNumber}</p>
-              </div>
-
-              {unit.slots.map((slot, slotIdx) => {
-                const slotKey = `${unit.unitKey}:${slotIdx}`;
-                const queryValue = slotSearchQuery.value[slotKey] || "";
-                const searchResults = slotSearchResults.value[slotKey] || [];
-
-                return (
-                  <div key={slotKey} class="border rounded-sm p-4 space-y-3">
-                    <p class="font-medium">Participant {slotIdx + 1}</p>
-
-                    {!slot.locked && (
-                      <div class="space-y-2">
-                        <label class="text-sm font-medium block">
-                          Find existing user by name
-                        </label>
-                        <input
-                          type="text"
-                          value={queryValue}
-                          class="w-full px-3 py-2 border rounded-lg"
-                          placeholder="Search by name"
-                          onInput$={async (_, el) => {
-                            const nextQuery = el.value;
-                            slotSearchQuery.value = {
-                              ...slotSearchQuery.value,
-                              [slotKey]: nextQuery,
-                            };
-
-                            if (nextQuery.trim().length < 2) {
-                              slotSearchResults.value = {
-                                ...slotSearchResults.value,
-                                [slotKey]: [],
-                              };
-                              return;
-                            }
-
-                            try {
-                              const response = await fetch(
-                                `/api/users/search?q=${encodeURIComponent(nextQuery.trim())}`,
-                              );
-                              if (!response.ok) return;
-                              const payload = await response.json();
-                              const users = (payload?.users || []) as Array<{
-                                id: string;
-                                displayName: string;
-                                email: string;
-                                avatarUrl: string | null;
-                              }>;
-
-                              slotSearchResults.value = {
-                                ...slotSearchResults.value,
-                                [slotKey]: users,
-                              };
-                            } catch {
-                              slotSearchResults.value = {
-                                ...slotSearchResults.value,
-                                [slotKey]: [],
-                              };
-                            }
-                          }}
-                        />
-
-                        {searchResults.length > 0 && (
-                          <div class="border rounded-sm max-h-52 overflow-auto">
-                            {searchResults.map((result) => (
-                              <button
-                                type="button"
-                                key={result.id}
-                                class="w-full px-3 py-2 text-left hover:bg-gray-50 border-b last:border-b-0 flex items-center gap-3"
-                                onClick$={() => {
-                                  participantAssignments.value = participantAssignments.value.map((u) => {
-                                    if (u.unitKey !== unit.unitKey) return u;
-                                    const nextSlots = [...u.slots];
-                                    nextSlots[slotIdx] = {
-                                      ...nextSlots[slotIdx],
-                                      name: result.displayName,
-                                      email: result.email,
-                                      existingUserId: result.id,
-                                    };
-                                    return { ...u, slots: nextSlots };
-                                  });
-
-                                  slotSearchQuery.value = {
-                                    ...slotSearchQuery.value,
-                                    [slotKey]: result.displayName,
-                                  };
-                                  slotSearchResults.value = {
-                                    ...slotSearchResults.value,
-                                    [slotKey]: [],
-                                  };
-                                }}
-                              >
-                                {result.avatarUrl ? (
-                                  <img
-                                    src={result.avatarUrl}
-                                    alt={result.displayName}
-                                    class="w-8 h-8 rounded-full object-cover"
-                                  />
-                                ) : (
-                                  <div class="w-8 h-8 rounded-full bg-gray-200"></div>
-                                )}
-                                <div>
-                                  <p class="font-medium text-sm">{result.displayName}</p>
-                                  <p class="text-xs text-gray-600">{result.email}</p>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div class="space-y-1">
-                        <label class="text-sm font-medium block">Name</label>
-                        <input
-                          type="text"
-                          class="w-full px-3 py-2 border rounded-lg"
-                          value={slot.name}
-                          disabled={slot.locked}
-                          onInput$={(_, el) => {
-                            participantAssignments.value = participantAssignments.value.map((u) => {
-                              if (u.unitKey !== unit.unitKey) return u;
-                              const nextSlots = [...u.slots];
-                              nextSlots[slotIdx] = {
-                                ...nextSlots[slotIdx],
-                                name: el.value,
-                                existingUserId: null,
-                              };
-                              return { ...u, slots: nextSlots };
-                            });
-                          }}
-                        />
-                      </div>
-
-                      <div class="space-y-1">
-                        <label class="text-sm font-medium block">Email</label>
-                        <input
-                          type="email"
-                          class="w-full px-3 py-2 border rounded-lg"
-                          value={slot.email}
-                          disabled={slot.locked}
-                          onInput$={(_, el) => {
-                            participantAssignments.value = participantAssignments.value.map((u) => {
-                              if (u.unitKey !== unit.unitKey) return u;
-                              const nextSlots = [...u.slots];
-                              nextSlots[slotIdx] = {
-                                ...nextSlots[slotIdx],
-                                email: el.value,
-                                existingUserId: null,
-                              };
-                              return { ...u, slots: nextSlots };
-                            });
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {slot.locked && (
-                      <p class="text-xs text-gray-600">
-                        First ticket, first participant is reserved for your account.
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-
-          <div class="sticky bottom-0 bg-white border-t pt-4 pb-2">
-            <div class="flex gap-4">
-              <Button
-                type="button"
-                variant="secondary"
-                class="flex-1"
-                onClick$={() => {
-                  currentStep.value = 1;
-                }}
-              >
-                Back to Products
-              </Button>
-
-              <Button
-                type="button"
-                class="flex-1"
-                onClick$={() => {
-                  for (const unit of participantAssignments.value) {
-                    for (const slot of unit.slots) {
-                      const name = slot.name.trim();
-                      const email = slot.email.trim();
-                      if (!name || !email || !isValidEmail(email)) {
-                        paymentError.value = "Please complete all participant names and valid emails.";
-                        return;
-                      }
-                    }
-                  }
-                  paymentError.value = "";
-                  currentStep.value = 3;
-                }}
-              >
-                Continue to Payment
-              </Button>
-            </div>
-          </div>
-        </div>
+        <ParticipantAssignmentStep
+          groupedAssignments={participantAssignmentsByProduct.value}
+          assignments={participantAssignments.value}
+          slotSearchQuery={slotSearchQuery.value}
+          slotSearchResults={slotSearchResults.value}
+          slotSearchLoading={slotSearchLoading.value}
+          slotSearchError={slotSearchError.value}
+          buyer={{
+            name: data.value.buyer.name || "",
+            avatarUrl: data.value.buyer.avatarUrl,
+          }}
+          onBack$={handleBackToProducts}
+          onContinue$={handleContinueToPayment}
+          onAssignmentsChange$={handleAssignmentsChange}
+          onSearchQueryChange$={handleSearchQueryChange}
+          onSearchResultsChange$={handleSearchResultsChange}
+          onSearchLoadingChange$={handleSearchLoadingChange}
+          onSearchErrorChange$={handleSearchErrorChange}
+        />
       )}
 
       {/* Step 3: Payment */}

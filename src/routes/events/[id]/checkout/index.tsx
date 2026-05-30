@@ -8,7 +8,6 @@ import {
 import {
   routeLoader$,
   routeAction$,
-  Form,
   z,
   zod$,
 } from "@qwik.dev/router";
@@ -24,6 +23,31 @@ import { getServerSession } from "~/utils/server-auth";
 import { env } from "~/env";
 
 export { useSaveFoodPreference, useSavePhotoConsent };
+
+type ParticipantSlotInput = {
+  name: string;
+  email: string;
+  existingUserId?: string | null;
+};
+
+type CheckoutItemInput = {
+  productId: string;
+  quantity: number;
+  participantUnits?: ParticipantSlotInput[][];
+};
+
+function splitIntoChunks(value: string, maxChunkSize = 450): string[] {
+  if (!value) return [];
+  const chunks: string[] = [];
+  for (let i = 0; i < value.length; i += maxChunkSize) {
+    chunks.push(value.slice(i, i + maxChunkSize));
+  }
+  return chunks;
+}
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
 
 export const useProductsData = routeLoader$(async (event) => {
   const eventId = event.params.id;
@@ -80,12 +104,22 @@ export const useProductsData = routeLoader$(async (event) => {
     stripePublishableKey: env.STRIPE_PUBLISHABLE_KEY,
     foodPreference: (session as any)?.foodPreference ?? null,
     photoConsentGiven: (session as any)?.photoConsentGiven ?? null,
+    buyer: {
+      id: (session as any)?.id ?? "",
+      name: [
+        (session as any)?.name,
+        (session as any)?.familyName,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .trim(),
+      email: (session as any)?.email ?? "",
+    },
   };
 });
 
 export const useCreateCheckoutSession = routeAction$(
   async (data, event) => {
-    console.log("[Server] useCreateCheckoutSession called");
     const eventId = event.params.id;
 
     // Check authentication for checkout
@@ -109,9 +143,18 @@ export const useCreateCheckoutSession = routeAction$(
       });
     }
 
-    // Parse selected products
-    const items = JSON.parse(data.items as string);
-    console.log("[Server] Creating checkout session for items:", items);
+    const parsedItems = JSON.parse(data.items as string) as CheckoutItemInput[];
+    const items = parsedItems
+      .map((item) => ({
+        productId: item.productId,
+        quantity: Number(item.quantity),
+        participantUnits: item.participantUnits ?? [],
+      }))
+      .filter((item) => item.productId && Number.isFinite(item.quantity) && item.quantity > 0);
+
+    if (items.length === 0) {
+      return event.fail(400, { message: "Please select at least one ticket" });
+    }
 
     // Validate inventory
     const validation = await checkoutService.validateInventory(eventId, items);
@@ -127,24 +170,105 @@ export const useCreateCheckoutSession = routeAction$(
       }),
     );
 
+    for (const entry of products) {
+      if (!entry.product) {
+        return event.fail(400, { message: `Product ${entry.productId} not found` });
+      }
+
+      const expectedCapacity = Math.max(1, entry.product.participantCapacity || 1);
+      if (!Array.isArray(entry.participantUnits) || entry.participantUnits.length !== entry.quantity) {
+        return event.fail(400, {
+          message: `Participant data is incomplete for ${entry.product.name}`,
+        });
+      }
+
+      for (let unitIdx = 0; unitIdx < entry.participantUnits.length; unitIdx++) {
+        const unit = entry.participantUnits[unitIdx] || [];
+        if (unit.length !== expectedCapacity) {
+          return event.fail(400, {
+            message: `${entry.product.name} requires ${expectedCapacity} participant(s) per ticket`,
+          });
+        }
+
+        for (let slotIdx = 0; slotIdx < unit.length; slotIdx++) {
+          const slot = unit[slotIdx];
+          const name = (slot?.name || "").trim();
+          const email = (slot?.email || "").trim();
+          if (!name || !email || !isValidEmail(email)) {
+            return event.fail(400, {
+              message: `Invalid participant details for ${entry.product.name}, ticket ${unitIdx + 1}`,
+            });
+          }
+        }
+      }
+    }
+
+    // First purchased ticket is always assigned to the buyer in slot 1.
+    let firstTicketBound = false;
+    const normalizedItems = products.map((entry) => {
+      const normalizedUnits = entry.participantUnits.map((unit: ParticipantSlotInput[]) =>
+        unit.map((slot: ParticipantSlotInput) => ({
+          name: (slot?.name || "").trim(),
+          email: (slot?.email || "").trim().toLowerCase(),
+          existingUserId: slot?.existingUserId || null,
+        })),
+      );
+
+      for (let i = 0; i < normalizedUnits.length; i++) {
+        if (firstTicketBound) break;
+        if (normalizedUnits[i] && normalizedUnits[i][0]) {
+          normalizedUnits[i][0] = {
+            ...normalizedUnits[i][0],
+            name: [user.name, user.familyName].filter(Boolean).join(" ").trim() || normalizedUnits[i][0].name,
+            email: (user.email || "").trim().toLowerCase() || normalizedUnits[i][0].email,
+            existingUserId: user.id,
+          };
+          firstTicketBound = true;
+        }
+      }
+
+      return {
+        productId: entry.productId,
+        quantity: entry.quantity,
+        product: entry.product,
+        participantUnits: normalizedUnits,
+      };
+    });
+
     // Calculate total amount
-    const totalAmount = products.reduce((sum, p) => {
-      return sum + p.product!.price * p.quantity * 100; // Convert to cents
+    const totalAmount = normalizedItems.reduce((sum, p) => {
+      return sum + p.product.price * p.quantity * 100; // Convert to cents
     }, 0);
 
     // Handle free tickets - skip payment
     if (totalAmount === 0) {
       const { ticketsService } = await import("~/services/tickets.service");
+      const { participantsService } = await import("~/services/participants.service");
 
-      // Create free tickets directly
-      const createdTickets = [];
-      for (const item of items) {
+      const createdTickets: any[] = [];
+      for (const item of normalizedItems) {
         for (let i = 0; i < item.quantity; i++) {
           const ticket = await ticketsService.createFreeTicket({
             productId: item.productId,
             eventId,
             buyerId: user.id,
           });
+
+          const participantSlots = item.participantUnits?.[i] || [];
+          if (participantSlots.length > 0) {
+            await participantsService.createBulk(
+              participantSlots.map((slot: ParticipantSlotInput, slotIdx: number) => ({
+                ticketId: ticket.id,
+                participantOrder: slotIdx + 1,
+                name: slot.name,
+                email: slot.email,
+                additionalData: slot.existingUserId
+                  ? { existingUserId: slot.existingUserId }
+                  : undefined,
+              })),
+            );
+          }
+
           createdTickets.push(ticket);
         }
       }
@@ -167,31 +291,48 @@ export const useCreateCheckoutSession = routeAction$(
     }
 
     // Build line items for Stripe
-    const lineItems = products
-      .filter((p) => p.product)
-      .map((p) => ({
+    const lineItems = normalizedItems.map((p) => ({
         price_data: {
           currency: "eur",
           product_data: {
-            name: p.product!.name,
-            description: p.product!.features?.join(", ") || "",
-            images: p.product!.imageKey ? [publicImageUrlFromKey(p.product!.imageKey)].filter(Boolean) : [],
+            name: p.product.name,
+            description: p.product.features?.join(", ") || "",
+            images: p.product.imageKey ? [publicImageUrlFromKey(p.product.imageKey)].filter(Boolean) : [],
           },
-          unit_amount: Math.round(p.product!.price * 100), // Convert to cents
+          unit_amount: Math.round(p.product.price * 100), // Convert to cents
         },
         quantity: p.quantity,
       }));
+
+    const participantPayload = JSON.stringify(
+      normalizedItems.map((item) => ({
+        productId: item.productId,
+        participantUnits: item.participantUnits,
+      })),
+    );
+    const participantChunks = splitIntoChunks(participantPayload);
+
+    const metadata: Record<string, string> = {
+      eventId,
+      userId: user.id,
+      items: JSON.stringify(
+        normalizedItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      ),
+      participantsChunkCount: String(participantChunks.length),
+    };
+
+    participantChunks.forEach((chunk, idx) => {
+      metadata[`participantsChunk${idx}`] = chunk;
+    });
 
     // Create Payment Intent directly
     const paymentIntent = await stripeService.stripe.paymentIntents.create({
       amount: Math.round(totalAmount),
       currency: "eur",
-      metadata: {
-        eventId,
-        userId: user.id,
-        items: JSON.stringify(items),
-        line_items: JSON.stringify(lineItems), // Store line items for webhook
-      },
+      metadata,
       automatic_payment_methods: {
         enabled: true,
       },
@@ -239,8 +380,34 @@ export default component$(() => {
   const saveFood = useSaveFoodPreference();
   const savePhoto = useSavePhotoConsent();
 
-  const currentStep = useSignal<1 | 2 | 3>(1);
+  const currentStep = useSignal<1 | 2 | 3 | 4>(1);
   const selectedProducts = useSignal<Record<string, number>>({});
+  const participantAssignments = useSignal<
+    Array<{
+      unitKey: string;
+      productId: string;
+      productName: string;
+      unitNumber: number;
+      slots: Array<{
+        name: string;
+        email: string;
+        existingUserId?: string | null;
+        locked?: boolean;
+      }>;
+    }>
+  >([]);
+  const slotSearchQuery = useSignal<Record<string, string>>({});
+  const slotSearchResults = useSignal<
+    Record<
+      string,
+      Array<{
+        id: string;
+        displayName: string;
+        email: string;
+        avatarUrl: string | null;
+      }>
+    >
+  >({});
   const clientSecret = useSignal<string>("");
   const paymentIntentId = useSignal<string>("");
   const stripeLoaded = useSignal(false);
@@ -276,39 +443,61 @@ export default component$(() => {
       .filter((p) => p !== null);
   });
 
-  // Load Stripe.js and create checkout session when reaching step 2
+  const canProceedFromProducts = useComputed$(() => {
+    return Object.values(selectedProducts.value).some((quantity) => quantity > 0);
+  });
+
+  const totalTickets = useComputed$(() => {
+    return Object.values(selectedProducts.value).reduce((sum, value) => sum + value, 0);
+  });
+
+  // Load Stripe.js and create checkout session when reaching payment step.
   useVisibleTask$(async ({ track }) => {
     track(() => currentStep.value);
 
-    if (currentStep.value === 2 && !stripeLoaded.value) {
-      console.log("[Checkout] Creating checkout session");
+    if (currentStep.value === 3 && !stripeLoaded.value) {
+      const participantByProduct = participantAssignments.value.reduce(
+        (acc, unit) => {
+          if (!acc[unit.productId]) {
+            acc[unit.productId] = [];
+          }
+          acc[unit.productId].push(
+            unit.slots.map((slot) => ({
+              name: slot.name,
+              email: slot.email,
+              existingUserId: slot.existingUserId || null,
+            })),
+          );
+          return acc;
+        },
+        {} as Record<string, ParticipantSlotInput[][]>,
+      );
 
-      // Create checkout session using action
-      const items = Object.entries(selectedProducts.value).map(
-        ([productId, quantity]) => ({
+      const items = Object.entries(selectedProducts.value)
+        .map(([productId, quantity]) => ({
           productId,
           quantity,
-        }),
-      );
+          participantUnits: participantByProduct[productId] || [],
+        }))
+        .filter((item) => item.quantity > 0);
 
       const result = await createCheckoutSession.submit({
         items: JSON.stringify(items),
       });
 
-      console.log("[Checkout] Checkout session result:", result);
+      if (result.value?.failed) {
+        paymentError.value = result.value.message || "Failed to prepare checkout";
+        return;
+      }
 
       // Handle free tickets
       if (result.value?.tickets) {
-        console.log("[Checkout] Free tickets created, skipping to success");
-        currentStep.value = 3;
+        currentStep.value = 4;
         return;
       }
 
       // Handle paid tickets - load Stripe
       if (result.value?.clientSecret && result.value?.paymentIntentId) {
-        console.log("[Checkout] Loading Stripe.js for paid tickets");
-
-        // Load Stripe.js script
         if (!document.querySelector('script[src*="stripe.com/v3"]')) {
           const script = document.createElement("script");
           script.src = "https://js.stripe.com/v3/";
@@ -321,7 +510,6 @@ export default component$(() => {
         }
 
         stripeLoaded.value = true;
-        console.log("[Checkout] Stripe.js loaded");
 
         clientSecret.value = result.value.clientSecret;
         paymentIntentId.value = result.value.paymentIntentId;
@@ -339,8 +527,6 @@ export default component$(() => {
       typeof window !== "undefined" &&
       (window as any).Stripe
     ) {
-      console.log("[Checkout] Mounting Stripe Payment Element");
-
       const stripe = (window as any).Stripe(data.value.stripePublishableKey);
       const elements = stripe.elements({ clientSecret: clientSecret.value });
       const paymentElement = elements.create("payment");
@@ -363,10 +549,8 @@ export default component$(() => {
 
   const handlePaymentSubmit = $(async (e: Event) => {
     e.preventDefault();
-    console.log("[Checkout] Handling payment submission");
 
     if (!(window as any).__stripeCheckout) {
-      console.error("[Checkout] Stripe not initialized");
       paymentError.value = "Payment system not initialized";
       return;
     }
@@ -387,17 +571,13 @@ export default component$(() => {
       });
 
       if (error) {
-        console.error("[Checkout] Payment error:", error);
         paymentError.value = error.message || "Payment failed";
         isProcessing.value = false;
         return;
       }
 
-      // Payment succeeded, start polling
-      console.log("[Checkout] Payment submitted, polling for completion");
       isProcessing.value = false;
     } catch (error: any) {
-      console.error("[Checkout] Unexpected error:", error);
       paymentError.value = "An unexpected error occurred";
       isProcessing.value = false;
     }
@@ -408,8 +588,7 @@ export default component$(() => {
     track(() => paymentIntentId.value);
     track(() => currentStep.value);
 
-    if (currentStep.value === 2 && paymentIntentId.value) {
-      console.log("[Checkout] Starting to poll for payment completion");
+    if (currentStep.value === 3 && paymentIntentId.value) {
 
       const pollInterval = setInterval(async () => {
         const result = await checkPaymentStatus.submit({
@@ -417,9 +596,8 @@ export default component$(() => {
         });
 
         if (result.value?.succeeded) {
-          console.log("[Checkout] Payment completed!");
           clearInterval(pollInterval);
-          currentStep.value = 3;
+          currentStep.value = 4;
         }
       }, 2000); // Poll every 2 seconds
 
@@ -443,7 +621,7 @@ export default component$(() => {
                 : "bg-green-600 text-white"
             }`}
           >
-            {currentStep.value === 2 ? "✓" : "1"}
+            {currentStep.value > 1 ? "✓" : "1"}
           </div>
           <span
             class={`ml-2 font-medium ${currentStep.value === 1 ? "text-blue-600" : "text-gray-600"}`}
@@ -459,13 +637,36 @@ export default component$(() => {
             class={`flex items-center justify-center w-10 h-10 rounded-full ${
               currentStep.value === 2
                 ? "bg-blue-600 text-white"
-                : "bg-gray-300 text-gray-600"
+                : currentStep.value > 2
+                  ? "bg-green-600 text-white"
+                  : "bg-gray-300 text-gray-600"
             }`}
           >
             2
           </div>
           <span
             class={`ml-2 font-medium ${currentStep.value === 2 ? "text-blue-600" : "text-gray-600"}`}
+          >
+            Participants
+          </span>
+        </div>
+
+        <div class="w-24 h-1 bg-gray-300 mx-4"></div>
+
+        <div class="flex items-center">
+          <div
+            class={`flex items-center justify-center w-10 h-10 rounded-full ${
+              currentStep.value === 3
+                ? "bg-blue-600 text-white"
+                : currentStep.value > 3
+                  ? "bg-green-600 text-white"
+                  : "bg-gray-300 text-gray-600"
+            }`}
+          >
+            3
+          </div>
+          <span
+            class={`ml-2 font-medium ${currentStep.value === 3 ? "text-blue-600" : "text-gray-600"}`}
           >
             Payment
           </span>
@@ -536,9 +737,18 @@ export default component$(() => {
                   {((group.availableProducts as any[]) || []).map(
                     (product: any) => {
                       const isSelected = selectedProducts.value[product.id] > 0;
+                      const productRemaining =
+                        product.maxQuantity && product.maxQuantity > 0
+                          ? product.maxQuantity - (product.soldQuantity || 0)
+                          : group.remainingCapacity;
+                      const maxSelectable = Math.max(
+                        1,
+                        Math.min(group.remainingCapacity, productRemaining),
+                      );
+                      const quantity = selectedProducts.value[product.id] || 0;
 
                       return (
-                        <label
+                        <div
                           key={product.id}
                           class={`flex items-start gap-4 p-4 border rounded-sm cursor-pointer hover:bg-gray-50 ${isSelected ? "border-blue-500 bg-blue-50" : ""}`}
                         >
@@ -562,10 +772,6 @@ export default component$(() => {
                                   },
                                 );
                                 newSelection[product.id] = 1;
-                                console.log(
-                                  "[Checkout] Selected product:",
-                                  product.id,
-                                );
                                 selectedProducts.value = newSelection;
                               }
                             }}
@@ -599,8 +805,47 @@ export default component$(() => {
                               {product.soldQuantity} /{" "}
                               {product.maxQuantity || "∞"}
                             </p>
+
+                            {isSelected && (
+                              <div class="mt-3 inline-flex items-center gap-3">
+                                <button
+                                  type="button"
+                                  class="w-8 h-8 rounded border border-gray-300 text-lg leading-none"
+                                  onClick$={() => {
+                                    const current = selectedProducts.value[product.id] || 1;
+                                    selectedProducts.value = {
+                                      ...selectedProducts.value,
+                                      [product.id]: Math.max(1, current - 1),
+                                    };
+                                  }}
+                                  disabled={quantity <= 1}
+                                >
+                                  -
+                                </button>
+                                <span class="font-semibold min-w-8 text-center">
+                                  {quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  class="w-8 h-8 rounded border border-gray-300 text-lg leading-none"
+                                  onClick$={() => {
+                                    const current = selectedProducts.value[product.id] || 1;
+                                    selectedProducts.value = {
+                                      ...selectedProducts.value,
+                                      [product.id]: Math.min(maxSelectable, current + 1),
+                                    };
+                                  }}
+                                  disabled={quantity >= maxSelectable}
+                                >
+                                  +
+                                </button>
+                                <span class="text-sm text-gray-600">
+                                  Max {maxSelectable}
+                                </span>
+                              </div>
+                            )}
                           </div>
-                        </label>
+                        </div>
                       );
                     },
                   )}
@@ -618,23 +863,286 @@ export default component$(() => {
             </div>
             <Button
               class="w-full"
-              disabled={Object.keys(selectedProducts.value).length === 0}
+              disabled={!canProceedFromProducts.value}
               onClick$={() => {
-                console.log(
-                  "[Checkout] Proceeding to payment step with selection:",
-                  selectedProducts.value,
-                );
+                const details = selectedProductDetails.value as any[];
+                const buyerName = data.value.buyer.name || "";
+                const buyerEmail = data.value.buyer.email || "";
+                const units: Array<{
+                  unitKey: string;
+                  productId: string;
+                  productName: string;
+                  unitNumber: number;
+                  slots: Array<{
+                    name: string;
+                    email: string;
+                    existingUserId?: string | null;
+                    locked?: boolean;
+                  }>;
+                }> = [];
+
+                let globalUnitIndex = 0;
+                for (const item of details) {
+                  const capacity = Math.max(1, item.participantCapacity || 1);
+                  for (let unitNumber = 1; unitNumber <= item.quantity; unitNumber++) {
+                    const slots = Array.from({ length: capacity }, (_, slotIdx) => ({
+                      name: globalUnitIndex === 0 && slotIdx === 0 ? buyerName : "",
+                      email: globalUnitIndex === 0 && slotIdx === 0 ? buyerEmail : "",
+                      existingUserId:
+                        globalUnitIndex === 0 && slotIdx === 0
+                          ? data.value.buyer.id
+                          : null,
+                      locked: globalUnitIndex === 0 && slotIdx === 0,
+                    }));
+
+                    units.push({
+                      unitKey: `${item.id}-${unitNumber}`,
+                      productId: item.id,
+                      productName: item.name,
+                      unitNumber,
+                      slots,
+                    });
+
+                    globalUnitIndex += 1;
+                  }
+                }
+
+                participantAssignments.value = units;
+                slotSearchQuery.value = {};
+                slotSearchResults.value = {};
                 currentStep.value = 2;
               }}
             >
-              Proceed to Payment
+              Continue to Participants ({totalTickets.value} tickets)
             </Button>
           </div>
         </div>
       )}
 
-      {/* Step 2: Payment */}
+      {/* Step 2: Participant Assignment */}
       {currentStep.value === 2 && (
+        <div class="space-y-6">
+          <div class="border rounded-lg p-6 bg-white">
+            <h2 class="text-xl font-bold mb-1">Participant Assignment</h2>
+            <p class="text-sm text-gray-600">
+              Assign each ticket slot. You can search existing users by name or type details manually.
+            </p>
+          </div>
+
+          {participantAssignments.value.map((unit, unitIdx) => (
+            <div key={unit.unitKey} class="border rounded-lg p-6 bg-white space-y-4">
+              <div>
+                <h3 class="text-lg font-semibold">{unit.productName}</h3>
+                <p class="text-sm text-gray-600">Ticket {unit.unitNumber}</p>
+              </div>
+
+              {unit.slots.map((slot, slotIdx) => {
+                const slotKey = `${unit.unitKey}:${slotIdx}`;
+                const queryValue = slotSearchQuery.value[slotKey] || "";
+                const searchResults = slotSearchResults.value[slotKey] || [];
+
+                return (
+                  <div key={slotKey} class="border rounded-sm p-4 space-y-3">
+                    <p class="font-medium">Participant {slotIdx + 1}</p>
+
+                    {!slot.locked && (
+                      <div class="space-y-2">
+                        <label class="text-sm font-medium block">
+                          Find existing user by name
+                        </label>
+                        <input
+                          type="text"
+                          value={queryValue}
+                          class="w-full px-3 py-2 border rounded-lg"
+                          placeholder="Search by name"
+                          onInput$={async (_, el) => {
+                            const nextQuery = el.value;
+                            slotSearchQuery.value = {
+                              ...slotSearchQuery.value,
+                              [slotKey]: nextQuery,
+                            };
+
+                            if (nextQuery.trim().length < 2) {
+                              slotSearchResults.value = {
+                                ...slotSearchResults.value,
+                                [slotKey]: [],
+                              };
+                              return;
+                            }
+
+                            try {
+                              const response = await fetch(
+                                `/api/users/search?q=${encodeURIComponent(nextQuery.trim())}`,
+                              );
+                              if (!response.ok) return;
+                              const payload = await response.json();
+                              const users = (payload?.users || []) as Array<{
+                                id: string;
+                                displayName: string;
+                                email: string;
+                                avatarUrl: string | null;
+                              }>;
+
+                              slotSearchResults.value = {
+                                ...slotSearchResults.value,
+                                [slotKey]: users,
+                              };
+                            } catch {
+                              slotSearchResults.value = {
+                                ...slotSearchResults.value,
+                                [slotKey]: [],
+                              };
+                            }
+                          }}
+                        />
+
+                        {searchResults.length > 0 && (
+                          <div class="border rounded-sm max-h-52 overflow-auto">
+                            {searchResults.map((result) => (
+                              <button
+                                type="button"
+                                key={result.id}
+                                class="w-full px-3 py-2 text-left hover:bg-gray-50 border-b last:border-b-0 flex items-center gap-3"
+                                onClick$={() => {
+                                  participantAssignments.value = participantAssignments.value.map((u) => {
+                                    if (u.unitKey !== unit.unitKey) return u;
+                                    const nextSlots = [...u.slots];
+                                    nextSlots[slotIdx] = {
+                                      ...nextSlots[slotIdx],
+                                      name: result.displayName,
+                                      email: result.email,
+                                      existingUserId: result.id,
+                                    };
+                                    return { ...u, slots: nextSlots };
+                                  });
+
+                                  slotSearchQuery.value = {
+                                    ...slotSearchQuery.value,
+                                    [slotKey]: result.displayName,
+                                  };
+                                  slotSearchResults.value = {
+                                    ...slotSearchResults.value,
+                                    [slotKey]: [],
+                                  };
+                                }}
+                              >
+                                {result.avatarUrl ? (
+                                  <img
+                                    src={result.avatarUrl}
+                                    alt={result.displayName}
+                                    class="w-8 h-8 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <div class="w-8 h-8 rounded-full bg-gray-200"></div>
+                                )}
+                                <div>
+                                  <p class="font-medium text-sm">{result.displayName}</p>
+                                  <p class="text-xs text-gray-600">{result.email}</p>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div class="space-y-1">
+                        <label class="text-sm font-medium block">Name</label>
+                        <input
+                          type="text"
+                          class="w-full px-3 py-2 border rounded-lg"
+                          value={slot.name}
+                          disabled={slot.locked}
+                          onInput$={(_, el) => {
+                            participantAssignments.value = participantAssignments.value.map((u) => {
+                              if (u.unitKey !== unit.unitKey) return u;
+                              const nextSlots = [...u.slots];
+                              nextSlots[slotIdx] = {
+                                ...nextSlots[slotIdx],
+                                name: el.value,
+                                existingUserId: null,
+                              };
+                              return { ...u, slots: nextSlots };
+                            });
+                          }}
+                        />
+                      </div>
+
+                      <div class="space-y-1">
+                        <label class="text-sm font-medium block">Email</label>
+                        <input
+                          type="email"
+                          class="w-full px-3 py-2 border rounded-lg"
+                          value={slot.email}
+                          disabled={slot.locked}
+                          onInput$={(_, el) => {
+                            participantAssignments.value = participantAssignments.value.map((u) => {
+                              if (u.unitKey !== unit.unitKey) return u;
+                              const nextSlots = [...u.slots];
+                              nextSlots[slotIdx] = {
+                                ...nextSlots[slotIdx],
+                                email: el.value,
+                                existingUserId: null,
+                              };
+                              return { ...u, slots: nextSlots };
+                            });
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {slot.locked && (
+                      <p class="text-xs text-gray-600">
+                        First ticket, first participant is reserved for your account.
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+
+          <div class="sticky bottom-0 bg-white border-t pt-4 pb-2">
+            <div class="flex gap-4">
+              <Button
+                type="button"
+                variant="secondary"
+                class="flex-1"
+                onClick$={() => {
+                  currentStep.value = 1;
+                }}
+              >
+                Back to Products
+              </Button>
+
+              <Button
+                type="button"
+                class="flex-1"
+                onClick$={() => {
+                  for (const unit of participantAssignments.value) {
+                    for (const slot of unit.slots) {
+                      const name = slot.name.trim();
+                      const email = slot.email.trim();
+                      if (!name || !email || !isValidEmail(email)) {
+                        paymentError.value = "Please complete all participant names and valid emails.";
+                        return;
+                      }
+                    }
+                  }
+                  paymentError.value = "";
+                  currentStep.value = 3;
+                }}
+              >
+                Continue to Payment
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Payment */}
+      {currentStep.value === 3 && (
         <div class="space-y-6">
           {/* Order Summary */}
           <div class="border rounded-lg p-6 bg-white">
@@ -644,13 +1152,9 @@ export default component$(() => {
                 <div key={item.id} class="flex justify-between items-center">
                   <div>
                     <p class="font-medium">{item.name}</p>
-                    <p class="text-sm text-gray-600">
-                      Quantity: {item.quantity}
-                    </p>
+                    <p class="text-sm text-gray-600">Quantity: {item.quantity}</p>
                   </div>
-                  <p class="font-bold">
-                    €{(item.price * item.quantity).toFixed(2)}
-                  </p>
+                  <p class="font-bold">€{(item.price * item.quantity).toFixed(2)}</p>
                 </div>
               ))}
               <div class="border-t pt-3 mt-3 flex justify-between items-center">
@@ -667,7 +1171,9 @@ export default component$(() => {
             <FoodPreferenceStep
               initialPreference={null}
               updateAction={saveFood}
-              onComplete$={$(() => { foodConsentReady.value = true; })}
+              onComplete={() => {
+                foodConsentReady.value = true;
+              }}
             />
           )}
 
@@ -675,7 +1181,9 @@ export default component$(() => {
             <PhotoConsentStep
               initialValue={null}
               updateAction={savePhoto}
-              onComplete$={$(() => { photoConsentReady.value = true; })}
+              onComplete={() => {
+                photoConsentReady.value = true;
+              }}
             />
           )}
 
@@ -712,11 +1220,11 @@ export default component$(() => {
                   class="flex-1"
                   disabled={isProcessing.value}
                   onClick$={() => {
-                    console.log("[Checkout] Going back to product selection");
-                    currentStep.value = 1;
+                    currentStep.value = 2;
                     clientSecret.value = "";
                     paymentIntentId.value = "";
                     checkoutMounted.value = false;
+                    stripeLoaded.value = false;
                     paymentError.value = "";
                   }}
                 >
@@ -743,8 +1251,8 @@ export default component$(() => {
         </div>
       )}
 
-      {/* Step 3: Success */}
-      {currentStep.value === 3 && (
+      {/* Step 4: Success */}
+      {currentStep.value === 4 && (
         <div class="space-y-6">
           <div class="border rounded-lg p-6 bg-white text-center">
             <div class="text-green-500 text-6xl mb-4">✓</div>

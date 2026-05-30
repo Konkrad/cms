@@ -17,6 +17,7 @@ export async function createEventWithInventory(opts: {
     name: string;
     price: number;
     maxQuantity: number;
+    participantCapacity?: number;
     soldQuantity?: number;
   }>;
   salesStartOffset?: number | null;
@@ -91,7 +92,7 @@ export async function createEventWithInventory(opts: {
           name: p.name,
           price: p.price,
           maxQuantity: p.maxQuantity,
-          participantCapacity: 1,
+          participantCapacity: p.participantCapacity ?? 1,
           features: [],
         } as any);
         // Optionally set soldQuantity directly in DB for sold-out scenarios
@@ -113,7 +114,7 @@ export async function createEventWithInventory(opts: {
         p.name,
         p.price,
         p.maxQuantity,
-        1,
+        p.participantCapacity ?? 1,
         JSON.stringify([]),
         null,
         null,

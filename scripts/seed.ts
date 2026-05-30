@@ -668,6 +668,20 @@ const eventDefs: Array<{
     longitude: "6.9831",
   },
   {
+    title: "Checkout Matrix Demo Event",
+    body: "<p>Demo event for testing checkout with multiple inventory groups and paid product choices.</p>",
+    groupSlug: "berlin",
+    visibility: "global",
+    authorIdx: -1,
+    startOffsetDays: 20,
+    durationHours: 3,
+    city: "Berlin",
+    country: "Germany",
+    address: "Betahaus, Rudi-Dutschke-Str. 23, 10969 Berlin",
+    latitude: "52.5060",
+    longitude: "13.3903",
+  },
+  {
     title: "All-Groups Online Town Hall",
     body: "<p>Quarterly online town hall open to all groups. Platform updates, Q&A, and upcoming features.</p>",
     groupSlug: null,
@@ -952,6 +966,30 @@ seedInventory({
   salesEndOffset: 34,
   products: [
     { name: "Free Entry", price: 0, maxQuantity: 40, soldQuantity: 4 },
+  ],
+});
+
+seedInventory({
+  eventTitle: "Checkout Matrix Demo Event",
+  inventoryName: "Main Hall Passes",
+  maxCapacity: 120,
+  salesStartOffset: -7,
+  salesEndOffset: 19,
+  products: [
+    { name: "Standard Pass", price: 18, maxQuantity: 80, soldQuantity: 12 },
+    { name: "Premium Pass", price: 35, maxQuantity: 40, soldQuantity: 6 },
+  ],
+});
+
+seedInventory({
+  eventTitle: "Checkout Matrix Demo Event",
+  inventoryName: "Workshops",
+  maxCapacity: 50,
+  salesStartOffset: -7,
+  salesEndOffset: 19,
+  products: [
+    { name: "AI Hands-on Workshop", price: 22, maxQuantity: 30, soldQuantity: 4 },
+    { name: "Founder Coaching Session", price: 45, maxQuantity: 20, soldQuantity: 3 },
   ],
 });
 

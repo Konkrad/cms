@@ -3,6 +3,7 @@ import { stripeService } from "~/services/stripe.service";
 import { transactionsService } from "~/services/transactions.service";
 import { transactionItemsService } from "~/services/transaction-items.service";
 import { ticketsService } from "~/services/tickets.service";
+import { participantsService } from "~/services/participants.service";
 import { productsService } from "~/services/products.service";
 import { inventoryGroupsService } from "~/services/inventory-groups.service";
 import { qrcodeService } from "~/services/qrcode.service";
@@ -106,6 +107,37 @@ async function processPaymentIntent(paymentIntent: Stripe.PaymentIntent) {
   const purchasedItems: Array<{ productId: string; quantity: number }> =
     JSON.parse(items);
 
+  const participantChunkCount = Number(
+    paymentIntent.metadata?.participantsChunkCount || "0",
+  );
+  const participantUnitsByProduct = new Map<string, Array<Array<{
+    name: string;
+    email: string;
+    existingUserId?: string | null;
+  }>>>();
+
+  if (participantChunkCount > 0) {
+    let payload = "";
+    for (let idx = 0; idx < participantChunkCount; idx++) {
+      payload += paymentIntent.metadata?.[`participantsChunk${idx}`] || "";
+    }
+
+    if (payload) {
+      const parsed = JSON.parse(payload) as Array<{
+        productId: string;
+        participantUnits: Array<Array<{
+          name: string;
+          email: string;
+          existingUserId?: string | null;
+        }>>;
+      }>;
+
+      for (const entry of parsed) {
+        participantUnitsByProduct.set(entry.productId, entry.participantUnits || []);
+      }
+    }
+  }
+
   // Get product details for pricing
   const products = await Promise.all(
     purchasedItems.map(async (item) => {
@@ -150,18 +182,30 @@ async function processPaymentIntent(paymentIntent: Stripe.PaymentIntent) {
   );
 
   // Generate tickets for products that need them
-  const ticketsToCreate = [];
+  const ticketsToCreate: Array<{
+    transactionId: string;
+    productId: string;
+    eventId: string;
+    buyerId: string;
+    participantSlots: Array<{
+      name: string;
+      email: string;
+      existingUserId?: string | null;
+    }>;
+  }> = [];
   for (const item of products) {
     const inventoryGroup = await inventoryGroupsService.getById(
       item.product?.inventoryGroupId || "",
     );
     if (inventoryGroup?.needsTicket) {
       for (let i = 0; i < item.quantity; i++) {
+        const participantUnits = participantUnitsByProduct.get(item.productId) || [];
         ticketsToCreate.push({
           transactionId: transaction.id,
           productId: item.productId,
           eventId,
           buyerId: userId,
+          participantSlots: participantUnits[i] || [],
         });
       }
     }
@@ -169,8 +213,33 @@ async function processPaymentIntent(paymentIntent: Stripe.PaymentIntent) {
 
   const tickets =
     ticketsToCreate.length > 0
-      ? await ticketsService.createBulk(ticketsToCreate)
+      ? await ticketsService.createBulk(
+          ticketsToCreate.map((ticket) => ({
+            transactionId: ticket.transactionId,
+            productId: ticket.productId,
+            eventId: ticket.eventId,
+            buyerId: ticket.buyerId,
+          })),
+        )
       : [];
+
+  for (let idx = 0; idx < tickets.length; idx++) {
+    const createdTicket = tickets[idx];
+    const participantSlots = ticketsToCreate[idx]?.participantSlots || [];
+    if (participantSlots.length === 0) continue;
+
+    await participantsService.createBulk(
+      participantSlots.map((slot, slotIdx) => ({
+        ticketId: createdTicket.id,
+        participantOrder: slotIdx + 1,
+        name: slot.name,
+        email: slot.email,
+        additionalData: slot.existingUserId
+          ? { existingUserId: slot.existingUserId }
+          : undefined,
+      })),
+    );
+  }
 
   // Auto-upgrade participation status from "maybe" to "yes" on ticket purchase
   if (tickets.length > 0) {

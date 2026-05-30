@@ -20,7 +20,7 @@ export const onGet: RequestHandler = async ({ params, send, status, headers }) =
   const qrCodeBuffer = await qrcodeService.generateQRCode(ticket.qrCodeUuid);
 
   headers.set("Content-Type", "image/png");
-  headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  headers.set("Cache-Control", "no-store");
 
   send(200, qrCodeBuffer);
 };

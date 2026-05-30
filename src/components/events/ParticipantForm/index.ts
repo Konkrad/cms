@@ -1,2 +1,2 @@
 export { ParticipantForm } from "./ParticipantForm";
-export { ParticipantsCollection } from "./ParticipantForm";
+export type { ParticipantFormSlot } from "./ParticipantForm";

@@ -1,13 +1,44 @@
-import { component$ } from "@qwik.dev/core";
-import { routeLoader$ } from "@qwik.dev/router";
+import { component$, useStore } from "@qwik.dev/core";
+import { routeLoader$, routeAction$, z, zod$ } from "@qwik.dev/router";
+import { db } from "~/db/connection";
+import { logins } from "~/db/schemas/logins";
 import { transactionsService } from "~/services/transactions.service";
 import { ticketsService } from "~/services/tickets.service";
-import TransactionsList from "~/components/profile/TransactionsList";
-import UserTickets from "~/components/profile/UserTickets";
+import { participantsService } from "~/services/participants.service";
+import QrTicketWall from "~/components/profile/QrTicketWall";
+import PurchaseList from "~/components/profile/PurchaseList";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 
+export const useUpdateParticipants = routeAction$(
+  async (input, event) => {
+    await requireAuth(event);
+    const userData = await getCurrentUserData(event);
+    if (!userData) throw event.redirect(302, "/login");
+
+    // Verify the user owns this ticket
+    const ticket = await ticketsService.getById(input.ticketId);
+    if (!ticket || ticket.buyerId !== userData.id) {
+      return { failed: true, message: "Ticket not found" };
+    }
+
+    const slots = JSON.parse(input.slots) as Array<{
+      name: string;
+      email: string;
+    }>;
+
+    await participantsService.replaceForTicket(input.ticketId, slots);
+    // Rotate the QR code UUID so the old QR image is invalidated
+    const updated = await ticketsService.rotateQrCode(input.ticketId);
+    return { success: true, newQrCodeUuid: updated?.qrCodeUuid ?? null };
+  },
+  zod$({
+    ticketId: z.string(),
+    /** JSON-encoded array of { name, email } */
+    slots: z.string(),
+  }),
+);
+
 export const useUserDashboard = routeLoader$(async (event) => {
-  // Use centralized server auth helpers to ensure consistency with other profile routes
   await requireAuth(event);
   const userData = await getCurrentUserData(event);
 
@@ -16,38 +47,93 @@ export const useUserDashboard = routeLoader$(async (event) => {
   }
 
   const userId = userData.id;
+  const userEmail = userData.email ?? "";
 
-  const [transactions, tickets] = await Promise.all([
+  const [transactions, tickets, assignedTickets, allLoginEmails] = await Promise.all([
     transactionsService.getByUserId(userId),
     ticketsService.getByBuyerId(userId),
+    userEmail ? participantsService.getAssignedTickets(userEmail) : [],
+    db.select({ email: logins.email }).from(logins),
   ]);
 
+  const registeredEmails = new Set(allLoginEmails.map((l) => l.email.toLowerCase()));
+
+  // Exclude assigned tickets that the user also bought (avoid duplicates)
+  const ownTicketIds = new Set(tickets.map((t) => t.id));
+  const filteredAssigned = (assignedTickets as any[]).filter(
+    (t) => !ownTicketIds.has(t.id),
+  );
+
+  // QR wall: show tickets you're attending yourself or holding for external guests
+  // Hide tickets assigned to other registered website users (they can check in themselves)
+  const myQrTickets = [
+    ...tickets.filter((t) => {
+      const p0 = t.participants[0];
+      if (!p0) return false;
+      const participantEmail = p0.email.toLowerCase();
+      const buyerEmailLower = userEmail.toLowerCase();
+      if (participantEmail === buyerEmailLower) return true;
+      if (!registeredEmails.has(participantEmail)) return true; // external guest — you hold the QR
+      return false; // assigned to another registered user
+    }),
+    ...filteredAssigned,
+  ];
+
+  // Build ticket map and attach to transactions
+  const ticketsByTxId = new Map<string, (typeof tickets)[number][]>();
+  for (const t of tickets) {
+    const arr = ticketsByTxId.get(t.transactionId) ?? [];
+    arr.push(t);
+    ticketsByTxId.set(t.transactionId, arr);
+  }
+
+  const now = new Date();
+  const transactionsWithTickets = transactions
+    .map((tx) => ({ ...tx, tickets: ticketsByTxId.get(tx.id) ?? [] }))
+    .sort((a, b) => {
+      const aDate = new Date(a.event.startDate);
+      const bDate = new Date(b.event.startDate);
+      const aUpcoming = aDate >= now;
+      const bUpcoming = bDate >= now;
+      if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1;
+      return aUpcoming
+        ? aDate.getTime() - bDate.getTime()
+        : bDate.getTime() - aDate.getTime();
+    });
+
   return {
-    transactions,
-    tickets,
+    myQrTickets,
+    transactions: transactionsWithTickets,
+    buyerEmail: userEmail,
   };
 });
 
 export default component$(() => {
   const dashboard = useUserDashboard();
+  const updateParticipants = useUpdateParticipants();
+  const qrBust = useStore<Record<string, string>>({});
 
   return (
-    <div class="max-w-6xl mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto px-4 py-8">
       <div class="mb-8">
         <h1 class="text-3xl font-bold mb-2">My Tickets & Purchases</h1>
-        <p class="text-gray-600">
-          View your purchase history and access your event tickets
-        </p>
+        <p class="text-gray-600">View your tickets and manage your purchases</p>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div>
-          <UserTickets tickets={dashboard.value.tickets} />
-        </div>
-        <div>
-          <TransactionsList transactions={dashboard.value.transactions} />
-        </div>
+      <div class="space-y-8">
+        <QrTicketWall
+          tickets={dashboard.value.myQrTickets}
+          buyerEmail={dashboard.value.buyerEmail}
+          qrBust={qrBust}
+        />
+        <PurchaseList
+          transactions={dashboard.value.transactions}
+          buyerEmail={dashboard.value.buyerEmail}
+          updateParticipantsAction={updateParticipants}
+          qrBust={qrBust}
+        />
       </div>
     </div>
   );
 });
+

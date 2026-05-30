@@ -59,6 +59,15 @@ export const ticketsService = {
     return result as any;
   },
 
+  async rotateQrCode(ticketId: string): Promise<Ticket | undefined> {
+    const [result] = await db
+      .update(tickets)
+      .set({ qrCodeUuid: crypto.randomUUID() })
+      .where(eq(tickets.id, ticketId))
+      .returning();
+    return result;
+  },
+
   async getByQrCodeUuid(qrCodeUuid: string): Promise<
     | (Ticket & {
         buyer: typeof users.$inferSelect;
@@ -101,6 +110,7 @@ export const ticketsService = {
       Ticket & {
         event: typeof events.$inferSelect;
         product: typeof products.$inferSelect;
+        participants: Array<typeof ticketParticipants.$inferSelect>;
       }
     >
   > {
@@ -109,6 +119,9 @@ export const ticketsService = {
       with: {
         event: true,
         product: true,
+        participants: {
+          orderBy: { participantOrder: "asc" },
+        },
       },
     });
     return results as any;

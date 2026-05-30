@@ -1181,6 +1181,8 @@ function seedTransaction(opts: {
   items: Array<{ productName: string; quantity: number }>;
   daysAgo: number;
   scanned?: boolean;
+  /** When set, slot 1 of every ticket is assigned to this email instead of the buyer's */
+  assignedToEmail?: string;
 }) {
   const event = eventByTitle[opts.eventTitle];
   if (!event) return;
@@ -1271,6 +1273,12 @@ function seedTransaction(opts: {
   const FIRST_NAMES = ["Anna", "Ben", "Clara", "David", "Elena", "Felix", "Greta", "Hans", "Iris", "Jan"];
   const LAST_NAMES = ["Müller", "Schmidt", "Schneider", "Fischer", "Weber", "Meyer", "Wagner", "Becker", "Schulz", "Koch"];
 
+  // Resolve the buyer's actual login email for correct assignedAway detection
+  const buyerLogin = buyer.loginId
+    ? db.select().from(schema.logins).all().find((l) => l.id === buyer.loginId)
+    : null;
+  const buyerEmail = buyerLogin?.email ?? null;
+
   for (const tv of ticketValues) {
     const product = eventProducts.find((p) => p.id === tv.productId);
     const capacity = product?.participantCapacity ?? 1;
@@ -1285,8 +1293,11 @@ function seedTransaction(opts: {
           ticketId: tv.id,
           participantOrder: p,
           name: `${first} ${last}`,
-          email: p === 1 && (buyer as any).loginId
-            ? `seed-${tv.id.slice(0, 8)}@example.com`
+          // Slot 1: use assignedToEmail override if provided, otherwise buyer's real email
+          email: p === 1 && opts.assignedToEmail
+            ? opts.assignedToEmail
+            : p === 1 && buyerEmail
+            ? buyerEmail
             : `${first.toLowerCase()}.${last.toLowerCase()}@example.com`,
         })
         .run();
@@ -1310,6 +1321,8 @@ seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 3, items: [{ pro
 seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 5, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 2 });
 seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 7, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 2 });
 seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 9, items: [{ productName: "Free Entry", quantity: 2 }], daysAgo: 1 });
+// Admin buys a ticket but assigns it to a registered user (hidden from QR wall)
+seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: -1, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 2, assignedToEmail: "user1@example.com" });
 
 // ── Berlin Tech Talk — standard + VIP ──
 seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 0, items: [{ productName: "Standard Seat", quantity: 1 }], daysAgo: 10 });
@@ -1318,12 +1331,16 @@ seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 5, items
 seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 7, items: [{ productName: "Standard Seat", quantity: 1 }], daysAgo: 6 });
 seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: -1, items: [{ productName: "VIP Seat (front row + networking)", quantity: 1 }], daysAgo: 12 });
 seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 3, items: [{ productName: "Standard Seat", quantity: 2 }], daysAgo: 5 });
+// Admin buys 2 tickets: one for self (appears in QR wall), one assigned away to a registered user (hidden)
+seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: -1, items: [{ productName: "Standard Seat", quantity: 1 }], daysAgo: 3, assignedToEmail: "user2@example.com" });
 
 // ── Welcome Night ──
 seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: 3, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 2 });
 seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: 7, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 2 });
 seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: 9, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 1 });
 seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: -2, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 3 });
+// Admin buys a ticket assigned to a registered user (should NOT appear in admin's QR wall)
+seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: -1, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 1, assignedToEmail: "user3@example.com" });
 
 // ── Munich Hike ──
 seedTransaction({ eventTitle: "Munich Community Hike – Englischer Garten", buyerIdx: 2, items: [{ productName: "Hiker Spot", quantity: 1 }], daysAgo: 6 });

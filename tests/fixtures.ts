@@ -319,6 +319,108 @@ export function createTestEvent(userId: string): { eventId: string; cleanup(): v
   };
 }
 
+// ── Ticket helpers ────────────────────────────────────────────────────────────
+
+/** Get the login email for a user by their user id. */
+export function getUserEmailById(userId: string): string | null {
+  const db = openDb();
+  const user = db.prepare("SELECT login_id FROM users WHERE id = ?").get(userId) as
+    | { login_id: string | null }
+    | undefined;
+  if (!user?.login_id) { db.close(); return null; }
+  const login = db.prepare("SELECT email FROM logins WHERE id = ?").get(user.login_id) as
+    | { email: string }
+    | undefined;
+  db.close();
+  return login?.email ?? null;
+}
+
+/**
+ * Create an event + product and return their IDs. Caller is responsible for
+ * cleanup (delete products → inventory_groups → events in that order).
+ */
+export function createTestEventWithProduct(opts: {
+  ownerId: string;
+  isFuture?: boolean;
+  participantCapacity?: number;
+  title?: string;
+}): { eventId: string; productId: string; cleanup(): void } {
+  const db = openDb();
+  const eventId = crypto.randomUUID();
+  const inventoryGroupId = crypto.randomUUID();
+  const productId = crypto.randomUUID();
+  const offset = (opts.isFuture !== false ? 7 : -7) * 86400000;
+  const start = new Date(Date.now() + offset).toISOString();
+  const end = new Date(Date.now() + offset + 7200000).toISOString();
+
+  db.prepare(
+    `INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, visibility)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(eventId, opts.title ?? "Ticket Test Event", "<p>test</p>", start, end, "online", opts.ownerId, "global");
+  db.prepare(
+    `INSERT INTO inventory_groups (id, event_id, name, max_capacity, needs_ticket)
+     VALUES (?, ?, ?, ?, ?)`,
+  ).run(inventoryGroupId, eventId, "General", 100, 1);
+  db.prepare(
+    `INSERT INTO products (id, event_id, inventory_group_id, name, price, max_quantity, participant_capacity, features)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(productId, eventId, inventoryGroupId, "Standard Ticket", 0, 10, opts.participantCapacity ?? 1, "[]");
+  db.close();
+
+  return {
+    eventId,
+    productId,
+    cleanup() {
+      const db2 = openDb();
+      db2.prepare("DELETE FROM ticket_participants WHERE ticket_id IN (SELECT id FROM tickets WHERE event_id = ?)").run(eventId);
+      db2.prepare("DELETE FROM tickets WHERE event_id = ?").run(eventId);
+      db2.prepare("DELETE FROM transactions WHERE event_id = ?").run(eventId);
+      db2.prepare("DELETE FROM products WHERE event_id = ?").run(eventId);
+      db2.prepare("DELETE FROM inventory_groups WHERE event_id = ?").run(eventId);
+      db2.prepare("DELETE FROM events WHERE id = ?").run(eventId);
+      db2.close();
+    },
+  };
+}
+
+/**
+ * Insert a transaction + ticket row for an existing event/product.
+ * Returns the ticketId.
+ */
+export function createTicketInDb(opts: {
+  buyerId: string;
+  eventId: string;
+  productId: string;
+}): string {
+  const db = openDb();
+  const transactionId = crypto.randomUUID();
+  const ticketId = crypto.randomUUID();
+  const qrCodeUuid = crypto.randomUUID();
+  db.prepare(
+    `INSERT INTO transactions (id, user_id, event_id, total_amount, transaction_fee, stripe_session_id, stripe_payment_id)
+     VALUES (?, ?, ?, 0, 0, ?, ?)`,
+  ).run(transactionId, opts.buyerId, opts.eventId, `free_${crypto.randomUUID()}`, `free_${crypto.randomUUID()}`);
+  db.prepare(
+    `INSERT INTO tickets (id, qr_code_uuid, transaction_id, product_id, event_id, buyer_id)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  ).run(ticketId, qrCodeUuid, transactionId, opts.productId, opts.eventId, opts.buyerId);
+  db.close();
+  return ticketId;
+}
+
+/** Add a participant row to an existing ticket. */
+export function addParticipantToTicket(
+  ticketId: string,
+  opts: { name: string; email: string; order?: number },
+): void {
+  const db = openDb();
+  db.prepare(
+    `INSERT INTO ticket_participants (id, ticket_id, participant_order, name, email)
+     VALUES (?, ?, ?, ?, ?)`,
+  ).run(crypto.randomUUID(), ticketId, opts.order ?? 1, opts.name, opts.email);
+  db.close();
+}
+
 // ── Post helpers ──────────────────────────────────────────────────────────────
 
 export function getPostByTitle(

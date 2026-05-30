@@ -30,7 +30,6 @@ import type {
   GroupedAssignments,
   ParticipantAssignmentUnit,
   ParticipantSlotInput,
-  SearchUserResult,
 } from "~/components/events/checkout/types";
 
 export { useSaveFoodPreference, useSavePhotoConsent };
@@ -381,12 +380,6 @@ export default component$(() => {
   const currentStep = useSignal<1 | 2 | 3 | 4>(1);
   const selectedProducts = useSignal<Record<string, number>>({});
   const participantAssignments = useSignal<ParticipantAssignmentUnit[]>([]);
-  const slotSearchQuery = useSignal<Record<string, string>>({});
-  const slotSearchResults = useSignal<
-    Record<string, SearchUserResult[]>
-  >({});
-  const slotSearchLoading = useSignal<Record<string, boolean>>({});
-  const slotSearchError = useSignal<Record<string, string>>({});
   const clientSecret = useSignal<string>("");
   const paymentIntentId = useSignal<string>("");
   const stripeLoaded = useSignal(false);
@@ -455,44 +448,12 @@ export default component$(() => {
 
   const handleStartParticipants = $((units: ParticipantAssignmentUnit[]) => {
     participantAssignments.value = units;
-    slotSearchQuery.value = {};
-    slotSearchResults.value = {};
-    slotSearchLoading.value = {};
-    slotSearchError.value = {};
     currentStep.value = 2;
     paymentError.value = "";
   });
 
   const handleAssignmentsChange = $((next: ParticipantAssignmentUnit[]) => {
     participantAssignments.value = next;
-  });
-
-  const handleSearchQueryChange = $((slotKey: string, query: string) => {
-    slotSearchQuery.value = {
-      ...slotSearchQuery.value,
-      [slotKey]: query,
-    };
-  });
-
-  const handleSearchResultsChange = $((slotKey: string, users: SearchUserResult[]) => {
-    slotSearchResults.value = {
-      ...slotSearchResults.value,
-      [slotKey]: users,
-    };
-  });
-
-  const handleSearchLoadingChange = $((slotKey: string, isLoading: boolean) => {
-    slotSearchLoading.value = {
-      ...slotSearchLoading.value,
-      [slotKey]: isLoading,
-    };
-  });
-
-  const handleSearchErrorChange = $((slotKey: string, message: string) => {
-    slotSearchError.value = {
-      ...slotSearchError.value,
-      [slotKey]: message,
-    };
   });
 
   const handleBackToProducts = $(() => {
@@ -698,10 +659,6 @@ export default component$(() => {
         <ParticipantAssignmentStep
           groupedAssignments={participantAssignmentsByProduct.value}
           assignments={participantAssignments.value}
-          slotSearchQuery={slotSearchQuery.value}
-          slotSearchResults={slotSearchResults.value}
-          slotSearchLoading={slotSearchLoading.value}
-          slotSearchError={slotSearchError.value}
           buyer={{
             name: data.value.buyer.name || "",
             avatarUrl: data.value.buyer.avatarUrl,
@@ -710,10 +667,6 @@ export default component$(() => {
           onBack$={handleBackToProducts}
           onContinue$={handleContinueToPayment}
           onAssignmentsChange$={handleAssignmentsChange}
-          onSearchQueryChange$={handleSearchQueryChange}
-          onSearchResultsChange$={handleSearchResultsChange}
-          onSearchLoadingChange$={handleSearchLoadingChange}
-          onSearchErrorChange$={handleSearchErrorChange}
         />
       )}
 

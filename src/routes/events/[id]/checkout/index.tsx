@@ -505,11 +505,21 @@ export default component$(() => {
 
   const handleContinueToPayment = $(() => {
     for (const unit of participantAssignments.value) {
-      for (const slot of unit.slots) {
+      for (let i = 0; i < unit.slots.length; i++) {
+        const slot = unit.slots[i];
         const name = slot.name.trim();
         const email = slot.email.trim();
-        if (!name || !email || !isValidEmail(email)) {
-          paymentError.value = "Please complete all participant names and valid emails.";
+        const participantLabel = `"${unit.productName}" — participant ${i + 1}`;
+        if (!name) {
+          paymentError.value = `Please enter a name for ${participantLabel}.`;
+          return;
+        }
+        if (!email) {
+          paymentError.value = `Please enter an email for ${participantLabel}.`;
+          return;
+        }
+        if (!isValidEmail(email)) {
+          paymentError.value = `"${email}" is not a valid email address (${participantLabel}).`;
           return;
         }
       }
@@ -712,6 +722,7 @@ export default component$(() => {
             name: data.value.buyer.name || "",
             avatarUrl: data.value.buyer.avatarUrl,
           }}
+          error={paymentError.value || undefined}
           onBack$={handleBackToProducts}
           onContinue$={handleContinueToPayment}
           onAssignmentsChange$={handleAssignmentsChange}
@@ -752,9 +763,9 @@ export default component$(() => {
             <FoodPreferenceStep
               initialPreference={null}
               updateAction={saveFood}
-              onComplete={() => {
+              onComplete$={$(() => {
                 foodConsentReady.value = true;
-              }}
+              })}
             />
           )}
 
@@ -762,9 +773,9 @@ export default component$(() => {
             <PhotoConsentStep
               initialValue={null}
               updateAction={savePhoto}
-              onComplete={() => {
+              onComplete$={$(() => {
                 photoConsentReady.value = true;
-              }}
+              })}
             />
           )}
 

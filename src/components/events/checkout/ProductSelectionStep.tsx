@@ -210,7 +210,6 @@ export const ProductSelectionStep = component$<ProductSelectionStepProps>(
             disabled={!canProceedFromProducts}
             onClick$={() => {
               const units: ParticipantAssignmentUnit[] = [];
-              let globalUnitIndex = 0;
 
               for (const item of selectedProductDetails) {
                 const quantity = Number(item.quantity) || 0;
@@ -218,11 +217,12 @@ export const ProductSelectionStep = component$<ProductSelectionStepProps>(
                 const capacity = Math.max(1, Number.isFinite(capacityRaw) ? capacityRaw : 1);
 
                 for (let unitNumber = 1; unitNumber <= quantity; unitNumber++) {
+                  const isFirstUnitOfProduct = unitNumber === 1;
                   const slots = Array.from({ length: capacity }, (_, slotIdx) => ({
-                    name: globalUnitIndex === 0 && slotIdx === 0 ? buyer.name : "",
-                    email: globalUnitIndex === 0 && slotIdx === 0 ? buyer.email : "",
-                    existingUserId: globalUnitIndex === 0 && slotIdx === 0 ? buyer.id : null,
-                    locked: globalUnitIndex === 0 && slotIdx === 0,
+                    name: isFirstUnitOfProduct && slotIdx === 0 ? buyer.name : "",
+                    email: isFirstUnitOfProduct && slotIdx === 0 ? buyer.email : "",
+                    existingUserId: isFirstUnitOfProduct && slotIdx === 0 ? buyer.id : null,
+                    locked: isFirstUnitOfProduct && slotIdx === 0,
                   }));
 
                   units.push({
@@ -233,7 +233,6 @@ export const ProductSelectionStep = component$<ProductSelectionStepProps>(
                     slots,
                   });
 
-                  globalUnitIndex += 1;
                 }
               }
 

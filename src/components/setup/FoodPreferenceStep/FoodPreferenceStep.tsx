@@ -1,4 +1,4 @@
-import { $, component$, useSignal, useVisibleTask$, type Signal } from "@qwik.dev/core";
+import { $, component$, useSignal, useVisibleTask$, type QRL, type Signal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
@@ -27,7 +27,7 @@ export type FoodPreferenceStepProps = {
   isComplete?: boolean;
   /** Pass the result of useSaveFoodPreference() called in the parent route. */
   updateAction: any;
-  onComplete?: () => void;
+  onComplete$?: QRL<() => void>;
   /** When provided: parent controls saving; no save button rendered. When omitted: auto-saves on selection change. */
   saveTrigger?: Signal<number>;
 };
@@ -43,7 +43,7 @@ export const FoodPreferenceStep = component$<FoodPreferenceStepProps>((props) =>
       await props.updateAction.submit(formData);
       if (props.updateAction.value?.success) {
         completed.value = true;
-        props.onComplete?.();
+        await props.onComplete$?.();
       }
       return props.updateAction.value;
     }

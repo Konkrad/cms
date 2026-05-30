@@ -1,4 +1,4 @@
-import { $, component$, useSignal, useVisibleTask$, type Signal } from "@qwik.dev/core";
+import { $, component$, useSignal, useVisibleTask$, type QRL, type Signal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { Alert } from "~/components/ui/Alert";
 import { requireAuth } from "~/utils/server-auth";
@@ -24,7 +24,7 @@ export type PhotoConsentStepProps = {
   initialValue: boolean | null;
   /** Pass the result of useSavePhotoConsent() called in the parent route. */
   updateAction: any;
-  onComplete?: () => void;
+  onComplete$?: QRL<() => void>;
   /** When provided: parent controls saving. When omitted: auto-saves on selection change. */
   saveTrigger?: Signal<number>;
 };
@@ -41,7 +41,7 @@ export const PhotoConsentStep = component$<PhotoConsentStepProps>((props) => {
       await props.updateAction.submit(formData);
       if (props.updateAction.value?.success) {
         completed.value = true;
-        props.onComplete?.();
+        await props.onComplete$?.();
       }
     }
   });

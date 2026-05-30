@@ -509,6 +509,8 @@ export default component$(() => {
         const slot = unit.slots[i];
         const name = slot.name.trim();
         const email = slot.email.trim();
+        // Completely empty slots are fine — participant can be assigned later
+        if (!name && !email) continue;
         const participantLabel = `"${unit.productName}" — participant ${i + 1}`;
         if (!name) {
           paymentError.value = `Please enter a name for ${participantLabel}.`;
@@ -539,11 +541,13 @@ export default component$(() => {
             acc[unit.productId] = [];
           }
           acc[unit.productId].push(
-            unit.slots.map((slot) => ({
-              name: slot.name,
-              email: slot.email,
-              existingUserId: slot.existingUserId || null,
-            })),
+            unit.slots
+              .filter((slot) => slot.name.trim() || slot.email.trim())
+              .map((slot) => ({
+                name: slot.name,
+                email: slot.email,
+                existingUserId: slot.existingUserId || null,
+              })),
           );
           return acc;
         },

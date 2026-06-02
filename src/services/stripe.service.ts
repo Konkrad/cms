@@ -34,4 +34,19 @@ export const stripeService = {
   async getPaymentIntent(paymentIntentId: string) {
     return stripe.paymentIntents.retrieve(paymentIntentId);
   },
+
+  async createCheckoutSession(params: {
+    lineItems: Stripe.Checkout.SessionCreateParams.LineItem[];
+    successUrl: string;
+    cancelUrl: string;
+    metadata: Record<string, string>;
+  }) {
+    return stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: params.lineItems,
+      success_url: params.successUrl,
+      cancel_url: params.cancelUrl,
+      metadata: params.metadata,
+    });
+  },
 };

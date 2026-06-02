@@ -45,10 +45,11 @@ test.describe("ImageUpload — deferred upload (uploadRegistry)", () => {
       // Must redirect to the post LIST, not stay on /new
       await expect(page).toHaveURL(/\/admin\/global\/posts\/?$/, { timeout: 15_000 });
 
-      // And the post must be persisted with a real image URL
+      // And the post must be persisted with a processed image (S3 key or full URL)
       const savedPost = getPostByTitle(postTitle);
       expect(savedPost, "post was not saved to DB").not.toBeNull();
-      expect(savedPost?.featured_image, "featured_image should be an https/http URL after upload").toMatch(/^https?:\/\//i);
+      expect(savedPost?.featured_image, "featured_image should be set after upload").toBeTruthy();
+      expect(savedPost?.featured_image, "featured_image should be a webp S3 key or URL").toMatch(/\.webp($|\?)/i);
     } finally {
       // clean up the created post
       deletePostByTitle(postTitle);
@@ -90,9 +91,10 @@ test.describe("ImageUpload — deferred upload (uploadRegistry)", () => {
       // Redirects to exactly /profile on success (not /profile/edit)
       await expect(page).toHaveURL(/\/profile\/?$/, { timeout: 15_000 });
 
-      // Verify profile picture was persisted
+      // Verify profile picture was persisted (stored as S3 key or full URL)
       const userRow = getUserById(session.userId);
-      expect(userRow?.profile_picture as string, "profile_picture should be set after upload").toMatch(/^https?:\/\//i);
+      expect(userRow?.profile_picture, "profile_picture should be set after upload").toBeTruthy();
+      expect(userRow?.profile_picture as string, "profile_picture should be a webp S3 key or URL").toMatch(/\.webp($|\?)/i);
     } finally {
       await context.close();
       session.cleanup();

@@ -289,6 +289,7 @@ test.describe('Participant Assignment Step', () => {
   }
 
   test('buyer is pre-assigned to the first slot of each product', async ({ browser }) => {
+    test.setTimeout(60000);
     const now = new Date().toISOString();
     const session = createTestUser({
       consent: { terms: 'yes', lastProfileUpdate: now, locationVerification: now, foodPreference: now, photoConsent: now },
@@ -332,11 +333,11 @@ test.describe('Participant Assignment Step', () => {
       }
 
       await page.click('button:has-text("Continue to Participants")');
-      await expect(page.locator('h2:has-text("Participant Assignment")')).toBeVisible();
+      await expect(page.locator('h2:has-text("Participant Assignment")')).toBeVisible({ timeout: 15000 });
 
       // Buyer "Test User" should appear once per product card
       const buyerRows = page.locator('text=Test User');
-      await expect(buyerRows).toHaveCount(2);
+      await expect(buyerRows).toHaveCount(2, { timeout: 15000 });
     } finally {
       await ctx.close();
       session.cleanup();

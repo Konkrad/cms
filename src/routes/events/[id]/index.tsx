@@ -417,7 +417,7 @@ export const useUpdateParticipation = routeAction$(
               transactionId: ticket.transactionId || ticket.id,
               products: [{ name: product.name, quantity: 1, amount: 0 }],
               totalAmount: 0,
-              ticketIds: [ticket.id],
+              tickets: [{ id: ticket.id, qrCodeUuid: ticket.qrCodeUuid }],
             });
           }
         }

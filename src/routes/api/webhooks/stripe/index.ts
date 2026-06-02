@@ -299,7 +299,7 @@ async function processPaymentIntent(paymentIntent: Stripe.PaymentIntent) {
       transactionId: transaction.id,
       products: productsForEmail,
       totalAmount: calculatedAmount,
-      ticketIds: ticketsForEmail.map((t) => t.id),
+      tickets: ticketsForEmail.map((t) => ({ id: t.id, qrCodeUuid: t.qrCodeUuid })),
     });
     console.log("Confirmation email sent to:", userEmail);
   } catch (error) {

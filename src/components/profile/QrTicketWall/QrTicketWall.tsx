@@ -80,8 +80,9 @@ export default component$<QrTicketWallProps>(
             <button
               key={group.event.id}
               type="button"
-              onClick$={() => {
-                selectedEventId.value = group.event.id;
+              data-event-id={group.event.id}
+              onClick$={(_, btn) => {
+                selectedEventId.value = (btn as HTMLButtonElement).dataset["eventId"]!;
                 carouselIndex.value = 0;
               }}
               class="w-full text-left relative rounded-xl border border-gray-200 bg-white hover:border-gray-400 hover:shadow-sm transition-all p-4"
@@ -129,7 +130,7 @@ export default component$<QrTicketWallProps>(
                 {/* QR code image */}
                 <div class="inline-block bg-white border border-gray-100 rounded-xl p-3 shadow-sm">
                   <img
-                    src={`/profile/tickets/${currentTicket.id}.png?v=${qrBust[currentTicket.id] ?? currentTicket.qrCodeUuid}`}
+                    src={`/profile/tickets/${currentTicket.id}_${qrBust[currentTicket.id] ?? currentTicket.qrCodeUuid}`}
                     alt="Ticket QR Code"
                     class="w-64 h-64 block"
                   />

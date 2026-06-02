@@ -12,7 +12,6 @@ import { events } from "~/db/schemas/events";
 import { ticketParticipants } from "~/db/schemas/ticket-participants";
 import { eq, and, isNull, isNotNull, inArray } from "drizzle-orm";
 import { transactions } from "~/db/schemas/transactions";
-import { parseAndValidateQR } from "~/utils/qr-code";
 import crypto from "crypto";
 
 export const ticketsService = {
@@ -138,22 +137,9 @@ export const ticketsService = {
       }
     | { success: false; error: string }
   > {
-    // Parse and validate QR code
-    const qrResult = parseAndValidateQR(qrDataString);
-    if (!qrResult.valid || !qrResult.data) {
-      return { success: false, error: qrResult.error || "Invalid QR code" };
-    }
-
-    const { ticketId, eventId: qrEventId } = qrResult.data;
-
-    // Verify event ID matches
-    if (qrEventId !== eventId) {
-      return { success: false, error: "QR code is for a different event" };
-    }
-
-    // Find the ticket with participants
+    // Look up ticket by the scanned QR UUID
     const currentTicket = await db.query.tickets.findFirst({
-      where: { id: ticketId },
+      where: { qrCodeUuid: qrDataString },
       with: {
         participants: {
           orderBy: { participantOrder: "asc" },
@@ -162,7 +148,12 @@ export const ticketsService = {
     });
 
     if (!currentTicket) {
-      return { success: false, error: "Ticket not found" };
+      return { success: false, error: "Invalid QR code" };
+    }
+
+    // Verify event ID matches
+    if (currentTicket.eventId !== eventId) {
+      return { success: false, error: "QR code is for a different event" };
     }
 
     // Check if already scanned
@@ -177,7 +168,7 @@ export const ticketsService = {
     const [ticket] = await db
       .update(tickets)
       .set({ scannedAt: new Date().toISOString() })
-      .where(and(eq(tickets.id, ticketId), isNull(tickets.scannedAt)))
+      .where(and(eq(tickets.id, currentTicket.id), isNull(tickets.scannedAt)))
       .returning();
 
     if (!ticket) {

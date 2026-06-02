@@ -39,7 +39,7 @@ export const emailNotificationsService = {
     transactionId,
     products,
     totalAmount,
-    ticketIds,
+    tickets,
   }: {
     to: string;
     buyerName: string;
@@ -52,7 +52,7 @@ export const emailNotificationsService = {
     transactionId: string;
     products: { name: string; quantity: number; amount: number }[];
     totalAmount: number;
-    ticketIds: string[];
+    tickets: { id: string; qrCodeUuid: string }[];
   }): Promise<void> {
     const eventDate = new Date(event.startDate).toLocaleString();
     const location = event.address || event.onlineUrl || undefined;
@@ -61,8 +61,8 @@ export const emailNotificationsService = {
       baseUrl: env.APP_URL,
       event: { title: event.title, date: eventDate, location },
       transaction: { buyerName, transactionId, products, totalAmount },
-      hasTickets: ticketIds.length > 0,
-      ticketIds,
+      hasTickets: tickets.length > 0,
+      tickets,
     });
     const [html, text] = await Promise.all([
       render(element),

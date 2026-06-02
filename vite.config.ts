@@ -21,7 +21,7 @@ errorOnDuplicatesPkgDeps(devDependencies, dependencies);
  */
 export default defineConfig(({ command, mode }): UserConfig => {
   return {
-    plugins: [qwikRouter(), qwikVite()],
+    plugins: [qwikRouter({ trailingSlash: false }), qwikVite()],
     resolve: {
       tsconfigPaths: true,
       dedupe: ["react", "react-dom"],

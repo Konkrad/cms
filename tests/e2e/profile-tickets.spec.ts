@@ -16,6 +16,7 @@ import {
   createTicketInDb,
   addParticipantToTicket,
   getUserEmailById,
+  openDb,
 } from "../fixtures";
 
 function authCookies(token: string) {
@@ -177,6 +178,43 @@ test.describe("Profile — Purchases section", () => {
       session.cleanup();
     }
   });
+
+  test("qrCodeUuid rotates in DB after participant reassignment", async ({ browser }) => {
+    const session = createUserSession("user");
+    const event = createTestEventWithProduct({ ownerId: session.userId, isFuture: true });
+    const ticketId = createTicketInDb({ buyerId: session.userId, eventId: event.eventId, productId: event.productId });
+
+    const dbBefore = openDb();
+    const originalUuid = (dbBefore.prepare("SELECT qr_code_uuid FROM tickets WHERE id = ?").get(ticketId) as { qr_code_uuid: string }).qr_code_uuid;
+    dbBefore.close();
+
+    const ctx = await browser.newContext();
+    await ctx.addCookies(authCookies(session.sessionToken));
+    const page = await ctx.newPage();
+    try {
+      await page.goto("/profile/tickets");
+      const purchases = page.locator("div").filter({ has: page.locator('h3:has-text("Purchases")') });
+      await purchases.locator('div[role="button"]:has-text("Ticket Test Event")').click();
+      await purchases.getByRole("button", { name: "Reassign" }).click();
+      await page.getByPlaceholder("Search participant by name…").focus();
+      await page.getByText("Add manually").click();
+      await page.getByPlaceholder("Full name").fill("Bob Example");
+      await page.getByPlaceholder("Email address").fill("bob@example.com");
+      await page.getByRole("button", { name: "Add" }).click();
+      await page.getByRole("button", { name: "Save" }).click();
+      await expect(purchases.locator(".text-amber-700")).toBeVisible({ timeout: 5000 });
+
+      const dbAfter = openDb();
+      const newUuid = (dbAfter.prepare("SELECT qr_code_uuid FROM tickets WHERE id = ?").get(ticketId) as { qr_code_uuid: string }).qr_code_uuid;
+      dbAfter.close();
+
+      expect(newUuid).not.toBe(originalUuid);
+    } finally {
+      await ctx.close();
+      event.cleanup();
+      session.cleanup();
+    }
+  });
 });
 
 test.describe("Profile — My Tickets QR wall", () => {
@@ -270,6 +308,40 @@ test.describe("Profile — My Tickets QR wall", () => {
       await expect(page.locator('img[alt="Ticket QR Code"]')).toBeVisible();
     } finally {
       await ctx.close();
+      event.cleanup();
+      owner.cleanup();
+      viewer.cleanup();
+    }
+  });
+
+  test("hides ticket from owner when assigned to another registered user, shows it to that user", async ({ browser }) => {
+    const owner = createUserSession("user");
+    const viewer = createUserSession("user");
+    const viewerEmail = getUserEmailById(viewer.userId)!;
+
+    const event = createTestEventWithProduct({ ownerId: owner.userId, isFuture: true });
+    const ticketId = createTicketInDb({ buyerId: owner.userId, eventId: event.eventId, productId: event.productId });
+    // Assign to viewer — a registered user (has a login row in DB)
+    addParticipantToTicket(ticketId, { name: "Viewer User", email: viewerEmail });
+
+    try {
+      // Owner's My Tickets should NOT show the event card (registered assignee)
+      const ownerCtx = await browser.newContext();
+      await ownerCtx.addCookies(authCookies(owner.sessionToken));
+      const ownerPage = await ownerCtx.newPage();
+      await ownerPage.goto("/profile/tickets");
+      await expect(ownerPage.locator('h3:has-text("My Tickets")')).not.toBeVisible();
+      await ownerCtx.close();
+
+      // Viewer's My Tickets SHOULD show the event card
+      const viewerCtx = await browser.newContext();
+      await viewerCtx.addCookies(authCookies(viewer.sessionToken));
+      const viewerPage = await viewerCtx.newPage();
+      await viewerPage.goto("/profile/tickets");
+      const myTickets = viewerPage.locator("div").filter({ has: viewerPage.locator('h3:has-text("My Tickets")') });
+      await expect(myTickets.locator('button:has-text("Ticket Test Event")')).toBeVisible();
+      await viewerCtx.close();
+    } finally {
       event.cleanup();
       owner.cleanup();
       viewer.cleanup();

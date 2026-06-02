@@ -168,7 +168,9 @@ test.describe("checkout — consent steps", () => {
     const radio = page.locator('input[type="radio"]').first();
     await expect(radio).toBeVisible({ timeout: 8000 });
     await radio.check();
-    await page.locator("button:has-text('Proceed to Payment'), button:has-text('Continue')").first().click();
+    await page.locator("button:has-text('Continue to Participants')").click();
+    await page.waitForLoadState("networkidle");
+    await page.locator("button:has-text('Continue to Payment')").click();
     await page.waitForLoadState("networkidle");
 
     await expect(page.locator("text=Food preferences")).toBeVisible();
@@ -199,7 +201,9 @@ test.describe("checkout — consent steps", () => {
     const radio = page.locator('input[type="radio"]').first();
     await expect(radio).toBeVisible({ timeout: 8000 });
     await radio.check();
-    await page.locator("button:has-text('Proceed to Payment'), button:has-text('Continue')").first().click();
+    await page.locator("button:has-text('Continue to Participants')").click();
+    await page.waitForLoadState("networkidle");
+    await page.locator("button:has-text('Continue to Payment')").click();
     await page.waitForLoadState("networkidle");
 
     await expect(page.locator("text=Food preferences")).not.toBeVisible();
@@ -230,7 +234,9 @@ test.describe("checkout — consent steps", () => {
     const radio = page.locator('input[type="radio"]').first();
     await expect(radio).toBeVisible({ timeout: 8000 });
     await radio.check();
-    await page.locator("button:has-text('Proceed to Payment'), button:has-text('Continue')").first().click();
+    await page.locator("button:has-text('Continue to Participants')").click();
+    await page.waitForLoadState("networkidle");
+    await page.locator("button:has-text('Continue to Payment')").click();
     await page.waitForLoadState("networkidle");
 
     await expect(page.locator("text=Food preferences")).not.toBeVisible();

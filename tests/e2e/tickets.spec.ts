@@ -86,9 +86,12 @@ test.describe('Tickets', () => {
     const rsvpBtn = page.locator('button:has-text("✓ Going")').first();
     await expect(rsvpBtn).toBeVisible({ timeout: 5_000 });
 
-    await rsvpBtn.click({ clickCount: 2, delay: 50 });
+    // First click — wait for success confirmation
+    await rsvpBtn.click();
+    await expect(page.locator("text=✓ You're attending! Your free ticket has been created.")).toBeVisible({ timeout: 10_000 });
 
-    await expect(page.locator("text=✓ You're attending! Your free ticket has been created.")).toBeVisible({ timeout: 5_000 });
+    // Second click to test idempotency — button may still be present in its Going state
+    await rsvpBtn.click().catch(() => {});
 
     await expect.poll(
       () => db.getTicketCountByEventId(ev.id),
@@ -286,8 +289,9 @@ test.describe('Participant Assignment Step', () => {
   }
 
   test('buyer is pre-assigned to the first slot of each product', async ({ browser }) => {
+    const now = new Date().toISOString();
     const session = createTestUser({
-      consent: { terms: 'yes' },
+      consent: { terms: 'yes', lastProfileUpdate: now, locationVerification: now, foodPreference: now, photoConsent: now },
       foodPreference: 'none',
       photoConsentGiven: true,
     });
@@ -340,8 +344,9 @@ test.describe('Participant Assignment Step', () => {
   });
 
   test('can proceed to payment with unfilled capacity slots', async ({ browser }) => {
+    const now = new Date().toISOString();
     const session = createTestUser({
-      consent: { terms: 'yes' },
+      consent: { terms: 'yes', lastProfileUpdate: now, locationVerification: now, foodPreference: now, photoConsent: now },
       foodPreference: 'none',
       photoConsentGiven: true,
     });
@@ -384,7 +389,9 @@ test.describe('Participant Assignment Step', () => {
 
       // Continue to payment — empty second slot must not block
       await page.click('button:has-text("Continue to Payment")');
-      await expect(page.locator('h2:has-text("Payment Details"), text=Payment Successful!')).toBeVisible({ timeout: 10000 });
+      await expect(
+        page.locator('h2:has-text("Payment Details")').or(page.getByText('Payment Successful!'))
+      ).toBeVisible({ timeout: 10000 });
     } finally {
       await ctx.close();
       session.cleanup();

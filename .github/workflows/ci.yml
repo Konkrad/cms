@@ -106,6 +106,15 @@ jobs:
           wait_for_http http://localhost:8025/api/v1/messages?limit=1 mailpit
           wait_for_port localhost 12111 stripe-mock
 
+      - name: Create MinIO bucket
+        run: |
+          aws --endpoint-url http://localhost:9000 s3 mb s3://test
+          aws --endpoint-url http://localhost:9000 s3api put-bucket-acl --bucket test --acl public-read
+        env:
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: testtest
+          AWS_DEFAULT_REGION: us-east-1
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 

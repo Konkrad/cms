@@ -107,9 +107,7 @@ jobs:
           wait_for_port localhost 12111 stripe-mock
 
       - name: Create MinIO bucket
-        run: |
-          aws --endpoint-url http://localhost:9000 s3 mb s3://test
-          aws --endpoint-url http://localhost:9000 s3api put-bucket-acl --bucket test --acl public-read
+        run: aws --endpoint-url http://localhost:9000 s3 mb s3://test
         env:
           AWS_ACCESS_KEY_ID: test
           AWS_SECRET_ACCESS_KEY: testtest

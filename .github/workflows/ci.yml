@@ -10,6 +10,28 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      NODE_ENV: test
+      APP_URL: http://localhost:5173
+      APP_NAME: Digitalumni
+      MAGIC_LINK_SECRET: test
+      PHOTO_URL_SECRET: test
+      SMTP_HOST: localhost
+      SMTP_PORT: "1025"
+      SMTP_FROM: test@example.com
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT: http://localhost:9000
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: testtest
+      S3_BUCKET: test
+      STRIPE_SECRET_KEY: sk_test_123
+      STRIPE_PUBLISHABLE_KEY: pk_test_123
+      STRIPE_WEBHOOK_SECRET: whsec_test
+      STRIPE_API_BASE_URL: http://localhost:12111
+      TELEGRAM_BOT_TOKEN: test
+      TELEGRAM_CHANNEL_ID: test
+      PUBLIC_MAPBOX_ACCESS_TOKEN: test
+      ALTCHA_HMAC_KEY: test
+      E2E_ALLOW_DB_WRITE: "true"
     services:
       minio:
         image: minio/minio:latest
@@ -84,28 +106,29 @@ jobs:
           wait_for_http http://localhost:8025/api/v1/messages?limit=1 mailpit
           wait_for_port localhost 12111 stripe-mock
 
-      - name: Run unit tests
-        run: npm run test:unit
+      - name: Create MinIO bucket
+        run: aws --endpoint-url http://localhost:9000 s3 mb s3://test
         env:
-          NODE_ENV: test
-          APP_URL: http://localhost:5173
-          APP_NAME: Digitalumni
-          MAGIC_LINK_SECRET: test
-          PHOTO_URL_SECRET: test
-          SMTP_HOST: localhost
-          SMTP_PORT: "1025"
-          SMTP_FROM: test@example.com
-          AWS_REGION: us-east-1
-          AWS_ENDPOINT: http://localhost:9000
           AWS_ACCESS_KEY_ID: test
           AWS_SECRET_ACCESS_KEY: testtest
-          S3_BUCKET: test
-          STRIPE_SECRET_KEY: sk_test_123
-          STRIPE_PUBLISHABLE_KEY: pk_test_123
-          STRIPE_WEBHOOK_SECRET: whsec_test
-          STRIPE_API_BASE_URL: http://localhost:12111
-          TELEGRAM_BOT_TOKEN: test
-          TELEGRAM_CHANNEL_ID: test
-          PUBLIC_MAPBOX_ACCESS_TOKEN: test
-          ALTCHA_HMAC_KEY: test
-          E2E_ALLOW_DB_WRITE: "true"
+          AWS_DEFAULT_REGION: us-east-1
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Seed database
+        run: npx tsx scripts/seed.ts --fresh
+
+      - name: Run e2e tests
+        run: npm test
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: test-results/
+          retention-days: 7

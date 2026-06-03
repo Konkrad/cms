@@ -31,15 +31,12 @@ export const stripeService = {
     });
   },
 
+  async getPaymentIntent(paymentIntentId: string) {
+    return stripe.paymentIntents.retrieve(paymentIntentId);
+  },
+
   async createCheckoutSession(params: {
-    lineItems: Array<{
-      price_data: {
-        currency: string;
-        product_data: { name: string };
-        unit_amount: number;
-      };
-      quantity: number;
-    }>;
+    lineItems: Stripe.Checkout.SessionCreateParams.LineItem[];
     successUrl: string;
     cancelUrl: string;
     metadata: Record<string, string>;
@@ -51,9 +48,5 @@ export const stripeService = {
       cancel_url: params.cancelUrl,
       metadata: params.metadata,
     });
-  },
-
-  async getSession(sessionId: string) {
-    return stripe.checkout.sessions.retrieve(sessionId);
   },
 };

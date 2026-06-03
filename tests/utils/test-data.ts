@@ -17,11 +17,14 @@ export async function createEventWithInventory(opts: {
     name: string;
     price: number;
     maxQuantity: number;
+    participantCapacity?: number;
     soldQuantity?: number;
   }>;
   salesStartOffset?: number | null;
   salesEndOffset?: number | null;
   needsTicket?: boolean;
+  /** Create one inventory group per product so multiple products can be selected simultaneously */
+  separateGroups?: boolean;
 }, useServicesForProducts = true) {
   const db = new Database('./my-database.db');
   try {
@@ -68,22 +71,47 @@ export async function createEventWithInventory(opts: {
       return ev;
     }
 
-    // Create an inventory group
     const { inventoryGroupsService } = await import('../../src/services/inventory-groups.service');
-    const inv = await inventoryGroupsService.create({
-      eventId: ev.id,
-      name: `${opts.title} Inventory`,
-      maxCapacity: opts.products.reduce((s, p) => s + p.maxQuantity, 0) || 10,
-      needsTicket: opts.needsTicket === undefined ? true : opts.needsTicket,
-      salesStartDate: opts.salesStartOffset != null ? daysFromNow(opts.salesStartOffset) : undefined,
-      salesEndDate: opts.salesEndOffset != null ? daysFromNow(opts.salesEndOffset) : undefined,
-      createdAt: new Date().toISOString(),
-    } as any);
+    const { productsService } = await import('../../src/services/products.service');
 
-    // Create products
+    const createGroup = async (name: string, capacity: number) =>
+      inventoryGroupsService.create({
+        eventId: ev.id,
+        name,
+        maxCapacity: capacity,
+        needsTicket: opts.needsTicket === undefined ? true : opts.needsTicket,
+        salesStartDate: opts.salesStartOffset != null ? daysFromNow(opts.salesStartOffset) : undefined,
+        salesEndDate: opts.salesEndOffset != null ? daysFromNow(opts.salesEndOffset) : undefined,
+        createdAt: new Date().toISOString(),
+      } as any);
+
+    if (opts.separateGroups) {
+      // One inventory group per product so all can be selected simultaneously
+      for (const p of opts.products) {
+        const inv = await createGroup(`${p.name} Inventory`, p.maxQuantity || 10);
+        const prod = await productsService.create({
+          eventId: ev.id,
+          inventoryGroupId: inv.id,
+          name: p.name,
+          price: p.price,
+          maxQuantity: p.maxQuantity,
+          participantCapacity: p.participantCapacity ?? 1,
+          features: [],
+        } as any);
+        if (p.soldQuantity) {
+          db.prepare('UPDATE products SET sold_quantity = ? WHERE id = ?').run(p.soldQuantity, prod.id);
+        }
+      }
+      return ev;
+    }
+
+    // Default: single inventory group for all products
+    const inv = await createGroup(
+      `${opts.title} Inventory`,
+      opts.products.reduce((s, p) => s + p.maxQuantity, 0) || 10,
+    );
+
     if (useServicesForProducts) {
-      const { productsService } = await import('../../src/services/products.service');
-      const created: any[] = [];
       for (const p of opts.products) {
         const prod = await productsService.create({
           eventId: ev.id,
@@ -91,35 +119,23 @@ export async function createEventWithInventory(opts: {
           name: p.name,
           price: p.price,
           maxQuantity: p.maxQuantity,
-          participantCapacity: 1,
+          participantCapacity: p.participantCapacity ?? 1,
           features: [],
         } as any);
-        // Optionally set soldQuantity directly in DB for sold-out scenarios
         if (p.soldQuantity) {
           db.prepare('UPDATE products SET sold_quantity = ? WHERE id = ?').run(p.soldQuantity, prod.id);
         }
-        created.push(prod);
       }
       return ev;
     }
 
-    // Fallback: insert products directly
+    // Fallback: insert products directly via raw SQL
     for (const p of opts.products) {
       const id = require('crypto').randomUUID();
       db.prepare(`INSERT INTO products (id, event_id, inventory_group_id, name, price, max_quantity, participant_capacity, features, image_url, stripe_product_id, sold_quantity, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
-        id,
-        ev.id,
-        inv.id,
-        p.name,
-        p.price,
-        p.maxQuantity,
-        1,
-        JSON.stringify([]),
-        null,
-        null,
-        p.soldQuantity || 0,
-        new Date().toISOString(),
-        new Date().toISOString(),
+        id, ev.id, inv.id, p.name, p.price, p.maxQuantity,
+        p.participantCapacity ?? 1, JSON.stringify([]), null, null,
+        p.soldQuantity || 0, new Date().toISOString(), new Date().toISOString(),
       );
     }
 

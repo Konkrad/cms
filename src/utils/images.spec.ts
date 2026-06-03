@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { deriveThumbnailKey } from "./images";
+import { deriveThumbnailKey, publicImageUrlFromKey } from "./images";
 
 describe("deriveThumbnailKey", () => {
   it("appends -thumb before .webp extension", () => {
@@ -36,5 +36,25 @@ describe("deriveThumbnailKey", () => {
     const key = "public/groups/img.webp";
     expect(deriveThumbnailKey(key)).toBe("public/groups/img-thumb.webp");
     expect(deriveThumbnailKey(key)).not.toContain("//");
+  });
+});
+
+describe("publicImageUrlFromKey", () => {
+  it("builds local middleware URL for a stored key", () => {
+    expect(publicImageUrlFromKey("public/events/seed-1.webp")).toBe(
+      "/api/images?key=public%2Fevents%2Fseed-1.webp",
+    );
+  });
+
+  it("preserves already-built middleware URL", () => {
+    expect(
+      publicImageUrlFromKey("/api/images?key=public%2Fevents%2Fseed-1.webp"),
+    ).toBe("/api/images?key=public%2Fevents%2Fseed-1.webp");
+  });
+
+  it("normalizes middleware URL without leading slash", () => {
+    expect(
+      publicImageUrlFromKey("api/images?key=public%2Fevents%2Fseed-1.webp"),
+    ).toBe("/api/images?key=public%2Fevents%2Fseed-1.webp");
   });
 });

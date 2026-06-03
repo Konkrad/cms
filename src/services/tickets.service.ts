@@ -10,8 +10,8 @@ import { users } from "~/db/schemas/users";
 import { products } from "~/db/schemas/products";
 import { events } from "~/db/schemas/events";
 import { ticketParticipants } from "~/db/schemas/ticket-participants";
-import { eq, and, isNull, isNotNull } from "drizzle-orm";
-import { parseAndValidateQR } from "~/utils/qr-code";
+import { eq, and, isNull, isNotNull, inArray } from "drizzle-orm";
+import { transactions } from "~/db/schemas/transactions";
 import crypto from "crypto";
 
 export const ticketsService = {
@@ -58,6 +58,15 @@ export const ticketsService = {
     return result as any;
   },
 
+  async rotateQrCode(ticketId: string): Promise<Ticket | undefined> {
+    const [result] = await db
+      .update(tickets)
+      .set({ qrCodeUuid: crypto.randomUUID() })
+      .where(eq(tickets.id, ticketId))
+      .returning();
+    return result;
+  },
+
   async getByQrCodeUuid(qrCodeUuid: string): Promise<
     | (Ticket & {
         buyer: typeof users.$inferSelect;
@@ -100,6 +109,7 @@ export const ticketsService = {
       Ticket & {
         event: typeof events.$inferSelect;
         product: typeof products.$inferSelect;
+        participants: Array<typeof ticketParticipants.$inferSelect>;
       }
     >
   > {
@@ -108,6 +118,9 @@ export const ticketsService = {
       with: {
         event: true,
         product: true,
+        participants: {
+          orderBy: { participantOrder: "asc" },
+        },
       },
     });
     return results as any;
@@ -124,22 +137,9 @@ export const ticketsService = {
       }
     | { success: false; error: string }
   > {
-    // Parse and validate QR code
-    const qrResult = parseAndValidateQR(qrDataString);
-    if (!qrResult.valid || !qrResult.data) {
-      return { success: false, error: qrResult.error || "Invalid QR code" };
-    }
-
-    const { ticketId, eventId: qrEventId } = qrResult.data;
-
-    // Verify event ID matches
-    if (qrEventId !== eventId) {
-      return { success: false, error: "QR code is for a different event" };
-    }
-
-    // Find the ticket with participants
+    // Look up ticket by the scanned QR UUID
     const currentTicket = await db.query.tickets.findFirst({
-      where: { id: ticketId },
+      where: { qrCodeUuid: qrDataString },
       with: {
         participants: {
           orderBy: { participantOrder: "asc" },
@@ -148,7 +148,12 @@ export const ticketsService = {
     });
 
     if (!currentTicket) {
-      return { success: false, error: "Ticket not found" };
+      return { success: false, error: "Invalid QR code" };
+    }
+
+    // Verify event ID matches
+    if (currentTicket.eventId !== eventId) {
+      return { success: false, error: "QR code is for a different event" };
     }
 
     // Check if already scanned
@@ -163,7 +168,7 @@ export const ticketsService = {
     const [ticket] = await db
       .update(tickets)
       .set({ scannedAt: new Date().toISOString() })
-      .where(and(eq(tickets.id, ticketId), isNull(tickets.scannedAt)))
+      .where(and(eq(tickets.id, currentTicket.id), isNull(tickets.scannedAt)))
       .returning();
 
     if (!ticket) {
@@ -257,5 +262,42 @@ export const ticketsService = {
     });
 
     return ticket;
+  },
+
+  async findUnscannedByBuyerEventProduct(data: {
+    productId: string;
+    eventId: string;
+    buyerId: string;
+  }): Promise<Ticket[]> {
+    const results = await db.query.tickets.findMany({
+      where: {
+        productId: data.productId,
+        eventId: data.eventId,
+        buyerId: data.buyerId,
+        scannedAt: null,
+      },
+    });
+    return results as Ticket[];
+  },
+
+  async deleteFreeTicketsByIds(ticketIds: string[]): Promise<void> {
+    if (ticketIds.length === 0) return;
+
+    const rows = await db
+      .select({
+        ticketId: tickets.id,
+        transactionId: transactions.id,
+        stripeSessionId: transactions.stripeSessionId,
+      })
+      .from(tickets)
+      .innerJoin(transactions, eq(tickets.transactionId, transactions.id))
+      .where(inArray(tickets.id, ticketIds));
+
+    for (const row of rows) {
+      await db.delete(tickets).where(eq(tickets.id, row.ticketId));
+      if (row.stripeSessionId.startsWith("free_")) {
+        await db.delete(transactions).where(eq(transactions.id, row.transactionId));
+      }
+    }
   },
 };

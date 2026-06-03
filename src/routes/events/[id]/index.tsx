@@ -2,6 +2,7 @@ import { component$, $, useSignal } from "@qwik.dev/core";
 import {
   Link,
   type DocumentHead,
+  type RequestHandler,
   routeLoader$,
   routeAction$,
   z,
@@ -12,15 +13,18 @@ import {
 import { Button } from "~/components/ui/Button";
 import { eventsService } from "~/services/events.service";
 import { participationService } from "~/services/participation.service";
+import { productsService } from "~/services/products.service";
 import { ParticipationToggle } from "~/components/events/ParticipationToggle";
 import { db } from "~/db/connection";
 import { inventoryGroups } from "~/db/schemas/inventory-groups";
+import { products as productsTable } from "~/db/schemas/products";
 import { tickets } from "~/db/schemas/tickets";
+import { transactions } from "~/db/schemas/transactions";
 import { participationStatus as participationStatusTable } from "~/db/schemas/participation-status";
 import { groupRepresentatives } from "~/db/schemas/group-representatives";
 import { groups as groupsTable } from "~/db/schemas/groups";
 import { groupMemberships } from "~/db/schemas/group-memberships";
-import { eq, and, isNotNull, inArray } from "drizzle-orm";
+import { eq, and, isNotNull, isNull, inArray, like } from "drizzle-orm";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { env } from "~/env";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
@@ -32,6 +36,99 @@ import { ImageTile } from "~/components/page-blocks/FeatureBlock/ImageTile";
 import { ParticipantsTile } from "~/components/page-blocks/FeatureBlock/ParticipantsTile";
 import { ParticipantsModal } from "~/components/events/ParticipantsModal";
 import { formatUser, buildProfileUrl } from "~/utils/users";
+
+export const onGet: RequestHandler = ({ cacheControl }) => {
+  cacheControl({ noCache: true });
+};
+
+async function getSingleFreeRsvpProduct(eventId: string) {
+  const rows = await db
+    .select()
+    .from(productsTable)
+    .where(eq(productsTable.eventId, eventId))
+    .limit(2);
+
+  if (rows.length !== 1) return null;
+  const [product] = rows;
+  return product.price === 0 ? product : null;
+}
+
+async function syncFreeRsvpTicketForStatus(
+  eventId: string,
+  userId: string,
+  status: "yes" | "no" | "maybe",
+  productId?: string,
+) {
+  let freeProduct = null;
+
+  if (productId) {
+    const product = await productsService.getById(productId);
+    if (
+      product &&
+      product.eventId === eventId &&
+      product.price === 0
+    ) {
+      freeProduct = product;
+    }
+  }
+
+  if (!freeProduct) {
+    freeProduct = await getSingleFreeRsvpProduct(eventId);
+  }
+
+  if (!freeProduct) return;
+
+  const { ticketsService } = await import("~/services/tickets.service");
+  const existingTickets = await db
+    .select({
+      id: tickets.id,
+      transactionId: tickets.transactionId,
+      stripeSessionId: transactions.stripeSessionId,
+    })
+    .from(tickets)
+    .innerJoin(transactions, eq(tickets.transactionId, transactions.id))
+    .where(
+      and(
+        eq(tickets.productId, freeProduct.id),
+        eq(tickets.eventId, eventId),
+        eq(tickets.buyerId, userId),
+        isNull(tickets.scannedAt),
+      ),
+    );
+
+  if (status === "no") {
+    const freeTickets = existingTickets.filter((ticket) =>
+      ticket.stripeSessionId.startsWith("free_"),
+    );
+
+    if (freeTickets.length > 0) {
+      const ticketIds = freeTickets.map((ticket) => ticket.id);
+      const txIds = freeTickets.map((ticket) => ticket.transactionId);
+
+      await db.delete(tickets).where(inArray(tickets.id, ticketIds));
+      await db
+        .delete(transactions)
+        .where(
+          and(
+            inArray(transactions.id, txIds),
+            like(transactions.stripeSessionId, "free_%"),
+          ),
+        );
+
+      await productsService.decrementSold(freeProduct.id, freeTickets.length);
+    }
+    return;
+  }
+
+  if (existingTickets.length === 0) {
+    await ticketsService.createFreeTicket({
+      productId: freeProduct.id,
+      eventId,
+      buyerId: userId,
+    });
+    await productsService.incrementSold(freeProduct.id, 1);
+  }
+}
 
 export const useEvent = routeLoader$(async (requestEvent) => {
   const { params, status } = requestEvent;
@@ -58,11 +155,20 @@ export const useEvent = routeLoader$(async (requestEvent) => {
   const isLoggedIn = !!userData;
   let participationStatus = null;
   let hasAttended = false;
+  let hasUserTicket = false;
   if (userData) {
     participationStatus = await participationService.getStatus(
       userData.id,
       params.id,
     );
+
+    const userTicket = await db.query.tickets.findFirst({
+      where: {
+        eventId: params.id,
+        buyerId: userData.id,
+      },
+    });
+    hasUserTicket = !!userTicket;
 
     const scannedTicket = await db.query.tickets.findFirst({
       where: {
@@ -246,6 +352,7 @@ export const useEvent = routeLoader$(async (requestEvent) => {
     isEventPast,
     isEventFuture,
     hasAttended,
+    hasUserTicket,
     isLoggedIn,
     participationSummary,
     mapImageUrl,
@@ -270,36 +377,57 @@ export const useUpdateParticipation = routeAction$(
       data.status,
     );
 
-    return { success: true };
-  },
-  zod$({
-    status: z.enum(["yes", "no", "maybe"]),
-  }),
-);
-
-export const useRSVPWithTicket = routeAction$(
-  async (data, event) => {
-    const userData = await getCurrentUserData(event);
-    if (!userData) {
-      return event.fail(401, { message: "Please log in to RSVP" });
-    }
-
-    await participationService.upsert(
-      userData.id,
+    await syncFreeRsvpTicketForStatus(
       event.params.id,
+      userData.id,
       data.status,
+      data.productId,
     );
 
     if (data.status === "yes" && data.productId) {
-      const { ticketsService } = await import("~/services/tickets.service");
-      await ticketsService.createFreeTicket({
-        productId: data.productId,
-        eventId: event.params.id,
-        buyerId: userData.id,
+      const ticket = await db.query.tickets.findFirst({
+        where: {
+          productId: data.productId,
+          eventId: event.params.id,
+          buyerId: userData.id,
+        },
       });
+
+      // Send confirmation email for free RSVP ticket creation.
+      if (ticket) try {
+        const userEmail = userData.email;
+        if (userEmail) {
+          const { emailNotificationsService } = await import("~/services/email-notifications.service");
+
+          const [ev, product] = await Promise.all([
+            eventsService.getById(event.params.id),
+            productsService.getById(data.productId),
+          ]);
+
+          if (ev && product) {
+            await emailNotificationsService.sendTicketConfirmation({
+              to: userEmail,
+              buyerName: userData.name || userEmail,
+              event: {
+                title: ev.title,
+                startDate: ev.startDate,
+                address: (ev as any).address,
+                onlineUrl: (ev as any).onlineUrl,
+              },
+              transactionId: ticket.transactionId || ticket.id,
+              products: [{ name: product.name, quantity: 1, amount: 0 }],
+              totalAmount: 0,
+              tickets: [{ id: ticket.id, qrCodeUuid: ticket.qrCodeUuid }],
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Failed to send RSVP confirmation email:", error);
+        // Don't fail the RSVP if email sending fails
+      }
     }
 
-    return { success: true };
+    throw event.redirect(303, event.url.pathname);
   },
   zod$({
     status: z.enum(["yes", "no", "maybe"]),
@@ -310,7 +438,6 @@ export const useRSVPWithTicket = routeAction$(
 export default component$(() => {
   const event = useEvent();
   const updateParticipation = useUpdateParticipation();
-  const rsvpWithTicket = useRSVPWithTicket();
 
   if (!event.value) {
     return (
@@ -372,6 +499,10 @@ export default component$(() => {
       : (event.value.mapImageUrl ?? "https://picsum.photos/600/600?grayscale");
 
   const showParticipantsModal = useSignal(false);
+  const optimisticParticipationStatus = useSignal<"yes" | "no" | "maybe" | null>(null);
+
+  const effectiveParticipationStatus =
+    optimisticParticipationStatus.value ?? event.value.userParticipation?.status ?? null;
 
   return (
     <div class="min-h-screen bg-white">
@@ -405,33 +536,23 @@ export default component$(() => {
               >
                 Buy Your Tickets
               </Link>
-            ) : showFreeRSVP ? (
-              <Form action={rsvpWithTicket} class="flex gap-3">
-                <input
-                  type="hidden"
-                  name="productId"
-                  value={event.value.products[0]?.id}
-                />
-                <Button
-                  type="submit"
-                  name="status"
-                  value="yes"
-                  size="lg"
-                >
-                  {event.value.userParticipation?.status === "yes"
-                    ? "✓ You're Going!"
-                    : "RSVP — I'm Going"}
-                </Button>
-              </Form>
             ) : showWaitlist ? (
               <Form action={updateParticipation}>
+                {event.value.isFreeEvent && event.value.hasSingleProduct && event.value.products[0]?.id && (
+                  <input
+                    type="hidden"
+                    name="productId"
+                    value={event.value.products[0].id}
+                  />
+                )}
                 <Button
                   type="submit"
                   name="status"
                   value="maybe"
                   size="lg"
+                  disabled={updateParticipation.isRunning}
                 >
-                  {event.value.userParticipation?.status === "maybe"
+                  {effectiveParticipationStatus === "maybe"
                     ? "✓ On Waitlist"
                     : "Join Waitlist"}
                 </Button>
@@ -446,10 +567,18 @@ export default component$(() => {
               </span>
             ) : (
               <Form action={updateParticipation}>
+                {event.value.isFreeEvent && event.value.hasSingleProduct && event.value.products[0]?.id && (
+                  <input
+                    type="hidden"
+                    name="productId"
+                    value={event.value.products[0].id}
+                  />
+                )}
                 <ParticipationToggle
-                  currentStatus={event.value.userParticipation?.status || null}
+                  currentStatus={effectiveParticipationStatus}
+                  disabled={updateParticipation.isRunning}
                   onStatusChange={$((status: "yes" | "no" | "maybe") => {
-                    updateParticipation.submit({ status });
+                    optimisticParticipationStatus.value = status;
                   })}
                 />
               </Form>
@@ -457,13 +586,19 @@ export default component$(() => {
           </div>
         )}
 
+        {(updateParticipation.value && "message" in updateParticipation.value) && (
+          <div class="max-w-xl mx-auto mb-8 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-center text-sm">
+            {updateParticipation.value.message}
+          </div>
+        )}
+
         {/* RSVP confirmation messages */}
-        {event.value.userParticipation?.status === "yes" && showFreeRSVP && (
+        {effectiveParticipationStatus === "yes" && showFreeRSVP && (
           <div class="max-w-xl mx-auto mb-8 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-center text-sm">
             ✓ You're attending! Your free ticket has been created.
           </div>
         )}
-        {event.value.userParticipation?.status === "maybe" && showWaitlist && (
+        {effectiveParticipationStatus === "maybe" && showWaitlist && (
           <div class="max-w-xl mx-auto mb-8 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-center text-sm">
             ✓ You're on the waitlist!
           </div>

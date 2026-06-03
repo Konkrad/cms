@@ -191,6 +191,12 @@ export const Navigation = component$(() => {
                     >
                       My Profile
                     </Link>
+                    <Link
+                      href="/profile/tickets"
+                      class="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                    >
+                      My Tickets
+                    </Link>
                     {isAdmin && (
                       <Link
                         href="/admin/global"

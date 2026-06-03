@@ -54,14 +54,16 @@ export const TileEditor = component$<TileEditorProps>((props) => {
   const tiles = useSignal<TileConfig[]>(parseTiles(props.value));
   const expandedIndex = useSignal<number | null>(null);
   const lastSerializedValue = useSignal(props.value);
-  const settledImageUploaders = useSignal(0);
 
   useTask$(({ track }) => {
     const shouldTrigger = track(() => props.triggerSignal?.value);
     if (shouldTrigger) {
-      settledImageUploaders.value = 0;
-      const imageTileCount = tiles.value.filter((tile) => tile.type === "image").length;
-      if (imageTileCount === 0) {
+      // Only the expanded tile has an ImageUploader rendered. Non-expanded image
+      // tiles have no pending upload, so count only the expanded image tile.
+      const expandedIsImage =
+        expandedIndex.value !== null &&
+        tiles.value[expandedIndex.value]?.type === "image";
+      if (!expandedIsImage) {
         void props.onSettled$?.();
       }
     }
@@ -335,11 +337,7 @@ export const TileEditor = component$<TileEditorProps>((props) => {
                         pipeline="standard"
                         triggerSignal={props.triggerSignal}
                         onSettled$={$(() => {
-                          settledImageUploaders.value += 1;
-                          const imageTileCount = tiles.value.filter((candidate) => candidate.type === "image").length;
-                          if (settledImageUploaders.value >= imageTileCount) {
-                            void props.onSettled$?.();
-                          }
+                          void props.onSettled$?.();
                         })}
                         crop
                         cropAspectRatio="3/4"

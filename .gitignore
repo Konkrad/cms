@@ -50,3 +50,4 @@ tmp/
 test-results/
 playwright-report/
 .playwright-cli
+playwright/.auth/*.json

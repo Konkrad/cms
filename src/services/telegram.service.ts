@@ -1,7 +1,14 @@
 import TelegramBot from "node-telegram-bot-api";
 import { env } from "~/env";
 
-const bot = new TelegramBot(env.TELEGRAM_BOT_TOKEN, { polling: false });
+/** Create a bot instance, reading baseApiUrl from env each time so tests can
+ *  override TELEGRAM_API_URL without restarting the server. */
+function getBot() {
+  return new TelegramBot(env.TELEGRAM_BOT_TOKEN, {
+    polling: false,
+    ...(env.TELEGRAM_API_URL ? { baseApiUrl: env.TELEGRAM_API_URL } : {}),
+  });
+}
 
 export const telegramService = {
   async notifyProductPurchase(params: {
@@ -16,7 +23,7 @@ export const telegramService = {
         `💰 Amount: €${params.amount.toFixed(2)}\n` +
         `📊 Remaining inventory: ${params.remainingInventory}`;
 
-      await bot.sendMessage(env.TELEGRAM_CHANNEL_ID, message);
+      await getBot().sendMessage(env.TELEGRAM_CHANNEL_ID, message);
     } catch (error) {
       console.error("Telegram notification failed:", error);
     }
@@ -24,7 +31,7 @@ export const telegramService = {
 
   async sendNotification(message: string) {
     try {
-      await bot.sendMessage(env.TELEGRAM_CHANNEL_ID, message);
+      await getBot().sendMessage(env.TELEGRAM_CHANNEL_ID, message);
     } catch (error) {
       console.error("Telegram notification failed:", error);
     }

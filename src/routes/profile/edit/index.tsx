@@ -92,6 +92,7 @@ export default component$(() => {
   const updateAction = useUpdateProfile();
   const isSubmitting = useSignal(false);
   const triggerUpload = useSignal(false);
+  const uploadedPictureUrl = useSignal<string | undefined>(undefined);
 
   const handleSubmit = $(() => {
     isSubmitting.value = true;
@@ -99,13 +100,15 @@ export default component$(() => {
   });
 
   const onSettled = $(() => {
-    // Add a small delay to ensure the hidden input is rendered in the DOM
-    setTimeout(() => {
-      const form = document.querySelector('form');
-      if (form) {
-        updateAction.submit(new FormData(form));
-      }
-    }, 50);
+    const form = document.querySelector('form');
+    if (!form) return;
+    const fd = new FormData(form);
+    // Ensure the uploaded URL is in the form data even if the hidden input
+    // hasn't been rendered yet by Qwik's scheduler.
+    if (uploadedPictureUrl.value && !fd.get('profilePicture')) {
+      fd.set('profilePicture', uploadedPictureUrl.value);
+    }
+    updateAction.submit(fd);
   });
 
   return (
@@ -130,6 +133,9 @@ export default component$(() => {
             cropAspectRatio="1/1"
             triggerSignal={triggerUpload}
             onSettled$={onSettled}
+            onFileUploaded$={$((response) => {
+              uploadedPictureUrl.value = response.url || response.filePath || undefined;
+            })}
             currentUrl={profile.value.profilePictureUrl || undefined}
           />
 

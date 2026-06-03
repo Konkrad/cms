@@ -3,7 +3,7 @@ import { Img, Section, Text } from "@react-email/components";
 import type * as React from "react";
 
 export interface TicketLinksSectionProps {
-  ticketIds: string[];
+  tickets: { id: string; qrCodeUuid: string }[];
   baseUrl: string;
   heading?: string;
   description?: string;
@@ -11,13 +11,13 @@ export interface TicketLinksSectionProps {
 }
 
 export default function TicketLinksSection({
-  ticketIds,
+  tickets,
   baseUrl,
   heading = "Your Tickets",
   description = "Present these QR codes at the event entrance for entry:",
   ticketLabelPrefix = "Ticket",
 }: TicketLinksSectionProps) {
-  if (ticketIds.length === 0) {
+  if (tickets.length === 0) {
     return null;
   }
 
@@ -25,19 +25,19 @@ export default function TicketLinksSection({
     <Section style={sectionStyle}>
       <Text style={headingStyle}>{heading}</Text>
       <Text style={descriptionStyle}>{description}</Text>
-      {ticketIds.map((ticketId, index) => (
-        <div key={ticketId} style={ticketContainerStyle}>
+      {tickets.map((ticket, index) => (
+        <div key={ticket.id} style={ticketContainerStyle}>
           <Text style={ticketLabelStyle}>
             {ticketLabelPrefix} {index + 1}
           </Text>
           <Img
-            src={`${baseUrl}/profile/tickets/${ticketId}.png`}
+            src={`${baseUrl}/profile/tickets/${ticket.id}_${ticket.qrCodeUuid}`}
             alt={`QR Code for ${ticketLabelPrefix} ${index + 1}`}
             width="200"
             height="200"
             style={qrCodeStyle}
           />
-          <Text style={uuidStyle}>ID: {ticketId}</Text>
+          <Text style={uuidStyle}>ID: {ticket.id}</Text>
         </div>
       ))}
     </Section>

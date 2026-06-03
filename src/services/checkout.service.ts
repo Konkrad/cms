@@ -47,6 +47,17 @@ export const checkoutService = {
           `Product ${product.name} allows maximum ${product.maxQuantity} per purchase`,
         );
       }
+
+      // Check remaining product quantity against sold stock
+      if (product.maxQuantity > 0) {
+        const remainingProductQuantity =
+          product.maxQuantity - (product.soldQuantity || 0);
+        if (items[i].quantity > remainingProductQuantity) {
+          errors.push(
+            `Product ${product.name} has only ${Math.max(0, remainingProductQuantity)} remaining`,
+          );
+        }
+      }
     }
 
     // Group items by inventory group

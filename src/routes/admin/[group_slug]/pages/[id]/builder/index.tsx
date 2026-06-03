@@ -1,4 +1,4 @@
-import { $, component$, useSignal, useTask$ } from "@qwik.dev/core";
+import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { Canvas } from "~/components/builder/Canvas";
 import { ComponentsSidebar } from "~/components/builder/ComponentsSidebar";
@@ -66,29 +66,20 @@ export default component$(() => {
   const componentDefinitions = useComponentDefinitions();
   const saveAction = useSavePage();
 
-  const blocks = useSignal<BlockData[]>([]);
+  const initDefinitionsMap: Record<string, BlockDefinition> = {};
+  componentDefinitions.value.forEach((def) => {
+    initDefinitionsMap[def.componentType] = def;
+  });
+
+  const blocks = useSignal<BlockData[]>(page.value.content || []);
   const selectedBlockId = useSignal<string | null>(null);
   const hasUnsavedChanges = useSignal(false);
-  const definitionsMap = useSignal<Map<string, BlockDefinition>>(new Map());
+  const definitionsMap = useSignal<Record<string, BlockDefinition>>(initDefinitionsMap);
   const uploadTrigger = useSignal(false);
   const settledUploadGroups = useSignal(0);
 
-  useTask$(({ track }) => {
-    track(() => page.value);
-    blocks.value = page.value.content || [];
-  });
-
-  useTask$(({ track }) => {
-    track(() => componentDefinitions.value);
-    const map = new Map<string, BlockDefinition>();
-    componentDefinitions.value.forEach((def) => {
-      map.set(def.componentType, def);
-    });
-    definitionsMap.value = map;
-  });
-
   const handleAddBlock = $((componentType: string) => {
-    const definition = definitionsMap.value.get(componentType);
+    const definition = definitionsMap.value[componentType];
     if (!definition) return;
 
     const newBlock: BlockData = {
@@ -200,7 +191,7 @@ export default component$(() => {
   const handleSave = $(async () => {
     const selectedBlock = blocks.value.find((block) => block.id === selectedBlockId.value);
     const selectedDefinition = selectedBlock
-      ? definitionsMap.value.get(selectedBlock.componentType)
+      ? definitionsMap.value[selectedBlock.componentType]
       : undefined;
     const hasTileEditor = !!selectedDefinition?.configSchema.some(
       (field) => field.type === "tiles",
@@ -208,6 +199,11 @@ export default component$(() => {
     const expectedUploadGroups = 1 + (hasTileEditor ? 1 : 0);
 
     await waitForUploads(expectedUploadGroups);
+
+    // Allow in-flight QRL signal-update chains (e.g. onFileUploaded$) to settle
+    // before reading blocks.value. QRL calls are async and may not have resolved
+    // by the time the last onSettled$ fires.
+    await new Promise((r) => setTimeout(r, 50));
 
     const blocksToSave = JSON.parse(JSON.stringify(blocks.value));
 
@@ -282,10 +278,10 @@ export default component$(() => {
           )}
           definition={
             selectedBlockId.value
-              ? definitionsMap.value.get(
+              ? definitionsMap.value[
                   blocks.value.find((b) => b.id === selectedBlockId.value)
-                    ?.componentType || "",
-                )
+                    ?.componentType || ""
+                ]
               : undefined
           }
           onUpdateData={handleUpdateBlockData}

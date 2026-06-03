@@ -42,9 +42,8 @@ export default component$(() => {
   const updateAction = useUpdateProfile();
   const markLocation = useMarkLocation();
   const saveConsent = useSavePhotoConsent();
-  const saving = useSignal(false);
-  const saveTrigger = useSignal(0);
   const consentTrigger = useSignal(0);
+  const saveTrigger = useSignal(0);
   const nav = useNavigate();
 
   const { user, consent, form } = loader.value;
@@ -62,13 +61,15 @@ export default component$(() => {
     track(() => updateAction.value);
     track(() => markLocation.value);
 
-    if (!saving.value) return;
-
     const profileOk = !needsProfile || !!updateAction.value?.success;
     const locationOk = !needsLocation || !!markLocation.value?.success;
 
+    // Once profile saves, auto-trigger location save so both complete together.
+    if (needsLocation && updateAction.value?.success && !markLocation.value?.success) {
+      saveTrigger.value++;
+    }
+
     if (profileOk && locationOk) {
-      saving.value = false;
       if (needsConsent) {
         phase.value = "consent";
       } else if (form) {
@@ -137,14 +138,11 @@ export default component$(() => {
             />
           )}
           <div class="pt-4">
-            <Button
-              onClick$={$(() => {
-                saving.value = true;
-                saveTrigger.value++;
-              })}
-            >
-              Continue
-            </Button>
+            {needsProfile ? (
+              <Button type="submit" form="profile-step-form">Continue</Button>
+            ) : (
+              <Button onClick$={$(() => { saveTrigger.value++; })}>Continue</Button>
+            )}
           </div>
         </div>
       )}

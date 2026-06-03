@@ -16,7 +16,7 @@ import {
   OTP_ATTEMPTS_LIMIT,
   verifyMagicToken,
 } from "~/utils/email-auth";
-import sendLoginEmail from "~/utils/send-email";
+import { emailNotificationsService } from "~/services/email-notifications.service";
 import { env } from "~/env";
 
 /**
@@ -107,7 +107,7 @@ export const emailAuthService = {
 
     // Send email (if it fails we will revert the login row to its previous state)
     try {
-      await sendLoginEmail({
+      await emailNotificationsService.sendLoginEmail({
         to: normalizedEmail,
         link,
         code: otp,

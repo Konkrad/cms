@@ -1,4 +1,4 @@
-import { component$, useSignal, useVisibleTask$, type Signal } from "@qwik.dev/core";
+import { $, component$, useSignal, useVisibleTask$, type QRL, type Signal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Alert } from "~/components/ui/Alert";
@@ -27,32 +27,34 @@ export type FoodPreferenceStepProps = {
   isComplete?: boolean;
   /** Pass the result of useSaveFoodPreference() called in the parent route. */
   updateAction: any;
-  onComplete?: () => void;
-  saveTrigger: Signal<number>;
+  onComplete$?: QRL<() => void>;
+  /** When provided: parent controls saving; no save button rendered. When omitted: auto-saves on selection change. */
+  saveTrigger?: Signal<number>;
 };
 
 export const FoodPreferenceStep = component$<FoodPreferenceStepProps>((props) => {
   const preference = useSignal(props.initialPreference || "");
   const completed = useSignal(props.isComplete ?? false);
 
-  const saveFn = async () => {
+  const saveFn = $(async () => {
     if (props.updateAction && typeof props.updateAction.submit === "function") {
       const formData = new FormData();
       formData.set("preference", preference.value);
       await props.updateAction.submit(formData);
       if (props.updateAction.value?.success) {
         completed.value = true;
-        props.onComplete?.();
+        await props.onComplete$?.();
       }
       return props.updateAction.value;
     }
 
     return { error: "No server action provided" };
-  };
+  });
 
   const lastSaved = useSignal(props.saveTrigger?.value ?? 0);
   useVisibleTask$(({ track }) => {
-    track(() => props.saveTrigger.value);
+    if (!props.saveTrigger) return;
+    track(() => props.saveTrigger!.value);
     if (props.saveTrigger.value !== lastSaved.value) {
       lastSaved.value = props.saveTrigger.value;
       void saveFn();
@@ -78,6 +80,7 @@ export const FoodPreferenceStep = component$<FoodPreferenceStepProps>((props) =>
             value={preference.value}
             onChange$={(event) => {
               preference.value = (event.target as HTMLSelectElement).value;
+              if (!props.saveTrigger) void saveFn();
             }}
           >
             <option value="">No preference</option>

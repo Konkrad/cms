@@ -8,6 +8,7 @@ import type { UserConsent } from "~/db/schemas/users";
 export const useVerify = routeLoader$(async (event: any) => {
 	const url = new URL(event.request.url);
 	const token = url.searchParams.get("token");
+	console.log("[auth/verify] useVerify called, url:", url.toString(), "token present:", !!token);
 	if (!token) {
 		return { success: false, error: "Missing token" };
 	}

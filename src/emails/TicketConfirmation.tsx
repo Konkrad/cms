@@ -23,7 +23,7 @@ export interface TicketConfirmationEmailProps {
     totalAmount: number;
   };
   hasTickets: boolean;
-  ticketIds: string[];
+  tickets: { id: string; qrCodeUuid: string }[];
 }
 
 const TicketConfirmationEmail = ({
@@ -31,7 +31,7 @@ const TicketConfirmationEmail = ({
   event,
   transaction,
   hasTickets,
-  ticketIds,
+  tickets,
 }: TicketConfirmationEmailProps) => {
   return (
     <EmailLayout
@@ -120,7 +120,7 @@ const TicketConfirmationEmail = ({
         <>
           <Hr style={{ borderColor: "#e5e7eb", margin: "24px 0" }} />
           <TicketLinksSection
-            ticketIds={ticketIds}
+            tickets={tickets}
             baseUrl={baseUrl}
             heading="Your Tickets"
             description="Please save these ticket QR codes. You'll need to present them at the event:"
@@ -230,10 +230,10 @@ TicketConfirmationEmail.PreviewProps = {
     totalAmount: 377.0,
   },
   hasTickets: true,
-  ticketIds: [
-    "ticket-uuid-001-abc123",
-    "ticket-uuid-002-def456",
-    "ticket-uuid-003-ghi789",
+  tickets: [
+    { id: "ticket-uuid-001-abc123", qrCodeUuid: "qr-uuid-001" },
+    { id: "ticket-uuid-002-def456", qrCodeUuid: "qr-uuid-002" },
+    { id: "ticket-uuid-003-ghi789", qrCodeUuid: "qr-uuid-003" },
   ],
 } as TicketConfirmationEmailProps;
 

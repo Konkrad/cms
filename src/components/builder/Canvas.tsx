@@ -11,7 +11,7 @@ interface CanvasProps {
   onReorderBlocks: QRL<(blocks: BlockData[]) => void>;
   onMoveBlockUp: QRL<(blockId: string) => void>;
   onMoveBlockDown: QRL<(blockId: string) => void>;
-  definitionsMap: Map<string, BlockDefinition>;
+  definitionsMap: Record<string, BlockDefinition>;
 }
 
 export const Canvas = component$<CanvasProps>((props) => {
@@ -42,7 +42,7 @@ export const Canvas = component$<CanvasProps>((props) => {
                   <BlockWrapper
                     key={blockId}
                     block={block}
-                    definition={props.definitionsMap.get(block.componentType)}
+                    definition={props.definitionsMap[block.componentType]}
                     isSelected={blockId === props.selectedBlockId}
                     isFirst={index === 0}
                     isLast={index === props.blocks.length - 1}

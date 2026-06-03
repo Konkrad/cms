@@ -8,18 +8,40 @@ import {
 import {
   routeLoader$,
   routeAction$,
-  Form,
   z,
   zod$,
 } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
+import { FoodPreferenceStep, useSaveFoodPreference } from "~/components/setup/FoodPreferenceStep";
+import { PhotoConsentStep, useSavePhotoConsent } from "~/components/setup/PhotoConsentStep";
 import { inventoryGroupsService } from "~/services/inventory-groups.service";
 import { productsService } from "~/services/products.service";
 import { checkoutService } from "~/services/checkout.service";
 import { stripeService } from "~/services/stripe.service";
-import { publicImageUrlFromKey } from "~/utils/images";
+import { publicImageUrlFromKey, deriveThumbnailKey } from "~/utils/images";
 import { getServerSession } from "~/utils/server-auth";
+import { isValidEmail, validateParticipantSlots } from "~/utils/participant-validation";
 import { env } from "~/env";
+import { StepIndicator } from "~/components/events/checkout/StepIndicator";
+import { ProductSelectionStep } from "~/components/events/checkout/ProductSelectionStep";
+import { ParticipantAssignmentStep } from "~/components/events/checkout/ParticipantAssignmentStep";
+import type {
+  CheckoutItemInput,
+  GroupedAssignments,
+  ParticipantAssignmentUnit,
+  ParticipantSlotInput,
+} from "~/components/events/checkout/types";
+
+export { useSaveFoodPreference, useSavePhotoConsent };
+
+function splitIntoChunks(value: string, maxChunkSize = 450): string[] {
+  if (!value) return [];
+  const chunks: string[] = [];
+  for (let i = 0; i < value.length; i += maxChunkSize) {
+    chunks.push(value.slice(i, i + maxChunkSize));
+  }
+  return chunks;
+}
 
 export const useProductsData = routeLoader$(async (event) => {
   const eventId = event.params.id;
@@ -68,16 +90,33 @@ export const useProductsData = routeLoader$(async (event) => {
     }),
   );
 
+  const session = await getServerSession(event);
+
   return {
     eventId,
     groups: groupsWithCapacity,
     stripePublishableKey: env.STRIPE_PUBLISHABLE_KEY,
+    foodPreference: (session as any)?.foodPreference ?? null,
+    photoConsentGiven: (session as any)?.photoConsentGiven ?? null,
+    buyer: {
+      id: (session as any)?.id ?? "",
+      name: [
+        (session as any)?.name,
+        (session as any)?.familyName,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .trim(),
+      email: (session as any)?.email ?? "",
+      avatarUrl: (session as any)?.profilePicture
+        ? publicImageUrlFromKey(deriveThumbnailKey((session as any).profilePicture))
+        : null,
+    },
   };
 });
 
 export const useCreateCheckoutSession = routeAction$(
   async (data, event) => {
-    console.log("[Server] useCreateCheckoutSession called");
     const eventId = event.params.id;
 
     // Check authentication for checkout
@@ -101,9 +140,18 @@ export const useCreateCheckoutSession = routeAction$(
       });
     }
 
-    // Parse selected products
-    const items = JSON.parse(data.items as string);
-    console.log("[Server] Creating checkout session for items:", items);
+    const parsedItems = JSON.parse(data.items as string) as CheckoutItemInput[];
+    const items = parsedItems
+      .map((item) => ({
+        productId: item.productId,
+        quantity: Number(item.quantity),
+        participantUnits: item.participantUnits ?? [],
+      }))
+      .filter((item) => item.productId && Number.isFinite(item.quantity) && item.quantity > 0);
+
+    if (items.length === 0) {
+      return event.fail(400, { message: "Please select at least one ticket" });
+    }
 
     // Validate inventory
     const validation = await checkoutService.validateInventory(eventId, items);
@@ -119,24 +167,103 @@ export const useCreateCheckoutSession = routeAction$(
       }),
     );
 
+    for (const entry of products) {
+      if (!entry.product) {
+        return event.fail(400, { message: `Product ${entry.productId} not found` });
+      }
+
+      const expectedCapacity = Math.max(1, entry.product.participantCapacity || 1);
+      if (!Array.isArray(entry.participantUnits) || entry.participantUnits.length !== entry.quantity) {
+        return event.fail(400, {
+          message: `Participant data is incomplete for ${entry.product.name}`,
+        });
+      }
+
+      for (let unitIdx = 0; unitIdx < entry.participantUnits.length; unitIdx++) {
+        const unit = entry.participantUnits[unitIdx] || [];
+        if (unit.length !== expectedCapacity) {
+          return event.fail(400, {
+            message: `${entry.product.name} requires ${expectedCapacity} participant(s) per ticket`,
+          });
+        }
+
+        for (let slotIdx = 0; slotIdx < unit.length; slotIdx++) {
+          const slot = unit[slotIdx];
+          const name = (slot?.name || "").trim();
+          const email = (slot?.email || "").trim();
+          if (!name || !email || !isValidEmail(email)) {
+            return event.fail(400, {
+              message: `Invalid participant details for ${entry.product.name}, ticket ${unitIdx + 1}`,
+            });
+          }
+        }
+      }
+    }
+
+    // First purchased ticket is always assigned to the buyer in slot 1.
+    let firstTicketBound = false;
+    const normalizedItems = products.map((entry) => {
+      const normalizedUnits = entry.participantUnits.map((unit: ParticipantSlotInput[]) =>
+        unit.map((slot: ParticipantSlotInput) => ({
+          name: (slot?.name || "").trim(),
+          email: (slot?.email || "").trim().toLowerCase(),
+          existingUserId: slot?.existingUserId || null,
+        })),
+      );
+
+      for (let i = 0; i < normalizedUnits.length; i++) {
+        if (firstTicketBound) break;
+        if (normalizedUnits[i] && normalizedUnits[i][0]) {
+          normalizedUnits[i][0] = {
+            ...normalizedUnits[i][0],
+            name: [user.name, user.familyName].filter(Boolean).join(" ").trim() || normalizedUnits[i][0].name,
+            email: (user.email || "").trim().toLowerCase() || normalizedUnits[i][0].email,
+            existingUserId: user.id,
+          };
+          firstTicketBound = true;
+        }
+      }
+
+      return {
+        productId: entry.productId,
+        quantity: entry.quantity,
+        product: entry.product,
+        participantUnits: normalizedUnits,
+      };
+    });
+
     // Calculate total amount
-    const totalAmount = products.reduce((sum, p) => {
-      return sum + p.product!.price * p.quantity * 100; // Convert to cents
+    const totalAmount = normalizedItems.reduce((sum, p) => {
+      return sum + p.product.price * p.quantity * 100; // Convert to cents
     }, 0);
 
     // Handle free tickets - skip payment
     if (totalAmount === 0) {
       const { ticketsService } = await import("~/services/tickets.service");
+      const { participantsService } = await import("~/services/participants.service");
 
-      // Create free tickets directly
-      const createdTickets = [];
-      for (const item of items) {
+      const createdTickets: any[] = [];
+      for (const item of normalizedItems) {
         for (let i = 0; i < item.quantity; i++) {
           const ticket = await ticketsService.createFreeTicket({
             productId: item.productId,
             eventId,
             buyerId: user.id,
           });
+
+          const participantSlots = item.participantUnits?.[i] || [];
+          if (participantSlots.length > 0) {
+            await participantsService.createBulk(
+              participantSlots.map((slot: ParticipantSlotInput, slotIdx: number) => ({
+                ticketId: ticket.id,
+                participantOrder: slotIdx + 1,
+                name: slot.name,
+                email: slot.email,
+                userId: slot.existingUserId ?? null,
+              })),
+            );
+          }
+
           createdTickets.push(ticket);
         }
       }
@@ -159,31 +286,48 @@ export const useCreateCheckoutSession = routeAction$(
     }
 
     // Build line items for Stripe
-    const lineItems = products
-      .filter((p) => p.product)
-      .map((p) => ({
+    const lineItems = normalizedItems.map((p) => ({
         price_data: {
           currency: "eur",
           product_data: {
-            name: p.product!.name,
-            description: p.product!.features?.join(", ") || "",
-            images: p.product!.imageKey ? [publicImageUrlFromKey(p.product!.imageKey)].filter(Boolean) : [],
+            name: p.product.name,
+            description: p.product.features?.join(", ") || "",
+            images: p.product.imageKey ? [publicImageUrlFromKey(p.product.imageKey)].filter(Boolean) : [],
           },
-          unit_amount: Math.round(p.product!.price * 100), // Convert to cents
+          unit_amount: Math.round(p.product.price * 100), // Convert to cents
         },
         quantity: p.quantity,
       }));
+
+    const participantPayload = JSON.stringify(
+      normalizedItems.map((item) => ({
+        productId: item.productId,
+        participantUnits: item.participantUnits,
+      })),
+    );
+    const participantChunks = splitIntoChunks(participantPayload);
+
+    const metadata: Record<string, string> = {
+      eventId,
+      userId: user.id,
+      items: JSON.stringify(
+        normalizedItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      ),
+      participantsChunkCount: String(participantChunks.length),
+    };
+
+    participantChunks.forEach((chunk, idx) => {
+      metadata[`participantsChunk${idx}`] = chunk;
+    });
 
     // Create Payment Intent directly
     const paymentIntent = await stripeService.stripe.paymentIntents.create({
       amount: Math.round(totalAmount),
       currency: "eur",
-      metadata: {
-        eventId,
-        userId: user.id,
-        items: JSON.stringify(items),
-        line_items: JSON.stringify(lineItems), // Store line items for webhook
-      },
+      metadata,
       automatic_payment_methods: {
         enabled: true,
       },
@@ -228,15 +372,20 @@ export default component$(() => {
   const data = useProductsData();
   const createCheckoutSession = useCreateCheckoutSession();
   const checkPaymentStatus = useCheckPaymentStatus();
+  const saveFood = useSaveFoodPreference();
+  const savePhoto = useSavePhotoConsent();
 
-  const currentStep = useSignal<1 | 2 | 3>(1);
+  const currentStep = useSignal<1 | 2 | 3 | 4>(1);
   const selectedProducts = useSignal<Record<string, number>>({});
+  const participantAssignments = useSignal<ParticipantAssignmentUnit[]>([]);
   const clientSecret = useSignal<string>("");
   const paymentIntentId = useSignal<string>("");
   const stripeLoaded = useSignal(false);
   const checkoutMounted = useSignal(false);
   const isProcessing = useSignal(false);
   const paymentError = useSignal<string>("");
+  const foodConsentReady = useSignal(data.value.foodPreference !== null);
+  const photoConsentReady = useSignal(data.value.photoConsentGiven !== null);
 
   const calculateTotal = useComputed$(() => {
     let total = 0;
@@ -264,39 +413,111 @@ export default component$(() => {
       .filter((p) => p !== null);
   });
 
-  // Load Stripe.js and create checkout session when reaching step 2
+  const canProceedFromProducts = useComputed$(() => {
+    return Object.values(selectedProducts.value).some((quantity) => quantity > 0);
+  });
+
+  const totalTickets = useComputed$(() => {
+    return Object.values(selectedProducts.value).reduce((sum, value) => sum + value, 0);
+  });
+
+  const participantAssignmentsByProduct = useComputed$(() => {
+    const grouped = new Map<string, GroupedAssignments>();
+
+    for (const unit of participantAssignments.value) {
+      const existing = grouped.get(unit.productId);
+      if (existing) {
+        existing.units.push(unit);
+      } else {
+        grouped.set(unit.productId, {
+          productId: unit.productId,
+          productName: unit.productName,
+          units: [unit],
+        });
+      }
+    }
+
+    return Array.from(grouped.values());
+  });
+
+  const handleSelectionChange = $((next: Record<string, number>) => {
+    selectedProducts.value = next;
+  });
+
+  const handleStartParticipants = $((units: ParticipantAssignmentUnit[]) => {
+    participantAssignments.value = units;
+    currentStep.value = 2;
+    paymentError.value = "";
+  });
+
+  const handleAssignmentsChange = $((next: ParticipantAssignmentUnit[]) => {
+    participantAssignments.value = next;
+  });
+
+  const handleBackToProducts = $(() => {
+    currentStep.value = 1;
+    paymentError.value = "";
+  });
+
+  const handleContinueToPayment = $(() => {
+    const error = validateParticipantSlots(participantAssignments.value);
+    if (error) {
+      paymentError.value = error;
+      return;
+    }
+    paymentError.value = "";
+    currentStep.value = 3;
+  });
+
+  // Load Stripe.js and create checkout session when reaching payment step.
   useVisibleTask$(async ({ track }) => {
     track(() => currentStep.value);
 
-    if (currentStep.value === 2 && !stripeLoaded.value) {
-      console.log("[Checkout] Creating checkout session");
+    if (currentStep.value === 3 && !stripeLoaded.value) {
+      const participantByProduct = participantAssignments.value.reduce(
+        (acc, unit) => {
+          if (!acc[unit.productId]) {
+            acc[unit.productId] = [];
+          }
+          acc[unit.productId].push(
+            unit.slots
+              .filter((slot) => slot.name.trim() || slot.email.trim())
+              .map((slot) => ({
+                name: slot.name,
+                email: slot.email,
+                existingUserId: slot.existingUserId || null,
+              })),
+          );
+          return acc;
+        },
+        {} as Record<string, ParticipantSlotInput[][]>,
+      );
 
-      // Create checkout session using action
-      const items = Object.entries(selectedProducts.value).map(
-        ([productId, quantity]) => ({
+      const items = Object.entries(selectedProducts.value)
+        .map(([productId, quantity]) => ({
           productId,
           quantity,
-        }),
-      );
+          participantUnits: participantByProduct[productId] || [],
+        }))
+        .filter((item) => item.quantity > 0);
 
       const result = await createCheckoutSession.submit({
         items: JSON.stringify(items),
       });
 
-      console.log("[Checkout] Checkout session result:", result);
+      if (result.value?.failed) {
+        paymentError.value = result.value.message || "Failed to prepare checkout";
+        return;
+      }
 
       // Handle free tickets
       if (result.value?.tickets) {
-        console.log("[Checkout] Free tickets created, skipping to success");
-        currentStep.value = 3;
+        currentStep.value = 4;
         return;
       }
 
       // Handle paid tickets - load Stripe
       if (result.value?.clientSecret && result.value?.paymentIntentId) {
-        console.log("[Checkout] Loading Stripe.js for paid tickets");
-
-        // Load Stripe.js script
         if (!document.querySelector('script[src*="stripe.com/v3"]')) {
           const script = document.createElement("script");
           script.src = "https://js.stripe.com/v3/";
@@ -309,7 +530,6 @@ export default component$(() => {
         }
 
         stripeLoaded.value = true;
-        console.log("[Checkout] Stripe.js loaded");
 
         clientSecret.value = result.value.clientSecret;
         paymentIntentId.value = result.value.paymentIntentId;
@@ -327,8 +547,6 @@ export default component$(() => {
       typeof window !== "undefined" &&
       (window as any).Stripe
     ) {
-      console.log("[Checkout] Mounting Stripe Payment Element");
-
       const stripe = (window as any).Stripe(data.value.stripePublishableKey);
       const elements = stripe.elements({ clientSecret: clientSecret.value });
       const paymentElement = elements.create("payment");
@@ -351,10 +569,8 @@ export default component$(() => {
 
   const handlePaymentSubmit = $(async (e: Event) => {
     e.preventDefault();
-    console.log("[Checkout] Handling payment submission");
 
     if (!(window as any).__stripeCheckout) {
-      console.error("[Checkout] Stripe not initialized");
       paymentError.value = "Payment system not initialized";
       return;
     }
@@ -375,17 +591,13 @@ export default component$(() => {
       });
 
       if (error) {
-        console.error("[Checkout] Payment error:", error);
         paymentError.value = error.message || "Payment failed";
         isProcessing.value = false;
         return;
       }
 
-      // Payment succeeded, start polling
-      console.log("[Checkout] Payment submitted, polling for completion");
       isProcessing.value = false;
     } catch (error: any) {
-      console.error("[Checkout] Unexpected error:", error);
       paymentError.value = "An unexpected error occurred";
       isProcessing.value = false;
     }
@@ -396,8 +608,7 @@ export default component$(() => {
     track(() => paymentIntentId.value);
     track(() => currentStep.value);
 
-    if (currentStep.value === 2 && paymentIntentId.value) {
-      console.log("[Checkout] Starting to poll for payment completion");
+    if (currentStep.value === 3 && paymentIntentId.value) {
 
       const pollInterval = setInterval(async () => {
         const result = await checkPaymentStatus.submit({
@@ -405,9 +616,8 @@ export default component$(() => {
         });
 
         if (result.value?.succeeded) {
-          console.log("[Checkout] Payment completed!");
           clearInterval(pollInterval);
-          currentStep.value = 3;
+          currentStep.value = 4;
         }
       }, 2000); // Poll every 2 seconds
 
@@ -421,208 +631,45 @@ export default component$(() => {
     <div class="max-w-4xl mx-auto p-6">
       <h1 class="text-3xl font-bold mb-6">Purchase Tickets</h1>
 
-      {/* Step Indicator */}
-      <div class="flex items-center justify-center mb-8">
-        <div class="flex items-center">
-          <div
-            class={`flex items-center justify-center w-10 h-10 rounded-full ${
-              currentStep.value === 1
-                ? "bg-blue-600 text-white"
-                : "bg-green-600 text-white"
-            }`}
-          >
-            {currentStep.value === 2 ? "✓" : "1"}
-          </div>
-          <span
-            class={`ml-2 font-medium ${currentStep.value === 1 ? "text-blue-600" : "text-gray-600"}`}
-          >
-            Select Products
-          </span>
-        </div>
-
-        <div class="w-24 h-1 bg-gray-300 mx-4"></div>
-
-        <div class="flex items-center">
-          <div
-            class={`flex items-center justify-center w-10 h-10 rounded-full ${
-              currentStep.value === 2
-                ? "bg-blue-600 text-white"
-                : "bg-gray-300 text-gray-600"
-            }`}
-          >
-            2
-          </div>
-          <span
-            class={`ml-2 font-medium ${currentStep.value === 2 ? "text-blue-600" : "text-gray-600"}`}
-          >
-            Payment
-          </span>
-        </div>
-      </div>
+      <StepIndicator currentStep={currentStep.value} />
 
       {/* Step 1: Product Selection */}
       {currentStep.value === 1 && (
-        <div class="space-y-6">
-          {data.value.groups.map((group) => (
-            <div key={group.id} class="border rounded-lg p-6 bg-white">
-              <div class="mb-4">
-                <h2 class="text-xl font-bold">{group.name}</h2>
-                <p class="text-sm text-gray-600">
-                  {group.remainingCapacity} of {group.maxCapacity} spots
-                  remaining
-                </p>
-              </div>
-
-              {group.remainingCapacity === 0 ? (
-                <div class="p-4 bg-gray-100 text-gray-600 rounded-sm text-center">
-                  Sold Out
-                </div>
-              ) : !group.isSalesOpen ? (
-                <div
-                  class={`rounded-lg p-4 mb-4 ${
-                    group.salesStartDate &&
-                    new Date(group.salesStartDate) > new Date()
-                      ? "bg-yellow-50 border border-yellow-200 text-yellow-700"
-                      : "bg-red-50 border border-red-200 text-red-700"
-                  }`}
-                >
-                  <div
-                    class={`text-lg font-semibold mb-2 ${
-                      group.salesStartDate &&
-                      new Date(group.salesStartDate) > new Date()
-                        ? "text-yellow-900"
-                        : "text-red-900"
-                    }`}
-                  >
-                    {group.salesStartDate &&
-                    new Date(group.salesStartDate) > new Date()
-                      ? "🕒 Sales Not Yet Open"
-                      : "🔒 Sales Closed"}
-                  </div>
-                  <p
-                    class={
-                      group.salesStartDate &&
-                      new Date(group.salesStartDate) > new Date()
-                        ? "text-yellow-800"
-                        : "text-red-800"
-                    }
-                  >
-                    {group.salesStartDate &&
-                    new Date(group.salesStartDate) > new Date()
-                      ? `Opens ${new Date(group.salesStartDate).toLocaleString()}`
-                      : group.salesEndDate
-                        ? `Closed ${new Date(group.salesEndDate).toLocaleString()}`
-                        : "Sales are not available for this group"}
-                  </p>
-                </div>
-              ) : ((group.availableProducts as any[]) || []).length === 0 ? (
-                <div class="p-4 bg-gray-100 text-gray-600 rounded-sm text-center">
-                  No products available
-                </div>
-              ) : (
-                <div class="space-y-4">
-                  {((group.availableProducts as any[]) || []).map(
-                    (product: any) => {
-                      const isSelected = selectedProducts.value[product.id] > 0;
-
-                      return (
-                        <label
-                          key={product.id}
-                          class={`flex items-start gap-4 p-4 border rounded-sm cursor-pointer hover:bg-gray-50 ${isSelected ? "border-blue-500 bg-blue-50" : ""}`}
-                        >
-                          <input
-                            type="radio"
-                            name={`group_${group.id}`}
-                            value={product.id}
-                            checked={isSelected}
-                            class="mt-1"
-                            onChange$={(e, el) => {
-                              if (el.checked) {
-                                // Clear other products in the same group (iterate all products to ensure cleanup)
-                                const newSelection = {
-                                  ...selectedProducts.value,
-                                };
-                                ((group.products as any[]) || []).forEach(
-                                  (p: any) => {
-                                    if (p.id !== product.id) {
-                                      delete newSelection[p.id];
-                                    }
-                                  },
-                                );
-                                newSelection[product.id] = 1;
-                                console.log(
-                                  "[Checkout] Selected product:",
-                                  product.id,
-                                );
-                                selectedProducts.value = newSelection;
-                              }
-                            }}
-                          />
-
-                          <div class="flex-1">
-                            <div class="flex justify-between items-start">
-                              <div>
-                                <h3 class="font-semibold">{product.name}</h3>
-                                {product.features &&
-                                  product.features.length > 0 && (
-                                    <ul class="text-sm text-gray-600 mt-1 space-y-1">
-                                      {product.features.map(
-                                        (feature: string, idx: number) => (
-                                          <li key={idx}>• {feature}</li>
-                                        ),
-                                      )}
-                                    </ul>
-                                  )}
-                              </div>
-                              {product.imageKey && (
-                                <img
-                                  src={publicImageUrlFromKey(product.imageKey) ?? undefined}
-                                  alt={product.name}
-                                  class="w-20 h-20 object-cover rounded-sm ml-4"
-                                />
-                              )}
-                            </div>
-                            <p class="text-sm text-gray-600 mt-2">
-                              €{product.price.toFixed(2)} | Sold:{" "}
-                              {product.soldQuantity} /{" "}
-                              {product.maxQuantity || "∞"}
-                            </p>
-                          </div>
-                        </label>
-                      );
-                    },
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-
-          <div class="sticky bottom-0 bg-white border-t pt-4 pb-2">
-            <div class="flex justify-between items-center mb-4">
-              <span class="text-xl font-bold">Total:</span>
-              <span class="text-2xl font-bold">
-                €{calculateTotal.value.toFixed(2)}
-              </span>
-            </div>
-            <Button
-              class="w-full"
-              disabled={Object.keys(selectedProducts.value).length === 0}
-              onClick$={() => {
-                console.log(
-                  "[Checkout] Proceeding to payment step with selection:",
-                  selectedProducts.value,
-                );
-                currentStep.value = 2;
-              }}
-            >
-              Proceed to Payment
-            </Button>
-          </div>
-        </div>
+        <ProductSelectionStep
+          groups={data.value.groups as any[]}
+          selectedProducts={selectedProducts.value}
+          selectedProductDetails={selectedProductDetails.value as any[]}
+          canProceedFromProducts={canProceedFromProducts.value}
+          totalTickets={totalTickets.value}
+          total={calculateTotal.value}
+          buyer={{
+            id: data.value.buyer.id,
+            name: data.value.buyer.name || "",
+            email: data.value.buyer.email || "",
+          }}
+          onSelectionChange$={handleSelectionChange}
+          onContinue$={handleStartParticipants}
+        />
       )}
 
-      {/* Step 2: Payment */}
+      {/* Step 2: Participant Assignment */}
       {currentStep.value === 2 && (
+        <ParticipantAssignmentStep
+          groupedAssignments={participantAssignmentsByProduct.value}
+          assignments={participantAssignments.value}
+          buyer={{
+            name: data.value.buyer.name || "",
+            avatarUrl: data.value.buyer.avatarUrl,
+          }}
+          error={paymentError.value || undefined}
+          onBack$={handleBackToProducts}
+          onContinue$={handleContinueToPayment}
+          onAssignmentsChange$={handleAssignmentsChange}
+        />
+      )}
+
+      {/* Step 3: Payment */}
+      {currentStep.value === 3 && (
         <div class="space-y-6">
           {/* Order Summary */}
           <div class="border rounded-lg p-6 bg-white">
@@ -632,13 +679,9 @@ export default component$(() => {
                 <div key={item.id} class="flex justify-between items-center">
                   <div>
                     <p class="font-medium">{item.name}</p>
-                    <p class="text-sm text-gray-600">
-                      Quantity: {item.quantity}
-                    </p>
+                    <p class="text-sm text-gray-600">Quantity: {item.quantity}</p>
                   </div>
-                  <p class="font-bold">
-                    €{(item.price * item.quantity).toFixed(2)}
-                  </p>
+                  <p class="font-bold">€{(item.price * item.quantity).toFixed(2)}</p>
                 </div>
               ))}
               <div class="border-t pt-3 mt-3 flex justify-between items-center">
@@ -649,6 +692,27 @@ export default component$(() => {
               </div>
             </div>
           </div>
+
+          {/* Consent sections required before payment */}
+          {data.value.foodPreference === null && (
+            <FoodPreferenceStep
+              initialPreference={null}
+              updateAction={saveFood}
+              onComplete$={$(() => {
+                foodConsentReady.value = true;
+              })}
+            />
+          )}
+
+          {data.value.photoConsentGiven === null && (
+            <PhotoConsentStep
+              initialValue={null}
+              updateAction={savePhoto}
+              onComplete$={$(() => {
+                photoConsentReady.value = true;
+              })}
+            />
+          )}
 
           {/* Payment Form */}
           <div class="border rounded-lg p-6 bg-white">
@@ -683,11 +747,11 @@ export default component$(() => {
                   class="flex-1"
                   disabled={isProcessing.value}
                   onClick$={() => {
-                    console.log("[Checkout] Going back to product selection");
-                    currentStep.value = 1;
+                    currentStep.value = 2;
                     clientSecret.value = "";
                     paymentIntentId.value = "";
                     checkoutMounted.value = false;
+                    stripeLoaded.value = false;
                     paymentError.value = "";
                   }}
                 >
@@ -696,7 +760,7 @@ export default component$(() => {
                 <Button
                   type="button"
                   class="flex-1"
-                  disabled={!clientSecret.value || isProcessing.value}
+                  disabled={!clientSecret.value || isProcessing.value || !foodConsentReady.value || !photoConsentReady.value}
                   onClick$={handlePaymentSubmit}
                 >
                   {isProcessing.value ? (
@@ -714,8 +778,8 @@ export default component$(() => {
         </div>
       )}
 
-      {/* Step 3: Success */}
-      {currentStep.value === 3 && (
+      {/* Step 4: Success */}
+      {currentStep.value === 4 && (
         <div class="space-y-6">
           <div class="border rounded-lg p-6 bg-white text-center">
             <div class="text-green-500 text-6xl mb-4">✓</div>

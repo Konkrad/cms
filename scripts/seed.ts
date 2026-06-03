@@ -12,6 +12,7 @@
 
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
+import { eq } from "drizzle-orm";
 import * as schema from "../src/db/schema.ts";
 import crypto from "crypto";
 import fs from "fs";
@@ -245,6 +246,80 @@ let testUsers = db
   .all()
   .filter((u) => u.role === "user" && u.familyName === "Test");
 
+const qaCheckoutUserDefs = [
+  { name: "Marta", familyName: "Keller", email: "qa.marta@example.com" },
+  { name: "Jonas", familyName: "Richter", email: "qa.jonas@example.com" },
+  { name: "Leonie", familyName: "Baumann", email: "qa.leonie@example.com" },
+  { name: "Tariq", familyName: "Hassan", email: "qa.tariq@example.com" },
+] as const;
+
+const qaCheckoutUsers: Array<typeof schema.users.$inferSelect> = [];
+
+for (const qaUser of qaCheckoutUserDefs) {
+  const existingLogin = db
+    .select()
+    .from(schema.logins)
+    .all()
+    .find((login) => login.email === qaUser.email);
+
+  if (!existingLogin) {
+    const loginId = uuid();
+    db.insert(schema.logins)
+      .values({ id: loginId, email: qaUser.email, expiresAt: "2099-01-01T00:00:00.000Z" })
+      .run();
+
+    db.insert(schema.users)
+      .values({
+        id: uuid(),
+        name: qaUser.name,
+        familyName: qaUser.familyName,
+        role: "user",
+        loginId,
+        createdAt: now(),
+        updatedAt: now(),
+      })
+      .run();
+    continue;
+  }
+
+  const existingUser = db
+    .select()
+    .from(schema.users)
+    .all()
+    .find((user) => user.loginId === existingLogin.id);
+
+  if (!existingUser) {
+    db.insert(schema.users)
+      .values({
+        id: uuid(),
+        name: qaUser.name,
+        familyName: qaUser.familyName,
+        role: "user",
+        loginId: existingLogin.id,
+        createdAt: now(),
+        updatedAt: now(),
+      })
+      .run();
+  }
+}
+
+for (const qaUser of qaCheckoutUserDefs) {
+  const login = db
+    .select()
+    .from(schema.logins)
+    .all()
+    .find((l) => l.email === qaUser.email);
+  if (!login) continue;
+  const user = db
+    .select()
+    .from(schema.users)
+    .all()
+    .find((u) => u.loginId === login.id);
+  if (user) {
+    qaCheckoutUsers.push(user);
+  }
+}
+
 if (testUsers.length < 10) {
   for (let i = testUsers.length; i < 10; i++) {
     const loginId = uuid();
@@ -267,6 +342,7 @@ if (testUsers.length < 10) {
 console.log(
   `Users: admin=${adminUser.name}, host=${hostUser.name}, test=${testUsers.length}`,
 );
+console.log(`  checkout QA users ensured (${qaCheckoutUsers.length})`);
 
 // ─── 5. Groups ───────────────────────────────────────────────────────────────
 
@@ -345,12 +421,12 @@ console.log("  memberships seeded");
 // ─── 7. Representatives ──────────────────────────────────────────────────────
 
 const repPlan: Array<{ userId: string; groupSlug: string }> = [
-  { userId: testUsers[0]?.id, groupSlug: "berlin" },
+  { userId: testUsers[0]?.id, groupSlug: "munich" },
   { userId: testUsers[2]?.id, groupSlug: "munich" },
   { userId: testUsers[6]?.id, groupSlug: "hamburg" },
   { userId: testUsers[4]?.id, groupSlug: "frankfurt" },
   { userId: testUsers[8]?.id, groupSlug: "cologne" },
-  { userId: hostUser.id, groupSlug: "berlin" },
+  { userId: hostUser.id, groupSlug: "hamburg" },
 ].filter((r) => r.userId);
 
 const existingReps = db.select().from(schema.groupRepresentatives).all();
@@ -668,6 +744,34 @@ const eventDefs: Array<{
     longitude: "6.9831",
   },
   {
+    title: "Checkout Matrix Demo Event",
+    body: "<p>Demo event for testing checkout with multiple inventory groups and paid product choices.</p>",
+    groupSlug: "berlin",
+    visibility: "global",
+    authorIdx: -1,
+    startOffsetDays: 20,
+    durationHours: 3,
+    city: "Berlin",
+    country: "Germany",
+    address: "Betahaus, Rudi-Dutschke-Str. 23, 10969 Berlin",
+    latitude: "52.5060",
+    longitude: "13.3903",
+  },
+  {
+    title: "Checkout QA Multi-Quantity & Participant Capacity",
+    body: "<p>Purpose-built QA event for manual checkout validation: quantity controls, participant assignment, and autocomplete by name.</p>",
+    groupSlug: "berlin",
+    visibility: "global",
+    authorIdx: -1,
+    startOffsetDays: 16,
+    durationHours: 4,
+    city: "Berlin",
+    country: "Germany",
+    address: "MotionLab Berlin, Bouchestr. 12, 12435 Berlin",
+    latitude: "52.4899",
+    longitude: "13.4450",
+  },
+  {
     title: "All-Groups Online Town Hall",
     body: "<p>Quarterly online town hall open to all groups. Platform updates, Q&A, and upcoming features.</p>",
     groupSlug: null,
@@ -956,6 +1060,85 @@ seedInventory({
 });
 
 seedInventory({
+  eventTitle: "Checkout Matrix Demo Event",
+  inventoryName: "Main Hall Passes",
+  maxCapacity: 120,
+  salesStartOffset: -7,
+  salesEndOffset: 19,
+  products: [
+    { name: "Standard Pass", price: 18, maxQuantity: 80, soldQuantity: 12 },
+    { name: "Premium Pass", price: 35, maxQuantity: 40, soldQuantity: 6 },
+  ],
+});
+
+seedInventory({
+  eventTitle: "Checkout Matrix Demo Event",
+  inventoryName: "Workshops",
+  maxCapacity: 50,
+  salesStartOffset: -7,
+  salesEndOffset: 19,
+  products: [
+    { name: "AI Hands-on Workshop", price: 22, maxQuantity: 30, soldQuantity: 4 },
+    { name: "Founder Coaching Session", price: 45, maxQuantity: 20, soldQuantity: 3 },
+  ],
+});
+
+seedInventory({
+  eventTitle: "Checkout QA Multi-Quantity & Participant Capacity",
+  inventoryName: "QA Main Passes",
+  maxCapacity: 80,
+  salesStartOffset: -5,
+  salesEndOffset: 25,
+  products: [
+    {
+      name: "QA Standard Pass",
+      price: 19,
+      maxQuantity: 6,
+      soldQuantity: 1,
+      participantCapacity: 1,
+    },
+    {
+      name: "QA One-Time VIP Seat",
+      price: 49,
+      maxQuantity: 1,
+      soldQuantity: 0,
+      participantCapacity: 1,
+    },
+    {
+      name: "QA Premium Pass",
+      price: 34,
+      maxQuantity: 4,
+      soldQuantity: 0,
+      participantCapacity: 1,
+    },
+  ],
+});
+
+seedInventory({
+  eventTitle: "Checkout QA Multi-Quantity & Participant Capacity",
+  inventoryName: "QA Team Workshops",
+  maxCapacity: 36,
+  salesStartOffset: -5,
+  salesEndOffset: 25,
+  products: [
+    {
+      name: "QA Pair Workshop (2 participants)",
+      price: 54,
+      maxQuantity: 6,
+      soldQuantity: 1,
+      participantCapacity: 2,
+    },
+    {
+      name: "QA Trio Lab (3 participants)",
+      price: 72,
+      maxQuantity: 4,
+      soldQuantity: 0,
+      participantCapacity: 3,
+    },
+  ],
+});
+
+seedInventory({
   eventTitle: "All-Groups Online Town Hall",
   inventoryName: "Virtual Seats",
   maxCapacity: 200,
@@ -998,6 +1181,8 @@ function seedTransaction(opts: {
   items: Array<{ productName: string; quantity: number }>;
   daysAgo: number;
   scanned?: boolean;
+  /** When set, slot 1 of every ticket is assigned to this email instead of the buyer's */
+  assignedToEmail?: string;
 }) {
   const event = eventByTitle[opts.eventTitle];
   if (!event) return;
@@ -1088,6 +1273,12 @@ function seedTransaction(opts: {
   const FIRST_NAMES = ["Anna", "Ben", "Clara", "David", "Elena", "Felix", "Greta", "Hans", "Iris", "Jan"];
   const LAST_NAMES = ["Müller", "Schmidt", "Schneider", "Fischer", "Weber", "Meyer", "Wagner", "Becker", "Schulz", "Koch"];
 
+  // Resolve the buyer's actual login email for correct assignedAway detection
+  const buyerLogin = buyer.loginId
+    ? db.select().from(schema.logins).all().find((l) => l.id === buyer.loginId)
+    : null;
+  const buyerEmail = buyerLogin?.email ?? null;
+
   for (const tv of ticketValues) {
     const product = eventProducts.find((p) => p.id === tv.productId);
     const capacity = product?.participantCapacity ?? 1;
@@ -1102,9 +1293,13 @@ function seedTransaction(opts: {
           ticketId: tv.id,
           participantOrder: p,
           name: `${first} ${last}`,
-          email: p === 1 && (buyer as any).loginId
-            ? `seed-${tv.id.slice(0, 8)}@example.com`
+          // Slot 1: use assignedToEmail override if provided, otherwise buyer's real email
+          email: p === 1 && opts.assignedToEmail
+            ? opts.assignedToEmail
+            : p === 1 && buyerEmail
+            ? buyerEmail
             : `${first.toLowerCase()}.${last.toLowerCase()}@example.com`,
+          userId: p === 1 && !opts.assignedToEmail ? buyer.id : undefined,
         })
         .run();
     }
@@ -1127,6 +1322,8 @@ seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 3, items: [{ pro
 seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 5, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 2 });
 seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 7, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 2 });
 seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 9, items: [{ productName: "Free Entry", quantity: 2 }], daysAgo: 1 });
+// Admin buys a ticket but assigns it to a registered user (hidden from QR wall)
+seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: -1, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 2, assignedToEmail: "user1@example.com" });
 
 // ── Berlin Tech Talk — standard + VIP ──
 seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 0, items: [{ productName: "Standard Seat", quantity: 1 }], daysAgo: 10 });
@@ -1135,12 +1332,16 @@ seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 5, items
 seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 7, items: [{ productName: "Standard Seat", quantity: 1 }], daysAgo: 6 });
 seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: -1, items: [{ productName: "VIP Seat (front row + networking)", quantity: 1 }], daysAgo: 12 });
 seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 3, items: [{ productName: "Standard Seat", quantity: 2 }], daysAgo: 5 });
+// Admin buys 2 tickets: one for self (appears in QR wall), one assigned away to a registered user (hidden)
+seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: -1, items: [{ productName: "Standard Seat", quantity: 1 }], daysAgo: 3, assignedToEmail: "user2@example.com" });
 
 // ── Welcome Night ──
 seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: 3, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 2 });
 seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: 7, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 2 });
 seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: 9, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 1 });
 seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: -2, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 3 });
+// Admin buys a ticket assigned to a registered user (should NOT appear in admin's QR wall)
+seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: -1, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 1, assignedToEmail: "user3@example.com" });
 
 // ── Munich Hike ──
 seedTransaction({ eventTitle: "Munich Community Hike – Englischer Garten", buyerIdx: 2, items: [{ productName: "Hiker Spot", quantity: 1 }], daysAgo: 6 });
@@ -1218,6 +1419,32 @@ console.log(`  transactions seeded (${txCount} transactions, ${ticketCount} tick
 
 const imageKeys = await downloadAndUploadSeedImages();
 
+const usersWithoutProfile = db
+  .select()
+  .from(schema.users)
+  .all()
+  .filter((u) => !u.profilePicture);
+
+for (let i = 0; i < usersWithoutProfile.length; i++) {
+  db.update(schema.users)
+    .set({
+      profilePicture: imageKeys[i % imageKeys.length],
+      updatedAt: now(),
+    })
+    .where(eq(schema.users.id, usersWithoutProfile[i].id))
+    .run();
+}
+
+for (let i = 0; i < qaCheckoutUsers.length; i++) {
+  db.update(schema.users)
+    .set({
+      profilePicture: imageKeys[(i + 2) % imageKeys.length],
+      updatedAt: now(),
+    })
+    .where(eq(schema.users.id, qaCheckoutUsers[i].id))
+    .run();
+}
+
 const eventsNoImg = sqlite
   .prepare("SELECT id FROM events WHERE deleted_at IS NULL AND (image1 IS NULL OR image1 LIKE '%picsum.photos%' OR image2 IS NULL OR image2 LIKE '%picsum.photos%')")
   .all() as Array<{ id: string }>;
@@ -1252,6 +1479,11 @@ for (let i = 0; i < groupsNoImg.length; i++) {
 }
 
 console.log(`  images downloaded/uploaded and linked (${eventsNoImg.length} events, ${postsNoImg.length} posts, ${groupsNoImg.length} groups)`);
+console.log(`  user profile pictures assigned (${usersWithoutProfile.length} users, QA users emphasized=${qaCheckoutUsers.length})`);
+console.log("  checkout QA scenario ready:");
+console.log("    Event: Checkout QA Multi-Quantity & Participant Capacity");
+console.log("    Products: QA Standard Pass, QA Premium Pass, QA Pair Workshop (2 participants), QA Trio Lab (3 participants)");
+console.log("    Search users: Marta Keller, Jonas Richter, Leonie Baumann, Tariq Hassan");
 
 // ─── 13. Forms ───────────────────────────────────────────────────────────────
 

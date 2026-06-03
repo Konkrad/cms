@@ -19,7 +19,6 @@ type ScanResult = {
     participantOrder: number;
     name: string;
     email: string;
-    phone?: string | null;
   }>;
 };
 
@@ -212,7 +211,6 @@ export const TicketScanner = component$<TicketScannerProps>(
                               class="text-xs text-green-700 ml-2"
                             >
                               {p.participantOrder}. {p.name} ({p.email})
-                              {p.phone && ` - ${p.phone}`}
                             </div>
                           ))}
                         </div>

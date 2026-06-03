@@ -65,6 +65,7 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
   const uppyRef = useSignal<NoSerialize<Uppy>>();
   const uploadedValues = useSignal<string[]>([]);
   const selectedPreviewUrl = useSignal<string | null>(null);
+  const isImageReady = useSignal(false);
 
   const cropAspectRatio = props.cropAspectRatio
     ? (() => {
@@ -98,6 +99,9 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
         proudlyDisplayPoweredByUppy: false,
         autoOpen: props.crop ? "imageEditor" : undefined,
         plugins: props.crop ? ["ImageEditor"] : undefined,
+        locale: props.crop
+          ? { strings: { save: "Confirm Crop" } }
+          : undefined,
       })
       .use(ImageEditor, {
         target: Dashboard as any,
@@ -210,6 +214,8 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
       // In auto-upload mode with crop enabled, upload right after crop confirm.
       if (props.autoUpload) {
         void uppy.upload();
+      } else if (props.crop) {
+        isImageReady.value = true;
       }
     });
 
@@ -220,20 +226,12 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
       }
     });
 
-    // Per-file callback — useful for gallery/auto-upload mode
-    uppy.on("upload-success", (_file, response) => {
-      const body = (response as any).body ?? {};
-      props.onFileUploaded$?.({
-        url: body.url,
-        filePath: body.filePath,
-      });
-    });
-
     // Handle completion inline — avoids QRL-as-callback issues
     uppy.on("complete", async (result) => {
       const successful = Array.isArray(result.successful) ? result.successful : [];
 
       const values = successful
+        // Persist object keys in forms; URLs may be presigned/temporary.
         .map((f: any) => f.response?.body?.filePath || f.response?.body?.url)
         .filter(Boolean) as string[];
 
@@ -242,6 +240,18 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
           ? uploadedValues.value
           : [];
         uploadedValues.value = [...existingValues, ...values];
+      }
+
+      // Notify per-file callbacks and wait for signal updates to propagate
+      // (must happen before onSettled$ so callers see the updated URLs)
+      for (const f of successful) {
+        const body = (f as any).response?.body ?? {};
+        if (body.url || body.filePath) {
+          await props.onFileUploaded$?.({
+            url: body.url,
+            filePath: body.filePath,
+          });
+        }
       }
 
       // Wait for Qwik to reconcile the DOM (hidden inputs) before notifying
@@ -287,6 +297,12 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
             loading="lazy"
           />
         </div>
+      )}
+
+      {!props.autoUpload && isImageReady.value && (
+        <p class="text-sm text-green-600 font-medium mt-2">
+          Image ready &mdash; will be uploaded on save.
+        </p>
       )}
 
       <div

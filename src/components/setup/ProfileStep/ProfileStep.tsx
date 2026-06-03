@@ -1,4 +1,4 @@
-import { $, component$, useSignal, useVisibleTask$, type Signal } from "@qwik.dev/core";
+import { $, component$, useSignal, type Signal } from "@qwik.dev/core";
 import { Form, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
@@ -52,7 +52,7 @@ export type ProfileStepProps = {
   /** Pass the result of useUpdateProfile() called in the parent route. */
   updateAction: any;
   onComplete?: () => void;
-  saveTrigger: Signal<number>;
+  saveTrigger?: Signal<number>;
 };
 
 export const ProfileStep = component$<ProfileStepProps>((props) => {
@@ -70,7 +70,7 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
     props.onComplete();
   }
 
-  const saveFn = async () => {
+  const saveFn = $(async () => {
     const formData = new FormData();
     formData.set("name", name.value);
     formData.set("family_name", familyName.value);
@@ -90,17 +90,9 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
     }
 
     return { error: "No server action available" };
-  };
-
-  const lastSaved = useSignal(props.saveTrigger?.value ?? 0);
-  const triggerUpload = useSignal(false);
-  useVisibleTask$(({ track }) => {
-    track(() => props.saveTrigger.value);
-    if (props.saveTrigger.value !== lastSaved.value) {
-      lastSaved.value = props.saveTrigger.value;
-      triggerUpload.value = true;
-    }
   });
+
+
 
   return (
     <Card>
@@ -108,7 +100,7 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
         <Alert variant="error" class="mb-4">{action.value.error}</Alert>
       )}
 
-      <Form action={action} class="space-y-4">
+      <Form action={action} id="profile-step-form" class="space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input label="First Name" name="name" type="text" value={name.value} onInput$={(e) => (name.value = (e.target as HTMLInputElement).value)} required />
 
@@ -143,11 +135,11 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
             aspectRatio="1/1"
             crop
             cropAspectRatio="1/1"
-            triggerSignal={triggerUpload}
-            onSettled$={$(() => void saveFn())}
+            autoUpload
           />
         </div>
 
+        <button type="submit" id="profile-form-save" class="hidden" />
       </Form>
     </Card>
   );

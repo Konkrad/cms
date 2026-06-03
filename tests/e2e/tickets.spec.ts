@@ -289,7 +289,6 @@ test.describe('Participant Assignment Step', () => {
   }
 
   test('buyer is pre-assigned to the first slot of each product', async ({ browser }) => {
-    test.setTimeout(60000);
     const now = new Date().toISOString();
     const session = createTestUser({
       consent: { terms: 'yes', lastProfileUpdate: now, locationVerification: now, foodPreference: now, photoConsent: now },

@@ -9,6 +9,7 @@ export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
+  timeout: process.env.CI ? 60000 : 30000,
   reporter: "list",
   webServer: {
     command: "npm run dev",

@@ -47,14 +47,14 @@ export default component$<QrTicketWallProps>(
     const carouselIndex = useSignal(0);
     const carouselRef = useSignal<HTMLElement>();
 
-    // Auto-focus the carousel div for keyboard navigation
+    // Auto-focus the carousel div for keyboard navigation when a modal opens
     // eslint-disable-next-line qwik/no-use-visible-task
     useVisibleTask$(({ track }) => {
       track(() => selectedEventId.value);
       if (selectedEventId.value !== null) {
         carouselRef.value?.focus();
       }
-    });
+    }, { strategy: "document-ready" });
 
     const eventGroups = groupByEvent(tickets);
 

@@ -14,12 +14,12 @@ import {
 	type RenderToStreamOptions,
 	renderToStream,
 } from "@qwik.dev/core/server";
-import { manifest } from "@qwik-client-manifest";
+import { getClientManifest } from "@qwik.dev/core";
 import Root from "./root";
 
 export default function (opts: RenderToStreamOptions) {
 	return renderToStream(<Root />, {
-		manifest,
+		manifest: getClientManifest(),
 		...opts,
 		// Use container attributes to set attributes on the html tag.
 		containerAttributes: {

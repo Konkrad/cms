@@ -306,6 +306,7 @@ test.describe('Participant Assignment Step', () => {
       ],
       salesStartOffset: -1,
       salesEndOffset: 10,
+      separateGroups: true,
     });
 
     const ctx = await browser.newContext();
@@ -324,18 +325,17 @@ test.describe('Participant Assignment Step', () => {
       await page.goto(`/events/${ev.id}/checkout`);
       await expect(page.locator('h1:has-text("Purchase Tickets")')).toBeVisible();
 
-      // Select 1 of Product A and 1 of Product B
-      const quantityInputs = page.locator('input[type="number"]');
-      if (await quantityInputs.count() >= 2) {
-        await quantityInputs.nth(0).fill('1');
-        await quantityInputs.nth(1).fill('1');
-      }
+      // Select 1 of Product A and 1 of Product B (each in its own group — radio per group)
+      const radios = page.locator('input[type="radio"]');
+      await expect(radios.first()).toBeVisible({ timeout: 10000 });
+      await radios.nth(0).check();
+      await radios.nth(1).check();
 
       await page.click('button:has-text("Continue to Participants")');
       await expect(page.locator('h2:has-text("Participant Assignment")')).toBeVisible({ timeout: 15000 });
 
-      // Buyer "Test User" should appear once per product card
-      const buyerRows = page.locator('text=Test User');
+      // Buyer "Test User" should appear once per product card (in the locked participant slot)
+      const buyerRows = page.locator('p.text-sm.font-medium.truncate', { hasText: 'Test User' });
       await expect(buyerRows).toHaveCount(2, { timeout: 15000 });
     } finally {
       await ctx.close();

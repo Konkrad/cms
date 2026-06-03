@@ -259,9 +259,7 @@ export const useCreateCheckoutSession = routeAction$(
                 participantOrder: slotIdx + 1,
                 name: slot.name,
                 email: slot.email,
-                additionalData: slot.existingUserId
-                  ? { existingUserId: slot.existingUserId }
-                  : undefined,
+                userId: slot.existingUserId ?? null,
               })),
             );
           }

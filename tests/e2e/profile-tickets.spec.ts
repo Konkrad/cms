@@ -109,7 +109,7 @@ test.describe("Profile — Purchases section", () => {
     const email = getUserEmailById(session.userId)!;
     const event = createTestEventWithProduct({ ownerId: session.userId, isFuture: true });
     const ticketId = createTicketInDb({ buyerId: session.userId, eventId: event.eventId, productId: event.productId });
-    addParticipantToTicket(ticketId, { name: "Test User", email });
+    addParticipantToTicket(ticketId, { name: "Test User", email, userId: session.userId });
 
     const ctx = await browser.newContext();
     await ctx.addCookies(authCookies(session.sessionToken));
@@ -119,6 +119,31 @@ test.describe("Profile — Purchases section", () => {
       const purchases = page.locator("div").filter({ has: page.locator('h3:has-text("Purchases")') });
       await purchases.locator('div[role="button"]:has-text("Ticket Test Event")').click();
       await expect(purchases.getByText("Standard Ticket")).toBeVisible();
+      await expect(purchases.getByText("You", { exact: true })).toBeVisible();
+      await expect(purchases.locator(".text-amber-700")).not.toBeVisible();
+    } finally {
+      await ctx.close();
+      event.cleanup();
+      session.cleanup();
+    }
+  });
+
+  test("shows no amber badge when existingUserId matches buyer even if email differs", async ({ browser }) => {
+    const session = createUserSession("user");
+    const event = createTestEventWithProduct({ ownerId: session.userId, isFuture: true });
+    const ticketId = createTicketInDb({ buyerId: session.userId, eventId: event.eventId, productId: event.productId });
+    // Participant has a different email but the buyer's userId — should still show "You"
+    addParticipantToTicket(ticketId, { name: "Test User", email: "different@example.com", userId: session.userId });
+
+    const ctx = await browser.newContext();
+    await ctx.addCookies(authCookies(session.sessionToken));
+    const page = await ctx.newPage();
+    try {
+      await page.goto("/profile/tickets");
+      const purchases = page.locator("div").filter({ has: page.locator('h3:has-text("Purchases")') });
+      await purchases.locator('div[role="button"]:has-text("Ticket Test Event")').click();
+      await expect(purchases.getByText("Standard Ticket")).toBeVisible();
+      await expect(purchases.getByText("You", { exact: true })).toBeVisible();
       await expect(purchases.locator(".text-amber-700")).not.toBeVisible();
     } finally {
       await ctx.close();
@@ -223,7 +248,7 @@ test.describe("Profile — My Tickets QR wall", () => {
     const email = getUserEmailById(session.userId)!;
     const event = createTestEventWithProduct({ ownerId: session.userId, isFuture: true });
     const ticketId = createTicketInDb({ buyerId: session.userId, eventId: event.eventId, productId: event.productId });
-    addParticipantToTicket(ticketId, { name: "Test User", email });
+    addParticipantToTicket(ticketId, { name: "Test User", email, userId: session.userId });
 
     const ctx = await browser.newContext();
     await ctx.addCookies(authCookies(session.sessionToken));
@@ -244,7 +269,7 @@ test.describe("Profile — My Tickets QR wall", () => {
     const email = getUserEmailById(session.userId)!;
     const event = createTestEventWithProduct({ ownerId: session.userId, isFuture: true });
     const ticketId = createTicketInDb({ buyerId: session.userId, eventId: event.eventId, productId: event.productId });
-    addParticipantToTicket(ticketId, { name: "Test User", email });
+    addParticipantToTicket(ticketId, { name: "Test User", email, userId: session.userId });
 
     const ctx = await browser.newContext();
     await ctx.addCookies(authCookies(session.sessionToken));
@@ -268,7 +293,7 @@ test.describe("Profile — My Tickets QR wall", () => {
     const email = getUserEmailById(session.userId)!;
     const event = createTestEventWithProduct({ ownerId: session.userId, isFuture: true });
     const ticketId = createTicketInDb({ buyerId: session.userId, eventId: event.eventId, productId: event.productId });
-    addParticipantToTicket(ticketId, { name: "Test User", email });
+    addParticipantToTicket(ticketId, { name: "Test User", email, userId: session.userId });
 
     const ctx = await browser.newContext();
     await ctx.addCookies(authCookies(session.sessionToken));
@@ -294,7 +319,7 @@ test.describe("Profile — My Tickets QR wall", () => {
 
     const event = createTestEventWithProduct({ ownerId: owner.userId, isFuture: true });
     const ticketId = createTicketInDb({ buyerId: owner.userId, eventId: event.eventId, productId: event.productId });
-    addParticipantToTicket(ticketId, { name: "Viewer User", email: viewerEmail });
+    addParticipantToTicket(ticketId, { name: "Viewer User", email: viewerEmail, userId: viewer.userId });
 
     const ctx = await browser.newContext();
     await ctx.addCookies(authCookies(viewer.sessionToken));
@@ -321,8 +346,8 @@ test.describe("Profile — My Tickets QR wall", () => {
 
     const event = createTestEventWithProduct({ ownerId: owner.userId, isFuture: true });
     const ticketId = createTicketInDb({ buyerId: owner.userId, eventId: event.eventId, productId: event.productId });
-    // Assign to viewer — a registered user (has a login row in DB)
-    addParticipantToTicket(ticketId, { name: "Viewer User", email: viewerEmail });
+    // Assign to viewer — a registered user
+    addParticipantToTicket(ticketId, { name: "Viewer User", email: viewerEmail, userId: viewer.userId });
 
     try {
       // Owner's My Tickets should NOT show the event card (registered assignee)

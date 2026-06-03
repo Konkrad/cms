@@ -4,6 +4,7 @@ import { sqliteTable, text, integer, unique } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { tickets } from "./tickets";
+import { users } from "./users";
 import crypto from "crypto";
 
 export const ticketParticipants = sqliteTable(
@@ -16,10 +17,7 @@ export const ticketParticipants = sqliteTable(
     participantOrder: integer("participant_order").notNull(),
     name: text("name").notNull(),
     email: text("email").notNull(),
-    phone: text("phone"),
-    additionalData: text("additional_data", { mode: "json" }).$type<
-      Record<string, any>
-    >(),
+    userId: text("user_id").references(() => users.id),
     createdAt: text("created_at")
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
@@ -36,6 +34,10 @@ export const ticketParticipantsRelations = relations(
       fields: [ticketParticipants.ticketId],
       references: [tickets.id],
     }),
+    user: one(users, {
+      fields: [ticketParticipants.userId],
+      references: [users.id],
+    }),
   }),
 );
 
@@ -49,7 +51,7 @@ export const insertTicketParticipantSchema = baseInsertSchema
     participantOrder: z.number().int().min(1),
     createdAt: z.string().default(() => new Date().toISOString()),
   })
-  .partial({ id: true, phone: true, additionalData: true, createdAt: true });
+  .partial({ id: true, userId: true, createdAt: true });
 
 export const selectTicketParticipantSchema = baseSelectSchema;
 

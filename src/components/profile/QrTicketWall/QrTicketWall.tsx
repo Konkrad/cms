@@ -13,7 +13,7 @@ interface TicketWithRelations extends Ticket {
 
 interface QrTicketWallProps {
   tickets: TicketWithRelations[];
-  buyerEmail: string;
+  buyerUserId: string;
   qrBust: Record<string, string>;
 }
 
@@ -42,7 +42,7 @@ function formatEventDate(dateString: string) {
 }
 
 export default component$<QrTicketWallProps>(
-  ({ tickets, buyerEmail, qrBust }) => {
+  ({ tickets, buyerUserId, qrBust }) => {
     const selectedEventId = useSignal<string | null>(null);
     const carouselIndex = useSignal(0);
     const carouselRef = useSignal<HTMLElement>();
@@ -143,8 +143,7 @@ export default component$<QrTicketWallProps>(
                   </p>
                   {currentTicket.participants[0] && (
                     <p class="text-sm text-gray-500 mt-0.5">
-                      {currentTicket.participants[0].email.toLowerCase() ===
-                      buyerEmail.toLowerCase()
+                      {currentTicket.participants[0].userId === buyerUserId
                         ? "You"
                         : currentTicket.participants[0].name}
                     </p>

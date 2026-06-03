@@ -234,9 +234,7 @@ async function processPaymentIntent(paymentIntent: Stripe.PaymentIntent) {
         participantOrder: slotIdx + 1,
         name: slot.name,
         email: slot.email,
-        additionalData: slot.existingUserId
-          ? { existingUserId: slot.existingUserId }
-          : undefined,
+        userId: slot.existingUserId ?? null,
       })),
     );
   }

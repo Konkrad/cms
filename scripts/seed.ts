@@ -1299,6 +1299,7 @@ function seedTransaction(opts: {
             : p === 1 && buyerEmail
             ? buyerEmail
             : `${first.toLowerCase()}.${last.toLowerCase()}@example.com`,
+          userId: p === 1 && !opts.assignedToEmail ? buyer.id : undefined,
         })
         .run();
     }

@@ -26,7 +26,7 @@ interface TransactionWithTickets extends Transaction {
 
 interface PurchaseListProps {
   transactions: TransactionWithTickets[];
-  buyerEmail: string;
+  buyerUserId: string;
   updateParticipantsAction: ActionStore<any, any, true>;
   qrBust: Record<string, string>;
 }
@@ -57,7 +57,7 @@ function formatCurrency(amount: number) {
 }
 
 export default component$<PurchaseListProps>(
-  ({ transactions, buyerEmail, updateParticipantsAction, qrBust }) => {
+  ({ transactions, buyerUserId, updateParticipantsAction, qrBust }) => {
     const expandedTxId = useStore<Record<string, boolean>>({});
     const expandedTicketId = useStore<Record<string, boolean>>({});
     const pendingSlots = useStore<Record<string, ParticipantFormSlot[]>>({});
@@ -76,10 +76,8 @@ export default component$<PurchaseListProps>(
       ticket: TicketWithRelations,
       isUpcoming: boolean,
     ) => {
-      const isAssignedAway =
-        !!buyerEmail &&
-        !!ticket.participants[0]?.email &&
-        ticket.participants[0].email.toLowerCase() !== buyerEmail.toLowerCase();
+      const p0 = ticket.participants[0];
+      const isAssignedAway = !!p0 && p0.userId !== buyerUserId;
       const isExpanded = !!expandedTicketId[ticket.id];
       const slots = pendingSlots[ticket.id] ?? buildInitialSlots(ticket);
 
@@ -93,9 +91,9 @@ export default component$<PurchaseListProps>(
               <p class="text-sm font-medium text-gray-800 truncate">
                 {ticket.product.name}
               </p>
-              {isAssignedAway && ticket.participants[0] && (
-                <span class="inline-flex items-center gap-1 mt-0.5 text-xs text-amber-700">
-                  → {ticket.participants[0].name}
+              {p0 && (
+                <span class={`inline-flex items-center gap-1 mt-0.5 text-xs ${isAssignedAway ? "text-amber-700" : "text-gray-500"}`}>
+                  {isAssignedAway ? `→ ${p0.name}` : "You"}
                 </span>
               )}
               {ticket.scannedAt && (

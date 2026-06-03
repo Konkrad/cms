@@ -1,7 +1,5 @@
 import { component$, useStore } from "@qwik.dev/core";
 import { routeLoader$, routeAction$, z, zod$ } from "@qwik.dev/router";
-import { db } from "~/db/connection";
-import { logins } from "~/db/schemas/logins";
 import { transactionsService } from "~/services/transactions.service";
 import { ticketsService } from "~/services/tickets.service";
 import { participantsService } from "~/services/participants.service";
@@ -49,14 +47,11 @@ export const useUserDashboard = routeLoader$(async (event) => {
   const userId = userData.id;
   const userEmail = userData.email ?? "";
 
-  const [transactions, tickets, assignedTickets, allLoginEmails] = await Promise.all([
+  const [transactions, tickets, assignedTickets] = await Promise.all([
     transactionsService.getByUserId(userId),
     ticketsService.getByBuyerId(userId),
     userEmail ? participantsService.getAssignedTickets(userEmail) : [],
-    db.select({ email: logins.email }).from(logins),
   ]);
-
-  const registeredEmails = new Set(allLoginEmails.map((l) => l.email.toLowerCase()));
 
   // Exclude assigned tickets that the user also bought (avoid duplicates)
   const ownTicketIds = new Set(tickets.map((t) => t.id));
@@ -64,17 +59,13 @@ export const useUserDashboard = routeLoader$(async (event) => {
     (t) => !ownTicketIds.has(t.id),
   );
 
-  // QR wall: show tickets you're attending yourself or holding for external guests
-  // Hide tickets assigned to other registered website users (they can check in themselves)
+  // QR wall: show tickets assigned to self, or to an external user (no platform account)
+  // Hide tickets assigned to another registered user — they hold their own QR
   const myQrTickets = [
     ...tickets.filter((t) => {
       const p0 = t.participants[0];
       if (!p0) return false;
-      const participantEmail = p0.email.toLowerCase();
-      const buyerEmailLower = userEmail.toLowerCase();
-      if (participantEmail === buyerEmailLower) return true;
-      if (!registeredEmails.has(participantEmail)) return true; // external guest — you hold the QR
-      return false; // assigned to another registered user
+      return p0.userId === userId || p0.userId === null;
     }),
     ...filteredAssigned,
   ];
@@ -104,7 +95,7 @@ export const useUserDashboard = routeLoader$(async (event) => {
   return {
     myQrTickets,
     transactions: transactionsWithTickets,
-    buyerEmail: userEmail,
+    buyerUserId: userId,
   };
 });
 
@@ -123,12 +114,12 @@ export default component$(() => {
       <div class="space-y-8">
         <QrTicketWall
           tickets={dashboard.value.myQrTickets}
-          buyerEmail={dashboard.value.buyerEmail}
+          buyerUserId={dashboard.value.buyerUserId}
           qrBust={qrBust}
         />
         <PurchaseList
           transactions={dashboard.value.transactions}
-          buyerEmail={dashboard.value.buyerEmail}
+          buyerUserId={dashboard.value.buyerUserId}
           updateParticipantsAction={updateParticipants}
           qrBust={qrBust}
         />

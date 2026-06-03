@@ -411,13 +411,13 @@ export function createTicketInDb(opts: {
 /** Add a participant row to an existing ticket. */
 export function addParticipantToTicket(
   ticketId: string,
-  opts: { name: string; email: string; order?: number },
+  opts: { name: string; email: string; order?: number; userId?: string },
 ): void {
   const db = openDb();
   db.prepare(
-    `INSERT INTO ticket_participants (id, ticket_id, participant_order, name, email)
-     VALUES (?, ?, ?, ?, ?)`,
-  ).run(crypto.randomUUID(), ticketId, opts.order ?? 1, opts.name, opts.email);
+    `INSERT INTO ticket_participants (id, ticket_id, participant_order, name, email, user_id)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  ).run(crypto.randomUUID(), ticketId, opts.order ?? 1, opts.name, opts.email, opts.userId ?? null);
   db.close();
 }
 

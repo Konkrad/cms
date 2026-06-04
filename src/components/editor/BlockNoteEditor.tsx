@@ -31,10 +31,11 @@ interface BlockNoteEditorProps {
   content?: string;
   onChange$: QRL<(content: string, editorState: string) => void>;
   uploadUrl?: string;
+  textOnly?: boolean;
 }
 
 export const BlockNoteEditor = component$<BlockNoteEditorProps>(
-  ({ editorState, content, onChange$, uploadUrl }) => {
+  ({ editorState, content, onChange$, uploadUrl, textOnly }) => {
     return (
       <div class="blocknote-editor-container">
         <QwikBlockNoteEditor
@@ -42,6 +43,7 @@ export const BlockNoteEditor = component$<BlockNoteEditorProps>(
           content={content || ""}
           onChange$={onChange$}
           uploadUrl={uploadUrl}
+          textOnly={textOnly}
         />
       </div>
     );

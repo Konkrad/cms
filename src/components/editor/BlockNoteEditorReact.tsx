@@ -8,7 +8,7 @@ import React, {
   useEffect,
   type ReactElement,
 } from "react";
-import { BlockNoteEditor, type PartialBlock } from "@blocknote/core";
+import { BlockNoteEditor, BlockNoteSchema, defaultBlockSpecs, type PartialBlock } from "@blocknote/core";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/core/fonts/inter.css";
@@ -17,11 +17,15 @@ import Uppy from "@uppy/core";
 import XHRUpload from "@uppy/xhr-upload";
 import "@uppy/core/css/style.min.css";
 
+const { image, file, audio, video, ...textBlockSpecs } = defaultBlockSpecs;
+const textOnlySchema = BlockNoteSchema.create({ blockSpecs: textBlockSpecs });
+
 interface BlockNoteEditorProps {
   content: string;
   editorState: string;
   onChange: (content: string, editorState: string) => void;
   uploadUrl?: string;
+  textOnly?: boolean;
 }
 
 export interface BlockNoteEditorRef {
@@ -34,6 +38,7 @@ const BlockNoteEditorReact = (
     editorState,
     onChange,
     uploadUrl = "/api/images",
+    textOnly = false,
   }: BlockNoteEditorProps,
   ref: React.ForwardedRef<BlockNoteEditorRef>,
 ): ReactElement => {
@@ -173,10 +178,11 @@ const BlockNoteEditorReact = (
   }, [editorState]);
 
   // Create BlockNote editor
-  const editor = useCreateBlockNote({
-    initialContent,
-    uploadFile,
-  });
+  const editor = useCreateBlockNote(
+    textOnly
+      ? { schema: textOnlySchema, initialContent: initialContent as any }
+      : { initialContent, uploadFile },
+  );
 
   // When there's no editorState but HTML content exists, parse it into blocks
   const [htmlLoaded, setHtmlLoaded] = useState(false);
@@ -184,7 +190,7 @@ const BlockNoteEditorReact = (
     if (!editorState && content && !htmlLoaded) {
       try {
         const blocks = editor.tryParseHTMLToBlocks(content);
-        editor.replaceBlocks(editor.document, blocks);
+        editor.replaceBlocks(editor.document as any, blocks as any);
       } catch (e) {
         console.error("Failed to parse HTML content into blocks:", e);
       }
@@ -207,7 +213,7 @@ const BlockNoteEditorReact = (
     // Convert blocks to HTML for content
     let htmlContent = "";
     try {
-      htmlContent = editor.blocksToHTMLLossy(blocks);
+      htmlContent = editor.blocksToHTMLLossy(blocks as any);
     } catch (e) {
       console.error("Failed to convert blocks to HTML:", e);
       htmlContent = "";
@@ -218,7 +224,7 @@ const BlockNoteEditorReact = (
 
   return (
     <div className="blocknote-editor-wrapper" style={{ padding: "1rem" }}>
-      <BlockNoteView editor={editor} onChange={handleChange} theme="light" />
+      <BlockNoteView editor={editor as any} onChange={handleChange} theme="light" />
     </div>
   );
 };

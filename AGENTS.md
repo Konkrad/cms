@@ -101,6 +101,10 @@ All DB helpers live in `tests/fixtures.ts`. Available helpers include:
 | `getMenuItemPosition(id)` | Get the position of a menu item |
 | `getPageContent(pageId)` | Get the parsed content blocks of a page |
 
+| `createJobInDb(opts)` | Insert a job row (suggestedBy, title?, status?, expiresAt?) |
+| `getJobById(id)` | Fetch id/title/status/suggested_by for a job |
+| `deleteJobById(id)` | Delete a job row by id |
+
 If you need DB access that none of the above covers, **add a new named helper to `tests/fixtures.ts`** rather than calling `openDb()` in the test.
 
 ### Auth flows (login tests)
@@ -124,3 +128,37 @@ npx playwright test --project auth-flows
 
 - Use Playwright to verify behavior when the user wants runtime confirmation or mentions endpoint behavior.
 - For login tests, use the mailpit flow in `tests/utils/mailpit-client.ts` or the magic-link flow through `/login`.
+
+## Job Portal
+
+The job portal lets authenticated members post job listings that go live only after admin approval.
+
+### Routes
+
+| Path | Who | What |
+|---|---|---|
+| `/jobs` | authenticated users | approved, non-expired job listings |
+| `/jobs/[id]` | authenticated users | single job detail |
+| `/jobs/new` | authenticated users | submission form |
+| `/jobs/mine` | authenticated users | own submissions with status |
+| `/jobs/mine/[id]/edit` | owner, pending only | edit a pending submission |
+| `/admin/global/jobs` | admin/moderator | list all jobs, approve, delete |
+| `/admin/global/jobs/[id]/edit` | admin/moderator | full edit + status toggle |
+
+### Key rules
+
+- All public-facing job routes call `requireAuth` — unauthenticated visitors are redirected to `/login`.
+- `status` is `pending` on creation; admin sets it to `approved` to make it visible.
+- `expiresAt` is capped at 30 days from today, enforced server-side in both the submit and user-edit actions.
+- Editing is blocked once a job is approved — the loader redirects away and the action re-checks ownership + `status === "pending"`.
+- The body field uses BlockNote with `textOnly={true}`, which removes image/file/audio/video block types from the editor.
+
+### Schema & service
+
+- Schema: `src/db/schemas/jobs.ts` — fields: `id`, `title`, `body`, `editorState`, `locationType`, `city`, `country`, `link`, `expiresAt`, `status`, `suggestedBy`, `createdAt`, `updatedAt`
+- Service: `src/services/jobs.service.ts` — exports `jobsService` and the `JobWithUser` type
+- Relations: `jobs.suggestedBy → users.id` (defined in `src/db/schema.ts`)
+
+### Seed
+
+The seed (`scripts/seed.ts`) inserts 7 jobs: 4 approved (visible), 2 pending (admin queue), 1 expired (filtered out). Jobs appear in both the main and footer menus at `/jobs`.

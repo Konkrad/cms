@@ -1663,15 +1663,17 @@ const menuDefs: Array<{ title: string; url: string; position: number; menuName: 
   { menuName: "main", title: "Home", url: "/", position: 0, hasPage: true },
   { menuName: "main", title: "Events", url: "/events", position: 1, hasPage: true },
   { menuName: "main", title: "Communities", url: "/communities", position: 2, hasPage: true },
-  { menuName: "main", title: "About Us", url: "/about-us", position: 3, hasPage: true },
+  { menuName: "main", title: "Jobs", url: "/jobs", position: 3 },
+  { menuName: "main", title: "About Us", url: "/about-us", position: 4, hasPage: true },
   { menuName: "footer", title: "Home", url: "/", position: 0, hasPage: true },
   { menuName: "footer", title: "Events", url: "/events", position: 1, hasPage: true },
   { menuName: "footer", title: "Communities", url: "/communities", position: 2, hasPage: true },
   { menuName: "footer", title: "About Us", url: "/about-us", position: 3, hasPage: true },
   { menuName: "footer", title: "Deals", url: "/deals", position: 4, hasPage: true },
-  { menuName: "footer", title: "Contact", url: "/contact", position: 5 },
-  { menuName: "footer", title: "Privacy Policy", url: "/privacy", position: 6 },
-  { menuName: "footer", title: "Terms of Service", url: "/terms", position: 7 },
+  { menuName: "footer", title: "Jobs", url: "/jobs", position: 5 },
+  { menuName: "footer", title: "Contact", url: "/contact", position: 6 },
+  { menuName: "footer", title: "Privacy Policy", url: "/privacy", position: 7 },
+  { menuName: "footer", title: "Terms of Service", url: "/terms", position: 8 },
 ];
 
 for (const m of menuDefs) {

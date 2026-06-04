@@ -1,6 +1,5 @@
 import { component$ } from "@qwik.dev/core";
 import { Link, routeLoader$ } from "@qwik.dev/router";
-import { format } from "date-fns";
 import { Button } from "~/components/ui/Button";
 import { jobsService } from "~/services/jobs.service";
 
@@ -13,7 +12,7 @@ export const useJobs = routeLoader$(async (event) => {
 
 function locationLabel(job: { locationType: string; city?: string | null; country?: string | null }) {
   if (job.locationType === "on-site") {
-    return [job.city, job.country].filter(Boolean).join(", ") || "On-site";
+    return [job.city, job.country].filter(Boolean).join(", ") || "On-site / Hybrid";
   }
   if (job.locationType === "remote-eu") return "Remote — EU";
   return `Remote — ${job.country ?? ""}`;
@@ -43,10 +42,8 @@ export default component$(() => {
                 >
                   {job.title}
                 </Link>
-                <div class="mt-1 flex flex-wrap items-center gap-3 text-sm text-gray-500">
-                  <span>{locationLabel(job)}</span>
-                  <span>·</span>
-                  <span>Expires {format(new Date(job.expiresAt), "MMM d, yyyy")}</span>
+                <div class="mt-1 text-sm text-gray-500">
+                  {locationLabel(job)}
                 </div>
               </div>
               {job.link && (

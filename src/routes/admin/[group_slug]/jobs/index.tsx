@@ -83,7 +83,7 @@ export default component$(() => {
               const isExpired = new Date(job.expiresAt) < now;
               const locationLabel =
                 job.locationType === "on-site"
-                  ? [job.city, job.country].filter(Boolean).join(", ")
+                  ? [job.city, job.country].filter(Boolean).join(", ") || "On-site / Hybrid"
                   : job.locationType === "remote-eu"
                     ? "Remote — EU"
                     : `Remote — ${job.country ?? ""}`;

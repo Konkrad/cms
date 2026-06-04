@@ -1853,6 +1853,7 @@ const jobDefs: Array<{
   city?: string;
   country?: string;
   link?: string;
+  posterRelation?: "hiring" | "founder" | "direct-team" | "works-there" | "other";
   expiresAtOffsetDays: number;
   status: "pending" | "approved";
   authorIdx: number;
@@ -1864,6 +1865,7 @@ const jobDefs: Array<{
     city: "Berlin",
     country: "Germany",
     link: "https://example.com/jobs/senior-fullstack",
+    posterRelation: "hiring",
     expiresAtOffsetDays: 25,
     status: "approved",
     authorIdx: 0,
@@ -1873,6 +1875,7 @@ const jobDefs: Array<{
     body: `<h2>The opportunity</h2><p>We're hiring a Product Designer to help shape the future of our platform. You'll work closely with engineering and product to craft clear, useful, and beautiful interfaces.</p><h2>Responsibilities</h2><ul><li>Own the design process from discovery through delivery</li><li>Conduct user research and usability testing</li><li>Maintain and evolve our design system</li></ul><h2>Requirements</h2><ul><li>3+ years of product design experience</li><li>Proficiency with Figma</li><li>Experience in an agile environment</li></ul>`,
     locationType: "remote-eu",
     link: "https://example.com/jobs/product-designer",
+    posterRelation: "hiring",
     expiresAtOffsetDays: 20,
     status: "approved",
     authorIdx: 2,
@@ -1882,6 +1885,7 @@ const jobDefs: Array<{
     body: `<h2>What you'll be doing</h2><p>Join our analytics team and help us turn data into decisions. You'll build dashboards, run analyses, and work with stakeholders across the business.</p><h2>Skills & experience</h2><ul><li>Strong SQL and Python skills</li><li>Experience with BI tools such as Metabase or Looker</li><li>Comfortable presenting findings to non-technical audiences</li></ul>`,
     locationType: "remote-country",
     country: "Germany",
+    posterRelation: "works-there",
     expiresAtOffsetDays: 18,
     status: "approved",
     authorIdx: 4,
@@ -1892,6 +1896,7 @@ const jobDefs: Array<{
     locationType: "on-site",
     city: "Munich",
     country: "Germany",
+    posterRelation: "founder",
     expiresAtOffsetDays: 28,
     status: "approved",
     authorIdx: 7,
@@ -1903,6 +1908,7 @@ const jobDefs: Array<{
     city: "Frankfurt",
     country: "Germany",
     link: "https://example.com/jobs/backend-engineer",
+    posterRelation: "hiring",
     expiresAtOffsetDays: 30,
     status: "pending",
     authorIdx: 1,
@@ -1911,6 +1917,7 @@ const jobDefs: Array<{
     title: "Marketing Lead — Pending Review",
     body: `<h2>Overview</h2><p>We are looking for a Marketing Lead to own our growth channels and brand strategy across Germany.</p><h2>What you'll do</h2><ul><li>Define and execute the marketing roadmap</li><li>Manage social media, email, and paid channels</li><li>Measure and report on campaign performance</li></ul>`,
     locationType: "remote-eu",
+    posterRelation: "direct-team",
     expiresAtOffsetDays: 14,
     status: "pending",
     authorIdx: 3,
@@ -1938,6 +1945,7 @@ for (const j of jobDefs) {
       city: j.city ?? null,
       country: j.country ?? null,
       link: j.link ?? null,
+      posterRelation: j.posterRelation ?? null,
       expiresAt: daysFromNow(j.expiresAtOffsetDays),
       status: j.status,
       suggestedBy: resolveAuthor(j.authorIdx),

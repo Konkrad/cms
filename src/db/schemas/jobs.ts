@@ -16,6 +16,9 @@ export const jobs = sqliteTable("jobs", {
   city: text("city"),
   country: text("country"),
   link: text("link"),
+  posterRelation: text("poster_relation", {
+    enum: ["hiring", "founder", "direct-team", "works-there", "other"],
+  }),
   expiresAt: text("expires_at").notNull(),
   status: text("status", {
     enum: ["pending", "approved"],

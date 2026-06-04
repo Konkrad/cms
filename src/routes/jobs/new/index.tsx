@@ -35,6 +35,7 @@ export const useSubmitJob = routeAction$(
       city: data.city || null,
       country: data.country || null,
       link: data.link || null,
+      posterRelation: data.posterRelation || null,
       expiresAt,
       status: "pending",
       suggestedBy: user.id,
@@ -50,6 +51,7 @@ export const useSubmitJob = routeAction$(
     city: z.string().optional(),
     country: z.string().optional(),
     link: z.string().optional(),
+    posterRelation: z.enum(["hiring", "founder", "direct-team", "works-there", "other"]).optional(),
     expiresAt: z.string().min(1, "Expiry date is required"),
   }),
 );
@@ -128,7 +130,7 @@ export default component$(() => {
               locationType.value = (e.target as HTMLSelectElement).value as any;
             }}
           >
-            <option value="on-site">On-site</option>
+            <option value="on-site">On-site / Hybrid</option>
             <option value="remote-eu">Remote — EU only</option>
             <option value="remote-country">Remote — specific country</option>
           </Select>
@@ -147,6 +149,15 @@ export default component$(() => {
             type="url"
             placeholder="https://..."
           />
+
+          <Select name="posterRelation" label="Your relation to this position (optional)">
+            <option value="">— select —</option>
+            <option value="hiring">I'm hiring for this role</option>
+            <option value="founder">I'm the founder</option>
+            <option value="direct-team">You'd be on my team</option>
+            <option value="works-there">I work there</option>
+            <option value="other">Other</option>
+          </Select>
 
           <Input
             name="expiresAt"

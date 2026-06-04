@@ -19,15 +19,25 @@ export const useJob = routeLoader$(async (event) => {
 
 function locationLabel(job: { locationType: string; city?: string | null; country?: string | null }) {
   if (job.locationType === "on-site") {
-    return [job.city, job.country].filter(Boolean).join(", ") || "On-site";
+    return [job.city, job.country].filter(Boolean).join(", ") || "On-site / Hybrid";
   }
   if (job.locationType === "remote-eu") return "Remote — EU";
   return `Remote — ${job.country ?? ""}`;
 }
 
+const RELATION_LABELS: Record<string, string> = {
+  "hiring": "hiring for this role",
+  "founder": "founder",
+  "direct-team": "you'd be on their team",
+  "works-there": "works there",
+  "other": "community member",
+};
+
 export default component$(() => {
   const data = useJob();
   const job = data.value.job;
+  const posterName = [job.user?.name, job.user?.familyName].filter(Boolean).join(" ") || "A member";
+  const relationLabel = job.posterRelation ? RELATION_LABELS[job.posterRelation] ?? job.posterRelation : null;
 
   return (
     <div class="max-w-2xl mx-auto px-4 py-8">
@@ -38,13 +48,29 @@ export default component$(() => {
       </div>
 
       <div class="bg-white border border-gray-200 rounded-lg p-8">
-        <h1 class="text-2xl font-bold text-gray-900 mb-3">{job.title}</h1>
+        <h1 class="text-2xl font-bold text-gray-900 mb-4">{job.title}</h1>
 
-        <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-6 pb-6 border-b border-gray-100">
-          <span>{locationLabel(job)}</span>
-          <span>·</span>
-          <span>Expires {format(new Date(job.expiresAt), "MMM d, yyyy")}</span>
-        </div>
+        <dl class="grid grid-cols-1 gap-2 text-sm mb-6 pb-6 border-b border-gray-100">
+          <div class="flex gap-2">
+            <dt class="text-gray-500 w-24 shrink-0">Location</dt>
+            <dd class="text-gray-900">{locationLabel(job)}</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="text-gray-500 w-24 shrink-0">Posted by</dt>
+            <dd class="text-gray-900">
+              <Link href={`/users/${job.user?.id}`} class="hover:underline">
+                {posterName}
+              </Link>
+              {relationLabel && (
+                <span class="text-gray-500"> · {relationLabel}</span>
+              )}
+            </dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="text-gray-500 w-24 shrink-0">Listed until</dt>
+            <dd class="text-gray-900">{format(new Date(job.expiresAt), "MMM d, yyyy")}</dd>
+          </div>
+        </dl>
 
         <div
           class="prose prose-sm max-w-none text-gray-700"

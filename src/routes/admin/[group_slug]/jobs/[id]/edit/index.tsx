@@ -27,6 +27,7 @@ export const useUpdateJob = routeAction$(
       city: data.city || null,
       country: data.country || null,
       link: data.link || null,
+      posterRelation: data.posterRelation || null,
       expiresAt: new Date(data.expiresAt),
       status: data.status as "pending" | "approved",
     } as any);
@@ -41,6 +42,7 @@ export const useUpdateJob = routeAction$(
     city: z.string().optional(),
     country: z.string().optional(),
     link: z.string().optional(),
+    posterRelation: z.enum(["hiring", "founder", "direct-team", "works-there", "other"]).optional(),
     expiresAt: z.string().min(1, "Expiry date is required"),
     status: z.enum(["pending", "approved"]),
   }),
@@ -104,7 +106,7 @@ export default component$(() => {
               locationType.value = (e.target as HTMLSelectElement).value as any;
             }}
           >
-            <option value="on-site">On-site</option>
+            <option value="on-site">On-site / Hybrid</option>
             <option value="remote-eu">Remote — EU</option>
             <option value="remote-country">Remote — specific country</option>
           </Select>
@@ -124,6 +126,19 @@ export default component$(() => {
             value={job.link ?? ""}
             placeholder="https://..."
           />
+
+          <Select
+            name="posterRelation"
+            label="Poster's relation to the position"
+            value={job.posterRelation ?? ""}
+          >
+            <option value="">— not specified —</option>
+            <option value="hiring">Hiring for this role</option>
+            <option value="founder">Founder</option>
+            <option value="direct-team">Direct team</option>
+            <option value="works-there">Works there</option>
+            <option value="other">Other</option>
+          </Select>
 
           <Input
             name="expiresAt"

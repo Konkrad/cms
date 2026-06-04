@@ -114,6 +114,7 @@ function deleteUserCascade(
   db.prepare("DELETE FROM form_results WHERE user_id = ?").run(userId);
   db.prepare("DELETE FROM participation_status WHERE user_id = ?").run(userId);
   db.prepare("DELETE FROM posts WHERE user_id = ?").run(userId);
+  db.prepare("DELETE FROM jobs WHERE suggested_by = ?").run(userId);
   // Sessions and user/login rows
   db.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
   db.prepare("DELETE FROM users WHERE id = ?").run(userId);
@@ -418,6 +419,61 @@ export function addParticipantToTicket(
     `INSERT INTO ticket_participants (id, ticket_id, participant_order, name, email, user_id)
      VALUES (?, ?, ?, ?, ?, ?)`,
   ).run(crypto.randomUUID(), ticketId, opts.order ?? 1, opts.name, opts.email, opts.userId ?? null);
+  db.close();
+}
+
+// ── Job helpers ───────────────────────────────────────────────────────────────
+
+export function createJobInDb(opts: {
+  suggestedBy: string;
+  title?: string;
+  status?: "pending" | "approved";
+  expiresAt?: string;
+}): { jobId: string; cleanup(): void } {
+  const db = openDb();
+  const jobId = crypto.randomUUID();
+  const expiresAt =
+    opts.expiresAt ?? new Date(Date.now() + 30 * 86400000).toISOString();
+  db.prepare(
+    `INSERT INTO jobs (id, title, body, location_type, expires_at, status, suggested_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    jobId,
+    opts.title ?? "Test Job",
+    "<p>test body</p>",
+    "on-site",
+    expiresAt,
+    opts.status ?? "pending",
+    opts.suggestedBy,
+  );
+  db.close();
+
+  return {
+    jobId,
+    cleanup() {
+      const db2 = openDb();
+      db2.prepare("DELETE FROM jobs WHERE id = ?").run(jobId);
+      db2.close();
+    },
+  };
+}
+
+export function getJobById(
+  id: string,
+): { id: string; title: string; status: string; suggested_by: string } | undefined {
+  const db = openDb();
+  const row = db
+    .prepare("SELECT id, title, status, suggested_by FROM jobs WHERE id = ? LIMIT 1")
+    .get(id) as
+    | { id: string; title: string; status: string; suggested_by: string }
+    | undefined;
+  db.close();
+  return row;
+}
+
+export function deleteJobById(id: string): void {
+  const db = openDb();
+  db.prepare("DELETE FROM jobs WHERE id = ?").run(id);
   db.close();
 }
 

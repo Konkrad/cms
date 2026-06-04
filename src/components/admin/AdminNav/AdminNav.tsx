@@ -36,6 +36,11 @@ export const AdminNav = component$<AdminNavProps>(({ groupSlug, isGlobal = true 
     navItems.push({ href: `/admin/global/deals`, label: "Deals" });
   }
 
+  // Add Jobs management for global admin
+  if (isGlobal) {
+    navItems.push({ href: `/admin/global/jobs`, label: "Jobs" });
+  }
+
   return (
     <nav class="flex gap-2">
       {navItems.map((item) => {

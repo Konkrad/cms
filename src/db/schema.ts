@@ -19,6 +19,7 @@ import { participationStatus } from "./schemas/participation-status";
 import { eventPhotos } from "./schemas/event-photos";
 import { forms } from "./schemas/forms";
 import { formResults } from "./schemas/form-results";
+import { jobs } from "./schemas/jobs";
 
 export * from "./schemas/events";
 export * from "./schemas/logins";
@@ -42,6 +43,7 @@ export * from "./schemas/event-photos";
 export * from "./schemas/forms";
 export * from "./schemas/form-results";
 export * from "./schemas/deals";
+export * from "./schemas/jobs";
 
 export const schemaRelations = defineRelations(
 	{
@@ -65,6 +67,7 @@ export const schemaRelations = defineRelations(
 		eventPhotos,
 		forms,
 		formResults,
+		jobs,
 	},
 	({
 		events,
@@ -84,6 +87,7 @@ export const schemaRelations = defineRelations(
 		formResults,
 		menuItems,
 		pages,
+		jobs,
 		one,
 		many,
 	}) => ({
@@ -97,6 +101,10 @@ export const schemaRelations = defineRelations(
 			posts: many.posts({ from: users.id, to: posts.userId }),
 			events: many.events({ from: users.id, to: events.userId }),
 			sessions: many.sessions({ from: users.id, to: sessions.userId }),
+			jobs: many.jobs({ from: users.id, to: jobs.suggestedBy }),
+		},
+		jobs: {
+			user: one.users({ from: jobs.suggestedBy, to: users.id, optional: false }),
 		},
 		sessions: {
 			user: one.users({ from: sessions.userId, to: users.id }),

@@ -25,6 +25,9 @@ export const forms = sqliteTable(
     isSystemForm: integer("is_system_form", { mode: "boolean" })
       .notNull()
       .default(false),
+    allowResubmission: integer("allow_resubmission", { mode: "boolean" })
+      .notNull()
+      .default(false),
     systemKey: text("system_key"),
     createdBy: text("created_by")
       .notNull()

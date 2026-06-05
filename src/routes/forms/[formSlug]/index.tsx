@@ -21,14 +21,19 @@ export const useFormPage = routeLoader$(async (event) => {
     throw event.redirect(302, "/login");
   }
 
+  let existingResult: Record<string, any> | null = null;
   let alreadySubmitted = false;
   if (user) {
     const existing = await formResultsService.getByFormAndUser(form.id, user.id);
-    alreadySubmitted = !!existing;
+    if (existing) {
+      alreadySubmitted = true;
+      if (form.allowResubmission) existingResult = existing.resultJson as Record<string, any>;
+    }
   }
 
   return {
     form,
+    existingResult,
     alreadySubmitted,
     requireAltcha: formAccessService.requiresAltcha(form),
   };
@@ -45,7 +50,7 @@ export default component$(() => {
     );
   }
 
-  const { form, alreadySubmitted, requireAltcha } = data.value;
+  const { form, existingResult, requireAltcha } = data.value;
 
   return (
     <div class="container mx-auto px-4 py-10 max-w-4xl">
@@ -54,17 +59,18 @@ export default component$(() => {
         {form.description && <p class="forms-page-description">{form.description}</p>}
       </section>
 
-      {alreadySubmitted ? (
+      {existingResult && (
         <div class="forms-alert forms-alert-info">
-          You already submitted this form. Multiple submissions are not allowed.
+          You have already submitted this form. Your previous answers are pre-filled — submit again to update them.
         </div>
-      ) : (
-        <SurveyRuntime
-          surveyJson={form.schemaJson as Record<string, any>}
-          submitUrl={`/api/forms/${form.id}/submit`}
-          requireAltcha={requireAltcha}
-        />
       )}
+
+      <SurveyRuntime
+        surveyJson={form.schemaJson as Record<string, any>}
+        submitUrl={`/api/forms/${form.id}/submit`}
+        requireAltcha={requireAltcha}
+        initialData={existingResult ?? undefined}
+      />
     </div>
   );
 });

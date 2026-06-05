@@ -1615,6 +1615,7 @@ const formDefs: Array<{
     schemaJson: onboardJson,
     visibility: "private",
     isSystemForm: true,
+    allowResubmission: true,
     systemKey: "affilation",
   },
   {
@@ -2145,6 +2146,35 @@ for (const j of jobDefs) {
     .run();
 }
 console.log(`  jobs seeded (${jobDefs.length}: ${jobDefs.filter((j) => j.status === "approved").length} approved, ${jobDefs.filter((j) => j.status === "pending").length} pending, 1 expired)`);
+
+// ─── 17b. Tag definitions ─────────────────────────────────────────────────────
+
+const tagDefDefs: Array<{ slug: string; label: string; category: "board" | "qualification" | "participation" | "custom"; description: string }> = [
+  // Board
+  { slug: "board-member",    label: "Board Member",    category: "board",          description: "Serves on the organisation's board." },
+  { slug: "board-president", label: "President",       category: "board",          description: "President of the board." },
+  { slug: "board-secretary", label: "Secretary",       category: "board",          description: "Secretary of the board." },
+  { slug: "board-treasurer", label: "Treasurer",       category: "board",          description: "Treasurer of the board." },
+  // Participation
+  { slug: "event-speaker",   label: "Event Speaker",   category: "participation",  description: "Has spoken at one of our events." },
+  { slug: "event-volunteer", label: "Event Volunteer", category: "participation",  description: "Has volunteered at one of our events." },
+  { slug: "summer-school-alumni", label: "Summer School Alumni", category: "participation", description: "Attended a summer school." },
+  // Custom
+  { slug: "mentor",          label: "Mentor",          category: "custom",         description: "Active mentor in the community." },
+  { slug: "ambassador",      label: "Ambassador",      category: "custom",         description: "Community ambassador in their city or region." },
+  { slug: "chapter-lead",    label: "Chapter Lead",    category: "custom",         description: "Leads a local chapter." },
+  { slug: "founding-member", label: "Founding Member", category: "custom",         description: "Was part of the community from the very beginning." },
+];
+
+for (const def of tagDefDefs) {
+  const exists = db.select().from(schema.tagDefinitions).all().find((d) => d.slug === def.slug);
+  if (!exists) {
+    db.insert(schema.tagDefinitions)
+      .values({ id: uuid(), slug: def.slug, label: def.label, category: def.category, description: def.description, createdAt: now(), updatedAt: now() })
+      .run();
+  }
+}
+console.log(`  tag definitions seeded (${tagDefDefs.length})`);
 
 // ─── 18. Qualification types ─────────────────────────────────────────────────
 

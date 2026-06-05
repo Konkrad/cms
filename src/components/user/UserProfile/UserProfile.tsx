@@ -125,9 +125,6 @@ export const UserProfile = component$<UserProfileProps>((props) => {
         )}
         <div>
           <h1 class="text-3xl font-bold text-gray-900">{displayName}</h1>
-          <span class="inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 capitalize">
-            {role.replace("_", " ")}
-          </span>
           {(city || country) && (
             <p class="text-gray-500 text-sm mt-1">
               {[city, country].filter(Boolean).join(", ")}

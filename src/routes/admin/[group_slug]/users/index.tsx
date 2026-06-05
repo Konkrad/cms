@@ -171,7 +171,7 @@ export default component$(() => {
             >
               Manage tags →
             </Link>
-            <Form action={reevalAction}>
+            <Form action={reevalAction} method="POST">
               <button
                 type="submit"
                 class="text-sm text-blue-600 hover:text-blue-800 border border-blue-300 rounded px-3 py-1.5"
@@ -270,7 +270,11 @@ export default component$(() => {
                   <td class="px-6 py-4">
                     {tierBadge(user.membership?.tier ?? null)}
                     {user.membership && (
-                      <Form action={removeAction} class="inline ml-2">
+                      <Form
+                        action={removeAction}
+                        method="POST"
+                        class="inline ml-2"
+                      >
                         <input type="hidden" name="userId" value={user.id} />
                         <button
                           type="submit"
@@ -293,6 +297,7 @@ export default component$(() => {
                   <td class="px-6 py-4">
                     <Form
                       action={setTierAction}
+                      method="POST"
                       class="flex items-center gap-2"
                     >
                       <input type="hidden" name="userId" value={user.id} />
@@ -324,7 +329,11 @@ export default component$(() => {
                           >
                             {tag.label}
                             {tag.sourceType === "manual" && (
-                              <Form action={revokeTagAction} class="inline">
+                              <Form
+                                action={revokeTagAction}
+                                method="POST"
+                                class="inline"
+                              >
                                 <input
                                   type="hidden"
                                   name="userId"
@@ -365,6 +374,7 @@ export default component$(() => {
                     {data.value.definitions.length > 0 && (
                       <Form
                         action={grantTagAction}
+                        method="POST"
                         class="flex items-center gap-1"
                       >
                         <input type="hidden" name="userId" value={user.id} />

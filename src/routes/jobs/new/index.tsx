@@ -24,14 +24,20 @@ export const useSubmitJob = routeAction$(
     maxExpiry.setDate(maxExpiry.getDate() + MAX_DAYS);
 
     if (expiresAt > maxExpiry) {
-      return { failed: true, error: "Expiry date cannot be more than 30 days from today." };
+      return {
+        failed: true,
+        error: "Expiry date cannot be more than 30 days from today.",
+      };
     }
 
     await jobsService.create({
       title: data.title,
       body: data.body,
       editorState: data.editorState || null,
-      locationType: data.locationType as "on-site" | "remote-eu" | "remote-country",
+      locationType: data.locationType as
+        | "on-site"
+        | "remote-eu"
+        | "remote-country",
       city: data.city || null,
       country: data.country || null,
       link: data.link || null,
@@ -51,7 +57,9 @@ export const useSubmitJob = routeAction$(
     city: z.string().optional(),
     country: z.string().optional(),
     link: z.string().optional(),
-    posterRelation: z.enum(["hiring", "founder", "direct-team", "works-there", "other"]).optional(),
+    posterRelation: z
+      .enum(["hiring", "founder", "direct-team", "works-there", "other", ""])
+      .optional(),
     expiresAt: z.string().min(1, "Expiry date is required"),
   }),
 );
@@ -60,7 +68,9 @@ export default component$(() => {
   useCurrentUser();
   const submitAction = useSubmitJob();
   const isSubmitting = useSignal(false);
-  const locationType = useSignal<"on-site" | "remote-eu" | "remote-country">("on-site");
+  const locationType = useSignal<"on-site" | "remote-eu" | "remote-country">(
+    "on-site",
+  );
   const body = useSignal("");
   const editorState = useSignal("");
 
@@ -139,7 +149,8 @@ export default component$(() => {
             <Input name="city" label="City" placeholder="e.g. Berlin" />
           )}
 
-          {(locationType.value === "on-site" || locationType.value === "remote-country") && (
+          {(locationType.value === "on-site" ||
+            locationType.value === "remote-country") && (
             <Input name="country" label="Country" placeholder="e.g. Germany" />
           )}
 
@@ -150,7 +161,10 @@ export default component$(() => {
             placeholder="https://..."
           />
 
-          <Select name="posterRelation" label="Your relation to this position (optional)">
+          <Select
+            name="posterRelation"
+            label="Your relation to this position (optional)"
+          >
             <option value="">— select —</option>
             <option value="hiring">I'm hiring for this role</option>
             <option value="founder">I'm the founder</option>

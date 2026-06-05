@@ -20,6 +20,7 @@ import path from "path";
 import { execSync } from "child_process";
 import dotenv from "dotenv";
 import sharp from "sharp";
+import { faker } from "@faker-js/faker";
 import {
   CreateBucketCommand,
   PutBucketPolicyCommand,
@@ -343,6 +344,103 @@ console.log(
   `Users: admin=${adminUser.name}, host=${hostUser.name}, test=${testUsers.length}`,
 );
 console.log(`  checkout QA users ensured (${qaCheckoutUsers.length})`);
+
+// ─── 4b. Bulk fake users (1000 users with European locations) ────────────────
+
+const BULK_USER_TARGET = 1000;
+
+const knownSpecialEmails = new Set([
+  ADMIN_EMAIL,
+  "host@example.com",
+  ...qaCheckoutUserDefs.map((q) => q.email),
+]);
+
+const allBulkUsers = db
+  .select()
+  .from(schema.users)
+  .all()
+  .filter(
+    (u) =>
+      u.role === "user" &&
+      u.familyName !== "Test" &&
+      !qaCheckoutUserDefs.some(
+        (q) => q.name === u.name && q.familyName === u.familyName,
+      ),
+  );
+
+const bulkUsersWithoutCity = allBulkUsers.filter((u) => !u.city);
+const neededNew = BULK_USER_TARGET - allBulkUsers.length;
+
+if (neededNew > 0 || bulkUsersWithoutCity.length > 0) {
+  console.log("  fetching European city data from natural-earth-vector…");
+
+  const cityGeoJson = await fetch(
+    "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_populated_places_simple.geojson",
+  ).then((r) => r.json());
+
+  const europeanCities: Array<{ city: string; country: string }> = (
+    cityGeoJson.features as any[]
+  )
+    .filter((f) => {
+      const [lon, lat] = f.geometry.coordinates as [number, number];
+      return lat >= 34 && lat <= 72 && lon >= -25 && lon <= 45;
+    })
+    .map((f) => ({
+      city: f.properties.NAME as string,
+      country: f.properties.ADM0NAME as string,
+    }));
+
+  const randomCity = () =>
+    europeanCities[Math.floor(Math.random() * europeanCities.length)];
+
+  // Update existing users that are missing a city
+  let updated = 0;
+  for (const u of bulkUsersWithoutCity) {
+    const { city, country } = randomCity();
+    db.update(schema.users)
+      .set({ city, country, updatedAt: now() })
+      .where(eq(schema.users.id, u.id))
+      .run();
+    updated++;
+  }
+
+  // Create any still-missing users
+  let created = 0;
+  for (let i = 0; i < neededNew; i++) {
+    const { city, country } = randomCity();
+    const loginId = uuid();
+    const shortId = crypto.randomBytes(4).toString("hex");
+    const email = `seed.${shortId}@example.com`;
+
+    db.insert(schema.logins)
+      .values({ id: loginId, email, expiresAt: "2099-01-01T00:00:00.000Z" })
+      .run();
+
+    db.insert(schema.users)
+      .values({
+        id: uuid(),
+        name: faker.person.firstName(),
+        familyName: faker.person.lastName(),
+        role: "user",
+        loginId,
+        city,
+        country,
+        createdAt: faker.date
+          .between({ from: "2019-01-01", to: new Date() })
+          .toISOString(),
+        updatedAt: now(),
+      })
+      .run();
+    created++;
+  }
+
+  if (updated) console.log(`  assigned locations to ${updated} existing users`);
+  if (created) console.log(`  created ${created} new bulk users`);
+} else {
+  console.log(
+    `  bulk fake users already present with locations (${allBulkUsers.length}), skipping`,
+  );
+}
 
 // ─── 5. Groups ───────────────────────────────────────────────────────────────
 

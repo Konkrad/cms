@@ -56,11 +56,6 @@ export const AdminNav = component$<AdminNavProps>(
       });
     }
 
-    // Add Members management for global admin
-    if (isGlobal) {
-      navItems.push({ href: `/admin/global/users`, label: "Users" });
-    }
-
     return (
       <nav class="flex gap-2">
         {navItems.map((item) => {

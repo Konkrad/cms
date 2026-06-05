@@ -21,8 +21,10 @@ import { forms } from "./schemas/forms";
 import { formResults } from "./schemas/form-results";
 import { jobs } from "./schemas/jobs";
 import { qualificationTypes } from "./schemas/qualification-types";
+import { qualificationTokens } from "./schemas/qualification-tokens";
 import { userQualifications } from "./schemas/user-qualifications";
 import { userMemberships } from "./schemas/user-memberships";
+import { tagDefinitions } from "./schemas/tag-definitions";
 import { userTags } from "./schemas/user-tags";
 import { electionCycles } from "./schemas/election-cycles";
 import { electionPositions } from "./schemas/election-positions";
@@ -52,8 +54,10 @@ export * from "./schemas/form-results";
 export * from "./schemas/deals";
 export * from "./schemas/jobs";
 export * from "./schemas/qualification-types";
+export * from "./schemas/qualification-tokens";
 export * from "./schemas/user-qualifications";
 export * from "./schemas/user-memberships";
+export * from "./schemas/tag-definitions";
 export * from "./schemas/user-tags";
 export * from "./schemas/election-cycles";
 export * from "./schemas/election-positions";
@@ -83,8 +87,10 @@ export const schemaRelations = defineRelations(
 		formResults,
 		jobs,
 		qualificationTypes,
+		qualificationTokens,
 		userQualifications,
 		userMemberships,
+		tagDefinitions,
 		userTags,
 		electionCycles,
 		electionPositions,
@@ -110,8 +116,10 @@ export const schemaRelations = defineRelations(
 		pages,
 		jobs,
 		qualificationTypes,
+		qualificationTokens,
 		userQualifications,
 		userMemberships,
+		tagDefinitions,
 		userTags,
 		electionCycles,
 		electionPositions,
@@ -239,6 +247,22 @@ export const schemaRelations = defineRelations(
 			qualifications: many.userQualifications({
 				from: qualificationTypes.id,
 				to: userQualifications.typeId,
+			}),
+			tokens: many.qualificationTokens({
+				from: qualificationTypes.id,
+				to: qualificationTokens.typeId,
+			}),
+		},
+		qualificationTokens: {
+			type: one.qualificationTypes({
+				from: qualificationTokens.typeId,
+				to: qualificationTypes.id,
+				optional: false,
+			}),
+			creator: one.users({
+				from: qualificationTokens.createdBy,
+				to: users.id,
+				optional: false,
 			}),
 		},
 		userQualifications: {

@@ -100,11 +100,11 @@ export default component$(() => {
                         <input type="hidden" name="dealId" value={deal.id} />
                         <button
                           type="submit"
+                          preventdefault:click
                           class="text-red-600 hover:text-red-900"
                           onClick$={(e) => {
-                            if (!confirm("Delete this deal?")) {
-                              e.preventDefault();
-                            }
+                            if (!confirm("Delete this deal?")) return;
+                            (e.target as HTMLElement).closest("form")?.requestSubmit();
                           }}
                         >
                           Delete

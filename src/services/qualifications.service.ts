@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, lte } from "drizzle-orm";
 import { db } from "~/db/connection";
 import {
   qualificationTypes,
@@ -6,6 +6,11 @@ import {
   updateQualificationTypeSchema,
   type QualificationType,
 } from "~/db/schemas/qualification-types";
+import {
+  qualificationTokens,
+  insertQualificationTokenSchema,
+  type QualificationToken,
+} from "~/db/schemas/qualification-tokens";
 import {
   userQualifications,
   insertUserQualificationSchema,
@@ -116,7 +121,25 @@ export const qualificationsService = {
       .from(userQualifications)
       .where(and(eq(userQualifications.userId, userId), eq(userQualifications.typeId, typeId)))
       .limit(1);
-    if (existing) return existing;
+
+    if (existing) {
+      // Allow re-applying after rejection — reset to pending
+      if (existing.status === "rejected") {
+        const [row] = await db
+          .update(userQualifications)
+          .set({
+            status: "pending",
+            notes: null,
+            verifiedBy: null,
+            verifiedAt: null,
+            updatedAt: new Date().toISOString(),
+          } as any)
+          .where(eq(userQualifications.id, existing.id))
+          .returning();
+        return row;
+      }
+      return existing;
+    }
 
     const validated = insertUserQualificationSchema.parse({
       id: crypto.randomUUID(),
@@ -184,5 +207,91 @@ export const qualificationsService = {
       .where(eq(userQualifications.id, id))
       .returning();
     return row;
+  },
+
+  // ── Verification tokens ────────────────────────────────────────────────────
+
+  async createToken(
+    typeId: string,
+    adminUserId: string,
+    expiresInHours: number,
+  ): Promise<QualificationToken> {
+    const expiresAt = new Date(Date.now() + expiresInHours * 3_600_000).toISOString();
+    const validated = insertQualificationTokenSchema.parse({
+      typeId,
+      createdBy: adminUserId,
+      expiresAt,
+    });
+    const [row] = await db
+      .insert(qualificationTokens)
+      .values(validated as any)
+      .returning();
+    return row;
+  },
+
+  async getActiveTokensForType(typeId: string): Promise<QualificationToken[]> {
+    const now = new Date().toISOString();
+    return db
+      .select()
+      .from(qualificationTokens)
+      .where(
+        and(
+          eq(qualificationTokens.typeId, typeId),
+          eq(qualificationTokens.isActive, true),
+        ),
+      )
+      .orderBy(qualificationTokens.createdAt) as Promise<QualificationToken[]>;
+  },
+
+  async revokeToken(tokenId: string): Promise<void> {
+    await db
+      .update(qualificationTokens)
+      .set({ isActive: false } as any)
+      .where(eq(qualificationTokens.id, tokenId));
+  },
+
+  async redeemToken(
+    token: string,
+    userId: string,
+  ): Promise<{ success: boolean; alreadyVerified?: boolean; error?: string }> {
+    const now = new Date().toISOString();
+
+    const [tokenRow] = await db
+      .select()
+      .from(qualificationTokens)
+      .where(eq(qualificationTokens.token, token))
+      .limit(1);
+
+    if (!tokenRow) return { success: false, error: "Invalid or unknown token." };
+    if (!tokenRow.isActive) return { success: false, error: "This QR code has been deactivated." };
+    if (tokenRow.expiresAt < now) return { success: false, error: "This QR code has expired." };
+
+    // Check if already approved
+    const [existing] = await db
+      .select()
+      .from(userQualifications)
+      .where(
+        and(
+          eq(userQualifications.userId, userId),
+          eq(userQualifications.typeId, tokenRow.typeId),
+        ),
+      )
+      .limit(1);
+
+    if (existing?.status === "approved") {
+      return { success: true, alreadyVerified: true };
+    }
+
+    // Upsert qualification and approve it
+    let qualId: string;
+    if (existing) {
+      qualId = existing.id;
+    } else {
+      const qual = await this.upsert(userId, tokenRow.typeId);
+      qualId = qual.id;
+    }
+
+    await this.approve(qualId, tokenRow.createdBy);
+    return { success: true };
   },
 };

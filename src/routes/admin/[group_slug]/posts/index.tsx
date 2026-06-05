@@ -91,15 +91,11 @@ export default component$(() => {
                       <input type="hidden" name="postId" value={post.id} />
                       <button
                         type="submit"
+                        preventdefault:click
                         class="text-red-600 hover:text-red-900"
                         onClick$={(e) => {
-                          if (
-                            !confirm(
-                              "Are you sure you want to delete this post?",
-                            )
-                          ) {
-                            e.preventDefault();
-                          }
+                          if (!confirm("Are you sure you want to delete this post?")) return;
+                          (e.target as HTMLElement).closest("form")?.requestSubmit();
                         }}
                       >
                         Delete

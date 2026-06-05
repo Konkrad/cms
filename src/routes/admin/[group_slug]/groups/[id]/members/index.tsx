@@ -152,13 +152,11 @@ export default component$(() => {
                         <input type="hidden" name="userId" value={m.id} />
                         <button
                           type="submit"
+                          preventdefault:click
                           class="text-green-600 hover:text-green-900"
                           onClick$={(e) => {
-                            if (
-                              !confirm("Promote this member to representative?")
-                            ) {
-                              e.preventDefault();
-                            }
+                            if (!confirm("Promote this member to representative?")) return;
+                            (e.target as HTMLElement).closest("form")?.requestSubmit();
                           }}
                         >
                           Promote

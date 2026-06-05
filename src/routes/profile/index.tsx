@@ -229,11 +229,18 @@ export default component$(() => {
           </div>
 
           {/* Qualifications */}
-          {profile.value.qualifications.length > 0 && (
-            <>
-              <hr class="border-gray-200" />
-              <div>
-                <h3 class="text-lg font-semibold mb-3">Qualifications</h3>
+          <>
+            <hr class="border-gray-200" />
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-lg font-semibold">Qualifications</h3>
+                <a href="/qualifications" class="text-sm text-blue-600 hover:text-blue-800">
+                  Apply for a qualification →
+                </a>
+              </div>
+              {profile.value.qualifications.length === 0 ? (
+                <p class="text-sm text-gray-500">No qualifications submitted yet.</p>
+              ) : (
                 <ul class="space-y-2">
                   {profile.value.qualifications.map((q) => (
                     <li key={q.id} class="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-3">
@@ -254,9 +261,9 @@ export default component$(() => {
                     </li>
                   ))}
                 </ul>
-              </div>
-            </>
-          )}
+              )}
+            </div>
+          </>
 
           {/* Tags / Achievements */}
           {profile.value.tags.length > 0 && (

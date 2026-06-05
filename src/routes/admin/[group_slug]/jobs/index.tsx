@@ -142,11 +142,11 @@ export default component$(() => {
                         <input type="hidden" name="jobId" value={job.id} />
                         <button
                           type="submit"
+                          preventdefault:click
                           class="text-red-600 hover:text-red-900"
                           onClick$={(e) => {
-                            if (!confirm("Delete this job posting?")) {
-                              e.preventDefault();
-                            }
+                            if (!confirm("Delete this job posting?")) return;
+                            (e.target as HTMLElement).closest("form")?.requestSubmit();
                           }}
                         >
                           Delete

@@ -108,8 +108,10 @@ export default component$(() => {
               <button
                 type="submit"
                 class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700"
+                preventdefault:click
                 onClick$={(e) => {
-                  if (!confirm(`Move cycle to "${nextStatus}"?`)) e.preventDefault();
+                  if (!confirm(`Move cycle to "${nextStatus}"?`)) return;
+                  (e.target as HTMLElement).closest("form")?.requestSubmit();
                 }}
               >
                 Set to {nextStatus}
@@ -237,8 +239,10 @@ export default component$(() => {
                           <button
                             type="submit"
                             class="text-red-600 hover:text-red-900 text-sm"
+                            preventdefault:click
                             onClick$={(e) => {
-                              if (!confirm(`Delete position "${pos.title}"?`)) e.preventDefault();
+                              if (!confirm(`Delete position "${pos.title}"?`)) return;
+                              (e.target as HTMLElement).closest("form")?.requestSubmit();
                             }}
                           >
                             Delete

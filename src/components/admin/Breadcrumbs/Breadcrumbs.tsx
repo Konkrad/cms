@@ -34,8 +34,8 @@ export const Breadcrumbs = component$<BreadcrumbsProps>(
         breadcrumbs.push({ label: "New Group" });
       } else if (segments.includes("edit")) {
         breadcrumbs.push({ label: "Edit Group" });
-      } else if (segments.includes("members")) {
-        breadcrumbs.push({ label: "Members" });
+      } else if (segments.includes("users")) {
+        breadcrumbs.push({ label: "Users" });
       }
     } else if (segments.includes("events")) {
       breadcrumbs.push({ label: "Events" });

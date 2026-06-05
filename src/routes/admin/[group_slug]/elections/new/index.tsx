@@ -10,18 +10,19 @@ export const useGuard = routeLoader$(async (event) => {
   return {};
 });
 
-export const useCreateCycle = routeAction$(
+const useCreateCycle = routeAction$(
   async (data, event) => {
     const { requireAdmin } = await import("~/utils/server-auth");
-    await requireAdmin(event);
-    const { electionsService } = await import("~/services/elections.service");
+    const user = await requireAdmin(event);
+
     const cycle = await electionsService.createCycle({
       title: data.title,
       year: data.year,
       description: data.description || undefined,
-      requiredMembershipTier: (data.requiredMembershipTier as any) || null,
+      requiredMembershipTier: data.requiredMembershipTier || null,
     });
-    throw event.redirect(302, `/admin/global/elections/${cycle.id}`);
+
+    throw event.redirect(303, `/admin/global/elections/${cycle.id}`);
   },
   zod$({
     title: z.string().min(1, "Title is required"),
@@ -45,9 +46,14 @@ export default component$(() => {
         </div>
       )}
 
-      <Form action={createAction} class="bg-white rounded-lg shadow-sm p-6 space-y-4">
+      <Form
+        action={createAction}
+        class="bg-white rounded-lg shadow-sm p-6 space-y-4"
+      >
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Title
+          </label>
           <input
             type="text"
             name="title"
@@ -57,7 +63,9 @@ export default component$(() => {
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Year
+          </label>
           <input
             type="number"
             name="year"
@@ -67,7 +75,9 @@ export default component$(() => {
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Description (optional)</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Description (optional)
+          </label>
           <textarea
             name="description"
             rows={3}
@@ -75,8 +85,13 @@ export default component$(() => {
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Required Membership Tier</label>
-          <select name="requiredMembershipTier" class="w-full border rounded-md px-3 py-2 text-sm">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Required Membership Tier
+          </label>
+          <select
+            name="requiredMembershipTier"
+            class="w-full border rounded-md px-3 py-2 text-sm"
+          >
             <option value="">None (any authenticated user)</option>
             <option value="associated">Associated Member</option>
             <option value="full">Full Member</option>
@@ -89,7 +104,10 @@ export default component$(() => {
           >
             Create Cycle
           </button>
-          <a href="/admin/global/elections" class="text-sm text-gray-500 hover:text-gray-700 py-2">
+          <a
+            href="/admin/global/elections"
+            class="text-sm text-gray-500 hover:text-gray-700 py-2"
+          >
             Cancel
           </a>
         </div>

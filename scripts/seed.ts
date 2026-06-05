@@ -368,7 +368,9 @@ const allBulkUsers = db
       ),
   );
 
-const bulkUsersWithoutCity = allBulkUsers.filter((u) => !u.city);
+// All users missing a city (includes admin, host, test, QA users)
+const allUsersWithoutCity = db.select().from(schema.users).all().filter((u) => !u.city);
+const bulkUsersWithoutCity = allUsersWithoutCity; // assign cities to everyone
 const neededNew = BULK_USER_TARGET - allBulkUsers.length;
 
 if (neededNew > 0 || bulkUsersWithoutCity.length > 0) {

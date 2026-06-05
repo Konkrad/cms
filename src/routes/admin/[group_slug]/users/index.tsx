@@ -382,7 +382,7 @@ export default component$(() => {
               <tr key={user.id} class="hover:bg-gray-50 align-top">
                 <td class="px-6 py-4 whitespace-nowrap">
                   <Link
-                    href={`/admin/${data.value.groupSlug}/users/${user.id}`}
+                    href={`/users/${user.id}`}
                     class="text-sm font-medium text-blue-600 hover:underline"
                   >
                     {user.name} {user.familyName}

@@ -1659,6 +1659,86 @@ for (const f of formDefs) {
 }
 console.log(`  forms seeded (${formDefs.length})`);
 
+// ─── 13b. Onboarding form results ─────────────────────────────────────────────
+
+const onboardingForm = db
+  .select()
+  .from(schema.forms)
+  .all()
+  .find((f) => f.systemKey === "affilation");
+
+if (onboardingForm) {
+  const existingResultRows = db
+    .select({ userId: schema.formResults.userId })
+    .from(schema.formResults)
+    .where(eq(schema.formResults.formId, onboardingForm.id))
+    .all();
+
+  const alreadySubmitted = new Set(existingResultRows.map((r) => r.userId));
+
+  const affiliationPool = [
+    // Master's degree — various universities and tracks
+    { academicPath: [{ affilation: "master", year: 2018, entry_university: "tu_berlin", exit_university: "kth_royal_institute_of_technology", track: "dsc" }] },
+    { academicPath: [{ affilation: "master", year: 2019, entry_university: "aalto_university", exit_university: "tu_berlin", track: "cse" }] },
+    { academicPath: [{ affilation: "master", year: 2020, entry_university: "kth_royal_institute_of_technology", exit_university: "sorbonne_university", track: "hcid" }] },
+    { academicPath: [{ affilation: "master", year: 2017, entry_university: "university_of_twente", exit_university: "delft_university_of_technology", track: "cni" }] },
+    { academicPath: [{ affilation: "master", year: 2021, entry_university: "polimi_polytechnic_university_of_milan", exit_university: "tu_eindhoven", track: "ita" }] },
+    { academicPath: [{ affilation: "master", year: 2016, entry_university: "bme_budapest_university_of_technology_and_economics", exit_university: "saarland_university", track: "ccs" }] },
+    { academicPath: [{ affilation: "master", year: 2019, entry_university: "elte_eotvos_lorand_university", exit_university: "tu_darmstadt", track: "ft" }] },
+    { academicPath: [{ affilation: "master", year: 2022, entry_university: "unitn_university_of_trento", exit_university: "ucl_university_college_london", track: "sap" }] },
+    { academicPath: [{ affilation: "master", year: 2020, entry_university: "upm_universidad_politecnica_de_madrid", exit_university: "polimi_polytechnic_university_of_milan", track: "sde" }] },
+    { academicPath: [{ affilation: "master", year: 2023, entry_university: "aalto_university", exit_university: "tu_eindhoven", track: "aus" }] },
+    { academicPath: [{ affilation: "master", year: 2018, entry_university: "riga_technical_university", exit_university: "taltech_tallinn_university_of_technology", track: "dss" }] },
+    { academicPath: [{ affilation: "master", year: 2021, entry_university: "universite_cote_d_azur", exit_university: "eurecom", track: "vcc" }] },
+    // Summer school only
+    { academicPath: [{ affilation: "summer", summerSchool: "2022_helsinki_digital_platforms_for_smart_cities" }] },
+    { academicPath: [{ affilation: "summer", summerSchool: "2023_milan_innovative_digital_technologies_for_health" }] },
+    { academicPath: [{ affilation: "summer", summerSchool: "2019_munich_iot_platforms_for_industry_4_0" }] },
+    { academicPath: [{ affilation: "summer", summerSchool: "2024_madrid_fintech_frontier" }] },
+    { academicPath: [{ affilation: "summer", summerSchool: "2023_nice_quantum_computing_and_information" }] },
+    { academicPath: [{ affilation: "summer", summerSchool: "2023_tallinn_e_health_personalised_prevention" }] },
+    { academicPath: [{ affilation: "summer", summerSchool: "2024_milan_ai4sustainability" }] },
+    { academicPath: [{ affilation: "summer", summerSchool: "2025_barcelona_upbeat_summer_school" }] },
+    // Master's + summer school
+    { academicPath: [{ affilation: "master", year: 2019, entry_university: "tu_berlin", exit_university: "kth_royal_institute_of_technology", track: "dsc", summerSchool: "2018_stockholm_big_data_analytics" }] },
+    { academicPath: [{ affilation: "master", year: 2020, entry_university: "aalto_university", exit_university: "tu_berlin", track: "hcid", summerSchool: "2019_lisbon_longer_independent_living" }] },
+    // PhD
+    { academicPath: [{ affilation: "Item 3" }] },
+    // EITDigital employee
+    { academicPath: [{ affilation: "Item 1" }] },
+    // Friends / network
+    { academicPath: [{ affilation: "Item 2" }] },
+    // Speed Master
+    { academicPath: [{ affilation: "Item 4" }] },
+    // Accelerator
+    { academicPath: [{ affilation: "Item 5" }] },
+  ];
+
+  // Re-query all users now that all bulk users have been inserted
+  const usersToSeed = db.select().from(schema.users).all();
+  let formResultsInserted = 0;
+
+  for (const user of usersToSeed) {
+    if (alreadySubmitted.has(user.id)) continue;
+
+    const resultJson = affiliationPool[Math.floor(Math.random() * affiliationPool.length)];
+
+    db.insert(schema.formResults)
+      .values({
+        id: uuid(),
+        formId: onboardingForm.id,
+        userId: user.id,
+        resultJson,
+        submittedAt: now(),
+      })
+      .run();
+
+    formResultsInserted++;
+  }
+
+  console.log(`  onboarding form results seeded (${formResultsInserted} inserted)`);
+}
+
 // ─── 14. Pages ───────────────────────────────────────────────────────────────
 
 const DEFAULT_TILES = JSON.stringify([

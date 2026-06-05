@@ -5,6 +5,7 @@ import { formResultsService } from "~/services/form-results.service";
 import { userTagsService } from "~/services/user-tags.service";
 import { electionsService } from "~/services/elections.service";
 import { buildFormPath } from "~/utils/forms";
+import { formatAffiliationResultJson } from "~/utils/affiliation";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { deriveThumbnailKey } from "~/utils/images";
 import { db } from "~/db/connection";
@@ -54,8 +55,17 @@ export const useProfile = routeLoader$(async (event) => {
     if (typeof value === "string") return value.trim() || "-";
     if (typeof value === "number" || typeof value === "boolean") return String(value);
     if (Array.isArray(value)) {
-      const parts = value.map((item) => (typeof item === "string" ? item.trim() : String(item))).filter(Boolean);
-      return parts.length > 0 ? parts.join(", ") : "-";
+      const parts = value.map((item) => {
+        if (typeof item === "string") return item.trim();
+        if (typeof item === "object" && item !== null) {
+          return Object.entries(item as Record<string, unknown>)
+            .filter(([, v]) => v !== null && v !== undefined && v !== "")
+            .map(([k, v]) => `${k}: ${String(v)}`)
+            .join(", ");
+        }
+        return String(item);
+      }).filter(Boolean);
+      return parts.length > 0 ? parts.join("; ") : "-";
     }
     return JSON.stringify(value);
   };
@@ -98,10 +108,12 @@ export const useProfile = routeLoader$(async (event) => {
       title: s.formTitle,
       submittedAt: s.submittedAt,
       path: buildFormPath({ id: s.formId, slug: s.formSlug }),
-      responseEntries: Object.entries(s.resultJson || {}).map(([question, value]) => ({
-        question,
-        answer: formatResponseValue(value),
-      })),
+      responseEntries: s.formSlug === "onboarding"
+        ? formatAffiliationResultJson(s.resultJson || {})
+        : Object.entries(s.resultJson || {}).map(([question, value]) => ({
+            question,
+            answer: formatResponseValue(value),
+          })),
     })),
   };
 });

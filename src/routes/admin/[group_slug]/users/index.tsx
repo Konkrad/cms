@@ -278,20 +278,6 @@ export const useReevaluateBadges = routeAction$(async (_data, event) => {
   return { success: true };
 }, zod$({}));
 
-const tierBadge = (tier: string | null) => {
-  if (!tier) return <span class="text-gray-400 text-xs">—</span>;
-  const cls =
-    tier === "full"
-      ? "bg-blue-100 text-blue-800"
-      : "bg-gray-100 text-gray-700";
-  return (
-    <span
-      class={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${cls}`}
-    >
-      {tier}
-    </span>
-  );
-};
 
 export default component$(() => {
   const data = useUsers();
@@ -368,12 +354,6 @@ export default component$(() => {
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Last Login
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Tier
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Tags
-              </th>
               <th class="px-6 py-3 w-12" />
             </tr>
           </thead>
@@ -413,21 +393,6 @@ export default component$(() => {
                   {user.lastLogin
                     ? format(new Date(user.lastLogin), "MMM d, yyyy")
                     : "—"}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  {tierBadge(user.membership?.tier ?? null)}
-                </td>
-                <td class="px-6 py-4">
-                  <div class="flex flex-wrap gap-1">
-                    {user.tags.map((tag) => (
-                      <span
-                        key={tag.id}
-                        class="px-2 py-0.5 rounded-full text-xs bg-indigo-50 text-indigo-700 border border-indigo-100 whitespace-nowrap"
-                      >
-                        {tag.label}
-                      </span>
-                    ))}
-                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right relative">
                   <button

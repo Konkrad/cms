@@ -7,6 +7,10 @@ import { env } from "~/env";
 import { usersService } from "~/services/users.service";
 import { groupMembershipsService } from "~/services/group-memberships.service";
 import { participationService } from "~/services/participation.service";
+import { formResultsService } from "~/services/form-results.service";
+import { electionsService } from "~/services/elections.service";
+import { buildFormPath } from "~/utils/forms";
+import { formatAffiliationResultJson } from "~/utils/affiliation";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { deriveThumbnailKey } from "~/utils/images";
 import { UserProfile } from "~/components/user/UserProfile/UserProfile";
@@ -38,12 +42,44 @@ export const usePublicProfile = routeLoader$(async (event) => {
       : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
   };
 
+  const isAdmin = currentUser?.role === "admin";
+
   const { userTagsService } = await import("~/services/user-tags.service");
-  const [groups, participation, tags] = await Promise.all([
+  const [groups, participation, tags, submittedFormRows, electionApplications] = await Promise.all([
     groupMembershipsService.getUserGroups(user.id),
     participationService.getByUserId(user.id),
     userTagsService.getByUser(user.id),
+    isOwner || isAdmin ? formResultsService.getByUser(user.id) : Promise.resolve([]),
+    isOwner ? electionsService.getApplicationsByUser(user.id) : Promise.resolve([]),
   ]);
+
+  const formatResponseValue = (value: unknown): string => {
+    if (value === null || value === undefined) return "-";
+    if (typeof value === "string") return value.trim() || "-";
+    if (typeof value === "number" || typeof value === "boolean") return String(value);
+    if (Array.isArray(value)) {
+      const parts = value.map((item) => {
+        if (typeof item === "string") return item.trim();
+        if (typeof item === "object" && item !== null) {
+          return Object.entries(item as Record<string, unknown>)
+            .filter(([, v]) => v !== null && v !== undefined && v !== "")
+            .map(([k, v]) => `${k}: ${String(v)}`)
+            .join(", ");
+        }
+        return String(item);
+      }).filter(Boolean);
+      return parts.length > 0 ? parts.join("; ") : "-";
+    }
+    return JSON.stringify(value);
+  };
+
+  const electionsByCycle = new Map<string, { title: string; year: number; apps: typeof electionApplications }>();
+  for (const app of electionApplications) {
+    if (!electionsByCycle.has(app.cycleId)) {
+      electionsByCycle.set(app.cycleId, { title: app.cycle.title, year: app.cycle.year, apps: [] });
+    }
+    electionsByCycle.get(app.cycleId)!.apps.push(app);
+  }
 
   return {
     name: user.name,
@@ -60,6 +96,32 @@ export const usePublicProfile = routeLoader$(async (event) => {
     email: isOwner ? email : null,
     yearOfBirth: isOwner ? (user.yearOfBirth ?? null) : null,
     sex: isOwner ? (user.sex ?? null) : null,
+    electionGroups: isOwner
+      ? [...electionsByCycle.values()]
+          .sort((a, b) => b.year - a.year)
+          .map((g) => ({
+            ...g,
+            apps: g.apps.map((a) => ({
+              id: a.id,
+              status: a.status,
+              position: (a as any).position ?? null,
+            })),
+          }))
+      : undefined,
+    submittedForms: isOwner || isAdmin
+      ? submittedFormRows.map((s) => ({
+          id: s.id,
+          title: s.formTitle,
+          submittedAt: s.submittedAt,
+          path: buildFormPath({ id: s.formId, slug: s.formSlug }),
+          responseEntries: s.formSlug === "onboarding"
+            ? formatAffiliationResultJson(s.resultJson || {})
+            : Object.entries(s.resultJson || {}).map(([question, value]) => ({
+                question,
+                answer: formatResponseValue(value),
+              })),
+        }))
+      : undefined,
   };
 });
 

@@ -276,8 +276,8 @@ export const UserProfile = component$<UserProfileProps>((props) => {
         </section>
       )}
 
-      {/* Submitted Forms — owner only */}
-      {isOwner && submittedForms && submittedForms.length > 0 && (
+      {/* Submitted Forms */}
+      {submittedForms && submittedForms.length > 0 && (
         <section>
           <h2 class="text-xl font-semibold text-gray-800 mb-3">Submitted Forms</h2>
           <ul class="space-y-2">

@@ -50,7 +50,7 @@ export default component$(() => {
     );
   }
 
-  const { form, existingResult, requireAltcha } = data.value;
+  const { form, existingResult, alreadySubmitted, requireAltcha } = data.value;
 
   return (
     <div class="container mx-auto px-4 py-10 max-w-4xl">
@@ -59,18 +59,25 @@ export default component$(() => {
         {form.description && <p class="forms-page-description">{form.description}</p>}
       </section>
 
-      {existingResult && (
+      {alreadySubmitted && !form.allowResubmission ? (
         <div class="forms-alert forms-alert-info">
-          You have already submitted this form. Your previous answers are pre-filled — submit again to update them.
+          You already submitted this form. Multiple submissions are not allowed.
         </div>
+      ) : (
+        <>
+          {existingResult && (
+            <div class="forms-alert forms-alert-info">
+              Your previous answers are pre-filled — submit again to update them.
+            </div>
+          )}
+          <SurveyRuntime
+            surveyJson={form.schemaJson as Record<string, any>}
+            submitUrl={`/api/forms/${form.id}/submit`}
+            requireAltcha={requireAltcha}
+            initialData={existingResult ?? undefined}
+          />
+        </>
       )}
-
-      <SurveyRuntime
-        surveyJson={form.schemaJson as Record<string, any>}
-        submitUrl={`/api/forms/${form.id}/submit`}
-        requireAltcha={requireAltcha}
-        initialData={existingResult ?? undefined}
-      />
     </div>
   );
 });

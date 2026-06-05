@@ -386,21 +386,22 @@ if (neededNew > 0 || bulkUsersWithoutCity.length > 0) {
       return lat >= 34 && lat <= 72 && lon >= -25 && lon <= 45;
     })
     .map((f) => ({
-      city: f.properties.NAME as string,
-      country: f.properties.ADM0NAME as string,
-    }));
+      city: f.properties.name as string,
+      country: f.properties.adm0name as string,
+    }))
+    .filter((c) => c.city && c.country);
 
   const randomCity = () =>
     europeanCities[Math.floor(Math.random() * europeanCities.length)];
 
-  // Update existing users that are missing a city
+  // Update existing users that are missing a city (raw SQL to guarantee immediate commit)
+  const updateCity = sqlite.prepare(
+    "UPDATE users SET city = ?, country = ?, updated_at = ? WHERE id = ?",
+  );
   let updated = 0;
   for (const u of bulkUsersWithoutCity) {
     const { city, country } = randomCity();
-    db.update(schema.users)
-      .set({ city, country, updatedAt: now() })
-      .where(eq(schema.users.id, u.id))
-      .run();
+    updateCity.run(city, country, now(), u.id);
     updated++;
   }
 
@@ -957,6 +958,15 @@ for (const eventTitle of statusEvents) {
   for (let i = 0; i < usersForEvent.length; i++) {
     // Skip some users randomly to create realistic variation
     if (Math.random() < 0.3) continue;
+    const existing = db
+      .select()
+      .from(schema.participationStatus)
+      .all()
+      .find(
+        (p) =>
+          p.userId === usersForEvent[i].id && p.eventId === evt.id,
+      );
+    if (existing) continue;
     db.insert(schema.participationStatus)
       .values({
         id: uuid(),

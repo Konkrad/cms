@@ -70,9 +70,10 @@ export const useUpdateMyJob = routeAction$(
     city: z.string().optional(),
     country: z.string().optional(),
     link: z.string().optional(),
-    posterRelation: z
-      .enum(["hiring", "founder", "direct-team", "works-there", "other"])
-      .optional(),
+    posterRelation: z.preprocess(
+      (v) => (v === "" ? undefined : v),
+      z.enum(["hiring", "founder", "direct-team", "works-there", "other"]).optional(),
+    ),
     expiresAt: z.string().min(1, "Expiry date is required"),
   }),
 );

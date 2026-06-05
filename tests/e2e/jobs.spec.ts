@@ -45,6 +45,11 @@ test.describe("Jobs — unauthenticated", () => {
     await page.goto("/jobs/new");
     await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
   });
+
+  test("redirects /jobs/mine to /login for guests", async ({ guestPage: page }) => {
+    await page.goto("/jobs/mine");
+    await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
+  });
 });
 
 // ── Member submission flow ─────────────────────────────────────────────────────
@@ -151,10 +156,11 @@ test.describe("Jobs — my submissions", () => {
     try {
       await loginAs(page, session.sessionToken);
       await page.goto("/jobs/mine");
-      await expect(page.locator("text=Job To Delete")).toBeVisible({ timeout: 10_000 });
+      const row = page.locator("tr", { hasText: "Job To Delete" });
+      await expect(row).toBeVisible({ timeout: 10_000 });
 
       page.on("dialog", (d) => d.accept());
-      await page.locator("button:has-text('Delete')").first().click();
+      await row.locator("button:has-text('Delete')").click();
 
       await expect(page.locator("text=Job To Delete")).not.toBeVisible({ timeout: 10_000 });
       expect(getJobById(jobId)).toBeUndefined();
@@ -185,6 +191,26 @@ test.describe("Jobs — my submissions", () => {
     } finally {
       cleanup();
       session.cleanup();
+    }
+  });
+
+  test("editing another user's job redirects to /jobs/mine", async ({ guestPage: page }) => {
+    const owner = createUserSession("user");
+    const attacker = createUserSession("user");
+    const { jobId, cleanup } = createJobInDb({
+      suggestedBy: owner.userId,
+      title: "Other User Job",
+      status: "pending",
+    });
+
+    try {
+      await loginAs(page, attacker.sessionToken);
+      await page.goto(`/jobs/mine/${jobId}/edit`);
+      await expect(page).toHaveURL(/\/jobs\/mine/, { timeout: 10_000 });
+    } finally {
+      cleanup();
+      owner.cleanup();
+      attacker.cleanup();
     }
   });
 
@@ -261,12 +287,13 @@ test.describe("Jobs — admin", () => {
 
     try {
       await page.goto("/admin/global/jobs");
-      await expect(page.locator("text=Needs Admin Approval")).toBeVisible({ timeout: 10_000 });
-      await expect(page.locator("text=Pending").first()).toBeVisible();
+      const row = page.locator("tr", { hasText: "Needs Admin Approval" });
+      await expect(row).toBeVisible({ timeout: 10_000 });
+      await expect(row.locator("text=Pending")).toBeVisible();
 
-      await page.locator("button:has-text('Approve')").first().click();
+      await row.locator("button:has-text('Approve')").click();
 
-      await expect(page.locator("text=Approved").first()).toBeVisible({ timeout: 10_000 });
+      await expect(row.locator("text=Approved")).toBeVisible({ timeout: 10_000 });
       expect(getJobById(jobId)?.status).toBe("approved");
     } finally {
       cleanup();
@@ -284,10 +311,11 @@ test.describe("Jobs — admin", () => {
 
     try {
       await page.goto("/admin/global/jobs");
-      await expect(page.locator("text=Admin Delete Job")).toBeVisible({ timeout: 10_000 });
+      const row = page.locator("tr", { hasText: "Admin Delete Job" });
+      await expect(row).toBeVisible({ timeout: 10_000 });
 
       page.on("dialog", (d) => d.accept());
-      await page.locator("button:has-text('Delete')").first().click();
+      await row.locator("button:has-text('Delete')").click();
 
       await expect(page.locator("text=Admin Delete Job")).not.toBeVisible({ timeout: 10_000 });
       expect(getJobById(jobId)).toBeUndefined();
@@ -299,6 +327,6 @@ test.describe("Jobs — admin", () => {
 
   test("Jobs nav item is visible in global admin nav", async ({ adminPage: page }) => {
     await page.goto("/admin/global");
-    await expect(page.locator("nav a:has-text('Jobs')")).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("a[href='/admin/global/jobs']")).toBeVisible({ timeout: 10_000 });
   });
 });

@@ -58,6 +58,7 @@ export interface UserProfileProps {
   // Extended sections (own profile only)
   electionGroups?: ElectionGroup[];
   submittedForms?: FormEntry[];
+  affiliationEntries?: { question: string; answer: string }[];
 }
 
 const formatDate = (iso: string) =>
@@ -91,10 +92,19 @@ export const UserProfile = component$<UserProfileProps>((props) => {
     sex,
     electionGroups,
     submittedForms,
+    affiliationEntries,
   } = props;
 
   const displayName = `${name} ${familyName}`.trim();
   const initials = `${name?.charAt(0) ?? ""}${familyName?.charAt(0) ?? ""}`.toUpperCase();
+
+  const hasPrivateContent =
+    isOwner &&
+    (!!email ||
+      !!yearOfBirth ||
+      !!sex ||
+      (electionGroups && electionGroups.length > 0) ||
+      (submittedForms && submittedForms.length > 0));
 
   return (
     <div class="container mx-auto px-4 py-8 max-w-4xl space-y-8">
@@ -138,32 +148,7 @@ export const UserProfile = component$<UserProfileProps>((props) => {
         </div>
       </div>
 
-      {/* Owner bar */}
-      {isOwner && (
-        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 flex-wrap">
-          <Link
-            href="/profile/edit"
-            class="text-sm font-medium text-blue-700 hover:underline shrink-0"
-          >
-            Edit profile
-          </Link>
-          {email && (
-            <span class="text-sm text-gray-700">
-              <span class="font-medium">Email:</span> {email}
-            </span>
-          )}
-          {yearOfBirth && (
-            <span class="text-sm text-gray-700">
-              <span class="font-medium">Year of birth:</span> {yearOfBirth}
-            </span>
-          )}
-          {sex && (
-            <span class="text-sm text-gray-700">
-              <span class="font-medium">Gender:</span> {sex}
-            </span>
-          )}
-        </div>
-      )}
+      {/* ── Public sections ── */}
 
       {/* Communities */}
       <section>
@@ -240,79 +225,120 @@ export const UserProfile = component$<UserProfileProps>((props) => {
         )}
       </section>
 
-      {/* Election History — owner only */}
-      {isOwner && electionGroups && electionGroups.length > 0 && (
+      {/* Relations / Affiliation */}
+      {affiliationEntries && affiliationEntries.length > 0 && (
         <section>
-          <h2 class="text-xl font-semibold text-gray-800 mb-3">Election History</h2>
-          <div class="space-y-3">
-            {electionGroups.map((group) => (
-              <div
-                key={group.title}
-                class="border border-gray-200 rounded-lg overflow-hidden"
-              >
-                <div class="px-4 py-2 bg-gray-50 border-b text-sm font-medium text-gray-700">
-                  {group.title}
+          <h2 class="text-xl font-semibold text-gray-800 mb-3">Relations / Affiliation</h2>
+          <div class="border border-gray-200 rounded-lg p-4">
+            <dl class="space-y-2">
+              {affiliationEntries.map((entry) => (
+                <div key={entry.question} class="grid grid-cols-1 md:grid-cols-3 gap-1">
+                  <dt class="text-sm text-gray-500">{entry.question}</dt>
+                  <dd class="text-sm text-gray-900 md:col-span-2 font-medium">{entry.answer}</dd>
                 </div>
-                <ul class="divide-y divide-gray-100">
-                  {group.apps.map((app) => (
-                    <li
-                      key={app.id}
-                      class="px-4 py-3 flex items-center justify-between"
-                    >
-                      <span class="text-sm text-gray-800">
-                        {app.position?.title ?? "—"}
-                      </span>
-                      <span
-                        class={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusCls(app.status)}`}
-                      >
-                        {app.status}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+              ))}
+            </dl>
           </div>
         </section>
       )}
 
-      {/* Submitted Forms */}
-      {submittedForms && submittedForms.length > 0 && (
-        <section>
-          <h2 class="text-xl font-semibold text-gray-800 mb-3">Submitted Forms</h2>
-          <ul class="space-y-2">
-            {submittedForms.map((submission) => (
-              <li key={submission.id} class="border border-gray-200 rounded-lg p-4">
-                <a
-                  href={submission.path}
-                  class="text-blue-600 hover:underline font-medium"
-                >
-                  {submission.title}
-                </a>
-                <p class="text-sm text-gray-500 mt-1">
-                  Submitted {new Date(submission.submittedAt).toLocaleString()}
-                </p>
-                {submission.responseEntries.length > 0 && (
-                  <dl class="mt-3 space-y-1">
-                    {submission.responseEntries.map((entry) => (
-                      <div
-                        key={entry.question}
-                        class="grid grid-cols-1 md:grid-cols-3 gap-1"
-                      >
-                        <dt class="text-sm text-gray-600 break-words">
-                          {entry.question}
-                        </dt>
-                        <dd class="text-sm text-gray-900 md:col-span-2 break-words">
-                          {entry.answer}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
+      {/* ── Private sections (owner only) ── */}
+      {hasPrivateContent && (
+        <div class="border-t-2 border-dashed border-gray-200 pt-8 space-y-8">
+          <p class="text-xs font-medium text-gray-400 uppercase tracking-widest -mb-4">
+            Only visible to you
+          </p>
+
+          {/* Owner details */}
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 flex-wrap">
+            <Link
+              href="/profile/edit"
+              class="text-sm font-medium text-blue-700 hover:underline shrink-0"
+            >
+              Edit profile
+            </Link>
+            {email && (
+              <span class="text-sm text-gray-700">
+                <span class="font-medium">Email:</span> {email}
+              </span>
+            )}
+            {yearOfBirth && (
+              <span class="text-sm text-gray-700">
+                <span class="font-medium">Year of birth:</span> {yearOfBirth}
+              </span>
+            )}
+            {sex && (
+              <span class="text-sm text-gray-700">
+                <span class="font-medium">Gender:</span> {sex}
+              </span>
+            )}
+          </div>
+
+          {/* Election History */}
+          {electionGroups && electionGroups.length > 0 && (
+            <section>
+              <h2 class="text-xl font-semibold text-gray-800 mb-3">Election History</h2>
+              <div class="space-y-3">
+                {electionGroups.map((group) => (
+                  <div
+                    key={group.title}
+                    class="border border-gray-200 rounded-lg overflow-hidden"
+                  >
+                    <div class="px-4 py-2 bg-gray-50 border-b text-sm font-medium text-gray-700">
+                      {group.title}
+                    </div>
+                    <ul class="divide-y divide-gray-100">
+                      {group.apps.map((app) => (
+                        <li
+                          key={app.id}
+                          class="px-4 py-3 flex items-center justify-between"
+                        >
+                          <span class="text-sm text-gray-800">
+                            {app.position?.title ?? "—"}
+                          </span>
+                          <span
+                            class={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusCls(app.status)}`}
+                          >
+                            {app.status}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Submitted Forms */}
+          {submittedForms && submittedForms.length > 0 && (
+            <section>
+              <h2 class="text-xl font-semibold text-gray-800 mb-3">Submitted Forms</h2>
+              <ul class="space-y-2">
+                {submittedForms.map((submission) => (
+                  <li key={submission.id} class="border border-gray-200 rounded-lg p-4">
+                    <a href={submission.path} class="text-blue-600 hover:underline font-medium">
+                      {submission.title}
+                    </a>
+                    <p class="text-sm text-gray-500 mt-1">
+                      Submitted {new Date(submission.submittedAt).toLocaleString()}
+                    </p>
+                    {submission.responseEntries.length > 0 && (
+                      <dl class="mt-3 space-y-1">
+                        {submission.responseEntries.map((entry) => (
+                          <div key={entry.question} class="grid grid-cols-1 md:grid-cols-3 gap-1">
+                            <dt class="text-sm text-gray-600 break-words">{entry.question}</dt>
+                            <dd class="text-sm text-gray-900 md:col-span-2 break-words">{entry.answer}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
       )}
     </div>
   );

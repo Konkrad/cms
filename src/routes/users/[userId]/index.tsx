@@ -49,7 +49,7 @@ export const usePublicProfile = routeLoader$(async (event) => {
     groupMembershipsService.getUserGroups(user.id),
     participationService.getByUserId(user.id),
     userTagsService.getByUser(user.id),
-    isOwner || isAdmin ? formResultsService.getByUser(user.id) : Promise.resolve([]),
+    formResultsService.getByUser(user.id),
     isOwner ? electionsService.getApplicationsByUser(user.id) : Promise.resolve([]),
   ]);
 
@@ -108,19 +108,22 @@ export const usePublicProfile = routeLoader$(async (event) => {
             })),
           }))
       : undefined,
-    submittedForms: isOwner || isAdmin
-      ? submittedFormRows.map((s) => ({
-          id: s.id,
-          title: s.formTitle,
-          submittedAt: s.submittedAt,
-          path: buildFormPath({ id: s.formId, slug: s.formSlug }),
-          responseEntries: s.formSlug === "onboarding"
-            ? formatAffiliationResultJson(s.resultJson || {})
-            : Object.entries(s.resultJson || {}).map(([question, value]) => ({
-                question,
-                answer: formatResponseValue(value),
-              })),
-        }))
+    affiliationEntries: (() => {
+      const onboarding = submittedFormRows.find((s) => s.formSlug === "onboarding");
+      return onboarding ? formatAffiliationResultJson(onboarding.resultJson || {}) : [];
+    })(),
+    submittedForms: isOwner
+      ? submittedFormRows
+          .map((s) => ({
+            id: s.id,
+            title: s.formTitle,
+            submittedAt: s.submittedAt,
+            path: buildFormPath({ id: s.formId, slug: s.formSlug }),
+            responseEntries: Object.entries(s.resultJson || {}).map(([question, value]) => ({
+              question,
+              answer: formatResponseValue(value),
+            })),
+          }))
       : undefined,
   };
 });

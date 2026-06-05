@@ -103,18 +103,21 @@ export const useProfile = routeLoader$(async (event) => {
           position: (a as any).position ?? null,
         })),
       })),
-    submittedForms: submittedForms.map((s) => ({
-      id: s.id,
-      title: s.formTitle,
-      submittedAt: s.submittedAt,
-      path: buildFormPath({ id: s.formId, slug: s.formSlug }),
-      responseEntries: s.formSlug === "onboarding"
-        ? formatAffiliationResultJson(s.resultJson || {})
-        : Object.entries(s.resultJson || {}).map(([question, value]) => ({
-            question,
-            answer: formatResponseValue(value),
-          })),
-    })),
+    affiliationEntries: (() => {
+      const onboarding = submittedForms.find((s) => s.formSlug === "onboarding");
+      return onboarding ? formatAffiliationResultJson(onboarding.resultJson || {}) : [];
+    })(),
+    submittedForms: submittedForms
+      .map((s) => ({
+        id: s.id,
+        title: s.formTitle,
+        submittedAt: s.submittedAt,
+        path: buildFormPath({ id: s.formId, slug: s.formSlug }),
+        responseEntries: Object.entries(s.resultJson || {}).map(([question, value]) => ({
+          question,
+          answer: formatResponseValue(value),
+        })),
+      })),
   };
 });
 

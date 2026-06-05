@@ -42,9 +42,11 @@ export const usePublicProfile = routeLoader$(async (event) => {
       : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${s3Key}`;
   };
 
-  const [groups, participation] = await Promise.all([
+  const { userTagsService } = await import("~/services/user-tags.service");
+  const [groups, participation, tags] = await Promise.all([
     groupMembershipsService.getUserGroups(user.id),
     participationService.getByUserId(user.id),
+    userTagsService.getByUser(user.id),
   ]);
 
   const payload = {
@@ -62,6 +64,7 @@ export const usePublicProfile = routeLoader$(async (event) => {
     groups: groups.map((g) => ({ id: g.id, name: g.name, slug: g.slug })),
     upcomingEvents: participation.upcoming,
     pastEvents: participation.past,
+    tags: tags.map((t) => ({ id: t.id, slug: t.slug, label: t.label, category: t.category })),
   };
 
   // Principle VIII — privacy at serialization boundary
@@ -147,6 +150,23 @@ export default component$(() => {
             </span>
           )}
         </div>
+      )}
+
+      {/* Tags / Achievements */}
+      {profile.tags.length > 0 && (
+        <section>
+          <h2 class="text-xl font-semibold text-gray-900 mb-3">Achievements</h2>
+          <div class="flex flex-wrap gap-2">
+            {profile.tags.map((tag) => (
+              <span
+                key={tag.id}
+                class="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-indigo-50 text-indigo-700 border border-indigo-100"
+              >
+                {tag.label}
+              </span>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Communities */}

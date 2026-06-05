@@ -4,6 +4,10 @@ import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { env } from "~/env";
 import { formResultsService } from "~/services/form-results.service";
+import { membershipsService } from "~/services/memberships.service";
+import { userTagsService } from "~/services/user-tags.service";
+import { qualificationsService } from "~/services/qualifications.service";
+import { electionsService } from "~/services/elections.service";
 import { buildFormPath } from "~/utils/forms";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { deriveThumbnailKey } from "~/utils/images";
@@ -33,7 +37,14 @@ export const useProfile = routeLoader$(async (event) => {
       : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${smallKey}`;
   }
 
-  const submittedForms = await formResultsService.getByUser(user.id);
+  const [submittedForms, membership, tags, qualifications, electionApplications] =
+    await Promise.all([
+      formResultsService.getByUser(user.id),
+      membershipsService.getByUser(user.id),
+      userTagsService.getByUser(user.id),
+      qualificationsService.getByUser(user.id),
+      electionsService.getApplicationsByUser(user.id),
+    ]);
 
   const formatResponseValue = (value: unknown): string => {
     if (value === null || value === undefined) {
@@ -58,10 +69,24 @@ export const useProfile = routeLoader$(async (event) => {
     return JSON.stringify(value);
   };
 
+  // Group election applications by cycle year
+  const electionsByCycle = new Map<string, { title: string; year: number; apps: typeof electionApplications }>();
+  for (const app of electionApplications) {
+    const key = app.cycleId;
+    if (!electionsByCycle.has(key)) {
+      electionsByCycle.set(key, { title: app.cycle.title, year: app.cycle.year, apps: [] });
+    }
+    electionsByCycle.get(key)!.apps.push(app);
+  }
+
   return {
     ...formatUser(userData, true),
     profilePictureUrl,
     profilePictureSmallUrl,
+    membership: membership ?? null,
+    tags,
+    qualifications,
+    electionGroups: [...electionsByCycle.values()].sort((a, b) => b.year - a.year),
     submittedForms: submittedForms.map((submission) => ({
       id: submission.id,
       title: submission.formTitle,
@@ -185,6 +210,107 @@ export default component$(() => {
               </div>
             )}
           </div>
+
+          <hr class="border-gray-200" />
+
+          {/* Membership */}
+          <div>
+            <h3 class="text-lg font-semibold mb-3">Membership</h3>
+            {profile.value.membership ? (
+              <span class={[
+                "inline-flex px-3 py-1 rounded-full text-sm font-medium capitalize",
+                profile.value.membership.tier === "full" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-700",
+              ].join(" ")}>
+                {profile.value.membership.tier} Member
+              </span>
+            ) : (
+              <p class="text-gray-500 text-sm">No active membership.</p>
+            )}
+          </div>
+
+          {/* Qualifications */}
+          {profile.value.qualifications.length > 0 && (
+            <>
+              <hr class="border-gray-200" />
+              <div>
+                <h3 class="text-lg font-semibold mb-3">Qualifications</h3>
+                <ul class="space-y-2">
+                  {profile.value.qualifications.map((q) => (
+                    <li key={q.id} class="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-3">
+                      <div>
+                        <div class="text-sm font-medium text-gray-900">{q.type.label}</div>
+                        {q.notes && q.status === "rejected" && (
+                          <div class="text-xs text-red-600 mt-0.5">Feedback: {q.notes}</div>
+                        )}
+                      </div>
+                      <span class={[
+                        "inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium capitalize",
+                        q.status === "approved" ? "bg-green-100 text-green-800" :
+                        q.status === "rejected" ? "bg-red-100 text-red-800" :
+                        "bg-yellow-100 text-yellow-800",
+                      ].join(" ")}>
+                        {q.status}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+
+          {/* Tags / Achievements */}
+          {profile.value.tags.length > 0 && (
+            <>
+              <hr class="border-gray-200" />
+              <div>
+                <h3 class="text-lg font-semibold mb-3">Achievements</h3>
+                <div class="flex flex-wrap gap-2">
+                  {profile.value.tags.map((tag) => (
+                    <span
+                      key={tag.id}
+                      class="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-indigo-50 text-indigo-700 border border-indigo-100"
+                    >
+                      {tag.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Election History */}
+          {profile.value.electionGroups.length > 0 && (
+            <>
+              <hr class="border-gray-200" />
+              <div>
+                <h3 class="text-lg font-semibold mb-3">Election History</h3>
+                <div class="space-y-3">
+                  {profile.value.electionGroups.map((group) => (
+                    <div key={group.title} class="border border-gray-200 rounded-lg overflow-hidden">
+                      <div class="px-4 py-2 bg-gray-50 border-b text-sm font-medium text-gray-700">
+                        {group.title}
+                      </div>
+                      <ul class="divide-y divide-gray-100">
+                        {group.apps.map((app) => (
+                          <li key={app.id} class="px-4 py-3 flex items-center justify-between">
+                            <div class="text-sm text-gray-800">{(app as any).position?.title}</div>
+                            <span class={[
+                              "inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium capitalize",
+                              app.status === "approved" ? "bg-green-100 text-green-800" :
+                              app.status === "rejected" ? "bg-red-100 text-red-800" :
+                              "bg-yellow-100 text-yellow-800",
+                            ].join(" ")}>
+                              {app.status}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
 
           <hr class="border-gray-200" />
 

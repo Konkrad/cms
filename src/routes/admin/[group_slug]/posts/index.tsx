@@ -2,36 +2,72 @@ import { component$ } from "@qwik.dev/core";
 import { Form, routeLoader$, routeAction$, Link } from "@qwik.dev/router";
 import { format } from "date-fns";
 import { Button } from "~/components/ui/Button";
-import { postsService } from "~/services/posts.service";
 import { groupsService } from "~/services/groups.service";
+import { db } from "~/db/connection";
+import { posts } from "~/db/schemas/posts";
+import { users as usersTable } from "~/db/schemas/users";
+import { and, desc, eq, isNull, like, or, sql } from "drizzle-orm";
+import { postsService } from "~/services/posts.service";
+import { Pagination, PAGE_SIZE } from "~/components/admin/Pagination/Pagination";
+import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
 
-export const usePosts = routeLoader$(async ({ params }) => {
+export const usePosts = routeLoader$(async ({ params, url }) => {
   const groupSlug = params.group_slug;
-  
-  // Get all posts or group-specific posts
-  const result = await postsService.getAll(1000);
-  let filteredItems = result.items;
-  
-  // Filter by group if not global
-  if (groupSlug !== "global") {
-    const group = await groupsService.getBySlug(groupSlug);
-    if (group) {
-      filteredItems = result.items.filter((p) => p.groupId === group.id);
-    }
-  }
-  
-  return { posts: filteredItems, groupSlug };
+  const search = url.searchParams.get("search")?.trim() ?? "";
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1") || 1);
+  const offset = (page - 1) * PAGE_SIZE;
+
+  const group =
+    groupSlug !== "global" ? await groupsService.getBySlug(groupSlug) : null;
+
+  const where = and(
+    isNull(posts.deletedAt),
+    group ? eq(posts.groupId, group.id) : undefined,
+    search
+      ? or(like(posts.title, `%${search}%`))
+      : undefined,
+  );
+
+  const [countRows, rawItems] = await Promise.all([
+    db.select({ total: sql<number>`COUNT(*)` }).from(posts).where(where),
+    db
+      .select({
+        id: posts.id,
+        title: posts.title,
+        body: posts.body,
+        createdAt: posts.createdAt,
+        userName: usersTable.name,
+        userFamilyName: usersTable.familyName,
+      })
+      .from(posts)
+      .leftJoin(usersTable, eq(posts.userId, usersTable.id))
+      .where(where)
+      .orderBy(desc(posts.createdAt))
+      .limit(PAGE_SIZE)
+      .offset(offset),
+  ]);
+
+  const total = Number(countRows[0]?.total ?? 0);
+  const items = rawItems.map((r) => ({
+    id: r.id,
+    title: r.title,
+    body: r.body,
+    createdAt: r.createdAt,
+    user: { name: r.userName ?? "", familyName: r.userFamilyName ?? "" },
+  }));
+
+  return { posts: items, total, page, pageSize: PAGE_SIZE, search, groupSlug };
 });
 
-export const useDeletePost = routeAction$(async (data, event) => {
-  const postId = data.postId as string;
-  await postsService.delete(postId);
+export const useDeletePost = routeAction$(async (data) => {
+  await postsService.delete(data.postId as string);
   return { success: true };
 });
 
 export default component$(() => {
   const data = usePosts();
   const deletePostAction = useDeletePost();
+  const totalPages = Math.ceil(data.value.total / data.value.pageSize);
 
   return (
     <div>
@@ -39,8 +75,12 @@ export default component$(() => {
         <h2 class="text-2xl font-bold text-gray-800">
           {data.value.groupSlug === "global" ? "All Posts" : "Group Posts"}
         </h2>
-        <Button href={`/admin/${data.value.groupSlug}/posts/new`}>Create New Post</Button>
+        <Button href={`/admin/${data.value.groupSlug}/posts/new`}>
+          Create New Post
+        </Button>
       </div>
+
+      <SearchBar value={data.value.search} placeholder="Search by title…" />
 
       <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
@@ -68,7 +108,7 @@ export default component$(() => {
                     {post.title}
                   </div>
                   <div class="text-sm text-gray-500 line-clamp-1">
-                    {post.body.substring(0, 100)}...
+                    {post.body.substring(0, 100)}…
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -91,15 +131,18 @@ export default component$(() => {
                       <input type="hidden" name="postId" value={post.id} />
                       <button
                         type="submit"
+                        preventdefault:click
                         class="text-red-600 hover:text-red-900"
                         onClick$={(e) => {
                           if (
                             !confirm(
                               "Are you sure you want to delete this post?",
                             )
-                          ) {
-                            e.preventDefault();
-                          }
+                          )
+                            return;
+                          (e.target as HTMLElement)
+                            .closest("form")
+                            ?.requestSubmit();
                         }}
                       >
                         Delete
@@ -113,9 +156,17 @@ export default component$(() => {
         </table>
         {data.value.posts.length === 0 && (
           <div class="text-center py-12 text-gray-500">
-            No posts found. Create your first post!
+            {data.value.search
+              ? `No posts matching "${data.value.search}".`
+              : "No posts found. Create your first post!"}
           </div>
         )}
+        <Pagination
+          page={data.value.page}
+          totalPages={totalPages}
+          total={data.value.total}
+          pageSize={data.value.pageSize}
+        />
       </div>
     </div>
   );

@@ -3,13 +3,29 @@ import { Form, Link, routeAction$, routeLoader$, zod$, z } from "@qwik.dev/route
 import { format } from "date-fns";
 import { Button } from "~/components/ui/Button";
 import { dealsService } from "~/services/deals.service";
+import { Pagination, PAGE_SIZE } from "~/components/admin/Pagination/Pagination";
+import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
 
 export const useDeals = routeLoader$(async (event) => {
   if (event.params.group_slug !== "global") {
     throw event.redirect(302, "/admin/global/deals");
   }
-  const deals = await dealsService.getAll();
-  return { deals };
+  const search = event.url.searchParams.get("search")?.trim() ?? "";
+  const page = Math.max(1, parseInt(event.url.searchParams.get("page") ?? "1") || 1);
+
+  const all = await dealsService.getAll();
+  const filtered = search
+    ? all.filter(
+        (d) =>
+          d.name.toLowerCase().includes(search.toLowerCase()) ||
+          (d.description ?? "").toLowerCase().includes(search.toLowerCase()),
+      )
+    : all;
+
+  const total = filtered.length;
+  const deals = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  return { deals, total, page, pageSize: PAGE_SIZE, search };
 });
 
 export const useDeleteDeal = routeAction$(
@@ -26,6 +42,7 @@ export default component$(() => {
   const data = useDeals();
   const deleteAction = useDeleteDeal();
   const now = new Date();
+  const totalPages = Math.ceil(data.value.total / data.value.pageSize);
 
   return (
     <div>
@@ -33,6 +50,8 @@ export default component$(() => {
         <h2 class="text-2xl font-bold text-gray-800">Deals</h2>
         <Button href="/admin/global/deals/new">Add Deal</Button>
       </div>
+
+      <SearchBar value={data.value.search} placeholder="Search by name…" />
 
       <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
@@ -100,11 +119,13 @@ export default component$(() => {
                         <input type="hidden" name="dealId" value={deal.id} />
                         <button
                           type="submit"
+                          preventdefault:click
                           class="text-red-600 hover:text-red-900"
                           onClick$={(e) => {
-                            if (!confirm("Delete this deal?")) {
-                              e.preventDefault();
-                            }
+                            if (!confirm("Delete this deal?")) return;
+                            (e.target as HTMLElement)
+                              .closest("form")
+                              ?.requestSubmit();
                           }}
                         >
                           Delete
@@ -119,9 +140,17 @@ export default component$(() => {
         </table>
         {data.value.deals.length === 0 && (
           <div class="text-center py-12 text-gray-500">
-            No deals yet. Add your first deal!
+            {data.value.search
+              ? `No deals matching "${data.value.search}".`
+              : "No deals yet. Add your first deal!"}
           </div>
         )}
+        <Pagination
+          page={data.value.page}
+          totalPages={totalPages}
+          total={data.value.total}
+          pageSize={data.value.pageSize}
+        />
       </div>
     </div>
   );

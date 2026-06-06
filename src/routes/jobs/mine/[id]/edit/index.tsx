@@ -39,14 +39,20 @@ export const useUpdateMyJob = routeAction$(
     maxExpiry.setDate(maxExpiry.getDate() + MAX_DAYS);
 
     if (expiresAt > maxExpiry) {
-      return { failed: true, error: "Expiry date cannot be more than 30 days from today." };
+      return {
+        failed: true,
+        error: "Expiry date cannot be more than 30 days from today.",
+      };
     }
 
     await jobsService.update(event.params.id, {
       title: data.title,
       body: data.body,
       editorState: data.editorState || null,
-      locationType: data.locationType as "on-site" | "remote-eu" | "remote-country",
+      locationType: data.locationType as
+        | "on-site"
+        | "remote-eu"
+        | "remote-country",
       city: data.city || null,
       country: data.country || null,
       link: data.link || null,
@@ -64,7 +70,10 @@ export const useUpdateMyJob = routeAction$(
     city: z.string().optional(),
     country: z.string().optional(),
     link: z.string().optional(),
-    posterRelation: z.enum(["hiring", "founder", "direct-team", "works-there", "other"]).optional(),
+    posterRelation: z.preprocess(
+      (v) => (v === "" ? undefined : v),
+      z.enum(["hiring", "founder", "direct-team", "works-there", "other"]).optional(),
+    ),
     expiresAt: z.string().min(1, "Expiry date is required"),
   }),
 );
@@ -149,7 +158,8 @@ export default component$(() => {
             <Input name="city" label="City" value={job.city ?? ""} />
           )}
 
-          {(locationType.value === "on-site" || locationType.value === "remote-country") && (
+          {(locationType.value === "on-site" ||
+            locationType.value === "remote-country") && (
             <Input name="country" label="Country" value={job.country ?? ""} />
           )}
 

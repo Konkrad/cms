@@ -20,6 +20,7 @@ import path from "path";
 import { execSync } from "child_process";
 import dotenv from "dotenv";
 import sharp from "sharp";
+import { faker } from "@faker-js/faker";
 import {
   CreateBucketCommand,
   PutBucketPolicyCommand,
@@ -343,6 +344,106 @@ console.log(
   `Users: admin=${adminUser.name}, host=${hostUser.name}, test=${testUsers.length}`,
 );
 console.log(`  checkout QA users ensured (${qaCheckoutUsers.length})`);
+
+// ─── 4b. Bulk fake users (1000 users with European locations) ────────────────
+
+const BULK_USER_TARGET = 1000;
+
+const knownSpecialEmails = new Set([
+  ADMIN_EMAIL,
+  "host@example.com",
+  ...qaCheckoutUserDefs.map((q) => q.email),
+]);
+
+const allBulkUsers = db
+  .select()
+  .from(schema.users)
+  .all()
+  .filter(
+    (u) =>
+      u.role === "user" &&
+      u.familyName !== "Test" &&
+      !qaCheckoutUserDefs.some(
+        (q) => q.name === u.name && q.familyName === u.familyName,
+      ),
+  );
+
+// All users missing a city (includes admin, host, test, QA users)
+const allUsersWithoutCity = db.select().from(schema.users).all().filter((u) => !u.city);
+const bulkUsersWithoutCity = allUsersWithoutCity; // assign cities to everyone
+const neededNew = BULK_USER_TARGET - allBulkUsers.length;
+
+if (neededNew > 0 || bulkUsersWithoutCity.length > 0) {
+  console.log("  fetching European city data from natural-earth-vector…");
+
+  const cityGeoJson = await fetch(
+    "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_populated_places_simple.geojson",
+  ).then((r) => r.json());
+
+  const europeanCities: Array<{ city: string; country: string }> = (
+    cityGeoJson.features as any[]
+  )
+    .filter((f) => {
+      const [lon, lat] = f.geometry.coordinates as [number, number];
+      return lat >= 34 && lat <= 72 && lon >= -25 && lon <= 45;
+    })
+    .map((f) => ({
+      city: f.properties.name as string,
+      country: f.properties.adm0name as string,
+    }))
+    .filter((c) => c.city && c.country);
+
+  const randomCity = () =>
+    europeanCities[Math.floor(Math.random() * europeanCities.length)];
+
+  // Update existing users that are missing a city (raw SQL to guarantee immediate commit)
+  const updateCity = sqlite.prepare(
+    "UPDATE users SET city = ?, country = ?, updated_at = ? WHERE id = ?",
+  );
+  let updated = 0;
+  for (const u of bulkUsersWithoutCity) {
+    const { city, country } = randomCity();
+    updateCity.run(city, country, now(), u.id);
+    updated++;
+  }
+
+  // Create any still-missing users
+  let created = 0;
+  for (let i = 0; i < neededNew; i++) {
+    const { city, country } = randomCity();
+    const loginId = uuid();
+    const shortId = crypto.randomBytes(4).toString("hex");
+    const email = `seed.${shortId}@example.com`;
+
+    db.insert(schema.logins)
+      .values({ id: loginId, email, expiresAt: "2099-01-01T00:00:00.000Z" })
+      .run();
+
+    db.insert(schema.users)
+      .values({
+        id: uuid(),
+        name: faker.person.firstName(),
+        familyName: faker.person.lastName(),
+        role: "user",
+        loginId,
+        city,
+        country,
+        createdAt: faker.date
+          .between({ from: "2019-01-01", to: new Date() })
+          .toISOString(),
+        updatedAt: now(),
+      })
+      .run();
+    created++;
+  }
+
+  if (updated) console.log(`  assigned locations to ${updated} existing users`);
+  if (created) console.log(`  created ${created} new bulk users`);
+} else {
+  console.log(
+    `  bulk fake users already present with locations (${allBulkUsers.length}), skipping`,
+  );
+}
 
 // ─── 5. Groups ───────────────────────────────────────────────────────────────
 
@@ -859,6 +960,15 @@ for (const eventTitle of statusEvents) {
   for (let i = 0; i < usersForEvent.length; i++) {
     // Skip some users randomly to create realistic variation
     if (Math.random() < 0.3) continue;
+    const existing = db
+      .select()
+      .from(schema.participationStatus)
+      .all()
+      .find(
+        (p) =>
+          p.userId === usersForEvent[i].id && p.eventId === evt.id,
+      );
+    if (existing) continue;
     db.insert(schema.participationStatus)
       .values({
         id: uuid(),
@@ -1505,6 +1615,7 @@ const formDefs: Array<{
     schemaJson: onboardJson,
     visibility: "private",
     isSystemForm: true,
+    allowResubmission: true,
     systemKey: "affilation",
   },
   {
@@ -1548,6 +1659,86 @@ for (const f of formDefs) {
     .run();
 }
 console.log(`  forms seeded (${formDefs.length})`);
+
+// ─── 13b. Onboarding form results ─────────────────────────────────────────────
+
+const onboardingForm = db
+  .select()
+  .from(schema.forms)
+  .all()
+  .find((f) => f.systemKey === "affilation");
+
+if (onboardingForm) {
+  const existingResultRows = db
+    .select({ userId: schema.formResults.userId })
+    .from(schema.formResults)
+    .where(eq(schema.formResults.formId, onboardingForm.id))
+    .all();
+
+  const alreadySubmitted = new Set(existingResultRows.map((r) => r.userId));
+
+  const affiliationPool = [
+    // Master's degree — various universities and tracks
+    { academicPath: [{ affilation: "master", year: 2018, entry_university: "tu_berlin", exit_university: "kth_royal_institute_of_technology", track: "dsc" }] },
+    { academicPath: [{ affilation: "master", year: 2019, entry_university: "aalto_university", exit_university: "tu_berlin", track: "cse" }] },
+    { academicPath: [{ affilation: "master", year: 2020, entry_university: "kth_royal_institute_of_technology", exit_university: "sorbonne_university", track: "hcid" }] },
+    { academicPath: [{ affilation: "master", year: 2017, entry_university: "university_of_twente", exit_university: "delft_university_of_technology", track: "cni" }] },
+    { academicPath: [{ affilation: "master", year: 2021, entry_university: "polimi_polytechnic_university_of_milan", exit_university: "tu_eindhoven", track: "ita" }] },
+    { academicPath: [{ affilation: "master", year: 2016, entry_university: "bme_budapest_university_of_technology_and_economics", exit_university: "saarland_university", track: "ccs" }] },
+    { academicPath: [{ affilation: "master", year: 2019, entry_university: "elte_eotvos_lorand_university", exit_university: "tu_darmstadt", track: "ft" }] },
+    { academicPath: [{ affilation: "master", year: 2022, entry_university: "unitn_university_of_trento", exit_university: "ucl_university_college_london", track: "sap" }] },
+    { academicPath: [{ affilation: "master", year: 2020, entry_university: "upm_universidad_politecnica_de_madrid", exit_university: "polimi_polytechnic_university_of_milan", track: "sde" }] },
+    { academicPath: [{ affilation: "master", year: 2023, entry_university: "aalto_university", exit_university: "tu_eindhoven", track: "aus" }] },
+    { academicPath: [{ affilation: "master", year: 2018, entry_university: "riga_technical_university", exit_university: "taltech_tallinn_university_of_technology", track: "dss" }] },
+    { academicPath: [{ affilation: "master", year: 2021, entry_university: "universite_cote_d_azur", exit_university: "eurecom", track: "vcc" }] },
+    // Summer school only
+    { academicPath: [{ affilation: "summer", summerSchool: "2022_helsinki_digital_platforms_for_smart_cities" }] },
+    { academicPath: [{ affilation: "summer", summerSchool: "2023_milan_innovative_digital_technologies_for_health" }] },
+    { academicPath: [{ affilation: "summer", summerSchool: "2019_munich_iot_platforms_for_industry_4_0" }] },
+    { academicPath: [{ affilation: "summer", summerSchool: "2024_madrid_fintech_frontier" }] },
+    { academicPath: [{ affilation: "summer", summerSchool: "2023_nice_quantum_computing_and_information" }] },
+    { academicPath: [{ affilation: "summer", summerSchool: "2023_tallinn_e_health_personalised_prevention" }] },
+    { academicPath: [{ affilation: "summer", summerSchool: "2024_milan_ai4sustainability" }] },
+    { academicPath: [{ affilation: "summer", summerSchool: "2025_barcelona_upbeat_summer_school" }] },
+    // Master's + summer school
+    { academicPath: [{ affilation: "master", year: 2019, entry_university: "tu_berlin", exit_university: "kth_royal_institute_of_technology", track: "dsc", summerSchool: "2018_stockholm_big_data_analytics" }] },
+    { academicPath: [{ affilation: "master", year: 2020, entry_university: "aalto_university", exit_university: "tu_berlin", track: "hcid", summerSchool: "2019_lisbon_longer_independent_living" }] },
+    // PhD
+    { academicPath: [{ affilation: "Item 3" }] },
+    // EITDigital employee
+    { academicPath: [{ affilation: "Item 1" }] },
+    // Friends / network
+    { academicPath: [{ affilation: "Item 2" }] },
+    // Speed Master
+    { academicPath: [{ affilation: "Item 4" }] },
+    // Accelerator
+    { academicPath: [{ affilation: "Item 5" }] },
+  ];
+
+  // Re-query all users now that all bulk users have been inserted
+  const usersToSeed = db.select().from(schema.users).all();
+  let formResultsInserted = 0;
+
+  for (const user of usersToSeed) {
+    if (alreadySubmitted.has(user.id)) continue;
+
+    const resultJson = affiliationPool[Math.floor(Math.random() * affiliationPool.length)];
+
+    db.insert(schema.formResults)
+      .values({
+        id: uuid(),
+        formId: onboardingForm.id,
+        userId: user.id,
+        resultJson,
+        submittedAt: now(),
+      })
+      .run();
+
+    formResultsInserted++;
+  }
+
+  console.log(`  onboarding form results seeded (${formResultsInserted} inserted)`);
+}
 
 // ─── 14. Pages ───────────────────────────────────────────────────────────────
 
@@ -1956,6 +2147,283 @@ for (const j of jobDefs) {
 }
 console.log(`  jobs seeded (${jobDefs.length}: ${jobDefs.filter((j) => j.status === "approved").length} approved, ${jobDefs.filter((j) => j.status === "pending").length} pending, 1 expired)`);
 
+// ─── 17b. Tag definitions ─────────────────────────────────────────────────────
+
+const tagDefDefs: Array<{ slug: string; label: string; category: "board" | "qualification" | "participation" | "custom"; description: string }> = [
+  // Board
+  { slug: "board-member",    label: "Board Member",    category: "board",          description: "Serves on the organisation's board." },
+  { slug: "board-president", label: "President",       category: "board",          description: "President of the board." },
+  { slug: "board-secretary", label: "Secretary",       category: "board",          description: "Secretary of the board." },
+  { slug: "board-treasurer", label: "Treasurer",       category: "board",          description: "Treasurer of the board." },
+  // Participation
+  { slug: "event-speaker",   label: "Event Speaker",   category: "participation",  description: "Has spoken at one of our events." },
+  { slug: "event-volunteer", label: "Event Volunteer", category: "participation",  description: "Has volunteered at one of our events." },
+  { slug: "summer-school-alumni", label: "Summer School Alumni", category: "participation", description: "Attended a summer school." },
+  // Custom
+  { slug: "mentor",          label: "Mentor",          category: "custom",         description: "Active mentor in the community." },
+  { slug: "ambassador",      label: "Ambassador",      category: "custom",         description: "Community ambassador in their city or region." },
+  { slug: "chapter-lead",    label: "Chapter Lead",    category: "custom",         description: "Leads a local chapter." },
+  { slug: "founding-member", label: "Founding Member", category: "custom",         description: "Was part of the community from the very beginning." },
+];
+
+for (const def of tagDefDefs) {
+  const exists = db.select().from(schema.tagDefinitions).all().find((d) => d.slug === def.slug);
+  if (!exists) {
+    db.insert(schema.tagDefinitions)
+      .values({ id: uuid(), slug: def.slug, label: def.label, category: def.category, description: def.description, createdAt: now(), updatedAt: now() })
+      .run();
+  }
+}
+console.log(`  tag definitions seeded (${tagDefDefs.length})`);
+
+// ─── 18. Qualification types ─────────────────────────────────────────────────
+
+const qualTypeDefs = [
+  { slug: "master-school", label: "Master School Graduate", description: "Completed our master-level programme.", grantsMembershipTier: "full" as const },
+  { slug: "summer-school", label: "Summer School Graduate", description: "Completed our summer school programme.", grantsMembershipTier: "associated" as const },
+  { slug: "phd", label: "PhD", description: "Holds a doctoral degree.", grantsMembershipTier: "full" as const },
+  { slug: "former-employee", label: "Former Employee", description: "Previously worked at the organisation.", grantsMembershipTier: "associated" as const },
+];
+
+const existingQualTypes = db.select().from(schema.qualificationTypes).all();
+const qualTypeIdBySlug: Record<string, string> = {};
+
+for (const qt of qualTypeDefs) {
+  const existing = existingQualTypes.find((q) => q.slug === qt.slug);
+  if (existing) {
+    qualTypeIdBySlug[qt.slug] = existing.id;
+  } else {
+    const id = uuid();
+    db.insert(schema.qualificationTypes)
+      .values({ id, slug: qt.slug, label: qt.label, description: qt.description, grantsMembershipTier: qt.grantsMembershipTier, createdAt: now(), updatedAt: now() })
+      .run();
+    qualTypeIdBySlug[qt.slug] = id;
+    console.log(`  created qualification type '${qt.slug}'`);
+  }
+}
+console.log(`  qualification types seeded (${qualTypeDefs.length})`);
+
+// ─── 19. User qualifications, memberships & tags ──────────────────────────────
+
+// Maps: userIdx (-1=admin) → { typeSlug, status, notes? }
+const qualificationPlan: Array<{
+  userIdx: number;
+  typeSlug: string;
+  status: "pending" | "approved" | "rejected";
+  notes?: string;
+}> = [
+  { userIdx: 0, typeSlug: "master-school", status: "approved" },
+  { userIdx: 1, typeSlug: "summer-school", status: "approved" },
+  { userIdx: 2, typeSlug: "phd", status: "approved" },
+  { userIdx: 3, typeSlug: "summer-school", status: "pending" },
+  { userIdx: 4, typeSlug: "phd", status: "pending" },
+  { userIdx: 5, typeSlug: "master-school", status: "rejected", notes: "Could not verify the transcript submitted." },
+  { userIdx: 6, typeSlug: "former-employee", status: "approved" },
+  { userIdx: 7, typeSlug: "summer-school", status: "approved" },
+  { userIdx: -1, typeSlug: "master-school", status: "approved" },
+];
+
+const existingQuals = db.select().from(schema.userQualifications).all();
+const existingMembershipRows = db.select().from(schema.userMemberships).all();
+const existingTagRows = db.select().from(schema.userTags).all();
+
+// Tier hierarchy for upgrade-only logic
+const tierRank: Record<string, number> = { associated: 1, full: 2 };
+
+for (const plan of qualificationPlan) {
+  const userId = plan.userIdx === -1 ? adminUser!.id : testUsers[plan.userIdx]?.id;
+  if (!userId) continue;
+  const typeId = qualTypeIdBySlug[plan.typeSlug];
+  if (!typeId) continue;
+
+  // Upsert qualification
+  const exists = existingQuals.find((q) => q.userId === userId && q.typeId === typeId);
+  let qualId: string;
+  if (!exists) {
+    qualId = uuid();
+    db.insert(schema.userQualifications)
+      .values({
+        id: qualId,
+        userId,
+        typeId,
+        status: plan.status,
+        notes: plan.notes ?? null,
+        verifiedBy: plan.status !== "pending" ? adminUser!.id : null,
+        verifiedAt: plan.status !== "pending" ? now() : null,
+        createdAt: now(),
+        updatedAt: now(),
+      })
+      .run();
+  } else {
+    qualId = exists.id;
+  }
+
+  if (plan.status !== "approved") continue;
+
+  // For approved qualifications: grant membership and tag
+  const qualType = qualTypeDefs.find((qt) => qt.slug === plan.typeSlug)!;
+  const grantsTier = qualType.grantsMembershipTier;
+
+  // Membership — only upgrade, never downgrade
+  const existingMembership = existingMembershipRows.find((m) => m.userId === userId)
+    ?? db.select().from(schema.userMemberships).all().find((m) => m.userId === userId);
+  const currentRank = existingMembership ? (tierRank[existingMembership.tier] ?? 0) : 0;
+  const newRank = tierRank[grantsTier] ?? 0;
+
+  if (newRank > currentRank) {
+    if (existingMembership) {
+      db.update(schema.userMemberships)
+        .set({ tier: grantsTier, grantedBy: adminUser!.id, grantedAt: now(), updatedAt: now() })
+        .where(eq(schema.userMemberships.userId, userId))
+        .run();
+    } else {
+      db.insert(schema.userMemberships)
+        .values({ id: uuid(), userId, tier: grantsTier, grantedBy: adminUser!.id, grantedAt: now(), createdAt: now(), updatedAt: now() })
+        .run();
+    }
+    // Refresh for subsequent iterations
+    existingMembershipRows.push({ id: "", userId, tier: grantsTier, grantedBy: adminUser!.id, grantedAt: now(), expiresAt: null, notes: null, createdAt: now(), updatedAt: now() });
+  }
+
+  // Tag — upsert on (userId, slug)
+  const tagExists = existingTagRows.find((t) => t.userId === userId && t.slug === plan.typeSlug)
+    ?? db.select().from(schema.userTags).all().find((t) => t.userId === userId && t.slug === plan.typeSlug);
+  if (!tagExists) {
+    db.insert(schema.userTags)
+      .values({ id: uuid(), userId, slug: plan.typeSlug, label: qualType.label, category: "qualification", sourceType: "qualification", sourceId: qualId, grantedBy: adminUser!.id, grantedAt: now() })
+      .run();
+  }
+}
+
+const qualCount = db.select().from(schema.userQualifications).all().length;
+const membershipCount = db.select().from(schema.userMemberships).all().length;
+const tagCount = db.select().from(schema.userTags).all().length;
+console.log(`  user qualifications seeded (${qualCount})`);
+console.log(`  user memberships seeded (${membershipCount})`);
+console.log(`  user tags seeded (${tagCount})`);
+
+// ─── 20. Elections ────────────────────────────────────────────────────────────
+
+const electionCycleDefs: Array<{
+  title: string;
+  year: number;
+  description: string;
+  status: "draft" | "open" | "closed";
+  requiredMembershipTier: "associated" | "full" | null;
+}> = [
+  {
+    title: "Board Elections 2024",
+    year: 2024,
+    description: "Annual board elections for the 2024–2026 term.",
+    status: "closed",
+    requiredMembershipTier: "full",
+  },
+  {
+    title: "Board Elections 2026",
+    year: 2026,
+    description: "Nominations are open for the 2026–2028 board term. Full members may apply.",
+    status: "open",
+    requiredMembershipTier: "full",
+  },
+];
+
+const existingCycles = db.select().from(schema.electionCycles).all();
+const cycleIdByTitle: Record<string, string> = {};
+
+for (const c of electionCycleDefs) {
+  const existing = existingCycles.find((ec) => ec.title === c.title);
+  if (existing) {
+    cycleIdByTitle[c.title] = existing.id;
+  } else {
+    const id = uuid();
+    db.insert(schema.electionCycles)
+      .values({ id, title: c.title, year: c.year, description: c.description, status: c.status, requiredMembershipTier: c.requiredMembershipTier, createdAt: now(), updatedAt: now() })
+      .run();
+    cycleIdByTitle[c.title] = id;
+    console.log(`  created election cycle '${c.title}'`);
+  }
+}
+
+const positionDefs: Array<{ cycleTitle: string; title: string; description: string }> = [
+  { cycleTitle: "Board Elections 2024", title: "Board President", description: "Leads the board and chairs meetings." },
+  { cycleTitle: "Board Elections 2024", title: "Secretary", description: "Manages communication and minutes." },
+  { cycleTitle: "Board Elections 2026", title: "Board President", description: "Leads the board and chairs meetings." },
+  { cycleTitle: "Board Elections 2026", title: "Treasurer", description: "Oversees finances and budgeting." },
+  { cycleTitle: "Board Elections 2026", title: "Secretary", description: "Manages communication and minutes." },
+];
+
+const existingPositions = db.select().from(schema.electionPositions).all();
+const positionIdByKey: Record<string, string> = {};
+
+for (const p of positionDefs) {
+  const cycleId = cycleIdByTitle[p.cycleTitle];
+  if (!cycleId) continue;
+  const key = `${p.cycleTitle}::${p.title}`;
+  const existing = existingPositions.find((ep) => ep.cycleId === cycleId && ep.title === p.title);
+  if (existing) {
+    positionIdByKey[key] = existing.id;
+  } else {
+    const id = uuid();
+    db.insert(schema.electionPositions)
+      .values({ id, cycleId, title: p.title, description: p.description, createdAt: now() })
+      .run();
+    positionIdByKey[key] = id;
+  }
+}
+
+const applicationDefs: Array<{
+  cycleTitle: string;
+  positionTitle: string;
+  userIdx: number;
+  status: "pending" | "approved" | "rejected";
+  adminNote?: string;
+}> = [
+  // 2024 historical (closed cycle)
+  { cycleTitle: "Board Elections 2024", positionTitle: "Board President", userIdx: 0, status: "approved" },
+  { cycleTitle: "Board Elections 2024", positionTitle: "Secretary", userIdx: 2, status: "approved" },
+  { cycleTitle: "Board Elections 2024", positionTitle: "Secretary", userIdx: 6, status: "rejected", adminNote: "Withdrew candidacy before vote." },
+
+  // 2026 active (open cycle)
+  { cycleTitle: "Board Elections 2026", positionTitle: "Board President", userIdx: 0, status: "pending" },
+  { cycleTitle: "Board Elections 2026", positionTitle: "Board President", userIdx: 2, status: "pending" },
+  { cycleTitle: "Board Elections 2026", positionTitle: "Treasurer", userIdx: 1, status: "approved" },
+  { cycleTitle: "Board Elections 2026", positionTitle: "Secretary", userIdx: 6, status: "approved" },
+  { cycleTitle: "Board Elections 2026", positionTitle: "Secretary", userIdx: -1, status: "rejected", adminNote: "Admin cannot serve on the board while also administering the platform." },
+];
+
+const existingApplications = db.select().from(schema.electionApplications).all();
+
+for (const a of applicationDefs) {
+  const cycleId = cycleIdByTitle[a.cycleTitle];
+  const positionId = positionIdByKey[`${a.cycleTitle}::${a.positionTitle}`];
+  const userId = a.userIdx === -1 ? adminUser!.id : testUsers[a.userIdx]?.id;
+  if (!cycleId || !positionId || !userId) continue;
+
+  const exists = existingApplications.find((ea) => ea.positionId === positionId && ea.userId === userId);
+  if (exists) continue;
+
+  db.insert(schema.electionApplications)
+    .values({
+      id: uuid(),
+      positionId,
+      cycleId,
+      userId,
+      status: a.status,
+      motivationWhy: "I am passionate about the community and believe I can contribute meaningfully to its direction and growth.",
+      motivationExperience: "I have been an active member for several years and have organised multiple events across different cities.",
+      motivationGoals: "I want to strengthen member engagement, improve transparency in decision-making, and grow our local chapters.",
+      adminNote: a.adminNote ?? null,
+      createdAt: now(),
+      updatedAt: now(),
+    })
+    .run();
+}
+
+const electionCycleCount = db.select().from(schema.electionCycles).all().length;
+const electionPositionCount = db.select().from(schema.electionPositions).all().length;
+const electionApplicationCount = db.select().from(schema.electionApplications).all().length;
+console.log(`  elections seeded (${electionCycleCount} cycles, ${electionPositionCount} positions, ${electionApplicationCount} applications)`);
+
 // ─── Done ────────────────────────────────────────────────────────────────────
 
 const counts = {
@@ -1976,6 +2444,13 @@ const counts = {
   forms: db.select().from(schema.forms).all().length,
   deals: db.select().from(schema.deals).all().length,
   jobs: db.select().from(schema.jobs).all().length,
+  qualificationTypes: db.select().from(schema.qualificationTypes).all().length,
+  userQualifications: db.select().from(schema.userQualifications).all().length,
+  userMemberships: db.select().from(schema.userMemberships).all().length,
+  userTags: db.select().from(schema.userTags).all().length,
+  electionCycles: db.select().from(schema.electionCycles).all().length,
+  electionPositions: db.select().from(schema.electionPositions).all().length,
+  electionApplications: db.select().from(schema.electionApplications).all().length,
 };
 
 console.log("\n✅ Seed complete:");

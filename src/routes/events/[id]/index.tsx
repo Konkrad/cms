@@ -762,17 +762,12 @@ export default component$(() => {
               {event.value.user.displayName.charAt(0).toUpperCase()}
             </div>
             <div>
-              <div class="font-medium text-gray-900 text-lg">
+              <a
+                href={`/users/${event.value.user.id}`}
+                class="font-medium text-gray-900 text-lg hover:text-blue-600 hover:underline"
+              >
                 {event.value.user.displayName}
-              </div>
-              {event.value.user.email && (
-                <a
-                  href={`mailto:${event.value.user.email}`}
-                  class="text-sm text-gray-500 hover:text-blue-600"
-                >
-                  {event.value.user.email}
-                </a>
-              )}
+              </a>
             </div>
           </div>
         </div>

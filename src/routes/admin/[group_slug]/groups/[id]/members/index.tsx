@@ -1,11 +1,5 @@
 import { component$ } from "@qwik.dev/core";
-import {
-  Form,
-  routeAction$,
-  routeLoader$,
-  z,
-  zod$,
-} from "@qwik.dev/router";
+import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { db } from "~/db/connection";
 import { groupMemberships, users } from "~/db/schema";
@@ -17,7 +11,7 @@ import { getCurrentUserData } from "~/utils/server-auth";
 export const useMembers = routeLoader$(async ({ params, redirect }) => {
   // Only allow access from the global admin context
   if (params.group_slug !== "global") {
-    throw redirect(302, `/admin/${params.group_slug}`);
+    throw redirect(302, `/admin/${params.group_slug}/users`);
   }
 
   const group = await groupsService.getById(params.id as string);
@@ -42,6 +36,7 @@ export const useMembers = routeLoader$(async ({ params, redirect }) => {
     .orderBy(groupMemberships.joinedAt);
 
   const reps = await groupRepresentativesService.getRepresentatives(group.id);
+
   const repIds = new Set(reps.map((r) => r.userId));
 
   const enriched = members.map((m) => ({
@@ -86,7 +81,9 @@ export default component$(() => {
         <h2 class="text-2xl font-bold text-gray-800">
           Manage Members − {data.value.group.name}
         </h2>
-        <Button href="/admin/global/groups" variant="secondary">Back to Groups</Button>
+        <Button href="/admin/global/groups" variant="secondary">
+          Back to Groups
+        </Button>
       </div>
 
       {promote.value?.error && (
@@ -152,13 +149,16 @@ export default component$(() => {
                         <input type="hidden" name="userId" value={m.id} />
                         <button
                           type="submit"
+                          preventdefault:click
                           class="text-green-600 hover:text-green-900"
                           onClick$={(e) => {
                             if (
                               !confirm("Promote this member to representative?")
-                            ) {
-                              e.preventDefault();
-                            }
+                            )
+                              return;
+                            (e.target as HTMLElement)
+                              .closest("form")
+                              ?.requestSubmit();
                           }}
                         >
                           Promote

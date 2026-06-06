@@ -46,7 +46,7 @@ export const onPost: RequestHandler = async (event) => {
     }
   }
 
-  if (user) {
+  if (user && !form.allowResubmission) {
     const existing = await formResultsService.getByFormAndUser(form.id, user.id);
     if (existing) {
       json(409, { error: "You already submitted this form" });
@@ -54,12 +54,19 @@ export const onPost: RequestHandler = async (event) => {
     }
   }
 
-  const created = await formResultsService.create({
-    formId: form.id,
-    userId: user?.id || null,
-    resultJson: validatedResult,
-    altchaPayload: payload.altcha || null,
-  });
+  const created = await (form.allowResubmission
+    ? formResultsService.upsert({
+        formId: form.id,
+        userId: user?.id || null,
+        resultJson: validatedResult,
+        altchaPayload: payload.altcha || null,
+      })
+    : formResultsService.create({
+        formId: form.id,
+        userId: user?.id || null,
+        resultJson: validatedResult,
+        altchaPayload: payload.altcha || null,
+      }));
 
   json(200, {
     success: true,

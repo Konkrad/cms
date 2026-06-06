@@ -115,6 +115,11 @@ function deleteUserCascade(
   db.prepare("DELETE FROM participation_status WHERE user_id = ?").run(userId);
   db.prepare("DELETE FROM posts WHERE user_id = ?").run(userId);
   db.prepare("DELETE FROM jobs WHERE suggested_by = ?").run(userId);
+  // New feature tables
+  db.prepare("DELETE FROM election_applications WHERE user_id = ?").run(userId);
+  db.prepare("DELETE FROM user_qualifications WHERE user_id = ?").run(userId);
+  db.prepare("DELETE FROM user_memberships WHERE user_id = ?").run(userId);
+  db.prepare("DELETE FROM user_tags WHERE user_id = ?").run(userId);
   // Sessions and user/login rows
   db.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
   db.prepare("DELETE FROM users WHERE id = ?").run(userId);
@@ -769,3 +774,179 @@ export { expect } from "@playwright/test";
 
 /** Email used by the shared pre-authenticated session created in auth.setup.ts. */
 export const SHARED_E2E_EMAIL = "e2e-shared@example.com";
+
+// ── New feature DB helpers ─────────────────────────────────────────────────
+
+export function createQualificationTypeInDb(
+  overrides: Record<string, unknown> = {},
+): { typeId: string; cleanup: () => void } {
+  const db = openDb();
+  const typeId = crypto.randomUUID();
+  db.prepare(
+    `INSERT INTO qualification_types (id, slug, label, grants_membership_tier, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  ).run(
+    typeId,
+    (overrides.slug as string) ?? `e2e-type-${typeId.slice(0, 8)}`,
+    (overrides.label as string) ?? "E2E Test Type",
+    (overrides.grantsMembershipTier as string) ?? "associated",
+    new Date().toISOString(),
+    new Date().toISOString(),
+  );
+  db.close();
+  return {
+    typeId,
+    cleanup() {
+      const db2 = openDb();
+      db2.prepare("DELETE FROM user_qualifications WHERE type_id = ?").run(typeId);
+      db2.prepare("DELETE FROM qualification_types WHERE id = ?").run(typeId);
+      db2.close();
+    },
+  };
+}
+
+export function createQualificationInDb(
+  userId: string,
+  typeId: string,
+  status: "pending" | "approved" | "rejected" = "pending",
+): { qualId: string; cleanup: () => void } {
+  const db = openDb();
+  const qualId = crypto.randomUUID();
+  db.prepare(
+    `INSERT INTO user_qualifications (id, user_id, type_id, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  ).run(qualId, userId, typeId, status, new Date().toISOString(), new Date().toISOString());
+  db.close();
+  return {
+    qualId,
+    cleanup() {
+      const db2 = openDb();
+      db2.prepare("DELETE FROM user_qualifications WHERE id = ?").run(qualId);
+      db2.close();
+    },
+  };
+}
+
+export function createMembershipInDb(
+  userId: string,
+  tier: "associated" | "full",
+): { membershipId: string; cleanup: () => void } {
+  const db = openDb();
+  const membershipId = crypto.randomUUID();
+  db.prepare(
+    `INSERT INTO user_memberships (id, user_id, tier, granted_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  ).run(membershipId, userId, tier, new Date().toISOString(), new Date().toISOString(), new Date().toISOString());
+  db.close();
+  return {
+    membershipId,
+    cleanup() {
+      const db2 = openDb();
+      db2.prepare("DELETE FROM user_memberships WHERE id = ?").run(membershipId);
+      db2.close();
+    },
+  };
+}
+
+export function createUserSessionWithMembership(
+  tier: "associated" | "full",
+): CreatedSession & { membershipId: string } {
+  const session = createUserSession("user");
+  const { membershipId } = createMembershipInDb(session.userId, tier);
+  const originalCleanup = session.cleanup.bind(session);
+  return {
+    ...session,
+    membershipId,
+    cleanup() {
+      const db = openDb();
+      db.prepare("DELETE FROM user_memberships WHERE id = ?").run(membershipId);
+      db.close();
+      originalCleanup();
+    },
+  };
+}
+
+export function createElectionCycleInDb(
+  overrides: Record<string, unknown> = {},
+): { cycleId: string; cleanup: () => void } {
+  const db = openDb();
+  const cycleId = crypto.randomUUID();
+  db.prepare(
+    `INSERT INTO election_cycles (id, title, year, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  ).run(
+    cycleId,
+    (overrides.title as string) ?? "E2E Test Elections",
+    (overrides.year as number) ?? 2026,
+    (overrides.status as string) ?? "draft",
+    new Date().toISOString(),
+    new Date().toISOString(),
+  );
+  db.close();
+  return {
+    cycleId,
+    cleanup() {
+      const db2 = openDb();
+      db2.prepare("DELETE FROM election_applications WHERE cycle_id = ?").run(cycleId);
+      db2.prepare("DELETE FROM election_positions WHERE cycle_id = ?").run(cycleId);
+      db2.prepare("DELETE FROM election_cycles WHERE id = ?").run(cycleId);
+      db2.close();
+    },
+  };
+}
+
+export function createElectionPositionInDb(
+  cycleId: string,
+  overrides: Record<string, unknown> = {},
+): { positionId: string; cleanup: () => void } {
+  const db = openDb();
+  const positionId = crypto.randomUUID();
+  db.prepare(
+    `INSERT INTO election_positions (id, cycle_id, title, created_at)
+     VALUES (?, ?, ?, ?)`,
+  ).run(
+    positionId,
+    cycleId,
+    (overrides.title as string) ?? "E2E Position",
+    new Date().toISOString(),
+  );
+  db.close();
+  return {
+    positionId,
+    cleanup() {
+      const db2 = openDb();
+      db2.prepare("DELETE FROM election_applications WHERE position_id = ?").run(positionId);
+      db2.prepare("DELETE FROM election_positions WHERE id = ?").run(positionId);
+      db2.close();
+    },
+  };
+}
+
+export function createElectionApplicationInDb(
+  positionId: string,
+  cycleId: string,
+  userId: string,
+  status: "pending" | "approved" | "rejected" = "pending",
+  adminNote?: string,
+): { appId: string; cleanup: () => void } {
+  const db = openDb();
+  const appId = crypto.randomUUID();
+  db.prepare(
+    `INSERT INTO election_applications
+       (id, position_id, cycle_id, user_id, status, admin_note, motivation_why, motivation_experience, motivation_goals, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    appId, positionId, cycleId, userId, status, adminNote ?? null,
+    "Why reason", "Experience text", "Goals text",
+    new Date().toISOString(), new Date().toISOString(),
+  );
+  db.close();
+  return {
+    appId,
+    cleanup() {
+      const db2 = openDb();
+      db2.prepare("DELETE FROM election_applications WHERE id = ?").run(appId);
+      db2.close();
+    },
+  };
+}

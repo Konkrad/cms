@@ -549,6 +549,12 @@ test.describe("Pages — builder: image upload", () => {
         page.locator("text=Image ready — will be uploaded on save."),
       ).toBeVisible({ timeout: 10_000 });
 
+      // Dismiss the Uppy widget (clicking Done commits the upload state into the block)
+      const doneBtn = page.locator('button:has-text("Done")');
+      if (await doneBtn.isVisible()) {
+        await doneBtn.click();
+      }
+
       // Fill in the required alt text field
       await page.locator('input[name="alt"]').fill("E2E test image");
 

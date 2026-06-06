@@ -23,7 +23,10 @@ export const useUpdateJob = routeAction$(
       title: data.title,
       body: data.body,
       editorState: data.editorState || null,
-      locationType: data.locationType as "on-site" | "remote-eu" | "remote-country",
+      locationType: data.locationType as
+        | "on-site"
+        | "remote-eu"
+        | "remote-country",
       city: data.city || null,
       country: data.country || null,
       link: data.link || null,
@@ -42,7 +45,9 @@ export const useUpdateJob = routeAction$(
     city: z.string().optional(),
     country: z.string().optional(),
     link: z.string().optional(),
-    posterRelation: z.enum(["hiring", "founder", "direct-team", "works-there", "other"]).optional(),
+    posterRelation: z
+      .enum(["hiring", "founder", "direct-team", "works-there", "other"])
+      .optional(),
     expiresAt: z.string().min(1, "Expiry date is required"),
     status: z.enum(["pending", "approved"]),
   }),
@@ -115,7 +120,8 @@ export default component$(() => {
             <Input name="city" label="City" value={job.city ?? ""} />
           )}
 
-          {(locationType.value === "on-site" || locationType.value === "remote-country") && (
+          {(locationType.value === "on-site" ||
+            locationType.value === "remote-country") && (
             <Input name="country" label="Country" value={job.country ?? ""} />
           )}
 

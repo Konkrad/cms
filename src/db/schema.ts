@@ -20,6 +20,15 @@ import { eventPhotos } from "./schemas/event-photos";
 import { forms } from "./schemas/forms";
 import { formResults } from "./schemas/form-results";
 import { jobs } from "./schemas/jobs";
+import { qualificationTypes } from "./schemas/qualification-types";
+import { qualificationTokens } from "./schemas/qualification-tokens";
+import { userQualifications } from "./schemas/user-qualifications";
+import { userMemberships } from "./schemas/user-memberships";
+import { tagDefinitions } from "./schemas/tag-definitions";
+import { userTags } from "./schemas/user-tags";
+import { electionCycles } from "./schemas/election-cycles";
+import { electionPositions } from "./schemas/election-positions";
+import { electionApplications } from "./schemas/election-applications";
 
 export * from "./schemas/events";
 export * from "./schemas/logins";
@@ -44,6 +53,15 @@ export * from "./schemas/forms";
 export * from "./schemas/form-results";
 export * from "./schemas/deals";
 export * from "./schemas/jobs";
+export * from "./schemas/qualification-types";
+export * from "./schemas/qualification-tokens";
+export * from "./schemas/user-qualifications";
+export * from "./schemas/user-memberships";
+export * from "./schemas/tag-definitions";
+export * from "./schemas/user-tags";
+export * from "./schemas/election-cycles";
+export * from "./schemas/election-positions";
+export * from "./schemas/election-applications";
 
 export const schemaRelations = defineRelations(
 	{
@@ -68,6 +86,15 @@ export const schemaRelations = defineRelations(
 		forms,
 		formResults,
 		jobs,
+		qualificationTypes,
+		qualificationTokens,
+		userQualifications,
+		userMemberships,
+		tagDefinitions,
+		userTags,
+		electionCycles,
+		electionPositions,
+		electionApplications,
 	},
 	({
 		events,
@@ -88,6 +115,15 @@ export const schemaRelations = defineRelations(
 		menuItems,
 		pages,
 		jobs,
+		qualificationTypes,
+		qualificationTokens,
+		userQualifications,
+		userMemberships,
+		tagDefinitions,
+		userTags,
+		electionCycles,
+		electionPositions,
+		electionApplications,
 		one,
 		many,
 	}) => ({
@@ -96,12 +132,6 @@ export const schemaRelations = defineRelations(
 		},
 		pages: {
 			menuItem: one.menuItems({ from: pages.id, to: menuItems.pageId, optional: true }),
-		},
-		users: {
-			posts: many.posts({ from: users.id, to: posts.userId }),
-			events: many.events({ from: users.id, to: events.userId }),
-			sessions: many.sessions({ from: users.id, to: sessions.userId }),
-			jobs: many.jobs({ from: users.id, to: jobs.suggestedBy }),
 		},
 		jobs: {
 			user: one.users({ from: jobs.suggestedBy, to: users.id, optional: false }),
@@ -212,6 +242,89 @@ export const schemaRelations = defineRelations(
 		formResults: {
 			form: one.forms({ from: formResults.formId, to: forms.id, optional: false }),
 			user: one.users({ from: formResults.userId, to: users.id }),
+		},
+		qualificationTypes: {
+			qualifications: many.userQualifications({
+				from: qualificationTypes.id,
+				to: userQualifications.typeId,
+			}),
+			tokens: many.qualificationTokens({
+				from: qualificationTypes.id,
+				to: qualificationTokens.typeId,
+			}),
+		},
+		qualificationTokens: {
+			type: one.qualificationTypes({
+				from: qualificationTokens.typeId,
+				to: qualificationTypes.id,
+				optional: false,
+			}),
+			creator: one.users({
+				from: qualificationTokens.createdBy,
+				to: users.id,
+				optional: false,
+			}),
+		},
+		userQualifications: {
+			user: one.users({ from: userQualifications.userId, to: users.id, optional: false }),
+			verifier: one.users({ from: userQualifications.verifiedBy, to: users.id }),
+			type: one.qualificationTypes({
+				from: userQualifications.typeId,
+				to: qualificationTypes.id,
+				optional: false,
+			}),
+		},
+		userMemberships: {
+			user: one.users({ from: userMemberships.userId, to: users.id, optional: false }),
+			granter: one.users({ from: userMemberships.grantedBy, to: users.id }),
+		},
+		userTags: {
+			user: one.users({ from: userTags.userId, to: users.id, optional: false }),
+			granter: one.users({ from: userTags.grantedBy, to: users.id }),
+		},
+		electionCycles: {
+			positions: many.electionPositions({
+				from: electionCycles.id,
+				to: electionPositions.cycleId,
+			}),
+		},
+		electionPositions: {
+			cycle: one.electionCycles({
+				from: electionPositions.cycleId,
+				to: electionCycles.id,
+				optional: false,
+			}),
+			applications: many.electionApplications({
+				from: electionPositions.id,
+				to: electionApplications.positionId,
+			}),
+		},
+		electionApplications: {
+			position: one.electionPositions({
+				from: electionApplications.positionId,
+				to: electionPositions.id,
+				optional: false,
+			}),
+			cycle: one.electionCycles({
+				from: electionApplications.cycleId,
+				to: electionCycles.id,
+				optional: false,
+			}),
+			user: one.users({
+				from: electionApplications.userId,
+				to: users.id,
+				optional: false,
+			}),
+		},
+		users: {
+			posts: many.posts({ from: users.id, to: posts.userId }),
+			events: many.events({ from: users.id, to: events.userId }),
+			sessions: many.sessions({ from: users.id, to: sessions.userId }),
+			jobs: many.jobs({ from: users.id, to: jobs.suggestedBy }),
+			qualifications: many.userQualifications({ from: users.id, to: userQualifications.userId }),
+			membership: many.userMemberships({ from: users.id, to: userMemberships.userId }),
+			tags: many.userTags({ from: users.id, to: userTags.userId }),
+			electionApplications: many.electionApplications({ from: users.id, to: electionApplications.userId }),
 		},
 	}),
 );

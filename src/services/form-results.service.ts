@@ -78,4 +78,20 @@ export const formResultsService = {
     const [created] = await db.insert(formResults).values(parsed as any).returning();
     return created;
   },
+
+  async upsert(data: InsertFormResult): Promise<FormResult> {
+    const parsed = insertFormResultSchema.parse(data);
+    const [result] = await db
+      .insert(formResults)
+      .values(parsed as any)
+      .onConflictDoUpdate({
+        target: [formResults.formId, formResults.userId],
+        set: {
+          resultJson: parsed.resultJson,
+          submittedAt: new Date().toISOString(),
+        },
+      })
+      .returning();
+    return result;
+  },
 };

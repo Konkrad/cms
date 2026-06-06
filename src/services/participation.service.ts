@@ -24,21 +24,18 @@ export const participationService = {
     eventId: string,
     status: "yes" | "no" | "maybe",
   ): Promise<ParticipationStatus> {
-    // Check if participation status already exists
     const existing = await this.getStatus(userId, eventId);
 
-    if (existing) {
-      // Update existing status
-      return this.updateStatus(userId, eventId, status);
+    const result = existing
+      ? await this.updateStatus(userId, eventId, status)
+      : await this.create({ userId, eventId, status, updatedAt: new Date().toISOString() });
+
+    if (status === "yes") {
+      const { userTagsService } = await import("~/services/user-tags.service");
+      await userTagsService.evaluateRulesForUser(userId);
     }
 
-    // Create new status
-    return this.create({
-      userId,
-      eventId,
-      status,
-      updatedAt: new Date().toISOString(),
-    });
+    return result;
   },
 
   async updateStatus(

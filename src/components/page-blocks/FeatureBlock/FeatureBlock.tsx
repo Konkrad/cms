@@ -40,7 +40,7 @@ const DEFAULT_TILES: TileConfig[] = [
     type: "stat",
     area: "left-top",
     number: "2000+",
-    title: "Members",
+    title: "Users",
     description: "A fast growing community that inspires and connects.",
   },
   {

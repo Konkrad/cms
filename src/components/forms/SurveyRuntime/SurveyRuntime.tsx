@@ -4,12 +4,13 @@ type SurveyRuntimeProps = {
   surveyJson: Record<string, any>;
   submitUrl: string;
   requireAltcha: boolean;
+  initialData?: Record<string, any>;
   /** Called after a successful submission. */
   onComplete$?: QRL<() => void>;
 };
 
 export const SurveyRuntime = component$<SurveyRuntimeProps>(
-  ({ surveyJson, submitUrl, requireAltcha, onComplete$ }) => {
+  ({ surveyJson, submitUrl, requireAltcha, initialData, onComplete$ }) => {
     const wrapperRef = useSignal<HTMLElement>();
     const containerRef = useSignal<HTMLElement>();
     const state = useSignal<"idle" | "submitting" | "success" | "error">("idle");
@@ -25,6 +26,7 @@ export const SurveyRuntime = component$<SurveyRuntimeProps>(
       }
 
       const survey = new Model(surveyJson as any);
+      if (initialData) survey.data = initialData;
       survey.render(containerRef.value);
 
       survey.onComplete.add(async (sender) => {

@@ -3,11 +3,11 @@ import { Form, Link, routeAction$, routeLoader$, zod$, z } from "@qwik.dev/route
 import { format } from "date-fns";
 import { Button } from "~/components/ui/Button";
 import { jobsService, type JobWithUser } from "~/services/jobs.service";
+import { Pagination, PAGE_SIZE } from "~/components/admin/Pagination/Pagination";
+import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
 
 export const useGlobalOnly = routeLoader$(async ({ params, redirect }) => {
-  if (params.group_slug !== "global") {
-    throw redirect(302, "/admin/global/jobs");
-  }
+  if (params.group_slug !== "global") throw redirect(302, "/admin/global/jobs");
   return {};
 });
 
@@ -17,8 +17,24 @@ export const useJobs = routeLoader$(async (event) => {
   }
   const { requireAdmin } = await import("~/utils/server-auth");
   await requireAdmin(event);
-  const jobs = await jobsService.getAll();
-  return { jobs };
+
+  const search = event.url.searchParams.get("search")?.trim() ?? "";
+  const page = Math.max(1, parseInt(event.url.searchParams.get("page") ?? "1") || 1);
+
+  const all = (await jobsService.getAll()) as JobWithUser[];
+  const filtered = search
+    ? all.filter(
+        (j) =>
+          j.title.toLowerCase().includes(search.toLowerCase()) ||
+          (j.city ?? "").toLowerCase().includes(search.toLowerCase()) ||
+          (j.country ?? "").toLowerCase().includes(search.toLowerCase()),
+      )
+    : all;
+
+  const total = filtered.length;
+  const jobs = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  return { jobs, total, page, pageSize: PAGE_SIZE, search };
 });
 
 export const useApproveJob = routeAction$(
@@ -47,12 +63,15 @@ export default component$(() => {
   const approveAction = useApproveJob();
   const deleteAction = useDeleteJob();
   const now = new Date();
+  const totalPages = Math.ceil(data.value.total / data.value.pageSize);
 
   return (
     <div>
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Jobs</h2>
       </div>
+
+      <SearchBar value={data.value.search} placeholder="Search by title or location…" />
 
       <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
@@ -79,11 +98,12 @@ export default component$(() => {
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            {(data.value.jobs as JobWithUser[]).map((job) => {
+            {data.value.jobs.map((job) => {
               const isExpired = new Date(job.expiresAt) < now;
               const locationLabel =
                 job.locationType === "on-site"
-                  ? [job.city, job.country].filter(Boolean).join(", ") || "On-site / Hybrid"
+                  ? [job.city, job.country].filter(Boolean).join(", ") ||
+                    "On-site / Hybrid"
                   : job.locationType === "remote-eu"
                     ? "Remote — EU"
                     : `Remote — ${job.country ?? ""}`;
@@ -102,7 +122,11 @@ export default component$(() => {
                     {locationLabel}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <span class={isExpired ? "text-red-600 font-medium" : "text-gray-700"}>
+                    <span
+                      class={
+                        isExpired ? "text-red-600 font-medium" : "text-gray-700"
+                      }
+                    >
                       {isExpired ? "Expired · " : ""}
                       {format(new Date(job.expiresAt), "MMM d, yyyy")}
                     </span>
@@ -142,11 +166,13 @@ export default component$(() => {
                         <input type="hidden" name="jobId" value={job.id} />
                         <button
                           type="submit"
+                          preventdefault:click
                           class="text-red-600 hover:text-red-900"
                           onClick$={(e) => {
-                            if (!confirm("Delete this job posting?")) {
-                              e.preventDefault();
-                            }
+                            if (!confirm("Delete this job posting?")) return;
+                            (e.target as HTMLElement)
+                              .closest("form")
+                              ?.requestSubmit();
                           }}
                         >
                           Delete
@@ -161,9 +187,17 @@ export default component$(() => {
         </table>
         {data.value.jobs.length === 0 && (
           <div class="text-center py-12 text-gray-500">
-            No job postings yet.
+            {data.value.search
+              ? `No jobs matching "${data.value.search}".`
+              : "No job postings yet."}
           </div>
         )}
+        <Pagination
+          page={data.value.page}
+          totalPages={totalPages}
+          total={data.value.total}
+          pageSize={data.value.pageSize}
+        />
       </div>
     </div>
   );

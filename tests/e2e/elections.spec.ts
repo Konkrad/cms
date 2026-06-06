@@ -114,6 +114,40 @@ test.describe("Elections — admin: status lifecycle", () => {
     }
   });
 
+  test("admin can add a position to a draft cycle", async ({ adminPage: page }) => {
+    const { cycleId, cleanup } = createElectionCycleInDb({ status: "draft", title: "Position Add E2E" });
+    try {
+      await page.goto(`/admin/global/elections/${cycleId}/positions/new`);
+      await expect(page.locator('input[name="title"]')).toBeVisible({ timeout: 10_000 });
+
+      await page.fill('input[name="title"]', "Board Secretary");
+      await page.fill("textarea[name=description]", "Manages meeting minutes.");
+      await page.click('button[type="submit"]');
+
+      // Redirected back to cycle page (URL ends at cycleId, not /positions/new)
+      await expect(page).toHaveURL(new RegExp(`/admin/global/elections/${cycleId}$`), { timeout: 10_000 });
+
+      // Switch to Positions tab to verify the position was created
+      await page.locator("button:has-text('Positions')").click();
+      await expect(page.locator("text=Board Secretary")).toBeVisible({ timeout: 5_000 });
+    } finally {
+      const db = openDb();
+      db.prepare("DELETE FROM election_positions WHERE cycle_id = ?").run(cycleId);
+      db.close();
+      cleanup();
+    }
+  });
+
+  test("navigating to positions/new for a non-draft cycle redirects to cycle page", async ({ adminPage: page }) => {
+    const { cycleId, cleanup } = createElectionCycleInDb({ status: "open", title: "Open No New Pos E2E" });
+    try {
+      await page.goto(`/admin/global/elections/${cycleId}/positions/new`);
+      await expect(page).toHaveURL(new RegExp(`/admin/global/elections/${cycleId}$`), { timeout: 10_000 });
+    } finally {
+      cleanup();
+    }
+  });
+
   test("admin can set a voting URL during voting status", async ({ adminPage: page }) => {
     const { cycleId, cleanup } = createElectionCycleInDb({ status: "voting", title: "Voting URL E2E" });
     const votingUrl = "https://forms.example.com/vote-e2e";

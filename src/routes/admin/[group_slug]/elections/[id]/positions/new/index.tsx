@@ -29,7 +29,10 @@ export const useCreatePosition = routeAction$(
     cycleId: z.string().uuid(),
     title: z.string().min(1, "Title is required"),
     description: z.string().optional(),
-    maxCandidates: z.coerce.number().int().positive().optional(),
+    maxCandidates: z.preprocess(
+      (v) => (v === "" || v === undefined ? undefined : v),
+      z.coerce.number().int().positive().optional(),
+    ),
   }),
 );
 

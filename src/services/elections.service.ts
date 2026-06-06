@@ -25,7 +25,8 @@ import crypto from "crypto";
 const CYCLE_STATUS_RANK: Record<string, number> = {
   draft: 0,
   open: 1,
-  closed: 2,
+  voting: 2,
+  closed: 3,
 };
 
 export type ElectionCycleWithPositions = ElectionCycle & {
@@ -63,6 +64,7 @@ export const electionsService = {
       .where(
         or(
           eq(electionCycles.status, "open"),
+          eq(electionCycles.status, "voting"),
           eq(electionCycles.status, "closed"),
         ),
       )
@@ -100,8 +102,9 @@ export const electionsService = {
       title: string;
       year: number;
       description: string | null;
-      status: "draft" | "open" | "closed";
+      status: "draft" | "open" | "voting" | "closed";
       requiredMembershipTier: "associated" | "full" | null;
+      votingUrl: string | null;
     }>,
   ): Promise<ElectionCycle> {
     if (data.status) {

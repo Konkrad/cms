@@ -22,7 +22,17 @@ export const useAdvanceStatus = routeAction$(
       return { failed: true, error: e.message };
     }
   },
-  zod$({ cycleId: z.string().uuid(), status: z.enum(["draft", "open", "closed"]) }),
+  zod$({ cycleId: z.string().uuid(), status: z.enum(["draft", "open", "voting", "closed"]) }),
+);
+
+export const useSetVotingUrl = routeAction$(
+  async (data, event) => {
+    const { requireAdmin } = await import("~/utils/server-auth");
+    await requireAdmin(event);
+    await electionsService.updateCycle(data.cycleId, { votingUrl: data.votingUrl || null } as any);
+    return { success: true };
+  },
+  zod$({ cycleId: z.string().uuid(), votingUrl: z.string() }),
 );
 
 export const useDeletePosition = routeAction$(
@@ -58,14 +68,22 @@ export const useRejectApplication = routeAction$(
 
 const STATUS_NEXT: Record<string, string | null> = {
   draft: "open",
-  open: "closed",
+  open: "voting",
+  voting: "closed",
   closed: null,
+};
+
+const STATUS_NEXT_LABEL: Record<string, string> = {
+  draft: "Open for Applications",
+  open: "Close Applications / Start Voting",
+  voting: "Close Election",
 };
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
     draft: "bg-gray-100 text-gray-700",
     open: "bg-green-100 text-green-800",
+    voting: "bg-blue-100 text-blue-800",
     closed: "bg-slate-100 text-slate-700",
     pending: "bg-yellow-100 text-yellow-800",
     approved: "bg-green-100 text-green-800",
@@ -77,6 +95,7 @@ const statusBadge = (status: string) => {
 export default component$(() => {
   const data = useCycleData();
   const advanceAction = useAdvanceStatus();
+  const setVotingUrlAction = useSetVotingUrl();
   const deletePosAction = useDeletePosition();
   const approveAppAction = useApproveApplication();
   const rejectAppAction = useRejectApplication();
@@ -114,7 +133,7 @@ export default component$(() => {
                   (e.target as HTMLElement).closest("form")?.requestSubmit();
                 }}
               >
-                Set to {nextStatus}
+                {STATUS_NEXT_LABEL[cycle.status] ?? `Set to ${nextStatus}`}
               </button>
             </Form>
           )}
@@ -129,6 +148,31 @@ export default component$(() => {
 
       {cycle.description && (
         <p class="text-gray-600 text-sm mb-4">{cycle.description}</p>
+      )}
+
+      {/* Voting URL — editable when cycle is in voting status */}
+      {(cycle.status === "voting" || cycle.status === "closed") && (
+        <div class="mb-5 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p class="text-sm font-medium text-blue-800 mb-2">Voting Form Link</p>
+          <Form action={setVotingUrlAction} class="flex gap-2 items-center">
+            <input type="hidden" name="cycleId" value={cycle.id} />
+            <input
+              type="url"
+              name="votingUrl"
+              value={(cycle as any).votingUrl ?? ""}
+              placeholder="https://forms.example.com/vote"
+              class="flex-1 border rounded px-3 py-1.5 text-sm"
+            />
+            <button type="submit" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700">
+              Save
+            </button>
+          </Form>
+          {(cycle as any).votingUrl && (
+            <p class="text-xs text-blue-600 mt-1">
+              Members will see a "Vote now" button linking to this URL.
+            </p>
+          )}
+        </div>
       )}
 
       <div class="flex gap-2 mb-6 border-b">

@@ -10,13 +10,14 @@ export const electionCycles = sqliteTable("election_cycles", {
   year: integer("year").notNull(),
   description: text("description"),
   status: text("status", {
-    enum: ["draft", "open", "closed"],
+    enum: ["draft", "open", "voting", "closed"],
   })
     .notNull()
     .default("draft"),
   requiredMembershipTier: text("required_membership_tier", {
     enum: ["associated", "full"],
   }),
+  votingUrl: text("voting_url"),
   createdAt: text("created_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),

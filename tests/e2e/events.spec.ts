@@ -116,8 +116,9 @@ test.describe('Events — logged-in interactions', () => {
 
     await page.click('button:has-text("? Maybe")');
 
-    // Status change is reflected after submit and route refresh, and the toggle remains available.
-    await expect(page.locator('button:has-text("? Maybe")')).toHaveClass(/ring-2/, { timeout: 5_000 });
+    // The action does a 303 redirect — wait for the page to reload before asserting ring-2.
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator('button:has-text("? Maybe")')).toHaveClass(/ring-2/, { timeout: 15_000 });
   });
 
   test('logged-in user can navigate to checkout for a ticketed event', async ({ memberPage: page }) => {

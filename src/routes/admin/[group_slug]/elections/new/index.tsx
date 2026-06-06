@@ -14,6 +14,7 @@ const useCreateCycle = routeAction$(
   async (data, event) => {
     const { requireAdmin } = await import("~/utils/server-auth");
     const user = await requireAdmin(event);
+    const { electionsService } = await import("~/services/elections.service");
 
     const cycle = await electionsService.createCycle({
       title: data.title,

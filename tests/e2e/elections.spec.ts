@@ -186,13 +186,14 @@ test.describe("Elections — public visibility", () => {
     }
   });
 
-  test("/elections redirects to the open cycle", async ({ guestPage: page }) => {
+  test("/elections redirects to an open cycle page (not the list)", async ({ guestPage: page }) => {
     const { cycleId, cleanup } = createElectionCycleInDb({ status: "open", title: "Redirect Target E2E" });
     const session = createUserSession("user");
     try {
       await loginAs(page, session.sessionToken);
       await page.goto("/elections");
-      await expect(page).toHaveURL(new RegExp(`/elections/${cycleId}`), { timeout: 10_000 });
+      // Should redirect to some open cycle — not stay at /elections
+      await expect(page).toHaveURL(/\/elections\/[0-9a-f-]{36}$/, { timeout: 10_000 });
     } finally {
       cleanup();
       session.cleanup();

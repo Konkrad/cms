@@ -17,6 +17,7 @@ const updateSchema = z.object({
   content: z.string(),
   editorState: z.string().optional(),
   featuredImage: z.string().optional(),
+  showAuthor: z.string().optional(), // "on" when checked, absent when not
 });
 
 export const usePost = routeLoader$(async (event) => {
@@ -46,6 +47,7 @@ export const useUpdatePost = routeAction$(async (data, event) => {
       title: data.title,
       editorState: data.editorState || null,
       featuredImage: data.featuredImage || null,
+      showAuthor: data.showAuthor === "on",
     });
 
     if (!updated) {
@@ -125,6 +127,16 @@ export default component$(() => {
               onSettled$={onUploadDone}
             />
           )}
+
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              name="showAuthor"
+              checked={data.value.post.showAuthor}
+              class="w-4 h-4 rounded border-gray-300 text-blue-600"
+            />
+            <span class="text-sm font-medium text-gray-700">Show author block on article page</span>
+          </label>
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">

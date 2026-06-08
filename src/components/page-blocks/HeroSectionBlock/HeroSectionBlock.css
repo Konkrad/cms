@@ -19,46 +19,62 @@
   text-align: center;
 }
 
-.hero-section-loading-text {
-  color: var(--color-text-muted);
-  font-size: 1.125rem;
-}
-
+.hero-section-loading-text,
 .hero-section-empty-text {
   color: var(--color-text-muted);
   font-size: 1.125rem;
 }
 
 /* ══════════════════════════════════
-   Mobile Layout
+   Mobile Carousel
    ══════════════════════════════════ */
 
-.hero-section-mobile {
+.hero-carousel-outer {
+  display: flex;
+  overflow-x: scroll;
+  scroll-snap-type: x mandatory;
+  scroll-padding-left: 16px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 12px;
+  padding: 12px 16px 20px;
+}
+
+.hero-carousel-outer::-webkit-scrollbar {
+  display: none;
+}
+
+.hero-carousel-slide {
+  flex: 0 0 240px;
+  scroll-snap-align: start;
+  display: flex;
+}
+
+/* Unified card: image flows directly into the blue content area */
+.hero-carousel-card {
   display: flex;
   flex-direction: column;
-  position: relative;
   width: 100%;
-  max-width: 372px;
-  margin: 0 auto;
-}
-
-.hero-section-mobile-image-wrapper {
-  width: 100%;
-  height: 339px;
-  border-radius: 25px;
+  border-radius: 20px;
   overflow: hidden;
-  position: relative;
-  z-index: 1;
+  text-decoration: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.14);
 }
 
-.hero-section-mobile-image {
+.hero-carousel-image-wrap {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
+}
+
+.hero-carousel-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.hero-section-mobile-gradient {
+.hero-carousel-gradient {
   width: 100%;
   height: 100%;
   display: flex;
@@ -66,36 +82,38 @@
   justify-content: center;
 }
 
-.hero-section-mobile-slide-number {
+.hero-carousel-slide-number {
   color: rgba(255, 255, 255, 0.2);
-  font-size: 120px;
+  font-size: 80px;
   font-weight: 700;
   line-height: 1;
   user-select: none;
 }
 
-.hero-section-mobile-card {
+.hero-carousel-content {
   background-color: var(--color-primary);
-  border-radius: 25px;
-  padding: 1.5rem;
-  margin-top: 20px;
-  position: relative;
-  z-index: 2;
-  min-height: 127px;
+  padding: 1.1rem 1.25rem 1.25rem;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  gap: 0.6rem;
+  flex: 1;
 }
 
-.hero-section-mobile-title {
+.hero-carousel-title {
   color: #fff;
-  font-size: 18px;
+  font-size: 16px;
   font-family: "Lato", sans-serif;
   font-weight: 400;
-  margin: 0 0 1rem;
+  margin: 0;
   line-height: 1.4;
 }
 
+.hero-carousel-cta {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
 
 /* ══════════════════════════════════
    Desktop Layout
@@ -185,16 +203,11 @@
 }
 
 /* ══════════════════════════════════
-   Pagination Dots
+   Pagination Dots (desktop only)
    ══════════════════════════════════ */
 
 .hero-section-pagination {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 2rem;
-  width: 100%;
-  padding-bottom: 1rem;
+  display: none;
 }
 
 .hero-section-dot {
@@ -213,11 +226,11 @@
 }
 
 /* ══════════════════════════════════
-   Desktop breakpoint (>= 1024px)
+   Tablet + Desktop breakpoint (>= 768px)
    ══════════════════════════════════ */
 
-@media (min-width: 1024px) {
-  .hero-section-mobile {
+@media (min-width: 768px) {
+  .hero-carousel-outer {
     display: none;
   }
 
@@ -226,8 +239,60 @@
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 80px;
+    gap: 40px;
     width: 100%;
+    padding: 32px 24px;
+  }
+
+  .hero-section-desktop-image-wrapper {
+    width: 260px;
+    height: 260px;
+  }
+
+  .hero-section-desktop-image-bg {
+    width: 260px;
+    height: 260px;
+  }
+
+  .hero-section-desktop-title {
+    font-size: clamp(1.8rem, 3.5vw, 4.3rem);
+  }
+
+  .hero-section-desktop-description {
+    font-size: 18px;
+  }
+
+  .hero-section-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 2rem;
+    width: 100%;
+    padding-bottom: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-section-desktop {
+    gap: 80px;
     padding: 40px 0;
+  }
+
+  .hero-section-desktop-image-wrapper {
+    width: 400px;
+    height: 400px;
+  }
+
+  .hero-section-desktop-image-bg {
+    width: 400px;
+    height: 400px;
+  }
+
+  .hero-section-desktop-title {
+    font-size: clamp(2.5rem, 4.3vw, 4.3rem);
+  }
+
+  .hero-section-desktop-description {
+    font-size: 24px;
   }
 }

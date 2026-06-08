@@ -1,4 +1,4 @@
-import { $, component$, useSignal, useTask$ } from "@qwik.dev/core";
+import { component$, useSignal, useTask$, $ } from "@qwik.dev/core";
 import { server$ } from "@qwik.dev/router";
 import type { BlockDefinition } from "~/db/schema";
 import type { PostWithUser } from "~/services/posts.service";
@@ -22,7 +22,6 @@ interface HeroPost extends PostWithUser {
 
 const fetchLatestGlobalPosts = server$(async () => {
   const res = await postsService.getVisiblePosts(null, 3);
-  // Resolve featured image keys to URLs for rendering
   const postsWithUrls: HeroPost[] = res.items.map((post) => ({
     ...post,
     featuredImageUrl: publicImageUrlFromKey(post.featuredImage),
@@ -91,37 +90,37 @@ export default component$(() => {
 
   return (
     <div class="hero-section-container">
-      {/* ── Mobile Layout ── */}
-      <div class="hero-section-mobile">
-        <div class="hero-section-mobile-image-wrapper">
-          {slide.featuredImageUrl ? (
-            <img
-              src={slide.featuredImageUrl}
-              alt={slide.title}
-              class="hero-section-mobile-image"
-            />
-          ) : (
-            <div
-              class="hero-section-mobile-gradient"
-              style={{ background: slideGradient }}
-            >
-              <span class="hero-section-mobile-slide-number">
-                {currentSlide.value + 1}
-              </span>
+      {/* ── Mobile: horizontal scroll-snap carousel ── */}
+      <div class="hero-carousel-outer">
+        {posts.value.map((post, index) => {
+          const gradient = SLIDE_GRADIENTS[index % SLIDE_GRADIENTS.length];
+          return (
+            <div key={post.id} class="hero-carousel-slide">
+              <a href={`/posts/${post.id}`} class="hero-carousel-card">
+                <div class="hero-carousel-image-wrap">
+                  {post.featuredImageUrl ? (
+                    <img
+                      src={post.featuredImageUrl}
+                      alt={post.title}
+                      class="hero-carousel-image"
+                    />
+                  ) : (
+                    <div
+                      class="hero-carousel-gradient"
+                      style={{ background: gradient }}
+                    >
+                      <span class="hero-carousel-slide-number">{index + 1}</span>
+                    </div>
+                  )}
+                </div>
+                <div class="hero-carousel-content">
+                  <h2 class="hero-carousel-title">{post.title}</h2>
+                  <span class="hero-carousel-cta">Read more →</span>
+                </div>
+              </a>
             </div>
-          )}
-        </div>
-
-        <div class="hero-section-mobile-card">
-          <h2 class="hero-section-mobile-title">{slide.title}</h2>
-
-          <Button
-            href={`/posts/${slide.id}`}
-            size="xl"
-          >
-            Read more
-          </Button>
-        </div>
+          );
+        })}
       </div>
 
       {/* ── Desktop Layout ── */}
@@ -155,16 +154,13 @@ export default component$(() => {
             <p class="hero-section-desktop-description">{excerpt}</p>
           )}
 
-          <Button
-            href={`/posts/${slide.id}`}
-            size="xl"
-          >
+          <Button href={`/posts/${slide.id}`} size="xl">
             Read the Article
           </Button>
         </div>
       </div>
 
-      {/* ── Pagination Dots ── */}
+      {/* ── Pagination Dots (desktop only) ── */}
       {posts.value.length > 1 && (
         <div class="hero-section-pagination">
           {posts.value.map((_, index) => (

@@ -24,58 +24,64 @@ export const ListCard = component$<ListCardProps>(
     readMoreLabel = "Read More",
   }) => {
     return (
-      <div class="relative w-full bg-white rounded-[20px] shadow-[0px_0px_6px_0px_rgba(0,0,0,0.06)] overflow-hidden flex flex-row">
-        {/* Left side: image */}
-        {image && (
-          <div class="w-[140px] sm:w-[160px] md:w-[180px] shrink-0">
+      <div class="w-full bg-white rounded-[20px] shadow-[0px_0px_6px_0px_rgba(0,0,0,0.06)] overflow-hidden">
+        {/* Image with gradient overlay */}
+        <div class="relative w-full" style={{ aspectRatio: "1/1" }}>
+          {image ? (
             <img
               src={image}
               alt={imageAlt || title}
               class="w-full h-full object-cover"
-              width={180}
-              height={200}
             />
-          </div>
-        )}
+          ) : (
+            <div class="w-full h-full bg-blue-700" />
+          )}
 
-        {/* Content Area */}
-        <div class="flex-1 flex flex-col py-5 px-5 sm:px-8 min-w-0">
-          {/* Top row */}
+          {/* Gradient overlay */}
+          <div
+            class="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.3) 45%, transparent 75%)",
+            }}
+          />
+
+          {/* Date + category row */}
           {(date || topRight) && (
-            <div class="flex items-start justify-between gap-4">
-              {date ? (
-                <p class="font-['Lato',sans-serif] font-normal text-[13px] leading-[1.4] text-gray-500 mt-0.5">
+            <div class="absolute bottom-12 left-4 right-4 flex items-center justify-between gap-2">
+              {date && (
+                <span class="flex items-center gap-1 text-white/80 text-xs font-medium">
+                  <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                   {date}
-                </p>
-              ) : (
-                <div />
+                </span>
               )}
               {topRight && (
-                <p class="font-['Lato',sans-serif] font-normal text-[14px] leading-[1.4] text-black text-right">
+                <span class="text-white/80 text-xs font-medium uppercase tracking-wide">
                   {topRight}
-                </p>
+                </span>
               )}
             </div>
           )}
 
-          {/* Separator */}
-          <div class="w-full h-px bg-black/10 my-3" />
+          {/* Title overlaid at bottom */}
+          <div class="absolute bottom-0 left-0 right-0 px-4 pb-4">
+            <h3 class="text-white font-bold text-xl leading-tight">
+              {title}
+            </h3>
+          </div>
+        </div>
 
-          {/* Title */}
-          <h3 class="font-['Lato',sans-serif] font-bold text-[18px] sm:text-[22px] md:text-[24px] leading-[1.3] text-black">
-            {title}
-          </h3>
-
+        {/* Content below image */}
+        <div class="px-4 py-4">
           {description && (
-            <p class="font-['Lato',sans-serif] font-normal text-[15px] leading-normal text-gray-700 mt-2">
+            <p class="text-gray-700 text-sm leading-relaxed mb-3">
               {description}
             </p>
           )}
-
-          {/* Action Button */}
-          <div class="mt-3">
-            <ReadMoreButton href={readMoreHref} label={readMoreLabel} />
-          </div>
+          <ReadMoreButton href={readMoreHref} label={readMoreLabel} />
         </div>
       </div>
     );

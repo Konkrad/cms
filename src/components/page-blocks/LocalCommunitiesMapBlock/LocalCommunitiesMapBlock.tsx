@@ -66,7 +66,10 @@ export default component$<LocalCommunitiesMapBlockProps>((props) => {
     const wrap = mapWrapRef.value;
     if (!wrap) return;
 
-    const width = wrap.clientWidth || 900;
+    const containerWidth = wrap.clientWidth || 900;
+    const isMobile = containerWidth < 768;
+    // On mobile render a wider SVG so the user can pan to explore
+    const width = isMobile ? 800 : containerWidth;
     const height = Math.round(width * 0.65);
 
     const svg = d3
@@ -76,11 +79,10 @@ export default component$<LocalCommunitiesMapBlockProps>((props) => {
       .attr("height", height)
       .attr("viewBox", `0 0 ${width} ${height}`);
 
-    //configure what part of the map is shown
-    const isMobile = width < 768;
+    // configure what part of the map is shown
     const projection = (d3.geoAzimuthalEqualArea() as any)
       .center([15, 52])
-      .scale(Math.min(width, height) * (isMobile ? 2 : 1.4))
+      .scale(Math.min(width, height) * (isMobile ? 2.8 : 1.4))
       .translate([width / 2, height / 2]);
 
     const path = d3.geoPath().projection(projection);
@@ -201,6 +203,12 @@ export default component$<LocalCommunitiesMapBlockProps>((props) => {
       tooltip.addEventListener("mouseleave", () => {
         tooltip.classList.remove("visible");
       });
+    }
+
+    // Center the map on Europe (the D3 translate puts it at width/2, height/2)
+    if (isMobile) {
+      wrap.scrollLeft = width / 2 - containerWidth / 2;
+      wrap.scrollTop = height / 2 - wrap.clientHeight / 2;
     }
   });
 

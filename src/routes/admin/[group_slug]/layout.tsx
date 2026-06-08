@@ -48,9 +48,9 @@ export default component$(() => {
     <div class="min-h-screen bg-gray-50">
       <div class="bg-slate-800 text-white shadow-lg">
         <div class="max-w-7xl mx-auto px-4 py-6">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h1 class="text-3xl font-bold">
+          <div class="flex items-start justify-between gap-4 mb-4">
+            <div class="min-w-0">
+              <h1 class="text-2xl sm:text-3xl font-bold truncate">
                 {auth.value.isGlobal
                   ? "Platform Admin"
                   : `${auth.value.group?.name} Admin`}
@@ -61,7 +61,7 @@ export default component$(() => {
                 </p>
               )}
             </div>
-            <div class="flex gap-3">
+            <div class="flex gap-2 shrink-0">
               {!auth.value.isGlobal && auth.value.group && (
                 <Button
                   href={`/groups/${auth.value.group.slug}`}

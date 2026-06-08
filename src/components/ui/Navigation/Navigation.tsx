@@ -295,16 +295,16 @@ export const Navigation = component$(() => {
               </button>
               {openMobileSubmenu.value === "user" && (
                 <>
-                  <Link href="/profile" class="block px-4 py-3 text-gray-700 hover:bg-gray-50" onClick$={toggleMobileMenu}>
+                  <a href="/profile" class="block px-4 py-3 text-gray-700 hover:bg-gray-50">
                     My Profile
-                  </Link>
-                  <Link href="/profile/tickets" class="block px-4 py-3 text-gray-700 hover:bg-gray-50" onClick$={toggleMobileMenu}>
+                  </a>
+                  <a href="/profile/tickets" class="block px-4 py-3 text-gray-700 hover:bg-gray-50">
                     My Tickets
-                  </Link>
+                  </a>
                   {isAdmin && (
-                    <Link href="/admin/global" class="block px-4 py-3 text-gray-700 hover:bg-gray-50" onClick$={toggleMobileMenu}>
+                    <a href="/admin/global" class="block px-4 py-3 text-gray-700 hover:bg-gray-50">
                       Admin Area
-                    </Link>
+                    </a>
                   )}
                   <Form action={logoutAction}>
                     <button type="submit" aria-label="logout" class="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50">
@@ -316,13 +316,12 @@ export const Navigation = component$(() => {
             </div>
           ) : (
             <div class="border-b border-gray-100 px-4 py-3">
-              <Link
+              <a
                 href="/login"
                 class="flex items-center justify-center w-full px-4 py-2 bg-blue-600 text-white rounded-sm hover:bg-blue-700 font-medium transition-colors"
-                onClick$={toggleMobileMenu}
               >
                 Login
-              </Link>
+              </a>
             </div>
           )}
 
@@ -346,7 +345,6 @@ export const Navigation = component$(() => {
                           key={child.id}
                           href={child.url}
                           class="block pl-8 pr-4 py-2.5 text-gray-600 hover:bg-gray-50 text-sm"
-                          onClick$={toggleMobileMenu}
                         >
                           {child.title}
                         </a>
@@ -357,7 +355,6 @@ export const Navigation = component$(() => {
                     key={item.id}
                     href={item.url}
                     class="block px-4 py-3 text-gray-700 hover:bg-gray-50 font-medium"
-                    onClick$={toggleMobileMenu}
                   >
                     {item.title}
                   </a>

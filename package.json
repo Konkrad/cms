@@ -10,6 +10,7 @@
   ],
   "type": "module",
   "scripts": {
+    "start": "node scripts/start.js",
     "dev": "vite --mode ssr --host 0.0.0.0",
     "dev.debug": "node --inspect-brk ./node_modules/vite/bin/vite.js --mode ssr --force",
     "build": "qwik build",

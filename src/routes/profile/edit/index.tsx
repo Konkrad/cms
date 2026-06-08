@@ -12,8 +12,8 @@ import { Input } from "~/components/ui/Input";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { db } from "~/db/connection";
 import { users } from "~/db/schema";
-import { env } from "~/env";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
+import { resolvePrivateImageUrl } from "~/utils/secure-urls";
 
 export const useProfile = routeLoader$(async (event) => {
   await requireAuth(event);
@@ -23,17 +23,13 @@ export const useProfile = routeLoader$(async (event) => {
     throw event.redirect(302, "/login");
   }
 
-  // Build profile picture URL: new uploads store full URL; legacy entries store a path.
   let profilePictureUrl: string | null = null;
   const user = userData as any;
   if (user.profilePicture) {
     if (user.profilePicture.startsWith("http")) {
       profilePictureUrl = user.profilePicture;
     } else {
-      const key = user.profilePicture;
-      profilePictureUrl = env.AWS_ENDPOINT
-        ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${key}`
-        : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
+      profilePictureUrl = await resolvePrivateImageUrl(user.profilePicture);
     }
   }
 
@@ -68,6 +64,9 @@ export const useUpdateProfile = routeAction$(
     if (data.profilePicture) {
       updateData.profilePicture = data.profilePicture;
     }
+    if (data.profilePictureSmall) {
+      updateData.profilePictureSmall = data.profilePictureSmall;
+    }
 
     await db
       .update(users)
@@ -84,6 +83,7 @@ export const useUpdateProfile = routeAction$(
     year_of_birth: z.coerce.number().optional(),
     sex: z.string().optional(),
     profilePicture: z.string().optional(),
+    profilePictureSmall: z.string().optional(),
   }),
 );
 
@@ -93,6 +93,7 @@ export default component$(() => {
   const isSubmitting = useSignal(false);
   const triggerUpload = useSignal(false);
   const uploadedPictureUrl = useSignal<string | undefined>(undefined);
+  const uploadedThumbnailPath = useSignal<string | undefined>(undefined);
 
   const handleSubmit = $(() => {
     isSubmitting.value = true;
@@ -103,10 +104,11 @@ export default component$(() => {
     const form = document.querySelector('form');
     if (!form) return;
     const fd = new FormData(form);
-    // Ensure the uploaded URL is in the form data even if the hidden input
-    // hasn't been rendered yet by Qwik's scheduler.
     if (uploadedPictureUrl.value && !fd.get('profilePicture')) {
       fd.set('profilePicture', uploadedPictureUrl.value);
+    }
+    if (uploadedThumbnailPath.value && !fd.get('profilePictureSmall')) {
+      fd.set('profilePictureSmall', uploadedThumbnailPath.value);
     }
     updateAction.submit(fd);
   });
@@ -127,14 +129,15 @@ export default component$(() => {
           <ImageUploader
             name="profilePicture"
             pipeline="profile-picture"
-            path="public/profiles"
+            path="private/profile-pictures"
             aspectRatio="1/1"
             crop
             cropAspectRatio="1/1"
             triggerSignal={triggerUpload}
             onSettled$={onSettled}
-            onFileUploaded$={$((response) => {
+            onFileUploaded$={$((response: any) => {
               uploadedPictureUrl.value = response.url || response.filePath || undefined;
+              if (response.thumbnailPath) uploadedThumbnailPath.value = response.thumbnailPath;
             })}
             currentUrl={profile.value.profilePictureUrl || undefined}
           />

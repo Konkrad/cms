@@ -3,7 +3,6 @@ import { Link, type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import { postsService } from "~/services/posts.service";
 import { formatUser } from "~/utils/users";
 import { publicImageUrlFromKey, deriveThumbnailKey } from "~/utils/images";
-import { env } from "~/env";
 
 export const usePost = routeLoader$(async ({ params, status }) => {
   const { id } = params;
@@ -25,10 +24,8 @@ export const usePost = routeLoader$(async ({ params, status }) => {
 
   let authorAvatarUrl: string | null = null;
   if (post.user?.profilePicture) {
-    const thumbKey = deriveThumbnailKey(post.user.profilePicture);
-    authorAvatarUrl = env.AWS_ENDPOINT
-      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${thumbKey}`
-      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${thumbKey}`;
+    const thumbKey = (post.user as any).profilePictureSmall ?? deriveThumbnailKey(post.user.profilePicture);
+    authorAvatarUrl = publicImageUrlFromKey(thumbKey);
   }
 
   // Fetch related posts (recent, excluding this one)

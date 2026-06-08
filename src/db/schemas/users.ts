@@ -29,6 +29,7 @@ export const users = sqliteTable("users", {
   foodPreference: text("food_preference"),
   photoConsentGiven: integer("photo_consent_given", { mode: "boolean" }),
   profilePicture: text("profile_picture"),
+  profilePictureSmall: text("profile_picture_small"),
   consent: text("consent", { mode: "json" }).$type<UserConsent>().notNull().default(sql`'{}'`),
   role: text("role", { enum: ["user", "moderator", "admin"] })
     .notNull()

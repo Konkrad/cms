@@ -73,6 +73,7 @@ export const useGroupData = routeLoader$(async (event) => {
         name: users.name,
         familyName: users.familyName,
         profilePicture: users.profilePicture,
+        profilePictureSmall: users.profilePictureSmall,
       })
       .from(groupMemberships)
       .innerJoin(users, eq(groupMemberships.userId, users.id))
@@ -105,7 +106,7 @@ export const useGroupData = routeLoader$(async (event) => {
         name: `${rep.user.name} ${rep.user.familyName}`,
         subtitle: `Local Rep ${group.name}`,
         profilePictureUrl: rep.user.profilePicture
-          ? toPublicUrl(deriveThumbnailKey(rep.user.profilePicture))
+          ? toPublicUrl((rep.user as any).profilePictureSmall ?? deriveThumbnailKey(rep.user.profilePicture))
           : null,
         profileUrl: buildProfileUrl({
           id: rep.userId,
@@ -124,7 +125,7 @@ export const useGroupData = routeLoader$(async (event) => {
       name: m.name,
       familyName: m.familyName,
       profilePictureSmall: m.profilePicture
-        ? toPublicUrl(deriveThumbnailKey(m.profilePicture))
+        ? toPublicUrl((m as any).profilePictureSmall ?? deriveThumbnailKey(m.profilePicture))
         : null,
       profileUrl: buildProfileUrl({
         id: m.id,

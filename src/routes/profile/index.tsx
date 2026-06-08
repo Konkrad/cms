@@ -1,13 +1,12 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
-import { env } from "~/env";
+import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { formResultsService } from "~/services/form-results.service";
 import { userTagsService } from "~/services/user-tags.service";
 import { electionsService } from "~/services/elections.service";
 import { buildFormPath } from "~/utils/forms";
 import { formatAffiliationResultJson } from "~/utils/affiliation";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
-import { deriveThumbnailKey } from "~/utils/images";
 import { db } from "~/db/connection";
 import { groupMemberships } from "~/db/schemas/group-memberships";
 import { groups } from "~/db/schemas/groups";
@@ -24,15 +23,8 @@ export const useProfile = routeLoader$(async (event) => {
 
   const user = userData as any;
 
-  const buildPicUrl = (key: string | null) => {
-    if (!key) return null;
-    return env.AWS_ENDPOINT
-      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${key}`
-      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
-  };
-
   const profilePictureUrl = user.profilePicture
-    ? buildPicUrl(deriveThumbnailKey(user.profilePicture))
+    ? publicImageUrlFromKey(user.profilePictureSmall ?? deriveThumbnailKey(user.profilePicture))
     : null;
 
   const { participationService } = await import("~/services/participation.service");

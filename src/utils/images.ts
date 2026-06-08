@@ -7,19 +7,20 @@ export function deriveThumbnailKey(mainKey: string): string {
 }
 
 /**
- * Resolve a stored image key to a browser-safe URL.
+ * Resolve a stored S3 key to a direct browser-safe URL.
  *
- * This returns the local image middleware URL so it can be used safely in
- * client components without importing server-only env code.
+ * Uses VITE_S3_BASE_URL (e.g. https://bucket.s3.region.amazonaws.com or
+ * http://192.168.x.x:9000/bucket for local dev). Falls back to the
+ * /api/images redirect if the env var is not configured.
+ *
+ * Only call this for public/* keys. Private keys must be presigned
+ * server-side via resolvePrivateImageUrl in secure-urls.ts.
  */
 export function publicImageUrlFromKey(
   value: string | null | undefined,
 ): string | null {
   if (!value) return null;
-  // Preserve already-built local image middleware URLs to avoid double-encoding.
-  if (/^\/?api\/images(?:\?|$)/.test(value)) {
-    return value.startsWith("/") ? value : `/${value}`;
-  }
+
   if (
     value.startsWith("http://") ||
     value.startsWith("https://") ||
@@ -29,34 +30,8 @@ export function publicImageUrlFromKey(
     return value;
   }
 
+  const base: string | undefined = import.meta.env.VITE_S3_BASE_URL;
   const normalizedKey = value.replace(/^\//, "");
-  return `/api/images?key=${encodeURIComponent(normalizedKey)}`;
-}
 
-/**
- * Unified middleware for resolving image URLs with presign awareness.
- * For public/* images: returns direct URL immediately (sync)
- * For private/* images: returns presigned URL (requires async/server context)
- *
- * This is the recommended method for all image access after file is stored.
- *
- * Usage (public images):
- *   const url = imageUrlFromKey('public/events/seed-1.webp'); // sync, direct URL
- *
- * Usage (private images in server/loader):
- *   const url = await imageUrlWithPresign('private/events/abc/photos/photo.webp');
- */
-export function imageUrlFromKey(key: string | null | undefined): string | null {
-  return publicImageUrlFromKey(key);
-}
-
-/**
- * Presign-aware variant for private image access (server/loader context only).
- * Call this in loaders or server$ functions to get presigned URLs for private paths.
- */
-export async function imageUrlWithPresign(
-  key: string | null | undefined,
-  expiresInSeconds: number = 60 * 60,
-): Promise<string | null> {
-  return publicImageUrlFromKey(key);
+  return `${(base ?? "").replace(/\/$/, "")}/${normalizedKey}`;
 }

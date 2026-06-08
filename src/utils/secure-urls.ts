@@ -87,6 +87,18 @@ export async function generateSecurePhotoUrl(
 }
 
 /**
+ * Generate a presigned GET URL for a private S3 key.
+ * Server-side only — requires AWS credentials. Call from loaders or server$ functions.
+ */
+export async function resolvePrivateImageUrl(
+  key: string | null | undefined,
+  expiresInSeconds = 3600,
+): Promise<string | null> {
+  if (!key) return null;
+  return generatePresignedGetUrl(key.replace(/^\//, ""), expiresInSeconds);
+}
+
+/**
  * Extract photo ID from file path
  * Example: /private/events/abc123/photos/photo-xyz789.webp -> photo-xyz789
  */

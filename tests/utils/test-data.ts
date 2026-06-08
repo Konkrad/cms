@@ -34,6 +34,11 @@ export async function createEventWithInventory(opts: {
       .get() as { id: string } | undefined;
     const adminId = admin?.id;
 
+    // Pick seed images from an existing event (if available) so per-test events have images
+    const seedImgRow = db
+      .prepare("SELECT image1, image2 FROM events WHERE image1 IS NOT NULL AND image2 IS NOT NULL LIMIT 1")
+      .get() as { image1: string; image2: string } | undefined;
+
     // Find group id if provided
     let groupId: string | null = null;
     if (opts.groupSlug) {
@@ -64,6 +69,8 @@ export async function createEventWithInventory(opts: {
       userId: adminId,
       groupId,
       visibility: 'global',
+      image1: seedImgRow?.image1 ?? null,
+      image2: seedImgRow?.image2 ?? null,
     } as any);
 
     // If no products requested, return the event

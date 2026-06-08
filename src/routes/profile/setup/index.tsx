@@ -8,7 +8,7 @@ import { useSavePhotoConsent, PhotoConsentStep } from "~/components/setup/PhotoC
 import { SurveyRuntime } from "~/components/forms/SurveyRuntime";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { formsService } from "~/services/forms.service";
-import { env } from "~/env";
+import { resolvePrivateImageUrl } from "~/utils/secure-urls";
 import type { UserConsent } from "~/db/schemas/users";
 
 // Re-export so Qwik City registers the actions for this route.
@@ -26,13 +26,9 @@ export const useOnboardingLoader = routeLoader$(async (event) => {
 
   const form = await formsService.getBySystemKey("affilation");
 
-  let profilePictureUrl: string | null = null;
-  if (u.profilePicture) {
-    const key = u.profilePicture;
-    profilePictureUrl = env.AWS_ENDPOINT
-      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${key}`
-      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
-  }
+  const profilePictureUrl = u.profilePicture
+    ? await resolvePrivateImageUrl(u.profilePicture)
+    : null;
 
   return { user: { ...user, profilePictureUrl } as any, consent, form };
 });

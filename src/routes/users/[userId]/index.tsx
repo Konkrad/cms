@@ -3,7 +3,7 @@ import { routeLoader$ } from "@qwik.dev/router";
 import { eq } from "drizzle-orm";
 import { db } from "~/db/connection";
 import { logins } from "~/db/schemas/logins";
-import { env } from "~/env";
+import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { usersService } from "~/services/users.service";
 import { groupMembershipsService } from "~/services/group-memberships.service";
 import { participationService } from "~/services/participation.service";
@@ -12,7 +12,6 @@ import { electionsService } from "~/services/elections.service";
 import { buildFormPath } from "~/utils/forms";
 import { formatAffiliationResultJson } from "~/utils/affiliation";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
-import { deriveThumbnailKey } from "~/utils/images";
 import { UserProfile } from "~/components/user/UserProfile/UserProfile";
 
 export const usePublicProfile = routeLoader$(async (event) => {
@@ -35,12 +34,7 @@ export const usePublicProfile = routeLoader$(async (event) => {
     if (row?.email) email = row.email;
   }
 
-  const buildPicUrl = (key: string | null) => {
-    if (!key) return null;
-    return env.AWS_ENDPOINT
-      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${key}`
-      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
-  };
+  const buildPicUrl = (key: string | null) => publicImageUrlFromKey(key);
 
   const isAdmin = currentUser?.role === "admin";
 
@@ -87,7 +81,7 @@ export const usePublicProfile = routeLoader$(async (event) => {
     role: user.role,
     city: user.city ?? null,
     country: user.country ?? null,
-    profilePictureUrl: buildPicUrl(user.profilePicture ? deriveThumbnailKey(user.profilePicture) : null),
+    profilePictureUrl: buildPicUrl(user.profilePicture ? ((user as any).profilePictureSmall ?? deriveThumbnailKey(user.profilePicture)) : null),
     tags: tags.map((t) => ({ id: t.id, label: t.label })),
     communities: groups.map((g) => ({ name: g.name, slug: g.slug })),
     upcomingEvents: participation.upcoming,

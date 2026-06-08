@@ -24,6 +24,7 @@ export const useUpdateProfile = routeAction$(
       yearOfBirth: data.year_of_birth ?? null,
       sex: data.sex || null,
       ...(data.profilePicture ? { profilePicture: data.profilePicture } : {}),
+      ...(data.profilePictureSmall ? { profilePictureSmall: data.profilePictureSmall } : {}),
     });
     await markConsentStepComplete(user.id, "lastProfileUpdate");
     return { success: true };
@@ -36,6 +37,7 @@ export const useUpdateProfile = routeAction$(
     year_of_birth: z.coerce.number().optional(),
     sex: z.string().optional(),
     profilePicture: z.string().optional(),
+    profilePictureSmall: z.string().optional(),
   }),
 );
 
@@ -64,6 +66,7 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
   const country = useSignal(props.profile.country || "");
   const yearOfBirth = useSignal(props.profile.yearOfBirth?.toString() || "");
   const sex = useSignal(props.profile.sex || "");
+  const thumbnailPath = useSignal("");
 
   // When the action is successful, call onComplete if available.
   if (action?.value?.success && props.onComplete) {
@@ -80,6 +83,8 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
     formData.set("sex", sex.value || "");
     const picInput = document.querySelector<HTMLInputElement>('input[name="profilePicture"][type="hidden"]');
     if (picInput?.value) formData.set("profilePicture", picInput.value);
+    const thumbInput = document.querySelector<HTMLInputElement>('input[name="profilePictureSmall"][type="hidden"]');
+    if (thumbInput?.value) formData.set("profilePictureSmall", thumbInput.value);
 
     if (props.updateAction && typeof props.updateAction.submit === "function") {
       await props.updateAction.submit(formData);
@@ -131,12 +136,16 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
           <ImageUploader
             name="profilePicture"
             pipeline="profile-picture"
-            path="public/profiles"
+            path="private/profile-pictures"
             aspectRatio="1/1"
             crop
             cropAspectRatio="1/1"
             autoUpload
+            onFileUploaded$={$((response: any) => {
+              if (response.thumbnailPath) thumbnailPath.value = response.thumbnailPath;
+            })}
           />
+          <input type="hidden" name="profilePictureSmall" value={thumbnailPath.value} />
         </div>
 
         <button type="submit" id="profile-form-save" class="hidden" />

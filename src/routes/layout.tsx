@@ -11,6 +11,23 @@ import { db } from "~/db/connection";
 import { sessions } from "~/db/schema";
 import { env } from "~/env";
 
+const ONBOARDING_EXEMPT = ["/profile/setup", "/login", "/auth/", "/api/"];
+
+export const onRequest: RequestHandler = async (event) => {
+  const { pathname } = new URL(event.request.url);
+  const isExempt = ONBOARDING_EXEMPT.some((prefix) => pathname.startsWith(prefix));
+  if (!isExempt) {
+    const user = await getCurrentUserData(event);
+    if (user) {
+      const consent = (user as any).consent ?? {};
+      if (!consent.lastProfileUpdate || !consent.locationVerification) {
+        throw event.redirect(302, "/profile/setup");
+      }
+    }
+  }
+  await event.next();
+};
+
 export const onGet: RequestHandler = async ({ cacheControl }) => {
   cacheControl({
     staleWhileRevalidate: 60 * 60 * 24 * 7,

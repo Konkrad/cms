@@ -10,6 +10,7 @@ import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
+import { AddressAutocomplete } from "~/components/ui/AddressAutocomplete";
 import { db } from "~/db/connection";
 import { users } from "~/db/schema";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
@@ -56,6 +57,8 @@ export const useUpdateProfile = routeAction$(
       familyName: data.family_name,
       city: data.city || null,
       country: data.country || null,
+      latitude: data.latitude || null,
+      longitude: data.longitude || null,
       yearOfBirth: data.year_of_birth ?? null,
       sex: data.sex || null,
       updatedAt: new Date().toISOString(),
@@ -80,6 +83,8 @@ export const useUpdateProfile = routeAction$(
     family_name: z.string().min(1, "Family name is required"),
     city: z.string().optional(),
     country: z.string().optional(),
+    latitude: z.string().optional(),
+    longitude: z.string().optional(),
     year_of_birth: z.coerce.number().optional(),
     sex: z.string().optional(),
     profilePicture: z.string().optional(),
@@ -94,6 +99,10 @@ export default component$(() => {
   const triggerUpload = useSignal(false);
   const uploadedPictureUrl = useSignal<string | undefined>(undefined);
   const uploadedThumbnailPath = useSignal<string | undefined>(undefined);
+  const city = useSignal(profile.value.city || "");
+  const country = useSignal(profile.value.country || "");
+  const latitude = useSignal((profile.value as any).latitude || "");
+  const longitude = useSignal((profile.value as any).longitude || "");
 
   const handleSubmit = $(() => {
     isSubmitting.value = true;
@@ -159,19 +168,22 @@ export default component$(() => {
               required
             />
 
-            <Input
-              label="City"
-              name="city"
-              type="text"
-              value={profile.value.city || ""}
-            />
-
-            <Input
-              label="Country"
-              name="country"
-              type="text"
-              value={profile.value.country || ""}
-            />
+            <div class="md:col-span-2">
+              <input type="hidden" name="city" value={city.value} />
+              <input type="hidden" name="country" value={country.value} />
+              <input type="hidden" name="latitude" value={latitude.value} />
+              <input type="hidden" name="longitude" value={longitude.value} />
+              <AddressAutocomplete
+                name="location_search"
+                label="City / Location"
+                placeholder="Start typing your city..."
+                value={[city.value, country.value].filter(Boolean).join(", ")}
+                latitudeSignal={latitude}
+                longitudeSignal={longitude}
+                citySignal={city}
+                countrySignal={country}
+              />
+            </div>
           </div>
 
           <div class="flex items-center gap-4 py-4">

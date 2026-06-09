@@ -31,6 +31,8 @@ export const geocodingService = {
 				item.address?.city ||
 				item.address?.town ||
 				item.address?.village ||
+				item.address?.municipality ||
+				item.address?.county ||
 				null,
 			country: item.address?.country || null,
 			fullAddress: item.display_name,
@@ -67,6 +69,8 @@ export const geocodingService = {
 				data.address?.city ||
 				data.address?.town ||
 				data.address?.village ||
+				data.address?.municipality ||
+				data.address?.county ||
 				null,
 			country: data.address?.country || null,
 			fullAddress: data.display_name,

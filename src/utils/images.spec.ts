@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "./images";
 
 describe("deriveThumbnailKey", () => {
@@ -40,21 +40,48 @@ describe("deriveThumbnailKey", () => {
 });
 
 describe("publicImageUrlFromKey", () => {
-  it("builds local middleware URL for a stored key", () => {
+  beforeEach(() => {
+    vi.stubEnv("VITE_S3_BASE_URL", "https://cdn.example.com");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("builds a direct S3 URL for a stored key", () => {
     expect(publicImageUrlFromKey("public/events/seed-1.webp")).toBe(
-      "/api/images?key=public%2Fevents%2Fseed-1.webp",
+      "https://cdn.example.com/public/events/seed-1.webp",
     );
   });
 
-  it("preserves already-built middleware URL", () => {
-    expect(
-      publicImageUrlFromKey("/api/images?key=public%2Fevents%2Fseed-1.webp"),
-    ).toBe("/api/images?key=public%2Fevents%2Fseed-1.webp");
+  it("strips a leading slash from the key to avoid a double slash", () => {
+    expect(publicImageUrlFromKey("/public/events/seed-1.webp")).toBe(
+      "https://cdn.example.com/public/events/seed-1.webp",
+    );
   });
 
-  it("normalizes middleware URL without leading slash", () => {
-    expect(
-      publicImageUrlFromKey("api/images?key=public%2Fevents%2Fseed-1.webp"),
-    ).toBe("/api/images?key=public%2Fevents%2Fseed-1.webp");
+  it("trims a trailing slash on the base", () => {
+    vi.stubEnv("VITE_S3_BASE_URL", "https://cdn.example.com/");
+    expect(publicImageUrlFromKey("public/events/seed-1.webp")).toBe(
+      "https://cdn.example.com/public/events/seed-1.webp",
+    );
+  });
+
+  it("passes through absolute and inline URLs unchanged", () => {
+    expect(publicImageUrlFromKey("http://example.com/a.webp")).toBe(
+      "http://example.com/a.webp",
+    );
+    expect(publicImageUrlFromKey("https://example.com/a.webp")).toBe(
+      "https://example.com/a.webp",
+    );
+    expect(publicImageUrlFromKey("blob:abc123")).toBe("blob:abc123");
+    expect(publicImageUrlFromKey("data:image/webp;base64,xxx")).toBe(
+      "data:image/webp;base64,xxx",
+    );
+  });
+
+  it("returns null for empty values", () => {
+    expect(publicImageUrlFromKey(null)).toBeNull();
+    expect(publicImageUrlFromKey(undefined)).toBeNull();
   });
 });

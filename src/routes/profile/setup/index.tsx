@@ -4,15 +4,15 @@ import { Button } from "~/components/ui/Button";
 import { SetupLayout } from "~/components/setup/SetupLayout";
 import { useUpdateProfile, ProfileStep } from "~/components/setup/ProfileStep";
 import { useMarkLocation, LocationStep } from "~/components/setup/LocationStep";
-import { useSavePhotoConsent, PhotoConsentStep } from "~/components/setup/PhotoConsentStep";
 import { SurveyRuntime } from "~/components/forms/SurveyRuntime";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { formsService } from "~/services/forms.service";
-import { env } from "~/env";
+import { formResultsService } from "~/services/form-results.service";
+import { resolvePrivateImageUrl } from "~/utils/secure-urls";
 import type { UserConsent } from "~/db/schemas/users";
 
 // Re-export so Qwik City registers the actions for this route.
-export { useUpdateProfile, useMarkLocation, useSavePhotoConsent };
+export { useUpdateProfile, useMarkLocation };
 
 export const useOnboardingLoader = routeLoader$(async (event) => {
   await requireAuth(event);
@@ -26,37 +26,36 @@ export const useOnboardingLoader = routeLoader$(async (event) => {
 
   const form = await formsService.getBySystemKey("affilation");
 
-  let profilePictureUrl: string | null = null;
-  if (u.profilePicture) {
-    const key = u.profilePicture;
-    profilePictureUrl = env.AWS_ENDPOINT
-      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${key}`
-      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
+  let existingFormResult: Record<string, any> | null = null;
+  if (form) {
+    const existing = await formResultsService.getByFormAndUser(form.id, user.id);
+    if (existing) existingFormResult = existing.resultJson as Record<string, any>;
   }
 
-  return { user: { ...user, profilePictureUrl } as any, consent, form };
+  const profilePictureUrl = u.profilePicture
+    ? await resolvePrivateImageUrl(u.profilePicture)
+    : null;
+
+  return { user: { ...user, profilePictureUrl } as any, consent, form, existingFormResult };
 });
 
 export default component$(() => {
   const loader = useOnboardingLoader();
   const updateAction = useUpdateProfile();
   const markLocation = useMarkLocation();
-  const saveConsent = useSavePhotoConsent();
-  const consentTrigger = useSignal(0);
   const saveTrigger = useSignal(0);
   const nav = useNavigate();
 
-  const { user, consent, form } = loader.value;
+  const { user, consent, form, existingFormResult } = loader.value;
   const needsProfile = !consent.lastProfileUpdate;
   const needsLocation = !consent.locationVerification;
-  const needsConsent = !consent.photoConsent;
 
   // Determine initial phase based on what's already complete.
-  const phase = useSignal<"steps" | "consent" | "survey">(
-    needsProfile || needsLocation ? "steps" : needsConsent ? "consent" : "survey",
+  const phase = useSignal<"steps" | "survey">(
+    needsProfile || needsLocation ? "steps" : "survey",
   );
 
-  // After profile + location actions complete, advance to consent (or survey/home).
+  // After profile + location actions complete, advance to survey (or home).
   useVisibleTask$(({ track }) => {
     track(() => updateAction.value);
     track(() => markLocation.value);
@@ -70,27 +69,13 @@ export default component$(() => {
     }
 
     if (profileOk && locationOk) {
-      if (needsConsent) {
-        phase.value = "consent";
-      } else if (form) {
-        phase.value = "survey";
-      } else {
-        void nav("/");
-      }
-    }
-  });
-
-  // After photo consent is saved, advance to survey (or home).
-  useVisibleTask$(({ track }) => {
-    track(() => saveConsent.value);
-    if (saveConsent.value?.success && phase.value === "consent") {
       if (form) {
         phase.value = "survey";
       } else {
         void nav("/");
       }
     }
-  });
+  }, { strategy: "document-ready" });
 
   return (
     <SetupLayout
@@ -98,29 +83,20 @@ export default component$(() => {
       description="Fill in your details to continue."
     >
       {phase.value === "survey" ? (
-        <SurveyRuntime
-          surveyJson={form!.schemaJson}
-          submitUrl="/api/onboarding/form-submit"
-          requireAltcha={false}
-          onComplete$={$(() => nav("/"))}
-        />
-      ) : phase.value === "consent" ? (
-        <div class="space-y-6">
-          <PhotoConsentStep
-            initialValue={user.photoConsentGiven ?? null}
-            updateAction={saveConsent}
-            saveTrigger={consentTrigger}
+        <>
+          {existingFormResult && (
+            <div class="mb-4 rounded-lg border border-border bg-bg-muted px-4 py-3 text-sm text-text-secondary">
+              Your previous answers are pre-filled — submit again to update them.
+            </div>
+          )}
+          <SurveyRuntime
+            surveyJson={form!.schemaJson}
+            submitUrl="/api/onboarding/form-submit"
+            requireAltcha={false}
+            initialData={existingFormResult ?? undefined}
+            onComplete$={$(() => nav("/"))}
           />
-          <div class="pt-4">
-            <Button
-              onClick$={$(() => {
-                consentTrigger.value++;
-              })}
-            >
-              Continue
-            </Button>
-          </div>
-        </div>
+        </>
       ) : (
         <div class="space-y-6">
           {needsProfile && (
@@ -141,7 +117,7 @@ export default component$(() => {
             {needsProfile ? (
               <Button type="submit" form="profile-step-form">Continue</Button>
             ) : (
-              <Button onClick$={$(() => { saveTrigger.value++; })}>Continue</Button>
+              <Button type="submit" form="location-step-form">Continue</Button>
             )}
           </div>
         </div>
@@ -149,4 +125,3 @@ export default component$(() => {
     </SetupLayout>
   );
 });
-

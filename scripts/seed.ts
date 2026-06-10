@@ -247,6 +247,17 @@ let testUsers = db
   .all()
   .filter((u) => u.role === "user" && u.familyName === "Test");
 
+// Ensure existing test users have the consent fields needed to reach the survey phase.
+for (const u of testUsers) {
+  const consent = (u.consent ?? {}) as Record<string, string | null>;
+  if (!consent.lastProfileUpdate || !consent.locationVerification) {
+    db.update(schema.users)
+      .set({ consent: { ...consent, lastProfileUpdate: now(), locationVerification: now() } })
+      .where(eq(schema.users.id, u.id))
+      .run();
+  }
+}
+
 const qaCheckoutUserDefs = [
   { name: "Marta", familyName: "Keller", email: "qa.marta@example.com" },
   { name: "Jonas", familyName: "Richter", email: "qa.jonas@example.com" },
@@ -329,7 +340,16 @@ if (testUsers.length < 10) {
       .values({ id: loginId, email, expiresAt: "2099-01-01T00:00:00.000Z" })
       .run();
     db.insert(schema.users)
-      .values({ id: uuid(), name: `User${i + 1}`, familyName: "Test", role: "user", loginId, createdAt: now(), updatedAt: now() })
+      .values({
+        id: uuid(),
+        name: `User${i + 1}`,
+        familyName: "Test",
+        role: "user",
+        loginId,
+        consent: { lastProfileUpdate: now(), locationVerification: now() },
+        createdAt: now(),
+        updatedAt: now(),
+      })
       .run();
   }
   testUsers = db
@@ -1606,6 +1626,7 @@ const formDefs: Array<{
   schemaJson: any;
   visibility: "private" | "public";
   isSystemForm: boolean;
+  allowResubmission?: boolean;
   systemKey: string | null;
 }> = [
   {
@@ -1641,6 +1662,20 @@ const formDefs: Array<{
 ];
 
 for (const f of formDefs) {
+  const existing = f.systemKey
+    ? db.select().from(schema.forms).all().find((r) => r.systemKey === f.systemKey)
+    : null;
+
+  if (existing) {
+    if (f.allowResubmission !== undefined && existing.allowResubmission !== f.allowResubmission) {
+      db.update(schema.forms)
+        .set({ allowResubmission: f.allowResubmission, updatedAt: now() })
+        .where(eq(schema.forms.id, existing.id))
+        .run();
+    }
+    continue;
+  }
+
   db.insert(schema.forms)
     .values({
       id: uuid(),
@@ -1651,6 +1686,7 @@ for (const f of formDefs) {
       visibility: f.visibility,
       scopeType: "global",
       isSystemForm: f.isSystemForm,
+      allowResubmission: f.allowResubmission ?? false,
       systemKey: f.systemKey,
       createdBy: adminUser.id,
       createdAt: now(),
@@ -1669,6 +1705,18 @@ const onboardingForm = db
   .find((f) => f.systemKey === "affilation");
 
 if (onboardingForm) {
+  // Delete any existing form results for test users so they land on the survey fresh.
+  const testUserIdsForCleanup = new Set(
+    db.select().from(schema.users).all()
+      .filter((u) => u.familyName === "Test")
+      .map((u) => u.id),
+  );
+  for (const userId of testUserIdsForCleanup) {
+    db.delete(schema.formResults)
+      .where(eq(schema.formResults.userId, userId))
+      .run();
+  }
+
   const existingResultRows = db
     .select({ userId: schema.formResults.userId })
     .from(schema.formResults)
@@ -1716,11 +1764,18 @@ if (onboardingForm) {
   ];
 
   // Re-query all users now that all bulk users have been inserted
+  // Exclude test users (familyName "Test") so they land on the survey fresh each time.
+  const testUserIds = new Set(
+    db.select().from(schema.users).all()
+      .filter((u) => u.familyName === "Test")
+      .map((u) => u.id),
+  );
   const usersToSeed = db.select().from(schema.users).all();
   let formResultsInserted = 0;
 
   for (const user of usersToSeed) {
     if (alreadySubmitted.has(user.id)) continue;
+    if (testUserIds.has(user.id)) continue;
 
     const resultJson = affiliationPool[Math.floor(Math.random() * affiliationPool.length)];
 

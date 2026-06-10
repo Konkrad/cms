@@ -198,7 +198,7 @@ export default component$(() => {
       {activeTab.value === "applications" && (
         <div class="space-y-6">
           {appsByPosition.map(({ position, apps }) => (
-            <div key={position.id} class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div key={position.id} class="bg-white rounded-lg shadow-sm overflow-x-auto">
               <div class="px-6 py-3 bg-gray-50 border-b">
                 <h3 class="font-medium text-gray-900">{position.title}</h3>
               </div>
@@ -260,7 +260,7 @@ export default component$(() => {
 
       {activeTab.value === "positions" && (
         <div class="space-y-4">
-          <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="bg-white rounded-lg shadow-sm overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>

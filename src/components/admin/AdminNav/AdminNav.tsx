@@ -57,26 +57,28 @@ export const AdminNav = component$<AdminNavProps>(
     }
 
     return (
-      <nav class="flex gap-2">
-        {navItems.map((item) => {
-          const isActive = item.exact
-            ? currentPath === item.href || currentPath === `${item.href}/`
-            : currentPath.startsWith(item.href);
+      <nav class="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div class="flex gap-2 min-w-max">
+          {navItems.map((item) => {
+            const isActive = item.exact
+              ? currentPath === item.href || currentPath === `${item.href}/`
+              : currentPath.startsWith(item.href);
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              class={`px-4 py-2 rounded transition-colors ${
-                isActive
-                  ? "bg-slate-700 text-white"
-                  : "text-slate-300 hover:bg-slate-700 hover:text-white"
-              }`}
-            >
-              {item.label}
-            </Link>
-          );
-        })}
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                class={`px-4 py-2 rounded transition-colors whitespace-nowrap ${
+                  isActive
+                    ? "bg-slate-700 text-white"
+                    : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
     );
   },

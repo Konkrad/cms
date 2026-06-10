@@ -19,11 +19,10 @@ export const useUpdateProfile = routeAction$(
     await usersService.update(user.id, {
       name: data.name,
       familyName: data.family_name,
-      city: data.city || null,
-      country: data.country || null,
       yearOfBirth: data.year_of_birth ?? null,
       sex: data.sex || null,
       ...(data.profilePicture ? { profilePicture: data.profilePicture } : {}),
+      ...(data.profilePictureSmall ? { profilePictureSmall: data.profilePictureSmall } : {}),
     });
     await markConsentStepComplete(user.id, "lastProfileUpdate");
     return { success: true };
@@ -31,11 +30,10 @@ export const useUpdateProfile = routeAction$(
   zod$({
     name: z.string().min(1, "Name is required"),
     family_name: z.string().min(1, "Family name is required"),
-    city: z.string().optional(),
-    country: z.string().optional(),
     year_of_birth: z.coerce.number().optional(),
     sex: z.string().optional(),
     profilePicture: z.string().optional(),
+    profilePictureSmall: z.string().optional(),
   }),
 );
 
@@ -43,8 +41,6 @@ export type ProfileStepProps = {
   profile: {
     name: string;
     familyName: string;
-    city?: string | null;
-    country?: string | null;
     yearOfBirth?: number | null;
     sex?: string | null;
     profilePictureUrl?: string | null;
@@ -60,10 +56,9 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
 
   const name = useSignal(props.profile.name || "");
   const familyName = useSignal(props.profile.familyName || "");
-  const city = useSignal(props.profile.city || "");
-  const country = useSignal(props.profile.country || "");
   const yearOfBirth = useSignal(props.profile.yearOfBirth?.toString() || "");
   const sex = useSignal(props.profile.sex || "");
+  const thumbnailPath = useSignal("");
 
   // When the action is successful, call onComplete if available.
   if (action?.value?.success && props.onComplete) {
@@ -74,12 +69,12 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
     const formData = new FormData();
     formData.set("name", name.value);
     formData.set("family_name", familyName.value);
-    formData.set("city", city.value || "");
-    formData.set("country", country.value || "");
     if (yearOfBirth.value) formData.set("year_of_birth", yearOfBirth.value);
     formData.set("sex", sex.value || "");
     const picInput = document.querySelector<HTMLInputElement>('input[name="profilePicture"][type="hidden"]');
     if (picInput?.value) formData.set("profilePicture", picInput.value);
+    const thumbInput = document.querySelector<HTMLInputElement>('input[name="profilePictureSmall"][type="hidden"]');
+    if (thumbInput?.value) formData.set("profilePictureSmall", thumbInput.value);
 
     if (props.updateAction && typeof props.updateAction.submit === "function") {
       await props.updateAction.submit(formData);
@@ -106,10 +101,6 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
 
           <Input label="Last Name" name="family_name" type="text" value={familyName.value} onInput$={(e) => (familyName.value = (e.target as HTMLInputElement).value)} required />
 
-          <Input label="City" name="city" type="text" value={city.value} onInput$={(e) => (city.value = (e.target as HTMLInputElement).value)} />
-
-          <Input label="Country" name="country" type="text" value={country.value} onInput$={(e) => (country.value = (e.target as HTMLInputElement).value)} />
-
           <Input label="Year of Birth" name="year_of_birth" type="number" value={yearOfBirth.value} onInput$={(e) => (yearOfBirth.value = (e.target as HTMLInputElement).value)} />
 
           <div>
@@ -131,12 +122,16 @@ export const ProfileStep = component$<ProfileStepProps>((props) => {
           <ImageUploader
             name="profilePicture"
             pipeline="profile-picture"
-            path="public/profiles"
+            path="private/profile-pictures"
             aspectRatio="1/1"
             crop
             cropAspectRatio="1/1"
             autoUpload
+            onFileUploaded$={$((response: any) => {
+              if (response.thumbnailPath) thumbnailPath.value = response.thumbnailPath;
+            })}
           />
+          <input type="hidden" name="profilePictureSmall" value={thumbnailPath.value} />
         </div>
 
         <button type="submit" id="profile-form-save" class="hidden" />

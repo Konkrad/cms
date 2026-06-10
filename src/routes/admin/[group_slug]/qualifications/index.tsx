@@ -159,7 +159,7 @@ export default component$(() => {
       </div>
 
       {activeTab.value === "pending" && (
-        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div class="bg-white rounded-lg shadow-sm overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
@@ -202,7 +202,7 @@ export default component$(() => {
       )}
 
       {activeTab.value === "all" && (
-        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div class="bg-white rounded-lg shadow-sm overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
@@ -239,7 +239,7 @@ export default component$(() => {
           {data.value.types.map((t) => {
             const activeTokens = data.value.tokensByType[t.id] ?? [];
             return (
-              <div key={t.id} class="bg-white rounded-lg shadow-sm overflow-hidden">
+              <div key={t.id} class="bg-white rounded-lg shadow-sm overflow-x-auto">
                 <div class="px-6 py-4 bg-gray-50 border-b flex items-center justify-between">
                   <div>
                     <span class="font-medium text-gray-900">{t.label}</span>

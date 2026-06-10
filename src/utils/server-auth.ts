@@ -137,6 +137,7 @@ export async function getCurrentUserData(
       foodPreference: u.foodPreference ?? null,
       photoConsentGiven: u.photoConsentGiven ?? null,
       profilePicture: u.profilePicture,
+      profilePictureSmall: u.profilePictureSmall,
       consent: u.consent ?? {},
       role: u.role,
       createdAt: u.createdAt,

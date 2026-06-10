@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { relations } from "drizzle-orm/_relations";
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./users";
@@ -84,6 +84,7 @@ export const posts = sqliteTable("posts", {
     .notNull()
     .default("global"),
   featuredImage: text("featured_image"),
+  showAuthor: integer("show_author", { mode: "boolean" }).notNull().default(false),
   deletedAt: text("deleted_at"),
   deletedBy: text("deleted_by").references(() => users.id),
   createdAt: text("created_at")

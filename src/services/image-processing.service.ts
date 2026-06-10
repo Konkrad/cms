@@ -165,10 +165,11 @@ export async function processAndUploadVariants(
   thumbPipeline: ImageProcessingPipeline = PROCESSING_PIPELINES.thumbnail,
   keyPrefix: string,
   fileId?: string,
+  thumbKeyPrefix?: string,
 ): Promise<{ gallery: ImageUploadResult; thumbnail: ImageUploadResult }> {
   const id = fileId || `${Date.now()}`;
   const mainS3Key = `${keyPrefix}/${id}.webp`;
-  const thumbS3Key = `${keyPrefix}/${id}-thumb.webp`;
+  const thumbS3Key = `${thumbKeyPrefix ?? keyPrefix}/${id}-thumb.webp`;
 
   const s3Client = createS3Client();
 

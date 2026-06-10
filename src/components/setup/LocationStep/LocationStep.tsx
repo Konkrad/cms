@@ -1,4 +1,4 @@
-import { component$, type Signal, useSignal } from "@qwik.dev/core";
+import { component$, type Signal, useSignal, useVisibleTask$ } from "@qwik.dev/core";
 import { Form, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { AddressAutocomplete } from "~/components/ui/AddressAutocomplete";
@@ -44,6 +44,13 @@ export const LocationStep = component$<LocationStepProps>((props) => {
   const longitude = useSignal("");
   const city = useSignal("");
   const country = useSignal("");
+
+  useVisibleTask$(({ track }) => {
+    const trigger = track(() => props.saveTrigger?.value);
+    if (trigger && trigger > 0) {
+      document.getElementById("location-form-save")?.click();
+    }
+  });
 
   return (
     <Form action={props.updateAction} id="location-step-form">

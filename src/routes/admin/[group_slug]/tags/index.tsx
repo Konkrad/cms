@@ -67,7 +67,7 @@ export default component$(() => {
 
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Existing definitions */}
-        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div class="bg-white rounded-lg shadow-sm overflow-x-auto">
           <div class="px-5 py-3 bg-gray-50 border-b text-sm font-medium text-gray-700">
             Defined Tags ({data.value.definitions.length})
           </div>

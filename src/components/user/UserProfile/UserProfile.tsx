@@ -59,6 +59,7 @@ export interface UserProfileProps {
   electionGroups?: ElectionGroup[];
   submittedForms?: FormEntry[];
   affiliationEntries?: { question: string; answer: string }[];
+  affiliationEditPath?: string | null;
 }
 
 const formatDate = (iso: string) =>
@@ -93,6 +94,7 @@ export const UserProfile = component$<UserProfileProps>((props) => {
     electionGroups,
     submittedForms,
     affiliationEntries,
+    affiliationEditPath,
   } = props;
 
   const displayName = `${name} ${familyName}`.trim();
@@ -225,7 +227,14 @@ export const UserProfile = component$<UserProfileProps>((props) => {
       {/* Relations / Affiliation */}
       {affiliationEntries && affiliationEntries.length > 0 && (
         <section>
-          <h2 class="text-xl font-semibold text-gray-800 mb-3">Relations / Affiliation</h2>
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xl font-semibold text-gray-800">Relations / Affiliation</h2>
+            {isOwner && affiliationEditPath && (
+              <Link href={affiliationEditPath} class="text-sm font-medium text-blue-700 hover:underline">
+                Edit
+              </Link>
+            )}
+          </div>
           <div class="border border-gray-200 rounded-lg p-4">
             <dl class="space-y-2">
               {affiliationEntries.map((entry) => (

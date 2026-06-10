@@ -10,10 +10,11 @@ import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
+import { AddressAutocomplete } from "~/components/ui/AddressAutocomplete";
 import { db } from "~/db/connection";
 import { users } from "~/db/schema";
-import { env } from "~/env";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
+import { resolvePrivateImageUrl } from "~/utils/secure-urls";
 
 export const useProfile = routeLoader$(async (event) => {
   await requireAuth(event);
@@ -23,17 +24,13 @@ export const useProfile = routeLoader$(async (event) => {
     throw event.redirect(302, "/login");
   }
 
-  // Build profile picture URL: new uploads store full URL; legacy entries store a path.
   let profilePictureUrl: string | null = null;
   const user = userData as any;
   if (user.profilePicture) {
     if (user.profilePicture.startsWith("http")) {
       profilePictureUrl = user.profilePicture;
     } else {
-      const key = user.profilePicture;
-      profilePictureUrl = env.AWS_ENDPOINT
-        ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${key}`
-        : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
+      profilePictureUrl = await resolvePrivateImageUrl(user.profilePicture);
     }
   }
 
@@ -60,6 +57,8 @@ export const useUpdateProfile = routeAction$(
       familyName: data.family_name,
       city: data.city || null,
       country: data.country || null,
+      latitude: data.latitude || null,
+      longitude: data.longitude || null,
       yearOfBirth: data.year_of_birth ?? null,
       sex: data.sex || null,
       updatedAt: new Date().toISOString(),
@@ -67,6 +66,9 @@ export const useUpdateProfile = routeAction$(
 
     if (data.profilePicture) {
       updateData.profilePicture = data.profilePicture;
+    }
+    if (data.profilePictureSmall) {
+      updateData.profilePictureSmall = data.profilePictureSmall;
     }
 
     await db
@@ -81,9 +83,12 @@ export const useUpdateProfile = routeAction$(
     family_name: z.string().min(1, "Family name is required"),
     city: z.string().optional(),
     country: z.string().optional(),
+    latitude: z.string().optional(),
+    longitude: z.string().optional(),
     year_of_birth: z.coerce.number().optional(),
     sex: z.string().optional(),
     profilePicture: z.string().optional(),
+    profilePictureSmall: z.string().optional(),
   }),
 );
 
@@ -93,6 +98,11 @@ export default component$(() => {
   const isSubmitting = useSignal(false);
   const triggerUpload = useSignal(false);
   const uploadedPictureUrl = useSignal<string | undefined>(undefined);
+  const uploadedThumbnailPath = useSignal<string | undefined>(undefined);
+  const city = useSignal(profile.value.city || "");
+  const country = useSignal(profile.value.country || "");
+  const latitude = useSignal((profile.value as any).latitude || "");
+  const longitude = useSignal((profile.value as any).longitude || "");
 
   const handleSubmit = $(() => {
     isSubmitting.value = true;
@@ -103,10 +113,11 @@ export default component$(() => {
     const form = document.querySelector('form');
     if (!form) return;
     const fd = new FormData(form);
-    // Ensure the uploaded URL is in the form data even if the hidden input
-    // hasn't been rendered yet by Qwik's scheduler.
     if (uploadedPictureUrl.value && !fd.get('profilePicture')) {
       fd.set('profilePicture', uploadedPictureUrl.value);
+    }
+    if (uploadedThumbnailPath.value && !fd.get('profilePictureSmall')) {
+      fd.set('profilePictureSmall', uploadedThumbnailPath.value);
     }
     updateAction.submit(fd);
   });
@@ -127,14 +138,15 @@ export default component$(() => {
           <ImageUploader
             name="profilePicture"
             pipeline="profile-picture"
-            path="public/profiles"
+            path="private/profile-pictures"
             aspectRatio="1/1"
             crop
             cropAspectRatio="1/1"
             triggerSignal={triggerUpload}
             onSettled$={onSettled}
-            onFileUploaded$={$((response) => {
+            onFileUploaded$={$((response: any) => {
               uploadedPictureUrl.value = response.url || response.filePath || undefined;
+              if (response.thumbnailPath) uploadedThumbnailPath.value = response.thumbnailPath;
             })}
             currentUrl={profile.value.profilePictureUrl || undefined}
           />
@@ -156,19 +168,22 @@ export default component$(() => {
               required
             />
 
-            <Input
-              label="City"
-              name="city"
-              type="text"
-              value={profile.value.city || ""}
-            />
-
-            <Input
-              label="Country"
-              name="country"
-              type="text"
-              value={profile.value.country || ""}
-            />
+            <div class="md:col-span-2">
+              <input type="hidden" name="city" value={city.value} />
+              <input type="hidden" name="country" value={country.value} />
+              <input type="hidden" name="latitude" value={latitude.value} />
+              <input type="hidden" name="longitude" value={longitude.value} />
+              <AddressAutocomplete
+                name="location_search"
+                label="City / Location"
+                placeholder="Start typing your city..."
+                value={[city.value, country.value].filter(Boolean).join(", ")}
+                latitudeSignal={latitude}
+                longitudeSignal={longitude}
+                citySignal={city}
+                countrySignal={country}
+              />
+            </div>
           </div>
 
           <div class="flex items-center gap-4 py-4">

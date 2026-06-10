@@ -29,6 +29,7 @@ export const onGet: RequestHandler = async (event) => {
       familyName: users.familyName,
       email: logins.email,
       profilePicture: users.profilePicture,
+      profilePictureSmall: users.profilePictureSmall,
     })
     .from(users)
     .leftJoin(logins, eq(logins.id, users.loginId))
@@ -37,10 +38,8 @@ export const onGet: RequestHandler = async (event) => {
 
   const payload = rows.map((row) => {
     const displayName = [row.name, row.familyName].filter(Boolean).join(" ").trim();
-    const avatarUrl = row.profilePicture
-      ? publicImageUrlFromKey(deriveThumbnailKey(row.profilePicture)) ||
-        publicImageUrlFromKey(row.profilePicture)
-      : null;
+    const thumbKey = row.profilePictureSmall ?? (row.profilePicture ? deriveThumbnailKey(row.profilePicture) : null);
+    const avatarUrl = publicImageUrlFromKey(thumbKey);
 
     return {
       id: row.id,

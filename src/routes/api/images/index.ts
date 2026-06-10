@@ -84,24 +84,23 @@ export const onPost: RequestHandler = async ({
       return;
     }
 
-    // Profile picture: 1000x1000 + 400x400 thumbnail, no DB write (action handles persistence)
+    // Profile picture: main → private (presigned), thumbnail → public (direct URL)
     if (pipelineName === "profile-picture") {
       const { gallery: picture, thumbnail: pictureSmall } = await processAndUploadVariants(
         bodyStream,
         PROCESSING_PIPELINES.profilePicture,
         PROCESSING_PIPELINES.thumbnail,
-        uploadPrefix,
+        "private/profile-pictures",
         fileId,
+        "public/profile-pictures",
       );
 
-      // Access URLs
-      const accessUrl = env.AWS_ENDPOINT
-        ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${picture.key}`
-        : await generatePresignedGetUrl(picture.key, 60 * 60);
+      const accessUrl = await generatePresignedGetUrl(picture.key, 60 * 60);
 
       json(200, {
         success: true,
         filePath: picture.key,
+        thumbnailPath: pictureSmall.key,
         url: accessUrl,
       });
       return;
@@ -156,31 +155,6 @@ export const onPost: RequestHandler = async ({
 };
 
 export const onGet: RequestHandler = async (event) => {
-  const key = event.query.get("key")?.trim();
-
-  if (key) {
-    const normalizedKey = key.replace(/^\//, "");
-
-    if (normalizedKey.startsWith("private/")) {
-      const presignedUrl = await generatePresignedGetUrl(normalizedKey, 60 * 60);
-      event.send(new Response(null, {
-        status: 302,
-        headers: { Location: presignedUrl },
-      }));
-      return;
-    }
-
-    const directUrl = env.AWS_ENDPOINT
-      ? `${env.AWS_ENDPOINT.replace(/\/$/, "")}/${env.S3_BUCKET}/${normalizedKey}`
-      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${normalizedKey}`;
-
-    event.send(new Response(null, {
-      status: 302,
-      headers: { Location: directUrl },
-    }));
-    return;
-  }
-
   const pipelines = Object.entries(PROCESSING_PIPELINES).map(
     ([key, pipeline]) => ({
       name: key,

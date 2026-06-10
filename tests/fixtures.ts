@@ -139,12 +139,15 @@ export function createUserSession(role: UserRole, prefix = "e2e"): CreatedSessio
   const sessionToken = crypto.randomBytes(48).toString("hex");
   const expiresAt = new Date(Date.now() + 3_600_000).toISOString();
 
+  const now = new Date().toISOString();
+  const consent = JSON.stringify({ lastProfileUpdate: now, locationVerification: now, foodPreference: now, photoConsent: now });
+
   db.prepare("INSERT INTO logins (id, email, expires_at) VALUES (?, ?, ?)").run(
     loginId, email, expiresAt,
   );
   db.prepare(
-    "INSERT INTO users (id, name, family_name, login_id, role) VALUES (?, ?, ?, ?, ?)",
-  ).run(userId, "Test", "User", loginId, role);
+    "INSERT INTO users (id, name, family_name, login_id, role, consent, food_preference, photo_consent_given) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+  ).run(userId, "Test", "User", loginId, role, consent, "none", 1);
   db.prepare(
     "INSERT INTO sessions (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)",
   ).run(sessionId, userId, sessionToken, expiresAt);

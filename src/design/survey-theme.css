@@ -17,9 +17,9 @@
   /* ── General backgrounds ── */
   --sjs-general-backcolor: var(--color-bg-card);
   --sjs-general-backcolor-dark: var(--color-bg-muted);
-  --sjs-general-backcolor-dim: var(--color-bg);
+  --sjs-general-backcolor-dim: var(--color-bg-card);
   --sjs-general-backcolor-dim-dark: var(--color-border);
-  --sjs-general-backcolor-dim-light: var(--color-bg);
+  --sjs-general-backcolor-dim-light: var(--color-bg-card);
 
   /* ── Text / foreground ── */
   --sjs-general-forecolor: var(--color-text);
@@ -33,13 +33,12 @@
   --sjs-border-inside: var(--color-border);
 
   /* ── Corner radius ── */
-  --sjs-corner-radius: 8px;
+  --sjs-corner-radius: var(--radius-lg);
 
   /* ── Shadows ── */
   --sjs-shadow-small: var(--shadow-sm);
   --sjs-shadow-medium: var(--shadow-md);
   --sjs-shadow-large: none;
-  --sjs-shadow-inner: none;
 
   /* ── Semantic colors ── */
   --sjs-special-red: var(--color-error);
@@ -54,13 +53,13 @@
   --sjs-editor-background: var(--color-bg-card);
   --sjs-editorpanel-backcolor: var(--color-bg);
   --sjs-editorpanel-hovercolor: var(--color-bg-muted);
-  --sjs-editorpanel-cornerRadius: 8px;
+  --sjs-editorpanel-cornerRadius: var(--radius-lg);
 
   /* ── Question panel ── */
   --sjs-question-background: var(--color-bg-card);
-  --sjs-questionpanel-backcolor: transparent;
-  --sjs-questionpanel-hovercolor: var(--color-bg);
-  --sjs-questionpanel-cornerRadius: 8px;
+  --sjs-questionpanel-backcolor: var(--color-bg-card);
+  --sjs-questionpanel-hovercolor: var(--color-bg-muted);
+  --sjs-questionpanel-cornerRadius: var(--radius-lg);
 
   /* ── Fonts ── */
   --sjs-font-family: var(--font-sans);
@@ -75,29 +74,61 @@
   --sjs-font-editorfont-size: 0.95rem;
 }
 
-/* ── Input focus ring matching our forms ── */
+/* ── Survey shell: match the site's card style ── */
+.forms-survey .sd-root-modern {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* ── Inner panels: no extra card chrome inside the outer wrapper ── */
+.sd-element--with-frame {
+  box-shadow: none !important;
+}
+
+/* ── Inputs: match site Input component (border, no shadow) ── */
+.sd-input {
+  border: 1px solid var(--color-border-strong) !important;
+  box-shadow: none !important;
+  background-color: var(--color-bg-card) !important;
+}
+.sd-input:focus,
 .sd-input:focus-within {
-  outline: none;
+  outline: none !important;
   border-color: var(--color-focus-ring) !important;
   box-shadow: var(--focus-ring) !important;
 }
 
-/* ── Primary button ── */
+/* ── Buttons: match site Button component (md size) ── */
+.sd-btn--action,
+.sd-body__navigation .sd-btn {
+  border-radius: var(--radius-lg) !important;
+  font-weight: 600 !important;
+  font-size: 1rem !important;
+  padding: 0.5rem 1.5rem !important;
+  line-height: 1.5 !important;
+}
 .sd-btn--action {
-  background-color: var(--color-primary) !important;
-  border-radius: var(--radius-md) !important;
-  font-weight: 600;
+  background-color: var(--color-accent) !important;
+  color: #ffffff !important;
 }
 .sd-btn--action:hover {
-  background-color: var(--color-primary-light) !important;
+  background-color: var(--color-accent-dark) !important;
 }
 
-/* ── Navigation buttons ── */
-.sd-body__navigation .sd-btn {
-  border-radius: var(--radius-md) !important;
-  font-weight: 600;
-  font-size: 0.875rem;
-  padding: 0.5rem 0.9rem;
+/* ── Radio / checkbox decorators: border instead of inset shadow ── */
+.sd-item__decorator {
+  border: 1px solid var(--color-border-strong) !important;
+  box-shadow: none !important;
+  background-color: var(--color-bg-card) !important;
+}
+.sd-item--checked .sd-item__decorator {
+  background-color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+}
+.sd-item__control:focus + .sd-item__decorator {
+  border-color: var(--color-focus-ring) !important;
+  box-shadow: var(--focus-ring) !important;
 }
 
 /* ── Error messages ── */

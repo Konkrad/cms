@@ -109,7 +109,7 @@ export const useProductsData = routeLoader$(async (event) => {
         .trim(),
       email: (session as any)?.email ?? "",
       avatarUrl: (session as any)?.profilePicture
-        ? publicImageUrlFromKey(deriveThumbnailKey((session as any).profilePicture))
+        ? publicImageUrlFromKey((session as any).profilePictureSmall ?? deriveThumbnailKey((session as any).profilePicture))
         : null,
     },
   };

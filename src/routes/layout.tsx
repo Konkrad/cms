@@ -4,12 +4,29 @@ import { routeAction$, routeLoader$ } from "@qwik.dev/router";
 import { Navigation } from "~/components/ui/Navigation";
 import { SiteFooter } from "~/components/ui/SiteFooter/SiteFooter";
 import { menuItemsService } from "~/services/menu-items.service";
-import { deriveThumbnailKey } from "~/utils/images";
+import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { eq } from "drizzle-orm";
 import { db } from "~/db/connection";
 import { sessions } from "~/db/schema";
 import { env } from "~/env";
+
+const ONBOARDING_EXEMPT = ["/profile/setup", "/login", "/auth/", "/api/"];
+
+export const onRequest: RequestHandler = async (event) => {
+  const { pathname } = new URL(event.request.url);
+  const isExempt = ONBOARDING_EXEMPT.some((prefix) => pathname.startsWith(prefix));
+  if (!isExempt) {
+    const user = await getCurrentUserData(event);
+    if (user) {
+      const consent = (user as any).consent ?? {};
+      if (!consent.lastProfileUpdate || !consent.locationVerification) {
+        throw event.redirect(302, "/profile/setup");
+      }
+    }
+  }
+  await event.next();
+};
 
 export const onGet: RequestHandler = async ({ cacheControl }) => {
   cacheControl({
@@ -32,14 +49,11 @@ export const useUserSession = routeLoader$(async (event) => {
 
   if (!userData) return userData;
 
-  // Compute profile picture URL server-side so client components never need `env`
   let profilePictureSmallUrl: string | null = null;
   const u = userData as any;
   if (u.profilePicture) {
-    const s3Key = deriveThumbnailKey(u.profilePicture);
-    profilePictureSmallUrl = env.AWS_ENDPOINT
-      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${s3Key}`
-      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${s3Key}`;
+    const thumbKey = u.profilePictureSmall ?? deriveThumbnailKey(u.profilePicture);
+    profilePictureSmallUrl = publicImageUrlFromKey(thumbKey);
   }
 
   return { ...userData, profilePictureSmallUrl };

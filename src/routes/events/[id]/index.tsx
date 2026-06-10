@@ -235,13 +235,7 @@ export const useEvent = routeLoader$(async (requestEvent) => {
     }
   }
 
-  // Build profile picture URL helper
-  const buildPicUrl = (s3Key: string | null) => {
-    if (!s3Key) return null;
-    return env.AWS_ENDPOINT
-      ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${s3Key}`
-      : `https://${env.S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${s3Key}`;
-  };
+  const buildPicUrl = (s3Key: string | null) => publicImageUrlFromKey(s3Key);
 
   const participantsUnsorted = goingRows.map((r) => {
     const u = r.user as any;
@@ -249,7 +243,7 @@ export const useEvent = routeLoader$(async (requestEvent) => {
       id: u.id,
       name: u.name as string,
       familyName: u.familyName as string,
-      profilePictureSmall: buildPicUrl(u.profilePicture ? deriveThumbnailKey(u.profilePicture) : null),
+      profilePictureSmall: buildPicUrl(u.profilePicture ? (u.profilePictureSmall ?? deriveThumbnailKey(u.profilePicture)) : null),
       groupLabel: userGroupLabels[u.id] ?? null,
       city: (u.city ?? null) as string | null,
       country: (u.country ?? null) as string | null,

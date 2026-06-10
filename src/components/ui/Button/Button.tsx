@@ -1,7 +1,7 @@
 import { component$, type QwikIntrinsicElements, Slot } from "@qwik.dev/core";
 
 type ButtonProps = QwikIntrinsicElements["button"] & {
-	variant?: "primary" | "secondary" | "danger";
+	variant?: "primary" | "secondary" | "danger" | "accent";
 	size?: "sm" | "md" | "lg" | "xl";
 	href?: string;
 };
@@ -12,6 +12,7 @@ export const Button = component$<ButtonProps>(
 			primary: "bg-primary hover:bg-primary-dark text-white",
 			secondary: "bg-gray-200 hover:bg-gray-300 text-gray-800",
 			danger: "bg-danger hover:bg-danger-dark text-white",
+			accent: "bg-accent hover:bg-accent-dark text-white",
 		};
 
 		const sizeClasses = {

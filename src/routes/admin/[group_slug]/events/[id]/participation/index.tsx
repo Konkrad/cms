@@ -45,7 +45,7 @@ export default component$(() => {
       </div>
 
       {/* Detailed List */}
-      <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+      <div class="bg-white rounded-lg shadow-sm overflow-x-auto">
         <div class="px-6 py-4 border-b border-gray-200">
           <h2 class="text-xl font-bold text-gray-900">All Responses</h2>
         </div>

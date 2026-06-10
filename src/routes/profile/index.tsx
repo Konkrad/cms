@@ -99,6 +99,10 @@ export const useProfile = routeLoader$(async (event) => {
       const onboarding = submittedForms.find((s) => s.formSlug === "onboarding");
       return onboarding ? formatAffiliationResultJson(onboarding.resultJson || {}) : [];
     })(),
+    affiliationEditPath: (() => {
+      const onboarding = submittedForms.find((s) => s.formSlug === "onboarding");
+      return onboarding ? buildFormPath({ id: onboarding.formId, slug: onboarding.formSlug }) : null;
+    })(),
     submittedForms: submittedForms
       .map((s) => ({
         id: s.id,

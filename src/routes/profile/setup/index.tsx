@@ -7,6 +7,7 @@ import { useMarkLocation, LocationStep } from "~/components/setup/LocationStep";
 import { SurveyRuntime } from "~/components/forms/SurveyRuntime";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { formsService } from "~/services/forms.service";
+import { formResultsService } from "~/services/form-results.service";
 import { resolvePrivateImageUrl } from "~/utils/secure-urls";
 import type { UserConsent } from "~/db/schemas/users";
 
@@ -25,11 +26,17 @@ export const useOnboardingLoader = routeLoader$(async (event) => {
 
   const form = await formsService.getBySystemKey("affilation");
 
+  let existingFormResult: Record<string, any> | null = null;
+  if (form) {
+    const existing = await formResultsService.getByFormAndUser(form.id, user.id);
+    if (existing) existingFormResult = existing.resultJson as Record<string, any>;
+  }
+
   const profilePictureUrl = u.profilePicture
     ? await resolvePrivateImageUrl(u.profilePicture)
     : null;
 
-  return { user: { ...user, profilePictureUrl } as any, consent, form };
+  return { user: { ...user, profilePictureUrl } as any, consent, form, existingFormResult };
 });
 
 export default component$(() => {
@@ -39,7 +46,7 @@ export default component$(() => {
   const saveTrigger = useSignal(0);
   const nav = useNavigate();
 
-  const { user, consent, form } = loader.value;
+  const { user, consent, form, existingFormResult } = loader.value;
   const needsProfile = !consent.lastProfileUpdate;
   const needsLocation = !consent.locationVerification;
 
@@ -76,12 +83,20 @@ export default component$(() => {
       description="Fill in your details to continue."
     >
       {phase.value === "survey" ? (
-        <SurveyRuntime
-          surveyJson={form!.schemaJson}
-          submitUrl="/api/onboarding/form-submit"
-          requireAltcha={false}
-          onComplete$={$(() => nav("/"))}
-        />
+        <>
+          {existingFormResult && (
+            <div class="mb-4 rounded-lg border border-border bg-bg-muted px-4 py-3 text-sm text-text-secondary">
+              Your previous answers are pre-filled — submit again to update them.
+            </div>
+          )}
+          <SurveyRuntime
+            surveyJson={form!.schemaJson}
+            submitUrl="/api/onboarding/form-submit"
+            requireAltcha={false}
+            initialData={existingFormResult ?? undefined}
+            onComplete$={$(() => nav("/"))}
+          />
+        </>
       ) : (
         <div class="space-y-6">
           {needsProfile && (

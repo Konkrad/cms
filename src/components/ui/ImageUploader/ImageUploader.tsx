@@ -24,6 +24,7 @@ const uploaderOverrides = `
 interface UploadedFileResponse {
   url?: string;
   filePath?: string;
+  thumbnailPath?: string;
 }
 
 interface ImageUploaderProps {
@@ -250,6 +251,7 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
           await props.onFileUploaded$?.({
             url: body.url,
             filePath: body.filePath,
+            thumbnailPath: body.thumbnailPath,
           });
         }
       }

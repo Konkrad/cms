@@ -5,7 +5,15 @@ import { Input } from "~/components/ui/Input";
 // Using email-based auth (magic link + OTP) instead of the old password-based auth
 import { getServerSession } from "~/utils/server-auth";
 import { emailAuthService } from "~/services/email-auth.service";
+import { RateLimiter } from "~/utils/rate-limit";
 import { env } from "~/env";
+
+/**
+ * Shared, process-lifetime limiter throttling how often login emails can be
+ * requested — per email address and per client IP — to prevent inbox flooding
+ * and outbound-mail abuse.
+ */
+const loginLimiter = new RateLimiter();
 
 /**
  * If already authenticated, redirect away from the login page.
@@ -21,10 +29,42 @@ export const useCheckAuth = routeLoader$(async (event) => {
 /**
  * Server action: send login email (magic link + OTP)
  */
-export const useSendAction = routeAction$(async (data: any) => {
-  const email = String(data?.email || "").trim();
+export const useSendAction = routeAction$(async (data: any, event: any) => {
+  const email = String(data?.email || "")
+    .trim()
+    .toLowerCase();
   if (!email || !/\S+@\S+\.\S+/.test(email)) {
     return { success: false, error: "Invalid email" };
+  }
+
+  const ip =
+    event.request.headers.get("x-forwarded-for") ||
+    event.request.headers.get("cf-connecting-ip") ||
+    event.request.headers.get("x-real-ip") ||
+    "unknown";
+
+  const emailCheck = loginLimiter.check(`email:${email}`, {
+    limit: env.LOGIN_EMAIL_MAX_PER_WINDOW,
+    windowMs: env.LOGIN_EMAIL_WINDOW_MINUTES * 60_000,
+  });
+  const ipCheck = loginLimiter.check(`ip:${ip}`, {
+    limit: env.LOGIN_IP_MAX_PER_WINDOW,
+    windowMs: env.LOGIN_IP_WINDOW_MINUTES * 60_000,
+  });
+
+  // Opportunistically drop aged-out keys so the in-memory map stays bounded.
+  loginLimiter.prune(
+    Math.max(env.LOGIN_EMAIL_WINDOW_MINUTES, env.LOGIN_IP_WINDOW_MINUTES) *
+      60_000,
+  );
+
+  if (!emailCheck.allowed || !ipCheck.allowed) {
+    // Generic message: don't reveal which limit tripped or whether the
+    // account exists, preserving the flow's no-enumeration property.
+    return {
+      success: false,
+      error: "Too many requests. Please try again later.",
+    };
   }
 
   await emailAuthService.sendLoginEmail(email);

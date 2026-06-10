@@ -399,8 +399,9 @@ test.describe('Participant Assignment Step', () => {
   });
 
   test('manual participant entry fills an open slot', async ({ browser }) => {
+    const now = new Date().toISOString();
     const session = createTestUser({
-      consent: { terms: 'yes' },
+      consent: { terms: 'yes', lastProfileUpdate: now, locationVerification: now, foodPreference: now, photoConsent: now },
       foodPreference: 'none',
       photoConsentGiven: true,
     });

@@ -68,7 +68,24 @@ export const usersService = {
   },
 
   async update(id: string, data: UpdateUser): Promise<User | undefined> {
-    const parsed = updateUserSchema.parse(data);
+    const parsed = updateUserSchema.parse(data) as UpdateUser;
+
+    // Profile-picture keys are stored verbatim and later presigned server-side, so a
+    // client-supplied key outside the profile-picture prefixes would grant a read URL
+    // for an arbitrary private object. Drop keys that don't match the upload prefixes.
+    if (
+      typeof parsed.profilePicture === "string" &&
+      !parsed.profilePicture.startsWith("private/profile-pictures/")
+    ) {
+      delete parsed.profilePicture;
+    }
+    if (
+      typeof parsed.profilePictureSmall === "string" &&
+      !parsed.profilePictureSmall.startsWith("public/profile-pictures/")
+    ) {
+      delete parsed.profilePictureSmall;
+    }
+
     const [result] = await db
       .update(users)
       .set(parsed as any)

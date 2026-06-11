@@ -29,6 +29,46 @@
 - Profile pictures are split: the full-size image (`private/profile-pictures/`) is stored in `users.profilePicture` and must be presigned server-side via `resolvePrivateImageUrl(key)` from `~/utils/secure-urls`; the thumbnail (`public/profile-pictures/`) is stored separately in `users.profilePictureSmall` and served as a direct public URL via `publicImageUrlFromKey`.
 - `VITE_S3_BASE_URL` (e.g. `http://localhost:9000/data` locally, `https://<bucket>.s3.<region>.amazonaws.com` in prod) is the base URL for all public S3 objects. It is a Vite env var accessed via `import.meta.env.VITE_S3_BASE_URL`, not through `src/env.ts`.
 
+## Security
+
+These rules encode mistakes that have actually shipped in this codebase. Treat every one as mandatory, not advisory.
+
+### Authorize inside the handler, never in a loader (Qwik footgun)
+
+- **A `routeAction$` / `globalAction$` runs BEFORE the route's and layout's `routeLoader$`s.** A loader that throws `redirect()` does *not* protect an action — the action's side effects have already executed by the time the loader runs. The same applies to API `onGet`/`onPost`/`onRequest` handlers.
+- Every mutating action and every API route handler must perform its own authorization as its **first statement**, before any `try` block (the auth helpers throw a `redirect`/`error`, and a `try/catch` would swallow it).
+- Use the shared helpers — do not hand-roll checks:
+  - `requireAuth(event)` — any logged-in user (returns the user).
+  - `requireAdmin(event)` — platform admin or moderator.
+  - `requireGroupAdmin(event)` (in `~/utils/access-control`) — resolves the `[group_slug]` scope: platform admin for `global`, or a representative of that group. Use this for every action under `admin/[group_slug]/**`.
+  - `requireMembership(event, tier)` — membership-gated routes.
+- **Never read auth state from `sharedMap.get("session")`** — nothing populates it; it is always `undefined`. Resolve the user via `getCurrentUserData(event)` / `getServerSession(event)`.
+- After adding any action, grep the file: every `export const useX = routeAction$` must have a matching auth call in its body.
+
+### Don't trust the client for identity, price, or ownership
+
+- Re-resolve sensitive values server-side from an id; never accept them from the request body. Examples in this repo: participant emails are looked up via `usersService.getEmailsByIds()` from `existingUserId` (the search API deliberately never returns emails); checkout recomputes totals from `product.price`; the Stripe webhook verifies the signature before trusting any payload.
+- For owner-scoped resources, re-check ownership in **both** the loader and the action (e.g. jobs check `suggestedBy === user.id && status === "pending"` in each).
+- Validate every action input with `zod$`. Whitelist updatable columns explicitly — never spread raw form data into a DB `update`/`insert`, and never let a client set `role`, `status`, ownership, or other privilege fields.
+
+### Strip secrets before serialization
+
+- Qwik serializes loader/action return values into the HTML sent to the browser. Strip private fields (emails, tokens, raw private S3 keys, other users' PII) in the loader **before** returning. Do not rely on client-side hiding.
+
+### Sanitize stored HTML; never render raw user input
+
+- Any value rendered with `dangerouslySetInnerHTML` must be sanitized server-side **on write** with `sanitizeRichHtml()` from `~/utils/sanitize-html` (do this in the service `create`/`update`, so every write path is covered). BlockNote `body`/`content` is submitted through a hidden input and is fully attacker-controlled — the editor is not a security boundary.
+- Inline SVG must go through `sanitizeSvg()` from `~/utils/svg-sanitize` on write. Keep the sanitizer imports server-only (services / route handlers) so they are not bundled to the client.
+
+### S3 key handling — validate prefixes, presign privately
+
+- Any S3 key supplied by the client and later stored or presigned must be prefix-validated. Profile-picture keys are checked against `private/profile-pictures/` and `public/profile-pictures/` in `usersService.update`; the upload endpoint (`/api/images`) allowlists `x-upload-path` via `sanitizeUploadPrefix` (rejects `..`/absolute/odd charset) and authorizes the destination per prefix via `isUploadAuthorized` (profile-pictures → any user; `private/events/` → staff; other `public/*` → staff or representative). A key alone must never grant a presigned read of an arbitrary private object.
+- Private objects are served only through `resolvePrivateImageUrl(key)` (short-lived presigned URL); public objects through `publicImageUrlFromKey(key)`. Never expose a private key as if it were a public URL.
+
+### Auth/session invariants (don't regress these)
+
+- Session cookies are always `httpOnly`, `secure: env.isProduction`, `sameSite: "Strict"`, with an explicit expiry. Tokens come from `randomBytes` (see `~/utils/email-auth`). OTPs are bcrypt-hashed, single-use, expiring, and capped at 5 attempts. Preserve all of these when touching the login flow.
+
 ## Testing
 
 - Every new feature requires a test plan before implementation begins. The plan must identify: what to test (happy path, edge cases, error states), which test type to use (unit, integration, or e2e), and where the test files live.
@@ -153,7 +193,7 @@ The job portal lets authenticated members post job listings that go live only af
 - `status` is `pending` on creation; admin sets it to `approved` to make it visible.
 - `expiresAt` is capped at 30 days from today, enforced server-side in both the submit and user-edit actions.
 - Editing is blocked once a job is approved — the loader redirects away and the action re-checks ownership + `status === "pending"`.
-- The body field uses BlockNote with `textOnly={true}`, which removes image/file/audio/video block types from the editor.
+- The body field uses BlockNote with `textOnly={true}`, which removes image/file/audio/video block types from the editor. The HTML `body` is rendered with `dangerouslySetInnerHTML`, so it is sanitized server-side in `jobsService.create`/`update` via `sanitizeRichHtml()` — the editor is not a security boundary (see Security § Sanitize stored HTML).
 
 ### Schema & service
 

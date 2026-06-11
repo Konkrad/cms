@@ -58,6 +58,38 @@ function sanitizeUploadPrefix(raw: string): string | null {
   return allowed ? prefix : null;
 }
 
+/**
+ * Authorize an upload destination per prefix. Authentication alone is not enough:
+ * a plain member must not be able to write event-gallery or public content assets
+ * (which are surfaced to other users through admin/representative-gated flows).
+ *
+ *  - profile-pictures → any authenticated user (their own avatar)
+ *  - private/events/  → admin/moderator only (mirrors the event-photo create action)
+ *  - public/* content → admin/moderator or a group representative
+ */
+async function isUploadAuthorized(
+  prefix: string,
+  user: { id: string; role?: string | null },
+): Promise<boolean> {
+  if (
+    prefix.startsWith("private/profile-pictures") ||
+    prefix.startsWith("public/profile-pictures")
+  ) {
+    return true;
+  }
+
+  const isStaff = user.role === "admin" || user.role === "moderator";
+  if (prefix.startsWith("private/events/")) {
+    return isStaff;
+  }
+
+  if (isStaff) return true;
+  const { groupRepresentativesService } = await import(
+    "~/services/group-representatives.service"
+  );
+  return groupRepresentativesService.isRepresentativeOfAny(user.id);
+}
+
 export const onPost: RequestHandler = async ({
   request,
   query,
@@ -87,6 +119,9 @@ export const onPost: RequestHandler = async ({
       const sanitized = sanitizeUploadPrefix(uploadPathHeader);
       if (!sanitized) {
         throw error(400, "Invalid upload path");
+      }
+      if (!(await isUploadAuthorized(sanitized, user))) {
+        throw error(403, "Not authorized to upload to this location");
       }
       uploadPrefix = sanitized;
     }

@@ -2,8 +2,11 @@ import { component$, useSignal, useVisibleTask$, $ } from "@qwik.dev/core";
 import { routeLoader$, useNavigate } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { SetupLayout } from "~/components/setup/SetupLayout";
-import { useUpdateProfile, ProfileStep } from "~/components/setup/ProfileStep";
-import { useMarkLocation, LocationStep } from "~/components/setup/LocationStep";
+// Import re-exported route actions via a RELATIVE path, not the "~" alias —
+// qwikRouter's production transform for re-exported routeAction$/routeLoader$ does
+// not resolve the tsconfig "~" alias, so the Rollup build fails to find the module.
+import { useUpdateProfile, ProfileStep } from "../../../components/setup/ProfileStep/ProfileStep";
+import { useMarkLocation, LocationStep } from "../../../components/setup/LocationStep/LocationStep";
 import { SurveyRuntime } from "~/components/forms/SurveyRuntime";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { formsService } from "~/services/forms.service";

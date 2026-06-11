@@ -1,0 +1,17 @@
+# Litestream continuously replicates the SQLite database (WAL) to the same external
+# S3-compatible bucket the app uses (e.g. OVH Object Storage), under the db-backups/
+# prefix. It reuses the app's AWS_*/S3_BUCKET env vars; ${VAR} is expanded by
+# Litestream at startup.
+#
+# For AWS S3 proper, leave AWS_ENDPOINT empty and set force-path-style to false.
+dbs:
+  - path: ${DB_PATH}
+    replicas:
+      - type: s3
+        bucket: ${S3_BUCKET}
+        path: db-backups
+        region: ${AWS_REGION}
+        endpoint: ${AWS_ENDPOINT}
+        force-path-style: true
+        access-key-id: ${AWS_ACCESS_KEY_ID}
+        secret-access-key: ${AWS_SECRET_ACCESS_KEY}

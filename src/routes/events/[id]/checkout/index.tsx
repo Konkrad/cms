@@ -12,8 +12,11 @@ import {
   zod$,
 } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
-import { FoodPreferenceStep, useSaveFoodPreference } from "~/components/setup/FoodPreferenceStep";
-import { PhotoConsentStep, useSavePhotoConsent } from "~/components/setup/PhotoConsentStep";
+// Import re-exported route actions via a RELATIVE path, not the "~" alias —
+// qwikRouter's production transform for re-exported routeAction$/routeLoader$ does
+// not resolve the tsconfig "~" alias, so the Rollup build fails to find the module.
+import { FoodPreferenceStep, useSaveFoodPreference } from "../../../../components/setup/FoodPreferenceStep/FoodPreferenceStep";
+import { PhotoConsentStep, useSavePhotoConsent } from "../../../../components/setup/PhotoConsentStep/PhotoConsentStep";
 import { inventoryGroupsService } from "~/services/inventory-groups.service";
 import { productsService } from "~/services/products.service";
 import { checkoutService } from "~/services/checkout.service";

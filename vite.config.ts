@@ -3,11 +3,15 @@
  * When building, the adapter config is used which loads this file and extends it.
  */
 
+import { fileURLToPath } from "node:url";
 import { qwikVite } from "@qwik.dev/core/optimizer";
 import { qwikRouter } from "@qwik.dev/router/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, type UserConfig } from "vite";
 import pkg from "./package.json";
+
+// Absolute path to ./src for the "~" alias below.
+const srcDir = fileURLToPath(new URL("./src/", import.meta.url));
 
 type PkgDep = Record<string, string>;
 const { dependencies = {}, devDependencies = {} } = pkg as any as {
@@ -24,13 +28,16 @@ export default defineConfig(({ command, mode }): UserConfig => {
   return {
     plugins: [tailwindcss(), qwikRouter({ trailingSlash: false }), qwikVite()],
     build: {
-      // Use esbuild for CSS minification. Vite 8's default (lightningcss) rejects
+      // Use esbuild for CSS minification — stricter minifiers (lightningcss) reject
       // some third-party CSS shipped by deps (e.g. @blocknote/mantine's invalid
       // `@media (max-device-width: em(500px))`), which would fail the production build.
       cssMinify: "esbuild",
     },
     resolve: {
-      tsconfigPaths: true,
+      // Explicit "~" -> ./src alias. tsconfigPaths alone does not resolve "~" in the
+      // production build for Qwik's optimizer-generated segment modules, which breaks
+      // the Rollup build; an absolute alias resolves everywhere (dev and build).
+      alias: [{ find: /^~\//, replacement: srcDir }],
       dedupe: ["react", "react-dom"],
     },
     // This tells Vite which dependencies to pre-build in dev mode.

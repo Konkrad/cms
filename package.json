@@ -33,7 +33,7 @@
     "@faker-js/faker": "^10.4.0",
     "@playwright/test": "^1.60.0",
     "@qwik.dev/core": "^2.0.0-beta.35",
-    "@qwik.dev/react": "2.0.0-beta.35",
+    "@qwik.dev/react": "^2.0.0-beta.35",
     "@qwik.dev/router": "^2.0.0-beta.35",
     "@react-email/preview-server": "^5.2.11",
     "@tailwindcss/vite": "^4.3.0",
@@ -56,7 +56,7 @@
     "tsx": "4.21.0",
     "typescript": "^6.0.0",
     "undici": "*",
-    "vite": "^8.0.12",
+    "vite": "^7.3.5",
     "vitest": "^3.2.4"
   },
   "dependencies": {

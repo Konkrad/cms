@@ -1,9 +1,20 @@
+import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema";
 
-const db = drizzle(process.env.DB_PATH ?? "my-database.db", {
+const sqlite = new Database(process.env.DB_PATH ?? "my-database.db");
+
+// WAL is required by Litestream (continuous backup) and lets reads run concurrently
+// with the single writer. busy_timeout retries briefly instead of erroring on lock
+// contention; foreign_keys enforces referential integrity (off by default in SQLite).
+sqlite.pragma("journal_mode = WAL");
+sqlite.pragma("busy_timeout = 5000");
+sqlite.pragma("foreign_keys = ON");
+
+const db = drizzle({
+	client: sqlite,
 	schema,
 	relations: schema.schemaRelations,
 });
 
-export { db };
+export { db, sqlite };

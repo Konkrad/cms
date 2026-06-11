@@ -5,6 +5,7 @@
 
 import { qwikVite } from "@qwik.dev/core/optimizer";
 import { qwikRouter } from "@qwik.dev/router/vite";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, type UserConfig } from "vite";
 import pkg from "./package.json";
 
@@ -21,7 +22,13 @@ errorOnDuplicatesPkgDeps(devDependencies, dependencies);
  */
 export default defineConfig(({ command, mode }): UserConfig => {
   return {
-    plugins: [qwikRouter({ trailingSlash: false }), qwikVite()],
+    plugins: [tailwindcss(), qwikRouter({ trailingSlash: false }), qwikVite()],
+    build: {
+      // Use esbuild for CSS minification. Vite 8's default (lightningcss) rejects
+      // some third-party CSS shipped by deps (e.g. @blocknote/mantine's invalid
+      // `@media (max-device-width: em(500px))`), which would fail the production build.
+      cssMinify: "esbuild",
+    },
     resolve: {
       tsconfigPaths: true,
       dedupe: ["react", "react-dom"],

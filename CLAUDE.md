@@ -8,7 +8,7 @@
 6. Do not create ad hoc types if a package already provides them; install the existing package types instead.
 7. Do not wrap everything in `try/catch`. Catch only expected errors and let unexpected failures bubble up.
 8. Do not create README or other documentation unless asked.
-9. Do not create migration files; apply schema changes directly with `drizzle-kit push`.
+9. Local development: apply schema changes directly with `drizzle-kit push` (no committed migration files needed). For deployed environments: generate committed migrations with `npm run db:generate` and apply them with `npm run migrate` (the programmatic runner in `scripts/migrate.js`) — the deploy container runs this at startup. Keep the `drizzle/` migration files in sync with the schema.
 
 ## Qwik And Data Flow
 

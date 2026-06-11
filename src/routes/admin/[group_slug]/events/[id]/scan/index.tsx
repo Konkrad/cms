@@ -11,6 +11,7 @@ import {
 import { TicketScanner } from "~/components/events/TicketScanner";
 import { ticketsService } from "~/services/tickets.service";
 import { eventsService } from "~/services/events.service";
+import { requireGroupAdmin } from "~/utils/access-control";
 
 export const useEvent = routeLoader$(async ({ params }) => {
   const event = await eventsService.getById(params.id);
@@ -21,8 +22,9 @@ export const useEvent = routeLoader$(async ({ params }) => {
 });
 
 export const useScanTicket = routeAction$(
-  async (data, { params }) => {
-    const result = await ticketsService.scanTicket(data.qrData, params.id);
+  async (data, event) => {
+    await requireGroupAdmin(event);
+    const result = await ticketsService.scanTicket(data.qrData, event.params.id);
 
     if (!result.success) {
       return {

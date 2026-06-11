@@ -1,6 +1,7 @@
 import { component$, useSignal } from "@qwik.dev/core";
 import { routeLoader$, routeAction$, zod$, z } from "@qwik.dev/router";
 import { ticketsService } from "~/services/tickets.service";
+import { requireGroupAdmin } from "~/utils/access-control";
 import TicketScanner from "~/components/admin/TicketScanner";
 import TicketsList from "~/components/admin/TicketsList";
 
@@ -11,7 +12,9 @@ export const useTickets = routeLoader$(async (event) => {
 });
 
 export const useScanTicket = routeAction$(
-  async (data, { params }) => {
+  async (data, event) => {
+    await requireGroupAdmin(event);
+    const { params } = event;
     const { qrCodeUuid } = data;
 
     console.log("=== SCAN TICKET DEBUG ===");

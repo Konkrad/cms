@@ -10,6 +10,7 @@ import { users as usersTable } from "~/db/schemas/users";
 import { and, desc, eq, isNull, like, or, sql } from "drizzle-orm";
 import { Pagination, PAGE_SIZE } from "~/components/admin/Pagination/Pagination";
 import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
+import { requireGroupAdmin } from "~/utils/access-control";
 
 export const useEvents = routeLoader$(async ({ params, url }) => {
   const groupSlug = params.group_slug;
@@ -77,9 +78,8 @@ export const useEvents = routeLoader$(async ({ params, url }) => {
   };
 });
 
-export const useDeleteEvent = routeAction$(async (data, { sharedMap }) => {
-  const user = sharedMap.get("session");
-  if (!user) return { success: false, error: "Unauthorized" };
+export const useDeleteEvent = routeAction$(async (data, event) => {
+  const { user } = await requireGroupAdmin(event);
   await eventsService.softDelete(data.eventId as string, user.id);
   return { success: true };
 });

@@ -30,7 +30,6 @@ export type ParticipantAssignmentUnit = {
 export type SearchUserResult = {
   id: string;
   displayName: string;
-  email: string;
   avatarUrl: string | null;
 };
 

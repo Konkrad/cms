@@ -1,4 +1,4 @@
-import { eq, desc, lt } from "drizzle-orm";
+import { eq, desc, lt, inArray } from "drizzle-orm";
 import { db } from "~/db/connection";
 import type { InsertUser, UpdateUser, User } from "~/db/schema";
 import { users, insertUserSchema, updateUserSchema, logins } from "~/db/schema";
@@ -80,6 +80,27 @@ export const usersService = {
 
   async delete(id: string): Promise<void> {
     await db.delete(users).where(eq(users.id, id));
+  },
+
+  /**
+   * Resolve the login email for a set of user ids. Used to look up a participant's
+   * real email server-side from their id, so emails never need to be exposed to the
+   * browser (see the user-search API / participant linking flow).
+   */
+  async getEmailsByIds(ids: string[]): Promise<Map<string, string>> {
+    const result = new Map<string, string>();
+    if (ids.length === 0) return result;
+
+    const rows = await db
+      .select({ id: users.id, email: logins.email })
+      .from(users)
+      .leftJoin(logins, eq(logins.id, users.loginId))
+      .where(inArray(users.id, ids));
+
+    for (const row of rows) {
+      if (row.email) result.set(row.id, row.email);
+    }
+    return result;
   },
 
   async getByEmail(email: string): Promise<User | undefined> {

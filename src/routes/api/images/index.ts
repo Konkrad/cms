@@ -30,6 +30,34 @@ import { requireAuth } from "~/utils/server-auth";
 import { env } from "~/env";
 import crypto from "crypto";
 
+/**
+ * Storage roots an authenticated client is allowed to write to via the
+ * `x-upload-path` header. The header is fully client-controlled, so without this
+ * allowlist any logged-in user could write to arbitrary S3 keys (path traversal,
+ * overwriting other objects, planting files in private prefixes).
+ */
+const ALLOWED_UPLOAD_PREFIXES = [
+  "public/",
+  "private/events/",
+  "private/profile-pictures",
+];
+
+function sanitizeUploadPrefix(raw: string): string | null {
+  const prefix = raw.replace(/\/$/, "");
+  // Reject traversal, absolute paths, backslashes, and anything outside a safe charset.
+  if (
+    prefix.includes("..") ||
+    prefix.startsWith("/") ||
+    !/^[A-Za-z0-9._/-]+$/.test(prefix)
+  ) {
+    return null;
+  }
+  const allowed = ALLOWED_UPLOAD_PREFIXES.some(
+    (root) => prefix === root.replace(/\/$/, "") || prefix.startsWith(root),
+  );
+  return allowed ? prefix : null;
+}
+
 export const onPost: RequestHandler = async ({
   request,
   query,
@@ -54,9 +82,14 @@ export const onPost: RequestHandler = async ({
     const uploadPathHeader = (
       request.headers.get("x-upload-path") || ""
     ).trim();
-    const uploadPrefix = uploadPathHeader
-      ? uploadPathHeader.replace(/\/$/, "")
-      : env.S3_UPLOAD_PATH;
+    let uploadPrefix = env.S3_UPLOAD_PATH;
+    if (uploadPathHeader) {
+      const sanitized = sanitizeUploadPrefix(uploadPathHeader);
+      if (!sanitized) {
+        throw error(400, "Invalid upload path");
+      }
+      uploadPrefix = sanitized;
+    }
 
     // Pipeline selection
     const pipelineName = (request.headers.get("x-pipeline") || "").trim() || "standard";

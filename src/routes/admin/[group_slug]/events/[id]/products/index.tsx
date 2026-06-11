@@ -12,6 +12,7 @@ import { inventoryGroupsService } from "~/services/inventory-groups.service";
 import { productsService } from "~/services/products.service";
 import { InventoryGroupForm } from "~/components/admin/InventoryGroupForm";
 import { ProductForm } from "~/components/admin/ProductForm";
+import { requireGroupAdmin } from "~/utils/access-control";
 
 export const useInventoryGroupsAndProducts = routeLoader$(async (event) => {
   const eventId = event.params.id;
@@ -34,6 +35,7 @@ export const useInventoryGroupsAndProducts = routeLoader$(async (event) => {
 
 export const useCreateInventoryGroup = routeAction$(
   async (data, event) => {
+    await requireGroupAdmin(event);
     try {
       const eventId = event.params.id;
 
@@ -110,6 +112,7 @@ export const useCreateInventoryGroup = routeAction$(
 
 export const useCreateProduct = routeAction$(
   async (data, event) => {
+    await requireGroupAdmin(event);
     try {
       const eventId = event.params.id;
 

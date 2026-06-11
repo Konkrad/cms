@@ -1,7 +1,6 @@
 import type { RequestHandler } from "@qwik.dev/router";
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { db } from "~/db/connection";
-import { logins } from "~/db/schemas/logins";
 import { users } from "~/db/schemas/users";
 import { publicImageUrlFromKey, deriveThumbnailKey } from "~/utils/images";
 import { getServerSession } from "~/utils/server-auth";
@@ -22,17 +21,19 @@ export const onGet: RequestHandler = async (event) => {
 
   const likePattern = `%${query}%`;
 
+  // NOTE: deliberately does NOT return email. This endpoint is reachable by any
+  // authenticated member (it backs the participant picker), so exposing emails
+  // here would let any member harvest the whole directory. The participant's
+  // real email is resolved server-side from `id` at checkout time.
   const rows = await db
     .select({
       id: users.id,
       name: users.name,
       familyName: users.familyName,
-      email: logins.email,
       profilePicture: users.profilePicture,
       profilePictureSmall: users.profilePictureSmall,
     })
     .from(users)
-    .leftJoin(logins, eq(logins.id, users.loginId))
     .where(sql`lower(${users.name} || ' ' || ${users.familyName}) like ${likePattern}`)
     .limit(8);
 
@@ -44,7 +45,6 @@ export const onGet: RequestHandler = async (event) => {
     return {
       id: row.id,
       displayName,
-      email: row.email || "",
       avatarUrl,
     };
   });

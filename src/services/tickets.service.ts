@@ -274,10 +274,9 @@ export const ticketsService = {
         productId: data.productId,
         eventId: data.eventId,
         buyerId: data.buyerId,
-        scannedAt: null,
       },
     });
-    return results as Ticket[];
+    return results.filter((t) => t.scannedAt === null) as Ticket[];
   },
 
   async deleteFreeTicketsByIds(ticketIds: string[]): Promise<void> {

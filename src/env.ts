@@ -82,6 +82,12 @@ const envSchema = z.object({
 
   // ALTCHA
   ALTCHA_HMAC_KEY: z.string().default("change-this-altcha-key"),
+
+  // Login throttling (sending magic-link / OTP emails)
+  LOGIN_EMAIL_MAX_PER_WINDOW: z.coerce.number().int().positive().default(3),
+  LOGIN_EMAIL_WINDOW_MINUTES: z.coerce.number().int().positive().default(15),
+  LOGIN_IP_MAX_PER_WINDOW: z.coerce.number().int().positive().default(10),
+  LOGIN_IP_WINDOW_MINUTES: z.coerce.number().int().positive().default(60),
 });
 
 /**
@@ -132,6 +138,10 @@ export const env = {
   TELEGRAM_API_URL: _env.TELEGRAM_API_URL,
   PUBLIC_MAPBOX_ACCESS_TOKEN: _env.PUBLIC_MAPBOX_ACCESS_TOKEN,
   ALTCHA_HMAC_KEY: _env.ALTCHA_HMAC_KEY,
+  LOGIN_EMAIL_MAX_PER_WINDOW: _env.LOGIN_EMAIL_MAX_PER_WINDOW,
+  LOGIN_EMAIL_WINDOW_MINUTES: _env.LOGIN_EMAIL_WINDOW_MINUTES,
+  LOGIN_IP_MAX_PER_WINDOW: _env.LOGIN_IP_MAX_PER_WINDOW,
+  LOGIN_IP_WINDOW_MINUTES: _env.LOGIN_IP_WINDOW_MINUTES,
 
   // helpful booleans
   isProduction: _env.NODE_ENV === "production",

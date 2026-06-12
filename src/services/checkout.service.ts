@@ -134,7 +134,7 @@ export const checkoutService = {
           product_data: {
             name: p.product!.name,
             description: p.product!.features.join(", "),
-            images: p.product!.imageKey ? [absoluteImageUrlFromKey(p.product!.imageKey)].filter(Boolean) : [],
+            images: p.product!.imageKey ? [absoluteImageUrlFromKey(p.product!.imageKey)].filter((x): x is string => x != null) : [],
           },
           unit_amount: Math.round(p.product!.price * 100), // Convert to cents
         },

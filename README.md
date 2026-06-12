@@ -90,3 +90,7 @@ Usage
 Why this matters
 - Centralizing environment variables makes configuration consistent and easier to maintain.
 - Zod validation ensures misconfiguration is caught early with actionable errors.
+
+## Deployment
+
+The app deploys with Kamal (single server, Docker, SQLite + Litestream backups). See [docs/deployment.md](docs/deployment.md).

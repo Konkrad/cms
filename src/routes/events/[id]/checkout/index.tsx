@@ -12,10 +12,14 @@ import {
   zod$,
 } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
-import { FoodPreferenceStep, useSaveFoodPreference } from "~/components/setup/FoodPreferenceStep";
-import { PhotoConsentStep, useSavePhotoConsent } from "~/components/setup/PhotoConsentStep";
+// Import re-exported route actions via a RELATIVE path, not the "~" alias —
+// qwikRouter's production transform for re-exported routeAction$/routeLoader$ does
+// not resolve the tsconfig "~" alias, so the Rollup build fails to find the module.
+import { FoodPreferenceStep, useSaveFoodPreference } from "../../../../components/setup/FoodPreferenceStep/FoodPreferenceStep";
+import { PhotoConsentStep, useSavePhotoConsent } from "../../../../components/setup/PhotoConsentStep/PhotoConsentStep";
 import { inventoryGroupsService } from "~/services/inventory-groups.service";
 import { productsService } from "~/services/products.service";
+import { usersService } from "~/services/users.service";
 import { checkoutService } from "~/services/checkout.service";
 import { stripeService } from "~/services/stripe.service";
 import { publicImageUrlFromKey, deriveThumbnailKey } from "~/utils/images";
@@ -167,6 +171,19 @@ export const useCreateCheckoutSession = routeAction$(
       }),
     );
 
+    // Resolve emails for participant slots linked to an existing user. The search
+    // API never exposes emails to the client, so the client-supplied email for a
+    // linked slot is empty/untrusted — we look it up server-side from the id.
+    const linkedUserIds = new Set<string>();
+    for (const entry of products) {
+      for (const unit of entry.participantUnits ?? []) {
+        for (const slot of unit ?? []) {
+          if (slot?.existingUserId) linkedUserIds.add(slot.existingUserId);
+        }
+      }
+    }
+    const linkedEmails = await usersService.getEmailsByIds([...linkedUserIds]);
+
     for (const entry of products) {
       if (!entry.product) {
         return event.fail(400, { message: `Product ${entry.productId} not found` });
@@ -190,6 +207,16 @@ export const useCreateCheckoutSession = routeAction$(
         for (let slotIdx = 0; slotIdx < unit.length; slotIdx++) {
           const slot = unit[slotIdx];
           const name = (slot?.name || "").trim();
+          // For linked users the email comes from the DB, not the client.
+          if (slot?.existingUserId) {
+            const resolved = linkedEmails.get(slot.existingUserId);
+            if (!resolved) {
+              return event.fail(400, {
+                message: `Invalid participant details for ${entry.product.name}, ticket ${unitIdx + 1}`,
+              });
+            }
+            slot.email = resolved;
+          }
           const email = (slot?.email || "").trim();
           if (!name || !email || !isValidEmail(email)) {
             return event.fail(400, {

@@ -8,6 +8,7 @@ import { posts } from "~/db/schemas/posts";
 import { users as usersTable } from "~/db/schemas/users";
 import { and, desc, eq, isNull, like, or, sql } from "drizzle-orm";
 import { postsService } from "~/services/posts.service";
+import { requireGroupAdmin } from "~/utils/access-control";
 import { Pagination, PAGE_SIZE } from "~/components/admin/Pagination/Pagination";
 import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
 
@@ -59,7 +60,11 @@ export const usePosts = routeLoader$(async ({ params, url }) => {
   return { posts: items, total, page, pageSize: PAGE_SIZE, search, groupSlug };
 });
 
-export const useDeletePost = routeAction$(async (data) => {
+export const useDeletePost = routeAction$(async (data, event) => {
+  const { isGlobal, group } = await requireGroupAdmin(event);
+  const target = await postsService.getById(data.postId as string);
+  if (!target) throw event.error(404, "Post not found");
+  if (!isGlobal && target.groupId !== group.id) throw event.error(403, "Forbidden");
   await postsService.delete(data.postId as string);
   return { success: true };
 });

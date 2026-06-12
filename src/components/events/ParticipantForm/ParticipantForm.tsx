@@ -264,7 +264,10 @@ export const ParticipantForm = component$<ParticipantFormProps>(
                             return {
                               ...s,
                               name: user.displayName,
-                              email: user.email,
+                              // Email is intentionally not exposed by the search
+                              // API; it is resolved server-side from existingUserId
+                              // at checkout.
+                              email: "",
                               existingUserId: user.id,
                             };
                           });
@@ -286,9 +289,6 @@ export const ParticipantForm = component$<ParticipantFormProps>(
                         <div class="min-w-0">
                           <p class="text-sm font-medium truncate">
                             {user.displayName}
-                          </p>
-                          <p class="text-xs text-gray-500 truncate">
-                            {user.email}
                           </p>
                         </div>
                       </button>

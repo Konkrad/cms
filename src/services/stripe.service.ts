@@ -36,7 +36,7 @@ export const stripeService = {
   },
 
   async createCheckoutSession(params: {
-    lineItems: Stripe.Checkout.SessionCreateParams.LineItem[];
+    lineItems: NonNullable<Stripe.Checkout.SessionCreateParams["line_items"]>;
     successUrl: string;
     cancelUrl: string;
     metadata: Record<string, string>;

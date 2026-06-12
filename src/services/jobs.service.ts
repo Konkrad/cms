@@ -3,6 +3,7 @@ import { db } from "~/db/connection";
 import { jobs, insertJobSchema, updateJobSchema } from "~/db/schemas/jobs";
 import type { Job, InsertJob, UpdateJob } from "~/db/schemas/jobs";
 import type { User } from "~/db/schemas/users";
+import { sanitizeRichHtml } from "~/utils/sanitize-html";
 
 export type JobWithUser = Job & { user: User };
 
@@ -52,12 +53,20 @@ export const jobsService = {
 
   async create(data: InsertJob): Promise<Job> {
     const validated = insertJobSchema.parse(data);
+    // body is BlockNote HTML submitted via a hidden input — sanitize before storing
+    // since it is later rendered with dangerouslySetInnerHTML.
+    if (typeof validated.body === "string") {
+      validated.body = sanitizeRichHtml(validated.body);
+    }
     const rows = await db.insert(jobs).values(validated as any).returning();
     return rows[0];
   },
 
   async update(id: string, data: UpdateJob): Promise<Job> {
     const validated = updateJobSchema.parse(data);
+    if (typeof validated.body === "string") {
+      validated.body = sanitizeRichHtml(validated.body);
+    }
     const rows = await db
       .update(jobs)
       .set({ ...validated, updatedAt: new Date().toISOString() } as any)

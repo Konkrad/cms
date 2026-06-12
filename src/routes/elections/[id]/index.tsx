@@ -13,7 +13,6 @@ export const useElectionDetail = routeLoader$(async (event) => {
   if (!cycle || cycle.status === "draft") throw event.redirect(302, "/elections");
 
   let userCanApply = cycle.status === "open";
-  const isVisible = cycle.status !== "draft";
   if (userCanApply && cycle.requiredMembershipTier) {
     userCanApply = await membershipsService.hasTier(user.id, cycle.requiredMembershipTier);
   }

@@ -99,4 +99,25 @@ describe("validateParticipantSlots", () => {
   it("returns null for an empty units array", () => {
     expect(validateParticipantSlots([])).toBeNull();
   });
+
+  it("accepts a linked user with a name but no email (resolved server-side)", () => {
+    expect(
+      validateParticipantSlots([
+        {
+          productName: "Workshop",
+          slots: [{ name: "Alice", email: "", existingUserId: "user-123" }],
+        },
+      ]),
+    ).toBeNull();
+  });
+
+  it("still requires a name even for a linked user", () => {
+    const result = validateParticipantSlots([
+      {
+        productName: "Workshop",
+        slots: [{ name: "", email: "", existingUserId: "user-123" }],
+      },
+    ]);
+    expect(result).toMatch(/name/i);
+  });
 });

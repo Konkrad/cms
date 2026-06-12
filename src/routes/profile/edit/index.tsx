@@ -64,10 +64,16 @@ export const useUpdateProfile = routeAction$(
       updatedAt: new Date().toISOString(),
     };
 
-    if (data.profilePicture) {
+    // The stored key is later presigned server-side via resolvePrivateImageUrl, so an
+    // arbitrary key would grant a working read URL for any private object. Only accept
+    // keys under the profile-picture prefixes the upload pipeline actually writes to.
+    if (data.profilePicture && data.profilePicture.startsWith("private/profile-pictures/")) {
       updateData.profilePicture = data.profilePicture;
     }
-    if (data.profilePictureSmall) {
+    if (
+      data.profilePictureSmall &&
+      data.profilePictureSmall.startsWith("public/profile-pictures/")
+    ) {
       updateData.profilePictureSmall = data.profilePictureSmall;
     }
 

@@ -19,6 +19,7 @@ import { TextArea } from "~/components/ui/TextArea";
 import { AddressAutocomplete } from "~/components/ui/AddressAutocomplete";
 import { SmartDatePicker } from "~/components/ui/SmartDatePicker";
 import { eventsService } from "~/services/events.service";
+import { requireGroupAdmin } from "~/utils/access-control";
 
 export const useEvent = routeLoader$(async (event) => {
   const eventId = event.params.id;
@@ -74,6 +75,7 @@ const eventSchema = z
   });
 
 export const useUpdateEvent = routeAction$(async (data, event) => {
+  await requireGroupAdmin(event);
   const eventId = event.params.id;
 
   await eventsService.update(eventId, {

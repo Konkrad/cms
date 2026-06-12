@@ -31,6 +31,15 @@ export const groupRepresentativesService = {
     return results.length > 0;
   },
 
+  async isRepresentativeOfAny(userId: string): Promise<boolean> {
+    const results = await db
+      .select({ id: groupRepresentatives.id })
+      .from(groupRepresentatives)
+      .where(eq(groupRepresentatives.userId, userId))
+      .limit(1);
+    return results.length > 0;
+  },
+
   async promote(
     userId: string,
     groupId: string,

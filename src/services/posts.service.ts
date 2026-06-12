@@ -5,6 +5,7 @@ import { posts, insertPostSchema, updatePostSchema } from "~/db/schemas/posts";
 import { users as usersTable } from "~/db/schemas/users";
 import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
 import { groupMembershipsService } from "~/services/group-memberships.service";
+import { sanitizeRichHtml } from "~/utils/sanitize-html";
 
 export type PostWithUser = Post & {
   user: User;
@@ -160,6 +161,11 @@ export const postsService = {
   async create(data: InsertPost): Promise<Post> {
     const parsed = await insertPostSchema.parseAsync(data);
 
+    // body is BlockNote HTML rendered later with dangerouslySetInnerHTML — sanitize on write.
+    if (typeof parsed.body === "string") {
+      parsed.body = sanitizeRichHtml(parsed.body);
+    }
+
     const [result] = await db
       .insert(posts)
       .values(parsed as any)
@@ -170,6 +176,10 @@ export const postsService = {
 
   async update(id: string, data: UpdatePost): Promise<Post | undefined> {
     const parsed = await updatePostSchema.parseAsync(data);
+
+    if (typeof parsed.body === "string") {
+      parsed.body = sanitizeRichHtml(parsed.body);
+    }
 
     const [result] = await db
       .update(posts)

@@ -79,7 +79,10 @@ export const useEvents = routeLoader$(async ({ params, url }) => {
 });
 
 export const useDeleteEvent = routeAction$(async (data, event) => {
-  const { user } = await requireGroupAdmin(event);
+  const { user, isGlobal, group } = await requireGroupAdmin(event);
+  const target = await eventsService.getById(data.eventId as string);
+  if (!target) throw event.error(404, "Event not found");
+  if (!isGlobal && target.groupId !== group.id) throw event.error(403, "Forbidden");
   await eventsService.softDelete(data.eventId as string, user.id);
   return { success: true };
 });

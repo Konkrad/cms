@@ -10,7 +10,7 @@ export const useElectionDetail = routeLoader$(async (event) => {
     electionsService.getCycleById(event.params.id),
     electionsService.getApprovedApplicationsByCycle(event.params.id),
   ]);
-  if (!cycle) throw event.redirect(302, "/elections");
+  if (!cycle || cycle.status === "draft") throw event.redirect(302, "/elections");
 
   let userCanApply = cycle.status === "open";
   if (userCanApply && cycle.requiredMembershipTier) {

@@ -10,6 +10,7 @@ import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { inventoryGroupsService } from "~/services/inventory-groups.service";
 import { productsService } from "~/services/products.service";
+import { eventsService } from "~/services/events.service";
 import { InventoryGroupForm } from "~/components/admin/InventoryGroupForm";
 import { ProductForm } from "~/components/admin/ProductForm";
 import { requireGroupAdmin } from "~/utils/access-control";
@@ -35,7 +36,10 @@ export const useInventoryGroupsAndProducts = routeLoader$(async (event) => {
 
 export const useCreateInventoryGroup = routeAction$(
   async (data, event) => {
-    await requireGroupAdmin(event);
+    const { isGlobal, group } = await requireGroupAdmin(event);
+    const target = await eventsService.getById(event.params.id);
+    if (!target) throw event.error(404, "Event not found");
+    if (!isGlobal && target.groupId !== group.id) throw event.error(403, "Forbidden");
     try {
       const eventId = event.params.id;
 
@@ -112,7 +116,10 @@ export const useCreateInventoryGroup = routeAction$(
 
 export const useCreateProduct = routeAction$(
   async (data, event) => {
-    await requireGroupAdmin(event);
+    const { isGlobal, group } = await requireGroupAdmin(event);
+    const target = await eventsService.getById(event.params.id);
+    if (!target) throw event.error(404, "Event not found");
+    if (!isGlobal && target.groupId !== group.id) throw event.error(403, "Forbidden");
     try {
       const eventId = event.params.id;
 

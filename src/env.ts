@@ -32,6 +32,7 @@ const envSchema = z.object({
     .default("development"),
 
   // deployment / app urls
+  PORT: z.coerce.number().int().positive().default(3000),
   APP_URL: z.string().url().default("http://localhost:5173"),
   APP_NAME: z.string().default("Digitalumni"),
 
@@ -114,6 +115,7 @@ const _env = parsed.data;
 export const env = {
   // from schema
   NODE_ENV: _env.NODE_ENV,
+  PORT: _env.PORT,
   APP_NAME: _env.APP_NAME,
   APP_URL: _env.APP_URL,
   MAGIC_LINK_SECRET: _env.MAGIC_LINK_SECRET,

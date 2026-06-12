@@ -61,7 +61,10 @@ export const usePosts = routeLoader$(async ({ params, url }) => {
 });
 
 export const useDeletePost = routeAction$(async (data, event) => {
-  await requireGroupAdmin(event);
+  const { isGlobal, group } = await requireGroupAdmin(event);
+  const target = await postsService.getById(data.postId as string);
+  if (!target) throw event.error(404, "Post not found");
+  if (!isGlobal && target.groupId !== group.id) throw event.error(403, "Forbidden");
   await postsService.delete(data.postId as string);
   return { success: true };
 });

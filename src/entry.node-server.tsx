@@ -16,14 +16,13 @@ import {
 import "dotenv/config";
 import { createServer } from "node:http";
 import render from "./entry.ssr";
+import { env } from "./env";
 
 declare global {
   interface QwikRouterPlatform extends PlatformNode {}
 }
 
 const { router, notFound, staticFile } = createQwikRouter({ render });
-
-const PORT = Number(process.env.PORT ?? 3000);
 
 const server = createServer((req, res) => {
   staticFile(req, res, () => {
@@ -33,7 +32,7 @@ const server = createServer((req, res) => {
   });
 });
 
-server.listen(PORT, "0.0.0.0", () => {
+server.listen(env.PORT, "0.0.0.0", () => {
   // eslint-disable-next-line no-console
-  console.log(`Server started: http://0.0.0.0:${PORT}/`);
+  console.log(`Server started: http://0.0.0.0:${env.PORT}/`);
 });

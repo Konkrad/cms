@@ -27,6 +27,7 @@ import {
 } from "~/services/image-processing.service";
 import { generatePresignedGetUrl } from "~/utils/secure-urls";
 import { requireAuth } from "~/utils/server-auth";
+import { sanitizeSvg } from "~/utils/svg-sanitize";
 import { env } from "~/env";
 import crypto from "crypto";
 
@@ -137,14 +138,17 @@ export const onPost: RequestHandler = async ({
 
     const fileId = query.get("filename") || crypto.randomUUID();
 
-    // SVG: upload raw, skip image processing
+    // SVG: sanitize then upload (no image processing)
     if (pipelineName === "svg") {
       const contentType = request.headers.get("content-type") || "image/svg+xml";
       if (!contentType.includes("svg")) {
         throw error(400, "Expected SVG content type for svg pipeline");
       }
+      const raw = Buffer.from(await new Response(bodyStream).arrayBuffer()).toString("utf8");
+      const safe = sanitizeSvg(raw);
+      if (!safe.trim()) throw error(400, "Empty or invalid SVG after sanitization");
       const s3Key = `${uploadPrefix}/${fileId}.svg`;
-      const result = await uploadRawFile(bodyStream, s3Key, "image/svg+xml");
+      const result = await uploadRawFile(Buffer.from(safe, "utf8"), s3Key, "image/svg+xml");
       const accessUrl = env.AWS_ENDPOINT
         ? `${env.AWS_ENDPOINT}/${env.S3_BUCKET}/${result.key}`
         : await generatePresignedGetUrl(result.key, 60 * 60);

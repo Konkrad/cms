@@ -1,6 +1,7 @@
 import { component$, useSignal } from "@qwik.dev/core";
 import { routeLoader$, routeAction$, zod$, z } from "@qwik.dev/router";
 import { ticketsService } from "~/services/tickets.service";
+import { eventsService } from "~/services/events.service";
 import { requireGroupAdmin } from "~/utils/access-control";
 import TicketScanner from "~/components/admin/TicketScanner";
 import TicketsList from "~/components/admin/TicketsList";
@@ -13,8 +14,11 @@ export const useTickets = routeLoader$(async (event) => {
 
 export const useScanTicket = routeAction$(
   async (data, event) => {
-    await requireGroupAdmin(event);
+    const { isGlobal, group } = await requireGroupAdmin(event);
     const { params } = event;
+    const targetEvent = await eventsService.getById(params.id);
+    if (!targetEvent) throw event.error(404, "Event not found");
+    if (!isGlobal && targetEvent.groupId !== group.id) throw event.error(403, "Forbidden");
     const { qrCodeUuid } = data;
 
     console.log("=== SCAN TICKET DEBUG ===");

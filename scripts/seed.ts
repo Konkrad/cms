@@ -1881,6 +1881,16 @@ const pageDefs: Array<{ title: string; slug: string; status: "published" | "draf
       { id: uuid(), componentType: "DealsListBlock", order: 4, data: {} },
     ],
   },
+  {
+    title: "News",
+    slug: "/news",
+    status: "published",
+    content: [
+      { id: uuid(), componentType: "TitleBlock", order: 0, data: { text: "News", level: "1", align: "center" } },
+      { id: uuid(), componentType: "SpacerBlock", order: 1, data: { height: 20 } },
+      { id: uuid(), componentType: "PostsListBlock", order: 2, data: { limit: 50 } },
+    ],
+  },
 ];
 
 // Create pages and capture their IDs keyed by URL (slug), so menu items can link back.
@@ -1909,17 +1919,19 @@ const menuDefs: Array<{ title: string; url: string; position: number; menuName: 
   { menuName: "main", title: "Home", url: "/", position: 0, hasPage: true },
   { menuName: "main", title: "Events", url: "/events", position: 1, hasPage: true },
   { menuName: "main", title: "Communities", url: "/communities", position: 2, hasPage: true },
-  { menuName: "main", title: "Jobs", url: "/jobs", position: 3 },
-  { menuName: "main", title: "About Us", url: "/about-us", position: 4, hasPage: true },
+  { menuName: "main", title: "News", url: "/news", position: 3, hasPage: true },
+  { menuName: "main", title: "Jobs", url: "/jobs", position: 4 },
+  { menuName: "main", title: "About Us", url: "/about-us", position: 5, hasPage: true },
   { menuName: "footer", title: "Home", url: "/", position: 0, hasPage: true },
   { menuName: "footer", title: "Events", url: "/events", position: 1, hasPage: true },
   { menuName: "footer", title: "Communities", url: "/communities", position: 2, hasPage: true },
   { menuName: "footer", title: "About Us", url: "/about-us", position: 3, hasPage: true },
-  { menuName: "footer", title: "Deals", url: "/deals", position: 4, hasPage: true },
-  { menuName: "footer", title: "Jobs", url: "/jobs", position: 5 },
-  { menuName: "footer", title: "Contact", url: "/contact", position: 6 },
-  { menuName: "footer", title: "Privacy Policy", url: "/privacy", position: 7 },
-  { menuName: "footer", title: "Terms of Service", url: "/terms", position: 8 },
+  { menuName: "footer", title: "News", url: "/news", position: 4, hasPage: true },
+  { menuName: "footer", title: "Deals", url: "/deals", position: 5, hasPage: true },
+  { menuName: "footer", title: "Jobs", url: "/jobs", position: 6 },
+  { menuName: "footer", title: "Contact", url: "/contact", position: 7 },
+  { menuName: "footer", title: "Privacy Policy", url: "/privacy", position: 8 },
+  { menuName: "footer", title: "Terms of Service", url: "/terms", position: 9 },
 ];
 
 for (const m of menuDefs) {

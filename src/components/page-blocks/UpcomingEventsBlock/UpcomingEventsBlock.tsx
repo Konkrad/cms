@@ -16,7 +16,18 @@ export const definition: BlockDefinition = {
 };
 
 const fetchUpcoming = server$(async () => {
-  const events = await eventsService.getUpcoming();
+  const allEvents = await eventsService.getUpcoming();
+
+  // Show max 3, but include all events that share the same date as the 3rd
+  let cutoff = 3;
+  if (allEvents.length > 3) {
+    const thirdDay = allEvents[2].startDate.slice(0, 10);
+    while (cutoff < allEvents.length && allEvents[cutoff].startDate.slice(0, 10) === thirdDay) {
+      cutoff++;
+    }
+  }
+  const events = allEvents.slice(0, cutoff);
+
   return events.map((event) => ({
     ...event,
     image1: publicImageUrlFromKey(event.image1),

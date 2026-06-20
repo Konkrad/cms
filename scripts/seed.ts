@@ -1888,7 +1888,7 @@ const pageDefs: Array<{ title: string; slug: string; status: "published" | "draf
     content: [
       { id: uuid(), componentType: "TitleBlock", order: 0, data: { text: "News", level: "1", align: "center" } },
       { id: uuid(), componentType: "SpacerBlock", order: 1, data: { height: 20 } },
-      { id: uuid(), componentType: "PostsListBlock", order: 2, data: { limit: 50 } },
+      { id: uuid(), componentType: "PostsListBlock", order: 2, data: { limit: 10 } },
     ],
   },
 ];

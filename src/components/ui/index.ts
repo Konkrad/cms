@@ -13,3 +13,4 @@ export { EmptyState } from "./EmptyState";
 export { Avatar } from "./Avatar";
 export { SectionCard } from "./SectionCard";
 export { ImageUploader } from "./ImageUploader/ImageUploader";
+export { CursorPager } from "./CursorPager";

@@ -2,6 +2,7 @@ import { component$, useSignal, useTask$, $ } from "@qwik.dev/core";
 import { server$ } from "@qwik.dev/router";
 import type { BlockDefinition } from "~/db/schema";
 import type { PostWithUser } from "~/services/posts.service";
+import { CursorPager } from "~/components/ui/CursorPager";
 import { ListCard } from "../ListCard/ListCard";
 import { publicImageUrlFromKey } from "~/utils/images";
 
@@ -44,25 +45,28 @@ const fetchPosts = server$(async function (options: {
     user: post.user ? formatUser(post.user, !!session) : post.user,
   }));
 
-  return { items, nextCursor: res.nextCursor ?? null, isLoggedIn: !!session };
+  return { items, nextCursor: res.nextCursor ?? null };
 });
 
 export default component$<PostsListBlockProps>((props) => {
-  const posts = useSignal<PostWithUser[]>([]);
-  const nextCursor = useSignal<string | null>(null);
-  const isLoggedIn = useSignal(false);
+  const items = useSignal<PostWithUser[]>([]);
+  // cursors[0] = null (page 1), cursors[1] = cursor for page 2, etc.
+  const cursors = useSignal<(string | null)[]>([null]);
+  const currentPage = useSignal(1);
   const isLoading = useSignal(true);
-  const isLoadingMore = useSignal(false);
   const error = useSignal<string | null>(null);
 
   const pageSize = props.limit ?? 10;
 
-  useTask$(async () => {
+  const goToPage = $(async (page: number) => {
+    isLoading.value = true;
     try {
-      const result = await fetchPosts({ limit: pageSize });
-      posts.value = result.items;
-      nextCursor.value = result.nextCursor;
-      isLoggedIn.value = result.isLoggedIn;
+      const result = await fetchPosts({ limit: pageSize, cursor: cursors.value[page - 1] });
+      items.value = result.items;
+      currentPage.value = page;
+      if (result.nextCursor && cursors.value.length <= page) {
+        cursors.value = [...cursors.value, result.nextCursor];
+      }
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to load posts";
     } finally {
@@ -70,23 +74,13 @@ export default component$<PostsListBlockProps>((props) => {
     }
   });
 
-  const loadMore = $(async () => {
-    if (!nextCursor.value || isLoadingMore.value) return;
-    isLoadingMore.value = true;
-    try {
-      const result = await fetchPosts({ limit: pageSize, cursor: nextCursor.value });
-      posts.value = [...posts.value, ...result.items];
-      nextCursor.value = result.nextCursor;
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : "Failed to load more posts";
-    } finally {
-      isLoadingMore.value = false;
-    }
+  useTask$(async () => {
+    await goToPage(1);
   });
 
   return (
     <div class="max-w-6xl mx-auto px-4 py-12">
-      {isLoading.value ? (
+      {isLoading.value && items.value.length === 0 ? (
         <div class="text-center py-12">
           <p class="text-gray-500">Loading posts...</p>
         </div>
@@ -94,11 +88,11 @@ export default component$<PostsListBlockProps>((props) => {
         <p class="text-red-500 text-center py-8">
           Failed to load posts: {error.value}
         </p>
-      ) : posts.value.length === 0 ? (
+      ) : items.value.length === 0 ? (
         <p class="text-gray-500 text-center py-8">No posts found.</p>
       ) : (
         <div class="flex flex-col gap-6">
-          {posts.value.map((post) => (
+          {items.value.map((post) => (
             <ListCard
               key={post.id}
               title={post.title}
@@ -114,17 +108,12 @@ export default component$<PostsListBlockProps>((props) => {
             />
           ))}
 
-          {nextCursor.value && (
-            <div class="flex justify-center pt-4">
-              <button
-                class="px-6 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick$={loadMore}
-                disabled={isLoadingMore.value}
-              >
-                {isLoadingMore.value ? "Loading..." : "Load More"}
-              </button>
-            </div>
-          )}
+          <CursorPager
+            currentPage={currentPage.value}
+            totalKnownPages={cursors.value.length}
+            isLoading={isLoading.value}
+            onPageChange$={goToPage}
+          />
         </div>
       )}
     </div>

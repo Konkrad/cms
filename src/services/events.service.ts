@@ -10,7 +10,7 @@ import { products } from "~/db/schemas/products";
 import { inventoryGroups } from "~/db/schemas/inventory-groups";
 import { logins } from "~/db/schemas/logins";
 import { users as usersTable } from "~/db/schemas/users";
-import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
+import { createCursorFromItem, decodeCursor, getNextCursorFromRows } from "~/services/pagination";
 import { groupMembershipsService } from "~/services/group-memberships.service";
 
 export type EventWithUser = Event & {
@@ -65,6 +65,66 @@ export const eventsService = {
     });
 
     return results;
+  },
+
+  async getUpcomingInitial(baseLimit: number = 3): Promise<{ items: Event[]; nextCursor: string | null }> {
+    const now = new Date().toISOString();
+    const rows = await db.query.events.findMany({
+      where: { endDate: { gte: now }, deletedAt: { isNull: true } },
+      orderBy: { startDate: "asc", id: "asc" },
+      limit: baseLimit + 10,
+    });
+
+    let cutoff = Math.min(baseLimit, rows.length);
+    if (rows.length >= baseLimit) {
+      const lastDay = rows[baseLimit - 1].startDate.slice(0, 10);
+      while (cutoff < rows.length && rows[cutoff].startDate.slice(0, 10) === lastDay) {
+        cutoff++;
+      }
+    }
+
+    const items = rows.slice(0, cutoff);
+    const nextCursor = cutoff < rows.length
+      ? createCursorFromItem(items[items.length - 1], ["startDate"])
+      : null;
+
+    return { items, nextCursor };
+  },
+
+  async getUpcomingFrom(cursor: string, limit: number = 10): Promise<{ items: Event[]; nextCursor: string | null }> {
+    const now = new Date().toISOString();
+    const cursorObj = decodeCursor(cursor);
+
+    const rows = await db.query.events.findMany({
+      where: {
+        endDate: { gte: now },
+        deletedAt: { isNull: true },
+        ...(cursorObj?.startDate ? { startDate: { gt: cursorObj.startDate } } : {}),
+      },
+      orderBy: { startDate: "asc", id: "asc" },
+      limit: limit + 1,
+    });
+
+    const nextCursor = getNextCursorFromRows(rows, ["startDate"], limit) ?? null;
+    return { items: rows.slice(0, limit), nextCursor };
+  },
+
+  async getPastPaged(limit: number = 10, cursor?: string | null): Promise<{ items: Event[]; nextCursor: string | null }> {
+    const now = new Date().toISOString();
+    const cursorObj = decodeCursor(cursor ?? null);
+
+    const rows = await db.query.events.findMany({
+      where: {
+        endDate: { lt: now },
+        deletedAt: { isNull: true },
+        ...(cursorObj?.startDate ? { startDate: { lt: cursorObj.startDate } } : {}),
+      },
+      orderBy: { startDate: "desc", id: "desc" },
+      limit: limit + 1,
+    });
+
+    const nextCursor = getNextCursorFromRows(rows, ["startDate"], limit) ?? null;
+    return { items: rows.slice(0, limit), nextCursor };
   },
 
   async getYears(): Promise<number[]> {

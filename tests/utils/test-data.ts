@@ -26,7 +26,7 @@ export async function createEventWithInventory(opts: {
   /** Create one inventory group per product so multiple products can be selected simultaneously */
   separateGroups?: boolean;
 }, useServicesForProducts = true) {
-  const db = new Database('./my-database.db');
+  const db = new Database(process.env.DB_PATH ?? './my-database.db');
   // Wait on a held lock instead of erroring (matches the app + openDb()).
   db.pragma("busy_timeout = 5000");
   try {

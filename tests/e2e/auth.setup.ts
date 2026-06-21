@@ -65,8 +65,13 @@ setup('create shared test session', async ({ page }) => {
     { name: 'session', value: sessionToken, domain: 'localhost', path: '/' },
   ]);
 
-  await page.goto('/');
-  await page.waitForSelector('[aria-label="profile-menu"]', { timeout: 15000 });
+  // The dev server is started fresh by Playwright's webServer, so the FIRST
+  // navigation triggers Vite's on-demand route compilation, which can take well
+  // over 15s on a cold start. If this selector times out, setup fails, the stale
+  // auth state is reused, and every authenticated test silently runs as a guest.
+  // Use a generous timeout so a cold compile completes.
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[aria-label="profile-menu"]', { timeout: 90000 });
 
   // Persist the authenticated browser state for all dependent test projects
   await page.context().storageState({ path: AUTH_FILE });

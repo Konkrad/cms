@@ -1,4 +1,10 @@
-import { component$, useSignal, $ } from "@qwik.dev/core";
+import {
+  component$,
+  useSignal,
+  useVisibleTask$,
+  useOnWindow,
+  $,
+} from "@qwik.dev/core";
 import { Link, routeLoader$, server$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { CursorPager } from "~/components/ui/CursorPager";
@@ -42,7 +48,8 @@ export default component$(() => {
   const jobs = displayedJobs.value;
   const totalKnownPages = cursors.value.length;
 
-  const goToPage = $(async (page: number) => {
+  // Fetch and render a page we already have a cursor for (no URL side effects).
+  const loadPage = $(async (page: number) => {
     if (page === currentPage.value) return;
     // Page 1 is the SSR-rendered data — restore it without refetching.
     if (page === 1) {
@@ -60,6 +67,40 @@ export default component$(() => {
       }
     } finally {
       isLoading.value = false;
+    }
+  });
+
+  // User clicked a page: load it and push a history entry so the URL reflects
+  // the page and the browser back button returns to the previous page.
+  const goToPage = $(async (page: number) => {
+    if (page === currentPage.value) return;
+    await loadPage(page);
+    const url = new URL(window.location.href);
+    if (page <= 1) url.searchParams.delete("page");
+    else url.searchParams.set("page", String(page));
+    window.history.pushState({ page }, "", url);
+  });
+
+  // Browser back/forward: re-render the page named in the URL using the cursor
+  // we already walked to in this session.
+  useOnWindow(
+    "popstate",
+    $(() => {
+      const param = new URL(window.location.href).searchParams.get("page");
+      const page = param ? Math.max(1, parseInt(param, 10) || 1) : 1;
+      if (page !== currentPage.value && page <= cursors.value.length) {
+        void loadPage(page);
+      }
+    }),
+  );
+
+  // Page 1 is SSR-rendered and cursor pagination can't deep-link on a fresh
+  // load, so reconcile any stale ?page= in the URL with what we show (page 1).
+  useVisibleTask$(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("page")) {
+      url.searchParams.delete("page");
+      window.history.replaceState({ page: 1 }, "", url);
     }
   });
 

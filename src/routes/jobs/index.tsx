@@ -94,13 +94,44 @@ export default component$(() => {
     }),
   );
 
-  // Page 1 is SSR-rendered and cursor pagination can't deep-link on a fresh
-  // load, so reconcile any stale ?page= in the URL with what we show (page 1).
-  useVisibleTask$(() => {
-    const url = new URL(window.location.href);
-    if (url.searchParams.has("page")) {
-      url.searchParams.delete("page");
-      window.history.replaceState({ page: 1 }, "", url);
+  // Runs on every mount, including a remount after a full route navigation away and
+  // back (e.g. clicking into a job then hitting browser back) — the routeLoader$
+  // always reloads page 1 fresh, and the in-memory cursor chain from the old
+  // instance is gone. If the URL names a page beyond 1 we replay fetches in order
+  // to rebuild the chain and land back on that page, rather than silently falling
+  // back to page 1.
+  useVisibleTask$(async () => {
+    const requestedPage = (() => {
+      const param = new URL(window.location.href).searchParams.get("page");
+      const n = param ? parseInt(param, 10) : 1;
+      return Number.isFinite(n) && n > 1 ? n : 1;
+    })();
+    if (requestedPage === 1) return;
+
+    const newCursors: (string | null)[] = data.value.nextCursor
+      ? [null, data.value.nextCursor]
+      : [null];
+    let landedPage = 1;
+    isLoading.value = true;
+    try {
+      for (let p = 2; p <= requestedPage && newCursors[p - 1]; p++) {
+        const result = await fetchJobsPage(newCursors[p - 1]);
+        displayedJobs.value = result.items;
+        landedPage = p;
+        if (result.nextCursor) newCursors.push(result.nextCursor);
+      }
+      cursors.value = newCursors;
+      currentPage.value = landedPage;
+
+      // Fewer pages exist now than the URL claims — bring the URL back in sync.
+      if (landedPage !== requestedPage) {
+        const url = new URL(window.location.href);
+        if (landedPage <= 1) url.searchParams.delete("page");
+        else url.searchParams.set("page", String(landedPage));
+        window.history.replaceState({ page: landedPage }, "", url);
+      }
+    } finally {
+      isLoading.value = false;
     }
   });
 

@@ -65,20 +65,41 @@ export default component$<PostsListBlockProps>((props) => {
   const pageSize = props.limit ?? 10;
 
   // Client-only initial load — avoids serializing large post bodies into Qwik SSR state.
+  // Runs on every mount, including a remount after a full route navigation away and
+  // back (e.g. clicking into an article then hitting browser back) — the in-memory
+  // cursor chain from the old instance is gone, so if the URL names a page beyond 1
+  // we replay fetches in order to rebuild the chain and land back on that page,
+  // rather than silently falling back to page 1.
   useVisibleTask$(
     async () => {
       try {
-        const result = await fetchPosts({ limit: pageSize });
+        const requestedPage = (() => {
+          const param = new URL(window.location.href).searchParams.get("page");
+          const n = param ? parseInt(param, 10) : 1;
+          return Number.isFinite(n) && n > 1 ? n : 1;
+        })();
+
+        let result = await fetchPosts({ limit: pageSize });
         items.value = result.items;
-        if (result.nextCursor) {
-          cursors.value = [null, result.nextCursor];
+        const newCursors: (string | null)[] = [null];
+        if (result.nextCursor) newCursors.push(result.nextCursor);
+
+        let landedPage = 1;
+        for (let p = 2; p <= requestedPage && newCursors[p - 1]; p++) {
+          result = await fetchPosts({ limit: pageSize, cursor: newCursors[p - 1] });
+          items.value = result.items;
+          landedPage = p;
+          if (result.nextCursor) newCursors.push(result.nextCursor);
         }
-        // Cursor pagination can't deep-link on a fresh load, so reconcile any
-        // stale ?page= in the URL with what we actually show (page 1).
-        const url = new URL(window.location.href);
-        if (url.searchParams.has("page")) {
-          url.searchParams.delete("page");
-          window.history.replaceState({ page: 1 }, "", url);
+        cursors.value = newCursors;
+        currentPage.value = landedPage;
+
+        // Fewer pages exist now than the URL claims — bring the URL back in sync.
+        if (landedPage !== requestedPage) {
+          const url = new URL(window.location.href);
+          if (landedPage <= 1) url.searchParams.delete("page");
+          else url.searchParams.set("page", String(landedPage));
+          window.history.replaceState({ page: landedPage }, "", url);
         }
       } catch (e) {
         error.value = e instanceof Error ? e.message : "Failed to load posts";

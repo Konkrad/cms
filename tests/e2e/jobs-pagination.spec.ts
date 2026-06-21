@@ -1,7 +1,7 @@
 /**
  * E2E tests for /jobs cursor pagination history behavior:
- *  - Clicking a page button updates the URL with ?page=N
- *  - Browser back returns to the previous page (URL + active pager button)
+ *  - Clicking Next updates the URL with ?page=N
+ *  - Browser back returns to the previous page (URL + Previous/Next state)
  *  - Browser forward replays the page change
  */
 
@@ -39,23 +39,74 @@ test.describe("Jobs — pagination history", () => {
       await page.goto("/jobs");
       await expect(page).toHaveURL("/jobs", { timeout: 10_000 });
 
-      const page2Button = page.locator('button:text-is("2")');
-      await expect(page2Button).toBeVisible({ timeout: 10_000 });
+      const nextButton = page.locator('button:has-text("Next")');
+      const prevButton = page.locator('button:has-text("Previous")');
+      await expect(nextButton).toBeVisible({ timeout: 10_000 });
+      await expect(nextButton).toBeEnabled();
+      await expect(prevButton).toBeDisabled();
 
-      // Click page 2 → URL should reflect it, button 2 becomes the active/disabled one.
-      await page2Button.click();
+      // Click Next → URL should reflect page 2, Previous becomes enabled.
+      // (Whether Next itself is still enabled depends on how many approved jobs
+      // exist beyond what this test seeded, so it isn't asserted here.)
+      await nextButton.click();
       await expect(page).toHaveURL(/\?page=2$/, { timeout: 10_000 });
-      await expect(page.locator('button:text-is("2")')).toBeDisabled();
+      await expect(prevButton).toBeEnabled();
 
-      // Browser back → URL reverts to /jobs and page 1 is active again.
+      // Browser back → URL reverts to /jobs, Previous disabled again.
       await page.goBack();
       await expect(page).toHaveURL(/\/jobs$/, { timeout: 10_000 });
-      await expect(page.locator('button:text-is("1")')).toBeDisabled();
+      await expect(prevButton).toBeDisabled();
 
-      // Browser forward → URL goes back to ?page=2 and page 2 is active again.
+      // Browser forward → URL goes back to ?page=2, Previous enabled again.
       await page.goForward();
       await expect(page).toHaveURL(/\?page=2$/, { timeout: 10_000 });
-      await expect(page.locator('button:text-is("2")')).toBeDisabled();
+      await expect(prevButton).toBeEnabled();
+    } finally {
+      seeded.forEach((j) => j.cleanup());
+      session.cleanup();
+    }
+  });
+
+  test("back from a job detail page (full route nav) restores page 2, not page 1", async ({
+    guestPage: page,
+  }) => {
+    const session = createUserSession("user");
+    const seeded = Array.from({ length: 11 }, (_, i) =>
+      createJobInDb({
+        suggestedBy: session.userId,
+        title: `Pager Detail Job ${i}`,
+        status: "approved",
+      }),
+    );
+
+    try {
+      await loginAs(page, session.sessionToken);
+      await page.goto("/jobs");
+
+      const nextButton = page.locator('button:has-text("Next")');
+      await expect(nextButton).toBeVisible({ timeout: 10_000 });
+      await nextButton.click();
+      await expect(page).toHaveURL(/\?page=2$/, { timeout: 10_000 });
+
+      // Navigate into a job detail page — a full route change, which remounts
+      // /jobs from scratch (fresh routeLoader$, fresh component instance) on the
+      // way back. This is the case the in-memory cursor chain alone can't survive.
+      const firstTitleOnPage2 = await page
+        .locator('a[href^="/jobs/"]')
+        .first()
+        .textContent();
+      await page.locator('a[href^="/jobs/"]').first().click();
+      await expect(page).toHaveURL(/\/jobs\/[^/]+$/, { timeout: 10_000 });
+
+      await page.goBack();
+      await expect(page).toHaveURL(/\?page=2$/, { timeout: 10_000 });
+      await expect(page.locator('button:has-text("Previous")')).toBeEnabled({
+        timeout: 10_000,
+      });
+      // The job visible should still be one from page 2, not page 1.
+      await expect(
+        page.locator(`a[href^="/jobs/"]:has-text("${firstTitleOnPage2}")`),
+      ).toBeVisible();
     } finally {
       seeded.forEach((j) => j.cleanup());
       session.cleanup();

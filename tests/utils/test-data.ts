@@ -27,6 +27,8 @@ export async function createEventWithInventory(opts: {
   separateGroups?: boolean;
 }, useServicesForProducts = true) {
   const db = new Database('./my-database.db');
+  // Wait on a held lock instead of erroring (matches the app + openDb()).
+  db.pragma("busy_timeout = 5000");
   try {
     // Find an admin user as organizer
     const admin = db

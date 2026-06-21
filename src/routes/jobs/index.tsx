@@ -1,4 +1,4 @@
-import { component$, useSignal, useTask$, $ } from "@qwik.dev/core";
+import { component$, useSignal, $ } from "@qwik.dev/core";
 import { Link, routeLoader$, server$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { CursorPager } from "~/components/ui/CursorPager";
@@ -31,29 +31,28 @@ function locationLabel(job: { locationType: string; city?: string | null; countr
 export default component$(() => {
   const data = useJobs();
 
-  const displayedJobs = useSignal<JobWithUser[]>([]);
-  // cursors[0] = null (page 1), cursors[N-1] = cursor for page N
-  const cursors = useSignal<(string | null)[]>([null]);
+  // Seed signals from SSR loader
+  const displayedJobs = useSignal<JobWithUser[]>(data.value.jobs);
+  const cursors = useSignal<(string | null)[]>(
+    data.value.nextCursor ? [null, data.value.nextCursor] : [null],
+  );
   const currentPage = useSignal(1);
   const isLoading = useSignal(false);
 
-  // Seed initial state from SSR loader data
-  useTask$(() => {
-    displayedJobs.value = data.value.jobs;
-    if (data.value.nextCursor) {
-      cursors.value = [null, data.value.nextCursor];
-    }
-  });
+  const jobs = displayedJobs.value;
+  const totalKnownPages = cursors.value.length;
 
   const goToPage = $(async (page: number) => {
-    if (page === 1 && currentPage.value !== 1) {
+    if (page === currentPage.value) return;
+    // Page 1 is the SSR-rendered data — restore it without refetching.
+    if (page === 1) {
       displayedJobs.value = data.value.jobs;
       currentPage.value = 1;
       return;
     }
     isLoading.value = true;
     try {
-      const result = await fetchJobsPage(cursors.value[page - 1]);
+      const result = await fetchJobsPage(cursors.value[page - 1] ?? null);
       displayedJobs.value = result.items;
       currentPage.value = page;
       if (result.nextCursor && cursors.value.length <= page) {
@@ -63,8 +62,6 @@ export default component$(() => {
       isLoading.value = false;
     }
   });
-
-  const jobs = currentPage.value === 1 ? data.value.jobs : displayedJobs.value;
 
   return (
     <div class="max-w-3xl mx-auto px-4 py-8">
@@ -114,7 +111,7 @@ export default component$(() => {
 
       <CursorPager
         currentPage={currentPage.value}
-        totalKnownPages={cursors.value.length}
+        totalKnownPages={totalKnownPages}
         isLoading={isLoading.value}
         onPageChange$={goToPage}
       />

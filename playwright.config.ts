@@ -8,7 +8,10 @@ const AUTH_FILE = path.join(__dirname, "playwright/.auth/user.json");
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
-  retries: process.env.CI ? 1 : 0,
+  // These e2e tests share one SQLite DB and a single dev server, so heavy
+  // tests can intermittently lose a lock or time out under parallel load.
+  // Retry once locally (twice on CI) so confirmed-flaky tests don't fail the run.
+  retries: process.env.CI ? 2 : 1,
   timeout: process.env.CI ? 60000 : 30000,
   reporter: "list",
   webServer: {

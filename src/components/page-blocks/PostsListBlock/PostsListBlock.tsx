@@ -1,4 +1,4 @@
-import { component$, useSignal, useTask$, $ } from "@qwik.dev/core";
+import { component$, useSignal, useVisibleTask$, $ } from "@qwik.dev/core";
 import { server$ } from "@qwik.dev/router";
 import type { BlockDefinition } from "~/db/schema";
 import type { PostWithUser } from "~/services/posts.service";
@@ -50,7 +50,7 @@ const fetchPosts = server$(async function (options: {
 
 export default component$<PostsListBlockProps>((props) => {
   const items = useSignal<PostWithUser[]>([]);
-  // cursors[0] = null (page 1), cursors[1] = cursor for page 2, etc.
+  // cursors[0] = null (page 1), cursors[N-1] = cursor for page N
   const cursors = useSignal<(string | null)[]>([null]);
   const currentPage = useSignal(1);
   const isLoading = useSignal(true);
@@ -58,10 +58,32 @@ export default component$<PostsListBlockProps>((props) => {
 
   const pageSize = props.limit ?? 10;
 
+  // Client-only initial load — avoids serializing large post bodies into Qwik SSR state.
+  useVisibleTask$(
+    async () => {
+      try {
+        const result = await fetchPosts({ limit: pageSize });
+        items.value = result.items;
+        if (result.nextCursor) {
+          cursors.value = [null, result.nextCursor];
+        }
+      } catch (e) {
+        error.value = e instanceof Error ? e.message : "Failed to load posts";
+      } finally {
+        isLoading.value = false;
+      }
+    },
+    { strategy: "document-ready" },
+  );
+
   const goToPage = $(async (page: number) => {
+    if (page === currentPage.value) return;
     isLoading.value = true;
     try {
-      const result = await fetchPosts({ limit: pageSize, cursor: cursors.value[page - 1] });
+      const result = await fetchPosts({
+        limit: pageSize,
+        cursor: cursors.value[page - 1] ?? null,
+      });
       items.value = result.items;
       currentPage.value = page;
       if (result.nextCursor && cursors.value.length <= page) {
@@ -74,9 +96,7 @@ export default component$<PostsListBlockProps>((props) => {
     }
   });
 
-  useTask$(async () => {
-    await goToPage(1);
-  });
+  const totalKnownPages = cursors.value.length;
 
   return (
     <div class="max-w-6xl mx-auto px-4 py-12">
@@ -110,7 +130,7 @@ export default component$<PostsListBlockProps>((props) => {
 
           <CursorPager
             currentPage={currentPage.value}
-            totalKnownPages={cursors.value.length}
+            totalKnownPages={totalKnownPages}
             isLoading={isLoading.value}
             onPageChange$={goToPage}
           />

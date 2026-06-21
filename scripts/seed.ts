@@ -677,7 +677,11 @@ function resolveAuthor(idx: number) {
   return testUsers[idx]?.id ?? adminUser!.id;
 }
 
-for (const p of postDefs) {
+postDefs.forEach((p, i) => {
+  // Stagger createdAt by one minute per post so timestamps are strictly
+  // distinct and descending. Cursor pagination keys on createdAt, so a batch
+  // sharing the same millisecond would break page boundaries at the ties.
+  const createdAt = new Date(Date.now() - i * 60_000).toISOString();
   db.insert(schema.posts)
     .values({
       id: uuid(),
@@ -687,11 +691,11 @@ for (const p of postDefs) {
       userId: resolveAuthor(p.authorIdx),
       groupId: p.groupSlug ? groupIds[p.groupSlug] : null,
       visibility: p.visibility,
-      createdAt: now(),
-      updatedAt: now(),
+      createdAt,
+      updatedAt: createdAt,
     })
     .run();
-}
+});
 console.log(`  posts seeded (${postDefs.length})`);
 
 // ─── 9. Events ───────────────────────────────────────────────────────────────

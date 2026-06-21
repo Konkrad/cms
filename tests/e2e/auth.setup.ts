@@ -16,6 +16,8 @@ const DB_PATH = process.env.DB_PATH ?? path.join(ROOT, 'my-database.db');
 export const AUTH_FILE = path.join(ROOT, 'playwright/.auth/user.json');
 setup('create shared test session', async ({ page }) => {
   const db = new Database(DB_PATH);
+  // Wait on a held lock instead of erroring (matches the app + openDb()).
+  db.pragma("busy_timeout = 5000");
   const email = SHARED_E2E_EMAIL;
   const now = new Date().toISOString();
 

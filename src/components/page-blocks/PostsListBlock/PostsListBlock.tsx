@@ -66,42 +66,43 @@ export default component$<PostsListBlockProps>((props) => {
 
   // Client-only initial load — avoids serializing large post bodies into Qwik SSR state.
   // Runs on every mount, including a remount after a full route navigation away and
-  // back (e.g. clicking into an article then hitting browser back) — the in-memory
-  // cursor chain from the old instance is gone, so if the URL names a page beyond 1
-  // we replay fetches in order to rebuild the chain and land back on that page,
-  // rather than silently falling back to page 1.
+  // back (e.g. clicking into an article then hitting browser back). The URL stores
+  // the actual opaque cursor for whatever page is displayed (not a page number), so
+  // a shared/restored link is a single direct query, never a replay of every page
+  // before it — cursor pagination is forward-only, so Previous from a freshly
+  // landed deep link only returns to page 1, since we don't know what came before.
   useVisibleTask$(
     async () => {
+      const cursorParam = new URL(window.location.href).searchParams.get("cursor");
       try {
-        const requestedPage = (() => {
-          const param = new URL(window.location.href).searchParams.get("page");
-          const n = param ? parseInt(param, 10) : 1;
-          return Number.isFinite(n) && n > 1 ? n : 1;
-        })();
-
-        let result = await fetchPosts({ limit: pageSize });
+        const result = await fetchPosts({ limit: pageSize, cursor: cursorParam });
         items.value = result.items;
-        const newCursors: (string | null)[] = [null];
-        if (result.nextCursor) newCursors.push(result.nextCursor);
-
-        let landedPage = 1;
-        for (let p = 2; p <= requestedPage && newCursors[p - 1]; p++) {
-          result = await fetchPosts({ limit: pageSize, cursor: newCursors[p - 1] });
-          items.value = result.items;
-          landedPage = p;
-          if (result.nextCursor) newCursors.push(result.nextCursor);
-        }
-        cursors.value = newCursors;
-        currentPage.value = landedPage;
-
-        // Fewer pages exist now than the URL claims — bring the URL back in sync.
-        if (landedPage !== requestedPage) {
-          const url = new URL(window.location.href);
-          if (landedPage <= 1) url.searchParams.delete("page");
-          else url.searchParams.set("page", String(landedPage));
-          window.history.replaceState({ page: landedPage }, "", url);
+        if (cursorParam) {
+          cursors.value = result.nextCursor
+            ? [null, cursorParam, result.nextCursor]
+            : [null, cursorParam];
+          currentPage.value = 2;
+        } else {
+          cursors.value = result.nextCursor ? [null, result.nextCursor] : [null];
+          currentPage.value = 1;
         }
       } catch (e) {
+        if (cursorParam) {
+          // Invalid or expired cursor — fall back to page 1.
+          const url = new URL(window.location.href);
+          url.searchParams.delete("cursor");
+          window.history.replaceState({}, "", url);
+          try {
+            const result = await fetchPosts({ limit: pageSize });
+            items.value = result.items;
+            cursors.value = result.nextCursor ? [null, result.nextCursor] : [null];
+            currentPage.value = 1;
+            return;
+          } catch (e2) {
+            error.value = e2 instanceof Error ? e2.message : "Failed to load posts";
+            return;
+          }
+        }
         error.value = e instanceof Error ? e.message : "Failed to load posts";
       } finally {
         isLoading.value = false;
@@ -131,25 +132,26 @@ export default component$<PostsListBlockProps>((props) => {
     }
   });
 
-  // User clicked a page: load it and push a history entry so the URL reflects
-  // the page and the browser back button returns to the previous page.
+  // User clicked a page: load it and push a history entry so the URL holds the
+  // actual cursor for that page (omitted for page 1).
   const goToPage = $(async (page: number) => {
     if (page === currentPage.value) return;
     await loadPage(page);
     const url = new URL(window.location.href);
-    if (page <= 1) url.searchParams.delete("page");
-    else url.searchParams.set("page", String(page));
-    window.history.pushState({ page }, "", url);
+    const cursor = cursors.value[page - 1] ?? null;
+    if (cursor) url.searchParams.set("cursor", cursor);
+    else url.searchParams.delete("cursor");
+    window.history.pushState({}, "", url);
   });
 
-  // Browser back/forward: re-render the page named in the URL using the cursor
-  // we already walked to in this session.
+  // Browser back/forward within the same mounted instance: the URL's cursor
+  // always matches one we pushed ourselves, so just look it up locally.
   useOnWindow(
     "popstate",
     $(() => {
-      const param = new URL(window.location.href).searchParams.get("page");
-      const page = param ? Math.max(1, parseInt(param, 10) || 1) : 1;
-      if (page !== currentPage.value && page <= cursors.value.length) {
+      const param = new URL(window.location.href).searchParams.get("cursor");
+      const page = param ? cursors.value.indexOf(param) + 1 : 1;
+      if (page > 0 && page !== currentPage.value) {
         void loadPage(page);
       }
     }),

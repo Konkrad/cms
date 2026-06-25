@@ -70,66 +70,57 @@ export default component$(() => {
     }
   });
 
+  // The URL stores the actual opaque cursor used to fetch the displayed page
+  // (omitted for page 1), not a page number — so a shared link is a single
+  // direct query, never a replay of every page before it.
+  const setUrlCursor = (cursor: string | null) => {
+    const url = new URL(window.location.href);
+    if (cursor) url.searchParams.set("cursor", cursor);
+    else url.searchParams.delete("cursor");
+    return url;
+  };
+
   // User clicked a page: load it and push a history entry so the URL reflects
   // the page and the browser back button returns to the previous page.
   const goToPage = $(async (page: number) => {
     if (page === currentPage.value) return;
     await loadPage(page);
-    const url = new URL(window.location.href);
-    if (page <= 1) url.searchParams.delete("page");
-    else url.searchParams.set("page", String(page));
-    window.history.pushState({ page }, "", url);
+    const url = setUrlCursor(cursors.value[page - 1] ?? null);
+    window.history.pushState({}, "", url);
   });
 
-  // Browser back/forward: re-render the page named in the URL using the cursor
-  // we already walked to in this session.
+  // Browser back/forward within the same mounted instance: the URL's cursor
+  // always matches one we pushed ourselves, so just look it up locally.
   useOnWindow(
     "popstate",
     $(() => {
-      const param = new URL(window.location.href).searchParams.get("page");
-      const page = param ? Math.max(1, parseInt(param, 10) || 1) : 1;
-      if (page !== currentPage.value && page <= cursors.value.length) {
+      const param = new URL(window.location.href).searchParams.get("cursor");
+      const page = param ? cursors.value.indexOf(param) + 1 : 1;
+      if (page > 0 && page !== currentPage.value) {
         void loadPage(page);
       }
     }),
   );
 
-  // Runs on every mount, including a remount after a full route navigation away and
-  // back (e.g. clicking into a job then hitting browser back) — the routeLoader$
-  // always reloads page 1 fresh, and the in-memory cursor chain from the old
-  // instance is gone. If the URL names a page beyond 1 we replay fetches in order
-  // to rebuild the chain and land back on that page, rather than silently falling
-  // back to page 1.
+  // Runs on every mount, including a remount after a full route navigation away
+  // and back (e.g. clicking into a job then hitting browser back) — the
+  // routeLoader$ always reloads page 1 fresh. If the URL names a cursor, fetch
+  // that exact page directly (one query, regardless of how deep it is).
+  // Cursor pagination is forward-only, so a fresh visitor who lands this way
+  // can keep clicking Next from here but Previous only returns to page 1 —
+  // we don't know the cursor for whatever page came before this one.
   useVisibleTask$(async () => {
-    const requestedPage = (() => {
-      const param = new URL(window.location.href).searchParams.get("page");
-      const n = param ? parseInt(param, 10) : 1;
-      return Number.isFinite(n) && n > 1 ? n : 1;
-    })();
-    if (requestedPage === 1) return;
-
-    const newCursors: (string | null)[] = data.value.nextCursor
-      ? [null, data.value.nextCursor]
-      : [null];
-    let landedPage = 1;
+    const cursor = new URL(window.location.href).searchParams.get("cursor");
+    if (!cursor) return;
     isLoading.value = true;
     try {
-      for (let p = 2; p <= requestedPage && newCursors[p - 1]; p++) {
-        const result = await fetchJobsPage(newCursors[p - 1]);
-        displayedJobs.value = result.items;
-        landedPage = p;
-        if (result.nextCursor) newCursors.push(result.nextCursor);
-      }
-      cursors.value = newCursors;
-      currentPage.value = landedPage;
-
-      // Fewer pages exist now than the URL claims — bring the URL back in sync.
-      if (landedPage !== requestedPage) {
-        const url = new URL(window.location.href);
-        if (landedPage <= 1) url.searchParams.delete("page");
-        else url.searchParams.set("page", String(landedPage));
-        window.history.replaceState({ page: landedPage }, "", url);
-      }
+      const result = await fetchJobsPage(cursor);
+      displayedJobs.value = result.items;
+      cursors.value = result.nextCursor ? [null, cursor, result.nextCursor] : [null, cursor];
+      currentPage.value = 2;
+    } catch {
+      // Invalid or expired cursor — fall back to the SSR-loaded page 1.
+      window.history.replaceState({}, "", setUrlCursor(null));
     } finally {
       isLoading.value = false;
     }

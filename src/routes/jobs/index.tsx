@@ -70,22 +70,16 @@ export default component$(() => {
     }
   });
 
-  // The URL stores the actual opaque cursor used to fetch the displayed page
-  // (omitted for page 1), not a page number — so a shared link is a single
-  // direct query, never a replay of every page before it.
-  const setUrlCursor = (cursor: string | null) => {
-    const url = new URL(window.location.href);
-    if (cursor) url.searchParams.set("cursor", cursor);
-    else url.searchParams.delete("cursor");
-    return url;
-  };
-
-  // User clicked a page: load it and push a history entry so the URL reflects
-  // the page and the browser back button returns to the previous page.
+  // User clicked a page: load it and push a history entry so the URL holds the
+  // actual cursor for that page (omitted for page 1) — a shared link is then a
+  // single direct query, never a replay of every page before it.
   const goToPage = $(async (page: number) => {
     if (page === currentPage.value) return;
     await loadPage(page);
-    const url = setUrlCursor(cursors.value[page - 1] ?? null);
+    const url = new URL(window.location.href);
+    const cursor = cursors.value[page - 1] ?? null;
+    if (cursor) url.searchParams.set("cursor", cursor);
+    else url.searchParams.delete("cursor");
     window.history.pushState({}, "", url);
   });
 
@@ -120,7 +114,9 @@ export default component$(() => {
       currentPage.value = 2;
     } catch {
       // Invalid or expired cursor — fall back to the SSR-loaded page 1.
-      window.history.replaceState({}, "", setUrlCursor(null));
+      const url = new URL(window.location.href);
+      url.searchParams.delete("cursor");
+      window.history.replaceState({}, "", url);
     } finally {
       isLoading.value = false;
     }

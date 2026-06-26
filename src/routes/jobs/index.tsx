@@ -16,14 +16,16 @@ const PAGE_SIZE = 10;
 export const useJobs = routeLoader$(async (event) => {
   const { requireAuth } = await import("~/utils/server-auth");
   await requireAuth(event);
-  const { items, nextCursor } = await jobsService.getApprovedPaged(PAGE_SIZE);
-  return { jobs: items, nextCursor };
+  return jobsService.getApprovedPaged(PAGE_SIZE);
 });
 
-const fetchJobsPage = server$(async function (cursor: string | null) {
+const fetchJobsPage = server$(async function (
+  cursor: string | null,
+  direction: "forward" | "backward",
+) {
   const { requireAuth } = await import("~/utils/server-auth");
   await requireAuth(this as any);
-  return jobsService.getApprovedPaged(PAGE_SIZE, cursor);
+  return jobsService.getApprovedPaged(PAGE_SIZE, cursor, direction);
 });
 
 function locationLabel(job: { locationType: string; city?: string | null; country?: string | null }) {
@@ -38,87 +40,103 @@ export default component$(() => {
   const data = useJobs();
 
   // Seed signals from SSR loader
-  const displayedJobs = useSignal<JobWithUser[]>(data.value.jobs);
-  const cursors = useSignal<(string | null)[]>(
-    data.value.nextCursor ? [null, data.value.nextCursor] : [null],
-  );
-  const currentPage = useSignal(1);
+  const displayedJobs = useSignal<JobWithUser[]>(data.value.items);
+  const nextCursor = useSignal<string | null>(data.value.nextCursor);
+  const prevCursor = useSignal<string | null>(data.value.prevCursor);
   const isLoading = useSignal(false);
 
   const jobs = displayedJobs.value;
-  const totalKnownPages = cursors.value.length;
 
-  // Fetch and render a page we already have a cursor for (no URL side effects).
-  const loadPage = $(async (page: number) => {
-    if (page === currentPage.value) return;
-    // Page 1 is the SSR-rendered data — restore it without refetching.
-    if (page === 1) {
-      displayedJobs.value = data.value.jobs;
-      currentPage.value = 1;
+  // Cursors encode absolute DB sort-key coordinates, so a single query in
+  // either direction (flipping the comparison/order, reversing backward
+  // results) reproduces the adjacent page directly — no history of visited
+  // pages required.
+  const loadFromUrl = $(async () => {
+    const url = new URL(window.location.href);
+    const cursor = url.searchParams.get("cursor");
+    if (!cursor) {
+      displayedJobs.value = data.value.items;
+      nextCursor.value = data.value.nextCursor;
+      prevCursor.value = data.value.prevCursor;
       return;
     }
+    const direction = url.searchParams.get("dir") === "prev" ? "backward" : "forward";
     isLoading.value = true;
     try {
-      const result = await fetchJobsPage(cursors.value[page - 1] ?? null);
+      const result = await fetchJobsPage(cursor, direction);
       displayedJobs.value = result.items;
-      currentPage.value = page;
-      if (result.nextCursor && cursors.value.length <= page) {
-        cursors.value = [...cursors.value, result.nextCursor];
-      }
+      nextCursor.value = result.nextCursor;
+      prevCursor.value = result.prevCursor;
+    } catch {
+      // Invalid or expired cursor — fall back to the SSR-loaded first page.
+      url.searchParams.delete("cursor");
+      url.searchParams.delete("dir");
+      window.history.replaceState({}, "", url);
+      displayedJobs.value = data.value.items;
+      nextCursor.value = data.value.nextCursor;
+      prevCursor.value = data.value.prevCursor;
     } finally {
       isLoading.value = false;
     }
   });
 
-  // User clicked a page: load it and push a history entry so the URL holds the
-  // actual cursor for that page (omitted for page 1) — a shared link is then a
-  // single direct query, never a replay of every page before it.
-  const goToPage = $(async (page: number) => {
-    if (page === currentPage.value) return;
-    await loadPage(page);
-    const url = new URL(window.location.href);
-    const cursor = cursors.value[page - 1] ?? null;
-    if (cursor) url.searchParams.set("cursor", cursor);
-    else url.searchParams.delete("cursor");
-    window.history.pushState({}, "", url);
-  });
-
-  // Browser back/forward within the same mounted instance: the URL's cursor
-  // always matches one we pushed ourselves, so just look it up locally.
-  useOnWindow(
-    "popstate",
-    $(() => {
-      const param = new URL(window.location.href).searchParams.get("cursor");
-      const page = param ? cursors.value.indexOf(param) + 1 : 1;
-      if (page > 0 && page !== currentPage.value) {
-        void loadPage(page);
-      }
-    }),
-  );
-
-  // Runs on every mount, including a remount after a full route navigation away
-  // and back (e.g. clicking into a job then hitting browser back) — the
-  // routeLoader$ always reloads page 1 fresh. If the URL names a cursor, fetch
-  // that exact page directly (one query, regardless of how deep it is).
-  // Cursor pagination is forward-only, so a fresh visitor who lands this way
-  // can keep clicking Next from here but Previous only returns to page 1 —
-  // we don't know the cursor for whatever page came before this one.
-  useVisibleTask$(async () => {
-    const cursor = new URL(window.location.href).searchParams.get("cursor");
+  const goNext = $(async () => {
+    const cursor = nextCursor.value;
     if (!cursor) return;
     isLoading.value = true;
     try {
-      const result = await fetchJobsPage(cursor);
+      const result = await fetchJobsPage(cursor, "forward");
       displayedJobs.value = result.items;
-      cursors.value = result.nextCursor ? [null, cursor, result.nextCursor] : [null, cursor];
-      currentPage.value = 2;
-    } catch {
-      // Invalid or expired cursor — fall back to the SSR-loaded page 1.
+      nextCursor.value = result.nextCursor;
+      prevCursor.value = result.prevCursor;
       const url = new URL(window.location.href);
-      url.searchParams.delete("cursor");
-      window.history.replaceState({}, "", url);
+      url.searchParams.set("cursor", cursor);
+      url.searchParams.delete("dir");
+      window.history.pushState({}, "", url);
     } finally {
       isLoading.value = false;
+    }
+  });
+
+  const goPrev = $(async () => {
+    const cursor = prevCursor.value;
+    if (!cursor) return;
+    isLoading.value = true;
+    try {
+      const result = await fetchJobsPage(cursor, "backward");
+      displayedJobs.value = result.items;
+      nextCursor.value = result.nextCursor;
+      prevCursor.value = result.prevCursor;
+      const url = new URL(window.location.href);
+      if (result.prevCursor === null) {
+        // Landed back on the true first page — keep the URL canonical.
+        url.searchParams.delete("cursor");
+        url.searchParams.delete("dir");
+      } else {
+        url.searchParams.set("cursor", cursor);
+        url.searchParams.set("dir", "prev");
+      }
+      window.history.pushState({}, "", url);
+    } finally {
+      isLoading.value = false;
+    }
+  });
+
+  // Browser back/forward: re-derive the displayed page from the URL.
+  useOnWindow(
+    "popstate",
+    $(() => {
+      void loadFromUrl();
+    }),
+  );
+
+  // Runs on every mount, including a remount after a full route navigation
+  // away and back (e.g. clicking into a job then hitting browser back) — the
+  // routeLoader$ always reloads the first page fresh. If the URL names a
+  // cursor, fetch that exact page directly in one query.
+  useVisibleTask$(async () => {
+    if (new URL(window.location.href).searchParams.get("cursor")) {
+      await loadFromUrl();
     }
   });
 
@@ -169,10 +187,11 @@ export default component$(() => {
       )}
 
       <CursorPager
-        currentPage={currentPage.value}
-        totalKnownPages={totalKnownPages}
+        hasPrevious={prevCursor.value !== null}
+        hasNext={nextCursor.value !== null}
         isLoading={isLoading.value}
-        onPageChange$={goToPage}
+        onPrevious$={goPrev}
+        onNext$={goNext}
       />
 
       <div class="mt-8 pt-8 border-t border-gray-200 text-center">

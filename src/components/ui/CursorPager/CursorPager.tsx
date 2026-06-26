@@ -1,21 +1,19 @@
 import { component$, type QRL } from "@qwik.dev/core";
 
 interface CursorPagerProps {
-  currentPage: number;
-  totalKnownPages: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
   isLoading?: boolean;
-  onPageChange$: QRL<(page: number) => void>;
+  onPrevious$: QRL<() => void>;
+  onNext$: QRL<() => void>;
 }
 
-// Cursor pagination can only move one page at a time — there's no way to jump
-// directly to an arbitrary page without walking the cursor chain — so the UI
-// only offers Previous/Next rather than numbered page buttons.
+// Cursors encode absolute DB sort-key coordinates, so both neighbors of the
+// current page are known directly from the service response — no chain of
+// visited pages to walk, so there's no notion of an arbitrary page number.
 export const CursorPager = component$<CursorPagerProps>(
-  ({ currentPage, totalKnownPages, isLoading, onPageChange$ }) => {
-    if (totalKnownPages <= 1) return null;
-
-    const hasPrevious = currentPage > 1;
-    const hasNext = currentPage < totalKnownPages;
+  ({ hasPrevious, hasNext, isLoading, onPrevious$, onNext$ }) => {
+    if (!hasPrevious && !hasNext) return null;
 
     return (
       <div class="flex items-center justify-center gap-3 pt-8">
@@ -27,7 +25,7 @@ export const CursorPager = component$<CursorPagerProps>(
               : "border-gray-200 text-gray-300 cursor-not-allowed",
           ].join(" ")}
           disabled={!hasPrevious || isLoading}
-          onClick$={() => onPageChange$(currentPage - 1)}
+          onClick$={onPrevious$}
         >
           ← Previous
         </button>
@@ -39,7 +37,7 @@ export const CursorPager = component$<CursorPagerProps>(
               : "border-gray-200 text-gray-300 cursor-not-allowed",
           ].join(" ")}
           disabled={!hasNext || isLoading}
-          onClick$={() => onPageChange$(currentPage + 1)}
+          onClick$={onNext$}
         >
           Next →
         </button>

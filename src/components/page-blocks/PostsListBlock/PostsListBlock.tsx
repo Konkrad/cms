@@ -37,13 +37,18 @@ export const definition: BlockDefinition = {
 const fetchPosts = server$(async function (options: {
   limit: number;
   cursor?: string | null;
+  direction?: "forward" | "backward";
 }) {
   const { postsService } = await import("~/services/posts.service");
   const { getServerSession } = await import("~/utils/server-auth");
   const { formatUser } = await import("~/utils/users");
 
   const session = await getServerSession(this as any);
-  const res = await postsService.getAll(options.limit, options.cursor ?? null);
+  const res = await postsService.getAll(
+    options.limit,
+    options.cursor ?? null,
+    options.direction ?? "forward",
+  );
 
   const items = res.items.map((post) => ({
     ...post,
@@ -51,80 +56,78 @@ const fetchPosts = server$(async function (options: {
     user: post.user ? formatUser(post.user, !!session) : post.user,
   }));
 
-  return { items, nextCursor: res.nextCursor ?? null };
+  return { items, nextCursor: res.nextCursor, prevCursor: res.prevCursor };
 });
 
 export default component$<PostsListBlockProps>((props) => {
   const items = useSignal<PostWithUser[]>([]);
-  // cursors[0] = null (page 1), cursors[N-1] = cursor for page N
-  const cursors = useSignal<(string | null)[]>([null]);
-  const currentPage = useSignal(1);
+  const nextCursor = useSignal<string | null>(null);
+  const prevCursor = useSignal<string | null>(null);
   const isLoading = useSignal(true);
   const error = useSignal<string | null>(null);
 
   const pageSize = props.limit ?? 10;
 
-  // Client-only initial load — avoids serializing large post bodies into Qwik SSR state.
-  // Runs on every mount, including a remount after a full route navigation away and
-  // back (e.g. clicking into an article then hitting browser back). The URL stores
-  // the actual opaque cursor for whatever page is displayed (not a page number), so
-  // a shared/restored link is a single direct query, never a replay of every page
-  // before it — cursor pagination is forward-only, so Previous from a freshly
-  // landed deep link only returns to page 1, since we don't know what came before.
+  // Client-only initial load — avoids serializing large post bodies into Qwik SSR
+  // state. Runs on every mount, including a remount after a full route navigation
+  // away and back. Cursors encode absolute DB sort-key coordinates, so a single
+  // query in either direction reproduces the adjacent page directly.
+  const loadFromUrl = $(async () => {
+    const url = new URL(window.location.href);
+    const cursorParam = url.searchParams.get("cursor");
+    const direction = url.searchParams.get("dir") === "prev" ? "backward" : "forward";
+    try {
+      const result = await fetchPosts({
+        limit: pageSize,
+        cursor: cursorParam,
+        direction: cursorParam ? direction : "forward",
+      });
+      items.value = result.items;
+      nextCursor.value = result.nextCursor;
+      prevCursor.value = result.prevCursor;
+    } catch (e) {
+      if (cursorParam) {
+        // Invalid or expired cursor — fall back to page 1.
+        url.searchParams.delete("cursor");
+        url.searchParams.delete("dir");
+        window.history.replaceState({}, "", url);
+        try {
+          const result = await fetchPosts({ limit: pageSize });
+          items.value = result.items;
+          nextCursor.value = result.nextCursor;
+          prevCursor.value = result.prevCursor;
+          return;
+        } catch (e2) {
+          error.value = e2 instanceof Error ? e2.message : "Failed to load posts";
+          return;
+        }
+      }
+      error.value = e instanceof Error ? e.message : "Failed to load posts";
+    } finally {
+      isLoading.value = false;
+    }
+  });
+
   useVisibleTask$(
     async () => {
-      const cursorParam = new URL(window.location.href).searchParams.get("cursor");
-      try {
-        const result = await fetchPosts({ limit: pageSize, cursor: cursorParam });
-        items.value = result.items;
-        if (cursorParam) {
-          cursors.value = result.nextCursor
-            ? [null, cursorParam, result.nextCursor]
-            : [null, cursorParam];
-          currentPage.value = 2;
-        } else {
-          cursors.value = result.nextCursor ? [null, result.nextCursor] : [null];
-          currentPage.value = 1;
-        }
-      } catch (e) {
-        if (cursorParam) {
-          // Invalid or expired cursor — fall back to page 1.
-          const url = new URL(window.location.href);
-          url.searchParams.delete("cursor");
-          window.history.replaceState({}, "", url);
-          try {
-            const result = await fetchPosts({ limit: pageSize });
-            items.value = result.items;
-            cursors.value = result.nextCursor ? [null, result.nextCursor] : [null];
-            currentPage.value = 1;
-            return;
-          } catch (e2) {
-            error.value = e2 instanceof Error ? e2.message : "Failed to load posts";
-            return;
-          }
-        }
-        error.value = e instanceof Error ? e.message : "Failed to load posts";
-      } finally {
-        isLoading.value = false;
-      }
+      await loadFromUrl();
     },
     { strategy: "document-ready" },
   );
 
-  // Fetch and render a page we already have a cursor for (no URL side effects).
-  const loadPage = $(async (page: number) => {
-    if (page === currentPage.value) return;
+  const goNext = $(async () => {
+    const cursor = nextCursor.value;
+    if (!cursor) return;
     isLoading.value = true;
     try {
-      const result = await fetchPosts({
-        limit: pageSize,
-        cursor: cursors.value[page - 1] ?? null,
-      });
+      const result = await fetchPosts({ limit: pageSize, cursor, direction: "forward" });
       items.value = result.items;
-      currentPage.value = page;
-      if (result.nextCursor && cursors.value.length <= page) {
-        cursors.value = [...cursors.value, result.nextCursor];
-      }
+      nextCursor.value = result.nextCursor;
+      prevCursor.value = result.prevCursor;
+      const url = new URL(window.location.href);
+      url.searchParams.set("cursor", cursor);
+      url.searchParams.delete("dir");
+      window.history.pushState({}, "", url);
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to load posts";
     } finally {
@@ -132,32 +135,39 @@ export default component$<PostsListBlockProps>((props) => {
     }
   });
 
-  // User clicked a page: load it and push a history entry so the URL holds the
-  // actual cursor for that page (omitted for page 1).
-  const goToPage = $(async (page: number) => {
-    if (page === currentPage.value) return;
-    await loadPage(page);
-    const url = new URL(window.location.href);
-    const cursor = cursors.value[page - 1] ?? null;
-    if (cursor) url.searchParams.set("cursor", cursor);
-    else url.searchParams.delete("cursor");
-    window.history.pushState({}, "", url);
+  const goPrev = $(async () => {
+    const cursor = prevCursor.value;
+    if (!cursor) return;
+    isLoading.value = true;
+    try {
+      const result = await fetchPosts({ limit: pageSize, cursor, direction: "backward" });
+      items.value = result.items;
+      nextCursor.value = result.nextCursor;
+      prevCursor.value = result.prevCursor;
+      const url = new URL(window.location.href);
+      if (result.prevCursor === null) {
+        // Landed back on the true first page — keep the URL canonical.
+        url.searchParams.delete("cursor");
+        url.searchParams.delete("dir");
+      } else {
+        url.searchParams.set("cursor", cursor);
+        url.searchParams.set("dir", "prev");
+      }
+      window.history.pushState({}, "", url);
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to load posts";
+    } finally {
+      isLoading.value = false;
+    }
   });
 
-  // Browser back/forward within the same mounted instance: the URL's cursor
-  // always matches one we pushed ourselves, so just look it up locally.
+  // Browser back/forward: re-derive the displayed page from the URL.
   useOnWindow(
     "popstate",
     $(() => {
-      const param = new URL(window.location.href).searchParams.get("cursor");
-      const page = param ? cursors.value.indexOf(param) + 1 : 1;
-      if (page > 0 && page !== currentPage.value) {
-        void loadPage(page);
-      }
+      void loadFromUrl();
     }),
   );
-
-  const totalKnownPages = cursors.value.length;
 
   return (
     <div class="max-w-6xl mx-auto px-4 py-12">
@@ -190,10 +200,11 @@ export default component$<PostsListBlockProps>((props) => {
           ))}
 
           <CursorPager
-            currentPage={currentPage.value}
-            totalKnownPages={totalKnownPages}
+            hasPrevious={prevCursor.value !== null}
+            hasNext={nextCursor.value !== null}
             isLoading={isLoading.value}
-            onPageChange$={goToPage}
+            onPrevious$={goPrev}
+            onNext$={goNext}
           />
         </div>
       )}

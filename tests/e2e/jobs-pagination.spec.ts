@@ -154,8 +154,59 @@ test.describe("Jobs — pagination history", () => {
         await expect(
           page.locator(`a[href^="/jobs/"]:has-text("${firstTitleOnPage2}")`),
         ).toBeVisible({ timeout: 10_000 });
-        // Previous is available, but only returns to page 1 — the fresh visitor
-        // never learned the cursor for anything before this page.
+        await expect(page.locator('button:has-text("Previous")')).toBeEnabled();
+      } finally {
+        session2.cleanup();
+      }
+    } finally {
+      seeded.forEach((j) => j.cleanup());
+      session.cleanup();
+    }
+  });
+
+  test("Previous on a fresh-landed deep link reconstructs the actual prior page, not page 1", async ({
+    guestPage: page,
+  }) => {
+    const session = createUserSession("user");
+    // 21 jobs => 3 pages of 10/10/1, so page 3's "previous" page is page 2, not page 1.
+    const seeded = Array.from({ length: 21 }, (_, i) =>
+      createJobInDb({
+        suggestedBy: session.userId,
+        title: `Pager Bidi Job ${i}`,
+        status: "approved",
+      }),
+    );
+
+    try {
+      await loginAs(page, session.sessionToken);
+      await page.goto("/jobs");
+
+      const nextButton = page.locator('button:has-text("Next")');
+      await expect(nextButton).toBeVisible({ timeout: 10_000 });
+      await nextButton.click();
+      await expect(page).toHaveURL(/\?cursor=[^&]+$/, { timeout: 10_000 });
+      const firstTitleOnPage2 = await page
+        .locator('a[href^="/jobs/"]')
+        .first()
+        .textContent();
+
+      await nextButton.click();
+      await expect(page).toHaveURL(/\?cursor=[^&]+$/, { timeout: 10_000 });
+      const page3Url = page.url();
+
+      // Fresh visitor, no in-memory history — lands directly on page 3's URL.
+      const session2 = createUserSession("user");
+      try {
+        await loginAs(page, session2.sessionToken);
+        await page.goto(page3Url);
+        await expect(page).toHaveURL(page3Url, { timeout: 10_000 });
+
+        await page.locator('button:has-text("Previous")').click();
+        // Must land on page 2's actual content (one backward query from the
+        // page-3 cursor), not page 1 — there's no chain to fall back to.
+        await expect(
+          page.locator(`a[href^="/jobs/"]:has-text("${firstTitleOnPage2}")`),
+        ).toBeVisible({ timeout: 10_000 });
         await expect(page.locator('button:has-text("Previous")')).toBeEnabled();
       } finally {
         session2.cleanup();

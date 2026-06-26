@@ -1,11 +1,11 @@
-import { and, desc, eq, gte, lt, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, lt, or } from "drizzle-orm";
 import { db } from "~/db/connection";
 import { jobs, insertJobSchema, updateJobSchema } from "~/db/schemas/jobs";
 import type { Job, InsertJob, UpdateJob } from "~/db/schemas/jobs";
 import type { User } from "~/db/schemas/users";
 import { users as usersTable } from "~/db/schemas/users";
 import { sanitizeRichHtml } from "~/utils/sanitize-html";
-import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
+import { decodeCursor, paginateRows, type PageDirection } from "~/services/pagination";
 
 export type JobWithUser = Job & { user: User };
 
@@ -38,32 +38,41 @@ export const jobsService = {
     return (rows as JobWithUser[]).filter((j) => j.expiresAt >= now);
   },
 
-  async getApprovedPaged(limit: number = 10, cursor?: string | null): Promise<{ items: JobWithUser[]; nextCursor: string | null }> {
+  async getApprovedPaged(
+    limit: number = 10,
+    cursor?: string | null,
+    direction: PageDirection = "forward",
+  ): Promise<{ items: JobWithUser[]; nextCursor: string | null; prevCursor: string | null }> {
     const now = new Date().toISOString();
     const cursorObj = decodeCursor(cursor ?? null);
 
-    const whereCondition = cursorObj
-      ? and(
-          eq(jobs.status, "approved"),
-          gte(jobs.expiresAt, now),
-          or(
+    const baseCondition = and(eq(jobs.status, "approved"), gte(jobs.expiresAt, now));
+
+    const boundary = cursorObj
+      ? direction === "forward"
+        ? or(
             lt(jobs.createdAt, cursorObj.createdAt),
             and(eq(jobs.createdAt, cursorObj.createdAt), lt(jobs.id, cursorObj.id)),
-          ),
-        )
-      : and(eq(jobs.status, "approved"), gte(jobs.expiresAt, now));
+          )
+        : or(
+            gt(jobs.createdAt, cursorObj.createdAt),
+            and(eq(jobs.createdAt, cursorObj.createdAt), gte(jobs.id, cursorObj.id)),
+          )
+      : undefined;
 
     const rows = await db
       .select({ job: jobs, user: usersTable })
       .from(jobs)
       .leftJoin(usersTable, eq(jobs.suggestedBy, usersTable.id))
-      .where(whereCondition)
-      .orderBy(desc(jobs.createdAt), desc(jobs.id))
+      .where(boundary ? and(baseCondition, boundary) : baseCondition)
+      .orderBy(
+        direction === "forward" ? desc(jobs.createdAt) : asc(jobs.createdAt),
+        direction === "forward" ? desc(jobs.id) : asc(jobs.id),
+      )
       .limit(limit + 1);
 
     const mapped = rows.map((r) => ({ ...r.job, user: r.user! })) as JobWithUser[];
-    const nextCursor = getNextCursorFromRows(mapped, ["createdAt", "id"], limit) ?? null;
-    return { items: mapped.slice(0, limit), nextCursor };
+    return paginateRows(mapped, ["createdAt", "id"], limit, direction, cursor ?? null);
   },
 
   async getById(id: string): Promise<JobWithUser | undefined> {

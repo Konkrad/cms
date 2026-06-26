@@ -42,7 +42,7 @@ export const insertJobSchema = baseInsertSchema.extend({
   id: z
     .string()
     .uuid()
-    .default(() => crypto.randomUUID()),
+    .default(() => crypto.randomUUIDv7()),
   expiresAt: z.coerce.date().transform((d) => d.toISOString()),
   createdAt: z.string().default(() => new Date().toISOString()),
   updatedAt: z.string().default(() => new Date().toISOString()),

@@ -118,7 +118,7 @@ export const insertPostSchema = baseInsertSchema
     id: z
       .string()
       .uuid()
-      .default(() => crypto.randomUUID()),
+      .default(() => crypto.randomUUIDv7()),
     createdAt: z.string().default(() => new Date().toISOString()),
     updatedAt: z.string().default(() => new Date().toISOString()),
     body: z.string().optional(),

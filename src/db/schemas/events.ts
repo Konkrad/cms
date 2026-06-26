@@ -75,7 +75,7 @@ export const insertEventSchema = baseInsertSchema
     id: z
       .string()
       .uuid()
-      .default(() => crypto.randomUUID()),
+      .default(() => crypto.randomUUIDv7()),
     startDate: z.coerce.date().transform((d) => d.toISOString()),
     endDate: z.coerce.date().transform((d) => d.toISOString()),
 

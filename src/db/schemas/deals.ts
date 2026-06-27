@@ -36,7 +36,7 @@ export const insertDealSchema = baseInsertSchema.extend({
   id: z
     .string()
     .uuid()
-    .default(() => crypto.randomUUID()),
+    .default(() => crypto.randomUUIDv7()),
   validUntil: z
     .union([z.coerce.date().transform((d) => d.toISOString()), z.null(), z.undefined()])
     .optional(),

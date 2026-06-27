@@ -24,7 +24,13 @@ const DB_PATH = process.env.DB_PATH ?? path.join(ROOT, "my-database.db");
 // ── DB helpers ────────────────────────────────────────────────────────────────
 
 export function openDb() {
-  return new Database(DB_PATH);
+  const db = new Database(DB_PATH);
+  // Mirror the app's connection (src/db/connection.ts): wait on a held lock
+  // instead of erroring immediately. Tests open many short-lived connections
+  // that contend with the dev server's writer; without this they fail with
+  // "database is locked" / "locking protocol" under load.
+  db.pragma("busy_timeout = 5000");
+  return db;
 }
 
 /** Insert a session for the given userId, return the token and sessionId. */

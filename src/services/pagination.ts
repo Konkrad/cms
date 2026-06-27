@@ -115,6 +115,47 @@ export function getNextCursorFromRows<T extends Record<string, any>>(
   }
 }
 
+export type PageDirection = "forward" | "backward";
+
+/**
+ * Turn a fetched row set (limit + 1 rows, in the direction's natural sort order —
+ * desc for forward, asc for backward) into a display page plus both neighbor
+ * cursors, in a single query per direction (no replay/chaining needed).
+ *
+ * Forward fetch excludes the boundary row (`key < cursor`), so the last fetched
+ * row is the new forward boundary; backward fetch includes it (`key >= cursor`),
+ * so the boundary is the (limit+1)-th row — the one just past what's displayed.
+ * The cursor passed in is always exactly the other direction's neighbor: a
+ * forward fetch's `prevCursor` is just the input cursor again (rewound with
+ * direction "backward" it reproduces the page before); a backward fetch's
+ * `nextCursor` is the input cursor again (forward, it reproduces the page this
+ * was rewound from).
+ */
+export function paginateRows<T extends Record<string, any>>(
+  rows: T[],
+  fields: string[],
+  limit: number,
+  direction: PageDirection,
+  inputCursor: string | null,
+): { items: T[]; nextCursor: string | null; prevCursor: string | null } {
+  const hasMore = rows.length > limit;
+  const slice = rows.slice(0, limit);
+
+  if (direction === "forward") {
+    return {
+      items: slice,
+      nextCursor: hasMore ? createCursorFromItem(rows[limit - 1], fields) : null,
+      prevCursor: inputCursor,
+    };
+  }
+
+  return {
+    items: slice.reverse(),
+    nextCursor: inputCursor,
+    prevCursor: hasMore ? createCursorFromItem(rows[limit], fields) : null,
+  };
+}
+
 /**
  * Helper types for building keyset comparison chains.
  *

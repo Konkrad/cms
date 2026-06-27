@@ -47,6 +47,12 @@ lerna-debug.log*
 .kamal/secrets
 
 my-database.db
+my-database.db-shm
+my-database.db-wal
+# Isolated e2e test database (recreated each run by global-setup)
+my-database.test.db
+my-database.test.db-shm
+my-database.test.db-wal
 \n# Private event photos\nprivate/events/
 
 # Playwright

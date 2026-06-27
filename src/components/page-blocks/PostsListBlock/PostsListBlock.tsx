@@ -1,7 +1,14 @@
-import { component$, useSignal, useTask$ } from "@qwik.dev/core";
-import { server$, type RequestEventCommon } from "@qwik.dev/router";
+import {
+  component$,
+  useSignal,
+  useVisibleTask$,
+  useOnWindow,
+  $,
+} from "@qwik.dev/core";
+import { server$ } from "@qwik.dev/router";
 import type { BlockDefinition } from "~/db/schema";
 import type { PostWithUser } from "~/services/posts.service";
+import { CursorPager } from "~/components/ui/CursorPager";
 import { ListCard } from "../ListCard/ListCard";
 import { publicImageUrlFromKey } from "~/utils/images";
 
@@ -17,25 +24,31 @@ export const definition: BlockDefinition = {
   configSchema: [
     {
       name: "limit",
-      label: "Number of Posts",
+      label: "Posts per page",
       type: "number",
-      defaultValue: 6,
+      defaultValue: 10,
     },
   ],
   defaultData: {
-    limit: 6,
+    limit: 10,
   },
 };
 
-const fetchPosts = server$(async function (
-  options: { limit: number },
-) {
+const fetchPosts = server$(async function (options: {
+  limit: number;
+  cursor?: string | null;
+  direction?: "forward" | "backward";
+}) {
   const { postsService } = await import("~/services/posts.service");
   const { getServerSession } = await import("~/utils/server-auth");
   const { formatUser } = await import("~/utils/users");
 
   const session = await getServerSession(this as any);
-  const res = await postsService.getAll(options.limit);
+  const res = await postsService.getAll(
+    options.limit,
+    options.cursor ?? null,
+    options.direction ?? "forward",
+  );
 
   const items = res.items.map((post) => ({
     ...post,
@@ -43,22 +56,78 @@ const fetchPosts = server$(async function (
     user: post.user ? formatUser(post.user, !!session) : post.user,
   }));
 
-  return { items, isLoggedIn: !!session };
+  return { items, nextCursor: res.nextCursor, prevCursor: res.prevCursor };
 });
 
 export default component$<PostsListBlockProps>((props) => {
-  const posts = useSignal<PostWithUser[]>([]);
-  const isLoggedIn = useSignal(false);
+  const items = useSignal<PostWithUser[]>([]);
+  const nextCursor = useSignal<string | null>(null);
+  const prevCursor = useSignal<string | null>(null);
   const isLoading = useSignal(true);
   const error = useSignal<string | null>(null);
 
-  useTask$(async () => {
+  const pageSize = props.limit ?? 10;
+
+  // Client-only initial load — avoids serializing large post bodies into Qwik SSR
+  // state. Runs on every mount, including a remount after a full route navigation
+  // away and back. Cursors encode absolute DB sort-key coordinates, so a single
+  // query in either direction reproduces the adjacent page directly.
+  const loadFromUrl = $(async () => {
+    const url = new URL(window.location.href);
+    const cursorParam = url.searchParams.get("cursor");
+    const direction = url.searchParams.get("dir") === "prev" ? "backward" : "forward";
     try {
       const result = await fetchPosts({
-        limit: props.limit ?? 6,
+        limit: pageSize,
+        cursor: cursorParam,
+        direction: cursorParam ? direction : "forward",
       });
-      posts.value = result.items;
-      isLoggedIn.value = result.isLoggedIn;
+      items.value = result.items;
+      nextCursor.value = result.nextCursor;
+      prevCursor.value = result.prevCursor;
+    } catch (e) {
+      if (cursorParam) {
+        // Invalid or expired cursor — fall back to page 1.
+        url.searchParams.delete("cursor");
+        url.searchParams.delete("dir");
+        window.history.replaceState({}, "", url);
+        try {
+          const result = await fetchPosts({ limit: pageSize });
+          items.value = result.items;
+          nextCursor.value = result.nextCursor;
+          prevCursor.value = result.prevCursor;
+          return;
+        } catch (e2) {
+          error.value = e2 instanceof Error ? e2.message : "Failed to load posts";
+          return;
+        }
+      }
+      error.value = e instanceof Error ? e.message : "Failed to load posts";
+    } finally {
+      isLoading.value = false;
+    }
+  });
+
+  useVisibleTask$(
+    async () => {
+      await loadFromUrl();
+    },
+    { strategy: "document-ready" },
+  );
+
+  const goNext = $(async () => {
+    const cursor = nextCursor.value;
+    if (!cursor) return;
+    isLoading.value = true;
+    try {
+      const result = await fetchPosts({ limit: pageSize, cursor, direction: "forward" });
+      items.value = result.items;
+      nextCursor.value = result.nextCursor;
+      prevCursor.value = result.prevCursor;
+      const url = new URL(window.location.href);
+      url.searchParams.set("cursor", cursor);
+      url.searchParams.delete("dir");
+      window.history.pushState({}, "", url);
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to load posts";
     } finally {
@@ -66,9 +135,43 @@ export default component$<PostsListBlockProps>((props) => {
     }
   });
 
+  const goPrev = $(async () => {
+    const cursor = prevCursor.value;
+    if (!cursor) return;
+    isLoading.value = true;
+    try {
+      const result = await fetchPosts({ limit: pageSize, cursor, direction: "backward" });
+      items.value = result.items;
+      nextCursor.value = result.nextCursor;
+      prevCursor.value = result.prevCursor;
+      const url = new URL(window.location.href);
+      if (result.prevCursor === null) {
+        // Landed back on the true first page — keep the URL canonical.
+        url.searchParams.delete("cursor");
+        url.searchParams.delete("dir");
+      } else {
+        url.searchParams.set("cursor", cursor);
+        url.searchParams.set("dir", "prev");
+      }
+      window.history.pushState({}, "", url);
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to load posts";
+    } finally {
+      isLoading.value = false;
+    }
+  });
+
+  // Browser back/forward: re-derive the displayed page from the URL.
+  useOnWindow(
+    "popstate",
+    $(() => {
+      void loadFromUrl();
+    }),
+  );
+
   return (
     <div class="max-w-6xl mx-auto px-4 py-12">
-      {isLoading.value ? (
+      {isLoading.value && items.value.length === 0 ? (
         <div class="text-center py-12">
           <p class="text-gray-500">Loading posts...</p>
         </div>
@@ -76,11 +179,11 @@ export default component$<PostsListBlockProps>((props) => {
         <p class="text-red-500 text-center py-8">
           Failed to load posts: {error.value}
         </p>
-      ) : posts.value.length === 0 ? (
+      ) : items.value.length === 0 ? (
         <p class="text-gray-500 text-center py-8">No posts found.</p>
       ) : (
         <div class="flex flex-col gap-6">
-          {posts.value.map((post) => (
+          {items.value.map((post) => (
             <ListCard
               key={post.id}
               title={post.title}
@@ -95,6 +198,14 @@ export default component$<PostsListBlockProps>((props) => {
               readMoreLabel="Read More"
             />
           ))}
+
+          <CursorPager
+            hasPrevious={prevCursor.value !== null}
+            hasNext={nextCursor.value !== null}
+            isLoading={isLoading.value}
+            onPrevious$={goPrev}
+            onNext$={goNext}
+          />
         </div>
       )}
     </div>

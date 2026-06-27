@@ -1,4 +1,4 @@
-import { component$, useSignal, useTask$ } from "@qwik.dev/core";
+import { component$, useSignal, useTask$, $ } from "@qwik.dev/core";
 import { server$ } from "@qwik.dev/router";
 import type { BlockDefinition } from "~/db/schema";
 import type { Event } from "~/db/schemas/events";
@@ -15,12 +15,20 @@ export const definition: BlockDefinition = {
   defaultData: {},
 };
 
-const fetchUpcoming = server$(async () => {
-  const events = await eventsService.getUpcoming();
-  return events.map((event) => ({
-    ...event,
-    image1: publicImageUrlFromKey(event.image1),
-  }));
+const fetchUpcomingInitial = server$(async () => {
+  const { items, nextCursor } = await eventsService.getUpcomingInitial(3);
+  return {
+    events: items.map((e) => ({ ...e, image1: publicImageUrlFromKey(e.image1) })),
+    nextCursor,
+  };
+});
+
+const fetchUpcomingMore = server$(async (cursor: string) => {
+  const { items, nextCursor } = await eventsService.getUpcomingFrom(cursor, 10);
+  return {
+    events: items.map((e) => ({ ...e, image1: publicImageUrlFromKey(e.image1) })),
+    nextCursor,
+  };
 });
 
 function formatEventDate(startDate: string, endDate?: string): string {
@@ -33,9 +41,7 @@ function formatEventDate(startDate: string, endDate?: string): string {
     hour12: true,
   }).format(start);
 
-  if (!endDate) {
-    return `${day} ${month} · ${startTime}`;
-  }
+  if (!endDate) return `${day} ${month} · ${startTime}`;
 
   const endTime = new Intl.DateTimeFormat("en-US", {
     hour: "numeric",
@@ -48,16 +54,34 @@ function formatEventDate(startDate: string, endDate?: string): string {
 
 export default component$(() => {
   const events = useSignal<Event[]>([]);
+  const nextCursor = useSignal<string | null>(null);
   const isLoading = useSignal(true);
+  const isLoadingMore = useSignal(false);
   const error = useSignal<string | null>(null);
 
   useTask$(async () => {
     try {
-      events.value = await fetchUpcoming();
+      const result = await fetchUpcomingInitial();
+      events.value = result.events;
+      nextCursor.value = result.nextCursor;
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to load events";
     } finally {
       isLoading.value = false;
+    }
+  });
+
+  const loadMore = $(async () => {
+    if (!nextCursor.value || isLoadingMore.value) return;
+    isLoadingMore.value = true;
+    try {
+      const result = await fetchUpcomingMore(nextCursor.value);
+      events.value = [...events.value, ...result.events];
+      nextCursor.value = result.nextCursor;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to load more events";
+    } finally {
+      isLoadingMore.value = false;
     }
   });
 
@@ -68,19 +92,14 @@ export default component$(() => {
           <p class="text-gray-500">Loading upcoming events...</p>
         </div>
       ) : error.value ? (
-        <p class="text-red-500 text-center py-8">
-          Failed to load events: {error.value}
-        </p>
+        <p class="text-red-500 text-center py-8">Failed to load events: {error.value}</p>
       ) : events.value.length === 0 ? (
         <p class="text-gray-500 text-center py-8">No upcoming events.</p>
       ) : (
         <div class="flex flex-col gap-6">
           {events.value.map((event) => {
             const location =
-              event.city ||
-              event.address ||
-              (event.locationType === "online" ? "Online" : "TBA");
-
+              event.city || event.address || (event.locationType === "online" ? "Online" : "TBA");
             return (
               <ListCard
                 key={event.id}
@@ -94,6 +113,18 @@ export default component$(() => {
               />
             );
           })}
+
+          {nextCursor.value && (
+            <div class="flex justify-center pt-2">
+              <button
+                class="px-6 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick$={loadMore}
+                disabled={isLoadingMore.value}
+              >
+                {isLoadingMore.value ? "Loading..." : "Load More"}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

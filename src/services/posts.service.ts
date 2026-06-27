@@ -3,7 +3,12 @@ import { db } from "~/db/connection";
 import type { InsertPost, UpdatePost, Post } from "~/db/schemas/posts";
 import { posts, insertPostSchema, updatePostSchema } from "~/db/schemas/posts";
 import { users as usersTable } from "~/db/schemas/users";
-import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
+import {
+  decodeCursor,
+  paginateRows,
+  getNextCursorFromRows,
+  type PageDirection,
+} from "~/services/pagination";
 import { groupMembershipsService } from "~/services/group-memberships.service";
 import { sanitizeRichHtml } from "~/utils/sanitize-html";
 
@@ -17,34 +22,36 @@ export const postsService = {
   async getAll(
     limit: number = 10,
     cursor?: string | null,
-  ): Promise<{ items: PostWithUser[]; nextCursor?: string | null }> {
+    direction: PageDirection = "forward",
+  ): Promise<{ items: PostWithUser[]; nextCursor: string | null; prevCursor: string | null }> {
     const cursorObj = decodeCursor(cursor ?? null);
 
     const results = await db.query.posts.findMany({
       with: {
         user: true,
       },
-      orderBy: { createdAt: "desc", id: "desc" },
+      orderBy:
+        direction === "forward"
+          ? { createdAt: "desc", id: "desc" }
+          : { createdAt: "asc", id: "asc" },
       limit: limit + 1,
       where: {
         deletedAt: { isNull: true },
         ...(cursorObj?.createdAt
-          ? { createdAt: { lt: cursorObj.createdAt } }
+          ? direction === "forward"
+            ? { createdAt: { lt: cursorObj.createdAt } }
+            : { createdAt: { gte: cursorObj.createdAt } }
           : {}),
       },
     });
 
-    let nextCursor: string | undefined | null = undefined;
-    let items = results;
-    if (results.length > limit) {
-      nextCursor = getNextCursorFromRows(results, ["createdAt"], limit);
-      items = results.slice(0, limit);
-    }
-
-    return {
-      items: items as PostWithUser[],
-      nextCursor: nextCursor ?? null,
-    };
+    return paginateRows(
+      results as PostWithUser[],
+      ["createdAt"],
+      limit,
+      direction,
+      cursor ?? null,
+    );
   },
 
   async getRecent(limit: number = 3): Promise<PostWithUser[]> {

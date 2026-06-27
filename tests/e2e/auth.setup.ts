@@ -16,6 +16,8 @@ const DB_PATH = process.env.DB_PATH ?? path.join(ROOT, 'my-database.db');
 export const AUTH_FILE = path.join(ROOT, 'playwright/.auth/user.json');
 setup('create shared test session', async ({ page }) => {
   const db = new Database(DB_PATH);
+  // Wait on a held lock instead of erroring (matches the app + openDb()).
+  db.pragma("busy_timeout = 5000");
   const email = SHARED_E2E_EMAIL;
   const now = new Date().toISOString();
 
@@ -63,8 +65,13 @@ setup('create shared test session', async ({ page }) => {
     { name: 'session', value: sessionToken, domain: 'localhost', path: '/' },
   ]);
 
-  await page.goto('/');
-  await page.waitForSelector('[aria-label="profile-menu"]', { timeout: 15000 });
+  // The dev server is started fresh by Playwright's webServer, so the FIRST
+  // navigation triggers Vite's on-demand route compilation, which can take well
+  // over 15s on a cold start. If this selector times out, setup fails, the stale
+  // auth state is reused, and every authenticated test silently runs as a guest.
+  // Use a generous timeout so a cold compile completes.
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[aria-label="profile-menu"]', { timeout: 90000 });
 
   // Persist the authenticated browser state for all dependent test projects
   await page.context().storageState({ path: AUTH_FILE });

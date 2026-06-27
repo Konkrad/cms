@@ -39,10 +39,14 @@
   overflow: hidden;
 }
 
-.lcm-map-wrap svg {
+.lcm-map-svg {
   display: block;
   width: 100%;
   height: auto;
+}
+
+.lcm-map-mobile {
+  display: none;
 }
 
 .lcm-land {
@@ -180,8 +184,13 @@
     touch-action: pan-x pan-y;
   }
 
+  .lcm-map-desktop {
+    display: none;
+  }
+
   /* prevent the default 100% width from shrinking the oversized SVG */
-  .lcm-map-wrap svg {
+  .lcm-map-mobile {
+    display: block;
     width: auto;
     height: auto;
   }

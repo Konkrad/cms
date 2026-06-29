@@ -52,10 +52,11 @@ export default component$(() => {
   const { user, consent, form, existingFormResult } = loader.value;
   const needsProfile = !consent.lastProfileUpdate;
   const needsLocation = !consent.locationVerification;
+  const needsSurvey = !consent.survey;
 
   // Determine initial phase based on what's already complete.
   const phase = useSignal<"steps" | "survey">(
-    needsProfile || needsLocation ? "steps" : "survey",
+    needsProfile || needsLocation ? "steps" : needsSurvey ? "survey" : "done",
   );
 
   // After profile + location actions complete, advance to survey (or home).
@@ -72,7 +73,7 @@ export default component$(() => {
     }
 
     if (profileOk && locationOk) {
-      if (form) {
+      if (form && needsSurvey) {
         phase.value = "survey";
       } else {
         void nav("/");

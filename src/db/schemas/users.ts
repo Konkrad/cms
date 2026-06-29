@@ -10,7 +10,8 @@ export type ConsentStep =
   | "locationVerification"
   | "foodPreference"
   | "lastProfileUpdate"
-  | "photoConsent";
+  | "photoConsent"
+  | "survey";
 
 export type UserConsent = Partial<Record<ConsentStep, string | null>>;
 

@@ -2,6 +2,7 @@ import type { RequestHandler } from "@qwik.dev/router";
 import { requireAuth } from "~/utils/server-auth";
 import { formsService } from "~/services/forms.service";
 import { formResultsService } from "~/services/form-results.service";
+import { markConsentStepComplete } from "~/utils/onboarding";
 
 const ONBOARDING_FORM_KEY = "affilation";
 
@@ -33,6 +34,7 @@ export const onPost: RequestHandler = async (event) => {
       resultJson: result,
       altchaPayload,
     });
+    await markConsentStepComplete(user.id, "survey");
   } catch (err: any) {
     throw qwikError(500, err?.message ?? "Database error");
   }

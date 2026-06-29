@@ -1,3 +1,13 @@
+/*
+ * Core fallback design tokens.
+ *
+ * This is the default token set the application falls back to so it always
+ * renders even with a broken or absent theme. The theme layer
+ * (theme/tokens/theme.css) is imported AFTER this in global.css and overrides
+ * the brand colors via its `@theme` block. Non-color tokens (radii, shadows,
+ * focus-ring shadow, font) live here and are the "structural token contract"
+ * every theme can rely on.
+ */
 :root {
   /* ── Brand ── */
   --color-primary: #034EA2;

@@ -1,20 +1,11 @@
-import { component$, $, useSignal } from "@qwik.dev/core";
-import {
-  routeAction$,
-  routeLoader$,
-  z,
-  zod$,
-} from "@qwik.dev/router";
+import { component$ } from "@qwik.dev/core";
+import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { eq } from "drizzle-orm";
-import { Button } from "~/components/ui/Button";
-import { Card } from "~/components/ui/Card";
-import { Input } from "~/components/ui/Input";
-import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
-import { AddressAutocomplete } from "~/components/ui/AddressAutocomplete";
 import { db } from "~/db/connection";
 import { users } from "~/db/schema";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { resolvePrivateImageUrl } from "~/utils/secure-urls";
+import { ProfileEditView } from "~theme/routes/profile/ProfileEditView";
 
 export const useProfile = routeLoader$(async (event) => {
   await requireAuth(event);
@@ -101,105 +92,5 @@ export const useUpdateProfile = routeAction$(
 export default component$(() => {
   const profile = useProfile();
   const updateAction = useUpdateProfile();
-  const isSubmitting = useSignal(false);
-  const triggerUpload = useSignal(false);
-  const uploadedPictureUrl = useSignal<string | undefined>(undefined);
-  const uploadedThumbnailPath = useSignal<string | undefined>(undefined);
-  const city = useSignal(profile.value.city || "");
-  const country = useSignal(profile.value.country || "");
-  const latitude = useSignal((profile.value as any).latitude || "");
-  const longitude = useSignal((profile.value as any).longitude || "");
-
-  const handleSubmit = $(() => {
-    isSubmitting.value = true;
-    triggerUpload.value = true;
-  });
-
-  const onSettled = $(() => {
-    const form = document.querySelector('form');
-    if (!form) return;
-    const fd = new FormData(form);
-    if (uploadedPictureUrl.value && !fd.get('profilePicture')) {
-      fd.set('profilePicture', uploadedPictureUrl.value);
-    }
-    if (uploadedThumbnailPath.value && !fd.get('profilePictureSmall')) {
-      fd.set('profilePictureSmall', uploadedThumbnailPath.value);
-    }
-    updateAction.submit(fd);
-  });
-
-  return (
-    <div class="container mx-auto px-4 py-8 max-w-4xl">
-      <h1 class="text-3xl font-bold mb-6">Edit Profile</h1>
-
-      {updateAction.value?.error && (
-        <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
-          {updateAction.value.error}
-        </div>
-      )}
-
-      <Card>
-        <form preventdefault:submit onSubmit$={handleSubmit} class="space-y-4">
-          <p class="text-sm font-medium text-gray-700 mb-1">Profile Picture</p>
-          <ImageUploader
-            name="profilePicture"
-            pipeline="profile-picture"
-            path="private/profile-pictures"
-            aspectRatio="1/1"
-            crop
-            cropAspectRatio="1/1"
-            triggerSignal={triggerUpload}
-            onSettled$={onSettled}
-            onFileUploaded$={$((response: any) => {
-              uploadedPictureUrl.value = response.url || response.filePath || undefined;
-              if (response.thumbnailPath) uploadedThumbnailPath.value = response.thumbnailPath;
-            })}
-            currentUrl={profile.value.profilePictureUrl || undefined}
-          />
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="First Name"
-              name="name"
-              type="text"
-              value={profile.value.name}
-              required
-            />
-
-            <Input
-              label="Last Name"
-              name="family_name"
-              type="text"
-              value={profile.value.familyName}
-              required
-            />
-
-            <div class="md:col-span-2">
-              <input type="hidden" name="city" value={city.value} />
-              <input type="hidden" name="country" value={country.value} />
-              <input type="hidden" name="latitude" value={latitude.value} />
-              <input type="hidden" name="longitude" value={longitude.value} />
-              <AddressAutocomplete
-                name="location_search"
-                label="City / Location"
-                placeholder="Start typing your city..."
-                value={[city.value, country.value].filter(Boolean).join(", ")}
-                latitudeSignal={latitude}
-                longitudeSignal={longitude}
-                citySignal={city}
-                countrySignal={country}
-              />
-            </div>
-          </div>
-
-          <div class="flex items-center gap-4 py-4">
-            <Button type="submit" disabled={isSubmitting.value}>
-              {isSubmitting.value ? "Saving..." : "Save Changes"}
-            </Button>
-            <Button href="/profile" variant="secondary">Cancel</Button>
-          </div>
-        </form>
-      </Card>
-    </div>
-  );
+  return <ProfileEditView profile={profile.value} updateAction={updateAction} />;
 });

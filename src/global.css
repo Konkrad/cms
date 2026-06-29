@@ -1,39 +1,51 @@
+/* Core fallback tokens first, so every var has a default even with no theme. */
 @import './design/tokens.css' layer(base);
 
 @import 'tailwindcss';
 
-@theme {
+/* Theme layer owns brand colors: the `@theme` block here generates the Tailwind
+   color utilities and overrides the `:root` color variables. Swap the theme
+   folder (or its alias target) to reskin the public site. */
+@import '~theme/tokens/theme.css';
+
+/* Make sure Tailwind scans the separately-licensed theme folder for utilities. */
+@source '../theme';
+
+/*
+  Admin panel is core and NOT themeable. The `@theme` block above generates
+  utility CLASS NAMES globally (unavoidable with a single Tailwind theme), but
+  CSS variables cascade by scope — so we re-pin the brand + structural token
+  VALUES inside the `.admin-shell` subtree to fixed, theme-independent values.
+  `src/routes/admin/layout.tsx` wraps the admin UI in `.admin-shell`, so any
+  `bg-primary`/`text-text-heading`/etc. used in admin resolves to these values
+  regardless of what the active theme set at `:root`.
+*/
+.admin-shell {
   --color-primary: #034ea2;
   --color-primary-light: #0a6dd6;
   --color-primary-dark: #031241;
-
   --color-accent: #96c247;
   --color-accent-dark: #7da636;
 
   --color-bg: #f9fafb;
   --color-bg-card: #ffffff;
   --color-bg-muted: #f3f4f6;
-
   --color-text: #1f2937;
   --color-text-secondary: #4b5563;
   --color-text-muted: #6b7280;
   --color-text-heading: #111827;
-
   --color-border: #e5e7eb;
   --color-border-strong: #d1d5db;
 
   --color-error: #b91c1c;
   --color-error-bg: #fef2f2;
   --color-error-border: #fca5a5;
-
   --color-success: #047857;
   --color-success-bg: #ecfdf5;
   --color-success-border: #6ee7b7;
-
   --color-info: #1d4ed8;
   --color-info-bg: #eff6ff;
   --color-info-border: #bfdbfe;
-
   --color-danger: #dc2626;
   --color-danger-dark: #b91c1c;
 

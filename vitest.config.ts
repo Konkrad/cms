@@ -6,6 +6,8 @@ export default defineConfig({
   plugins: [qwikVite()],
   resolve: {
     alias: {
+      // "~theme" must precede "~" so it isn't shadowed by the shorter prefix.
+      "~theme": path.resolve(__dirname, "theme"),
       "~": path.resolve(__dirname, "src"),
     },
   },

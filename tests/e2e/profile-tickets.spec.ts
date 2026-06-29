@@ -96,7 +96,7 @@ test.describe("Profile — Purchases section", () => {
       const purchases = page.locator("div").filter({ has: page.locator('h3:has-text("Purchases")') });
       await purchases.locator('div[role="button"]:has-text("Ticket Test Event")').click();
       await expect(purchases.getByText("Standard Ticket")).toBeVisible();
-      await expect(purchases.locator(".text-amber-700")).not.toBeVisible();
+      await expect(purchases.locator(".text-warning")).not.toBeVisible();
     } finally {
       await ctx.close();
       event.cleanup();
@@ -120,7 +120,7 @@ test.describe("Profile — Purchases section", () => {
       await purchases.locator('div[role="button"]:has-text("Ticket Test Event")').click();
       await expect(purchases.getByText("Standard Ticket")).toBeVisible();
       await expect(purchases.getByText("You", { exact: true })).toBeVisible();
-      await expect(purchases.locator(".text-amber-700")).not.toBeVisible();
+      await expect(purchases.locator(".text-warning")).not.toBeVisible();
     } finally {
       await ctx.close();
       event.cleanup();
@@ -144,7 +144,7 @@ test.describe("Profile — Purchases section", () => {
       await purchases.locator('div[role="button"]:has-text("Ticket Test Event")').click();
       await expect(purchases.getByText("Standard Ticket")).toBeVisible();
       await expect(purchases.getByText("You", { exact: true })).toBeVisible();
-      await expect(purchases.locator(".text-amber-700")).not.toBeVisible();
+      await expect(purchases.locator(".text-warning")).not.toBeVisible();
     } finally {
       await ctx.close();
       event.cleanup();
@@ -165,7 +165,7 @@ test.describe("Profile — Purchases section", () => {
       await page.goto("/profile/tickets");
       const purchases = page.locator("div").filter({ has: page.locator('h3:has-text("Purchases")') });
       await purchases.locator('div[role="button"]:has-text("Ticket Test Event")').click();
-      const badge = purchases.locator(".text-amber-700");
+      const badge = purchases.locator(".text-warning");
       await expect(badge).toBeVisible();
       await expect(badge).toContainText("Jane Smith");
       await expect(badge).not.toContainText("jane@example.com");
@@ -195,8 +195,8 @@ test.describe("Profile — Purchases section", () => {
       await page.getByPlaceholder("Email address").fill("alice@example.com");
       await page.getByRole("button", { name: "Add" }).click();
       await page.getByRole("button", { name: "Save" }).click();
-      await expect(purchases.locator(".text-amber-700")).toBeVisible({ timeout: 5000 });
-      await expect(purchases.locator(".text-amber-700")).toContainText("Alice Example");
+      await expect(purchases.locator(".text-warning")).toBeVisible({ timeout: 5000 });
+      await expect(purchases.locator(".text-warning")).toContainText("Alice Example");
     } finally {
       await ctx.close();
       event.cleanup();
@@ -227,7 +227,7 @@ test.describe("Profile — Purchases section", () => {
       await page.getByPlaceholder("Email address").fill("bob@example.com");
       await page.getByRole("button", { name: "Add" }).click();
       await page.getByRole("button", { name: "Save" }).click();
-      await expect(purchases.locator(".text-amber-700")).toBeVisible({ timeout: 5000 });
+      await expect(purchases.locator(".text-warning")).toBeVisible({ timeout: 5000 });
 
       const dbAfter = openDb();
       const newUuid = (dbAfter.prepare("SELECT qr_code_uuid FROM tickets WHERE id = ?").get(ticketId) as { qr_code_uuid: string }).qr_code_uuid;

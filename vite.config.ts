@@ -12,6 +12,9 @@ import pkg from "./package.json";
 
 // Absolute path to ./src for the "~" alias below.
 const srcDir = fileURLToPath(new URL("./src/", import.meta.url));
+// Absolute path to ./theme for the "~theme" alias below. The theme layer is a
+// separately-licensed folder; the public site's presentational components live here.
+const themeDir = fileURLToPath(new URL("./theme/", import.meta.url));
 
 type PkgDep = Record<string, string>;
 const { dependencies = {}, devDependencies = {} } = pkg as any as {
@@ -34,10 +37,15 @@ export default defineConfig(({ command, mode }): UserConfig => {
       cssMinify: "esbuild",
     },
     resolve: {
-      // Explicit "~" -> ./src alias. tsconfigPaths alone does not resolve "~" in the
-      // production build for Qwik's optimizer-generated segment modules, which breaks
-      // the Rollup build; an absolute alias resolves everywhere (dev and build).
-      alias: [{ find: /^~\//, replacement: srcDir }],
+      // Explicit "~" -> ./src and "~theme" -> ./theme aliases. tsconfigPaths alone
+      // does not resolve these in the production build for Qwik's optimizer-generated
+      // segment modules, which breaks the Rollup build; an absolute alias resolves
+      // everywhere (dev and build). "~theme/" must precede "~/" (the "~/" regex is
+      // anchored on the slash so it won't match "~theme/", but order it first for clarity).
+      alias: [
+        { find: /^~theme\//, replacement: themeDir },
+        { find: /^~\//, replacement: srcDir },
+      ],
       dedupe: ["react", "react-dom"],
     },
     // This tells Vite which dependencies to pre-build in dev mode.

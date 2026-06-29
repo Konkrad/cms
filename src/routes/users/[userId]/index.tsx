@@ -12,7 +12,7 @@ import { electionsService } from "~/services/elections.service";
 import { buildFormPath } from "~/utils/forms";
 import { formatAffiliationResultJson } from "~/utils/affiliation";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
-import { UserProfile } from "~/components/user/UserProfile/UserProfile";
+import { PublicProfileView } from "~theme/routes/users/PublicProfileView";
 
 export const usePublicProfile = routeLoader$(async (event) => {
   await requireAuth(event);
@@ -124,15 +124,5 @@ export const usePublicProfile = routeLoader$(async (event) => {
 
 export default component$(() => {
   const data = usePublicProfile();
-
-  if (!data.value) {
-    return (
-      <div class="container mx-auto px-4 py-16 max-w-4xl text-center">
-        <h1 class="text-2xl font-bold text-gray-800">Profile not found</h1>
-        <p class="text-gray-500 mt-2">This profile does not exist.</p>
-      </div>
-    );
-  }
-
-  return <UserProfile {...data.value} />;
+  return <PublicProfileView data={data.value} />;
 });

@@ -1,0 +1,53 @@
+/*
+ * Theme layer — Tailwind v4 `@theme` block.
+ *
+ * This is the theme's source of truth for brand colors. The `@theme` block both
+ * generates the Tailwind color utilities (bg-primary, text-text-heading, …) and
+ * emits the matching `:root` custom properties. Imported by `src/global.css`
+ * after `tailwindcss`.
+ *
+ * Non-color tokens (radii, shadows, focus-ring shadow, font) are provided as
+ * `:root` defaults by the core fallback `src/design/tokens.css`; a theme may
+ * override them there-equivalently if it ships its own.
+ */
+@theme {
+  --color-primary: #034ea2;
+  --color-primary-light: #0a6dd6;
+  --color-primary-dark: #031241;
+
+  --color-accent: #96c247;
+  --color-accent-dark: #7da636;
+
+  --color-bg: #f9fafb;
+  --color-bg-card: #ffffff;
+  --color-bg-muted: #f3f4f6;
+
+  --color-text: #1f2937;
+  --color-text-secondary: #4b5563;
+  --color-text-muted: #6b7280;
+  --color-text-heading: #111827;
+
+  --color-border: #e5e7eb;
+  --color-border-strong: #d1d5db;
+
+  --color-error: #b91c1c;
+  --color-error-bg: #fef2f2;
+  --color-error-border: #fca5a5;
+
+  --color-success: #047857;
+  --color-success-bg: #ecfdf5;
+  --color-success-border: #6ee7b7;
+
+  --color-info: #1d4ed8;
+  --color-info-bg: #eff6ff;
+  --color-info-border: #bfdbfe;
+
+  --color-danger: #dc2626;
+  --color-danger-dark: #b91c1c;
+
+  --color-warning: #92400e;
+  --color-warning-bg: #fef3c7;
+  --color-warning-border: #fcd34d;
+
+  --color-focus-ring: #034ea2;
+}

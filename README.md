@@ -91,6 +91,14 @@ Why this matters
 - Centralizing environment variables makes configuration consistent and easier to maintain.
 - Zod validation ensures misconfiguration is caught early with actionable errors.
 
+## Theming
+
+Public-facing presentation (design tokens, layout chrome, page blocks, and
+route views) lives in [`theme/`](theme/README.md) and is licensed separately
+from the rest of the app — a community can fork or swap that folder to reskin
+the public site without touching core logic. The admin panel is **not**
+themeable. See [CLAUDE.md](CLAUDE.md) for the theme/core boundary rules.
+
 ## Deployment
 
 The app deploys with Kamal (single server, Docker, SQLite + Litestream backups). See [docs/deployment.md](docs/deployment.md).

@@ -19,7 +19,8 @@
     "isolatedModules": true,
     "noEmit": true,
     "paths": {
-      "~/*": ["./src/*"]
+      "~/*": ["./src/*"],
+      "~theme/*": ["./theme/*"]
     }
   },
   "exclude": ["dist", "server"]

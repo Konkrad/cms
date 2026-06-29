@@ -2,7 +2,7 @@ import { component$ } from "@qwik.dev/core";
 import { routeLoader$, type DocumentHead } from "@qwik.dev/router";
 import { eventsService } from "~/services/events.service";
 import { participationService } from "~/services/participation.service";
-import { ParticipationSummary } from "~/components/events/ParticipationToggle";
+import { ParticipationSummary } from "~/components/events/ParticipationSummary";
 
 export const useEvent = routeLoader$(async ({ params }) => {
   const { requireAdmin } = await import("~/utils/server-auth");

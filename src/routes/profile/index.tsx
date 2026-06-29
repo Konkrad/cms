@@ -11,7 +11,7 @@ import { db } from "~/db/connection";
 import { groupMemberships } from "~/db/schemas/group-memberships";
 import { groups } from "~/db/schemas/groups";
 import { eq } from "drizzle-orm";
-import { UserProfile } from "~/components/user/UserProfile/UserProfile";
+import { UserProfile } from "~theme/routes/profile/UserProfile/UserProfile";
 
 export const useProfile = routeLoader$(async (event) => {
   await requireAuth(event);

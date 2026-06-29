@@ -1,6 +1,6 @@
 # Builder — Page Block Components
 
-This directory contains the UI for the page builder (canvas, sidebar, properties panel). Page "blocks" (the actual pieces you add to pages) live under `src/components/page-blocks/` and follow a simple convention so the builder can discover and render them.
+This directory contains the UI for the page builder (canvas, sidebar, properties panel). Page "blocks" (the actual pieces you add to pages) live under `theme/blocks/` and follow a simple convention so the builder can discover and render them.
 
 Quick summary
 - A page-block file must export:
@@ -44,7 +44,7 @@ How the builder uses these
 - `PropertiesPanel` reads `definition.configSchema` and renders the appropriate input controls. It calls `onUpdateData(blockId, data)` when fields change.
 
 Creating a new block (step-by-step)
-1. Create a new component file (example: `src/components/page-blocks/MyBlock.tsx`).
+1. Create a new component file (example: `theme/blocks/MyBlock.tsx`).
 2. Export a `definition: BlockDefinition` that describes the block and its `configSchema` and `defaultData`.
 3. Export a default `component$` which accepts the fields from your `configSchema` as props and renders UI.
 4. Register it in `src/services/component-loader.service.ts` by adding a mapping to `componentModules`.
@@ -88,10 +88,10 @@ export default component$<ExampleBlockProps>((props) => {
 Registering the component
 ```src/services/component-loader.service.ts#L1-24
 const componentModules = {
-  HeroBlock: () => import("~/components/page-blocks/HeroBlock"),
-  TextBlock: () => import("~/components/page-blocks/TextBlock"),
+  HeroBlock: () => import("~theme/blocks/HeroBlock"),
+  TextBlock: () => import("~theme/blocks/TextBlock"),
   // add your block:
-  ExampleBlock: () => import("~/components/page-blocks/ExampleBlock"),
+  ExampleBlock: () => import("~theme/blocks/ExampleBlock"),
 };
 ```
 
@@ -109,6 +109,6 @@ Dynamic blocks
 Tips
 - Keep `componentType` unique and in sync with the key you add to `componentModules`.
 - Ensure `defaultData` keys match your `configSchema` names so newly added blocks are pre-populated correctly.
-- Look at existing blocks in `src/components/page-blocks/` for examples and patterns.
+- Look at existing blocks in `theme/blocks/` for examples and patterns.
 
-That's it — create a new file in `src/components/page-blocks/`, export `definition` + default component, register it in the loader, and you'll be able to add and edit it from the builder UI.
+That's it — create a new file in `theme/blocks/`, export `definition` + default component, register it in the loader, and you'll be able to add and edit it from the builder UI.

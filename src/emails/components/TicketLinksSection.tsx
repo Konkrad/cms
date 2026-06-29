@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import { Img, Section, Text } from "@react-email/components";
 import type * as React from "react";
+import { colors } from "~theme/tokens/tokens";
 
 export interface TicketLinksSectionProps {
   tickets: { id: string; qrCodeUuid: string }[];
@@ -52,19 +53,19 @@ const sectionStyle: React.CSSProperties = {
 const headingStyle: React.CSSProperties = {
   fontSize: "20px",
   fontWeight: "bold",
-  color: "#1f2937",
+  color: colors.text,
   marginBottom: "12px",
 };
 
 const descriptionStyle: React.CSSProperties = {
   fontSize: "14px",
-  color: "#4b5563",
+  color: colors["text-secondary"],
   marginBottom: "16px",
 };
 
 const ticketContainerStyle: React.CSSProperties = {
-  backgroundColor: "#f9fafb",
-  border: "1px solid #e5e7eb",
+  backgroundColor: colors.bg,
+  border: `1px solid ${colors.border}`,
   borderRadius: "8px",
   padding: "20px",
   marginBottom: "16px",
@@ -74,7 +75,7 @@ const ticketContainerStyle: React.CSSProperties = {
 const ticketLabelStyle: React.CSSProperties = {
   fontSize: "16px",
   fontWeight: "600",
-  color: "#1f2937",
+  color: colors.text,
   marginBottom: "16px",
   marginTop: "0",
 };
@@ -82,13 +83,15 @@ const ticketLabelStyle: React.CSSProperties = {
 const qrCodeStyle: React.CSSProperties = {
   display: "block",
   margin: "0 auto",
+  // Solid black border (not a brand color) — keeps the QR code's quiet zone
+  // high-contrast for scanning regardless of theme.
   border: "2px solid #000",
   borderRadius: "4px",
 };
 
 const uuidStyle: React.CSSProperties = {
   fontSize: "12px",
-  color: "#9ca3af",
+  color: colors["text-muted"],
   marginTop: "12px",
   marginBottom: "0",
   fontFamily: "monospace",

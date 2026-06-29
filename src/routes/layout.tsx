@@ -1,11 +1,13 @@
 import { component$, Slot } from "@qwik.dev/core";
 import type { RequestHandler } from "@qwik.dev/router";
 import { routeAction$, routeLoader$ } from "@qwik.dev/router";
-import { Navigation } from "~/components/ui/Navigation";
-import { SiteFooter } from "~/components/ui/SiteFooter/SiteFooter";
+import { Navigation } from "~theme/chrome/Navigation/Navigation";
+import { SiteFooter } from "~theme/chrome/SiteFooter/SiteFooter";
 import { menuItemsService } from "~/services/menu-items.service";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { getCurrentUserData } from "~/utils/server-auth";
+import { formatUser } from "~/utils/users";
+import type { NavUser } from "~/contracts/layout";
 import { eq } from "drizzle-orm";
 import { db } from "~/db/connection";
 import { sessions } from "~/db/schema";
@@ -113,47 +115,34 @@ export const useLogoutAction = routeAction$(async (_, { cookie, redirect }) => {
 });
 
 export default component$(() => {
-  console.log("[Layout] Component rendering - start");
-
-  // Trigger loaders here so we can inspect their values during SSR
   const user = useUserSession();
   const menu = useMenuItems();
+  const footer = useFooterMenuItems();
+  const logoutAction = useLogoutAction();
 
-  // Safely extract a minimal snapshot of user and menu to avoid capturing
-  const safeUser = user.value
-    ? {
-        id: (user.value as any).id ?? null,
-        role: (user.value as any).role ?? null,
-      }
-    : null;
-
-  let menuCount: number | null = null;
-  let menuSampleIds: any[] = [];
-  try {
-    if (Array.isArray(menu.value)) {
-      menuCount = menu.value.length;
-      menuSampleIds = menu.value.slice(0, 5).map((i: any) => i.id);
-    }
-  } catch (err) {
-    console.error("[Layout] Error reading menu.value:", err);
-  }
-
-  console.log("[Layout] user (safe):", safeUser);
-  console.log(
-    "[Layout] menuCount:",
-    menuCount,
-    "menuSampleIds:",
-    menuSampleIds,
-  );
-  console.log("[Layout] Rendering Navigation (about to mount)");
+  // Secret-stripped snapshot handed to the theme — see ~/contracts/layout#NavUser.
+  // The theme never sees the raw user row (email, tokens, etc.).
+  const navUser: NavUser = (() => {
+    const u = user.value as any;
+    if (!u || typeof u !== "object") return null;
+    const isAdmin = u.role === "admin" || u.role === "moderator";
+    const displayName = u.name ? formatUser(u, true).displayName : u.email ?? u.id ?? "User";
+    return {
+      id: u.id,
+      role: u.role ?? null,
+      displayName,
+      isAdmin,
+      profilePictureSmallUrl: u.profilePictureSmallUrl ?? null,
+    };
+  })();
 
   return (
     <>
-      <Navigation />
+      <Navigation user={navUser} menuItems={menu.value} logoutAction={logoutAction} />
       <main class="min-h-screen">
         <Slot />
       </main>
-      <SiteFooter />
+      <SiteFooter footerItems={footer.value} />
     </>
   );
 });

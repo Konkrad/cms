@@ -1,5 +1,5 @@
 import { $, component$, useSignal, useTask$, type QRL } from "@qwik.dev/core";
-import { GRID_AREAS } from "~/components/page-blocks/FeatureBlock/FeatureBlock";
+import { GRID_AREAS } from "~theme/blocks/FeatureBlock/FeatureBlock";
 
 interface GridLayoutEditorProps {
   value: string;

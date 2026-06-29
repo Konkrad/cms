@@ -4,7 +4,7 @@ import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import {
   GRID_AREAS,
   type TileConfig,
-} from "~/components/page-blocks/FeatureBlock/FeatureBlock";
+} from "~theme/blocks/FeatureBlock/FeatureBlock";
 import { publicImageUrlFromKey } from "~/utils/images";
 
 interface TileEditorProps {

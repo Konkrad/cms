@@ -1,9 +1,10 @@
 /** @jsxImportSource react */
 import React from "react";
 import { Text, Section, Heading, Hr } from "@react-email/components";
-import EmailLayout from "./components/EmailLayout";
+import EmailLayout from "~theme/emails/EmailLayout";
 import TicketLinksSection from "./components/TicketLinksSection";
 import TransactionProductsSummary from "./components/TransactionProductsSummary";
+import { colors } from "~theme/tokens/tokens";
 
 export interface TicketConfirmationEmailProps {
   baseUrl: string;
@@ -44,7 +45,7 @@ const TicketConfirmationEmail = ({
         style={{
           textAlign: "center",
           padding: "20px",
-          backgroundColor: "#d1fae5",
+          backgroundColor: colors["success-bg"],
           borderRadius: "8px",
           marginBottom: "24px",
         }}
@@ -53,24 +54,24 @@ const TicketConfirmationEmail = ({
           style={{
             fontSize: "24px",
             fontWeight: "bold",
-            color: "#065f46",
+            color: colors.success,
             marginBottom: "8px",
           }}
         >
           ✓ Purchase Confirmed
         </Text>
-        <Text style={{ fontSize: "16px", color: "#047857", margin: "0" }}>
+        <Text style={{ fontSize: "16px", color: colors.success, margin: "0" }}>
           Thank you for your purchase!
         </Text>
       </Section>
 
       {/* Greeting */}
       <Text
-        style={{ fontSize: "18px", marginBottom: "16px", color: "#1f2937" }}
+        style={{ fontSize: "18px", marginBottom: "16px", color: colors.text }}
       >
         Hello {transaction.buyerName}!
       </Text>
-      <Text style={{ color: "#4b5563", marginBottom: "24px" }}>
+      <Text style={{ color: colors["text-secondary"], marginBottom: "24px" }}>
         Your purchase for <strong>{event.title}</strong> has been confirmed.
         {hasTickets && " Your tickets are ready below."}
       </Text>
@@ -80,7 +81,7 @@ const TicketConfirmationEmail = ({
         style={{
           marginBottom: "24px",
           padding: "16px",
-          backgroundColor: "#f9fafb",
+          backgroundColor: colors.bg,
           borderRadius: "8px",
         }}
       >
@@ -89,21 +90,21 @@ const TicketConfirmationEmail = ({
           style={{
             fontSize: "20px",
             fontWeight: "bold",
-            color: "#1f2937",
+            color: colors.text,
             marginBottom: "12px",
             marginTop: "0",
           }}
         >
           Event Details
         </Heading>
-        <Text style={{ color: "#4b5563", marginBottom: "8px" }}>
+        <Text style={{ color: colors["text-secondary"], marginBottom: "8px" }}>
           <strong>Event:</strong> {event.title}
         </Text>
-        <Text style={{ color: "#4b5563", marginBottom: "8px" }}>
+        <Text style={{ color: colors["text-secondary"], marginBottom: "8px" }}>
           <strong>Date:</strong> {event.date}
         </Text>
         {event.location && (
-          <Text style={{ color: "#4b5563", marginBottom: "0" }}>
+          <Text style={{ color: colors["text-secondary"], marginBottom: "0" }}>
             <strong>Location:</strong> {event.location}
           </Text>
         )}
@@ -118,7 +119,7 @@ const TicketConfirmationEmail = ({
       {/* Tickets Section */}
       {hasTickets && (
         <>
-          <Hr style={{ borderColor: "#e5e7eb", margin: "24px 0" }} />
+          <Hr style={{ borderColor: colors.border, margin: "24px 0" }} />
           <TicketLinksSection
             tickets={tickets}
             baseUrl={baseUrl}
@@ -129,7 +130,7 @@ const TicketConfirmationEmail = ({
         </>
       )}
 
-      <Hr style={{ borderColor: "#e5e7eb", margin: "24px 0" }} />
+      <Hr style={{ borderColor: colors.border, margin: "24px 0" }} />
 
       {/* Instructions */}
       <Section style={{ marginBottom: "24px" }}>
@@ -138,7 +139,7 @@ const TicketConfirmationEmail = ({
           style={{
             fontSize: "18px",
             fontWeight: "700",
-            color: "#1f2937",
+            color: colors.text,
             marginBottom: "12px",
             marginTop: "0",
           }}
@@ -151,7 +152,7 @@ const TicketConfirmationEmail = ({
               <li
                 style={{
                   fontSize: "14px",
-                  color: "#4b5563",
+                  color: colors["text-secondary"],
                   lineHeight: "1.6",
                   marginBottom: "8px",
                 }}
@@ -162,7 +163,7 @@ const TicketConfirmationEmail = ({
               <li
                 style={{
                   fontSize: "14px",
-                  color: "#4b5563",
+                  color: colors["text-secondary"],
                   lineHeight: "1.6",
                   marginBottom: "8px",
                 }}
@@ -175,7 +176,7 @@ const TicketConfirmationEmail = ({
           <li
             style={{
               fontSize: "14px",
-              color: "#4b5563",
+              color: colors["text-secondary"],
               lineHeight: "1.6",
               marginBottom: "0",
             }}
@@ -184,7 +185,7 @@ const TicketConfirmationEmail = ({
             ID:{" "}
             <code
               style={{
-                backgroundColor: "#f3f4f6",
+                backgroundColor: colors["bg-muted"],
                 padding: "2px 6px",
                 borderRadius: "4px",
                 fontFamily: "monospace",
@@ -200,7 +201,7 @@ const TicketConfirmationEmail = ({
       {/* Footer Note */}
       <Text
         style={{
-          color: "#6b7280",
+          color: colors["text-muted"],
           fontSize: "14px",
           lineHeight: "1.5",
           marginBottom: "0",

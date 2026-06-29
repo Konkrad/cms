@@ -1,22 +1,21 @@
 import type { BlockDefinition } from "~/db/schema";
 
 const componentModules = {
-  TextBlock: () => import("~/components/page-blocks/TextBlock"),
-  TitleBlock: () => import("~/components/page-blocks/TitleBlock"),
-  ImageBlock: () => import("~/components/page-blocks/ImageBlock"),
-  UpcomingEventsBlock: () =>
-    import("~/components/page-blocks/UpcomingEventsBlock"),
-  PastEventsBlock: () => import("~/components/page-blocks/PastEventsBlock"),
-  PostsListBlock: () => import("~/components/page-blocks/PostsListBlock"),
-  SpacerBlock: () => import("~/components/page-blocks/SpacerBlock"),
-  FeatureBlock: () => import("~/components/page-blocks/FeatureBlock"),
-  ActionButtonBlock: () => import("~/components/page-blocks/ActionButtonBlock"),
+  TextBlock: () => import("~theme/blocks/TextBlock"),
+  TitleBlock: () => import("~theme/blocks/TitleBlock"),
+  ImageBlock: () => import("~theme/blocks/ImageBlock"),
+  UpcomingEventsBlock: () => import("~theme/blocks/UpcomingEventsBlock"),
+  PastEventsBlock: () => import("~theme/blocks/PastEventsBlock"),
+  PostsListBlock: () => import("~theme/blocks/PostsListBlock"),
+  SpacerBlock: () => import("~theme/blocks/SpacerBlock"),
+  FeatureBlock: () => import("~theme/blocks/FeatureBlock"),
+  ActionButtonBlock: () => import("~theme/blocks/ActionButtonBlock"),
   LocalCommunitiesMapBlock: () =>
-    import("~/components/page-blocks/LocalCommunitiesMapBlock"),
-  HeroSectionBlock: () => import("~/components/page-blocks/HeroSectionBlock"),
-  GroupsListBlock: () => import("~/components/page-blocks/GroupsListBlock"),
-  SurveyFormBlock: () => import("~/components/page-blocks/SurveyFormBlock"),
-  DealsListBlock: () => import("~/components/page-blocks/DealsListBlock"),
+    import("~theme/blocks/LocalCommunitiesMapBlock"),
+  HeroSectionBlock: () => import("~theme/blocks/HeroSectionBlock"),
+  GroupsListBlock: () => import("~theme/blocks/GroupsListBlock"),
+  SurveyFormBlock: () => import("~theme/blocks/SurveyFormBlock"),
+  DealsListBlock: () => import("~theme/blocks/DealsListBlock"),
 };
 
 type ComponentModuleLoader = () => Promise<{

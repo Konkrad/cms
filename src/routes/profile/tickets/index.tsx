@@ -3,8 +3,8 @@ import { routeLoader$, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { transactionsService } from "~/services/transactions.service";
 import { ticketsService } from "~/services/tickets.service";
 import { participantsService } from "~/services/participants.service";
-import QrTicketWall from "~/components/profile/QrTicketWall";
-import PurchaseList from "~/components/profile/PurchaseList";
+import QrTicketWall from "~theme/routes/profile/QrTicketWall";
+import PurchaseList from "~theme/routes/profile/PurchaseList";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 
 export const useUpdateParticipants = routeAction$(

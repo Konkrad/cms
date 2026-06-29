@@ -21,6 +21,18 @@
 - React components used through `qwikify$()` must be self-contained: keep their CSS alongside the component.
 - Before creating any shared UI primitive or form element, read [src/design/DESIGN.md](src/design/DESIGN.md) and import primitives from `~/components/ui` only.
 
+## Theme vs Core
+
+The presentational layer for public-facing routes lives in `theme/` and is licensed separately from core (`theme/LICENSE`). The admin panel is core and is **not** themeable — see [theme/README.md](theme/README.md) for the folder layout.
+
+- **Qwik City forces route files to stay in `src/routes/**`.** A route file keeps its `routeLoader$`/`routeAction$`/`onRequest`/`head`/auth, strips secrets in the loader, then delegates rendering to a theme `*View` component, passing loader data as typed props.
+- **The props type is the contract.** Derive it from the loader (`NonNullable<ReturnType<typeof useX>["value"]>`) and re-export it from `src/contracts/*.ts`. Theme components import only from `~/contracts/*` — never `db`, `env`, services, or `~/utils/server-auth` directly (page-blocks under `theme/blocks/**` are a documented exception: they self-fetch via `server$()` since the page builder has no route loader to supply them props).
+- **Import theme code via the `~theme/*` alias** (`~theme/chrome`, `~theme/blocks`, `~theme/routes/**`, `~theme/shared/**`). Never import theme code from a route file via a relative path.
+- **Qwik production-build footgun:** a re-exported `routeAction$`/`routeLoader$` is only resolved correctly by the production Rollup transform when re-exported via a **relative** import path — never `~` or `~theme`. When a step/widget bundles an action with JSX (see `src/components/setup/README.md`), split it: the action stays in core (`src/components/**/useXxx.ts`, re-exported relatively from the route), the JSX moves to `theme/shared/**` (imported via `~theme` alias — only the action re-export hits the broken transform).
+- **Check usage per exported component, not per file.** A single file can export multiple components where only some are theme-exclusive — grepping the file/folder name as "shared" is not enough; check what each consuming route actually imports before moving or splitting (e.g. `ParticipationToggle` vs `ParticipationSummary`, originally one file, split because only the public route used the toggle and only the admin route used the summary).
+- Admin stays un-themeable via the `.admin-shell` scope in `src/global.css`, which re-pins brand token values; `src/routes/admin/layout.tsx` wraps admin in it. Never let an admin-only component read brand tokens (`--color-primary*`, `--color-accent*`) expecting theme values to apply.
+- Design tokens (colors, fonts, radii, shadows) are defined once in `theme/tokens/theme.css` (Tailwind `@theme {}` block) and `theme/tokens/tokens.ts` (TS constants for emails/inline styles), with a core fallback set in `src/design/tokens.css`. Never hardcode hex colors or font stacks in components or emails — reference a token. See [src/design/DESIGN.md](src/design/DESIGN.md) for the full palette and `theme/emails/brand.ts` for email-specific brand strings.
+
 ## Database And Auth
 
 - Keep schema files in `src/db/schemas/` and use `better-sqlite3` with Drizzle.

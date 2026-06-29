@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import { Section, Text } from "@react-email/components";
 import type * as React from "react";
+import { colors } from "~theme/tokens/tokens";
 
 export interface TransactionProduct {
   name: string;
@@ -77,7 +78,7 @@ const sectionStyle: React.CSSProperties = {
 const headingStyle: React.CSSProperties = {
   fontSize: "20px",
   fontWeight: "700",
-  color: "#1f2937",
+  color: colors.text,
   marginBottom: "12px",
   marginTop: "0",
 };
@@ -89,8 +90,8 @@ const tableStyle: React.CSSProperties = {
 };
 
 const headerRowStyle: React.CSSProperties = {
-  backgroundColor: "#f3f4f6",
-  borderBottom: "2px solid #e5e7eb",
+  backgroundColor: colors["bg-muted"],
+  borderBottom: `2px solid ${colors.border}`,
 };
 
 const headerCellStyle: React.CSSProperties = {
@@ -98,45 +99,24 @@ const headerCellStyle: React.CSSProperties = {
   textAlign: "left" as const,
   fontSize: "14px",
   fontWeight: "600",
-  color: "#374151",
+  color: colors["text-secondary"],
   lineHeight: "1.5",
 };
 
 const bodyRowStyle: React.CSSProperties = {
-  borderBottom: "1px solid #e5e7eb",
+  borderBottom: `1px solid ${colors.border}`,
 };
 
 const bodyCellStyle: React.CSSProperties = {
   padding: "12px 8px",
   fontSize: "14px",
-  color: "#4b5563",
-  lineHeight: "1.5",
-};
-
-const totalRowStyle: React.CSSProperties = {
-  borderTop: "1px solid #e5e7eb",
-};
-
-const totalLabelCellStyle: React.CSSProperties = {
-  padding: "12px 8px",
-  textAlign: "right" as const,
-  fontSize: "14px",
-  fontWeight: "500",
-  color: "#6b7280",
-  lineHeight: "1.5",
-};
-
-const totalValueCellStyle: React.CSSProperties = {
-  padding: "12px 8px",
-  fontSize: "14px",
-  fontWeight: "500",
-  color: "#4b5563",
+  color: colors["text-secondary"],
   lineHeight: "1.5",
 };
 
 const finalTotalRowStyle: React.CSSProperties = {
-  borderTop: "2px solid #e5e7eb",
-  backgroundColor: "#f9fafb",
+  borderTop: `2px solid ${colors.border}`,
+  backgroundColor: colors.bg,
 };
 
 const finalTotalLabelCellStyle: React.CSSProperties = {
@@ -144,7 +124,7 @@ const finalTotalLabelCellStyle: React.CSSProperties = {
   textAlign: "right" as const,
   fontSize: "16px",
   fontWeight: "700",
-  color: "#111827",
+  color: colors["text-heading"],
   lineHeight: "1.5",
 };
 
@@ -152,6 +132,6 @@ const finalTotalValueCellStyle: React.CSSProperties = {
   padding: "12px 8px",
   fontSize: "16px",
   fontWeight: "700",
-  color: "#111827",
+  color: colors["text-heading"],
   lineHeight: "1.5",
 };

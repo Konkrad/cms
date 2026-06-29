@@ -1,7 +1,9 @@
 /** @jsxImportSource react */
 import React from "react";
 import { Text, Section, Button, Hr } from "@react-email/components";
-import EmailLayout from "./components/EmailLayout";
+import EmailLayout from "~theme/emails/EmailLayout";
+import { emailBrand } from "~theme/emails/brand";
+import { colors } from "~theme/tokens/tokens";
 
 export interface LoginEmailProps {
   link: string;
@@ -19,7 +21,7 @@ export interface LoginEmailProps {
 export default function LoginEmail({
   link,
   code,
-  appName = "EIT Digital Alumni",
+  appName = emailBrand.siteName,
   baseUrl,
   expiresInMinutes = 15,
 }: LoginEmailProps) {
@@ -31,7 +33,7 @@ export default function LoginEmail({
     >
       {/* Greeting */}
       <Text
-        style={{ fontSize: "16px", marginBottom: "16px", color: "#1f2937" }}
+        style={{ fontSize: "16px", marginBottom: "16px", color: colors.text }}
       >
         Use the button below to sign in, or copy the 6-letter code into the
         site.
@@ -42,8 +44,8 @@ export default function LoginEmail({
         <Button
           href={link}
           style={{
-            backgroundColor: "#075de6",
-            color: "white",
+            backgroundColor: colors.primary,
+            color: colors["bg-card"],
             textDecoration: "none",
             borderRadius: "6px",
             display: "inline-block",
@@ -62,7 +64,7 @@ export default function LoginEmail({
         style={{
           textAlign: "center",
           padding: "20px",
-          backgroundColor: "#f9fafb",
+          backgroundColor: colors.bg,
           borderRadius: "8px",
           marginBottom: "24px",
         }}
@@ -70,7 +72,7 @@ export default function LoginEmail({
         <Text
           style={{
             fontSize: "14px",
-            color: "#4b5563",
+            color: colors["text-secondary"],
             marginBottom: "12px",
           }}
         >
@@ -80,13 +82,13 @@ export default function LoginEmail({
           style={{
             display: "inline-block",
             padding: "12px 20px",
-            backgroundColor: "#ffffff",
-            border: "2px solid #e5e7eb",
+            backgroundColor: colors["bg-card"],
+            border: `2px solid ${colors.border}`,
             borderRadius: "6px",
             fontSize: "24px",
             fontWeight: "700",
             letterSpacing: "4px",
-            color: "#1f2937",
+            color: colors.text,
             fontFamily: "monospace",
           }}
         >
@@ -95,7 +97,7 @@ export default function LoginEmail({
         <Text
           style={{
             fontSize: "13px",
-            color: "#6b7280",
+            color: colors["text-muted"],
             marginTop: "12px",
           }}
         >
@@ -103,14 +105,14 @@ export default function LoginEmail({
         </Text>
       </Section>
 
-      <Hr style={{ borderColor: "#e5e7eb", margin: "24px 0" }} />
+      <Hr style={{ borderColor: colors.border, margin: "24px 0" }} />
 
       {/* Security Notice */}
       <Section>
         <Text
           style={{
             fontSize: "14px",
-            color: "#4b5563",
+            color: colors["text-secondary"],
             marginBottom: "8px",
           }}
         >
@@ -119,7 +121,7 @@ export default function LoginEmail({
         <Text
           style={{
             fontSize: "13px",
-            color: "#6b7280",
+            color: colors["text-muted"],
           }}
         >
           For security reasons, do not share your code or sign-in link with
@@ -134,6 +136,6 @@ LoginEmail.PreviewProps = {
   baseUrl: "http://localhost:3000",
   link: "http://localhost:3000/auth/verify?token=abc123def456",
   code: "XYZ123",
-  appName: "EIT Digital Alumni",
+  appName: emailBrand.siteName,
   expiresInMinutes: 15,
 } as LoginEmailProps;

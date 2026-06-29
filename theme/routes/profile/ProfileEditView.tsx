@@ -43,14 +43,14 @@ export const ProfileEditView = component$<{
       <h1 class="text-3xl font-bold mb-6">Edit Profile</h1>
 
       {updateAction.value?.error && (
-        <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
+        <div class="mb-4 p-3 bg-error-bg border border-error-border text-error rounded-sm">
           {updateAction.value.error}
         </div>
       )}
 
       <Card>
         <form preventdefault:submit onSubmit$={handleSubmit} class="space-y-4">
-          <p class="text-sm font-medium text-gray-700 mb-1">Profile Picture</p>
+          <p class="text-sm font-medium text-text-secondary mb-1">Profile Picture</p>
           <ImageUploader
             name="profilePicture"
             pipeline="profile-picture"

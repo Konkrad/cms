@@ -39,10 +39,10 @@ export const PhotoConsentStep = component$<PhotoConsentStepProps>((props) => {
   });
 
   return (
-    <div class="space-y-4 p-6 border border-gray-200 rounded-lg bg-white">
+    <div class="space-y-4 p-6 border border-border rounded-lg bg-white">
       <div>
         <h2 class="text-xl font-semibold">Photo consent</h2>
-        <p class="text-gray-600 mt-1">
+        <p class="text-text-secondary mt-1">
           Photos and videos may be taken during this event for documentation and
           promotion. Do you consent to being photographed?
         </p>
@@ -56,7 +56,7 @@ export const PhotoConsentStep = component$<PhotoConsentStepProps>((props) => {
         <div class="flex gap-4">
           <label
             class={`flex-1 flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-              given.value === true ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+              given.value === true ? "border-primary bg-info-bg" : "border-border hover:border-border-strong"
             }`}
           >
             <input
@@ -69,13 +69,13 @@ export const PhotoConsentStep = component$<PhotoConsentStepProps>((props) => {
             <span class="text-2xl">📷</span>
             <div>
               <p class="font-medium">Yes, I consent</p>
-              <p class="text-sm text-gray-500">Photos may be taken of me</p>
+              <p class="text-sm text-text-muted">Photos may be taken of me</p>
             </div>
           </label>
 
           <label
             class={`flex-1 flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-              given.value === false ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+              given.value === false ? "border-primary bg-info-bg" : "border-border hover:border-border-strong"
             }`}
           >
             <input
@@ -88,7 +88,7 @@ export const PhotoConsentStep = component$<PhotoConsentStepProps>((props) => {
             <span class="text-2xl">🚫</span>
             <div>
               <p class="font-medium">No, opt out</p>
-              <p class="text-sm text-gray-500">Please don't photograph me</p>
+              <p class="text-sm text-text-muted">Please don't photograph me</p>
             </div>
           </label>
         </div>

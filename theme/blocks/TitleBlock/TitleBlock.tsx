@@ -84,7 +84,7 @@ export default component$<TitleBlockProps>((props) => {
 
   return (
     <div class="max-w-6xl mx-auto px-4 py-6">
-      <Tag class={`${sizeClass} font-bold text-gray-900 ${alignClass}`}>
+      <Tag class={`${sizeClass} font-bold text-text-heading ${alignClass}`}>
         {text}
       </Tag>
     </div>

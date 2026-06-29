@@ -13,11 +13,11 @@ export const PostView = component$<{ post: PostViewData | null }>(({ post }) => 
   if (!post) {
     return (
       <div class="max-w-4xl mx-auto px-4 py-16 text-center">
-        <h1 class="text-4xl font-bold text-gray-900 mb-4">Post Not Found</h1>
-        <p class="text-gray-600 mb-8">
+        <h1 class="text-4xl font-bold text-text-heading mb-4">Post Not Found</h1>
+        <p class="text-text-secondary mb-8">
           The post you're looking for doesn't exist or has been removed.
         </p>
-        <Link href="/" class="text-blue-600 hover:text-blue-800 font-medium">
+        <Link href="/" class="text-primary hover:text-primary font-medium">
           Go back home
         </Link>
       </div>
@@ -38,10 +38,10 @@ export const PostView = component$<{ post: PostViewData | null }>(({ post }) => 
       <div class="lg:grid lg:grid-cols-[1fr_320px] lg:gap-12">
         {/* Left: title + date + body */}
         <div class="min-w-0">
-          <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight mb-3">
+          <h1 class="text-3xl sm:text-4xl font-bold text-text-heading leading-tight mb-3">
             {p.title}
           </h1>
-          <time dateTime={p.createdAt} class="block text-sm text-gray-500 mb-8">
+          <time dateTime={p.createdAt} class="block text-sm text-text-muted mb-8">
             {formattedDate}
           </time>
 
@@ -62,13 +62,13 @@ export const PostView = component$<{ post: PostViewData | null }>(({ post }) => 
           )}
 
           <div
-            class="prose prose-lg max-w-none text-gray-800"
+            class="prose prose-lg max-w-none text-text"
             dangerouslySetInnerHTML={p.body}
           />
 
           {/* Mobile: author block below body */}
           {p.showAuthor && (
-            <div class="lg:hidden mt-10 pt-8 border-t border-gray-100">
+            <div class="lg:hidden mt-10 pt-8 border-t border-border">
               <AuthorCard
                 displayName={p.user.displayName}
                 avatarUrl={p.authorAvatarUrl}
@@ -103,8 +103,8 @@ export const PostView = component$<{ post: PostViewData | null }>(({ post }) => 
 
       {/* ── Related articles ── */}
       {p.relatedPosts.length > 0 && (
-        <section class="mt-20 pt-12 border-t border-gray-100">
-          <h2 class="text-2xl font-bold text-gray-900 mb-8 text-center">
+        <section class="mt-20 pt-12 border-t border-border">
+          <h2 class="text-2xl font-bold text-text-heading mb-8 text-center">
             Related Articles
           </h2>
           <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -112,7 +112,7 @@ export const PostView = component$<{ post: PostViewData | null }>(({ post }) => 
               <Link
                 key={related.id}
                 href={`/posts/${related.id}`}
-                class="group block rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+                class="group block rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-md transition-shadow"
               >
                 {related.featuredImageUrl ? (
                   <div class="overflow-hidden" style={{ aspectRatio: "1/1" }}>
@@ -123,17 +123,17 @@ export const PostView = component$<{ post: PostViewData | null }>(({ post }) => 
                     />
                   </div>
                 ) : (
-                  <div class="bg-blue-600" style={{ aspectRatio: "1/1" }} />
+                  <div class="bg-primary" style={{ aspectRatio: "1/1" }} />
                 )}
                 <div class="p-4">
-                  <time class="text-xs text-gray-400 block mb-1">
+                  <time class="text-xs text-text-muted block mb-1">
                     {new Date(related.createdAt).toLocaleDateString("en-GB", {
                       year: "numeric",
                       month: "long",
                       day: "numeric",
                     })}
                   </time>
-                  <h3 class="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                  <h3 class="font-semibold text-text-heading group-hover:text-primary transition-colors line-clamp-2">
                     {related.title}
                   </h3>
                 </div>
@@ -152,7 +152,7 @@ const AuthorCard = component$<{
   avatarUrl: string | null;
   userId: string;
 }>((props) => (
-  <div class="bg-blue-900 rounded-2xl p-5 text-white">
+  <div class="bg-primary-dark rounded-2xl p-5 text-white">
     <h3 class="text-lg font-bold mb-3">Author</h3>
     <div class="flex items-center gap-3 mb-4">
       {props.avatarUrl ? (

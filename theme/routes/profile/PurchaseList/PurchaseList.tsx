@@ -84,20 +84,20 @@ export default component$<PurchaseListProps>(
       return (
         <div
           key={ticket.id}
-          class="rounded-lg border border-gray-100 bg-gray-50 overflow-hidden"
+          class="rounded-lg border border-border bg-bg overflow-hidden"
         >
           <div class="flex items-center justify-between gap-3 px-3 py-2.5">
             <div class="min-w-0">
-              <p class="text-sm font-medium text-gray-800 truncate">
+              <p class="text-sm font-medium text-text truncate">
                 {ticket.product.name}
               </p>
               {p0 && (
-                <span class={`inline-flex items-center gap-1 mt-0.5 text-xs ${isAssignedAway ? "text-amber-700" : "text-gray-500"}`}>
+                <span class={`inline-flex items-center gap-1 mt-0.5 text-xs ${isAssignedAway ? "text-warning" : "text-text-muted"}`}>
                   {isAssignedAway ? `→ ${p0.name}` : "You"}
                 </span>
               )}
               {ticket.scannedAt && (
-                <span class="inline-flex items-center gap-1 mt-0.5 text-xs text-green-700">
+                <span class="inline-flex items-center gap-1 mt-0.5 text-xs text-success">
                   ✓ Scanned
                 </span>
               )}
@@ -111,7 +111,7 @@ export default component$<PurchaseListProps>(
                   }
                   expandedTicketId[ticket.id] = !isExpanded;
                 }}
-                class="shrink-0 px-2.5 py-1 text-xs font-medium rounded-md border border-gray-200 text-gray-600 hover:bg-white transition-colors"
+                class="shrink-0 px-2.5 py-1 text-xs font-medium rounded-md border border-border text-text-secondary hover:bg-white transition-colors"
               >
                 {isExpanded ? "Close" : "Reassign"}
               </button>
@@ -119,7 +119,7 @@ export default component$<PurchaseListProps>(
           </div>
 
           {isUpcoming && isExpanded && (
-            <div class="border-t border-gray-200 bg-white px-3 py-3">
+            <div class="border-t border-border bg-white px-3 py-3">
               <ParticipantForm
                 slots={slots}
                 totalSlots={ticket.product.participantCapacity}
@@ -129,13 +129,13 @@ export default component$<PurchaseListProps>(
               />
 
               {saveError[ticket.id] && (
-                <p class="text-xs text-red-600 mt-2">{saveError[ticket.id]}</p>
+                <p class="text-xs text-error mt-2">{saveError[ticket.id]}</p>
               )}
 
               <div class="flex justify-end gap-2 mt-3">
                 <button
                   type="button"
-                  class="text-xs px-3 py-1.5 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors"
+                  class="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-bg transition-colors"
                   onClick$={() => {
                     pendingSlots[ticket.id] = buildInitialSlots(ticket);
                     saveError[ticket.id] = "";
@@ -146,7 +146,7 @@ export default component$<PurchaseListProps>(
                 <button
                   type="button"
                   disabled={!!saving[ticket.id]}
-                  class="text-xs px-3 py-1.5 rounded-md bg-gray-900 text-white hover:bg-gray-700 disabled:opacity-40 transition-colors"
+                  class="text-xs px-3 py-1.5 rounded-md bg-text-heading text-white hover:bg-text disabled:opacity-40 transition-colors"
                   onClick$={async () => {
                     saving[ticket.id] = true;
                     saveError[ticket.id] = "";
@@ -188,7 +188,7 @@ export default component$<PurchaseListProps>(
       if (group.length === 0) return null;
       return (
         <div>
-          <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
+          <h4 class="text-xs font-semibold uppercase tracking-wider text-text-muted mb-3">
             {label}
           </h4>
           <div class="space-y-3">
@@ -197,7 +197,7 @@ export default component$<PurchaseListProps>(
               return (
                 <div
                   key={tx.id}
-                  class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                  class="rounded-xl border border-border bg-white shadow-sm overflow-hidden"
                 >
                   {/* Purchase header — click to expand */}
                   <div
@@ -215,15 +215,15 @@ export default component$<PurchaseListProps>(
                   >
                     <div class="flex items-start justify-between gap-3">
                       <div class="min-w-0">
-                        <span class="block font-semibold text-gray-900 truncate">
+                        <span class="block font-semibold text-text-heading truncate">
                           {tx.event.title}
                         </span>
-                        <span class="block text-xs text-gray-500 mt-0.5">
+                        <span class="block text-xs text-text-muted mt-0.5">
                           {formatDate(tx.event.startDate)}
                         </span>
                       </div>
                       <svg
-                        class={`w-4 h-4 text-gray-400 shrink-0 mt-1 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                        class={`w-4 h-4 text-text-muted shrink-0 mt-1 transition-transform ${isOpen ? "rotate-180" : ""}`}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -242,7 +242,7 @@ export default component$<PurchaseListProps>(
                       {tx.items.map((item) => (
                         <div
                           key={item.id}
-                          class="flex items-center justify-between text-xs text-gray-600"
+                          class="flex items-center justify-between text-xs text-text-secondary"
                         >
                           <span>
                             {item.quantity}× {item.product.name}
@@ -255,13 +255,13 @@ export default component$<PurchaseListProps>(
                     </div>
 
                     {/* Total */}
-                    <div class="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
-                      <span class="text-gray-400">
+                    <div class="mt-2 pt-2 border-t border-border flex items-center justify-between text-xs">
+                      <span class="text-text-muted">
                         {tx.transactionFee > 0
                           ? `incl. ${formatCurrency(tx.transactionFee)} fee`
                           : "Free"}
                       </span>
-                      <span class="font-semibold text-gray-900 tabular-nums">
+                      <span class="font-semibold text-text-heading tabular-nums">
                         {formatCurrency(tx.totalAmount)}
                       </span>
                     </div>
@@ -269,7 +269,7 @@ export default component$<PurchaseListProps>(
 
                   {/* Tickets (expanded) */}
                   {isOpen && tx.tickets.length > 0 && (
-                    <div class="border-t border-gray-100 px-3 pb-3 pt-2 space-y-2">
+                    <div class="border-t border-border px-3 pb-3 pt-2 space-y-2">
                       {tx.tickets.map((ticket) =>
                         renderTicket(ticket, isUpcoming),
                       )}
@@ -286,7 +286,7 @@ export default component$<PurchaseListProps>(
     if (transactions.length === 0) {
       return (
         <SectionCard title="Purchases">
-          <p class="text-gray-500 text-center py-8">No purchases yet</p>
+          <p class="text-text-muted text-center py-8">No purchases yet</p>
         </SectionCard>
       );
     }

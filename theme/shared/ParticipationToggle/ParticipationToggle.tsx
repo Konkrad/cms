@@ -12,20 +12,20 @@ export const ParticipationToggle = component$<ParticipationToggleProps>(
       {
         value: "yes" as const,
         label: "✓ Going",
-        color: "bg-green-600 hover:bg-green-700 text-white",
-        activeColor: "bg-green-700",
+        color: "bg-success hover:bg-success text-white",
+        activeColor: "bg-success",
       },
       {
         value: "maybe" as const,
         label: "? Maybe",
-        color: "bg-yellow-600 hover:bg-yellow-700 text-white",
-        activeColor: "bg-yellow-700",
+        color: "bg-warning hover:bg-warning text-white",
+        activeColor: "bg-warning",
       },
       {
         value: "no" as const,
         label: "✗ Not Going",
-        color: "bg-red-600 hover:bg-red-700 text-white",
-        activeColor: "bg-red-700",
+        color: "bg-error hover:bg-error text-white",
+        activeColor: "bg-error",
       },
     ];
 

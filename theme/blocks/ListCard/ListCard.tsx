@@ -69,13 +69,13 @@ export const ListCard = component$<ListCardProps>(
           <div class="px-4 py-4">
             {!image && (
               <>
-                <h3 class="font-bold text-lg text-gray-900 leading-snug mb-1 truncate">
+                <h3 class="font-bold text-lg text-text-heading leading-snug mb-1 truncate">
                   {title}
                 </h3>
                 {(date || topRight) && (
                   <div class="flex items-center justify-between gap-2 mb-2">
                     {date && (
-                      <span class="flex items-center gap-1 text-gray-500 text-xs font-medium">
+                      <span class="flex items-center gap-1 text-text-muted text-xs font-medium">
                         <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -84,7 +84,7 @@ export const ListCard = component$<ListCardProps>(
                       </span>
                     )}
                     {topRight && (
-                      <span class="text-gray-500 text-xs font-medium uppercase tracking-wide">
+                      <span class="text-text-muted text-xs font-medium uppercase tracking-wide">
                         {topRight}
                       </span>
                     )}
@@ -93,7 +93,7 @@ export const ListCard = component$<ListCardProps>(
               </>
             )}
             {description && (
-              <p class="text-gray-700 text-sm leading-relaxed mb-3">{description}</p>
+              <p class="text-text-secondary text-sm leading-relaxed mb-3">{description}</p>
             )}
             <ReadMoreButton href={readMoreHref} label={readMoreLabel} />
           </div>
@@ -116,7 +116,7 @@ export const ListCard = component$<ListCardProps>(
             {(date || topRight) && (
               <div class="flex items-start justify-between gap-4">
                 {date ? (
-                  <p class="font-['Lato',sans-serif] font-normal text-[13px] leading-[1.4] text-gray-500 mt-0.5">
+                  <p class="font-['Lato',sans-serif] font-normal text-[13px] leading-[1.4] text-text-muted mt-0.5">
                     {date}
                   </p>
                 ) : (
@@ -134,7 +134,7 @@ export const ListCard = component$<ListCardProps>(
               {title}
             </h3>
             {description && (
-              <p class="font-['Lato',sans-serif] font-normal text-[15px] leading-normal text-gray-700 mt-2">
+              <p class="font-['Lato',sans-serif] font-normal text-[15px] leading-normal text-text-secondary mt-2">
                 {description}
               </p>
             )}

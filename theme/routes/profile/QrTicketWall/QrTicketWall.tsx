@@ -85,16 +85,16 @@ export default component$<QrTicketWallProps>(
                 selectedEventId.value = (btn as HTMLButtonElement).dataset["eventId"]!;
                 carouselIndex.value = 0;
               }}
-              class="w-full text-left relative rounded-xl border border-gray-200 bg-white hover:border-gray-400 hover:shadow-sm transition-all p-4"
+              class="w-full text-left relative rounded-xl border border-border bg-white hover:border-border-strong hover:shadow-sm transition-all p-4"
             >
               {/* Ticket count badge */}
-              <span class="absolute top-3 right-3 flex items-center justify-center min-w-[1.5rem] h-6 px-1.5 rounded-full bg-gray-900 text-white text-xs font-semibold">
+              <span class="absolute top-3 right-3 flex items-center justify-center min-w-[1.5rem] h-6 px-1.5 rounded-full bg-text-heading text-white text-xs font-semibold">
                 {group.tickets.length}
               </span>
-              <span class="block font-semibold text-gray-900 pr-10">
+              <span class="block font-semibold text-text-heading pr-10">
                 {group.event.title}
               </span>
-              <span class="block text-sm text-gray-500 mt-0.5">
+              <span class="block text-sm text-text-muted mt-0.5">
                 {formatEventDate(group.event.startDate)}
               </span>
             </button>
@@ -128,7 +128,7 @@ export default component$<QrTicketWallProps>(
             >
               <div class="text-center space-y-5 py-2">
                 {/* QR code image */}
-                <div class="inline-block bg-white border border-gray-100 rounded-xl p-3 shadow-sm">
+                <div class="inline-block bg-white border border-border rounded-xl p-3 shadow-sm">
                   <img
                     src={`/profile/tickets/${currentTicket.id}_${qrBust[currentTicket.id] ?? currentTicket.qrCodeUuid}`}
                     alt="Ticket QR Code"
@@ -138,18 +138,18 @@ export default component$<QrTicketWallProps>(
 
                 {/* Ticket info */}
                 <div>
-                  <p class="font-semibold text-gray-900">
+                  <p class="font-semibold text-text-heading">
                     {currentTicket.product.name}
                   </p>
                   {currentTicket.participants[0] && (
-                    <p class="text-sm text-gray-500 mt-0.5">
+                    <p class="text-sm text-text-muted mt-0.5">
                       {currentTicket.participants[0].userId === buyerUserId
                         ? "You"
                         : currentTicket.participants[0].name}
                     </p>
                   )}
                   {currentTicket.scannedAt && (
-                    <span class="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full bg-green-50 border border-green-200 text-xs text-green-700 font-medium">
+                    <span class="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full bg-success-bg border border-success-border text-xs text-success font-medium">
                       ✓ Already scanned
                     </span>
                   )}
@@ -167,7 +167,7 @@ export default component$<QrTicketWallProps>(
                           carouselIndex.value - 1,
                         );
                       }}
-                      class="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-30 transition-colors"
+                      class="p-2 rounded-full border border-border hover:bg-bg disabled:opacity-30 transition-colors"
                       aria-label="Previous ticket"
                     >
                       <svg
@@ -185,7 +185,7 @@ export default component$<QrTicketWallProps>(
                       </svg>
                     </button>
 
-                    <span class="text-sm text-gray-500 tabular-nums">
+                    <span class="text-sm text-text-muted tabular-nums">
                       {carouselIndex.value + 1} / {currentTickets.length}
                     </span>
 
@@ -200,7 +200,7 @@ export default component$<QrTicketWallProps>(
                           carouselIndex.value + 1,
                         );
                       }}
-                      class="p-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-30 transition-colors"
+                      class="p-2 rounded-full border border-border hover:bg-bg disabled:opacity-30 transition-colors"
                       aria-label="Next ticket"
                     >
                       <svg

@@ -61,17 +61,17 @@ export const ParticipantForm = component$<ParticipantFormProps>(
                       class="w-8 h-8 rounded-full object-cover flex-shrink-0"
                     />
                   ) : (
-                    <div class="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
+                    <div class="w-8 h-8 rounded-full bg-border flex-shrink-0" />
                   )}
                   <div class="min-w-0 flex-1">
                     <p class="text-sm font-medium truncate">
                       {slot.locked ? buyer?.name || slot.name : slot.name}
                     </p>
-                    <p class="text-xs text-gray-500">Participant {idx + 1}</p>
+                    <p class="text-xs text-text-muted">Participant {idx + 1}</p>
                   </div>
                   <button
                     type="button"
-                    class="text-xs text-red-600 hover:underline flex-shrink-0"
+                    class="text-xs text-error hover:underline flex-shrink-0"
                     onClick$={() => {
                       const next = slots.map((s, i) =>
                         i === idx
@@ -93,8 +93,8 @@ export const ParticipantForm = component$<ParticipantFormProps>(
         {hasOpenSlot && (
           <div class="space-y-2">
             {ui.manualMode ? (
-              <div class="border rounded-lg p-3 space-y-2 bg-gray-50">
-                <p class="text-xs font-medium text-gray-600">
+              <div class="border rounded-lg p-3 space-y-2 bg-bg">
+                <p class="text-xs font-medium text-text-secondary">
                   Add participant manually
                 </p>
                 <input
@@ -118,7 +118,7 @@ export const ParticipantForm = component$<ParticipantFormProps>(
                 <div class="flex gap-2">
                   <button
                     type="button"
-                    class="text-sm px-3 py-1.5 rounded-lg bg-black text-white hover:bg-gray-800 disabled:opacity-40"
+                    class="text-sm px-3 py-1.5 rounded-lg bg-black text-white hover:bg-text-heading disabled:opacity-40"
                     disabled={
                       !ui.manualName.trim() ||
                       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ui.manualEmail)
@@ -144,7 +144,7 @@ export const ParticipantForm = component$<ParticipantFormProps>(
                   </button>
                   <button
                     type="button"
-                    class="text-sm px-3 py-1.5 rounded-lg border hover:bg-gray-100"
+                    class="text-sm px-3 py-1.5 rounded-lg border hover:bg-bg-muted"
                     onClick$={() => {
                       ui.manualMode = false;
                       ui.manualName = "";
@@ -213,10 +213,10 @@ export const ParticipantForm = component$<ParticipantFormProps>(
                 />
 
                 {ui.searchLoading && (
-                  <p class="text-xs text-gray-500 mt-1">Searching…</p>
+                  <p class="text-xs text-text-muted mt-1">Searching…</p>
                 )}
                 {!ui.searchLoading && ui.searchError && (
-                  <p class="text-xs text-red-600 mt-1">{ui.searchError}</p>
+                  <p class="text-xs text-error mt-1">{ui.searchError}</p>
                 )}
 
                 {(ui.focused || ui.searchResults.length > 0) && (
@@ -224,7 +224,7 @@ export const ParticipantForm = component$<ParticipantFormProps>(
                     {/* Manual entry — always first */}
                     <button
                       type="button"
-                      class="w-full px-3 py-2 text-left hover:bg-gray-50 border-b flex items-center gap-3"
+                      class="w-full px-3 py-2 text-left hover:bg-bg border-b flex items-center gap-3"
                       onMouseDown$={(e) => {
                         e.preventDefault();
                       }}
@@ -235,12 +235,12 @@ export const ParticipantForm = component$<ParticipantFormProps>(
                         ui.searchResults = [];
                       }}
                     >
-                      <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 text-gray-500 text-lg leading-none">
+                      <div class="w-8 h-8 rounded-full bg-bg-muted flex items-center justify-center flex-shrink-0 text-text-muted text-lg leading-none">
                         +
                       </div>
                       <div>
                         <p class="text-sm font-medium">Add manually</p>
-                        <p class="text-xs text-gray-500">
+                        <p class="text-xs text-text-muted">
                           Enter name and email address
                         </p>
                       </div>
@@ -251,7 +251,7 @@ export const ParticipantForm = component$<ParticipantFormProps>(
                       <button
                         key={user.id}
                         type="button"
-                        class="w-full px-3 py-2 text-left hover:bg-gray-50 border-b last:border-b-0 flex items-center gap-3"
+                        class="w-full px-3 py-2 text-left hover:bg-bg border-b last:border-b-0 flex items-center gap-3"
                         onMouseDown$={(e) => {
                           e.preventDefault();
                         }}
@@ -284,7 +284,7 @@ export const ParticipantForm = component$<ParticipantFormProps>(
                             class="w-8 h-8 rounded-full object-cover flex-shrink-0"
                           />
                         ) : (
-                          <div class="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
+                          <div class="w-8 h-8 rounded-full bg-border flex-shrink-0" />
                         )}
                         <div class="min-w-0">
                           <p class="text-sm font-medium truncate">
@@ -298,14 +298,14 @@ export const ParticipantForm = component$<ParticipantFormProps>(
                     {ui.searchResults.length === 0 &&
                       previouslyAdded.length > 0 && (
                         <>
-                          <p class="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide bg-gray-50">
+                          <p class="px-3 py-1.5 text-xs font-semibold text-text-muted uppercase tracking-wide bg-bg">
                             Previously added
                           </p>
                           {previouslyAdded.map((p, i) => (
                             <button
                               key={i}
                               type="button"
-                              class="w-full px-3 py-2 text-left hover:bg-gray-50 border-b last:border-b-0 flex items-center gap-3"
+                              class="w-full px-3 py-2 text-left hover:bg-bg border-b last:border-b-0 flex items-center gap-3"
                               onMouseDown$={(e) => {
                                 e.preventDefault();
                               }}
@@ -331,12 +331,12 @@ export const ParticipantForm = component$<ParticipantFormProps>(
                                 ui.focused = false;
                               }}
                             >
-                              <div class="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
+                              <div class="w-8 h-8 rounded-full bg-border flex-shrink-0" />
                               <div class="min-w-0">
                                 <p class="text-sm font-medium truncate">
                                   {p.name}
                                 </p>
-                                <p class="text-xs text-gray-500 truncate">
+                                <p class="text-xs text-text-muted truncate">
                                   {p.email}
                                 </p>
                               </div>

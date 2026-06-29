@@ -10,50 +10,50 @@ export const StepIndicator = component$<StepIndicatorProps>(({ currentStep }) =>
       <div class="flex items-center">
         <div
           class={`flex items-center justify-center w-10 h-10 rounded-full ${
-            currentStep === 1 ? "bg-blue-600 text-white" : "bg-green-600 text-white"
+            currentStep === 1 ? "bg-primary text-white" : "bg-success text-white"
           }`}
         >
           {currentStep > 1 ? "✓" : "1"}
         </div>
-        <span class={`ml-2 font-medium ${currentStep === 1 ? "text-blue-600" : "text-gray-600"}`}>
+        <span class={`ml-2 font-medium ${currentStep === 1 ? "text-primary" : "text-text-secondary"}`}>
           Select Products
         </span>
       </div>
 
-      <div class="w-24 h-1 bg-gray-300 mx-4"></div>
+      <div class="w-24 h-1 bg-border-strong mx-4"></div>
 
       <div class="flex items-center">
         <div
           class={`flex items-center justify-center w-10 h-10 rounded-full ${
             currentStep === 2
-              ? "bg-blue-600 text-white"
+              ? "bg-primary text-white"
               : currentStep > 2
-                ? "bg-green-600 text-white"
-                : "bg-gray-300 text-gray-600"
+                ? "bg-success text-white"
+                : "bg-border-strong text-text-secondary"
           }`}
         >
           2
         </div>
-        <span class={`ml-2 font-medium ${currentStep === 2 ? "text-blue-600" : "text-gray-600"}`}>
+        <span class={`ml-2 font-medium ${currentStep === 2 ? "text-primary" : "text-text-secondary"}`}>
           Participants
         </span>
       </div>
 
-      <div class="w-24 h-1 bg-gray-300 mx-4"></div>
+      <div class="w-24 h-1 bg-border-strong mx-4"></div>
 
       <div class="flex items-center">
         <div
           class={`flex items-center justify-center w-10 h-10 rounded-full ${
             currentStep === 3
-              ? "bg-blue-600 text-white"
+              ? "bg-primary text-white"
               : currentStep > 3
-                ? "bg-green-600 text-white"
-                : "bg-gray-300 text-gray-600"
+                ? "bg-success text-white"
+                : "bg-border-strong text-text-secondary"
           }`}
         >
           3
         </div>
-        <span class={`ml-2 font-medium ${currentStep === 3 ? "text-blue-600" : "text-gray-600"}`}>
+        <span class={`ml-2 font-medium ${currentStep === 3 ? "text-primary" : "text-text-secondary"}`}>
           Payment
         </span>
       </div>

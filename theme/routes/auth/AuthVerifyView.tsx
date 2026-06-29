@@ -15,8 +15,8 @@ export const AuthVerifyView = component$<{ result: AuthVerifyViewData }>(({ resu
     return (
       <div class="container mx-auto px-4 py-8 max-w-md">
         <h1 class="text-2xl font-bold mb-2">Verification failed</h1>
-        <p class="mb-4 text-gray-700">{result.error}</p>
-        <a href="/login" class="text-blue-600 hover:text-blue-800">
+        <p class="mb-4 text-text-secondary">{result.error}</p>
+        <a href="/login" class="text-primary hover:text-primary">
           Return to login
         </a>
       </div>

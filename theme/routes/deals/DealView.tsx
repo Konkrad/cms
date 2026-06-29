@@ -24,9 +24,9 @@ export const DealView = component$<DealViewData>(({ deal, isLoggedIn }) => {
       <h1 class="font-['Lato',sans-serif] font-bold text-3xl text-[#121212] mb-2">
         {deal.name}
       </h1>
-      {deal.description && <p class="text-gray-600 text-base mb-2">{deal.description}</p>}
+      {deal.description && <p class="text-text-secondary text-base mb-2">{deal.description}</p>}
       {deal.validUntil && (
-        <p class="text-gray-400 text-sm mb-8">
+        <p class="text-text-muted text-sm mb-8">
           Valid until{" "}
           {new Date(deal.validUntil).toLocaleDateString("en-GB", {
             day: "numeric",
@@ -38,7 +38,7 @@ export const DealView = component$<DealViewData>(({ deal, isLoggedIn }) => {
 
       {(deal.steps ?? []).length > 0 && (
         <div>
-          <h2 class="font-['Lato',sans-serif] font-bold text-lg text-gray-700 mb-4">
+          <h2 class="font-['Lato',sans-serif] font-bold text-lg text-text-secondary mb-4">
             How to get this deal
           </h2>
           <div class="flex flex-wrap justify-center gap-4">

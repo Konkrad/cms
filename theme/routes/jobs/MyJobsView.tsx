@@ -18,38 +18,38 @@ export const MyJobsView = component$<{ data: MyJobsData; deleteAction: DeleteMyJ
     return (
       <div class="max-w-3xl mx-auto px-4 py-8">
         <div class="mb-6">
-          <Link href="/jobs" class="text-sm text-blue-600 hover:text-blue-800">
+          <Link href="/jobs" class="text-sm text-primary hover:text-primary">
             ← Back to Job Board
           </Link>
         </div>
 
         <div class="flex items-center justify-between mb-8">
-          <h1 class="text-2xl font-bold text-gray-900">My Job Submissions</h1>
+          <h1 class="text-2xl font-bold text-text-heading">My Job Submissions</h1>
           <Button href="/jobs/new">Post a Job</Button>
         </div>
 
-        <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div class="bg-white border border-border rounded-lg overflow-hidden">
           {data.jobs.length === 0 ? (
-            <div class="text-center py-12 text-gray-500">
+            <div class="text-center py-12 text-text-muted">
               You haven't submitted any job postings yet.
             </div>
           ) : (
             <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
+              <thead class="bg-bg">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                     Job
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                     Location
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                     Expires
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                     Status
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -58,15 +58,15 @@ export const MyJobsView = component$<{ data: MyJobsData; deleteAction: DeleteMyJ
                 {data.jobs.map((job) => {
                   const isExpired = new Date(job.expiresAt) < new Date();
                   return (
-                    <tr key={job.id} class="hover:bg-gray-50">
+                    <tr key={job.id} class="hover:bg-bg">
                       <td class="px-6 py-4">
-                        <div class="text-sm font-medium text-gray-900">{job.title}</div>
+                        <div class="text-sm font-medium text-text-heading">{job.title}</div>
                       </td>
-                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
                         {locationLabel(job)}
                       </td>
                       <td class="px-6 py-4 whitespace-nowrap text-sm">
-                        <span class={isExpired ? "text-red-600 font-medium" : "text-gray-700"}>
+                        <span class={isExpired ? "text-error font-medium" : "text-text-secondary"}>
                           {isExpired ? "Expired · " : ""}
                           {format(new Date(job.expiresAt), "MMM d, yyyy")}
                         </span>
@@ -76,8 +76,8 @@ export const MyJobsView = component$<{ data: MyJobsData; deleteAction: DeleteMyJ
                           class={[
                             "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
                             job.status === "approved"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-yellow-100 text-yellow-800",
+                              ? "bg-success-bg text-success"
+                              : "bg-warning-bg text-warning",
                           ].join(" ")}
                         >
                           {job.status === "approved" ? "Approved" : "Pending review"}
@@ -88,7 +88,7 @@ export const MyJobsView = component$<{ data: MyJobsData; deleteAction: DeleteMyJ
                           {job.status === "pending" && (
                             <Link
                               href={`/jobs/mine/${job.id}/edit`}
-                              class="text-blue-600 hover:text-blue-900"
+                              class="text-primary hover:text-primary-dark"
                             >
                               Edit
                             </Link>
@@ -97,7 +97,7 @@ export const MyJobsView = component$<{ data: MyJobsData; deleteAction: DeleteMyJ
                             <input type="hidden" name="jobId" value={job.id} />
                             <button
                               type="submit"
-                              class="text-red-600 hover:text-red-900"
+                              class="text-error hover:text-error"
                               onClick$={(e) => {
                                 if (!confirm("Delete this job posting?")) {
                                   e.preventDefault();

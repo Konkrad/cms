@@ -45,7 +45,7 @@ export const PhotoGallery = component$<PhotoGalleryProps>(
             description="Photos will appear here once the organizer uploads them"
           >
             <svg
-              class="w-16 h-16 mx-auto mb-4 text-gray-400"
+              class="w-16 h-16 mx-auto mb-4 text-text-muted"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -64,7 +64,7 @@ export const PhotoGallery = component$<PhotoGalleryProps>(
               {photos.map((photo) => (
                 <div
                   key={photo.id}
-                  class="relative aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                  class="relative aspect-square bg-bg-muted rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
                   onClick$={async () => {
                     await loadPhotoUrl(photo.id);
                     selectedPhoto.value = photo.id;
@@ -80,7 +80,7 @@ export const PhotoGallery = component$<PhotoGalleryProps>(
                   ) : (
                     <div class="w-full h-full flex items-center justify-center">
                       {loadingPhotos.value[photo.id] ? (
-                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                       ) : (
                         <Button
                           onClick$={async () => {
@@ -111,7 +111,7 @@ export const PhotoGallery = component$<PhotoGalleryProps>(
               >
                 <div class="relative max-w-4xl max-h-full">
                   <button
-                    class="absolute top-4 right-4 text-white hover:text-gray-300"
+                    class="absolute top-4 right-4 text-white hover:text-border"
                     onClick$={() => {
                       selectedPhoto.value = null;
                     }}

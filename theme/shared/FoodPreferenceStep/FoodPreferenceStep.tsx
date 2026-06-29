@@ -41,10 +41,10 @@ export const FoodPreferenceStep = component$<FoodPreferenceStepProps>((props) =>
   });
 
   return (
-    <div class="space-y-4 p-6 border border-gray-200 rounded-lg bg-white">
+    <div class="space-y-4 p-6 border border-border rounded-lg bg-white">
       <div>
         <h2 class="text-xl font-semibold">Food preferences</h2>
-        <p class="text-gray-600 mt-1">
+        <p class="text-text-secondary mt-1">
           Let us know your dietary preferences so we can plan accordingly.
         </p>
       </div>
@@ -53,9 +53,9 @@ export const FoodPreferenceStep = component$<FoodPreferenceStepProps>((props) =>
         <Alert variant="success">Food preference saved.</Alert>
       ) : (
         <div class="space-y-3">
-          <label class="block text-sm font-medium text-gray-700">Dietary preference</label>
+          <label class="block text-sm font-medium text-text-secondary">Dietary preference</label>
           <select
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-border-strong rounded-md focus:outline-hidden focus:ring-2 focus:ring-primary"
             value={preference.value}
             onChange$={(event) => {
               preference.value = (event.target as HTMLSelectElement).value;

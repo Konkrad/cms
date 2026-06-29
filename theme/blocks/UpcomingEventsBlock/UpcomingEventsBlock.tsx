@@ -89,12 +89,12 @@ export default component$(() => {
     <div class="max-w-6xl mx-auto px-4 py-12">
       {isLoading.value ? (
         <div class="text-center py-12">
-          <p class="text-gray-500">Loading upcoming events...</p>
+          <p class="text-text-muted">Loading upcoming events...</p>
         </div>
       ) : error.value ? (
-        <p class="text-red-500 text-center py-8">Failed to load events: {error.value}</p>
+        <p class="text-error text-center py-8">Failed to load events: {error.value}</p>
       ) : events.value.length === 0 ? (
-        <p class="text-gray-500 text-center py-8">No upcoming events.</p>
+        <p class="text-text-muted text-center py-8">No upcoming events.</p>
       ) : (
         <div class="flex flex-col gap-6">
           {events.value.map((event) => {
@@ -117,7 +117,7 @@ export default component$(() => {
           {nextCursor.value && (
             <div class="flex justify-center pt-2">
               <button
-                class="px-6 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="px-6 py-2 rounded-lg border border-border text-sm font-medium text-text-secondary bg-bg-card hover:bg-bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick$={loadMore}
                 disabled={isLoadingMore.value}
               >

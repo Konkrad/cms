@@ -17,9 +17,9 @@ export const SiteFooter = component$<{ footerItems: FooterMenuItems }>(
     const iconLinks = sortedItems.filter((item) => !!item.icon);
 
     return (
-      <footer class="border-t border-gray-200 bg-white">
+      <footer class="border-t border-border bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-          <div class="flex items-center justify-between gap-4 text-sm text-gray-600">
+          <div class="flex items-center justify-between gap-4 text-sm text-text-secondary">
             <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
               {textLinks.map((item) => (
                 <a
@@ -27,7 +27,7 @@ export const SiteFooter = component$<{ footerItems: FooterMenuItems }>(
                   href={item.url}
                   target={item.target}
                   rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
-                  class="hover:text-blue-600"
+                  class="hover:text-primary"
                 >
                   {item.title}
                 </a>
@@ -42,7 +42,7 @@ export const SiteFooter = component$<{ footerItems: FooterMenuItems }>(
                     target={item.target}
                     rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
                     title={item.title}
-                    class="inline-flex items-center justify-center w-5 h-5 shrink-0 text-gray-500 hover:text-blue-600 [&_svg]:w-full [&_svg]:h-full [&_svg]:block"
+                    class="inline-flex items-center justify-center w-5 h-5 shrink-0 text-text-muted hover:text-primary [&_svg]:w-full [&_svg]:h-full [&_svg]:block"
                   >
                     {(() => {
                       const svg = sanitizeSvg(item.icon!);

@@ -8,11 +8,11 @@ export const PageView = component$<{ page: PageViewData }>(({ page }) => {
   if (!page) {
     return (
       <div class="max-w-4xl mx-auto px-4 py-16 text-center">
-        <h1 class="text-4xl font-bold text-gray-900 mb-4">Page Not Found</h1>
-        <p class="text-gray-600 mb-8">
+        <h1 class="text-4xl font-bold text-text-heading mb-4">Page Not Found</h1>
+        <p class="text-text-secondary mb-8">
           The page you're looking for doesn't exist or has been removed.
         </p>
-        <Link href="/" class="text-blue-600 hover:text-blue-800 font-medium">
+        <Link href="/" class="text-primary hover:text-primary font-medium">
           Go back home
         </Link>
       </div>
@@ -32,8 +32,8 @@ export const PageView = component$<{ page: PageViewData }>(({ page }) => {
         </div>
       ) : (
         <div class="max-w-4xl mx-auto px-4 py-16">
-          <h1 class="text-4xl font-bold text-gray-900 mb-4">{page.menuItem?.title}</h1>
-          <p class="text-gray-600">This page is empty. Add content in the page builder.</p>
+          <h1 class="text-4xl font-bold text-text-heading mb-4">{page.menuItem?.title}</h1>
+          <p class="text-text-secondary">This page is empty. Add content in the page builder.</p>
         </div>
       )}
     </div>

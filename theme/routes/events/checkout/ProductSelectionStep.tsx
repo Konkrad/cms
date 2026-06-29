@@ -37,26 +37,26 @@ export const ProductSelectionStep = component$<ProductSelectionStepProps>(
           <div key={group.id} class="border rounded-lg p-6 bg-white">
             <div class="mb-4">
               <h2 class="text-xl font-bold">{group.name}</h2>
-              <p class="text-sm text-gray-600">
+              <p class="text-sm text-text-secondary">
                 {group.remainingCapacity} of {group.maxCapacity} spots remaining
               </p>
             </div>
 
             {group.remainingCapacity === 0 ? (
-              <div class="p-4 bg-gray-100 text-gray-600 rounded-sm text-center">Sold Out</div>
+              <div class="p-4 bg-bg-muted text-text-secondary rounded-sm text-center">Sold Out</div>
             ) : !group.isSalesOpen ? (
               <div
                 class={`rounded-lg p-4 mb-4 ${
                   group.salesStartDate && new Date(group.salesStartDate) > new Date()
-                    ? "bg-yellow-50 border border-yellow-200 text-yellow-700"
-                    : "bg-red-50 border border-red-200 text-red-700"
+                    ? "bg-warning-bg border border-warning-border text-warning"
+                    : "bg-error-bg border border-error-border text-error"
                 }`}
               >
                 <div
                   class={`text-lg font-semibold mb-2 ${
                     group.salesStartDate && new Date(group.salesStartDate) > new Date()
-                      ? "text-yellow-900"
-                      : "text-red-900"
+                      ? "text-warning"
+                      : "text-error"
                   }`}
                 >
                   {group.salesStartDate && new Date(group.salesStartDate) > new Date()
@@ -66,8 +66,8 @@ export const ProductSelectionStep = component$<ProductSelectionStepProps>(
                 <p
                   class={
                     group.salesStartDate && new Date(group.salesStartDate) > new Date()
-                      ? "text-yellow-800"
-                      : "text-red-800"
+                      ? "text-warning"
+                      : "text-error"
                   }
                 >
                   {group.salesStartDate && new Date(group.salesStartDate) > new Date()
@@ -78,7 +78,7 @@ export const ProductSelectionStep = component$<ProductSelectionStepProps>(
                 </p>
               </div>
             ) : ((group.availableProducts as any[]) || []).length === 0 ? (
-              <div class="p-4 bg-gray-100 text-gray-600 rounded-sm text-center">No products available</div>
+              <div class="p-4 bg-bg-muted text-text-secondary rounded-sm text-center">No products available</div>
             ) : (
               <div class="space-y-4">
                 {((group.availableProducts as any[]) || []).map((product: any) => {
@@ -93,7 +93,7 @@ export const ProductSelectionStep = component$<ProductSelectionStepProps>(
                   return (
                     <div
                       key={product.id}
-                      class={`flex items-center gap-4 p-4 border rounded-sm cursor-pointer hover:bg-gray-50 ${isSelected ? "border-blue-500 bg-blue-50" : ""}`}
+                      class={`flex items-center gap-4 p-4 border rounded-sm cursor-pointer hover:bg-bg ${isSelected ? "border-primary bg-info-bg" : ""}`}
                       onClick$={() => {
                         const next = { ...selectedProducts };
                         ((group.products as any[]) || []).forEach((p: any) => {
@@ -132,13 +132,13 @@ export const ProductSelectionStep = component$<ProductSelectionStepProps>(
                           <div class="min-w-0">
                             <h3 class="font-semibold">{product.name}</h3>
                             {product.features && product.features.length > 0 && (
-                              <ul class="text-sm text-gray-600 mt-1 space-y-1">
+                              <ul class="text-sm text-text-secondary mt-1 space-y-1">
                                 {product.features.map((feature: string, idx: number) => (
                                   <li key={idx}>• {feature}</li>
                                 ))}
                               </ul>
                             )}
-                            <p class="text-sm text-gray-600 mt-2">
+                            <p class="text-sm text-text-secondary mt-2">
                               €{product.price.toFixed(2)} | Sold: {product.soldQuantity} / {product.maxQuantity || "∞"}
                             </p>
                           </div>
@@ -148,7 +148,7 @@ export const ProductSelectionStep = component$<ProductSelectionStepProps>(
                               <div class="inline-flex items-center bg-black text-white rounded-full overflow-hidden">
                                 <button
                                   type="button"
-                                  class="w-8 h-8 text-lg leading-none hover:bg-gray-800"
+                                  class="w-8 h-8 text-lg leading-none hover:bg-text-heading"
                                   onClick$={(e) => {
                                     e.stopPropagation();
                                     const current = selectedProducts[product.id] || 1;
@@ -166,7 +166,7 @@ export const ProductSelectionStep = component$<ProductSelectionStepProps>(
                                 </span>
                                 <button
                                   type="button"
-                                  class="w-8 h-8 text-lg leading-none hover:bg-gray-800"
+                                  class="w-8 h-8 text-lg leading-none hover:bg-text-heading"
                                   onClick$={(e) => {
                                     e.stopPropagation();
                                     const current = selectedProducts[product.id] || 1;

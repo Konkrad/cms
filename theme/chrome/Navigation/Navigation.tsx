@@ -4,7 +4,7 @@ import type { LogoutAction, MainMenuItems, NavUser } from "~/contracts/layout";
 
 const Chevron = ({ open }: { open: boolean }) => (
   <svg
-    class={`h-4 w-4 text-gray-500 transition-transform ${open ? "rotate-180" : ""}`}
+    class={`h-4 w-4 text-text-muted transition-transform ${open ? "rotate-180" : ""}`}
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -50,7 +50,7 @@ export const Navigation = component$<{
           <div class="flex">
             <Link
               href="/"
-              class="flex items-center px-3 text-xl font-bold text-blue-500 hover:text-blue-600"
+              class="flex items-center px-3 text-xl font-bold text-primary hover:text-primary"
             >
               Community Hub
             </Link>
@@ -65,7 +65,7 @@ export const Navigation = component$<{
                     <div key={item.id} class="relative group">
                       <a
                         href={item.url || "#"}
-                        class="px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
+                        class="px-3 py-2 text-text-secondary hover:text-primary font-medium transition-colors"
                       >
                         {item.title}
                       </a>
@@ -74,7 +74,7 @@ export const Navigation = component$<{
                           <a
                             key={child.id}
                             href={child.url}
-                            class="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                            class="block px-4 py-2 text-text-secondary hover:bg-bg-muted"
                           >
                             {child.title}
                           </a>
@@ -85,7 +85,7 @@ export const Navigation = component$<{
                     <a
                       key={item.id}
                       href={item.url}
-                      class="px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
+                      class="px-3 py-2 text-text-secondary hover:text-primary font-medium transition-colors"
                     >
                       {item.title}
                     </a>
@@ -103,7 +103,7 @@ export const Navigation = component$<{
                     aria-label="profile-menu"
                     aria-haspopup="menu"
                     aria-expanded={showUserMenu.value}
-                    class="flex items-center gap-2 px-3 py-2 text-gray-700 hover:text-blue-500 font-medium transition-colors"
+                    class="flex items-center gap-2 px-3 py-2 text-text-secondary hover:text-primary font-medium transition-colors"
                   >
                     {user.profilePictureSmallUrl ? (
                       <img
@@ -111,10 +111,10 @@ export const Navigation = component$<{
                         alt=""
                         width={28}
                         height={28}
-                        class="w-7 h-7 rounded-full object-cover border border-gray-200"
+                        class="w-7 h-7 rounded-full object-cover border border-border"
                       />
                     ) : (
-                      <span class="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs font-semibold">
+                      <span class="w-7 h-7 rounded-full bg-border flex items-center justify-center text-text-muted text-xs font-semibold">
                         {user.displayName.charAt(0).toUpperCase()}
                       </span>
                     )}
@@ -138,20 +138,20 @@ export const Navigation = component$<{
                     <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
                       <Link
                         href="/profile"
-                        class="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        class="block px-4 py-2 text-text-secondary hover:bg-bg-muted"
                       >
                         My Profile
                       </Link>
                       <Link
                         href="/profile/tickets"
-                        class="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        class="block px-4 py-2 text-text-secondary hover:bg-bg-muted"
                       >
                         My Tickets
                       </Link>
                       {user.isAdmin && (
                         <Link
                           href="/admin/global"
-                          class="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                          class="block px-4 py-2 text-text-secondary hover:bg-bg-muted"
                         >
                           Admin Area
                         </Link>
@@ -160,7 +160,7 @@ export const Navigation = component$<{
                         <button
                           type="submit"
                           aria-label="logout"
-                          class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                          class="block w-full text-left px-4 py-2 text-text-secondary hover:bg-bg-muted"
                         >
                           Logout
                         </button>
@@ -171,7 +171,7 @@ export const Navigation = component$<{
               ) : (
                 <Link
                   href="/login"
-                  class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-sm hover:bg-blue-700 font-medium transition-colors"
+                  class="flex items-center px-4 py-2 bg-primary text-white rounded-sm hover:bg-primary-dark font-medium transition-colors"
                 >
                   Login
                 </Link>
@@ -183,7 +183,7 @@ export const Navigation = component$<{
               onClick$={toggleMobileMenu}
               aria-label="toggle mobile menu"
               aria-expanded={showMobileMenu.value}
-              class="md:hidden flex items-center justify-center w-10 h-10 rounded-md text-gray-700 hover:text-blue-500 hover:bg-gray-100 transition-colors"
+              class="md:hidden flex items-center justify-center w-10 h-10 rounded-md text-text-secondary hover:text-primary hover:bg-bg-muted transition-colors"
             >
               {showMobileMenu.value ? (
                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,13 +201,13 @@ export const Navigation = component$<{
 
       {/* Mobile menu panel */}
       {showMobileMenu.value && (
-        <div class="md:hidden absolute top-full left-0 right-0 bg-white shadow-lg z-40 border-t border-gray-100">
+        <div class="md:hidden absolute top-full left-0 right-0 bg-white shadow-lg z-40 border-t border-border">
           {/* User section */}
           {user ? (
-            <div class="border-b border-gray-100">
+            <div class="border-b border-border">
               <button
                 onClick$={() => toggleMobileSubmenu("user")}
-                class="flex items-center justify-between w-full gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+                class="flex items-center justify-between w-full gap-3 px-4 py-3 bg-bg hover:bg-bg-muted transition-colors"
                 aria-expanded={openMobileSubmenu.value === "user"}
               >
                 <div class="flex items-center gap-3">
@@ -217,32 +217,32 @@ export const Navigation = component$<{
                       alt=""
                       width={36}
                       height={36}
-                      class="w-9 h-9 rounded-full object-cover border border-gray-200"
+                      class="w-9 h-9 rounded-full object-cover border border-border"
                     />
                   ) : (
-                    <span class="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm font-semibold">
+                    <span class="w-9 h-9 rounded-full bg-border flex items-center justify-center text-text-muted text-sm font-semibold">
                       {user.displayName.charAt(0).toUpperCase()}
                     </span>
                   )}
-                  <span class="font-medium text-gray-800">{user.displayName}</span>
+                  <span class="font-medium text-text">{user.displayName}</span>
                 </div>
                 <Chevron open={openMobileSubmenu.value === "user"} />
               </button>
               {openMobileSubmenu.value === "user" && (
                 <>
-                  <a href="/profile" class="block px-4 py-3 text-gray-700 hover:bg-gray-50">
+                  <a href="/profile" class="block px-4 py-3 text-text-secondary hover:bg-bg-muted">
                     My Profile
                   </a>
-                  <a href="/profile/tickets" class="block px-4 py-3 text-gray-700 hover:bg-gray-50">
+                  <a href="/profile/tickets" class="block px-4 py-3 text-text-secondary hover:bg-bg-muted">
                     My Tickets
                   </a>
                   {user.isAdmin && (
-                    <a href="/admin/global" class="block px-4 py-3 text-gray-700 hover:bg-gray-50">
+                    <a href="/admin/global" class="block px-4 py-3 text-text-secondary hover:bg-bg-muted">
                       Admin Area
                     </a>
                   )}
                   <Form action={logoutAction}>
-                    <button type="submit" aria-label="logout" class="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50">
+                    <button type="submit" aria-label="logout" class="block w-full text-left px-4 py-3 text-text-secondary hover:bg-bg-muted">
                       Logout
                     </button>
                   </Form>
@@ -250,10 +250,10 @@ export const Navigation = component$<{
               )}
             </div>
           ) : (
-            <div class="border-b border-gray-100 px-4 py-3">
+            <div class="border-b border-border px-4 py-3">
               <a
                 href="/login"
-                class="flex items-center justify-center w-full px-4 py-2 bg-blue-600 text-white rounded-sm hover:bg-blue-700 font-medium transition-colors"
+                class="flex items-center justify-center w-full px-4 py-2 bg-primary text-white rounded-sm hover:bg-primary-dark font-medium transition-colors"
               >
                 Login
               </a>
@@ -268,7 +268,7 @@ export const Navigation = component$<{
                   <div key={item.id}>
                     <button
                       onClick$={() => toggleMobileSubmenu(item.id)}
-                      class="flex items-center justify-between w-full px-4 py-3 text-gray-700 hover:bg-gray-50 font-medium"
+                      class="flex items-center justify-between w-full px-4 py-3 text-text-secondary hover:bg-bg-muted font-medium"
                       aria-expanded={openMobileSubmenu.value === item.id}
                     >
                       {item.title}
@@ -279,7 +279,7 @@ export const Navigation = component$<{
                         <a
                           key={child.id}
                           href={child.url}
-                          class="block pl-8 pr-4 py-2.5 text-gray-600 hover:bg-gray-50 text-sm"
+                          class="block pl-8 pr-4 py-2.5 text-text-secondary hover:bg-bg-muted text-sm"
                         >
                           {child.title}
                         </a>
@@ -289,7 +289,7 @@ export const Navigation = component$<{
                   <a
                     key={item.id}
                     href={item.url}
-                    class="block px-4 py-3 text-gray-700 hover:bg-gray-50 font-medium"
+                    class="block px-4 py-3 text-text-secondary hover:bg-bg-muted font-medium"
                   >
                     {item.title}
                   </a>

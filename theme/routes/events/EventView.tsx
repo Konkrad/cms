@@ -18,13 +18,13 @@ export const EventView = component$<{
   if (!eventData) {
     return (
       <div class="max-w-4xl mx-auto px-4 py-16 text-center">
-        <h1 class="text-4xl font-bold text-gray-900 mb-4">Event Not Found</h1>
-        <p class="text-gray-600 mb-8">
+        <h1 class="text-4xl font-bold text-text-heading mb-4">Event Not Found</h1>
+        <p class="text-text-secondary mb-8">
           The event you're looking for doesn't exist or has been removed.
         </p>
         <Link
           href="/events"
-          class="text-blue-600 hover:text-blue-800 font-medium"
+          class="text-primary hover:text-primary font-medium"
         >
           Back to Events
         </Link>
@@ -90,7 +90,7 @@ export const EventView = component$<{
 
         {/* ── Description ── */}
         {event.body && (
-          <p class="max-w-3xl mx-auto text-center text-gray-700 text-base leading-relaxed mb-10">
+          <p class="max-w-3xl mx-auto text-center text-text-secondary text-base leading-relaxed mb-10">
             {event.body}
           </p>
         )}
@@ -134,10 +134,11 @@ export const EventView = component$<{
                 </Button>
               </Form>
             ) : showSalesClosed ? (
-              <span class="inline-block px-10 py-3 bg-gray-400 text-white font-['Lato',sans-serif] font-bold text-sm rounded-full cursor-not-allowed">
+              <span class="inline-block px-10 py-3 bg-bg-muted text-white font-['Lato',sans-serif] font-bold text-sm rounded-full cursor-not-allowed">
                 Sales Closed
               </span>
             ) : event.soldOut ? (
+              // bg-orange-500: "Sold Out" visual indicator; no orange token in current palette, would need --color-orange-* added to theme.css if themes want different highlight
               <span class="inline-block px-10 py-3 bg-orange-500 text-white font-['Lato',sans-serif] font-bold text-sm rounded-full cursor-not-allowed">
                 Sold Out
               </span>
@@ -163,19 +164,19 @@ export const EventView = component$<{
         )}
 
         {(updateParticipation.value && "message" in updateParticipation.value) && (
-          <div class="max-w-xl mx-auto mb-8 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-center text-sm">
+          <div class="max-w-xl mx-auto mb-8 p-3 bg-error-bg border border-error-border rounded-lg text-error text-center text-sm">
             {updateParticipation.value.message}
           </div>
         )}
 
         {/* RSVP confirmation messages */}
         {effectiveParticipationStatus === "yes" && showFreeRSVP && (
-          <div class="max-w-xl mx-auto mb-8 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-center text-sm">
+          <div class="max-w-xl mx-auto mb-8 p-3 bg-success-bg border border-success-border rounded-lg text-success text-center text-sm">
             ✓ You're attending! Your free ticket has been created.
           </div>
         )}
         {effectiveParticipationStatus === "maybe" && showWaitlist && (
-          <div class="max-w-xl mx-auto mb-8 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-center text-sm">
+          <div class="max-w-xl mx-auto mb-8 p-3 bg-info-bg border border-info-border rounded-lg text-primary text-center text-sm">
             ✓ You're on the waitlist!
           </div>
         )}
@@ -270,19 +271,19 @@ export const EventView = component$<{
             <h2 class="font-['Rubik',sans-serif] font-bold text-[32px] leading-[1.3] text-black mb-6">
               Tickets
             </h2>
-            <p class="text-gray-700 text-base leading-relaxed mb-4">
+            <p class="text-text-secondary text-base leading-relaxed mb-4">
               What is included in your tickets:
             </p>
             <div class="space-y-4">
               {event.products.map((product) => (
                 <div key={product.id} class="flex items-start gap-3">
-                  <span class="text-gray-400 mt-0.5">•</span>
+                  <span class="text-text-muted mt-0.5">•</span>
                   <div>
-                    <span class="font-medium text-gray-900">
+                    <span class="font-medium text-text-heading">
                       {product.name}
                     </span>
                     {product.price > 0 && (
-                      <span class="text-gray-500 ml-2">
+                      <span class="text-text-muted ml-2">
                         — €{(product.price / 100).toFixed(2)}
                       </span>
                     )}
@@ -293,9 +294,9 @@ export const EventView = component$<{
                             (feature, idx) => (
                               <li
                                 key={idx}
-                                class="text-sm text-gray-600 flex items-start gap-2"
+                                class="text-sm text-text-secondary flex items-start gap-2"
                               >
-                                <span class="text-gray-300">·</span>
+                                <span class="text-border">·</span>
                                 {feature}
                               </li>
                             ),
@@ -311,6 +312,7 @@ export const EventView = component$<{
 
         {/* ── Photo Gallery (past events, verified attendees) ── */}
         {event.isEventPast && event.hasAttended && (
+          // Purple color palette for photo gallery feature highlight; no purple token in current palette, intentional visual distinction
           <div class="max-w-4xl mx-auto mt-16 bg-purple-50 border border-purple-200 rounded-[25px] p-8">
             <h3 class="font-['Rubik',sans-serif] font-semibold text-[24px] text-purple-900 mb-3">
               📸 Event Photos
@@ -340,7 +342,7 @@ export const EventView = component$<{
             <div>
               <a
                 href={`/users/${event.user.id}`}
-                class="font-medium text-gray-900 text-lg hover:text-blue-600 hover:underline"
+                class="font-medium text-text-heading text-lg hover:text-primary hover:underline"
               >
                 {event.user.displayName}
               </a>

@@ -22,7 +22,7 @@ export const ParticipantAssignmentStep = component$<ParticipantAssignmentStepPro
       <div class="space-y-6">
         <div>
           <h2 class="text-xl font-bold mb-1">Participant Assignment</h2>
-          <p class="text-sm text-gray-600">
+          <p class="text-sm text-text-secondary">
             Search for participants to assign to each ticket.
           </p>
         </div>
@@ -66,7 +66,7 @@ export const ParticipantAssignmentStep = component$<ParticipantAssignmentStepPro
             >
               <div class="flex items-baseline justify-between">
                 <h3 class="text-lg font-semibold">{productGroup.productName}</h3>
-                <span class="text-sm text-gray-500">
+                <span class="text-sm text-text-muted">
                   {assignedCount}/{totalSlots} assigned
                 </span>
               </div>
@@ -83,7 +83,7 @@ export const ParticipantAssignmentStep = component$<ParticipantAssignmentStepPro
         })}
 
         <div class="sticky bottom-0 bg-white border-t pt-4 pb-2">
-          {error && <p class="text-sm text-red-600 mb-3">{error}</p>}
+          {error && <p class="text-sm text-error mb-3">{error}</p>}
           <div class="flex gap-4">
             <Button
               type="button"

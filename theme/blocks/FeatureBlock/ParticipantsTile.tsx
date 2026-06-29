@@ -75,7 +75,8 @@ export const ParticipantsTile = component$<ParticipantsTileProps>((props) => {
                       class="w-[38px] h-[38px] rounded-full object-cover"
                     />
                   ) : (
-                    <div class="w-[38px] h-[38px] rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-semibold">
+                    // Fixed bg-bg-muted: avatar placeholder on blue background needs specific contrast value, must not vary by theme
+                    <div class="w-[38px] h-[38px] rounded-full bg-bg-muted flex items-center justify-center text-white text-xs font-semibold">
                       {displayName.charAt(0).toUpperCase()}
                     </div>
                   )}

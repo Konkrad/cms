@@ -16,7 +16,7 @@ export const ParticipantsModal = component$<ParticipantsModalProps>(
     return (
       <Modal open={true} onClose$={onClose$} title={`Participants — ${eventName}`}>
         {participants.length === 0 ? (
-          <p class="text-gray-500 text-center py-8">No participants yet.</p>
+          <p class="text-text-muted text-center py-8">No participants yet.</p>
         ) : (
           <ul class="divide-y divide-gray-200">
             {participants.map((p) => {
@@ -36,9 +36,9 @@ export const ParticipantsModal = component$<ParticipantsModalProps>(
                     size="md"
                   />
                   <div class="min-w-0">
-                    <p class="font-semibold text-[15px] text-gray-900 truncate">{displayName}</p>
+                    <p class="font-semibold text-[15px] text-text-heading truncate">{displayName}</p>
                     {subtitle && (
-                      <p class="text-[13px] text-gray-500 truncate">{subtitle}</p>
+                      <p class="text-[13px] text-text-muted truncate">{subtitle}</p>
                     )}
                   </div>
                 </>
@@ -49,7 +49,7 @@ export const ParticipantsModal = component$<ParticipantsModalProps>(
                   {p.profileUrl ? (
                     <Link
                       href={p.profileUrl}
-                      class="flex items-center gap-4 hover:bg-gray-50 rounded-xl transition-colors -mx-2 px-2 block"
+                      class="flex items-center gap-4 hover:bg-bg rounded-xl transition-colors -mx-2 px-2 block"
                     >
                       {inner}
                     </Link>

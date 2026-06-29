@@ -45,5 +45,9 @@
   --color-danger: #dc2626;
   --color-danger-dark: #b91c1c;
 
+  --color-warning: #92400e;
+  --color-warning-bg: #fef3c7;
+  --color-warning-border: #fcd34d;
+
   --color-focus-ring: #034ea2;
 }

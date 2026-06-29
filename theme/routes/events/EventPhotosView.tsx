@@ -16,10 +16,10 @@ export const EventPhotosView = component$<{
   return (
     <div class="container mx-auto px-4 py-8 max-w-7xl">
       <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-900">
+        <h1 class="text-3xl font-bold text-text-heading">
           Event Photos: {event.title}
         </h1>
-        <p class="mt-2 text-gray-600">
+        <p class="mt-2 text-text-secondary">
           Private photos accessible only to verified attendees
         </p>
       </div>
@@ -28,7 +28,7 @@ export const EventPhotosView = component$<{
         <Card>
           <div class="text-center py-8">
             <svg
-              class="w-16 h-16 mx-auto mb-4 text-red-400"
+              class="w-16 h-16 mx-auto mb-4 text-error"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -40,8 +40,8 @@ export const EventPhotosView = component$<{
                 d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
               />
             </svg>
-            <p class="text-lg font-medium text-gray-900">Access Restricted</p>
-            <p class="text-sm text-gray-600 mt-2">
+            <p class="text-lg font-medium text-text-heading">Access Restricted</p>
+            <p class="text-sm text-text-secondary mt-2">
               {photos.message ||
                 "You do not have permission to view these photos"}
             </p>
@@ -71,7 +71,7 @@ export const EventPhotosView = component$<{
       <div class="mt-6">
         <a
           href={`/events/${event.id}`}
-          class="text-blue-600 hover:text-blue-700 font-medium"
+          class="text-primary hover:text-primary font-medium"
         >
           ← Back to Event Details
         </a>

@@ -4,11 +4,11 @@ import type { MyApplicationsViewData } from "~/contracts/elections";
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-800",
-    approved: "bg-green-100 text-green-800",
-    rejected: "bg-red-100 text-red-800",
+    pending: "bg-warning-bg text-warning",
+    approved: "bg-success-bg text-success",
+    rejected: "bg-error-bg text-error",
   };
-  return `inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${map[status] ?? "bg-gray-100 text-gray-800"}`;
+  return `inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${map[status] ?? "bg-bg-muted text-text"}`;
 };
 
 /** Themed view for the user's own election applications (`/elections/mine`). */
@@ -17,25 +17,25 @@ export const MyApplicationsView = component$<{ data: MyApplicationsViewData }>(
     return (
       <div class="max-w-3xl mx-auto px-4 py-8">
         <div class="flex items-center justify-between mb-6">
-          <h1 class="text-2xl font-bold text-gray-900">My Election Applications</h1>
-          <Link href="/elections" class="text-sm text-blue-600 hover:text-blue-800">
+          <h1 class="text-2xl font-bold text-text-heading">My Election Applications</h1>
+          <Link href="/elections" class="text-sm text-primary hover:text-primary">
             View elections →
           </Link>
         </div>
 
         {data.groups.length === 0 ? (
-          <div class="text-center py-16 text-gray-500">
+          <div class="text-center py-16 text-text-muted">
             You haven't applied for any board positions yet.
           </div>
         ) : (
           <div class="space-y-6">
             {data.groups.map(({ cycle, apps }) => (
-              <div key={cycle.id} class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <div class="px-5 py-3 bg-gray-50 border-b flex items-center justify-between">
-                  <h2 class="font-semibold text-gray-900">{cycle.title}</h2>
+              <div key={cycle.id} class="bg-white rounded-lg border border-border overflow-hidden">
+                <div class="px-5 py-3 bg-bg border-b flex items-center justify-between">
+                  <h2 class="font-semibold text-text-heading">{cycle.title}</h2>
                   <Link
                     href={`/elections/${cycle.id}`}
-                    class="text-xs text-blue-600 hover:text-blue-800"
+                    class="text-xs text-primary hover:text-primary"
                   >
                     View election →
                   </Link>
@@ -45,17 +45,17 @@ export const MyApplicationsView = component$<{ data: MyApplicationsViewData }>(
                     <li key={app.id} class="px-5 py-4">
                       <div class="flex items-start justify-between">
                         <div>
-                          <div class="text-sm font-medium text-gray-900">
+                          <div class="text-sm font-medium text-text-heading">
                             {(app as any).position?.title}
                           </div>
-                          <div class="text-xs text-gray-400 mt-0.5">
+                          <div class="text-xs text-text-muted mt-0.5">
                             Applied {app.createdAt.slice(0, 10)}
                           </div>
                         </div>
                         <span class={statusBadge(app.status)}>{app.status}</span>
                       </div>
                       {app.status === "rejected" && app.adminNote && (
-                        <div class="mt-2 text-sm text-gray-600 bg-red-50 border border-red-100 rounded px-3 py-2">
+                        <div class="mt-2 text-sm text-text-secondary bg-error-bg border border-error-border rounded px-3 py-2">
                           <span class="font-medium">Feedback: </span>
                           {app.adminNote}
                         </div>

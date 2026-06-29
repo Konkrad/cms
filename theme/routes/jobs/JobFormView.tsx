@@ -44,20 +44,20 @@ export const JobFormView = component$<{
   return (
     <div class="max-w-2xl mx-auto px-4 py-8">
       <div class="mb-6">
-        <a href={backHref} class="text-sm text-blue-600 hover:text-blue-800">
+        <a href={backHref} class="text-sm text-primary hover:text-primary">
           ← {backLabel}
         </a>
       </div>
 
-      <h1 class="text-2xl font-bold text-gray-900 mb-6">{heading}</h1>
+      <h1 class="text-2xl font-bold text-text-heading mb-6">{heading}</h1>
 
       {action.value?.failed && action.value?.error && (
-        <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div class="mb-6 bg-error-bg border border-error-border text-error px-4 py-3 rounded-lg">
           {action.value.error}
         </div>
       )}
 
-      <div class="bg-white border border-gray-200 rounded-lg p-6">
+      <div class="bg-white border border-border rounded-lg p-6">
         <form
           preventdefault:submit
           onSubmit$={() => {
@@ -76,10 +76,10 @@ export const JobFormView = component$<{
           />
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Job Description <span class="text-red-500">*</span>
+            <label class="block text-sm font-medium text-text-secondary mb-2">
+              Job Description <span class="text-error">*</span>
             </label>
-            <div class="border border-gray-300 rounded-lg overflow-hidden">
+            <div class="border border-border-strong rounded-lg overflow-hidden">
               <BlockNoteEditor
                 editorState={initial.editorState}
                 content={initial.body || undefined}
@@ -144,7 +144,7 @@ export const JobFormView = component$<{
           />
 
           {action.value?.failed && !action.value?.error && (
-            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm">
+            <div class="bg-error-bg border border-error-border text-error px-4 py-3 rounded-sm">
               Please check the form for errors.
             </div>
           )}
@@ -160,7 +160,7 @@ export const JobFormView = component$<{
         </form>
 
         {mode === "new" && (
-          <p class="mt-4 text-sm text-gray-500">
+          <p class="mt-4 text-sm text-text-muted">
             Your listing will be reviewed before it appears publicly.
           </p>
         )}

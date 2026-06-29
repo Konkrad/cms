@@ -339,7 +339,7 @@ export const CheckoutView = component$<{
                 <div key={item.id} class="flex justify-between items-center">
                   <div>
                     <p class="font-medium">{item.name}</p>
-                    <p class="text-sm text-gray-600">Quantity: {item.quantity}</p>
+                    <p class="text-sm text-text-secondary">Quantity: {item.quantity}</p>
                   </div>
                   <p class="font-bold">€{(item.price * item.quantity).toFixed(2)}</p>
                 </div>
@@ -379,7 +379,7 @@ export const CheckoutView = component$<{
             <h2 class="text-xl font-bold mb-4">Payment Details</h2>
 
             {paymentError.value && (
-              <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-sm mb-4">
+              <div class="p-4 bg-error-bg border border-error-border text-error rounded-sm mb-4">
                 {paymentError.value}
               </div>
             )}
@@ -389,8 +389,8 @@ export const CheckoutView = component$<{
               <div class="space-y-4">
                 {!clientSecret.value && (
                   <div class="p-8 text-center">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                    <p class="text-sm text-gray-600">Loading payment form...</p>
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                    <p class="text-sm text-text-secondary">Loading payment form...</p>
                   </div>
                 )}
 
@@ -442,14 +442,14 @@ export const CheckoutView = component$<{
       {currentStep.value === 4 && (
         <div class="space-y-6">
           <div class="border rounded-lg p-6 bg-white text-center">
-            <div class="text-green-500 text-6xl mb-4">✓</div>
-            <h2 class="text-3xl font-bold text-green-600 mb-4">
+            <div class="text-success text-6xl mb-4">✓</div>
+            <h2 class="text-3xl font-bold text-success mb-4">
               Payment Successful!
             </h2>
-            <p class="text-gray-600 text-lg mb-6">
+            <p class="text-text-secondary text-lg mb-6">
               Thank you for your purchase. Your tickets have been generated.
             </p>
-            <div class="p-6 bg-green-50 border border-green-200 rounded-sm">
+            <div class="p-6 bg-success-bg border border-success-border rounded-sm">
               <h3 class="font-bold mb-2">What's Next?</h3>
               <ul class="text-left space-y-2 text-sm">
                 <li>📧 Check your email for your tickets with QR codes</li>
@@ -462,13 +462,13 @@ export const CheckoutView = component$<{
             <div class="flex gap-4 justify-center mt-6">
               <a
                 href={`/profile/tickets`}
-                class="px-6 py-3 bg-blue-600 text-white rounded-sm hover:bg-blue-700"
+                class="px-6 py-3 bg-primary text-white rounded-sm hover:bg-primary"
               >
                 View My Tickets
               </a>
               <a
                 href={`/events/${data.eventId}`}
-                class="px-6 py-3 border border-gray-300 rounded-sm hover:bg-gray-50"
+                class="px-6 py-3 border border-border-strong rounded-sm hover:bg-bg"
               >
                 Back to Event
               </a>

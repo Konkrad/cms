@@ -10,11 +10,11 @@ export const ArchivePostsView = component$<{ data: ArchivePostsViewData }>(
     if (!data) {
       return (
         <div class="max-w-4xl mx-auto px-4 py-16 text-center">
-          <h1 class="text-4xl font-bold text-gray-900 mb-4">Archive Page Not Found</h1>
-          <p class="text-gray-600 mb-8">
+          <h1 class="text-4xl font-bold text-text-heading mb-4">Archive Page Not Found</h1>
+          <p class="text-text-secondary mb-8">
             The archive page you are looking for does not exist.
           </p>
-          <Link href="/archive/posts" class="text-blue-600 hover:text-blue-800 font-medium">
+          <Link href="/archive/posts" class="text-primary hover:text-primary font-medium">
             Go to archive start
           </Link>
         </div>
@@ -26,13 +26,13 @@ export const ArchivePostsView = component$<{ data: ArchivePostsViewData }>(
     return (
       <div class="max-w-6xl mx-auto px-4 py-12">
         <div class="mb-8">
-          <h1 class="font-['Rubik',sans-serif] font-semibold text-[36px] md:text-[44px] leading-[1.1] text-gray-900">
+          <h1 class="font-['Rubik',sans-serif] font-semibold text-[36px] md:text-[44px] leading-[1.1] text-text-heading">
             Post Archive
           </h1>
         </div>
 
         {items.length === 0 ? (
-          <p class="text-gray-500 text-center py-8">No posts found.</p>
+          <p class="text-text-muted text-center py-8">No posts found.</p>
         ) : (
           <div class="flex flex-col gap-6">
             {items.map((post) => (
@@ -54,7 +54,7 @@ export const ArchivePostsView = component$<{ data: ArchivePostsViewData }>(
             {previousHref ? (
               <Link
                 href={previousHref}
-                class="px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-900 hover:bg-gray-50"
+                class="px-4 py-2 rounded-full border border-border-strong text-sm font-medium text-text-heading hover:bg-bg"
               >
                 Previous
               </Link>
@@ -62,12 +62,12 @@ export const ArchivePostsView = component$<{ data: ArchivePostsViewData }>(
               <span />
             )}
 
-            <span class="text-sm text-gray-600">Page {page + 1} of {totalPages}</span>
+            <span class="text-sm text-text-secondary">Page {page + 1} of {totalPages}</span>
 
             {nextHref ? (
               <Link
                 href={nextHref}
-                class="px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-900 hover:bg-gray-50"
+                class="px-4 py-2 rounded-full border border-border-strong text-sm font-medium text-text-heading hover:bg-bg"
               >
                 Next
               </Link>

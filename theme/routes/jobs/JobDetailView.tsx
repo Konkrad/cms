@@ -28,48 +28,48 @@ export const JobDetailView = component$<{ data: JobDetailData }>(({ data }) => {
   return (
     <div class="max-w-2xl mx-auto px-4 py-8">
       <div class="mb-6">
-        <Link href="/jobs" class="text-sm text-blue-600 hover:text-blue-800">
+        <Link href="/jobs" class="text-sm text-primary hover:text-primary">
           ← Back to Job Board
         </Link>
       </div>
 
-      <div class="bg-white border border-gray-200 rounded-lg p-8">
-        <h1 class="text-2xl font-bold text-gray-900 mb-4">{job.title}</h1>
+      <div class="bg-white border border-border rounded-lg p-8">
+        <h1 class="text-2xl font-bold text-text-heading mb-4">{job.title}</h1>
 
-        <dl class="grid grid-cols-1 gap-2 text-sm mb-6 pb-6 border-b border-gray-100">
+        <dl class="grid grid-cols-1 gap-2 text-sm mb-6 pb-6 border-b border-border">
           <div class="flex gap-2">
-            <dt class="text-gray-500 w-24 shrink-0">Location</dt>
-            <dd class="text-gray-900">{locationLabel(job)}</dd>
+            <dt class="text-text-muted w-24 shrink-0">Location</dt>
+            <dd class="text-text-heading">{locationLabel(job)}</dd>
           </div>
           <div class="flex gap-2">
-            <dt class="text-gray-500 w-24 shrink-0">Posted by</dt>
-            <dd class="text-gray-900">
+            <dt class="text-text-muted w-24 shrink-0">Posted by</dt>
+            <dd class="text-text-heading">
               <Link href={`/users/${job.user?.id}`} class="hover:underline">
                 {posterName}
               </Link>
               {relationLabel && (
-                <span class="text-gray-500"> · {relationLabel}</span>
+                <span class="text-text-muted"> · {relationLabel}</span>
               )}
             </dd>
           </div>
           <div class="flex gap-2">
-            <dt class="text-gray-500 w-24 shrink-0">Listed until</dt>
-            <dd class="text-gray-900">{format(new Date(job.expiresAt), "MMM d, yyyy")}</dd>
+            <dt class="text-text-muted w-24 shrink-0">Listed until</dt>
+            <dd class="text-text-heading">{format(new Date(job.expiresAt), "MMM d, yyyy")}</dd>
           </div>
         </dl>
 
         <div
-          class="prose prose-sm max-w-none text-gray-700"
+          class="prose prose-sm max-w-none text-text-secondary"
           dangerouslySetInnerHTML={job.body}
         />
 
         {job.link && (
-          <div class="mt-8 pt-6 border-t border-gray-100">
+          <div class="mt-8 pt-6 border-t border-border">
             <a
               href={job.link}
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex items-center px-6 py-3 text-base font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+              class="inline-flex items-center px-6 py-3 text-base font-medium text-white bg-primary rounded-lg hover:bg-primary"
             >
               Apply Now
             </a>

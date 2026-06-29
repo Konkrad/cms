@@ -60,7 +60,7 @@ export const GroupView = component$<{ data: GroupViewData; joinAction: JoinGroup
       <div>
         {/* Heading */}
         <div class="max-w-[1290px] mx-auto px-4 pt-12 pb-4 text-center">
-          <h1 class="font-['Rubik',sans-serif] font-semibold text-[40px] md:text-[52px] leading-[1.1] text-gray-900">
+          <h1 class="font-['Rubik',sans-serif] font-semibold text-[40px] md:text-[52px] leading-[1.1] text-text-heading">
             {group.name}
           </h1>
         </div>
@@ -141,7 +141,7 @@ export const GroupView = component$<{ data: GroupViewData; joinAction: JoinGroup
         {rep && (
           <div class="max-w-[1290px] mx-auto px-4 pb-12 flex flex-col items-center gap-3">
             {isMember ? (
-              <div class="bg-green-50 border border-green-200 text-green-800 px-6 py-3 rounded-full font-medium">
+              <div class="bg-success-bg border border-success-border text-success px-6 py-3 rounded-full font-medium">
                 ✓ You are a member of this group
               </div>
             ) : (
@@ -156,7 +156,7 @@ export const GroupView = component$<{ data: GroupViewData; joinAction: JoinGroup
               </Form>
             )}
             {joinAction.value?.error && (
-              <p class="text-red-600 text-sm">{joinAction.value.error}</p>
+              <p class="text-error text-sm">{joinAction.value.error}</p>
             )}
           </div>
         )}
@@ -164,7 +164,7 @@ export const GroupView = component$<{ data: GroupViewData; joinAction: JoinGroup
         {/* Upcoming Events */}
         {upcomingEvents.length > 0 && (
           <div class="max-w-[1290px] mx-auto px-4 py-8">
-            <h2 class="font-['Rubik',sans-serif] font-semibold text-[32px] text-gray-900 mb-6">
+            <h2 class="font-['Rubik',sans-serif] font-semibold text-[32px] text-text-heading mb-6">
               Upcoming Community Events
             </h2>
             <div class="flex flex-col gap-4">
@@ -192,7 +192,7 @@ export const GroupView = component$<{ data: GroupViewData; joinAction: JoinGroup
         {/* Recent Posts */}
         {recentPosts.length > 0 && (
           <div class="max-w-[1290px] mx-auto px-4 py-8">
-            <h2 class="font-['Rubik',sans-serif] font-semibold text-[32px] text-gray-900 mb-6">
+            <h2 class="font-['Rubik',sans-serif] font-semibold text-[32px] text-text-heading mb-6">
               Latest from the Community
             </h2>
             <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

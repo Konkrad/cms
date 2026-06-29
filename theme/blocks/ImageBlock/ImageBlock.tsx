@@ -59,7 +59,7 @@ export default component$<ImageBlockProps>((props) => {
 					class="w-full rounded-lg shadow-lg"
 				/>
 				{caption && (
-					<figcaption class="mt-3 text-center text-gray-600 text-sm">
+					<figcaption class="mt-3 text-center text-text-secondary text-sm">
 						{caption}
 					</figcaption>
 				)}

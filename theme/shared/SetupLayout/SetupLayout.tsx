@@ -13,13 +13,13 @@ export const SetupLayout = component$<SetupLayoutProps>((props) => {
         <div>
           <h1 class="text-3xl font-bold">{props.title}</h1>
           {props.description ? (
-            <p class="text-gray-600 mt-2">{props.description}</p>
+            <p class="text-text-secondary mt-2">{props.description}</p>
           ) : null}
         </div>
         {props.backHref ? (
           <a
             href={props.backHref}
-            class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            class="text-primary hover:text-primary text-sm font-medium"
           >
             Back
           </a>

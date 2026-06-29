@@ -173,14 +173,14 @@ export default component$<PostsListBlockProps>((props) => {
     <div class="max-w-6xl mx-auto px-4 py-12">
       {isLoading.value && items.value.length === 0 ? (
         <div class="text-center py-12">
-          <p class="text-gray-500">Loading posts...</p>
+          <p class="text-text-muted">Loading posts...</p>
         </div>
       ) : error.value ? (
-        <p class="text-red-500 text-center py-8">
+        <p class="text-error text-center py-8">
           Failed to load posts: {error.value}
         </p>
       ) : items.value.length === 0 ? (
-        <p class="text-gray-500 text-center py-8">No posts found.</p>
+        <p class="text-text-muted text-center py-8">No posts found.</p>
       ) : (
         <div class="flex flex-col gap-6">
           {items.value.map((post) => (

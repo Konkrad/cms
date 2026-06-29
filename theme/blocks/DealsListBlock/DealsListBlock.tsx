@@ -38,14 +38,14 @@ export default component$(() => {
     <div class="max-w-6xl mx-auto px-4 py-12">
       {isLoading.value ? (
         <div class="text-center py-12">
-          <p class="text-gray-500">Loading deals...</p>
+          <p class="text-text-muted">Loading deals...</p>
         </div>
       ) : errorMsg.value ? (
-        <p class="text-red-500 text-center py-8">
+        <p class="text-error text-center py-8">
           Failed to load deals: {errorMsg.value}
         </p>
       ) : deals.value.length === 0 ? (
-        <p class="text-gray-500 text-center py-8">No deals available.</p>
+        <p class="text-text-muted text-center py-8">No deals available.</p>
       ) : (
         <div class="flex flex-col gap-6">
           {deals.value.map((deal) => (

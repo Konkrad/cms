@@ -143,7 +143,7 @@ export const JobsListView = component$<{ data: JobsListData }>(({ data }) => {
   return (
     <div class="max-w-3xl mx-auto px-4 py-8">
       <div class="flex items-center justify-between mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">Job Board</h1>
+        <h1 class="text-3xl font-bold text-text-heading">Job Board</h1>
         <Button href="/jobs/new">Post a Job</Button>
       </div>
 
@@ -151,17 +151,17 @@ export const JobsListView = component$<{ data: JobsListData }>(({ data }) => {
         {jobs.map((job) => (
           <div
             key={job.id}
-            class="bg-white border border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors"
+            class="bg-white border border-border rounded-lg p-6 hover:border-border-strong transition-colors"
           >
             <div class="flex items-start justify-between gap-4">
               <div class="flex-1 min-w-0">
                 <Link
                   href={`/jobs/${job.id}`}
-                  class="text-lg font-semibold text-gray-900 hover:text-blue-600"
+                  class="text-lg font-semibold text-text-heading hover:text-primary"
                 >
                   {job.title}
                 </Link>
-                <div class="mt-1 text-sm text-gray-500">
+                <div class="mt-1 text-sm text-text-muted">
                   {locationLabel(job)}
                 </div>
               </div>
@@ -170,7 +170,7 @@ export const JobsListView = component$<{ data: JobsListData }>(({ data }) => {
                   href={job.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="shrink-0 inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                  class="shrink-0 inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary"
                 >
                   Apply
                 </a>
@@ -181,7 +181,7 @@ export const JobsListView = component$<{ data: JobsListData }>(({ data }) => {
       </div>
 
       {jobs.length === 0 && (
-        <div class="text-center py-16 text-gray-500">
+        <div class="text-center py-16 text-text-muted">
           No job postings at the moment. Check back soon!
         </div>
       )}
@@ -194,8 +194,8 @@ export const JobsListView = component$<{ data: JobsListData }>(({ data }) => {
         onNext$={goNext}
       />
 
-      <div class="mt-8 pt-8 border-t border-gray-200 text-center">
-        <Link href="/jobs/mine" class="text-sm text-blue-600 hover:text-blue-800">
+      <div class="mt-8 pt-8 border-t border-border text-center">
+        <Link href="/jobs/mine" class="text-sm text-primary hover:text-primary">
           View my submissions →
         </Link>
       </div>

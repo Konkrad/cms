@@ -26,10 +26,10 @@ export const LocationStep = component$<LocationStepProps>((props) => {
 
   return (
     <Form action={props.updateAction} id="location-step-form">
-      <div class="space-y-4 p-6 border border-gray-200 rounded-lg bg-white">
+      <div class="space-y-4 p-6 border border-border rounded-lg bg-white">
         <div>
           <h2 class="text-xl font-semibold">Location verification</h2>
-          <p class="text-gray-600 mt-1">
+          <p class="text-text-secondary mt-1">
             Confirm your location so we can keep your profile up to date.
           </p>
         </div>

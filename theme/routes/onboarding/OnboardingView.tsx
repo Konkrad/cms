@@ -26,7 +26,7 @@ export const OnboardingView = component$<{
   const needsSurvey = !consent.survey;
 
   // Determine initial phase based on what's already complete.
-  const phase = useSignal<"steps" | "survey">(
+  const phase = useSignal<"steps" | "survey" | "done">(
     needsProfile || needsLocation ? "steps" : needsSurvey ? "survey" : "done",
   );
 
@@ -34,6 +34,11 @@ export const OnboardingView = component$<{
   useVisibleTask$(({ track }) => {
     track(() => updateAction.value);
     track(() => markLocation.value);
+
+    if (phase.value === "done") {
+      void nav("/");
+      return;
+    }
 
     const profileOk = !needsProfile || !!updateAction.value?.success;
     const locationOk = !needsLocation || !!markLocation.value?.success;
@@ -57,7 +62,7 @@ export const OnboardingView = component$<{
       title="Complete your profile"
       description="Fill in your details to continue."
     >
-      {phase.value === "survey" ? (
+      {phase.value === "done" ? null : phase.value === "survey" ? (
         <>
           {existingFormResult && (
             <div class="mb-4 rounded-lg border border-border bg-bg-muted px-4 py-3 text-sm text-text-secondary">

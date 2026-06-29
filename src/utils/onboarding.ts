@@ -9,6 +9,7 @@ const STEP_TO_ROUTE: Record<ConsentStep, string> = {
   foodPreference: "",
   lastProfileUpdate: "",
   photoConsent: "",
+  survey: "",
 };
 
 export const ONBOARDING_STEPS: ConsentStep[] = ["profile"];
@@ -27,6 +28,7 @@ export function getConsentStatus(user: User): ConsentStatus {
     foodPreference: Boolean(consent?.foodPreference),
     lastProfileUpdate: Boolean(consent?.lastProfileUpdate),
     photoConsent: Boolean(consent?.photoConsent),
+    survey: Boolean(consent?.survey),
   };
 
   const nextStep = ONBOARDING_STEPS.find((step) => !completed[step]);

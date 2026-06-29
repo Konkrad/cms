@@ -1,5 +1,5 @@
 import { component$ } from "@qwik.dev/core";
-import { DealBox } from "~theme/chrome/DealBox";
+import { DealBox } from "./DealBox";
 import type { DealViewData } from "~/contracts/deals";
 
 type DealStep = DealViewData["deal"]["steps"][number];

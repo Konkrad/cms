@@ -1,31 +1,11 @@
 /** @jsxImportSource react */
 import React from "react";
 import { Text, Section, Heading, Hr } from "@react-email/components";
-import EmailLayout from "~theme/emails/EmailLayout";
-import TicketLinksSection from "./components/TicketLinksSection";
-import TransactionProductsSummary from "./components/TransactionProductsSummary";
+import EmailLayout from "./EmailLayout";
+import TicketLinksSection from "./TicketLinksSection";
+import TransactionProductsSummary from "./TransactionProductsSummary";
 import { colors } from "~theme/tokens/tokens";
-
-export interface TicketConfirmationEmailProps {
-  baseUrl: string;
-  event: {
-    title: string;
-    date: string;
-    location?: string;
-  };
-  transaction: {
-    buyerName: string;
-    transactionId: string;
-    products: {
-      name: string;
-      amount: number;
-      quantity: number;
-    }[];
-    totalAmount: number;
-  };
-  hasTickets: boolean;
-  tickets: { id: string; qrCodeUuid: string }[];
-}
+import type { TicketConfirmationEmailProps } from "~/contracts/emails";
 
 const TicketConfirmationEmail = ({
   baseUrl,

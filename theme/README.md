@@ -15,14 +15,18 @@ this folder to reskin the public site without touching core logic.
   route). Each receives a typed, secret-stripped props object produced by the
   corresponding route loader in `src/routes/**`.
 - `editor/` — custom BlockNote render components. *(Phase 3)*
-- `emails/` — email chrome and brand config: `EmailLayout`/`Header`/`Footer`
-  (full presentational building blocks — no branding props, a theme just
-  hardcodes its own logo/copy/colors) and `brand.ts` (site name / logo alt /
-  footer copyright, used internally by Header/Footer and referenced by core
-  templates for body copy). Core's actual email templates
-  (`src/emails/LoginEmail.tsx`, `TicketConfirmation.tsx`, and the data-bound
-  blocks `TicketLinksSection`/`TransactionProductsSummary`) stay in core — they
-  carry real transactional data — but render inside `~theme/emails/EmailLayout`.
+- `emails/` — the full email layer, including the templates themselves.
+  `EmailLayout`/`Header`/`Footer` are pure chrome (no branding props, a theme
+  just hardcodes its own logo/copy/colors). `brand.ts` holds site name / logo
+  alt / footer copyright. `LoginEmail`/`TicketConfirmation` are the templates,
+  and `TicketLinksSection`/`TransactionProductsSummary` are their data-bound
+  blocks — these still take real props (tickets, products, amounts) since that
+  data is core-owned, but all markup/copy/styling is theme. `static/logo.svg`
+  is the brand asset served at `${baseUrl}/static/logo.svg`. Core only computes
+  the props (`src/services/email-notifications.service.ts`, the "loader"
+  equivalent — date formatting, env access) and calls `render()`/`sendEmail()`
+  against `~theme/emails/LoginEmail` / `~theme/emails/TicketConfirmation` —
+  the same loader/View split used for routes.
 
 ## The boundary
 

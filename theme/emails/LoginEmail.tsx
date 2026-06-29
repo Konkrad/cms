@@ -1,17 +1,10 @@
 /** @jsxImportSource react */
 import React from "react";
 import { Text, Section, Button, Hr } from "@react-email/components";
-import EmailLayout from "~theme/emails/EmailLayout";
-import { emailBrand } from "~theme/emails/brand";
+import EmailLayout from "./EmailLayout";
+import { emailBrand } from "./brand";
 import { colors } from "~theme/tokens/tokens";
-
-export interface LoginEmailProps {
-  link: string;
-  code: string;
-  appName?: string;
-  baseUrl: string;
-  expiresInMinutes?: number;
-}
+import type { LoginEmailProps } from "~/contracts/emails";
 
 /**
  * LoginEmail

@@ -1,7 +1,7 @@
 import { render } from "@react-email/render";
 import * as React from "react";
-import LoginEmail from "~/emails/LoginEmail";
-import TicketConfirmationEmail from "~/emails/TicketConfirmation";
+import LoginEmail from "~theme/emails/LoginEmail";
+import TicketConfirmationEmail from "~theme/emails/TicketConfirmation";
 import { env } from "~/env";
 import { sendEmail } from "~/utils/send-email";
 

@@ -5,11 +5,11 @@ service: cms
 
 # Image repository WITHOUT the registry host (Kamal prepends registry.server below).
 # e.g. for ghcr.io/acme/cms -> use acme/cms
-image: <OWNER>/cms
+image: konkrad/cms
 
 servers:
   web:
-    - <SERVER_IP>
+    - stardust  # SSH alias defined in ~/.ssh/config (root@scaleway via ~/.ssh/scaleway key)
 
 # Kamal's built-in proxy terminates TLS (auto Let's Encrypt) and routes to the app.
 proxy:
@@ -31,7 +31,7 @@ builder:
   arch: amd64
   args:
     # Build-time: compiled into the client bundle. Public base URL of the S3 bucket.
-    VITE_S3_BASE_URL: https://<PUBLIC_BUCKET_BASE_URL>
+    VITE_S3_BASE_URL: https://stardust-cms-alumni-test.s3.nl-ams.scw.cloud
 
 # Persistent volume for the SQLite file (+ WAL/SHM). Survives deploys; Litestream
 # replicates it to the bucket for disaster recovery.
@@ -46,9 +46,9 @@ env:
     ORIGIN: https://<DOMAIN>          # used by the node server for CSRF/origin checks
     APP_NAME: Digitalumni
     DB_PATH: /data/db.sqlite
-    AWS_REGION: <S3_REGION>
-    AWS_ENDPOINT: https://<S3_ENDPOINT>   # e.g. https://s3.<region>.io.cloud.ovh.net
-    S3_BUCKET: <S3_BUCKET>
+    AWS_REGION: nl-ams
+    AWS_ENDPOINT: https://s3.nl-ams.scw.cloud
+    S3_BUCKET: stardust-cms-alumni-test
     S3_UPLOAD_PATH: public
     SMTP_HOST: <SMTP_HOST>
     SMTP_PORT: "587"

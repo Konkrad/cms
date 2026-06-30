@@ -14,7 +14,6 @@ jobs:
       APP_URL: http://localhost:5173
       APP_NAME: Digitalumni
       MAGIC_LINK_SECRET: test
-      PHOTO_URL_SECRET: test
       SMTP_HOST: localhost
       SMTP_PORT: "1025"
       SMTP_FROM: test@example.com
@@ -132,3 +131,34 @@ jobs:
           name: playwright-report
           path: test-results/
           retention-days: 7
+
+  build-image:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            VITE_S3_BASE_URL=${{ vars.VITE_S3_BASE_URL }}
+          tags: |
+            ghcr.io/konkrad/cms:${{ github.sha }}
+            ghcr.io/konkrad/cms:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

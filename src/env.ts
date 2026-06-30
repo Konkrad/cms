@@ -38,7 +38,6 @@ const envSchema = z.object({
 
   // security
   MAGIC_LINK_SECRET: z.string(),
-  PHOTO_URL_SECRET: z.string().optional(), // Optional: defaults to MAGIC_LINK_SECRET
 
   // email (SMTP)
   SMTP_HOST: z.string(),
@@ -119,7 +118,6 @@ export const env = {
   APP_NAME: _env.APP_NAME,
   APP_URL: _env.APP_URL,
   MAGIC_LINK_SECRET: _env.MAGIC_LINK_SECRET,
-  PHOTO_URL_SECRET: _env.PHOTO_URL_SECRET || _env.MAGIC_LINK_SECRET, // Fallback to MAGIC_LINK_SECRET
   SMTP_HOST: _env.SMTP_HOST,
   SMTP_PORT: _env.SMTP_PORT,
   SMTP_USER: _env.SMTP_USER,
@@ -147,7 +145,6 @@ export const env = {
 
   // helpful booleans
   isProduction: _env.NODE_ENV === "production",
-  isDevelopment: _env.NODE_ENV === "development",
 } as const;
 
 export type Env = typeof env;

@@ -1,9 +1,15 @@
 import { $, component$, useSignal, useTask$, type QRL } from "@qwik.dev/core";
-import { GRID_AREAS } from "~theme/blocks/FeatureBlock/FeatureBlock";
+import { useThemeNamedExports$ } from "~/utils/theme-loader";
 
 interface GridLayoutEditorProps {
   value: string;
   onChange$: QRL<(value: string) => void>;
+}
+
+interface GridAreaInfo {
+  name: string;
+  label: string;
+  color: string;
 }
 
 type GridCell = string;
@@ -41,19 +47,26 @@ function gridToLayout(grid: GridCell[][]): string {
   return grid.map((row) => `"${row.join(" ")}"`).join(" ");
 }
 
-function getAreaColor(areaName: string): string {
-  const area = GRID_AREAS.find((a) => a.name === areaName);
+function getAreaColor(areaName: string, gridAreas: GridAreaInfo[]): string {
+  const area = gridAreas.find((a) => a.name === areaName);
   return area?.color ?? "#9CA3AF";
 }
 
-function getAreaLabel(areaName: string): string {
-  const area = GRID_AREAS.find((a) => a.name === areaName);
+function getAreaLabel(areaName: string, gridAreas: GridAreaInfo[]): string {
+  const area = gridAreas.find((a) => a.name === areaName);
   return area?.label ?? areaName;
 }
 
 export const GridLayoutEditor = component$<GridLayoutEditorProps>((props) => {
+  // Load theme constants dynamically
+  const { GRID_AREAS: gridAreasResource } = useThemeNamedExports$<{
+    GRID_AREAS: GridAreaInfo[];
+  }>(() => import("~theme/blocks/FeatureBlock/FeatureBlock"));
+
   const grid = useSignal<GridCell[][]>(parseLayout(props.value));
-  const selectedArea = useSignal<string>(GRID_AREAS[0].name);
+  const selectedArea = useSignal<string>(
+    gridAreasResource.value?.[0]?.name ?? "left-top",
+  );
 
   useTask$(({ track }) => {
     track(() => props.value);
@@ -77,7 +90,7 @@ export const GridLayoutEditor = component$<GridLayoutEditorProps>((props) => {
           Select an area, then click cells to assign:
         </span>
         <div class="flex flex-wrap gap-1.5">
-          {GRID_AREAS.map((area) => {
+          {gridAreasResource.value?.map((area) => {
             const isSelected = selectedArea.value === area.name;
             return (
               <button
@@ -114,8 +127,8 @@ export const GridLayoutEditor = component$<GridLayoutEditorProps>((props) => {
       >
         {grid.value.map((row, rowIdx) =>
           row.map((cell, colIdx) => {
-            const color = getAreaColor(cell);
-            const label = getAreaLabel(cell);
+            const color = getAreaColor(cell, gridAreasResource.value ?? []);
+            const label = getAreaLabel(cell, gridAreasResource.value ?? []);
 
             // Check if this cell is part of a larger block of same area
             // to show merged visual appearance

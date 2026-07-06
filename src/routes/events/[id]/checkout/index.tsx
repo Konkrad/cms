@@ -1,10 +1,5 @@
 import { component$ } from "@qwik.dev/core";
-import {
-  routeLoader$,
-  routeAction$,
-  z,
-  zod$,
-} from "@qwik.dev/router";
+import { routeLoader$, routeAction$, z, zod$ } from "@qwik.dev/router";
 // Import re-exported route actions via a RELATIVE path, not the "~"/"~theme" alias —
 // qwikRouter's production transform for re-exported routeAction$/routeLoader$ does
 // not resolve either tsconfig alias, so the Rollup build fails to find the module.
@@ -25,7 +20,7 @@ import type {
   CheckoutItemInput,
   ParticipantSlotInput,
 } from "~theme/routes/events/checkout/types";
-import { CheckoutView } from "~theme/routes/events/CheckoutView";
+import { useThemeComponent$ } from "~/utils/theme-loader";
 
 export { useSaveFoodPreference, useSavePhotoConsent };
 
@@ -95,16 +90,16 @@ export const useProductsData = routeLoader$(async (event) => {
     photoConsentGiven: (session as any)?.photoConsentGiven ?? null,
     buyer: {
       id: (session as any)?.id ?? "",
-      name: [
-        (session as any)?.name,
-        (session as any)?.familyName,
-      ]
+      name: [(session as any)?.name, (session as any)?.familyName]
         .filter(Boolean)
         .join(" ")
         .trim(),
       email: (session as any)?.email ?? "",
       avatarUrl: (session as any)?.profilePicture
-        ? publicImageUrlFromKey((session as any).profilePictureSmall ?? deriveThumbnailKey((session as any).profilePicture))
+        ? publicImageUrlFromKey(
+            (session as any).profilePictureSmall ??
+              deriveThumbnailKey((session as any).profilePicture),
+          )
         : null,
     },
   };
@@ -142,7 +137,10 @@ export const useCreateCheckoutSession = routeAction$(
         quantity: Number(item.quantity),
         participantUnits: item.participantUnits ?? [],
       }))
-      .filter((item) => item.productId && Number.isFinite(item.quantity) && item.quantity > 0);
+      .filter(
+        (item) =>
+          item.productId && Number.isFinite(item.quantity) && item.quantity > 0,
+      );
 
     if (items.length === 0) {
       return event.fail(400, { message: "Please select at least one ticket" });
@@ -177,17 +175,29 @@ export const useCreateCheckoutSession = routeAction$(
 
     for (const entry of products) {
       if (!entry.product) {
-        return event.fail(400, { message: `Product ${entry.productId} not found` });
+        return event.fail(400, {
+          message: `Product ${entry.productId} not found`,
+        });
       }
 
-      const expectedCapacity = Math.max(1, entry.product.participantCapacity || 1);
-      if (!Array.isArray(entry.participantUnits) || entry.participantUnits.length !== entry.quantity) {
+      const expectedCapacity = Math.max(
+        1,
+        entry.product.participantCapacity || 1,
+      );
+      if (
+        !Array.isArray(entry.participantUnits) ||
+        entry.participantUnits.length !== entry.quantity
+      ) {
         return event.fail(400, {
           message: `Participant data is incomplete for ${entry.product.name}`,
         });
       }
 
-      for (let unitIdx = 0; unitIdx < entry.participantUnits.length; unitIdx++) {
+      for (
+        let unitIdx = 0;
+        unitIdx < entry.participantUnits.length;
+        unitIdx++
+      ) {
         const unit = entry.participantUnits[unitIdx] || [];
         if (unit.length !== expectedCapacity) {
           return event.fail(400, {
@@ -221,12 +231,13 @@ export const useCreateCheckoutSession = routeAction$(
     // First purchased ticket is always assigned to the buyer in slot 1.
     let firstTicketBound = false;
     const normalizedItems = products.map((entry) => {
-      const normalizedUnits = entry.participantUnits.map((unit: ParticipantSlotInput[]) =>
-        unit.map((slot: ParticipantSlotInput) => ({
-          name: (slot?.name || "").trim(),
-          email: (slot?.email || "").trim().toLowerCase(),
-          existingUserId: slot?.existingUserId || null,
-        })),
+      const normalizedUnits = entry.participantUnits.map(
+        (unit: ParticipantSlotInput[]) =>
+          unit.map((slot: ParticipantSlotInput) => ({
+            name: (slot?.name || "").trim(),
+            email: (slot?.email || "").trim().toLowerCase(),
+            existingUserId: slot?.existingUserId || null,
+          })),
       );
 
       for (let i = 0; i < normalizedUnits.length; i++) {
@@ -234,8 +245,12 @@ export const useCreateCheckoutSession = routeAction$(
         if (normalizedUnits[i] && normalizedUnits[i][0]) {
           normalizedUnits[i][0] = {
             ...normalizedUnits[i][0],
-            name: [user.name, user.familyName].filter(Boolean).join(" ").trim() || normalizedUnits[i][0].name,
-            email: (user.email || "").trim().toLowerCase() || normalizedUnits[i][0].email,
+            name:
+              [user.name, user.familyName].filter(Boolean).join(" ").trim() ||
+              normalizedUnits[i][0].name,
+            email:
+              (user.email || "").trim().toLowerCase() ||
+              normalizedUnits[i][0].email,
             existingUserId: user.id,
           };
           firstTicketBound = true;
@@ -258,7 +273,8 @@ export const useCreateCheckoutSession = routeAction$(
     // Handle free tickets - skip payment
     if (totalAmount === 0) {
       const { ticketsService } = await import("~/services/tickets.service");
-      const { participantsService } = await import("~/services/participants.service");
+      const { participantsService } =
+        await import("~/services/participants.service");
 
       const createdTickets: any[] = [];
       for (const item of normalizedItems) {
@@ -272,13 +288,15 @@ export const useCreateCheckoutSession = routeAction$(
           const participantSlots = item.participantUnits?.[i] || [];
           if (participantSlots.length > 0) {
             await participantsService.createBulk(
-              participantSlots.map((slot: ParticipantSlotInput, slotIdx: number) => ({
-                ticketId: ticket.id,
-                participantOrder: slotIdx + 1,
-                name: slot.name,
-                email: slot.email,
-                userId: slot.existingUserId ?? null,
-              })),
+              participantSlots.map(
+                (slot: ParticipantSlotInput, slotIdx: number) => ({
+                  ticketId: ticket.id,
+                  participantOrder: slotIdx + 1,
+                  name: slot.name,
+                  email: slot.email,
+                  userId: slot.existingUserId ?? null,
+                }),
+              ),
             );
           }
 
@@ -305,17 +323,19 @@ export const useCreateCheckoutSession = routeAction$(
 
     // Build line items for Stripe
     const lineItems = normalizedItems.map((p) => ({
-        price_data: {
-          currency: "eur",
-          product_data: {
-            name: p.product.name,
-            description: p.product.features?.join(", ") || "",
-            images: p.product.imageKey ? [publicImageUrlFromKey(p.product.imageKey)].filter(Boolean) : [],
-          },
-          unit_amount: Math.round(p.product.price * 100), // Convert to cents
+      price_data: {
+        currency: "eur",
+        product_data: {
+          name: p.product.name,
+          description: p.product.features?.join(", ") || "",
+          images: p.product.imageKey
+            ? [publicImageUrlFromKey(p.product.imageKey)].filter(Boolean)
+            : [],
         },
-        quantity: p.quantity,
-      }));
+        unit_amount: Math.round(p.product.price * 100), // Convert to cents
+      },
+      quantity: p.quantity,
+    }));
 
     const participantPayload = JSON.stringify(
       normalizedItems.map((item) => ({
@@ -393,13 +413,19 @@ export default component$(() => {
   const saveFood = useSaveFoodPreference();
   const savePhoto = useSavePhotoConsent();
 
+  const CheckoutView = useThemeComponent$(
+    async () => import("~theme/routes/events/CheckoutView"),
+  );
+
   return (
-    <CheckoutView
-      data={data.value}
-      createCheckoutSession={createCheckoutSession}
-      checkPaymentStatus={checkPaymentStatus}
-      saveFood={saveFood}
-      savePhoto={savePhoto}
-    />
+    CheckoutView.value && (
+      <CheckoutView.value
+        data={data.value}
+        createCheckoutSession={createCheckoutSession}
+        checkPaymentStatus={checkPaymentStatus}
+        saveFood={saveFood}
+        savePhoto={savePhoto}
+      />
+    )
   );
 });

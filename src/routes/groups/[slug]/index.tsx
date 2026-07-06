@@ -10,7 +10,8 @@ import { eventsService } from "~/services/events.service";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { buildProfileUrl } from "~/utils/users";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
-import { GroupView } from "~theme/routes/groups/GroupView";
+import { useThemeComponent$ } from "~/utils/theme-loader";
+import type { FC } from "react";
 
 export const useGroupData = routeLoader$(async (event) => {
   const { params, redirect } = event;
@@ -65,14 +66,18 @@ export const useGroupData = routeLoader$(async (event) => {
     }) as any,
   ]);
 
-  const toPublicUrl = (key: string | null | undefined) => publicImageUrlFromKey(key);
+  const toPublicUrl = (key: string | null | undefined) =>
+    publicImageUrlFromKey(key);
 
   const repData = rep
     ? {
         name: `${rep.user.name} ${rep.user.familyName}`,
         subtitle: `Local Rep ${group.name}`,
         profilePictureUrl: rep.user.profilePicture
-          ? toPublicUrl((rep.user as any).profilePictureSmall ?? deriveThumbnailKey(rep.user.profilePicture))
+          ? toPublicUrl(
+              (rep.user as any).profilePictureSmall ??
+                deriveThumbnailKey(rep.user.profilePicture),
+            )
           : null,
         profileUrl: buildProfileUrl({
           id: rep.userId,
@@ -91,7 +96,10 @@ export const useGroupData = routeLoader$(async (event) => {
       name: m.name,
       familyName: m.familyName,
       profilePictureSmall: m.profilePicture
-        ? toPublicUrl((m as any).profilePictureSmall ?? deriveThumbnailKey(m.profilePicture))
+        ? toPublicUrl(
+            (m as any).profilePictureSmall ??
+              deriveThumbnailKey(m.profilePicture),
+          )
         : null,
       profileUrl: buildProfileUrl({
         id: m.id,
@@ -141,5 +149,12 @@ export const useJoinGroup = routeAction$(async (_data, event) => {
 export default component$(() => {
   const data = useGroupData();
   const joinAction = useJoinGroup();
-  return <GroupView data={data.value} joinAction={joinAction} />;
+  const GroupView = useThemeComponent$<FC<{ data: any; joinAction: any }>>(
+    () => import("~theme/routes/groups/GroupView"),
+  );
+  return (
+    GroupView.value && (
+      <GroupView.value data={data.value} joinAction={joinAction} />
+    )
+  );
 });

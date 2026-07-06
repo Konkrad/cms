@@ -1,7 +1,8 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
 import { electionsService } from "~/services/elections.service";
-import { ElectionsView } from "~theme/routes/elections/ElectionsView";
+import { useThemeComponent$ } from "~/utils/theme-loader";
+import type { FC } from "react";
 
 export const useElections = routeLoader$(async (event) => {
   const { requireAuth } = await import("~/utils/server-auth");
@@ -14,5 +15,8 @@ export const useElections = routeLoader$(async (event) => {
 
 export default component$(() => {
   const data = useElections();
-  return <ElectionsView data={data.value} />;
+  const ElectionsView = useThemeComponent$<FC<{ data: any }>>(
+    () => import("~theme/routes/elections/ElectionsView"),
+  );
+  return ElectionsView.value && <ElectionsView.value data={data.value} />;
 });

@@ -1,9 +1,8 @@
 import { component$, Slot } from "@qwik.dev/core";
 import type { RequestHandler } from "@qwik.dev/router";
 import { routeAction$, routeLoader$ } from "@qwik.dev/router";
-import { Navigation } from "~theme/chrome/Navigation/Navigation";
-import { SiteFooter } from "~theme/chrome/SiteFooter/SiteFooter";
 import { menuItemsService } from "~/services/menu-items.service";
+import { useThemeNamedExports$ } from "~/utils/theme-loader";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { formatUser } from "~/utils/users";
@@ -17,7 +16,9 @@ const ONBOARDING_EXEMPT = ["/profile/setup", "/login", "/auth/", "/api/"];
 
 export const onRequest: RequestHandler = async (event) => {
   const { pathname } = new URL(event.request.url);
-  const isExempt = ONBOARDING_EXEMPT.some((prefix) => pathname.startsWith(prefix));
+  const isExempt = ONBOARDING_EXEMPT.some((prefix) =>
+    pathname.startsWith(prefix),
+  );
   if (!isExempt) {
     const user = await getCurrentUserData(event);
     if (user) {
@@ -54,7 +55,8 @@ export const useUserSession = routeLoader$(async (event) => {
   let profilePictureSmallUrl: string | null = null;
   const u = userData as any;
   if (u.profilePicture) {
-    const thumbKey = u.profilePictureSmall ?? deriveThumbnailKey(u.profilePicture);
+    const thumbKey =
+      u.profilePictureSmall ?? deriveThumbnailKey(u.profilePicture);
     profilePictureSmallUrl = publicImageUrlFromKey(thumbKey);
   }
 
@@ -126,7 +128,9 @@ export default component$(() => {
     const u = user.value as any;
     if (!u || typeof u !== "object") return null;
     const isAdmin = u.role === "admin" || u.role === "moderator";
-    const displayName = u.name ? formatUser(u, true).displayName : u.email ?? u.id ?? "User";
+    const displayName = u.name
+      ? formatUser(u, true).displayName
+      : (u.email ?? u.id ?? "User");
     return {
       id: u.id,
       role: u.role ?? null,
@@ -136,13 +140,28 @@ export default component$(() => {
     };
   })();
 
+  // Dynamically import theme components to enable theme replacement
+  // This allows the theme chunk to be loaded separately and replaced
+  const { Navigation } = useThemeNamedExports$(
+    () => import("~theme/chrome/Navigation/Navigation"),
+  );
+  const { SiteFooter } = useThemeNamedExports$(
+    () => import("~theme/chrome/SiteFooter/SiteFooter"),
+  );
+
   return (
     <>
-      <Navigation user={navUser} menuItems={menu.value} logoutAction={logoutAction} />
+      {Navigation.value && (
+        <Navigation.value
+          user={navUser}
+          menuItems={menu.value}
+          logoutAction={logoutAction}
+        />
+      )}
       <main class="min-h-screen">
         <Slot />
       </main>
-      <SiteFooter footerItems={footer.value} />
+      {SiteFooter.value && <SiteFooter.value footerItems={footer.value} />}
     </>
   );
 });

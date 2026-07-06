@@ -1,22 +1,29 @@
 import { component$ } from "@qwik.dev/core";
 import { routeAction$, routeLoader$, zod$, z } from "@qwik.dev/router";
 import { electionsService } from "~/services/elections.service";
-import { ApplyView } from "~theme/routes/elections/ApplyView";
+import { useThemeNamedExports$ } from "~/utils/theme-loader";
 
 export const useApplyData = routeLoader$(async (event) => {
   const { requireAuth } = await import("~/utils/server-auth");
   const user = await requireAuth(event);
 
   const cycle = await electionsService.getCycleById(event.params.id);
-  if (!cycle || (cycle.status !== "open")) throw event.redirect(302, `/elections/${event.params.id}`);
+  if (!cycle || cycle.status !== "open")
+    throw event.redirect(302, `/elections/${event.params.id}`);
 
   const positionId = event.url.searchParams.get("positionId");
-  const position = positionId ? cycle.positions.find((p) => p.id === positionId) : null;
+  const position = positionId
+    ? cycle.positions.find((p) => p.id === positionId)
+    : null;
   if (!position) throw event.redirect(302, `/elections/${event.params.id}`);
 
   if (cycle.requiredMembershipTier) {
-    const { membershipsService } = await import("~/services/memberships.service");
-    const hasAccess = await membershipsService.hasTier(user.id, cycle.requiredMembershipTier);
+    const { membershipsService } =
+      await import("~/services/memberships.service");
+    const hasAccess = await membershipsService.hasTier(
+      user.id,
+      cycle.requiredMembershipTier,
+    );
     if (!hasAccess) throw event.redirect(302, `/elections/${event.params.id}`);
   }
 
@@ -42,13 +49,26 @@ export const useSubmitApplication = routeAction$(
     positionId: z.string().uuid(),
     cycleId: z.string().uuid(),
     motivationWhy: z.string().min(10, "Please write at least a few sentences"),
-    motivationExperience: z.string().min(10, "Please write at least a few sentences"),
-    motivationGoals: z.string().min(10, "Please write at least a few sentences"),
+    motivationExperience: z
+      .string()
+      .min(10, "Please write at least a few sentences"),
+    motivationGoals: z
+      .string()
+      .min(10, "Please write at least a few sentences"),
   }),
 );
 
 export default component$(() => {
   const data = useApplyData();
   const submitAction = useSubmitApplication();
-  return <ApplyView data={data.value} submitAction={submitAction} />;
+
+  const { ApplyView } = useThemeNamedExports$(
+    async () => import("~theme/routes/elections/ApplyView"),
+  );
+
+  return (
+    ApplyView.value && (
+      <ApplyView.value data={data.value} submitAction={submitAction} />
+    )
+  );
 });

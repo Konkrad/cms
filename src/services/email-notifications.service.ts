@@ -1,7 +1,5 @@
 import { render } from "@react-email/render";
 import * as React from "react";
-import LoginEmail from "~theme/emails/LoginEmail";
-import TicketConfirmationEmail from "~theme/emails/TicketConfirmation";
 import { env } from "~/env";
 import { sendEmail } from "~/utils/send-email";
 
@@ -18,7 +16,13 @@ export const emailNotificationsService = {
     subject?: string;
   }): Promise<void> {
     const appName = env.APP_NAME;
-    const element = React.createElement(LoginEmail, { link, code, appName, baseUrl: env.APP_URL });
+    const { default: LoginEmail } = await import("~theme/emails/LoginEmail");
+    const element = React.createElement(LoginEmail, {
+      link,
+      code,
+      appName,
+      baseUrl: env.APP_URL,
+    });
     const [html, text] = await Promise.all([
       render(element),
       render(element, { plainText: true }),
@@ -57,6 +61,8 @@ export const emailNotificationsService = {
     const eventDate = new Date(event.startDate).toLocaleString();
     const location = event.address || event.onlineUrl || undefined;
 
+    const { default: TicketConfirmationEmail } =
+      await import("~theme/emails/TicketConfirmation");
     const element = React.createElement(TicketConfirmationEmail, {
       baseUrl: env.APP_URL,
       event: { title: event.title, date: eventDate, location },

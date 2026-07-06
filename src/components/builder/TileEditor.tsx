@@ -1,11 +1,33 @@
-import { $, component$, useSignal, useTask$, type QRL } from "@qwik.dev/core";
+import {
+  $,
+  component$,
+  useSignal,
+  useTask$,
+  type QRL,
+  useResource$,
+} from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
-import {
-  GRID_AREAS,
-  type TileConfig,
-} from "~theme/blocks/FeatureBlock/FeatureBlock";
 import { publicImageUrlFromKey } from "~/utils/images";
+import { useThemeNamedExports$ } from "~/utils/theme-loader";
+
+// Type for tile configuration (defined in theme)
+interface TileConfig {
+  type: "stat" | "image";
+  area: string;
+  number?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  alt?: string;
+  overlayText?: string;
+}
+
+interface GridAreaInfo {
+  name: string;
+  label: string;
+  color: string;
+}
 
 interface TileEditorProps {
   value: string;
@@ -51,6 +73,11 @@ function createDefaultImageTile(): TileConfig {
 }
 
 export const TileEditor = component$<TileEditorProps>((props) => {
+  // Load theme constants dynamically
+  const { GRID_AREAS } = useThemeNamedExports$<{ GRID_AREAS: GridAreaInfo[] }>(
+    () => import("~theme/blocks/FeatureBlock/FeatureBlock"),
+  );
+
   const tiles = useSignal<TileConfig[]>(parseTiles(props.value));
   const expandedIndex = useSignal<number | null>(null);
   const lastSerializedValue = useSignal(props.value);
@@ -140,7 +167,7 @@ export const TileEditor = component$<TileEditorProps>((props) => {
       {tiles.value.map((tile, index) => {
         const isExpanded = expandedIndex.value === index;
         const typeLabel = tile.type === "stat" ? "📊 Stat" : "🖼️ Image";
-        const areaInfo = GRID_AREAS.find((a) => a.name === tile.area);
+        const areaInfo = GRID_AREAS.value?.find((a) => a.name === tile.area);
         const areaColor = areaInfo?.color ?? "#9CA3AF";
 
         return (
@@ -257,7 +284,7 @@ export const TileEditor = component$<TileEditorProps>((props) => {
                       )
                     }
                   >
-                    {GRID_AREAS.map((area) => (
+                    {GRID_AREAS.value?.map((area) => (
                       <option key={area.name} value={area.name}>
                         {area.label}
                       </option>
@@ -344,7 +371,7 @@ export const TileEditor = component$<TileEditorProps>((props) => {
                         aspectRatio="3/4"
                         currentUrl={
                           tile.image && !tile.image.startsWith("blob:")
-                            ? publicImageUrlFromKey(tile.image) ?? undefined
+                            ? (publicImageUrlFromKey(tile.image) ?? undefined)
                             : tile.image
                         }
                         currentValue={tile.image}

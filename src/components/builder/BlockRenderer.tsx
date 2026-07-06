@@ -1,13 +1,17 @@
 import { component$ } from "@qwik.dev/core";
 import type { BlockData } from "~/db/schema";
-import { blockRegistry } from "~theme/blocks";
+import { useThemeNamedExports$ } from "~/utils/theme-loader";
 
 interface BlockRendererProps {
   block: BlockData;
 }
 
 export const BlockRenderer = component$<BlockRendererProps>((props) => {
-  const BlockComponent = blockRegistry[props.block.componentType];
+  const { blockRegistry } = useThemeNamedExports$(
+    () => import("~theme/blocks"),
+  );
+
+  const BlockComponent = blockRegistry.value?.[props.block.componentType];
 
   if (!BlockComponent) {
     return (

@@ -1,7 +1,8 @@
 import { component$ } from "@qwik.dev/core";
 import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { jobsService } from "~/services/jobs.service";
-import { JobFormView, type JobFormInitialValues } from "~theme/routes/jobs/JobFormView";
+import { useThemeNamedExports$ } from "~/utils/theme-loader";
+import type { JobFormInitialValues } from "~theme/routes/jobs/JobFormView";
 
 export const useJob = routeLoader$(async (event) => {
   const { requireAuth } = await import("~/utils/server-auth");
@@ -69,7 +70,9 @@ export const useUpdateMyJob = routeAction$(
     link: z.string().optional(),
     posterRelation: z.preprocess(
       (v) => (v === "" ? undefined : v),
-      z.enum(["hiring", "founder", "direct-team", "works-there", "other"]).optional(),
+      z
+        .enum(["hiring", "founder", "direct-team", "works-there", "other"])
+        .optional(),
     ),
     expiresAt: z.string().min(1, "Expiry date is required"),
   }),
@@ -96,18 +99,24 @@ export default component$(() => {
     expiresAt: job.expiresAt.slice(0, 10),
   };
 
+  const { JobFormView } = useThemeNamedExports$(
+    async () => import("~theme/routes/jobs/JobFormView"),
+  );
+
   return (
-    <JobFormView
-      mode="edit"
-      backHref="/jobs/mine"
-      backLabel="Back to My Submissions"
-      heading="Edit Job Posting"
-      initial={initial}
-      maxDateStr={maxDateStr}
-      cancelHref="/jobs/mine"
-      submitLabel="Save Changes"
-      submittingLabel="Saving…"
-      action={updateAction}
-    />
+    JobFormView.value && (
+      <JobFormView.value
+        mode="edit"
+        backHref="/jobs/mine"
+        backLabel="Back to My Submissions"
+        heading="Edit Job Posting"
+        initial={initial}
+        maxDateStr={maxDateStr}
+        cancelHref="/jobs/mine"
+        submitLabel="Save Changes"
+        submittingLabel="Saving…"
+        action={updateAction}
+      />
+    )
   );
 });

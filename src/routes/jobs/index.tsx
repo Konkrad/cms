@@ -1,7 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
 import { jobsService } from "~/services/jobs.service";
-import { JobsListView } from "~theme/routes/jobs/JobsListView";
+import { useThemeNamedExports$ } from "~/utils/theme-loader";
 
 const PAGE_SIZE = 10;
 
@@ -13,5 +13,10 @@ export const useJobs = routeLoader$(async (event) => {
 
 export default component$(() => {
   const data = useJobs();
-  return <JobsListView data={data.value} />;
+
+  const { JobsListView } = useThemeNamedExports$(
+    async () => import("~theme/routes/jobs/JobsListView"),
+  );
+
+  return JobsListView.value && <JobsListView.value data={data.value} />;
 });

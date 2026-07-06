@@ -32,35 +32,27 @@ export const useThemeNamedExportsQrl = undefined;
  * <Navigation.value user={user} />
  * ```
  */
-export const useThemeNamedExports$ = <T extends Record<string, any>>(
+export function useThemeNamedExports$<T extends Record<string, any>>(
   importFn: () => Promise<T>,
-) => {
+) {
   const moduleResource = useResource$(async () => {
     return await importFn();
   });
 
-  // Create a proxy object that maps each property access to a resource-like object
-  // This allows the usage pattern: const { Navigation } = useThemeNamedExports$(...);
-  // Navigation.value && <Navigation.value ... />
+  // Create a proxy object that maps each property access to a ResourceReturn
+  // Usage: const { Navigation } = useThemeNamedExports$(...);
+  //        <Resource value={Navigation} onResolved={(Comp) => <Comp ... />} />
+  // Or with helper: <ThemeNamedExport resource={Navigation} user={user} />
   return new Proxy({} as any, {
     get(_target, prop: string) {
-      // Return a resource-like object for the specific property
-      return {
-        get value() {
-          // This will be accessed in JSX. In Qwik, this creates a dependency
-          // on the moduleResource, and when it resolves, this will return
-          // the specific export
-          return moduleResource.value.then(
-            (module) => (module as T)[prop as keyof T],
-          );
-        },
-        get loading() {
-          return moduleResource.loading;
-        },
-      };
+      // Return a ResourceReturn for the specific property
+      return useResource$(async () => {
+        const module = await moduleResource.value;
+        return (module as T)[prop as keyof T];
+      });
     },
-  }) as { [K in keyof T]: { value: Promise<T[K]>; loading: boolean } };
-};
+  }) as { [K in keyof T]: ReturnType<typeof useResource$<T[K]>> };
+}
 
 /**
  * Hook to dynamically import a theme component.
@@ -73,26 +65,18 @@ export const useThemeNamedExports$ = <T extends Record<string, any>>(
  * <PostView.value post={post} />
  * ```
  */
-export const useThemeComponent$ = <T = any>(importFn: () => Promise<T>) => {
-  const resource = useResource$(async () => {
+export function useThemeComponent$<T = any>(importFn: () => Promise<T>) {
+  // Return a ResourceReturn that resolves to the component
+  // Usage: const PostView = useThemeComponent$(...);
+  //        <Resource value={PostView} onResolved={(Comp) => <Comp ... />} />
+  // Or with helper: <ThemeComponent resource={PostView} post={post} />
+  return useResource$(async () => {
     const module = await importFn();
-    return module;
+    // If the module has a default export, use it. Otherwise return the module itself.
+    // This allows handling both default and named exports.
+    if ("default" in module) {
+      return (module as any).default as T;
+    }
+    return module as T;
   });
-
-  // Return a resource-like object
-  return {
-    get value() {
-      return resource.value.then((module) => {
-        // If the module has a default export, use it. Otherwise return the module itself.
-        // This allows handling both default and named exports.
-        if ("default" in module) {
-          return (module as any).default as T;
-        }
-        return module as T;
-      });
-    },
-    get loading() {
-      return resource.loading;
-    },
-  } as { value: Promise<T>; loading: boolean };
-};
+}

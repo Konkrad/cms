@@ -99,6 +99,42 @@ from the rest of the app — a community can fork or swap that folder to reskin
 the public site without touching core logic. The admin panel is **not**
 themeable. See [CLAUDE.md](CLAUDE.md) for the theme/core boundary rules.
 
+### Swapping the Theme
+
+The template API is designed so that theme modules are bundled separately from the core application, making it easier to swap themes. Theme components are lazy-loaded at runtime using dynamic imports.
+
+**To use a custom theme:**
+
+1. **Replace the `theme/` directory** with your custom theme folder that contains the same structure:
+   ```bash
+   # Remove existing theme
+   rm -rf theme/
+   
+   # Add your custom theme (must maintain the same file structure)
+   cp -r my-custom-theme/ theme/
+   ```
+
+2. **Rebuild the application** to regenerate the theme chunks:
+   ```bash
+   npm run build
+   ```
+
+**For Docker deployments:**
+
+After replacing the theme directory, build a new Docker image:
+```bash
+docker build -t my-cms-with-theme .
+docker run -p 3000:3000 my-cms-with-theme
+```
+
+**How it works:**
+- Theme components use dynamic imports via `useThemeComponent$` and `useThemeNamedExports$` hooks
+- Vite's `manualChunks` configuration bundles all theme modules into separate chunks
+- At runtime, theme components are lazy-loaded from these chunks
+- The theme is kept separate from core application logic, so replacing the theme directory and rebuilding only regenerates the theme chunks
+
+For details on the theme structure and contract, see [theme/README.md](theme/README.md).
+
 ## Deployment
 
 The app deploys with Kamal (single server, Docker, SQLite + Litestream backups). See [docs/deployment.md](docs/deployment.md).

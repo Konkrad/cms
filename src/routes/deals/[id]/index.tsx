@@ -3,6 +3,7 @@ import { routeLoader$ } from "@qwik.dev/router";
 import { dealsService } from "~/services/deals.service";
 import { getServerSession } from "~/utils/server-auth";
 import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
 import type { FC } from "react";
 
 export const useDeal = routeLoader$(async (event) => {
@@ -28,15 +29,14 @@ export const useDeal = routeLoader$(async (event) => {
 
 export default component$(() => {
   const deal = useDeal();
-  const DealView = useThemeComponent$<FC<{ deal: any; isLoggedIn: boolean }>>(
+  const DealView = useThemeComponent$(
     () => import("~theme/routes/deals/DealView"),
   );
   return (
-    DealView.value && (
-      <DealView.value
-        deal={deal.value.deal}
-        isLoggedIn={deal.value.isLoggedIn}
-      />
-    )
+    <ThemeComponent
+      resource={DealView}
+      deal={deal.value.deal}
+      isLoggedIn={deal.value.isLoggedIn}
+    />
   );
 });

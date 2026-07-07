@@ -24,6 +24,7 @@ import { env } from "~/env";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { formatUser, buildProfileUrl } from "~/utils/users";
 import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
 import type { FC } from "react";
 
 export const onGet: RequestHandler = ({ cacheControl }) => {
@@ -430,16 +431,13 @@ export const useUpdateParticipation = routeAction$(
 export default component$(() => {
   const event = useEvent();
   const updateParticipation = useUpdateParticipation();
-  const EventView = useThemeComponent$<
-    FC<{ event: any; updateParticipation: any }>
-  >(() => import("~theme/routes/events/EventView"));
+  const EventView = useThemeComponent$(() => import("~theme/routes/events/EventView"));
   return (
-    EventView.value && (
-      <EventView.value
-        event={event.value}
-        updateParticipation={updateParticipation}
-      />
-    )
+    <ThemeComponent
+      resource={EventView}
+      event={event.value}
+      updateParticipation={updateParticipation}
+    />
   );
 });
 

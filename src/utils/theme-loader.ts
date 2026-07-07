@@ -51,7 +51,7 @@ export function useThemeNamedExports$<T extends Record<string, any>>(
         return (module as T)[prop as keyof T];
       });
     },
-  }) as { [K in keyof T]: ReturnType<typeof useResource$<T[K]>> };
+  }) as { [K in keyof T]: { value: Promise<T[K]>; loading: boolean } };
 }
 
 /**
@@ -65,17 +65,19 @@ export function useThemeNamedExports$<T extends Record<string, any>>(
  * <PostView.value post={post} />
  * ```
  */
-export function useThemeComponent$<T = any>(importFn: () => Promise<T>) {
+export function useThemeComponent$<T = any>(
+  importFn: () => Promise<{ default: T } | T>,
+): ReturnType<typeof useResource$<T>> {
   // Return a ResourceReturn that resolves to the component
   // Usage: const PostView = useThemeComponent$(...);
   //        <Resource value={PostView} onResolved={(Comp) => <Comp ... />} />
   // Or with helper: <ThemeComponent resource={PostView} post={post} />
   return useResource$(async () => {
-    const module = await importFn();
+    const module = (await importFn()) as any;
     // If the module has a default export, use it. Otherwise return the module itself.
     // This allows handling both default and named exports.
-    if ("default" in module) {
-      return (module as any).default as T;
+    if (module && typeof module === "object" && "default" in module) {
+      return module.default as T;
     }
     return module as T;
   });

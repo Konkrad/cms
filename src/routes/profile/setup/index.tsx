@@ -9,6 +9,7 @@ import { routeLoader$ } from "@qwik.dev/router";
 import { useUpdateProfile } from "../../../components/setup/ProfileStep/useUpdateProfile";
 import { useMarkLocation } from "../../../components/setup/LocationStep/useMarkLocation";
 import { useThemeNamedExports$ } from "~/utils/theme-loader";
+import { ThemeNamedExport } from "~/utils/theme-components";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { formsService } from "~/services/forms.service";
 import { formResultsService } from "~/services/form-results.service";
@@ -62,12 +63,11 @@ export default component$(() => {
   );
 
   return (
-    OnboardingView.value && (
-      <OnboardingView.value
-        loader={loader.value}
-        updateAction={updateAction}
-        markLocation={markLocation}
-      />
-    )
+    <ThemeNamedExport
+      resource={OnboardingView}
+      loader={loader.value}
+      updateAction={updateAction}
+      markLocation={markLocation}
+    />
   );
 });

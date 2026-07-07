@@ -2,6 +2,7 @@ import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import { pagesService } from "~/services/pages.service";
 import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
 import type { FC } from "react";
 
 export const usePage = routeLoader$(async ({ params, status }) => {
@@ -25,10 +26,10 @@ export const usePage = routeLoader$(async ({ params, status }) => {
 
 export default component$(() => {
   const page = usePage();
-  const PageView = useThemeComponent$<FC<{ page: any }>>(
+  const PageView = useThemeComponent$(
     () => import("~theme/routes/page/PageView"),
   );
-  return PageView.value && <PageView.value page={page.value} />;
+  return <ThemeComponent resource={PageView} page={page.value} />;
 });
 
 export const head: DocumentHead = ({ resolveValue }) => {

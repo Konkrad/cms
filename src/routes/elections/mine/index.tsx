@@ -2,6 +2,7 @@ import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
 import { electionsService } from "~/services/elections.service";
 import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
 import type { FC } from "react";
 
 export const useMyApplications = routeLoader$(async (event) => {
@@ -26,10 +27,8 @@ export const useMyApplications = routeLoader$(async (event) => {
 
 export default component$(() => {
   const data = useMyApplications();
-  const MyApplicationsView = useThemeComponent$<FC<{ data: any }>>(
+  const MyApplicationsView = useThemeComponent$(
     () => import("~theme/routes/elections/MyApplicationsView"),
   );
-  return (
-    MyApplicationsView.value && <MyApplicationsView.value data={data.value} />
-  );
+  return <ThemeComponent resource={MyApplicationsView} data={data.value} />;
 });

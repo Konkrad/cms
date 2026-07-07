@@ -11,6 +11,7 @@ import { getCurrentUserData } from "~/utils/server-auth";
 import { buildProfileUrl } from "~/utils/users";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
 import type { FC } from "react";
 
 export const useGroupData = routeLoader$(async (event) => {
@@ -149,12 +150,14 @@ export const useJoinGroup = routeAction$(async (_data, event) => {
 export default component$(() => {
   const data = useGroupData();
   const joinAction = useJoinGroup();
-  const GroupView = useThemeComponent$<FC<{ data: any; joinAction: any }>>(
+  const GroupView = useThemeComponent$(
     () => import("~theme/routes/groups/GroupView"),
   );
   return (
-    GroupView.value && (
-      <GroupView.value data={data.value} joinAction={joinAction} />
-    )
+    <ThemeComponent
+      resource={GroupView}
+      data={data.value}
+      joinAction={joinAction}
+    />
   );
 });

@@ -3,6 +3,7 @@ import { routeLoader$ } from "@qwik.dev/router";
 import { emailAuthService } from "~/services/email-auth.service";
 import { env } from "~/env";
 import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
 import type { FC } from "react";
 
 export const useVerify = routeLoader$(async (event: any) => {
@@ -44,8 +45,8 @@ export const useVerify = routeLoader$(async (event: any) => {
 
 export default component$(() => {
   const res = useVerify();
-  const AuthVerifyView = useThemeComponent$<FC<{ result: any }>>(
+  const AuthVerifyView = useThemeComponent$(
     () => import("~theme/routes/auth/AuthVerifyView"),
   );
-  return AuthVerifyView.value && <AuthVerifyView.value result={res.value} />;
+  return <ThemeComponent resource={AuthVerifyView} result={res.value} />;
 });

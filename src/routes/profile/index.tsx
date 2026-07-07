@@ -12,6 +12,7 @@ import { groupMemberships } from "~/db/schemas/group-memberships";
 import { groups } from "~/db/schemas/groups";
 import { eq } from "drizzle-orm";
 import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
 import type { FC } from "react";
 
 export const useProfile = routeLoader$(async (event) => {
@@ -142,8 +143,8 @@ export const useProfile = routeLoader$(async (event) => {
 
 export default component$(() => {
   const profile = useProfile();
-  const UserProfile = useThemeComponent$<FC<any>>(
+  const UserProfile = useThemeComponent$(
     () => import("~theme/routes/profile/UserProfile/UserProfile"),
   );
-  return UserProfile.value && <UserProfile.value {...profile.value} />;
+  return <ThemeComponent resource={UserProfile} {...profile.value} />;
 });

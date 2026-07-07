@@ -2,6 +2,7 @@ import { component$ } from "@qwik.dev/core";
 import { routeAction$, routeLoader$, zod$, z } from "@qwik.dev/router";
 import { electionsService } from "~/services/elections.service";
 import { useThemeNamedExports$ } from "~/utils/theme-loader";
+import { ThemeNamedExport } from "~/utils/theme-components";
 
 export const useApplyData = routeLoader$(async (event) => {
   const { requireAuth } = await import("~/utils/server-auth");
@@ -67,8 +68,10 @@ export default component$(() => {
   );
 
   return (
-    ApplyView.value && (
-      <ApplyView.value data={data.value} submitAction={submitAction} />
-    )
+    <ThemeNamedExport
+      resource={ApplyView}
+      data={data.value}
+      submitAction={submitAction}
+    />
   );
 });

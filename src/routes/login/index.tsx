@@ -6,6 +6,7 @@ import { emailAuthService } from "~/services/email-auth.service";
 import { RateLimiter } from "~/utils/rate-limit";
 import { env } from "~/env";
 import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
 import type { FC } from "react";
 
 /**
@@ -111,15 +112,12 @@ export const useVerifyAction = routeAction$(async (data: any, event: any) => {
 export default component$(() => {
   const sendAction = useSendAction();
   const verifyAction = useVerifyAction();
-  const LoginView = useThemeComponent$<
-    FC<{
-      sendAction: any;
-      verifyAction: any;
-    }>
-  >(() => import("~theme/routes/login/LoginView"));
+  const LoginView = useThemeComponent$(() => import("~theme/routes/login/LoginView"));
   return (
-    LoginView.value && (
-      <LoginView.value sendAction={sendAction} verifyAction={verifyAction} />
-    )
+    <ThemeComponent
+      resource={LoginView}
+      sendAction={sendAction}
+      verifyAction={verifyAction}
+    />
   );
 });

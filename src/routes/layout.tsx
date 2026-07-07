@@ -3,6 +3,7 @@ import type { RequestHandler } from "@qwik.dev/router";
 import { routeAction$, routeLoader$ } from "@qwik.dev/router";
 import { menuItemsService } from "~/services/menu-items.service";
 import { useThemeNamedExports$ } from "~/utils/theme-loader";
+import { ThemeNamedExport } from "~/utils/theme-components";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { formatUser } from "~/utils/users";
@@ -151,17 +152,16 @@ export default component$(() => {
 
   return (
     <>
-      {Navigation.value && (
-        <Navigation.value
-          user={navUser}
-          menuItems={menu.value}
-          logoutAction={logoutAction}
-        />
-      )}
+      <ThemeNamedExport
+        resource={Navigation}
+        user={navUser}
+        menuItems={menu.value}
+        logoutAction={logoutAction}
+      />
       <main class="min-h-screen">
         <Slot />
       </main>
-      {SiteFooter.value && <SiteFooter.value footerItems={footer.value} />}
+      <ThemeNamedExport resource={SiteFooter} footerItems={footer.value} />
     </>
   );
 });

@@ -2,6 +2,7 @@ import { component$ } from "@qwik.dev/core";
 import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { jobsService } from "~/services/jobs.service";
 import { useThemeNamedExports$ } from "~/utils/theme-loader";
+import { ThemeNamedExport } from "~/utils/theme-components";
 import type { JobFormInitialValues } from "~theme/routes/jobs/JobFormView";
 
 export const useCurrentUser = routeLoader$(async (event) => {
@@ -87,19 +88,18 @@ export default component$(() => {
   );
 
   return (
-    JobFormView.value && (
-      <JobFormView.value
-        mode="new"
-        backHref="/jobs"
-        backLabel="Back to Job Board"
-        heading="Post a Job"
-        initial={initial}
-        maxDateStr={maxDateStr}
-        cancelHref="/jobs"
-        submitLabel="Submit for Review"
-        submittingLabel="Submitting…"
-        action={submitAction}
-      />
-    )
+    <ThemeNamedExport
+      resource={JobFormView}
+      mode="new"
+      backHref="/jobs"
+      backLabel="Back to Job Board"
+      heading="Post a Job"
+      initial={initial}
+      maxDateStr={maxDateStr}
+      cancelHref="/jobs"
+      submitLabel="Submit for Review"
+      submittingLabel="Submitting…"
+      action={submitAction}
+    />
   );
 });

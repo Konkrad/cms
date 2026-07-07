@@ -13,6 +13,7 @@ import { buildFormPath } from "~/utils/forms";
 import { formatAffiliationResultJson } from "~/utils/affiliation";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { useThemeNamedExports$ } from "~/utils/theme-loader";
+import { ThemeNamedExport } from "~/utils/theme-components";
 
 export const usePublicProfile = routeLoader$(async (event) => {
   await requireAuth(event);
@@ -155,7 +156,5 @@ export default component$(() => {
     async () => import("~theme/routes/users/PublicProfileView"),
   );
 
-  return (
-    PublicProfileView.value && <PublicProfileView.value data={data.value} />
-  );
+  return <ThemeNamedExport resource={PublicProfileView} data={data.value} />;
 });

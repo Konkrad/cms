@@ -2,6 +2,7 @@ import { component$ } from "@qwik.dev/core";
 import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { jobsService } from "~/services/jobs.service";
 import { useThemeNamedExports$ } from "~/utils/theme-loader";
+import { ThemeNamedExport } from "~/utils/theme-components";
 
 export const useMyJobs = routeLoader$(async (event) => {
   const { requireAuth } = await import("~/utils/server-auth");
@@ -35,8 +36,10 @@ export default component$(() => {
   );
 
   return (
-    MyJobsView.value && (
-      <MyJobsView.value data={data.value} deleteAction={deleteAction} />
-    )
+    <ThemeNamedExport
+      resource={MyJobsView}
+      data={data.value}
+      deleteAction={deleteAction}
+    />
   );
 });

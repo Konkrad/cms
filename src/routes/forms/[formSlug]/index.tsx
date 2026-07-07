@@ -5,6 +5,7 @@ import { formResultsService } from "~/services/form-results.service";
 import { formsService } from "~/services/forms.service";
 import { getServerSession } from "~/utils/server-auth";
 import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
 import type { FC } from "react";
 
 export const useFormPage = routeLoader$(async (event) => {
@@ -46,8 +47,8 @@ export const useFormPage = routeLoader$(async (event) => {
 
 export default component$(() => {
   const data = useFormPage();
-  const FormPageView = useThemeComponent$<FC<{ data: any }>>(
+  const FormPageView = useThemeComponent$(
     () => import("~theme/routes/forms/FormPageView"),
   );
-  return FormPageView.value && <FormPageView.value data={data.value} />;
+  return <ThemeComponent resource={FormPageView} data={data.value} />;
 });

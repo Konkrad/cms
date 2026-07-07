@@ -6,6 +6,7 @@ import { users } from "~/db/schema";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { resolvePrivateImageUrl } from "~/utils/secure-urls";
 import { useThemeNamedExports$ } from "~/utils/theme-loader";
+import { ThemeNamedExport } from "~/utils/theme-components";
 
 export const useProfile = routeLoader$(async (event) => {
   await requireAuth(event);
@@ -98,11 +99,10 @@ export default component$(() => {
   );
 
   return (
-    ProfileEditView.value && (
-      <ProfileEditView.value
-        profile={profile.value}
-        updateAction={updateAction}
-      />
-    )
+    <ThemeNamedExport
+      resource={ProfileEditView}
+      profile={profile.value}
+      updateAction={updateAction}
+    />
   );
 });

@@ -3,6 +3,7 @@ import { routeLoader$ } from "@qwik.dev/router";
 import { electionsService } from "~/services/elections.service";
 import { membershipsService } from "~/services/memberships.service";
 import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
 import type { FC } from "react";
 
 export const useElectionDetail = routeLoader$(async (event) => {
@@ -42,10 +43,8 @@ export const useElectionDetail = routeLoader$(async (event) => {
 
 export default component$(() => {
   const data = useElectionDetail();
-  const ElectionDetailView = useThemeComponent$<FC<{ data: any }>>(
+  const ElectionDetailView = useThemeComponent$(
     () => import("~theme/routes/elections/ElectionDetailView"),
   );
-  return (
-    ElectionDetailView.value && <ElectionDetailView.value data={data.value} />
-  );
+  return <ThemeComponent resource={ElectionDetailView} data={data.value} />;
 });

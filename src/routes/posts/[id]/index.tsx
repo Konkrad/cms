@@ -4,6 +4,7 @@ import { postsService } from "~/services/posts.service";
 import { formatUser } from "~/utils/users";
 import { publicImageUrlFromKey, deriveThumbnailKey } from "~/utils/images";
 import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
 
 export const usePost = routeLoader$(async ({ params, status }) => {
   const { id } = params;
@@ -56,11 +57,11 @@ export const usePost = routeLoader$(async ({ params, status }) => {
 
 export default component$(() => {
   const post = usePost();
-  const PostView = useThemeComponent$<React.ComponentType<{ post: any }>>(
+  const PostView = useThemeComponent$(
     () => import("~theme/routes/posts/PostView"),
   );
 
-  return PostView.value && <PostView.value post={post.value} />;
+  return <ThemeComponent resource={PostView} post={post.value} />;
 });
 
 export const head: DocumentHead = ({ resolveValue }) => {

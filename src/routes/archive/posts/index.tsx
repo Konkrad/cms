@@ -3,6 +3,7 @@ import { routeLoader$ } from "@qwik.dev/router";
 import { postsService } from "~/services/posts.service";
 import { publicImageUrlFromKey } from "~/utils/images";
 import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
 import type { ArchivePostsViewData } from "~/contracts/archive-posts";
 import type { FC } from "react";
 
@@ -30,12 +31,8 @@ export const useArchivePostsPage = routeLoader$(
 
 export default component$(() => {
   const archivePage = useArchivePostsPage();
-  const ArchivePostsView = useThemeComponent$<
-    FC<{ data: ArchivePostsViewData }>
-  >(() => import("~theme/routes/archive-posts/ArchivePostsView"));
+  const ArchivePostsView = useThemeComponent$(() => import("~theme/routes/archive-posts/ArchivePostsView"));
   return (
-    ArchivePostsView.value && (
-      <ArchivePostsView.value data={archivePage.value} />
-    )
+    <ThemeComponent resource={ArchivePostsView} data={archivePage.value} />
   );
 });

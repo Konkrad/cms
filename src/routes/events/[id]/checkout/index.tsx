@@ -21,6 +21,7 @@ import type {
   ParticipantSlotInput,
 } from "~theme/routes/events/checkout/types";
 import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
 
 export { useSaveFoodPreference, useSavePhotoConsent };
 
@@ -418,14 +419,13 @@ export default component$(() => {
   );
 
   return (
-    CheckoutView.value && (
-      <CheckoutView.value
-        data={data.value}
-        createCheckoutSession={createCheckoutSession}
-        checkPaymentStatus={checkPaymentStatus}
-        saveFood={saveFood}
-        savePhoto={savePhoto}
-      />
-    )
+    <ThemeComponent
+      resource={CheckoutView}
+      data={data.value}
+      createCheckoutSession={createCheckoutSession}
+      checkPaymentStatus={checkPaymentStatus}
+      saveFood={saveFood}
+      savePhoto={savePhoto}
+    />
   );
 });

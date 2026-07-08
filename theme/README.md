@@ -4,6 +4,11 @@ This folder is the **theme / skin** unit. It is licensed separately from the
 core application (see [`LICENSE`](./LICENSE)). A community can fork or replace
 this folder to reskin the public site without touching core logic.
 
+**This is a generic starting theme** with a clean blue/gray color palette. It serves as a
+baseline that you can customize with your organization's branding, colors, and design
+system. Replace the contents of this directory with your own theme to completely
+reskin the public-facing site.
+
 ## What lives here
 
 - `tokens/` — design tokens. `theme.css` holds the Tailwind v4 `@theme {}` block

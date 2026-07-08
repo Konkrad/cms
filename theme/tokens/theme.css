@@ -9,45 +9,48 @@
  * Non-color tokens (radii, shadows, focus-ring shadow, font) are provided as
  * `:root` defaults by the core fallback `src/design/tokens.css`; a theme may
  * override them there-equivalently if it ships its own.
+ *
+ * This is a generic starting theme with a clean blue/gray color palette.
+ * Replace these values with your organization's brand colors.
  */
 @theme {
-  --color-primary: #034ea2;
-  --color-primary-light: #0a6dd6;
-  --color-primary-dark: #031241;
+  --color-primary: #2563eb;
+  --color-primary-light: #3b82f6;
+  --color-primary-dark: #1d4ed8;
 
-  --color-accent: #96c247;
-  --color-accent-dark: #7da636;
+  --color-accent: #0891b2;
+  --color-accent-dark: #0e7490;
 
-  --color-bg: #f9fafb;
+  --color-bg: #f8fafc;
   --color-bg-card: #ffffff;
-  --color-bg-muted: #f3f4f6;
+  --color-bg-muted: #f1f5f9;
 
-  --color-text: #1f2937;
-  --color-text-secondary: #4b5563;
-  --color-text-muted: #6b7280;
-  --color-text-heading: #111827;
+  --color-text: #1e293b;
+  --color-text-secondary: #64748b;
+  --color-text-muted: #94a3b8;
+  --color-text-heading: #0f172a;
 
-  --color-border: #e5e7eb;
-  --color-border-strong: #d1d5db;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
 
-  --color-error: #b91c1c;
+  --color-error: #ef4444;
   --color-error-bg: #fef2f2;
-  --color-error-border: #fca5a5;
+  --color-error-border: #fecaca;
 
-  --color-success: #047857;
-  --color-success-bg: #ecfdf5;
-  --color-success-border: #6ee7b7;
+  --color-success: #22c55e;
+  --color-success-bg: #f0fdf4;
+  --color-success-border: #86efac;
 
-  --color-info: #1d4ed8;
+  --color-info: #3b82f6;
   --color-info-bg: #eff6ff;
   --color-info-border: #bfdbfe;
 
-  --color-danger: #dc2626;
-  --color-danger-dark: #b91c1c;
+  --color-danger: #ef4444;
+  --color-danger-dark: #dc2626;
 
-  --color-warning: #92400e;
+  --color-warning: #f59e0b;
   --color-warning-bg: #fef3c7;
   --color-warning-border: #fcd34d;
 
-  --color-focus-ring: #034ea2;
+  --color-focus-ring: #2563eb;
 }

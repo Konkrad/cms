@@ -1,7 +1,9 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import { pagesService } from "~/services/pages.service";
-import { PageView } from "~theme/routes/page/PageView";
+import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
+import type { FC } from "react";
 
 export const usePage = routeLoader$(async ({ params, status }) => {
   // Normalize slug to match database format (with leading slash)
@@ -24,7 +26,10 @@ export const usePage = routeLoader$(async ({ params, status }) => {
 
 export default component$(() => {
   const page = usePage();
-  return <PageView page={page.value} />;
+  const PageView = useThemeComponent$(
+    () => import("~theme/routes/page/PageView"),
+  );
+  return <ThemeComponent resource={PageView} page={page.value} />;
 });
 
 export const head: DocumentHead = ({ resolveValue }) => {

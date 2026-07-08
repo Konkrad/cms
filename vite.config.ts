@@ -35,6 +35,17 @@ export default defineConfig(({ command, mode }): UserConfig => {
       // some third-party CSS shipped by deps (e.g. @blocknote/mantine's invalid
       // `@media (max-device-width: em(500px))`), which would fail the production build.
       cssMinify: "esbuild",
+      rollupOptions: {
+        output: {
+          // Put all theme modules into a single 'theme' chunk for easier replacement
+          manualChunks: (id) => {
+            // Match both the alias and resolved paths
+            if (id.includes("~theme/") || id.includes(`${themeDir}/`)) {
+              return "theme";
+            }
+          },
+        },
+      },
     },
     resolve: {
       // Explicit "~" -> ./src and "~theme" -> ./theme aliases. tsconfigPaths alone

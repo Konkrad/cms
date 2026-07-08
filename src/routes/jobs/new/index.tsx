@@ -1,7 +1,9 @@
 import { component$ } from "@qwik.dev/core";
 import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { jobsService } from "~/services/jobs.service";
-import { JobFormView, type JobFormInitialValues } from "~theme/routes/jobs/JobFormView";
+import { useThemeNamedExports$ } from "~/utils/theme-loader";
+import { ThemeNamedExport } from "~/utils/theme-components";
+import type { JobFormInitialValues } from "~theme/routes/jobs/JobFormView";
 
 export const useCurrentUser = routeLoader$(async (event) => {
   const { requireAuth } = await import("~/utils/server-auth");
@@ -81,8 +83,13 @@ export default component$(() => {
     expiresAt: maxDateStr,
   };
 
+  const { JobFormView } = useThemeNamedExports$(
+    async () => import("~theme/routes/jobs/JobFormView"),
+  );
+
   return (
-    <JobFormView
+    <ThemeNamedExport
+      resource={JobFormView}
       mode="new"
       backHref="/jobs"
       backLabel="Back to Job Board"

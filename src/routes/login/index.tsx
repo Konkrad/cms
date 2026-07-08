@@ -5,7 +5,9 @@ import { getServerSession } from "~/utils/server-auth";
 import { emailAuthService } from "~/services/email-auth.service";
 import { RateLimiter } from "~/utils/rate-limit";
 import { env } from "~/env";
-import { LoginView } from "~theme/routes/login/LoginView";
+import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
+import type { FC } from "react";
 
 /**
  * Shared, process-lifetime limiter throttling how often login emails can be
@@ -110,5 +112,12 @@ export const useVerifyAction = routeAction$(async (data: any, event: any) => {
 export default component$(() => {
   const sendAction = useSendAction();
   const verifyAction = useVerifyAction();
-  return <LoginView sendAction={sendAction} verifyAction={verifyAction} />;
+  const LoginView = useThemeComponent$(() => import("~theme/routes/login/LoginView"));
+  return (
+    <ThemeComponent
+      resource={LoginView}
+      sendAction={sendAction}
+      verifyAction={verifyAction}
+    />
+  );
 });

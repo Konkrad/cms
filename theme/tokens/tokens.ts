@@ -2,40 +2,51 @@
  * Theme design tokens as TypeScript constants.
  * Used for email inline styles and any TS context that needs raw token values.
  * Keep in sync with theme.css.
+ * 
+ * This is a generic starting theme with a clean blue/gray color palette.
+ * Replace these values with your organization's brand colors.
  */
 
 export const colors = {
-  primary: "#034EA2",
-  "primary-light": "#0a6dd6",
-  "primary-dark": "#031241",
-  accent: "#96C247",
-  "accent-dark": "#7da636",
+  // Primary brand color - replace with your brand's primary color
+  primary: "#2563eb",
+  "primary-light": "#3b82f6",
+  "primary-dark": "#1d4ed8",
+  
+  // Accent color - complementary to primary, used for highlights
+  accent: "#0891b2",
+  "accent-dark": "#0e7490",
 
-  bg: "#f9fafb",
+  // Background colors
+  bg: "#f8fafc",
   "bg-card": "#ffffff",
-  "bg-muted": "#f3f4f6",
+  "bg-muted": "#f1f5f9",
 
-  text: "#1f2937",
-  "text-secondary": "#4b5563",
-  "text-muted": "#6b7280",
-  "text-heading": "#111827",
+  // Text colors
+  text: "#1e293b",
+  "text-secondary": "#64748b",
+  "text-muted": "#94a3b8",
+  "text-heading": "#0f172a",
 
-  border: "#e5e7eb",
-  "border-strong": "#d1d5db",
+  // Border colors
+  border: "#e2e8f0",
+  "border-strong": "#cbd5e1",
 
-  error: "#b91c1c",
+  // Semantic colors
+  error: "#ef4444",
   "error-bg": "#fef2f2",
-  "error-border": "#fca5a5",
-  success: "#047857",
-  "success-bg": "#ecfdf5",
-  "success-border": "#6ee7b7",
-  info: "#1d4ed8",
+  "error-border": "#fecaca",
+  success: "#22c55e",
+  "success-bg": "#f0fdf4",
+  "success-border": "#86efac",
+  info: "#3b82f6",
   "info-bg": "#eff6ff",
   "info-border": "#bfdbfe",
-  danger: "#dc2626",
-  "danger-dark": "#b91c1c",
+  danger: "#ef4444",
+  "danger-dark": "#dc2626",
 
-  "focus-ring": "#034EA2",
+  // Focus ring color (matches primary by default)
+  "focus-ring": "#2563eb",
 } as const;
 
 export const radius = {

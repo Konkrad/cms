@@ -9,7 +9,9 @@ import {
 import { photosService } from "~/services/photos.service";
 import { eventsService } from "~/services/events.service";
 import { getServerSession } from "~/utils/server-auth";
-import { EventPhotosView } from "~theme/routes/events/EventPhotosView";
+import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
+import type { FC } from "react";
 
 export const useEvent = routeLoader$(async ({ params }) => {
   const event = await eventsService.getById(params.id);
@@ -81,8 +83,10 @@ export default component$(() => {
   const event = useEvent();
   const photos = usePhotos();
   const generateUrlAction = useGenerateSecureUrl();
+  const EventPhotosView = useThemeComponent$(() => import("~theme/routes/events/EventPhotosView"));
   return (
-    <EventPhotosView
+    <ThemeComponent
+      resource={EventPhotosView}
       event={event.value}
       photos={photos.value}
       generateUrlAction={generateUrlAction}

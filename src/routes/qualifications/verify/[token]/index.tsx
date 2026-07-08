@@ -1,7 +1,8 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
 import { qualificationsService } from "~/services/qualifications.service";
-import { QualificationVerifyView } from "~theme/routes/qualifications/QualificationVerifyView";
+import { useThemeNamedExports$ } from "~/utils/theme-loader";
+import { ThemeNamedExport } from "~/utils/theme-components";
 
 export const useVerify = routeLoader$(async (event) => {
   const { requireAuth } = await import("~/utils/server-auth");
@@ -15,5 +16,15 @@ export const useVerify = routeLoader$(async (event) => {
 
 export default component$(() => {
   const result = useVerify();
-  return <QualificationVerifyView result={result.value} />;
+
+  const { QualificationVerifyView } = useThemeNamedExports$(
+    async () => import("~theme/routes/qualifications/QualificationVerifyView"),
+  );
+
+  return (
+    <ThemeNamedExport
+      resource={QualificationVerifyView}
+      result={result.value}
+    />
+  );
 });

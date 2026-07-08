@@ -5,7 +5,8 @@ import { db } from "~/db/connection";
 import { users } from "~/db/schema";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { resolvePrivateImageUrl } from "~/utils/secure-urls";
-import { ProfileEditView } from "~theme/routes/profile/ProfileEditView";
+import { useThemeNamedExports$ } from "~/utils/theme-loader";
+import { ThemeNamedExport } from "~/utils/theme-components";
 
 export const useProfile = routeLoader$(async (event) => {
   await requireAuth(event);
@@ -58,7 +59,10 @@ export const useUpdateProfile = routeAction$(
     // The stored key is later presigned server-side via resolvePrivateImageUrl, so an
     // arbitrary key would grant a working read URL for any private object. Only accept
     // keys under the profile-picture prefixes the upload pipeline actually writes to.
-    if (data.profilePicture && data.profilePicture.startsWith("private/profile-pictures/")) {
+    if (
+      data.profilePicture &&
+      data.profilePicture.startsWith("private/profile-pictures/")
+    ) {
       updateData.profilePicture = data.profilePicture;
     }
     if (
@@ -68,10 +72,7 @@ export const useUpdateProfile = routeAction$(
       updateData.profilePictureSmall = data.profilePictureSmall;
     }
 
-    await db
-      .update(users)
-      .set(updateData)
-      .where(eq(users.id, currentUser.id));
+    await db.update(users).set(updateData).where(eq(users.id, currentUser.id));
 
     throw event.redirect(302, "/profile");
   },
@@ -92,5 +93,16 @@ export const useUpdateProfile = routeAction$(
 export default component$(() => {
   const profile = useProfile();
   const updateAction = useUpdateProfile();
-  return <ProfileEditView profile={profile.value} updateAction={updateAction} />;
+
+  const { ProfileEditView } = useThemeNamedExports$(
+    async () => import("~theme/routes/profile/ProfileEditView"),
+  );
+
+  return (
+    <ThemeNamedExport
+      resource={ProfileEditView}
+      profile={profile.value}
+      updateAction={updateAction}
+    />
+  );
 });

@@ -4,7 +4,9 @@ import { formAccessService } from "~/services/form-access.service";
 import { formResultsService } from "~/services/form-results.service";
 import { formsService } from "~/services/forms.service";
 import { getServerSession } from "~/utils/server-auth";
-import { FormPageView } from "~theme/routes/forms/FormPageView";
+import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
+import type { FC } from "react";
 
 export const useFormPage = routeLoader$(async (event) => {
   const form = await formsService.getByRouteSlug(event.params.formSlug);
@@ -24,10 +26,14 @@ export const useFormPage = routeLoader$(async (event) => {
   let existingResult: Record<string, any> | null = null;
   let alreadySubmitted = false;
   if (user) {
-    const existing = await formResultsService.getByFormAndUser(form.id, user.id);
+    const existing = await formResultsService.getByFormAndUser(
+      form.id,
+      user.id,
+    );
     if (existing) {
       alreadySubmitted = true;
-      if (form.allowResubmission) existingResult = existing.resultJson as Record<string, any>;
+      if (form.allowResubmission)
+        existingResult = existing.resultJson as Record<string, any>;
     }
   }
 
@@ -41,5 +47,8 @@ export const useFormPage = routeLoader$(async (event) => {
 
 export default component$(() => {
   const data = useFormPage();
-  return <FormPageView data={data.value} />;
+  const FormPageView = useThemeComponent$(
+    () => import("~theme/routes/forms/FormPageView"),
+  );
+  return <ThemeComponent resource={FormPageView} data={data.value} />;
 });

@@ -3,7 +3,8 @@ import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import { postsService } from "~/services/posts.service";
 import { formatUser } from "~/utils/users";
 import { publicImageUrlFromKey, deriveThumbnailKey } from "~/utils/images";
-import { PostView } from "~theme/routes/posts/PostView";
+import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
 
 export const usePost = routeLoader$(async ({ params, status }) => {
   const { id } = params;
@@ -25,7 +26,9 @@ export const usePost = routeLoader$(async ({ params, status }) => {
 
   let authorAvatarUrl: string | null = null;
   if (post.user?.profilePicture) {
-    const thumbKey = (post.user as any).profilePictureSmall ?? deriveThumbnailKey(post.user.profilePicture);
+    const thumbKey =
+      (post.user as any).profilePictureSmall ??
+      deriveThumbnailKey(post.user.profilePicture);
     authorAvatarUrl = publicImageUrlFromKey(thumbKey);
   }
 
@@ -54,7 +57,11 @@ export const usePost = routeLoader$(async ({ params, status }) => {
 
 export default component$(() => {
   const post = usePost();
-  return <PostView post={post.value} />;
+  const PostView = useThemeComponent$(
+    () => import("~theme/routes/posts/PostView"),
+  );
+
+  return <ThemeComponent resource={PostView} post={post.value} />;
 });
 
 export const head: DocumentHead = ({ resolveValue }) => {

@@ -3,8 +3,8 @@ import { routeLoader$, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { transactionsService } from "~/services/transactions.service";
 import { ticketsService } from "~/services/tickets.service";
 import { participantsService } from "~/services/participants.service";
-import QrTicketWall from "~theme/routes/profile/QrTicketWall";
-import PurchaseList from "~theme/routes/profile/PurchaseList";
+import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 
 export const useUpdateParticipants = routeAction$(
@@ -104,6 +104,13 @@ export default component$(() => {
   const updateParticipants = useUpdateParticipants();
   const qrBust = useStore<Record<string, string>>({});
 
+  const QrTicketWall = useThemeComponent$(
+    () => import("~theme/routes/profile/QrTicketWall"),
+  );
+  const PurchaseList = useThemeComponent$(
+    () => import("~theme/routes/profile/PurchaseList"),
+  );
+
   return (
     <div class="max-w-2xl mx-auto px-4 py-8">
       <div class="mb-8">
@@ -112,12 +119,14 @@ export default component$(() => {
       </div>
 
       <div class="space-y-8">
-        <QrTicketWall
+        <ThemeComponent
+          resource={QrTicketWall}
           tickets={dashboard.value.myQrTickets}
           buyerUserId={dashboard.value.buyerUserId}
           qrBust={qrBust}
         />
-        <PurchaseList
+        <ThemeComponent
+          resource={PurchaseList}
           transactions={dashboard.value.transactions}
           buyerUserId={dashboard.value.buyerUserId}
           updateParticipantsAction={updateParticipants}
@@ -127,4 +136,3 @@ export default component$(() => {
     </div>
   );
 });
-

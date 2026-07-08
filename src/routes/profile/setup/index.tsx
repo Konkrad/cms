@@ -8,7 +8,8 @@ import { routeLoader$ } from "@qwik.dev/router";
 // affects actions.
 import { useUpdateProfile } from "../../../components/setup/ProfileStep/useUpdateProfile";
 import { useMarkLocation } from "../../../components/setup/LocationStep/useMarkLocation";
-import { OnboardingView } from "~theme/routes/onboarding/OnboardingView";
+import { useThemeNamedExports$ } from "~/utils/theme-loader";
+import { ThemeNamedExport } from "~/utils/theme-components";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { formsService } from "~/services/forms.service";
 import { formResultsService } from "~/services/form-results.service";
@@ -32,15 +33,24 @@ export const useOnboardingLoader = routeLoader$(async (event) => {
 
   let existingFormResult: Record<string, any> | null = null;
   if (form) {
-    const existing = await formResultsService.getByFormAndUser(form.id, user.id);
-    if (existing) existingFormResult = existing.resultJson as Record<string, any>;
+    const existing = await formResultsService.getByFormAndUser(
+      form.id,
+      user.id,
+    );
+    if (existing)
+      existingFormResult = existing.resultJson as Record<string, any>;
   }
 
   const profilePictureUrl = u.profilePicture
     ? await resolvePrivateImageUrl(u.profilePicture)
     : null;
 
-  return { user: { ...user, profilePictureUrl } as any, consent, form, existingFormResult };
+  return {
+    user: { ...user, profilePictureUrl } as any,
+    consent,
+    form,
+    existingFormResult,
+  };
 });
 
 export default component$(() => {
@@ -48,8 +58,13 @@ export default component$(() => {
   const updateAction = useUpdateProfile();
   const markLocation = useMarkLocation();
 
+  const { OnboardingView } = useThemeNamedExports$(
+    async () => import("~theme/routes/onboarding/OnboardingView"),
+  );
+
   return (
-    <OnboardingView
+    <ThemeNamedExport
+      resource={OnboardingView}
       loader={loader.value}
       updateAction={updateAction}
       markLocation={markLocation}

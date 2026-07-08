@@ -23,7 +23,9 @@ import { getCurrentUserData } from "~/utils/server-auth";
 import { env } from "~/env";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { formatUser, buildProfileUrl } from "~/utils/users";
-import { EventView } from "~theme/routes/events/EventView";
+import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
+import type { FC } from "react";
 
 export const onGet: RequestHandler = ({ cacheControl }) => {
   cacheControl({ noCache: true });
@@ -51,11 +53,7 @@ async function syncFreeRsvpTicketForStatus(
 
   if (productId) {
     const product = await productsService.getById(productId);
-    if (
-      product &&
-      product.eventId === eventId &&
-      product.price === 0
-    ) {
+    if (product && product.eventId === eventId && product.price === 0) {
       freeProduct = product;
     }
   }
@@ -128,12 +126,12 @@ export const useEvent = routeLoader$(async (requestEvent) => {
   }
 
   // Get inventory groups with products
-  const groups = await db.query.inventoryGroups.findMany({
+  const groups = (await db.query.inventoryGroups.findMany({
     where: { eventId: params.id },
     with: {
       products: true,
     },
-  }) as any[];
+  })) as any[];
 
   // Check sales period status
   const salesValidation = await eventsService.validateSalesPeriod(event);
@@ -172,10 +170,10 @@ export const useEvent = routeLoader$(async (requestEvent) => {
   const participationSummary = await participationService.getSummary(params.id);
 
   // Fetch participants (yes / maybe) with profile pictures and group info
-  const participationRows = await db.query.participationStatus.findMany({
+  const participationRows = (await db.query.participationStatus.findMany({
     where: { eventId: params.id },
     with: { user: true },
-  }) as any[];
+  })) as any[];
 
   const goingRows = participationRows.filter(
     (r) => r.status === "yes" || r.status === "maybe",
@@ -231,11 +229,19 @@ export const useEvent = routeLoader$(async (requestEvent) => {
       id: u.id,
       name: u.name as string,
       familyName: u.familyName as string,
-      profilePictureSmall: buildPicUrl(u.profilePicture ? (u.profilePictureSmall ?? deriveThumbnailKey(u.profilePicture)) : null),
+      profilePictureSmall: buildPicUrl(
+        u.profilePicture
+          ? (u.profilePictureSmall ?? deriveThumbnailKey(u.profilePicture))
+          : null,
+      ),
       groupLabel: userGroupLabels[u.id] ?? null,
       city: (u.city ?? null) as string | null,
       country: (u.country ?? null) as string | null,
-      profileUrl: buildProfileUrl({ id: u.id, name: u.name as string, familyName: u.familyName as string }),
+      profileUrl: buildProfileUrl({
+        id: u.id,
+        name: u.name as string,
+        familyName: u.familyName as string,
+      }),
     };
   });
 
@@ -293,7 +299,10 @@ export const useEvent = routeLoader$(async (requestEvent) => {
     }
 
     const soldQuantity =
-      group.products?.reduce((sum: number, p: any) => sum + (p.soldQuantity || 0), 0) || 0;
+      group.products?.reduce(
+        (sum: number, p: any) => sum + (p.soldQuantity || 0),
+        0,
+      ) || 0;
     const remainingCapacity = group.maxCapacity - soldQuantity;
 
     if (withinWindow && remainingCapacity > 0) {
@@ -376,37 +385,39 @@ export const useUpdateParticipation = routeAction$(
       });
 
       // Send confirmation email for free RSVP ticket creation.
-      if (ticket) try {
-        const userEmail = userData.email;
-        if (userEmail) {
-          const { emailNotificationsService } = await import("~/services/email-notifications.service");
+      if (ticket)
+        try {
+          const userEmail = userData.email;
+          if (userEmail) {
+            const { emailNotificationsService } =
+              await import("~/services/email-notifications.service");
 
-          const [ev, product] = await Promise.all([
-            eventsService.getById(event.params.id),
-            productsService.getById(data.productId),
-          ]);
+            const [ev, product] = await Promise.all([
+              eventsService.getById(event.params.id),
+              productsService.getById(data.productId),
+            ]);
 
-          if (ev && product) {
-            await emailNotificationsService.sendTicketConfirmation({
-              to: userEmail,
-              buyerName: userData.name || userEmail,
-              event: {
-                title: ev.title,
-                startDate: ev.startDate,
-                address: (ev as any).address,
-                onlineUrl: (ev as any).onlineUrl,
-              },
-              transactionId: ticket.transactionId || ticket.id,
-              products: [{ name: product.name, quantity: 1, amount: 0 }],
-              totalAmount: 0,
-              tickets: [{ id: ticket.id, qrCodeUuid: ticket.qrCodeUuid }],
-            });
+            if (ev && product) {
+              await emailNotificationsService.sendTicketConfirmation({
+                to: userEmail,
+                buyerName: userData.name || userEmail,
+                event: {
+                  title: ev.title,
+                  startDate: ev.startDate,
+                  address: (ev as any).address,
+                  onlineUrl: (ev as any).onlineUrl,
+                },
+                transactionId: ticket.transactionId || ticket.id,
+                products: [{ name: product.name, quantity: 1, amount: 0 }],
+                totalAmount: 0,
+                tickets: [{ id: ticket.id, qrCodeUuid: ticket.qrCodeUuid }],
+              });
+            }
           }
+        } catch (error) {
+          console.error("Failed to send RSVP confirmation email:", error);
+          // Don't fail the RSVP if email sending fails
         }
-      } catch (error) {
-        console.error("Failed to send RSVP confirmation email:", error);
-        // Don't fail the RSVP if email sending fails
-      }
     }
 
     throw event.redirect(303, event.url.pathname);
@@ -420,7 +431,14 @@ export const useUpdateParticipation = routeAction$(
 export default component$(() => {
   const event = useEvent();
   const updateParticipation = useUpdateParticipation();
-  return <EventView event={event.value} updateParticipation={updateParticipation} />;
+  const EventView = useThemeComponent$(() => import("~theme/routes/events/EventView"));
+  return (
+    <ThemeComponent
+      resource={EventView}
+      event={event.value}
+      updateParticipation={updateParticipation}
+    />
+  );
 });
 
 export const head: DocumentHead = ({ resolveValue }) => {

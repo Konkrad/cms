@@ -52,7 +52,7 @@ export const Navigation = component$<{
               href="/"
               class="flex items-center px-3 text-xl font-bold text-primary hover:text-primary"
             >
-              Community Hub
+              Community CMS
             </Link>
           </div>
 

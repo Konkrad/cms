@@ -11,7 +11,9 @@ import { db } from "~/db/connection";
 import { groupMemberships } from "~/db/schemas/group-memberships";
 import { groups } from "~/db/schemas/groups";
 import { eq } from "drizzle-orm";
-import { UserProfile } from "~theme/routes/profile/UserProfile/UserProfile";
+import { useThemeComponent$ } from "~/utils/theme-loader";
+import { ThemeComponent } from "~/utils/theme-components";
+import type { FC } from "react";
 
 export const useProfile = routeLoader$(async (event) => {
   await requireAuth(event);
@@ -24,10 +26,13 @@ export const useProfile = routeLoader$(async (event) => {
   const user = userData as any;
 
   const profilePictureUrl = user.profilePicture
-    ? publicImageUrlFromKey(user.profilePictureSmall ?? deriveThumbnailKey(user.profilePicture))
+    ? publicImageUrlFromKey(
+        user.profilePictureSmall ?? deriveThumbnailKey(user.profilePicture),
+      )
     : null;
 
-  const { participationService } = await import("~/services/participation.service");
+  const { participationService } =
+    await import("~/services/participation.service");
 
   const [submittedForms, tags, electionApplications, communityRows, events] =
     await Promise.all([
@@ -45,27 +50,37 @@ export const useProfile = routeLoader$(async (event) => {
   const formatResponseValue = (value: unknown): string => {
     if (value === null || value === undefined) return "-";
     if (typeof value === "string") return value.trim() || "-";
-    if (typeof value === "number" || typeof value === "boolean") return String(value);
+    if (typeof value === "number" || typeof value === "boolean")
+      return String(value);
     if (Array.isArray(value)) {
-      const parts = value.map((item) => {
-        if (typeof item === "string") return item.trim();
-        if (typeof item === "object" && item !== null) {
-          return Object.entries(item as Record<string, unknown>)
-            .filter(([, v]) => v !== null && v !== undefined && v !== "")
-            .map(([k, v]) => `${k}: ${String(v)}`)
-            .join(", ");
-        }
-        return String(item);
-      }).filter(Boolean);
+      const parts = value
+        .map((item) => {
+          if (typeof item === "string") return item.trim();
+          if (typeof item === "object" && item !== null) {
+            return Object.entries(item as Record<string, unknown>)
+              .filter(([, v]) => v !== null && v !== undefined && v !== "")
+              .map(([k, v]) => `${k}: ${String(v)}`)
+              .join(", ");
+          }
+          return String(item);
+        })
+        .filter(Boolean);
       return parts.length > 0 ? parts.join("; ") : "-";
     }
     return JSON.stringify(value);
   };
 
-  const electionsByCycle = new Map<string, { title: string; year: number; apps: typeof electionApplications }>();
+  const electionsByCycle = new Map<
+    string,
+    { title: string; year: number; apps: typeof electionApplications }
+  >();
   for (const app of electionApplications) {
     if (!electionsByCycle.has(app.cycleId)) {
-      electionsByCycle.set(app.cycleId, { title: app.cycle.title, year: app.cycle.year, apps: [] });
+      electionsByCycle.set(app.cycleId, {
+        title: app.cycle.title,
+        year: app.cycle.year,
+        apps: [],
+      });
     }
     electionsByCycle.get(app.cycleId)!.apps.push(app);
   }
@@ -96,28 +111,40 @@ export const useProfile = routeLoader$(async (event) => {
         })),
       })),
     affiliationEntries: (() => {
-      const onboarding = submittedForms.find((s) => s.formSlug === "onboarding");
-      return onboarding ? formatAffiliationResultJson(onboarding.resultJson || {}) : [];
+      const onboarding = submittedForms.find(
+        (s) => s.formSlug === "onboarding",
+      );
+      return onboarding
+        ? formatAffiliationResultJson(onboarding.resultJson || {})
+        : [];
     })(),
     affiliationEditPath: (() => {
-      const onboarding = submittedForms.find((s) => s.formSlug === "onboarding");
-      return onboarding ? buildFormPath({ id: onboarding.formId, slug: onboarding.formSlug }) : null;
+      const onboarding = submittedForms.find(
+        (s) => s.formSlug === "onboarding",
+      );
+      return onboarding
+        ? buildFormPath({ id: onboarding.formId, slug: onboarding.formSlug })
+        : null;
     })(),
-    submittedForms: submittedForms
-      .map((s) => ({
-        id: s.id,
-        title: s.formTitle,
-        submittedAt: s.submittedAt,
-        path: buildFormPath({ id: s.formId, slug: s.formSlug }),
-        responseEntries: Object.entries(s.resultJson || {}).map(([question, value]) => ({
+    submittedForms: submittedForms.map((s) => ({
+      id: s.id,
+      title: s.formTitle,
+      submittedAt: s.submittedAt,
+      path: buildFormPath({ id: s.formId, slug: s.formSlug }),
+      responseEntries: Object.entries(s.resultJson || {}).map(
+        ([question, value]) => ({
           question,
           answer: formatResponseValue(value),
-        })),
-      })),
+        }),
+      ),
+    })),
   };
 });
 
 export default component$(() => {
   const profile = useProfile();
-  return <UserProfile {...profile.value} />;
+  const UserProfile = useThemeComponent$(
+    () => import("~theme/routes/profile/UserProfile/UserProfile"),
+  );
+  return <ThemeComponent resource={UserProfile} {...profile.value} />;
 });

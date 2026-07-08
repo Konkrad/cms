@@ -48,6 +48,9 @@ COPY --from=build /app/server ./server
 COPY --from=build /app/drizzle ./drizzle
 COPY --from=build /app/scripts/migrate.js ./scripts/migrate.js
 COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/theme ./theme
+# Copy public directory for runtime theme loading (users can mount themes here)
+COPY --from=build /app/public ./public
 COPY litestream.yml ./litestream.yml
 COPY docker/entrypoint.sh ./docker/entrypoint.sh
 RUN chmod +x ./docker/entrypoint.sh

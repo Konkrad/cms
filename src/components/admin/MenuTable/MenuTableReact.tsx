@@ -107,7 +107,7 @@ function SortableRow({ id, dropInfo, allowChild, baseStyle, className, children 
   if (isDragging) style.opacity = 0.4;
   const isHovered = dropInfo?.targetId === id;
   if (isHovered) {
-    if (dropInfo!.mode === "before") style.boxShadow = "inset 0 2px 0 #3b82f6";
+    if (dropInfo!.mode === "before") style.boxShadow = "inset 0 2px 0 var(--color-info)";
     else if (dropInfo!.mode === "child") style.background = "#f5f3ff";
   }
 
@@ -128,7 +128,7 @@ function EndOfVisibleRow({ isActive }: { isActive: boolean }) {
   const { ref } = useDroppable({ id: "visible-end" });
   return (
     <tr ref={ref} style={{ height: 6 }}>
-      <td colSpan={4} style={{ padding: 0, borderTop: isActive ? "2px solid #3b82f6" : "2px solid transparent" }} />
+      <td colSpan={4} style={{ padding: 0, borderTop: isActive ? "2px solid var(--color-info)" : "2px solid transparent" }} />
     </tr>
   );
 }
@@ -136,7 +136,7 @@ function EndOfVisibleRow({ isActive }: { isActive: boolean }) {
 function SeparatorRow() {
   const { ref, isDropTarget } = useDroppable({ id: "separator" });
   return (
-    <tr ref={ref} style={{ background: isDropTarget ? "#fef2f2" : undefined }}>
+    <tr ref={ref} style={{ background: isDropTarget ? "var(--color-error-bg)" : undefined }}>
       <td colSpan={4} className="px-4 py-2">
         <div className="flex items-center gap-3">
           <div className="flex-1 border-t-2 border-dashed border-gray-300" />
@@ -414,7 +414,7 @@ export const MenuTable = (props: MenuTableProps) => {
                   id={item.id}
                   dropInfo={dropInfo}
                   allowChild={false}
-                  baseStyle={{ background: "#f9fafb" }}
+                  baseStyle={{ background: "var(--color-bg)" }}
                   className="text-gray-400"
                 >
                   <td className="px-4 py-3 text-sm">

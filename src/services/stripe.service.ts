@@ -1,3 +1,4 @@
+import { SocksProxyAgent } from "socks-proxy-agent";
 import Stripe from "stripe";
 import { env } from "~/env";
 
@@ -17,6 +18,13 @@ if (env.STRIPE_API_BASE_URL) {
   if (url.port) {
     stripeConfig.port = Number(url.port);
   }
+}
+
+// Some hosts (e.g. IPv6-only servers) have no outbound path to Stripe's
+// IPv4-only API. STRIPE_PROXY_URL routes those requests through a local
+// SOCKS5 proxy (e.g. a Cloudflare WARP sidecar) instead.
+if (env.STRIPE_PROXY_URL) {
+  stripeConfig.httpAgent = new SocksProxyAgent(env.STRIPE_PROXY_URL);
 }
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, stripeConfig);

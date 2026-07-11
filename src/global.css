@@ -1,5 +1,16 @@
-/* Core fallback tokens first, so every var has a default even with no theme. */
-@import './design/tokens.css' layer(base);
+/*
+ * Core fallback tokens first, so every var has a default even with no theme.
+ *
+ * Imported into `layer(theme)`, NOT `layer(base)`: Tailwind's compiled
+ * output always emits a literal `@layer theme, base, components, utilities;`
+ * statement, which unconditionally ranks `base` above `theme` — so anything
+ * imported as `layer(base)` beats a theme's `@theme` block (which Tailwind
+ * always compiles into `layer(theme)`) regardless of import order. Putting
+ * this fallback in `layer(theme)` too means it's decided by normal same-
+ * layer source order instead — and since the theme's own theme.css imports
+ * after this, its values correctly win.
+ */
+@import './design/tokens.css' layer(theme);
 
 @import 'tailwindcss';
 

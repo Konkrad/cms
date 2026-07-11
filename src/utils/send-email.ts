@@ -7,9 +7,7 @@ const SMTP_HOST = env.SMTP_HOST;
 const SMTP_PORT = env.SMTP_PORT;
 const SMTP_USER = env.SMTP_USER;
 const SMTP_PASS = env.SMTP_PASS;
-// Shown as the sender name in the recipient's mail client instead of just
-// the bare address (e.g. `"28DIGITAL Alumni" <no-reply@tx.konrad.online>`).
-const SMTP_FROM = `"${env.APP_NAME}" <${env.SMTP_FROM}>`;
+const SMTP_FROM = env.SMTP_FROM;
 
 let transporterInstance: Transporter | null = null;
 

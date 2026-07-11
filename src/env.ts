@@ -54,7 +54,10 @@ const envSchema = z.object({
   }, z.number().int().positive().default(587)),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
-  SMTP_FROM: z.string().email(),
+  // Accepts either a bare address or the RFC 5322 "Display Name <address>"
+  // form nodemailer/SMTP expect, so a sender name can be configured directly
+  // (e.g. `28DIGITAL Alumni <no-reply@tx.konrad.online>`).
+  SMTP_FROM: z.string().min(1),
 
   // S3 / Storage
   AWS_REGION: z.string().default("us-east-1"),

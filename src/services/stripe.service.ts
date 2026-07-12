@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import { env } from "~/env";
 
 const stripeConfig: ConstructorParameters<typeof Stripe>[1] = {
-  apiVersion: "2026-04-22.dahlia",
+  apiVersion: "2026-06-24.dahlia",
 };
 
 if (env.STRIPE_API_BASE_URL) {

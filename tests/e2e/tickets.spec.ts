@@ -218,7 +218,7 @@ test.describe('Tickets', () => {
 
     // Build a webhook event for payment_intent.succeeded and POST it to the app to run fulfillment
     const since = new Date();
-    const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2026-04-22.dahlia', host: stripeHost.hostname, port: stripeHost.port ? Number(stripeHost.port) : 12111, protocol: (stripeHost.protocol.replace(':','') as any) });
+    const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2026-06-24.dahlia', host: stripeHost.hostname, port: stripeHost.port ? Number(stripeHost.port) : 12111, protocol: (stripeHost.protocol.replace(':','') as any) });
     // Retrieve the payment intent object from stripe-mock.
     // stripe-mock is stateless: it ignores metadata on create and returns a canned
     // amount/metadata on retrieve. Inject the real values from the test context so

@@ -109,7 +109,7 @@
     "sanitize-html": "^2.17.5",
     "sharp": "^0.34.5",
     "socks-proxy-agent": "^8.0.5",
-    "stripe": "^22.1.1",
+    "stripe": "^22.3.1",
     "survey-core": "^2.5.24",
     "survey-js-ui": "^2.5.24",
     "tailwindcss": "^4.3.0",

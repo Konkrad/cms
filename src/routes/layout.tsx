@@ -31,10 +31,12 @@ export const onRequest: RequestHandler = async (event) => {
 };
 
 export const onGet: RequestHandler = async ({ cacheControl }) => {
-  cacheControl({
-    staleWhileRevalidate: 60 * 60 * 24 * 7,
-    maxAge: 5,
-  });
+  // Every page renders through useUserSession below, so a shared/stale
+  // cache here can serve one visitor's logged-in (or logged-out) nav state
+  // to another, or serve a pre-login page after the visitor just logged in
+  // until they force a refresh. Same noCache pattern already used for
+  // admin/layout.tsx and events/[id]/index.tsx.
+  cacheControl({ noCache: true });
 };
 
 export const useServerTimeLoader = routeLoader$(() => {

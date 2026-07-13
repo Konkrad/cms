@@ -32,9 +32,8 @@ not per-community.
 
 ## Admin actions
 
-All gated by the general `requireAdmin` check (admin **or** moderator — see
-[Roles & Permissions](./roles-and-permissions.md), this is one of the
-routes where moderators have full parity with admins):
+All gated by the general `requireAdmin` check — see [Roles &
+Permissions](./roles-and-permissions.md):
 
 - Create / delete qualification types
 - Approve / reject a pending user qualification

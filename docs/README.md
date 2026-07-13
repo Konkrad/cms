@@ -8,7 +8,7 @@ all sitting on a Qwik City core that a deployment repo re-themes.
 
 | Doc | Read this if you're... |
 |---|---|
-| [Roles & Permissions](./roles-and-permissions.md) | Trying to understand who can do what — platform admin, moderator, local rep |
+| [Roles & Permissions](./roles-and-permissions.md) | Trying to understand who can do what — platform admin, local rep |
 | [Admin Guide](./admin-guide.md) | An admin or local rep, want a tour of everything manageable in `/admin` |
 | [Event & Ticketing Flow](./event-ticketing-flow.md) | Setting up an event, or want to understand checkout/tickets/QR check-in end to end, with screenshots |
 | [Qualifications](./qualifications.md) | Trying to understand the membership-tier verification system |

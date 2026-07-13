@@ -7,25 +7,24 @@ actually answered by the second one, not the first.
 
 ## Platform roles
 
-`users.role` is one of `user`, `moderator`, `admin` (default `user`). This is
-a single global value — there's no per-group platform role.
+`users.role` is one of `user` or `admin` (default `user`). This is a single
+global value — there's no per-group platform role.
 
 - **`user`** — a regular member. No admin access at all.
-- **`moderator`** and **`admin`** — both pass the general `requireAdmin` /
-  `isAdmin` check (`src/utils/server-auth.ts`) used to gate most admin
-  actions and the qualifications system. For most day-to-day purposes,
-  **moderator and admin behave identically**.
+- **`admin`** — full platform admin. Passes both the general `requireAdmin`
+  check (used to gate most admin actions, e.g. qualifications review) and
+  the stricter `isPlatformAdmin`/`requireGroupAdmin` checks used for
+  `/admin/global/**`.
 
-There is one place where they diverge, and it's worth knowing about because
-it's easy to trip over: `requireGroupAdmin` and the `[group_slug]` admin
-layout (`src/utils/access-control.ts`) treat the special slug `global` as
-requiring **`role === "admin"` exactly** — a moderator is *not* granted
-access to `/admin/global/**`. So a moderator can, for example, approve
-qualifications (gated by the looser `requireAdmin`) but cannot get into the
-global admin dashboard the same way an admin can. If you're assigning the
-`moderator` role expecting full parity with `admin`, double check the
-specific action you care about isn't one of the stricter, `isPlatformAdmin`
-/ `requireGroupAdmin`-gated ones.
+There used to be a third role, `moderator`, sitting between the two. It was
+dropped because it never ended up meaningfully different from `admin` — it
+passed the same general `requireAdmin` check as `admin` everywhere except
+`/admin/global` and `isPlatformAdmin`, and nothing else in the codebase
+differentiated the two. Rather than carry that half-built distinction
+forward, it was collapsed: everyone with elevated platform access is just
+`admin` now. If a genuine reduced-permission tier (e.g. content moderation
+without financial/user-management access) becomes a real need later, it's
+worth designing deliberately rather than reviving the old role as-is.
 
 Note also: being platform `admin` does **not** automatically make someone a
 representative of every group (see below). An admin who isn't also
@@ -39,8 +38,7 @@ for the `global` scope itself.
 This is the real mechanism behind "who can manage community X." It's a
 membership row, not a role value: the `group_representatives` table links a
 `user_id` to a `group_id` (a user can represent more than one group). It's
-managed via `groupRepresentativesService` — promote a member to represopen
-`/admin/{group_slug}/groups/[id]/members`.
+managed via `groupRepresentativesService`.
 
 Admins promote a member to representative from
 `/admin/{group_slug}/groups/[id]/members`. A group representative can then
@@ -55,16 +53,15 @@ reach `/admin/global/**`.
 |---|---|---|---|
 | Member | `user` | Public site, own profile | Any `/admin/**` route |
 | Local rep | usually `user` | `/admin/{their-group}/**` | Other groups, `/admin/global/**` |
-| Moderator | `moderator` | Most `requireAdmin`-gated actions (e.g. qualifications) | `/admin/global/**` dashboard itself |
-| Platform admin | `admin` | `/admin/global/**`, plus any group they're also a rep of | Nothing, except groups they haven't been promoted into (see caveat above) |
+| Platform admin | `admin` | `/admin/global/**`, plus any group they're also a rep of | Groups they haven't been promoted into (see caveat above) |
 
 ## Where this is enforced in code
 
-- `src/utils/server-auth.ts` — `requireAuth`, `requireAdmin`, `isAdmin`
-  (moderator-inclusive). Use these for anything not group-scoped.
-- `src/utils/access-control.ts` — `requireGroupAdmin`, `isPlatformAdmin`
-  (admin-only, no moderator), `canManageGroupContent`. Use these for any
-  action under `admin/[group_slug]/**`.
+- `src/utils/server-auth.ts` — `requireAuth`, `requireAdmin`, `isAdmin`. Use
+  these for anything not group-scoped.
+- `src/utils/access-control.ts` — `requireGroupAdmin`, `isPlatformAdmin`,
+  `canManageGroupContent`. Use these for any action under
+  `admin/[group_slug]/**`.
 - Every mutating action and API handler is expected to call one of these as
   its **first statement**, before any `try` block — see the Security
   section of the root `CLAUDE.md` for the reasoning (a `routeAction$` runs

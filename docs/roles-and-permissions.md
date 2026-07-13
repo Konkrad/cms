@@ -1,69 +1,48 @@
 # Roles & permissions
 
-There are two independent axes of "who can do what": a **platform-wide role**
-stored on the user, and a **per-group representative** relationship. Most
-practical admin questions ("can this person edit that group's events?") are
-actually answered by the second one, not the first.
+There are two separate things that decide what someone can manage: their
+**account type** (a platform-wide setting), and whether they've been made a
+**representative** of one specific community.
 
-## Platform roles
+## Account types
 
-`users.role` is one of `user` or `admin` (default `user`). This is a single
-global value — there's no per-group platform role.
+Every account is one of two types:
 
-- **`user`** — a regular member. No admin access at all.
-- **`admin`** — full platform admin. Passes both the general `requireAdmin`
-  check (used to gate most admin actions, e.g. qualifications review) and
-  the stricter `isPlatformAdmin`/`requireGroupAdmin` checks used for
-  `/admin/global/**`.
+- **Member** — a regular user. Can browse the site, join communities, RSVP
+  and buy tickets for events, and manage their own profile. No access to
+  any admin area.
+- **Admin** — full access to the Global Admin area, which covers everything
+  platform-wide: all events, all communities, all members, job listings,
+  elections, forms, and qualification reviews.
 
-There used to be a third role, `moderator`, sitting between the two. It was
-dropped because it never ended up meaningfully different from `admin` — it
-passed the same general `requireAdmin` check as `admin` everywhere except
-`/admin/global` and `isPlatformAdmin`, and nothing else in the codebase
-differentiated the two. Rather than carry that half-built distinction
-forward, it was collapsed: everyone with elevated platform access is just
-`admin` now. If a genuine reduced-permission tier (e.g. content moderation
-without financial/user-management access) becomes a real need later, it's
-worth designing deliberately rather than reviving the old role as-is.
+There used to be a third, in-between account type ("moderator"), but it
+turned out not to actually behave differently from a full admin in
+practice, so it's been removed — every account with elevated access is now
+simply an admin.
 
-Note also: being platform `admin` does **not** automatically make someone a
-representative of every group (see below). An admin who isn't also
-promoted as a representative of a specific group will be redirected out of
-that group's `/admin/{slug}/**` panel — admin rights for a *specific* group
-come from the representative relationship, not the platform role, except
-for the `global` scope itself.
+Being an admin does **not** automatically give someone management access to
+every community — see below.
 
-## Group representatives ("local reps")
+## Community representatives ("local reps")
 
-This is the real mechanism behind "who can manage community X." It's a
-membership row, not a role value: the `group_representatives` table links a
-`user_id` to a `group_id` (a user can represent more than one group). It's
-managed via `groupRepresentativesService`.
+Each community (local group) can have one or more **representatives** —
+members who've been given management rights over that one community
+specifically, without being a full platform admin. An admin assigns
+representatives from a community's member list in the admin area.
 
-Admins promote a member to representative from
-`/admin/{group_slug}/groups/[id]/members`. A group representative can then
-access `/admin/{their-group-slug}/**` and manage everything scoped to that
-one group: its events, its page content (if the group has one), its
-members. They cannot touch other groups' admin panels, and they cannot
-reach `/admin/global/**`.
+A representative can manage everything scoped to their own community —
+its events, its page content, its member list — but has no access to any
+other community's admin area, and no access to the Global Admin area.
 
-## Summary table
+An admin who wants to manage a specific community's admin area directly
+(rather than through the Global Admin area) needs to also be added as a
+representative of that community — being a platform admin doesn't grant
+that automatically.
 
-| Who | Platform role | Can access | Cannot access |
-|---|---|---|---|
-| Member | `user` | Public site, own profile | Any `/admin/**` route |
-| Local rep | usually `user` | `/admin/{their-group}/**` | Other groups, `/admin/global/**` |
-| Platform admin | `admin` | `/admin/global/**`, plus any group they're also a rep of | Groups they haven't been promoted into (see caveat above) |
+## Summary
 
-## Where this is enforced in code
-
-- `src/utils/server-auth.ts` — `requireAuth`, `requireAdmin`, `isAdmin`. Use
-  these for anything not group-scoped.
-- `src/utils/access-control.ts` — `requireGroupAdmin`, `isPlatformAdmin`,
-  `canManageGroupContent`. Use these for any action under
-  `admin/[group_slug]/**`.
-- Every mutating action and API handler is expected to call one of these as
-  its **first statement**, before any `try` block — see the Security
-  section of the root `CLAUDE.md` for the reasoning (a `routeAction$` runs
-  *before* the route's loaders, so a loader-level redirect does not protect
-  an action).
+| Who | Can manage | Cannot manage |
+|---|---|---|
+| Member | Their own profile, RSVPs, tickets | Anything in an admin area |
+| Community representative | Their one community's events, content, and members | Other communities, the Global Admin area |
+| Admin | Everything platform-wide (Global Admin), plus any community they've also been added as a representative of | A specific community's admin area, unless also made a representative of it |

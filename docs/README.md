@@ -1,17 +1,17 @@
 # Internal documentation
 
-This is an alumni-community CMS platform: members, local communities ("groups"),
-events with paid/free ticketing, elections, jobs, deals, and a page builder,
-all sitting on a Qwik City core that a deployment repo re-themes.
+This is an alumni-community platform: members, local communities, events
+with paid or free ticketing, elections, jobs, deals, and a page builder for
+managing site content.
 
 ## Using the platform
 
 | Doc | Read this if you're... |
 |---|---|
-| [Roles & Permissions](./roles-and-permissions.md) | Trying to understand who can do what — platform admin, local rep |
-| [Admin Guide](./admin-guide.md) | An admin or local rep, want a tour of everything manageable in `/admin` |
-| [Event & Ticketing Flow](./event-ticketing-flow.md) | Setting up an event, or want to understand checkout/tickets/QR check-in end to end, with screenshots |
-| [Qualifications](./qualifications.md) | Trying to understand the membership-tier verification system |
+| [Roles & Permissions](./roles-and-permissions.md) | Trying to understand who can do what — admin, community representative |
+| [Admin Guide](./admin-guide.md) | An admin or community representative, want a tour of everything manageable in the admin area |
+| [Event & Ticketing Flow](./event-ticketing-flow.md) | Setting up an event, or want to understand checkout/tickets/check-in end to end, with screenshots |
+| [Qualifications](./qualifications.md) | Trying to understand the membership-tier verification process |
 
 ## Extending / operating the platform
 

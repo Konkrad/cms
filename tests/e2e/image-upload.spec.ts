@@ -81,7 +81,7 @@ test.describe("ImageUpload — deferred upload (uploadRegistry)", () => {
 
       // autoUpload fires immediately after crop confirm, then the widget
       // submits the update action itself and closes its own popover on success.
-      await expect(page.locator('button[aria-label="Cancel"]')).toBeHidden({ timeout: 15_000 });
+      await expect(page.locator('button[aria-label="Close photo editor"]')).toBeHidden({ timeout: 15_000 });
 
       // Stayed on /profile throughout — in-place editing, no page navigation
       await expect(page).toHaveURL(/\/profile\/?$/);

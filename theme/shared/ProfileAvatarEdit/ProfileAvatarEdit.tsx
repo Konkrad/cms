@@ -59,7 +59,7 @@ export const ProfileAvatarEdit = component$<ProfileAvatarEditProps>((props) => {
             <p class="text-sm font-medium text-text">Update photo</p>
             <button
               type="button"
-              aria-label="Cancel"
+              aria-label="Close photo editor"
               onClick$={() => { isEditing.value = false; }}
               class="text-text-muted hover:text-text"
             >

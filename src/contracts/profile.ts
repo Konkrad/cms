@@ -1,7 +1,15 @@
 /**
- * Core → theme data contract for the profile edit route (`/profile/edit`).
+ * Core → theme data contract for the profile page (`/profile`) and its
+ * in-place editing actions.
  */
-import type { useProfile, useUpdateProfile } from "~/routes/profile/edit";
+import type {
+  useUpdateName,
+  useUpdateLocation,
+  useUpdatePicture,
+  useUpdateDetails,
+} from "~/routes/profile";
 
-export type ProfileEditData = ReturnType<typeof useProfile>["value"];
-export type UpdateProfileEditAction = ReturnType<typeof useUpdateProfile>;
+export type UpdateNameAction = ReturnType<typeof useUpdateName>;
+export type UpdateLocationAction = ReturnType<typeof useUpdateLocation>;
+export type UpdatePictureAction = ReturnType<typeof useUpdatePicture>;
+export type UpdateDetailsAction = ReturnType<typeof useUpdateDetails>;

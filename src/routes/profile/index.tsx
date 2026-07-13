@@ -12,6 +12,16 @@ import { groupMemberships } from "~/db/schemas/group-memberships";
 import { groups } from "~/db/schemas/groups";
 import { eq } from "drizzle-orm";
 import { UserProfile } from "~theme/routes/profile/UserProfile/UserProfile";
+// Import via a RELATIVE path, not "~" — qwikRouter's production transform
+// for re-exported routeAction$/routeLoader$ does not resolve either tsconfig
+// alias, so the Rollup build fails to find the module. See useUpdateName.ts.
+import { useUpdateName } from "../../components/profile/useUpdateName";
+import { useUpdateLocation } from "../../components/profile/useUpdateLocation";
+import { useUpdatePicture } from "../../components/profile/useUpdatePicture";
+import { useUpdateDetails } from "../../components/profile/useUpdateDetails";
+
+// Re-export so Qwik City registers the actions for this route.
+export { useUpdateName, useUpdateLocation, useUpdatePicture, useUpdateDetails };
 
 export const useProfile = routeLoader$(async (event) => {
   await requireAuth(event);
@@ -41,26 +51,6 @@ export const useProfile = routeLoader$(async (event) => {
         .where(eq(groupMemberships.userId, user.id)),
       participationService.getByUserId(user.id),
     ]);
-
-  const formatResponseValue = (value: unknown): string => {
-    if (value === null || value === undefined) return "-";
-    if (typeof value === "string") return value.trim() || "-";
-    if (typeof value === "number" || typeof value === "boolean") return String(value);
-    if (Array.isArray(value)) {
-      const parts = value.map((item) => {
-        if (typeof item === "string") return item.trim();
-        if (typeof item === "object" && item !== null) {
-          return Object.entries(item as Record<string, unknown>)
-            .filter(([, v]) => v !== null && v !== undefined && v !== "")
-            .map(([k, v]) => `${k}: ${String(v)}`)
-            .join(", ");
-        }
-        return String(item);
-      }).filter(Boolean);
-      return parts.length > 0 ? parts.join("; ") : "-";
-    }
-    return JSON.stringify(value);
-  };
 
   const electionsByCycle = new Map<string, { title: string; year: number; apps: typeof electionApplications }>();
   for (const app of electionApplications) {
@@ -103,21 +93,33 @@ export const useProfile = routeLoader$(async (event) => {
       const onboarding = submittedForms.find((s) => s.formSlug === "onboarding");
       return onboarding ? buildFormPath({ id: onboarding.formId, slug: onboarding.formSlug }) : null;
     })(),
+    // The onboarding form's academic-path data is already shown, nicely
+    // formatted, as the "Relations / Affiliation" section above (see
+    // affiliationEntries) — don't also list it as a raw generic submission.
     submittedForms: submittedForms
+      .filter((s) => s.formSlug !== "onboarding")
       .map((s) => ({
         id: s.id,
         title: s.formTitle,
         submittedAt: s.submittedAt,
         path: buildFormPath({ id: s.formId, slug: s.formSlug }),
-        responseEntries: Object.entries(s.resultJson || {}).map(([question, value]) => ({
-          question,
-          answer: formatResponseValue(value),
-        })),
       })),
   };
 });
 
 export default component$(() => {
   const profile = useProfile();
-  return <UserProfile {...profile.value} />;
+  const updateNameAction = useUpdateName();
+  const updateLocationAction = useUpdateLocation();
+  const updatePictureAction = useUpdatePicture();
+  const updateDetailsAction = useUpdateDetails();
+  return (
+    <UserProfile
+      {...profile.value}
+      updateNameAction={updateNameAction}
+      updateLocationAction={updateLocationAction}
+      updatePictureAction={updatePictureAction}
+      updateDetailsAction={updateDetailsAction}
+    />
+  );
 });

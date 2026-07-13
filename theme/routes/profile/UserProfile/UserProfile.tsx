@@ -1,5 +1,16 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
+import { ProfileAvatarEdit } from "~theme/shared/ProfileAvatarEdit/ProfileAvatarEdit";
+import { ProfileNameEdit } from "~theme/shared/ProfileNameEdit/ProfileNameEdit";
+import { ProfileLocationEdit } from "~theme/shared/ProfileLocationEdit/ProfileLocationEdit";
+import { ProfileDetailsEdit } from "~theme/shared/ProfileDetailsEdit/ProfileDetailsEdit";
+import { PrivacyBadge } from "~theme/shared/PrivacyBadge/PrivacyBadge";
+import type {
+  UpdateNameAction,
+  UpdateLocationAction,
+  UpdatePictureAction,
+  UpdateDetailsAction,
+} from "~/contracts/profile";
 
 interface Tag {
   id: string;
@@ -36,7 +47,6 @@ interface FormEntry {
   title: string;
   submittedAt: string;
   path: string;
-  responseEntries: { question: string; answer: string }[];
 }
 
 export interface UserProfileProps {
@@ -60,6 +70,11 @@ export interface UserProfileProps {
   submittedForms?: FormEntry[];
   affiliationEntries?: { question: string; answer: string }[];
   affiliationEditPath?: string | null;
+  // In-place edit actions (own profile only)
+  updateNameAction?: UpdateNameAction;
+  updateLocationAction?: UpdateLocationAction;
+  updatePictureAction?: UpdatePictureAction;
+  updateDetailsAction?: UpdateDetailsAction;
 }
 
 const formatDate = (iso: string) =>
@@ -74,6 +89,12 @@ const statusCls = (status: string) => {
   if (status === "rejected") return "bg-error-bg text-error";
   return "bg-warning-bg text-warning";
 };
+
+// Shared treatment for every "only visible to you" section, applied
+// per-section (not just once at the top) so the private/public boundary
+// stays visible while scrolling.
+const PRIVATE_SECTION_CLASS =
+  "border-l-4 border-info-border bg-info-bg/40 rounded-r-lg pl-4 py-4";
 
 export const UserProfile = component$<UserProfileProps>((props) => {
   const {
@@ -95,6 +116,10 @@ export const UserProfile = component$<UserProfileProps>((props) => {
     submittedForms,
     affiliationEntries,
     affiliationEditPath,
+    updateNameAction,
+    updateLocationAction,
+    updatePictureAction,
+    updateDetailsAction,
   } = props;
 
   const displayName = `${name} ${familyName}`.trim();
@@ -108,11 +133,22 @@ export const UserProfile = component$<UserProfileProps>((props) => {
       (electionGroups && electionGroups.length > 0) ||
       (submittedForms && submittedForms.length > 0));
 
+  // Editing is only offered on the owner's own profile, and only when the
+  // route actually supplied the actions (PublicProfileView never does).
+  const canEditInPlace = isOwner && !!updateNameAction && !!updateLocationAction && !!updatePictureAction;
+
   return (
     <div class="container mx-auto px-4 py-8 max-w-4xl space-y-8">
       {/* Header */}
       <div class="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-        {profilePictureUrl ? (
+        {canEditInPlace ? (
+          <ProfileAvatarEdit
+            displayName={displayName}
+            profilePictureUrl={profilePictureUrl}
+            initials={initials}
+            updateAction={updatePictureAction!}
+          />
+        ) : profilePictureUrl ? (
           <img
             src={profilePictureUrl}
             alt={`${displayName}'s profile picture`}
@@ -126,11 +162,19 @@ export const UserProfile = component$<UserProfileProps>((props) => {
           </div>
         )}
         <div>
-          <h1 class="text-3xl font-bold text-text-heading">{displayName}</h1>
-          {(city || country) && (
-            <p class="text-text-muted text-sm mt-1">
-              {[city, country].filter(Boolean).join(", ")}
-            </p>
+          {canEditInPlace ? (
+            <ProfileNameEdit name={name} familyName={familyName} updateAction={updateNameAction!} />
+          ) : (
+            <h1 class="text-3xl font-bold text-text-heading">{displayName}</h1>
+          )}
+          {canEditInPlace ? (
+            <ProfileLocationEdit city={city} country={country} updateAction={updateLocationAction!} />
+          ) : (
+            (city || country) && (
+              <p class="text-text-muted text-sm mt-1">
+                {[city, country].filter(Boolean).join(", ")}
+              </p>
+            )
           )}
           {tags.length > 0 && (
             <div class="flex flex-wrap gap-1.5 mt-2">
@@ -250,45 +294,49 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 
       {/* ── Private sections (owner only) ── */}
       {hasPrivateContent && (
-        <div class="border-t-2 border-dashed border-border pt-8 space-y-8">
-          <p class="text-xs font-medium text-text-muted uppercase tracking-widest -mb-4">
+        <div class="border-t-2 border-dashed border-border pt-3">
+          <p class="text-xs font-medium text-text-muted uppercase tracking-widest mb-8">
             Only visible to you
           </p>
 
+          <div class="space-y-8">
           {/* Owner details */}
-          <div class="bg-info-bg border border-info-border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 flex-wrap">
-            <Link
-              href="/profile/edit"
-              class="text-sm font-medium text-primary hover:underline shrink-0"
-            >
-              Edit profile
-            </Link>
+          <div class={`${PRIVATE_SECTION_CLASS} flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 flex-wrap`}>
             {email && (
               <span class="text-sm text-text-secondary">
                 <span class="font-medium">Email:</span> {email}
               </span>
             )}
-            {yearOfBirth && (
-              <span class="text-sm text-text-secondary">
-                <span class="font-medium">Year of birth:</span> {yearOfBirth}
-              </span>
-            )}
-            {sex && (
-              <span class="text-sm text-text-secondary">
-                <span class="font-medium">Gender:</span> {sex}
-              </span>
+            {updateDetailsAction ? (
+              <ProfileDetailsEdit yearOfBirth={yearOfBirth} sex={sex} updateAction={updateDetailsAction} />
+            ) : (
+              <>
+                {yearOfBirth && (
+                  <span class="text-sm text-text-secondary">
+                    <span class="font-medium">Year of birth:</span> {yearOfBirth}
+                  </span>
+                )}
+                {sex && (
+                  <span class="text-sm text-text-secondary">
+                    <span class="font-medium">Gender:</span> {sex}
+                  </span>
+                )}
+              </>
             )}
           </div>
 
           {/* Election History */}
           {electionGroups && electionGroups.length > 0 && (
-            <section>
-              <h2 class="text-xl font-semibold text-text mb-3">Election History</h2>
+            <section class={PRIVATE_SECTION_CLASS}>
+              <div class="flex items-center gap-2 mb-3">
+                <h2 class="text-xl font-semibold text-text">Election History</h2>
+                <PrivacyBadge />
+              </div>
               <div class="space-y-3">
                 {electionGroups.map((group) => (
                   <div
                     key={group.title}
-                    class="border border-border rounded-lg overflow-hidden"
+                    class="border border-border rounded-lg overflow-hidden bg-white"
                   >
                     <div class="px-4 py-2 bg-bg border-b text-sm font-medium text-text-secondary">
                       {group.title}
@@ -318,32 +366,26 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 
           {/* Submitted Forms */}
           {submittedForms && submittedForms.length > 0 && (
-            <section>
-              <h2 class="text-xl font-semibold text-text mb-3">Submitted Forms</h2>
+            <section class={PRIVATE_SECTION_CLASS}>
+              <div class="flex items-center gap-2 mb-3">
+                <h2 class="text-xl font-semibold text-text">Submitted Forms</h2>
+                <PrivacyBadge />
+              </div>
               <ul class="space-y-2">
                 {submittedForms.map((submission) => (
-                  <li key={submission.id} class="border border-border rounded-lg p-4">
+                  <li key={submission.id} class="border border-border rounded-lg p-4 bg-white">
                     <a href={submission.path} class="text-primary hover:underline font-medium">
                       {submission.title}
                     </a>
                     <p class="text-sm text-text-muted mt-1">
                       Submitted {new Date(submission.submittedAt).toLocaleString()}
                     </p>
-                    {submission.responseEntries.length > 0 && (
-                      <dl class="mt-3 space-y-1">
-                        {submission.responseEntries.map((entry) => (
-                          <div key={entry.question} class="grid grid-cols-1 md:grid-cols-3 gap-1">
-                            <dt class="text-sm text-text-secondary break-words">{entry.question}</dt>
-                            <dd class="text-sm text-text-heading md:col-span-2 break-words">{entry.answer}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    )}
                   </li>
                 ))}
               </ul>
             </section>
           )}
+          </div>
         </div>
       )}
     </div>

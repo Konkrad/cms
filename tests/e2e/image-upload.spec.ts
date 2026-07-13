@@ -56,7 +56,7 @@ test.describe("ImageUpload — deferred upload (uploadRegistry)", () => {
     }
   });
 
-  test("profile edit: profile picture is uploaded and saved when form is submitted", async ({ browser }) => {
+  test("profile: profile picture is uploaded and saved in place, no navigation", async ({ browser }) => {
     const session = createUserSession("admin");
     const context = await browser.newContext();
     await context.addCookies([
@@ -65,14 +65,11 @@ test.describe("ImageUpload — deferred upload (uploadRegistry)", () => {
     const page = await context.newPage();
     try {
 
-      await page.goto("/profile/edit");
-      await expect(page.locator('input[name="name"]')).toBeVisible({ timeout: 10_000 });
+      await page.goto("/profile");
+      await expect(page.locator('button[aria-label="Change profile picture"]')).toBeVisible({ timeout: 10_000 });
+      await page.locator('button[aria-label="Change profile picture"]').click();
 
-      // Ensure required fields are filled
-      await page.locator('input[name="name"]').fill("Upload");
-      await page.locator('input[name="family_name"]').fill("Tester");
-
-      // Attach test image
+      // Attach test image (autoUpload mode — no separate submit button)
       await page.locator('input[type="file"]').first().setInputFiles({
         name: "avatar.png",
         mimeType: "image/png",
@@ -81,15 +78,13 @@ test.describe("ImageUpload — deferred upload (uploadRegistry)", () => {
 
       await expect(page.locator('button:has-text("Confirm Crop")')).toBeVisible({ timeout: 5_000 });
       await page.locator('button:has-text("Confirm Crop")').click();
-      await expect(
-        page.locator("text=Image ready — will be uploaded on save."),
-      ).toBeVisible({ timeout: 5_000 });
 
-      // Submit
-      await page.locator('button[type="submit"]').first().click();
+      // autoUpload fires immediately after crop confirm, then the widget
+      // submits the update action itself and closes its own popover on success.
+      await expect(page.locator('button[aria-label="Close photo editor"]')).toBeHidden({ timeout: 15_000 });
 
-      // Redirects to exactly /profile on success (not /profile/edit)
-      await expect(page).toHaveURL(/\/profile\/?$/, { timeout: 15_000 });
+      // Stayed on /profile throughout — in-place editing, no page navigation
+      await expect(page).toHaveURL(/\/profile\/?$/);
 
       // Verify profile picture was persisted (stored as S3 key or full URL)
       const userRow = getUserById(session.userId);

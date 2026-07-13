@@ -47,6 +47,11 @@ test.describe("profile/setup — redirect behaviour", () => {
     const now = new Date().toISOString();
     setUserConsentByEmail(email, { lastProfileUpdate: now, locationVerification: now });
 
+    // Log out — otherwise re-visiting /login while still authenticated
+    // correctly redirects away before the form ever renders (the root
+    // layout no longer serves a stale pre-login page from cache).
+    await page.context().clearCookies();
+
     await page.goto("/login");
     await page.locator('input[type="email"]').fill(email);
     const since = new Date();

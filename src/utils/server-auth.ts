@@ -116,7 +116,7 @@ export async function isAdmin(event: RequestEvent): Promise<boolean> {
     return false;
   }
 
-  return userData.role === "admin" || userData.role === "moderator";
+  return userData.role === "admin";
 }
 
 /* pending login helpers removed - legacy details flow no longer used */

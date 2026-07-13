@@ -2,10 +2,9 @@
  * Shared Playwright fixtures and DB helpers.
  *
  * Fixtures:
- *  - `guestPage`     – unauthenticated page (no session cookie)
- *  - `memberPage`    – authenticated as a regular user  (role: "user")
- *  - `moderatorPage` – authenticated as a moderator     (role: "moderator")
- *  - `adminPage`     – authenticated as an admin        (role: "admin")
+ *  - `guestPage`  – unauthenticated page (no session cookie)
+ *  - `memberPage` – authenticated as a regular user (role: "user")
+ *  - `adminPage`  – authenticated as an admin       (role: "admin")
  *
  * Each authenticated fixture creates a temporary user+login+session in the DB
  * and removes all three rows automatically after the test.
@@ -81,7 +80,7 @@ export function getPageBySlug(
 
 // ── Auth session helpers ──────────────────────────────────────────────────────
 
-export type UserRole = "user" | "moderator" | "admin";
+export type UserRole = "user" | "admin";
 
 export interface CreatedSession {
   userId: string;
@@ -643,8 +642,6 @@ type Fixtures = {
   guestPage: Page;
   /** Browser page authenticated as a regular user (role: "user"). */
   memberPage: Page;
-  /** Browser page authenticated as a moderator (role: "moderator"). */
-  moderatorPage: Page;
   /** Browser page authenticated as an admin (role: "admin"). */
   adminPage: Page;
   /** Runs the seed script before the test (requires E2E_ALLOW_DB_WRITE=true). */
@@ -663,16 +660,6 @@ export const test = base.extend<Fixtures>({
 
   memberPage: async ({ browser }, use) => {
     const session = createUserSession("user");
-    const context = await browser.newContext();
-    await injectSessionCookie(context, session.sessionToken);
-    const page = await context.newPage();
-    await use(page);
-    await context.close();
-    session.cleanup();
-  },
-
-  moderatorPage: async ({ browser }, use) => {
-    const session = createUserSession("moderator");
     const context = await browser.newContext();
     await injectSessionCookie(context, session.sessionToken);
     const page = await context.newPage();

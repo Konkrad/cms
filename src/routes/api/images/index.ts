@@ -65,8 +65,8 @@ function sanitizeUploadPrefix(raw: string): string | null {
  * (which are surfaced to other users through admin/representative-gated flows).
  *
  *  - profile-pictures → any authenticated user (their own avatar)
- *  - private/events/  → admin/moderator only (mirrors the event-photo create action)
- *  - public/* content → admin/moderator or a group representative
+ *  - private/events/  → admin only (mirrors the event-photo create action)
+ *  - public/* content → admin or a group representative
  */
 async function isUploadAuthorized(
   prefix: string,
@@ -79,7 +79,7 @@ async function isUploadAuthorized(
     return true;
   }
 
-  const isStaff = user.role === "admin" || user.role === "moderator";
+  const isStaff = user.role === "admin";
   if (prefix.startsWith("private/events/")) {
     return isStaff;
   }

@@ -32,7 +32,7 @@ export const users = sqliteTable("users", {
   profilePicture: text("profile_picture"),
   profilePictureSmall: text("profile_picture_small"),
   consent: text("consent", { mode: "json" }).$type<UserConsent>().notNull().default(sql`'{}'`),
-  role: text("role", { enum: ["user", "moderator", "admin"] })
+  role: text("role", { enum: ["user", "admin"] })
     .notNull()
     .default("user"),
   createdAt: text("created_at")

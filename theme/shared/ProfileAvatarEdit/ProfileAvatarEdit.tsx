@@ -79,8 +79,12 @@ export const ProfileAvatarEdit = component$<ProfileAvatarEditProps>((props) => {
             currentUrl={profilePictureUrl || undefined}
             onFileUploaded$={$(async (response: any) => {
               const formData = new FormData();
-              if (response.url || response.filePath) {
-                formData.set("profilePicture", response.url || response.filePath);
+              // filePath is the raw storage key (e.g. "private/profile-pictures/…"),
+              // which is what usersService.update's prefix check requires. response.url
+              // is a presigned GET URL for this pipeline, not a storage key - using it
+              // here would fail that check and get silently dropped.
+              if (response.filePath || response.url) {
+                formData.set("profilePicture", response.filePath || response.url);
               }
               if (response.thumbnailPath) {
                 formData.set("profilePictureSmall", response.thumbnailPath);

@@ -294,11 +294,12 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 
       {/* ── Private sections (owner only) ── */}
       {hasPrivateContent && (
-        <div class="border-t-2 border-dashed border-border pt-8 space-y-6">
-          <p class="text-xs font-medium text-text-muted uppercase tracking-widest -mb-2">
+        <div class="border-t-2 border-dashed border-border pt-3">
+          <p class="text-xs font-medium text-text-muted uppercase tracking-widest mb-8">
             Only visible to you
           </p>
 
+          <div class="space-y-8">
           {/* Owner details */}
           <div class={`${PRIVATE_SECTION_CLASS} flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 flex-wrap`}>
             {email && (
@@ -384,6 +385,7 @@ export const UserProfile = component$<UserProfileProps>((props) => {
               </ul>
             </section>
           )}
+          </div>
         </div>
       )}
     </div>

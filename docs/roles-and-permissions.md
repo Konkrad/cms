@@ -15,11 +15,6 @@ Every account is one of two types:
   platform-wide: all events, all communities, all members, job listings,
   elections, forms, and qualification reviews.
 
-There used to be a third, in-between account type ("moderator"), but it
-turned out not to actually behave differently from a full admin in
-practice, so it's been removed — every account with elevated access is now
-simply an admin.
-
 Being an admin does **not** automatically give someone management access to
 every community — see below.
 

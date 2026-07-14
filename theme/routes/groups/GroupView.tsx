@@ -6,8 +6,7 @@ import { FeatureGrid } from "~theme/blocks/FeatureBlock/FeatureGrid";
 import { ImageTile } from "~theme/blocks/FeatureBlock/ImageTile";
 import { ParticipantsTile } from "~theme/blocks/FeatureBlock/ParticipantsTile";
 import { LocalRepTile } from "~theme/blocks/FeatureBlock/LocalRepTile";
-import { ListCard } from "~theme/blocks/ListCard";
-import { BlogCard } from "~theme/blocks/BlogCard";
+import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 import type { GroupViewData, JoinGroupAction } from "~/contracts/groups";
 
 const GRID_LAYOUT = `"left-top middle right-top" "left-bottom middle right-top" "left-bottom middle right-bottom"`;
@@ -60,7 +59,7 @@ export const GroupView = component$<{ data: GroupViewData; joinAction: JoinGroup
       <div>
         {/* Heading */}
         <div class="max-w-[1290px] mx-auto px-4 pt-12 pb-4 text-center">
-          <h1 class="font-['Rubik',sans-serif] font-semibold text-[40px] md:text-[52px] leading-[1.1] text-text-heading">
+          <h1 class="font-semibold text-[40px] md:text-[52px] leading-[1.1] text-text-heading">
             {group.name}
           </h1>
         </div>
@@ -111,14 +110,14 @@ export const GroupView = component$<{ data: GroupViewData; joinAction: JoinGroup
               />
             ) : (
               <div
-                class="bg-[#034ea2] rounded-[25px] p-8 flex flex-col justify-between h-full"
+                class="bg-primary p-8 flex flex-col justify-between h-full"
                 style={{ gridArea: "right-bottom" }}
               >
-                <h3 class="font-['Rubik',sans-serif] font-semibold text-[24px] text-white">
+                <h3 class="font-semibold text-[24px] text-white">
                   Join the community
                 </h3>
                 {isMember ? (
-                  <p class="font-['Lato',sans-serif] text-[16px] text-white/80 mt-4">
+                  <p class="text-[16px] text-white/80 mt-4">
                     ✓ You are a member
                   </p>
                 ) : (
@@ -141,7 +140,7 @@ export const GroupView = component$<{ data: GroupViewData; joinAction: JoinGroup
         {rep && (
           <div class="max-w-[1290px] mx-auto px-4 pb-12 flex flex-col items-center gap-3">
             {isMember ? (
-              <div class="bg-success-bg border border-success-border text-success px-6 py-3 rounded-full font-medium">
+              <div class="bg-success-bg border border-success-border text-success px-6 py-3 font-medium">
                 ✓ You are a member of this group
               </div>
             ) : (
@@ -164,24 +163,24 @@ export const GroupView = component$<{ data: GroupViewData; joinAction: JoinGroup
         {/* Upcoming Events */}
         {upcomingEvents.length > 0 && (
           <div class="max-w-[1290px] mx-auto px-4 py-8">
-            <h2 class="font-['Rubik',sans-serif] font-semibold text-[32px] text-text-heading mb-6">
+            <h2 class="font-semibold text-[32px] text-text-heading mb-6">
               Upcoming Community Events
             </h2>
-            <div class="flex flex-col gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {upcomingEvents.map((e) => {
                 const location =
                   e.city ||
                   e.address ||
                   (e.locationType === "online" ? "Online" : "TBA");
                 return (
-                  <ListCard
+                  <ContentCard
                     key={e.id}
                     title={e.title}
                     image={e.image1 ?? undefined}
                     date={formatEventDate(e.startDate, e.endDate)}
-                    topRight={location}
-                    readMoreHref={`/events/${e.id}`}
-                    readMoreLabel="Open Tickets"
+                    meta={location}
+                    href={`/events/${e.id}`}
+                    label="Open Tickets"
                   />
                 );
               })}
@@ -192,18 +191,18 @@ export const GroupView = component$<{ data: GroupViewData; joinAction: JoinGroup
         {/* Recent Posts */}
         {recentPosts.length > 0 && (
           <div class="max-w-[1290px] mx-auto px-4 py-8">
-            <h2 class="font-['Rubik',sans-serif] font-semibold text-[32px] text-text-heading mb-6">
+            <h2 class="font-semibold text-[32px] text-text-heading mb-6">
               Latest from the Community
             </h2>
             <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {recentPosts.map((p: any) => (
-                <BlogCard
+                <ContentCard
                   key={p.id}
-                  date={p.createdAt}
-                  title={p.authorName}
+                  date={new Date(p.createdAt).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}
+                  title={p.title}
                   image={p.featuredImage ?? undefined}
                   description={p.body.replace(/<[^>]+>/g, "").substring(0, 150)}
-                  readMoreHref={`/posts/${p.id}`}
+                  href={`/posts/${p.id}`}
                 />
               ))}
             </div>

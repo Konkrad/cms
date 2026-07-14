@@ -1,32 +1,42 @@
 /**
- * Block registry — maps a page builder `componentType` string to its themed
- * component. Core's `BlockRenderer` (src/components/builder/BlockRenderer.tsx)
- * dispatches through this map so a theme can add, remove, or replace block
- * types without touching core.
+ * Block registry — the single source of truth for the page builder.
  *
- * Most blocks are pure presentational components (props from page data), but
- * several (DealsListBlock, GroupsListBlock, HeroSectionBlock,
- * LocalCommunitiesMapBlock, PastEventsBlock, UpcomingEventsBlock) are
- * self-contained: the page builder lets an editor drop them on any page, so
- * they fetch their own data server-side via `server$` rather than receiving it
- * from a route loader. That is an intentional exception to the "theme never
- * imports services" rule for routes — these blocks ARE the data-fetching unit
- * for builder-placed content, the same way a route loader is for a fixed route.
+ * `blockRegistry` is used by core's BlockRenderer to render blocks at runtime.
+ * `blockDefinitions` is consumed by component-loader.service.ts to drive the
+ * admin picker — so adding or removing a block here is the only change needed.
+ *
+ * Several blocks (DealsListBlock, GroupsListBlock, HeroSectionBlock,
+ * PastEventsBlock, UpcomingEventsBlock) are self-contained data-fetchers that
+ * use `server$` — an intentional exception to the "theme never imports
+ * services" rule, since the page builder has no route loader to supply them.
  */
-import TextBlock from "./TextBlock";
-import TitleBlock from "./TitleBlock";
-import ImageBlock from "./ImageBlock";
-import UpcomingEventsBlock from "./UpcomingEventsBlock";
-import PastEventsBlock from "./PastEventsBlock";
-import PostsListBlock from "./PostsListBlock";
-import SpacerBlock from "./SpacerBlock";
-import FeatureBlock from "./FeatureBlock";
-import ActionButtonBlock from "./ActionButtonBlock";
-import LocalCommunitiesMapBlock from "./LocalCommunitiesMapBlock";
-import HeroSectionBlock from "./HeroSectionBlock";
-import GroupsListBlock from "./GroupsListBlock";
-import SurveyFormBlock from "./SurveyFormBlock";
-import DealsListBlock from "./DealsListBlock";
+import type { BlockDefinition } from "~/db/schema";
+import TextBlock, { definition as TextBlockDef } from "./TextBlock";
+import TitleBlock, { definition as TitleBlockDef } from "./TitleBlock";
+import ImageBlock, { definition as ImageBlockDef } from "./ImageBlock";
+import UpcomingEventsBlock, { definition as UpcomingEventsBlockDef } from "./UpcomingEventsBlock";
+import PastEventsBlock, { definition as PastEventsBlockDef } from "./PastEventsBlock";
+import PostsListBlock, { definition as PostsListBlockDef } from "./PostsListBlock";
+import SpacerBlock, { definition as SpacerBlockDef } from "./SpacerBlock";
+import FeatureBlock, { definition as FeatureBlockDef } from "./FeatureBlock";
+import ActionButtonBlock, { definition as ActionButtonBlockDef } from "./ActionButtonBlock";
+import HeroSectionBlock, { definition as HeroSectionBlockDef } from "./HeroSectionBlock";
+import GroupsListBlock, { definition as GroupsListBlockDef } from "./GroupsListBlock";
+import SurveyFormBlock, { definition as SurveyFormBlockDef } from "./SurveyFormBlock";
+import DealsListBlock, { definition as DealsListBlockDef } from "./DealsListBlock";
+import CalloutBlock, { definition as CalloutBlockDef } from "./CalloutBlock/CalloutBlock";
+import QuoteBlock, { definition as QuoteBlockDef } from "./QuoteBlock/QuoteBlock";
+import VideoBlock, { definition as VideoBlockDef } from "./VideoBlock/VideoBlock";
+import EmbedBlock, { definition as EmbedBlockDef } from "./EmbedBlock/EmbedBlock";
+import AccordionBlock, { definition as AccordionBlockDef } from "./AccordionBlock/AccordionBlock";
+
+export const blockDefinitions: BlockDefinition[] = [
+  TextBlockDef, TitleBlockDef, ImageBlockDef, SpacerBlockDef,
+  ActionButtonBlockDef, FeatureBlockDef, HeroSectionBlockDef,
+  UpcomingEventsBlockDef, PastEventsBlockDef, PostsListBlockDef,
+  GroupsListBlockDef, DealsListBlockDef, SurveyFormBlockDef,
+  CalloutBlockDef, QuoteBlockDef, VideoBlockDef, EmbedBlockDef, AccordionBlockDef,
+];
 
 export const blockRegistry: Record<string, any> = {
   TextBlock,
@@ -38,9 +48,13 @@ export const blockRegistry: Record<string, any> = {
   SpacerBlock,
   FeatureBlock,
   ActionButtonBlock,
-  LocalCommunitiesMapBlock,
   HeroSectionBlock,
   GroupsListBlock,
   SurveyFormBlock,
   DealsListBlock,
+  CalloutBlock,
+  QuoteBlock,
+  VideoBlock,
+  EmbedBlock,
+  AccordionBlock,
 };

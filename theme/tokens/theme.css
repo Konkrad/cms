@@ -11,12 +11,13 @@
  * override them there-equivalently if it ships its own.
  */
 @theme {
-  --color-primary: #034ea2;
-  --color-primary-light: #0a6dd6;
-  --color-primary-dark: #031241;
+  /* === Brand colors — change primary + accent to rebrand === */
+  --color-primary: #111827;
+  --color-primary-light: #1f2937;
+  --color-primary-dark: #030712;
 
-  --color-accent: #96c247;
-  --color-accent-dark: #7da636;
+  --color-accent: #7c3aed;
+  --color-accent-dark: #6d28d9;
 
   --color-bg: #f9fafb;
   --color-bg-card: #ffffff;
@@ -49,5 +50,14 @@
   --color-warning-bg: #fef3c7;
   --color-warning-border: #fcd34d;
 
-  --color-focus-ring: #034ea2;
+  --color-focus-ring: #7c3aed;
+
+  /* === Radius — all containers are square; only interactive elements keep 2px === */
+  --radius: 0.125rem;
+  --radius-sm: 0.125rem;
+  --radius-md: 0.125rem;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
 }

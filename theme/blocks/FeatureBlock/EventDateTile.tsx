@@ -134,17 +134,17 @@ export const EventDateTile = component$<EventDateTileProps>((props) => {
       class={`${bgClass} rounded-[25px] p-8 h-full`}
       style={props.area ? { gridArea: props.area } : undefined}
     >
-      <h3 class="font-['Rubik',sans-serif] font-semibold text-[30px] leading-[1.406] text-white mb-8">
+      <h3 class="font-semibold text-[30px] leading-[1.406] text-white mb-8">
         Save the Date
       </h3>
 
       {/* Date Range */}
       <div class="flex items-center gap-4 mb-6">
         <div class="flex flex-col">
-          <p class="font-['Lato',sans-serif] font-bold text-[18px] leading-[1.348] text-white">
+          <p class="font-bold text-[18px] leading-[1.348] text-white">
             {formattedStartDate}
           </p>
-          <p class="font-['Lato',sans-serif] font-bold text-[18px] leading-[1.348] text-white">
+          <p class="font-bold text-[18px] leading-[1.348] text-white">
             {formattedStartTime}
           </p>
         </div>
@@ -170,10 +170,10 @@ export const EventDateTile = component$<EventDateTileProps>((props) => {
         </div>
 
         <div class="flex flex-col">
-          <p class="font-['Lato',sans-serif] font-bold text-[18px] leading-[1.348] text-white">
+          <p class="font-bold text-[18px] leading-[1.348] text-white">
             {formattedEndDate}
           </p>
-          <p class="font-['Lato',sans-serif] font-bold text-[18px] leading-[1.348] text-white">
+          <p class="font-bold text-[18px] leading-[1.348] text-white">
             {formattedEndTime}
           </p>
         </div>
@@ -216,7 +216,7 @@ export const EventDateTile = component$<EventDateTileProps>((props) => {
               </svg>
             </span>
           </span>
-          <span class="font-['Lato',sans-serif] font-bold text-[14px] leading-[1.348] text-white group-hover:underline">
+          <span class="font-bold text-[14px] leading-[1.348] text-white group-hover:underline">
             Add to Calendar
           </span>
         </button>

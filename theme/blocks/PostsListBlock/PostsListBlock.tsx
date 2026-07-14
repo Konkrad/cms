@@ -9,7 +9,7 @@ import { server$ } from "@qwik.dev/router";
 import type { BlockDefinition } from "~/db/schema";
 import type { PostWithUser } from "~/services/posts.service";
 import { CursorPager } from "~/components/ui/CursorPager";
-import { ListCard } from "../ListCard/ListCard";
+import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 import { publicImageUrlFromKey } from "~/utils/images";
 
 interface PostsListBlockProps {
@@ -182,22 +182,24 @@ export default component$<PostsListBlockProps>((props) => {
       ) : items.value.length === 0 ? (
         <p class="text-text-muted text-center py-8">No posts found.</p>
       ) : (
-        <div class="flex flex-col gap-6">
-          {items.value.map((post) => (
-            <ListCard
-              key={post.id}
-              title={post.title}
-              image={post.featuredImage ?? undefined}
-              date={new Intl.DateTimeFormat("en-US", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              }).format(new Date(post.createdAt))}
-              description={post.body.replace(/<[^>]+>/g, "").substring(0, 160)}
-              readMoreHref={`/posts/${post.id}`}
-              readMoreLabel="Read More"
-            />
-          ))}
+        <>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {items.value.map((post) => (
+              <ContentCard
+                key={post.id}
+                title={post.title}
+                image={post.featuredImage ?? undefined}
+                date={new Intl.DateTimeFormat("en-US", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                }).format(new Date(post.createdAt))}
+                description={post.body.replace(/<[^>]+>/g, "").substring(0, 160)}
+                href={`/posts/${post.id}`}
+                label="Read More"
+              />
+            ))}
+          </div>
 
           <CursorPager
             hasPrevious={prevCursor.value !== null}
@@ -206,7 +208,7 @@ export default component$<PostsListBlockProps>((props) => {
             onPrevious$={goPrev}
             onNext$={goNext}
           />
-        </div>
+        </>
       )}
     </div>
   );

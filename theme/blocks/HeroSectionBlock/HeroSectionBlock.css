@@ -4,9 +4,6 @@
   max-width: 1200px;
   margin: 0 auto;
   position: relative;
-  font-family: "Lato", ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
-    "Noto Sans", sans-serif;
 }
 
 /* ── Loading / Empty states ── */
@@ -55,10 +52,9 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  border-radius: 20px;
   overflow: hidden;
   text-decoration: none;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.14);
+  border: 1px solid var(--color-border);
 }
 
 .hero-carousel-image-wrap {
@@ -102,7 +98,6 @@
 .hero-carousel-title {
   color: #fff;
   font-size: 16px;
-  font-family: "Lato", sans-serif;
   font-weight: 400;
   margin: 0;
   line-height: 1.4;
@@ -127,16 +122,12 @@
   width: 400px;
   height: 400px;
   flex-shrink: 0;
-  position: relative;
 }
 
 .hero-section-desktop-image-frame {
   width: 100%;
   height: 100%;
-  border-radius: 30px;
   overflow: hidden;
-  position: relative;
-  z-index: 2;
 }
 
 .hero-section-desktop-image {
@@ -162,17 +153,6 @@
   user-select: none;
 }
 
-.hero-section-desktop-image-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 400px;
-  height: 400px;
-  background-color: var(--color-primary);
-  border-radius: 30px;
-  transform: rotate(-3deg);
-  z-index: 1;
-}
 
 .hero-section-desktop-content {
   flex: 1;
@@ -183,7 +163,6 @@
 }
 
 .hero-section-desktop-title {
-  font-family: "Titillium Web", sans-serif;
   font-weight: 700;
   font-size: clamp(2.5rem, 4.3vw, 4.3rem);
   line-height: 1;
@@ -193,7 +172,6 @@
 }
 
 .hero-section-desktop-description {
-  font-family: "Titillium Web", sans-serif;
   font-weight: 400;
   font-size: 24px;
   line-height: 1.6;
@@ -249,11 +227,6 @@
     height: 260px;
   }
 
-  .hero-section-desktop-image-bg {
-    width: 260px;
-    height: 260px;
-  }
-
   .hero-section-desktop-title {
     font-size: clamp(1.8rem, 3.5vw, 4.3rem);
   }
@@ -279,11 +252,6 @@
   }
 
   .hero-section-desktop-image-wrapper {
-    width: 400px;
-    height: 400px;
-  }
-
-  .hero-section-desktop-image-bg {
     width: 400px;
     height: 400px;
   }

@@ -80,7 +80,7 @@ export const LocationTile = component$<LocationTileProps>((props) => {
             />
           </svg>
         </div>
-        <h3 class="font-['Rubik',sans-serif] font-semibold text-[25px] md:text-[30px] leading-[1.406] text-black drop-shadow-lg">
+        <h3 class="font-semibold text-[25px] md:text-[30px] leading-[1.406] text-black drop-shadow-lg">
           {props.location}
         </h3>
       </div>

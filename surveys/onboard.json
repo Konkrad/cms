@@ -1,1006 +1,196 @@
 {
   "pages": [
     {
-      "name": "education_page",
+      "name": "academic_info",
+      "title": "Your Academic Background",
       "elements": [
         {
-          "type": "paneldynamic",
-          "name": "academicPath",
-          "title": "Your Academic History",
-          "templateElements": [
-            {
-              "type": "radiogroup",
-              "name": "affilation",
-              "title": "How do you know us?",
-              "choices": [
-                {
-                  "value": "master",
-                  "text": "Master's Degree"
-                },
-                {
-                  "value": "summer",
-                  "text": "Summer School"
-                },
-                {
-                  "value": "Item 4",
-                  "text": "Speed Master"
-                },
-                {
-                  "value": "Item 3",
-                  "text": "PhD"
-                },
-                {
-                  "value": "Item 1",
-                  "text": "28 Digital/EITDigital Employee"
-                },
-                {
-                  "value": "Item 2",
-                  "text": "Friends"
-                },
-                {
-                  "value": "Item 5",
-                  "text": "28 Digital/EITDigital accelerator"
-                }
-              ]
-            },
-            {
-              "type": "dropdown",
-              "name": "dtcYear",
-              "visibleIf": "{panel.affilation} = 'Item 3'",
-              "title": "Entry Year",
-              "choices": [
-                {
-                  "value": 2014,
-                  "text": "2014"
-                },
-                {
-                  "value": 2015,
-                  "text": "2015"
-                },
-                {
-                  "value": 2016,
-                  "text": "2016"
-                },
-                {
-                  "value": 2017,
-                  "text": "2017"
-                },
-                {
-                  "value": 2018,
-                  "text": "2018"
-                },
-                {
-                  "value": 2019,
-                  "text": "2019"
-                },
-                {
-                  "value": 2020,
-                  "text": "2020"
-                }
-              ]
-            },
-            {
-              "type": "dropdown",
-              "name": "dtc",
-              "visibleIf": "{panel.affilation} = 'Item 3' and {panel.dtcYear} isNotEmpty",
-              "title": "Doctoral Training Centre (DTC)",
-              "choices": [
-                {
-                  "value": "dtc_budapest",
-                  "text": "DTC Budapest"
-                },
-                {
-                  "value": "dtc_helsinki",
-                  "text": "DTC Helsinki"
-                },
-                {
-                  "value": "dtc_madrid",
-                  "text": "DTC Madrid"
-                },
-                {
-                  "value": "dtc_paris",
-                  "text": "DTC Paris"
-                },
-                {
-                  "value": "dtc_rennes",
-                  "text": "DTC Rennes"
-                },
-                {
-                  "value": "dtc_sophia_antipolis",
-                  "text": "DTC Sophia Antipolis"
-                },
-                {
-                  "value": "dtc_trento",
-                  "text": "DTC Trento"
-                }
-              ]
-            },
-            {
-              "type": "dropdown",
-              "name": "year",
-              "visibleIf": "{panel.affilation} = 'master'",
-              "title": "Entry Year",
-              "choices": [
-                {
-                  "value": 2014,
-                  "text": "2014"
-                },
-                {
-                  "value": 2015,
-                  "text": "2015"
-                },
-                {
-                  "value": 2016,
-                  "text": "2016"
-                },
-                {
-                  "value": 2017,
-                  "text": "2017"
-                },
-                {
-                  "value": 2018,
-                  "text": "2018"
-                },
-                {
-                  "value": 2019,
-                  "text": "2019"
-                },
-                {
-                  "value": 2020,
-                  "text": "2020"
-                },
-                {
-                  "value": 2021,
-                  "text": "2021"
-                },
-                {
-                  "value": 2022,
-                  "text": "2022"
-                },
-                {
-                  "value": 2023,
-                  "text": "2023"
-                },
-                {
-                  "value": 2024,
-                  "text": "2024"
-                },
-                {
-                  "value": 2025,
-                  "text": "2025"
-                },
-                {
-                  "value": 2026,
-                  "text": "2026"
-                }
-              ]
-            },
-            {
-              "type": "dropdown",
-              "name": "entry_university",
-              "visibleIf": "{panel.affilation} = 'master' and {panel.year} isNotEmpty",
-              "title": "Entry University",
-              "choices": [
-                {
-                  "value": "aalto_university",
-                  "text": "Aalto University (Espoo, Finland)"
-                },
-                {
-                  "value": "babes_bolyai_university",
-                  "text": "Babeș-Bolyai University (Cluj-Napoca, Romania)"
-                },
-                {
-                  "value": "middle_east_technical_university",
-                  "text": "Middle East Technical University (Ankara, Turkey)"
-                },
-                {
-                  "value": "riga_technical_university",
-                  "text": "Riga Technical University (Riga, Latvia)"
-                },
-                {
-                  "value": "unitn_university_of_trento",
-                  "text": "UNITN University of Trento (Trento, Italy)"
-                },
-                {
-                  "value": "upm_universidad_politecnica_de_madrid",
-                  "text": "UPM Universidad Politécnica de Madrid (Madrid, Spain)"
-                },
-                {
-                  "value": "university_of_twente",
-                  "text": "University of Twente (Twente, The Netherlands)"
-                },
-                {
-                  "value": "utu_university_of_turku",
-                  "text": "UTU University of Turku (Turku, Finland)"
-                },
-                {
-                  "value": "university_of_rennes_1",
-                  "text": "University of Rennes 1 (Rennes, France)"
-                },
-                {
-                  "value": "universite_pierre_et_marie_curie",
-                  "text": "Université Pierre et Marie Curie (Paris, France)"
-                },
-                {
-                  "value": "universite_cote_d_azur",
-                  "text": "Universite Cote d'Azur (Nice, France)"
-                },
-                {
-                  "value": "unibo_university_of_bologna",
-                  "text": "UNIBO University of Bologna (Bologna, Italy)"
-                },
-                {
-                  "value": "bme_budapest_university_of_technology_and_economics",
-                  "text": "BME Budapest University of Technology and Economics (Budapest, Hungary)"
-                },
-                {
-                  "value": "tu_berlin",
-                  "text": "TU Berlin (Berlin, Germany)"
-                },
-                {
-                  "value": "tu_eindhoven",
-                  "text": "TU Eindhoven (Eindhoven, The Netherlands)"
-                },
-                {
-                  "value": "sorbonne_university",
-                  "text": "Sorbonne University (Paris, France)"
-                },
-                {
-                  "value": "polimi_polytechnic_university_of_milan",
-                  "text": "POLIMI Polytechnic University of Milan (Milano, Italy)"
-                },
-                {
-                  "value": "kth_royal_institute_of_technology",
-                  "text": "KTH Royal Institute of Technology (Stockholm, Sweden)"
-                },
-                {
-                  "value": "elte_eotvos_lorand_university",
-                  "text": "ELTE Eötvös Loránd University (Budapest, Hungary)"
-                },
-                {
-                  "value": "delft_university_of_technology",
-                  "text": "Delft University of Technology (Delft, The Netherlands)"
-                },
-                {
-                  "value": "ups_universite_paris_sud",
-                  "text": "UPS Université Paris-Sud (Paris, France)"
-                }
-              ]
-            },
-            {
-              "type": "dropdown",
-              "name": "exit_university",
-              "visibleIf": "{panel.affilation} = 'master' and {panel.entry_university} isNotEmpty",
-              "title": "Exit University",
-              "choices": [
-                {
-                  "value": "aalto_university",
-                  "text": "Aalto University (Helsinki, Finland)"
-                },
-                {
-                  "value": "babes_bolyai_university",
-                  "text": "Babeș-Bolyai University (Cluj-Napoca, Romania)"
-                },
-                {
-                  "value": "bme_budapest_university_of_technology_and_economics",
-                  "text": "BME Budapest University of Technology and Economics (Budapest, Hungary)"
-                },
-                {
-                  "value": "eindhoven_university",
-                  "text": "Eindhoven University"
-                },
-                {
-                  "value": "elte_eotvos_lorand_university",
-                  "text": "ELTE Eötvös Loránd University (Budapest, Hungary)"
-                },
-                {
-                  "value": "eurecom",
-                  "text": "EURECOM (Sophia-Antipolis, France)"
-                },
-                {
-                  "value": "institut_mines_telecom",
-                  "text": "Institut Mines-Télécom (Rennes, France)"
-                },
-                {
-                  "value": "kth_royal_institute_of_technology",
-                  "text": "KTH Royal Institute of Technology (Stockholm, Sweden)"
-                },
-                {
-                  "value": "middle_east_technical_university",
-                  "text": "Middle East Technical University (Ankara, Turkey)"
-                },
-                {
-                  "value": "polytechnic_university_of_bari",
-                  "text": "Polytechnic University of Bari (Bari, Italy)"
-                },
-                {
-                  "value": "saarland_university",
-                  "text": "Saarland University (Saarbrücken, Germany)"
-                },
-                {
-                  "value": "sorbonne_university",
-                  "text": "Sorbonne University (Paris, France)"
-                },
-                {
-                  "value": "stockholm_university",
-                  "text": "Stockholm University (Stockholm, Sweden)"
-                },
-                {
-                  "value": "taltech_tallinn_university_of_technology",
-                  "text": "TalTech Tallinn University of Technology (Tallinn, Estonia)"
-                },
-                {
-                  "value": "tampere_university",
-                  "text": "Tampere University (Tampere, Finnland)"
-                },
-                {
-                  "value": "tu_berlin",
-                  "text": "TU Berlin (Berlin, Germany)"
-                },
-                {
-                  "value": "tu_darmstadt",
-                  "text": "TU Darmstadt (Darmstadt, Germany)"
-                },
-                {
-                  "value": "tu_eindhoven",
-                  "text": "TU Eindhoven (Eindhoven, The Netherlands)"
-                },
-                {
-                  "value": "ucl_university_college_london",
-                  "text": "UCL University College London (London, UK)"
-                },
-                {
-                  "value": "unitn_university_of_trento",
-                  "text": "UNITN University of Trento (Trento, Italy)"
-                },
-                {
-                  "value": "universite_cote_d_azur",
-                  "text": "Universite Cote d'Azur (Nice, France)"
-                },
-                {
-                  "value": "university_of_nice_sophia_antipolis",
-                  "text": "University of Nice Sophia Antipolis (Nice, France)"
-                },
-                {
-                  "value": "university_of_rennes_1",
-                  "text": "University of Rennes 1 (Rennes, France)"
-                },
-                {
-                  "value": "university_of_the_aegea",
-                  "text": "University of the Aegea (Greece)"
-                },
-                {
-                  "value": "university_of_twente",
-                  "text": "University of Twente (Twente, The Netherlands)"
-                },
-                {
-                  "value": "upm_universidad_politecnica_de_madrid",
-                  "text": "UPM Universidad Politécnica de Madrid (Madrid, Spain)"
-                },
-                {
-                  "value": "ups_universite_paris_sud",
-                  "text": "UPS Université Paris-Sud (Paris, France)"
-                },
-                {
-                  "value": "utu_university_of_turku",
-                  "text": "UTU University of Turku (Turku, Finland)"
-                }
-              ]
-            },
-            {
-              "type": "dropdown",
-              "name": "track",
-              "visibleIf": "{panel.affilation} = 'master' and {panel.exit_university} isNotEmpty",
-              "title": "Tracks",
-              "choices": [
-                {
-                  "value": "aus",
-                  "text": "Autonomous Systems (AUS)"
-                },
-                {
-                  "value": "cni",
-                  "text": "Cloud and Network Infrastructures (CNI)"
-                },
-                {
-                  "value": "ccs",
-                  "text": "Cloud Computing and Services (CCS)"
-                },
-                {
-                  "value": "cse",
-                  "text": "Cyber Security (CSE)"
-                },
-                {
-                  "value": "dsc",
-                  "text": "Data Science (DSC)"
-                },
-                {
-                  "value": "dm",
-                  "text": "Digital Manufacturing (DM)"
-                },
-                {
-                  "value": "dmt",
-                  "text": "Digital Media Technology (DMT)"
-                },
-                {
-                  "value": "dss",
-                  "text": "Distributed Systems and Services (DSS)"
-                },
-                {
-                  "value": "es",
-                  "text": "Embedded Systems (ES)"
-                },
-                {
-                  "value": "emai",
-                  "text": "Emotion Artificial Intelligence (EMAI)"
-                },
-                {
-                  "value": "ft",
-                  "text": "Fintech (FT)"
-                },
-                {
-                  "value": "ftb",
-                  "text": "Fintech for Business (FTB)"
-                },
-                {
-                  "value": "hcid",
-                  "text": "Human Computer Interaction and Design (HCID)"
-                },
-                {
-                  "value": "ita",
-                  "text": "Internet Technology and Architecture (ITA)"
-                },
-                {
-                  "value": "sap",
-                  "text": "Security and Privacy (SaP)"
-                },
-                {
-                  "value": "sde",
-                  "text": "Service Design and Engineering (SDE)"
-                },
-                {
-                  "value": "ssa",
-                  "text": "Software and Service Architectures (SSA)"
-                },
-                {
-                  "value": "vcc",
-                  "text": "Visual Computing and Communication (VCC)"
-                }
-              ]
-            },
-            {
-              "type": "dropdown",
-              "name": "summerSchool",
-              "visibleIf": "{panel.affilation} = 'summer' or ({panel.affilation} = 'master' and {panel.track} isNotEmpty)",
-              "title": "Summer School",
-              "choices": [
-                {
-                  "value": "2013_eindhoven_health_and_wellbeing",
-                  "text": "2013 - Eindhoven, Health and Wellbeing"
-                },
-                {
-                  "value": "2013_trento_service_design_for_quality_of_life",
-                  "text": "2013 - Trento, Service Design for Quality of Life"
-                },
-                {
-                  "value": "2014_eindhoven_health_and_wellbeing",
-                  "text": "2014 - Eindhoven, Health and Wellbeing"
-                },
-                {
-                  "value": "2014_helsinki_smart_spaces",
-                  "text": "2014 - Helsinki, Smart Spaces"
-                },
-                {
-                  "value": "2014_nice_urban_life_and_mobility",
-                  "text": "2014 - Nice, Urban Life and Mobility"
-                },
-                {
-                  "value": "2014_oulu_helsinki_future_cloud",
-                  "text": "2014 - Oulu/Helsinki, Future Cloud"
-                },
-                {
-                  "value": "2014_stockholm_future_networking_systems",
-                  "text": "2014 - Stockholm, Future Networking Systems"
-                },
-                {
-                  "value": "2014_stockholm_karlsruhe_smart_energy_systems",
-                  "text": "2014 - Stockholm/Karlsruhe, Smart Energy Systems"
-                },
-                {
-                  "value": "2014_trento_cyber_physical_systems",
-                  "text": "2014 - Trento, Cyber-Physical Systems"
-                },
-                {
-                  "value": "2014_trento_privacy_security_and_trust",
-                  "text": "2014 - Trento, Privacy, Security & Trust"
-                },
-                {
-                  "value": "2015_eindhoven_health_and_wellbeing",
-                  "text": "2015 - Eindhoven, Health and Wellbeing"
-                },
-                {
-                  "value": "2015_helsinki_smart_spaces",
-                  "text": "2015 - Helsinki, Smart Spaces"
-                },
-                {
-                  "value": "2015_karlsruhe_smart_energy_systems",
-                  "text": "2015 - Karlsruhe, Smart Energy Systems"
-                },
-                {
-                  "value": "2015_london_urban_life_and_mobility",
-                  "text": "2015 - London, Urban Life and Mobility"
-                },
-                {
-                  "value": "2015_stockholm_cyber_physical_systems",
-                  "text": "2015 - Stockholm, Cyber-Physical Systems"
-                },
-                {
-                  "value": "2015_stockholm_future_cloud",
-                  "text": "2015 - Stockholm, Future Cloud"
-                },
-                {
-                  "value": "2015_stockholm_future_networking_solutions",
-                  "text": "2015 - Stockholm, Future Networking Solutions"
-                },
-                {
-                  "value": "2015_trento_privacy_security_and_trust",
-                  "text": "2015 - Trento, Privacy, Security & Trust"
-                },
-                {
-                  "value": "2016_eindhoven_health_and_wellbeing_i",
-                  "text": "2016 - Eindhoven, Health & Wellbeing I"
-                },
-                {
-                  "value": "2016_helsinki_smart_spaces",
-                  "text": "2016 - Helsinki, Smart Spaces"
-                },
-                {
-                  "value": "2016_karlsruhe_smart_energy_systems",
-                  "text": "2016 - Karlsruhe, Smart Energy Systems"
-                },
-                {
-                  "value": "2016_london_health_and_wellbeing_ii",
-                  "text": "2016 - London, Health & Wellbeing II"
-                },
-                {
-                  "value": "2016_paris_cyber_physical_systems",
-                  "text": "2016 - Paris, Cyber-Physical Systems"
-                },
-                {
-                  "value": "2016_paris_urban_life_and_mobility",
-                  "text": "2016 - Paris, Urban Life and Mobility"
-                },
-                {
-                  "value": "2016_stockholm_future_cloud",
-                  "text": "2016 - Stockholm, Future Cloud"
-                },
-                {
-                  "value": "2016_stockholm_future_networking_solutions",
-                  "text": "2016 - Stockholm, Future Networking Solutions"
-                },
-                {
-                  "value": "2016_trento_privacy_security_and_trust",
-                  "text": "2016 - Trento, Privacy, Security & Trust"
-                },
-                {
-                  "value": "2017_berlin_citizen_participation_and_city_governance",
-                  "text": "2017 - Berlin, Citizen Participation and City Governance"
-                },
-                {
-                  "value": "2017_budapest_machine_learning_for_financial_data",
-                  "text": "2017 - Budapest, Machine Learning for Financial Data"
-                },
-                {
-                  "value": "2017_eindhoven_independent_living_and_long_term_care",
-                  "text": "2017 - Eindhoven, Independent Living and Long‐term Care"
-                },
-                {
-                  "value": "2017_helsinki_retail_markets_consumer_engagement",
-                  "text": "2017 - Helsinki, Retail, Markets, Consumer Engagement"
-                },
-                {
-                  "value": "2017_lisbon_healthy_lifestyle_and_occupational_fitness",
-                  "text": "2017 - Lisbon, Healthy Lifestyle and Occupational Fitness"
-                },
-                {
-                  "value": "2017_munich_decentralized_production",
-                  "text": "2017 - Munich, Decentralized Production"
-                },
-                {
-                  "value": "2017_nice_urban_mobility_safety_and_exploration",
-                  "text": "2017 - Nice, Urban Mobility, Safety and Exploration"
-                },
-                {
-                  "value": "2017_stockholm_big_data_analytics",
-                  "text": "2017 - Stockholm, Big Data Analytics"
-                },
-                {
-                  "value": "2017_stockholm_internet_of_things_and_business_transformation",
-                  "text": "2017 - Stockholm, Internet of Things and Business Transformation"
-                },
-                {
-                  "value": "2017_trento_cybersecurity_and_privacy",
-                  "text": "2017 - Trento, Cybersecurity and Privacy"
-                },
-                {
-                  "value": "2018_budapest_machine_learning_for_financial_data",
-                  "text": "2018 - Budapest, Machine Learning for Financial Data"
-                },
-                {
-                  "value": "2018_eindhoven_healthy_lifestyle_and_behavioural_change",
-                  "text": "2018 - Eindhoven, Healthy Lifestyle and Behavioural Change"
-                },
-                {
-                  "value": "2018_helsinki_retail_markets_consumer_engagement",
-                  "text": "2018 - Helsinki, Retail, Markets, Consumer Engagement"
-                },
-                {
-                  "value": "2018_lisbon_longer_independent_living",
-                  "text": "2018 - Lisbon, Longer Independent Living"
-                },
-                {
-                  "value": "2018_munich_iot_platforms_for_industry_4_0",
-                  "text": "2018 - Munich, IoT Platforms for Industry 4.0"
-                },
-                {
-                  "value": "2018_rennes_predictive_analytics_big_data_mobility_and_open_platforms_for_an_efficient_and_participative_city",
-                  "text": "2018 - Rennes, Predictive analytics, big data, mobility and open platforms for an efficient and participative city"
-                },
-                {
-                  "value": "2018_stockholm_big_data_analytics",
-                  "text": "2018 - Stockholm, Big Data Analytics"
-                },
-                {
-                  "value": "2018_stockholm_internet_of_things_and_business_transformation",
-                  "text": "2018 - Stockholm, Internet of Things and Business Transformation"
-                },
-                {
-                  "value": "2018_tallinn_integrating_personalised_mobility_solutions_for_digital_cities",
-                  "text": "2018 - Tallinn, Integrating personalised mobility solutions for Digital Cities"
-                },
-                {
-                  "value": "2018_trento_cybersecurity_and_privacy",
-                  "text": "2018 - Trento, Cybersecurity and Privacy"
-                },
-                {
-                  "value": "2019_bologna_data_driven_manufacturing_with_industry_4_0",
-                  "text": "2019 - Bologna, Data Driven Manufacturing with Industry 4.0"
-                },
-                {
-                  "value": "2019_budapest_machine_learning_for_financial_data",
-                  "text": "2019 - Budapest, Machine Learning for Financial Data"
-                },
-                {
-                  "value": "2019_eindhoven_healthy_lifestyle_and_behavioural_change",
-                  "text": "2019 - Eindhoven, Healthy Lifestyle and Behavioural Change"
-                },
-                {
-                  "value": "2019_helsinki_disrupting_retail_digitalisation_growth_and_user_engagement",
-                  "text": "2019 - Helsinki, Disrupting Retail - Digitalisation, Growth , and User Engagement"
-                },
-                {
-                  "value": "2019_lisbon_longer_independent_living",
-                  "text": "2019 - Lisbon, Longer Independent Living"
-                },
-                {
-                  "value": "2019_ljubljana_digital_transformation_for_resilient_cities",
-                  "text": "2019 - Ljubljana, Digital Transformation for Resilient Cities"
-                },
-                {
-                  "value": "2019_munich_iot_platforms_for_industry_4_0",
-                  "text": "2019 - Munich, IoT Platforms for Industry 4.0"
-                },
-                {
-                  "value": "2019_rennes_unleashing_the_power_of_data_for_better_cities",
-                  "text": "2019 - Rennes, Unleashing the Power of Data for Better Cities"
-                },
-                {
-                  "value": "2019_stockholm_big_data_analytics",
-                  "text": "2019 - Stockholm, Big Data Analytics"
-                },
-                {
-                  "value": "2019_stockholm_internet_of_things_and_business_transformation",
-                  "text": "2019 - Stockholm, Internet of Things and Business Transformation"
-                },
-                {
-                  "value": "2019_tallinn_integrating_personalised_mobility_solutions",
-                  "text": "2019 - Tallinn, Integrating Personalised Mobility Solutions"
-                },
-                {
-                  "value": "2019_trento_digital_cities_as_infrastructures_for_smart_mobility",
-                  "text": "2019 - Trento, Digital Cities as Infrastructures for Smart Mobility"
-                },
-                {
-                  "value": "2020_big_data_analytics",
-                  "text": "2020 - Big Data Analytics"
-                },
-                {
-                  "value": "2020_data_visualisation_and_connectivity_for_healthcare",
-                  "text": "2020 - Data, Visualisation, and Connectivity for Healthcare"
-                },
-                {
-                  "value": "2020_design_thinking_and_scaling_services_for_cities",
-                  "text": "2020 - Design Thinking and Scaling Services for Cities"
-                },
-                {
-                  "value": "2020_digital_cities_as_infrastructures_for_smart_mobility",
-                  "text": "2020 - Digital Cities as Infrastructures for Smart Mobility"
-                },
-                {
-                  "value": "2020_digital_transformation_for_urban_resilience",
-                  "text": "2020 - Digital Transformation for Urban Resilience"
-                },
-                {
-                  "value": "2020_disrupting_finance_with_digital_technologies",
-                  "text": "2020 - Disrupting Finance with Digital Technologies"
-                },
-                {
-                  "value": "2020_ehealth_personalised_prevention",
-                  "text": "2020 - eHealth Personalised Prevention"
-                },
-                {
-                  "value": "2020_healthy_lifestyle_and_behavioural_change",
-                  "text": "2020 - Healthy Lifestyle and Behavioural Change"
-                },
-                {
-                  "value": "2020_internet_of_things_and_business_transformation",
-                  "text": "2020 - Internet of Things and Business Transformation"
-                },
-                {
-                  "value": "2020_iot_platforms_for_industry_4_0",
-                  "text": "2020 - IoT Platforms for Industry 4.0"
-                },
-                {
-                  "value": "2020_machine_learning_for_financial_data",
-                  "text": "2020 - Machine Learning for Financial Data"
-                },
-                {
-                  "value": "2020_ravaging_disruptions_in_retailing",
-                  "text": "2020 - Ravaging Disruptions in Retailing"
-                },
-                {
-                  "value": "2020_secure_e_governance",
-                  "text": "2020 - Secure e-Governance"
-                },
-                {
-                  "value": "2020_unleashing_the_power_of_circular_city_data",
-                  "text": "2020 - Unleashing the Power of Circular City Data"
-                },
-                {
-                  "value": "2021_big_data_for_industry_4_0",
-                  "text": "2021 - Big Data for Industry 4.0"
-                },
-                {
-                  "value": "2021_data_science_for_financial_problems",
-                  "text": "2021 - Data Science for Financial Problems"
-                },
-                {
-                  "value": "2021_data_visualisation_and_connectivity_for_healthcare",
-                  "text": "2021 - Data, Visualisation and Connectivity for Healthcare"
-                },
-                {
-                  "value": "2021_digital_methods_for_media_and_democracy",
-                  "text": "2021 - Digital Methods for Media and Democracy"
-                },
-                {
-                  "value": "2021_digital_platforms_for_smart_cities",
-                  "text": "2021 - Digital Platforms for Smart Cities"
-                },
-                {
-                  "value": "2021_digital_transformation_for_organisational_resilience",
-                  "text": "2021 - Digital Transformation for Organisational Resilience"
-                },
-                {
-                  "value": "2021_disrupting_finance_with_digital_technologies",
-                  "text": "2021 - Disrupting Finance with Digital Technologies"
-                },
-                {
-                  "value": "2021_e_health_personalised_prevention",
-                  "text": "2021 - e-Health: Personalised Prevention"
-                },
-                {
-                  "value": "2021_internet_of_things_and_business_transformation",
-                  "text": "2021 - Internet of Things and Business Transformation"
-                },
-                {
-                  "value": "2021_iot_platforms_for_industry_4_0",
-                  "text": "2021 - IoT Platforms for Industry 4.0"
-                },
-                {
-                  "value": "2021_reshaping_cities_for_a_healthy_environment",
-                  "text": "2021 - Reshaping Cities for a Healthy Environment"
-                },
-                {
-                  "value": "2022_bratislava_cyber_security_for_blockchain",
-                  "text": "2022 - Bratislava, Cyber Security for Blockchain"
-                },
-                {
-                  "value": "2022_budapest_artificial_intelligence_in_financial_services",
-                  "text": "2022 - Budapest, Artificial Intelligence in Financial Services"
-                },
-                {
-                  "value": "2022_coventry_data_visualisation_and_connectivity_for_healthcare",
-                  "text": "2022 - Coventry, Data, Visualisation and Connectivity for Healthcare"
-                },
-                {
-                  "value": "2022_helsinki_digital_platforms_for_smart_cities",
-                  "text": "2022 - Helsinki, Digital Platforms for Smart Cities"
-                },
-                {
-                  "value": "2022_ljubljana_digital_transformation_for_organisational_resilience",
-                  "text": "2022 - Ljubljana, Digital Transformation for Organisational Resilience"
-                },
-                {
-                  "value": "2022_madrid_disrupting_finance_with_digital_technologies",
-                  "text": "2022 - Madrid, Disrupting Finance with Digital Technologies"
-                },
-                {
-                  "value": "2022_milan_lake_como_digital_interactive_smart_spaces",
-                  "text": "2022 - Milan/Lake Como, Digital Interactive Smart Spaces"
-                },
-                {
-                  "value": "2022_munich_iot_platforms_for_industry_4_0",
-                  "text": "2022 - Munich, IoT Platforms for Industry 4.0"
-                },
-                {
-                  "value": "2022_rennes_solutions_for_healthier_digital_cities",
-                  "text": "2022 - Rennes, Solutions for Healthier Digital Cities"
-                },
-                {
-                  "value": "2022_tallinn_cyber_security_in_e_governance",
-                  "text": "2022 - Tallinn, Cyber Security in e-Governance"
-                },
-                {
-                  "value": "2022_tallinn_e_health_personalised_prevention",
-                  "text": "2022 - Tallinn, e-Health: Personalised Prevention"
-                },
-                {
-                  "value": "2023_helsinki_digital_platforms_for_smart_cities",
-                  "text": "2023 - Helsinki, Digital Platforms for Smart Cities"
-                },
-                {
-                  "value": "2023_lesvos_cyber_security_between_tech_and_business",
-                  "text": "2023 - Lesvos, Cyber Security between Tech and Business"
-                },
-                {
-                  "value": "2023_ljubljana_digital_transformation_for_organisational_resilience",
-                  "text": "2023 - Ljubljana, Digital Transformation for Organisational Resilience"
-                },
-                {
-                  "value": "2023_madrid_ai4green_business_lab",
-                  "text": "2023 - Madrid, AI4Green Business Lab"
-                },
-                {
-                  "value": "2023_madrid_disrupting_finance_with_digital_technologies",
-                  "text": "2023 - Madrid, Disrupting Finance with Digital Technologies"
-                },
-                {
-                  "value": "2023_madrid_metaverse_and_digital_asset_management",
-                  "text": "2023 - Madrid, Metaverse and Digital Asset Management"
-                },
-                {
-                  "value": "2023_milan_innovative_digital_technologies_for_health",
-                  "text": "2023 - Milan, Innovative Digital Technologies for Health"
-                },
-                {
-                  "value": "2023_milan_iot_and_digital_interactive_smart_spaces",
-                  "text": "2023 - Milan, IoT and Digital Interactive Smart Spaces"
-                },
-                {
-                  "value": "2023_munich_methods_and_tools_for_resilient_industrial_iot",
-                  "text": "2023 - Munich, Methods and Tools for Resilient Industrial IoT"
-                },
-                {
-                  "value": "2023_nice_quantum_computing_and_information",
-                  "text": "2023 - Nice, Quantum Computing and Information"
-                },
-                {
-                  "value": "2023_rennes_unfolding_sustainability_through_innovative_green_digital_solutions",
-                  "text": "2023 - Rennes, Unfolding Sustainability through Innovative Green Digital Solutions"
-                },
-                {
-                  "value": "2023_tallinn_e_health_personalised_prevention",
-                  "text": "2023 - Tallinn, e-Health: Personalised Prevention"
-                },
-                {
-                  "value": "2023_tel_aviv_ai_for_healthcare_innovation",
-                  "text": "2023 - Tel Aviv, AI for Healthcare Innovation"
-                },
-                {
-                  "value": "2023_vilnius_boosting_entrepreneurship_in_digital_wellbeing",
-                  "text": "2023 - Vilnius, Boosting Entrepreneurship in Digital Wellbeing"
-                },
-                {
-                  "value": "2024_glasgow_the_generative_ai_toolkit_for_start_up_and_scale_up_growth",
-                  "text": "2024 - Glasgow, The Generative AI Toolkit for Start-up and Scale-up Growth"
-                },
-                {
-                  "value": "2024_helsinki_digital_platforms_for_smart_cities",
-                  "text": "2024 - Helsinki, Digital Platforms for Smart Cities"
-                },
-                {
-                  "value": "2024_ljubljana_digital_technologies_and_entrepreneurship",
-                  "text": "2024 - Ljubljana, Digital Technologies and Entrepreneurship"
-                },
-                {
-                  "value": "2024_madrid_fintech_frontier",
-                  "text": "2024 - Madrid, FinTech Frontier"
-                },
-                {
-                  "value": "2024_madrid_techfin_odyssey",
-                  "text": "2024 - Madrid, TechFin Odyssey"
-                },
-                {
-                  "value": "2024_milan_ai4sustainability",
-                  "text": "2024 - Milan, AI4Sustainability"
-                },
-                {
-                  "value": "2024_palermo_deep_tech_entrepreneurship",
-                  "text": "2024 - Palermo, Deep Tech Entrepreneurship"
-                },
-                {
-                  "value": "2024_rennes_innovative_ventures_for_social_and_environmental_sustainability",
-                  "text": "2024 - Rennes, Innovative Ventures for Social and Environmental Sustainability"
-                },
-                {
-                  "value": "2024_riga_cyber_security_agile_methodology_for_developing_new_solutions",
-                  "text": "2024 - Riga, Cyber Security – Agile Methodology for Developing New Solutions"
-                },
-                {
-                  "value": "2024_spin_explore",
-                  "text": "2024 - SPIN: Explore"
-                },
-                {
-                  "value": "2024_spin_rise",
-                  "text": "2024 - SPIN: Rise"
-                },
-                {
-                  "value": "2024_syros_maritime_robotics_and_informatics",
-                  "text": "2024 - Syros, Maritime Robotics and Informatics"
-                },
-                {
-                  "value": "2024_nice_quantum_computing_and_information",
-                  "text": "2024 - Nice, Quantum Computing and Information"
-                },
-                {
-                  "value": "2025_barcelona_upbeat_summer_school",
-                  "text": "2025 - Barcelona, UPBEAT Summer School"
-                },
-                {
-                  "value": "2025_cava_de_tirreni_space_tech_and_ai_for_transforming_industry",
-                  "text": "2025 - Cava de’ Tirreni, Space Tech and AI for Transforming Industry"
-                },
-                {
-                  "value": "2025_glasgow_generative_ai_for_start_ups_and_scale_ups",
-                  "text": "2025 - Glasgow, Generative AI for Start-ups and Scale-ups"
-                },
-                {
-                  "value": "2025_helsinki_digital_platforms_for_smart_cities",
-                  "text": "2025 - Helsinki, Digital Platforms for Smart Cities"
-                },
-                {
-                  "value": "2025_ljubljana_digital_technologies_and_entrepreneurship",
-                  "text": "2025 - Ljubljana, Digital Technologies and Entrepreneurship"
-                },
-                {
-                  "value": "2025_madrid_fintech_frontier",
-                  "text": "2025 - Madrid, FinTech Frontier"
-                },
-                {
-                  "value": "2025_rennes_ai_driven_cyber_security",
-                  "text": "2025 - Rennes, AI-driven Cyber security"
-                },
-                {
-                  "value": "2025_syros_island_maritime_informatics_and_robotics",
-                  "text": "2025 - Syros Island, Maritime Informatics & Robotics"
-                }
-              ]
-            }
-          ],
-          "templateTitle": "Education Period #{panelIndex}",
-          "panelCount": 1,
-          "minPanelCount": 1,
-          "addPanelText": "Add another degree or summer school",
-          "removePanelText": "Remove this period"
+          "type": "radiogroup",
+          "name": "status",
+          "title": "What is your current status?",
+          "isRequired": true,
+          "choices": [
+            { "value": "current_student", "text": "Current student" },
+            { "value": "graduate",        "text": "Graduate / Alumnus" },
+            { "value": "staff",           "text": "Academic staff or researcher" },
+            { "value": "other",           "text": "Other" }
+          ]
+        },
+        {
+          "type": "dropdown",
+          "name": "faculty",
+          "title": "Which faculty or school are you affiliated with?",
+          "isRequired": true,
+          "choices": [
+            { "value": "science",         "text": "Faculty of Science" },
+            { "value": "engineering",     "text": "Faculty of Engineering & Technology" },
+            { "value": "arts",            "text": "Faculty of Arts & Humanities" },
+            { "value": "social_sciences", "text": "Faculty of Social Sciences & Business" },
+            { "value": "medicine",        "text": "Faculty of Medicine & Health Sciences" },
+            { "value": "law",             "text": "Faculty of Law" },
+            { "value": "architecture",    "text": "Faculty of Architecture & Design" }
+          ]
+        },
+        {
+          "type": "dropdown",
+          "name": "programme_science",
+          "visibleIf": "{faculty} = 'science'",
+          "title": "Programme",
+          "choices": [
+            { "value": "computer_science",     "text": "Computer Science" },
+            { "value": "mathematics",          "text": "Mathematics" },
+            { "value": "physics",              "text": "Physics" },
+            { "value": "chemistry",            "text": "Chemistry" },
+            { "value": "biology",              "text": "Biology & Life Sciences" },
+            { "value": "data_science",         "text": "Data Science" },
+            { "value": "statistics",           "text": "Statistics" },
+            { "value": "environmental_science","text": "Environmental Science" }
+          ]
+        },
+        {
+          "type": "dropdown",
+          "name": "programme_engineering",
+          "visibleIf": "{faculty} = 'engineering'",
+          "title": "Programme",
+          "choices": [
+            { "value": "software_engineering",  "text": "Software Engineering" },
+            { "value": "civil_engineering",     "text": "Civil Engineering" },
+            { "value": "mechanical_engineering","text": "Mechanical Engineering" },
+            { "value": "electrical_engineering","text": "Electrical Engineering" },
+            { "value": "chemical_engineering",  "text": "Chemical Engineering" },
+            { "value": "biomedical_engineering","text": "Biomedical Engineering" },
+            { "value": "computer_engineering",  "text": "Computer Engineering" },
+            { "value": "industrial_engineering","text": "Industrial Engineering" }
+          ]
+        },
+        {
+          "type": "dropdown",
+          "name": "programme_arts",
+          "visibleIf": "{faculty} = 'arts'",
+          "title": "Programme",
+          "choices": [
+            { "value": "history",         "text": "History" },
+            { "value": "philosophy",      "text": "Philosophy" },
+            { "value": "literature",      "text": "Literature & Linguistics" },
+            { "value": "fine_arts",       "text": "Fine Arts" },
+            { "value": "music",           "text": "Music" },
+            { "value": "media_studies",   "text": "Media & Communication Studies" },
+            { "value": "languages",       "text": "Modern Languages" },
+            { "value": "cultural_studies","text": "Cultural Studies" }
+          ]
+        },
+        {
+          "type": "dropdown",
+          "name": "programme_social",
+          "visibleIf": "{faculty} = 'social_sciences'",
+          "title": "Programme",
+          "choices": [
+            { "value": "economics",           "text": "Economics" },
+            { "value": "business_admin",      "text": "Business Administration" },
+            { "value": "psychology",          "text": "Psychology" },
+            { "value": "sociology",           "text": "Sociology" },
+            { "value": "political_science",   "text": "Political Science" },
+            { "value": "marketing",           "text": "Marketing" },
+            { "value": "international_relations","text": "International Relations" },
+            { "value": "public_administration","text": "Public Administration" }
+          ]
+        },
+        {
+          "type": "dropdown",
+          "name": "programme_medicine",
+          "visibleIf": "{faculty} = 'medicine'",
+          "title": "Programme",
+          "choices": [
+            { "value": "medicine",      "text": "Medicine (MD)" },
+            { "value": "nursing",       "text": "Nursing" },
+            { "value": "pharmacy",      "text": "Pharmacy" },
+            { "value": "public_health", "text": "Public Health" },
+            { "value": "dentistry",     "text": "Dentistry" },
+            { "value": "physiotherapy", "text": "Physiotherapy" },
+            { "value": "nutrition",     "text": "Nutrition & Dietetics" }
+          ]
+        },
+        {
+          "type": "dropdown",
+          "name": "programme_law",
+          "visibleIf": "{faculty} = 'law'",
+          "title": "Programme",
+          "choices": [
+            { "value": "law",               "text": "Law (LLB / LLM)" },
+            { "value": "international_law", "text": "International Law" },
+            { "value": "commercial_law",    "text": "Commercial Law" },
+            { "value": "human_rights_law",  "text": "Human Rights Law" }
+          ]
+        },
+        {
+          "type": "dropdown",
+          "name": "programme_architecture",
+          "visibleIf": "{faculty} = 'architecture'",
+          "title": "Programme",
+          "choices": [
+            { "value": "architecture",    "text": "Architecture" },
+            { "value": "urban_planning",  "text": "Urban Planning" },
+            { "value": "interior_design", "text": "Interior Design" },
+            { "value": "landscape",       "text": "Landscape Architecture" }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "degree_level",
+          "title": "Degree level",
+          "isRequired": true,
+          "choices": [
+            { "value": "bachelor", "text": "Bachelor's" },
+            { "value": "master",   "text": "Master's" },
+            { "value": "phd",      "text": "PhD / Doctorate" },
+            { "value": "exchange", "text": "Exchange / Erasmus student" }
+          ]
+        },
+        {
+          "type": "dropdown",
+          "name": "graduation_year",
+          "visibleIf": "{status} = 'graduate'",
+          "title": "Year of graduation",
+          "choices": [
+            { "value": 2015, "text": "2015" },
+            { "value": 2016, "text": "2016" },
+            { "value": 2017, "text": "2017" },
+            { "value": 2018, "text": "2018" },
+            { "value": 2019, "text": "2019" },
+            { "value": 2020, "text": "2020" },
+            { "value": 2021, "text": "2021" },
+            { "value": 2022, "text": "2022" },
+            { "value": 2023, "text": "2023" },
+            { "value": 2024, "text": "2024" },
+            { "value": 2025, "text": "2025" }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "current_year",
+          "visibleIf": "{status} = 'current_student'",
+          "title": "Current year of study",
+          "choices": [
+            { "value": "year_1",       "text": "1st year" },
+            { "value": "year_2",       "text": "2nd year" },
+            { "value": "year_3",       "text": "3rd year" },
+            { "value": "year_4",       "text": "4th year" },
+            { "value": "year_5_plus",  "text": "5th year or above" },
+            { "value": "postgrad_year","text": "Postgraduate year" }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "how_did_you_hear",
+          "title": "How did you hear about the community?",
+          "choices": [
+            { "value": "classmate",      "text": "Through a classmate or colleague" },
+            { "value": "professor",      "text": "Professor or staff recommendation" },
+            { "value": "uni_email",      "text": "University notice board or email" },
+            { "value": "social_media",   "text": "Social media" },
+            { "value": "event",          "text": "University fair or community event" },
+            { "value": "other",          "text": "Other" }
+          ]
         }
       ]
     }

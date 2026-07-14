@@ -1,6 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
 import type { PostViewData } from "~/contracts/posts";
+import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 
 /**
  * Themed presentation for a single post (`/posts/[id]`).
@@ -49,7 +50,7 @@ export const PostView = component$<{ post: PostViewData | null }>(({ post }) => 
           {p.featuredImageUrl && (
             <div class="lg:hidden mb-8">
               <div
-                class="rounded-2xl overflow-hidden mx-auto"
+                class="overflow-hidden mx-auto"
                 style={{ aspectRatio: "1/1", width: "min(100%, 280px)" }}
               >
                 <img
@@ -81,7 +82,7 @@ export const PostView = component$<{ post: PostViewData | null }>(({ post }) => 
         {/* Right sidebar: image + author (desktop only) */}
         <aside class="hidden lg:flex flex-col gap-6 mt-1">
           {p.featuredImageUrl && (
-            <div class="rounded-2xl overflow-hidden shadow-sm">
+            <div class="overflow-hidden border border-border">
               <img
                 src={p.featuredImageUrl}
                 alt={p.title}
@@ -109,35 +110,17 @@ export const PostView = component$<{ post: PostViewData | null }>(({ post }) => 
           </h2>
           <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {p.relatedPosts.map((related) => (
-              <Link
+              <ContentCard
                 key={related.id}
+                title={related.title}
+                image={related.featuredImageUrl}
+                date={new Date(related.createdAt).toLocaleDateString("en-GB", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
                 href={`/posts/${related.id}`}
-                class="group block rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-md transition-shadow"
-              >
-                {related.featuredImageUrl ? (
-                  <div class="overflow-hidden" style={{ aspectRatio: "1/1" }}>
-                    <img
-                      src={related.featuredImageUrl}
-                      alt={related.title}
-                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                ) : (
-                  <div class="bg-primary" style={{ aspectRatio: "1/1" }} />
-                )}
-                <div class="p-4">
-                  <time class="text-xs text-text-muted block mb-1">
-                    {new Date(related.createdAt).toLocaleDateString("en-GB", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </time>
-                  <h3 class="font-semibold text-text-heading group-hover:text-primary transition-colors line-clamp-2">
-                    {related.title}
-                  </h3>
-                </div>
-              </Link>
+              />
             ))}
           </div>
         </section>
@@ -152,7 +135,7 @@ const AuthorCard = component$<{
   avatarUrl: string | null;
   userId: string;
 }>((props) => (
-  <div class="bg-primary-dark rounded-2xl p-5 text-white">
+  <div class="bg-primary-dark p-5 text-white">
     <h3 class="text-lg font-bold mb-3">Author</h3>
     <div class="flex items-center gap-3 mb-4">
       {props.avatarUrl ? (
@@ -161,10 +144,10 @@ const AuthorCard = component$<{
           alt=""
           width={44}
           height={44}
-          class="w-11 h-11 rounded-full object-cover border-2 border-white/20"
+          class="w-11 h-11 object-cover border-2 border-white/20"
         />
       ) : (
-        <span class="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center text-white font-semibold text-lg">
+        <span class="w-11 h-11 bg-white/20 flex items-center justify-center text-white font-semibold text-lg">
           {props.displayName.charAt(0).toUpperCase()}
         </span>
       )}

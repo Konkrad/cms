@@ -50,8 +50,9 @@ export const Navigation = component$<{
           <div class="flex">
             <Link
               href="/"
-              class="flex items-center px-3 text-xl font-bold text-primary hover:text-primary"
+              class="flex items-center gap-2 px-3 text-xl font-bold text-primary hover:text-primary"
             >
+              <img src="/static/logo.svg" alt="" width="32" height="32" class="shrink-0" />
               Community Hub
             </Link>
           </div>

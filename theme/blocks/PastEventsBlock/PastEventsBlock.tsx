@@ -3,7 +3,7 @@ import { server$ } from "@qwik.dev/router";
 import type { BlockDefinition } from "~/db/schema";
 import type { Event } from "~/db/schemas/events";
 import { eventsService } from "~/services/events.service";
-import { ListCard } from "../ListCard/ListCard";
+import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 import { publicImageUrlFromKey } from "~/utils/images";
 
 export const definition: BlockDefinition = {
@@ -78,28 +78,30 @@ export default component$(() => {
       ) : events.value.length === 0 ? (
         <p class="text-text-muted text-center py-8">No past events found.</p>
       ) : (
-        <div class="flex flex-col gap-6">
-          {events.value.map((event) => {
-            const location =
-              event.city || event.address || (event.locationType === "online" ? "Online" : "TBA");
-            return (
-              <ListCard
-                key={event.id}
-                title={event.title}
-                image={event.image1}
-                date={formatEventDate(event.startDate, event.endDate)}
-                topRight={location}
-                description={event.body?.replace(/<[^>]+>/g, "").substring(0, 180)}
-                readMoreHref={`/events/${event.id}`}
-                readMoreLabel="View Details"
-              />
-            );
-          })}
+        <>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {events.value.map((event) => {
+              const location =
+                event.city || event.address || (event.locationType === "online" ? "Online" : "TBA");
+              return (
+                <ContentCard
+                  key={event.id}
+                  title={event.title}
+                  image={event.image1}
+                  date={formatEventDate(event.startDate, event.endDate)}
+                  meta={location}
+                  description={event.body?.replace(/<[^>]+>/g, "").substring(0, 180)}
+                  href={`/events/${event.id}`}
+                  label="View Details"
+                />
+              );
+            })}
+          </div>
 
           {nextCursor.value && (
-            <div class="flex justify-center pt-2">
+            <div class="flex justify-center pt-6">
               <button
-                class="px-6 py-2 rounded-lg border border-border text-sm font-medium text-text-secondary bg-bg-card hover:bg-bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                class="px-6 py-2 border border-border text-sm font-medium text-text-secondary bg-bg-card hover:bg-bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick$={loadMore}
                 disabled={isLoadingMore.value}
               >
@@ -107,7 +109,7 @@ export default component$(() => {
               </button>
             </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );

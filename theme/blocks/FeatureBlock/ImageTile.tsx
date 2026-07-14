@@ -38,7 +38,7 @@ export const ImageTile = component$<ImageTileProps>((props) => {
 
       {props.overlayText && (
         <div class="absolute bottom-8 left-8 right-8">
-          <p class="font-['Rubik',sans-serif] font-normal text-[19px] leading-[1.406] text-white">
+          <p class="font-normal text-[19px] leading-[1.406] text-white">
             {props.overlayText}
           </p>
         </div>

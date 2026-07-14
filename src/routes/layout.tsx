@@ -127,7 +127,7 @@ export default component$(() => {
   const navUser: NavUser = (() => {
     const u = user.value as any;
     if (!u || typeof u !== "object") return null;
-    const isAdmin = u.role === "admin" || u.role === "moderator";
+    const isAdmin = u.role === "admin";
     const displayName = u.name ? formatUser(u, true).displayName : u.email ?? u.id ?? "User";
     return {
       id: u.id,

@@ -41,7 +41,7 @@ const eventSchema = z.object({
 
 export const useCreateEvent = routeAction$(async (data, event) => {
   const user = await getCurrentUserData(event as any);
-  if (!user || (user.role !== "admin" && user.role !== "moderator")) {
+  if (!user || user.role !== "admin") {
     return { success: false, error: "Unauthorized" };
   }
 

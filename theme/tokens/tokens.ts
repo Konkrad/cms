@@ -5,11 +5,11 @@
  */
 
 export const colors = {
-  primary: "#034EA2",
-  "primary-light": "#0a6dd6",
-  "primary-dark": "#031241",
-  accent: "#96C247",
-  "accent-dark": "#7da636",
+  primary: "#111827",
+  "primary-light": "#1f2937",
+  "primary-dark": "#030712",
+  accent: "#7c3aed",
+  "accent-dark": "#6d28d9",
 
   bg: "#f9fafb",
   "bg-card": "#ffffff",
@@ -35,14 +35,14 @@ export const colors = {
   danger: "#dc2626",
   "danger-dark": "#b91c1c",
 
-  "focus-ring": "#034EA2",
+  "focus-ring": "#7c3aed",
 } as const;
 
 export const radius = {
-  sm: "0.375rem",
-  md: "0.5rem",
-  lg: "0.75rem",
-  xl: "1rem",
+  sm: "0.125rem",
+  md: "0.125rem",
+  lg: "0",
+  xl: "0",
 } as const;
 
 export const shadows = {

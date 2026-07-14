@@ -10,19 +10,19 @@ interface StatTileProps {
 export const StatTile = component$<StatTileProps>((props) => {
   return (
     <div
-      class="bg-[#034ea2] rounded-[25px] p-8 flex flex-col justify-between h-full"
+      class="bg-bg-card border border-border p-8 flex flex-col justify-between h-full"
       style={props.area ? { gridArea: props.area } : undefined}
     >
       <div>
-        <p class="font-['Rubik',sans-serif] font-normal text-[50px] md:text-[30px] leading-[1.406] text-white mb-2">
+        <p class="font-bold text-[50px] md:text-[40px] leading-none text-primary mb-2">
           {props.number}
         </p>
-        <h3 class="font-['Rubik',sans-serif] font-semibold text-[30px] leading-[1.406] text-white mb-4">
+        <h3 class="font-semibold text-[24px] leading-snug text-text-heading mb-4">
           {props.title}
         </h3>
       </div>
       {props.description && (
-        <p class="font-['Rubik',sans-serif] font-normal text-[18px] leading-[1.406] text-white mt-auto">
+        <p class="text-[16px] leading-relaxed text-text-secondary mt-auto">
           {props.description}
         </p>
       )}

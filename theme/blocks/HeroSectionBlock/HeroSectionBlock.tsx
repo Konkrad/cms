@@ -30,9 +30,9 @@ const fetchLatestGlobalPosts = server$(async () => {
 });
 
 const SLIDE_GRADIENTS = [
-  "linear-gradient(135deg, #034EA2 0%, #0a6dd6 50%, #3b8de0 100%)",
-  "linear-gradient(135deg, #031241 0%, #08307a 50%, #134fb3 100%)",
-  "linear-gradient(135deg, #1a5c2e 0%, #3a8a4f 50%, #96C247 100%)",
+  "linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%)",
+  "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%)",
+  "linear-gradient(135deg, var(--color-accent-dark) 0%, var(--color-accent) 100%)",
 ];
 
 function stripHtml(html: string): string {
@@ -144,7 +144,6 @@ export default component$(() => {
               </div>
             )}
           </div>
-          <div class="hero-section-desktop-image-bg" />
         </div>
 
         <div class="hero-section-desktop-content">

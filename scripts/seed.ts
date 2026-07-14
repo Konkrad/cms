@@ -211,7 +211,7 @@ const ADMIN_EMAIL = "admin@example.com";
 
 const existingUsers = db.select().from(schema.users).all();
 
-let adminUser = existingUsers.find((u) => u.role === "admin" && u.name === "Konrad");
+let adminUser = existingUsers.find((u) => u.role === "admin" && u.name === "Admin");
 let hostUser = existingUsers.find((u) => u.name === "Host");
 
 if (!adminUser) {
@@ -222,10 +222,10 @@ if (!adminUser) {
 
   const id = uuid();
   db.insert(schema.users)
-    .values({ id, name: "Konrad", familyName: "Admin", role: "admin", loginId, createdAt: now(), updatedAt: now() })
+    .values({ id, name: "Admin", familyName: "User", role: "admin", loginId, createdAt: now(), updatedAt: now() })
     .run();
   adminUser = db.select().from(schema.users).all().find((u) => u.id === id)!;
-  console.log(`  created admin user 'Konrad' (${ADMIN_EMAIL})`);
+  console.log(`  created admin user 'Admin' (${ADMIN_EMAIL})`);
 }
 
 if (!hostUser) {
@@ -241,11 +241,20 @@ if (!hostUser) {
   console.log("  created host user 'Host' (host@example.com)");
 }
 
+const TEST_USER_EMAILS = new Set(
+  Array.from({ length: 10 }, (_, i) => `user${i + 1}@example.com`),
+);
+const testLoginIds = new Set(
+  db.select().from(schema.logins).all()
+    .filter((l) => TEST_USER_EMAILS.has(l.email))
+    .map((l) => l.id),
+);
+
 let testUsers = db
   .select()
   .from(schema.users)
   .all()
-  .filter((u) => u.role === "user" && u.familyName === "Test");
+  .filter((u) => u.role === "user" && testLoginIds.has(u.loginId));
 
 // Ensure existing test users have the consent fields needed to reach the survey phase.
 for (const u of testUsers) {
@@ -258,80 +267,6 @@ for (const u of testUsers) {
   }
 }
 
-const qaCheckoutUserDefs = [
-  { name: "Marta", familyName: "Keller", email: "qa.marta@example.com" },
-  { name: "Jonas", familyName: "Richter", email: "qa.jonas@example.com" },
-  { name: "Leonie", familyName: "Baumann", email: "qa.leonie@example.com" },
-  { name: "Tariq", familyName: "Hassan", email: "qa.tariq@example.com" },
-] as const;
-
-const qaCheckoutUsers: Array<typeof schema.users.$inferSelect> = [];
-
-for (const qaUser of qaCheckoutUserDefs) {
-  const existingLogin = db
-    .select()
-    .from(schema.logins)
-    .all()
-    .find((login) => login.email === qaUser.email);
-
-  if (!existingLogin) {
-    const loginId = uuid();
-    db.insert(schema.logins)
-      .values({ id: loginId, email: qaUser.email, expiresAt: "2099-01-01T00:00:00.000Z" })
-      .run();
-
-    db.insert(schema.users)
-      .values({
-        id: uuid(),
-        name: qaUser.name,
-        familyName: qaUser.familyName,
-        role: "user",
-        loginId,
-        createdAt: now(),
-        updatedAt: now(),
-      })
-      .run();
-    continue;
-  }
-
-  const existingUser = db
-    .select()
-    .from(schema.users)
-    .all()
-    .find((user) => user.loginId === existingLogin.id);
-
-  if (!existingUser) {
-    db.insert(schema.users)
-      .values({
-        id: uuid(),
-        name: qaUser.name,
-        familyName: qaUser.familyName,
-        role: "user",
-        loginId: existingLogin.id,
-        createdAt: now(),
-        updatedAt: now(),
-      })
-      .run();
-  }
-}
-
-for (const qaUser of qaCheckoutUserDefs) {
-  const login = db
-    .select()
-    .from(schema.logins)
-    .all()
-    .find((l) => l.email === qaUser.email);
-  if (!login) continue;
-  const user = db
-    .select()
-    .from(schema.users)
-    .all()
-    .find((u) => u.loginId === login.id);
-  if (user) {
-    qaCheckoutUsers.push(user);
-  }
-}
-
 if (testUsers.length < 10) {
   for (let i = testUsers.length; i < 10; i++) {
     const loginId = uuid();
@@ -339,11 +274,12 @@ if (testUsers.length < 10) {
     db.insert(schema.logins)
       .values({ id: loginId, email, expiresAt: "2099-01-01T00:00:00.000Z" })
       .run();
+    testLoginIds.add(loginId);
     db.insert(schema.users)
       .values({
         id: uuid(),
-        name: `User${i + 1}`,
-        familyName: "Test",
+        name: faker.person.firstName(),
+        familyName: faker.person.lastName(),
         role: "user",
         loginId,
         consent: { lastProfileUpdate: now(), locationVerification: now() },
@@ -356,14 +292,13 @@ if (testUsers.length < 10) {
     .select()
     .from(schema.users)
     .all()
-    .filter((u) => u.role === "user" && u.familyName === "Test");
+    .filter((u) => u.role === "user" && testLoginIds.has(u.loginId));
   console.log(`  ensured 10 test users exist (now ${testUsers.length})`);
 }
 
 console.log(
   `Users: admin=${adminUser.name}, host=${hostUser.name}, test=${testUsers.length}`,
 );
-console.log(`  checkout QA users ensured (${qaCheckoutUsers.length})`);
 
 // ─── 4b. Bulk fake users (1000 users with European locations) ────────────────
 
@@ -372,7 +307,6 @@ const BULK_USER_TARGET = 1000;
 const knownSpecialEmails = new Set([
   ADMIN_EMAIL,
   "host@example.com",
-  ...qaCheckoutUserDefs.map((q) => q.email),
 ]);
 
 const allBulkUsers = db
@@ -382,10 +316,7 @@ const allBulkUsers = db
   .filter(
     (u) =>
       u.role === "user" &&
-      u.familyName !== "Test" &&
-      !qaCheckoutUserDefs.some(
-        (q) => q.name === u.name && q.familyName === u.familyName,
-      ),
+      !testLoginIds.has(u.loginId),
   );
 
 // All users missing a city (includes admin, host, test, QA users)
@@ -468,11 +399,11 @@ if (neededNew > 0 || bulkUsersWithoutCity.length > 0) {
 // ─── 5. Groups ───────────────────────────────────────────────────────────────
 
 const groupDefs = [
-  { name: "Berlin", slug: "berlin", latitude: "52.5200", longitude: "13.4050" },
-  { name: "Munich", slug: "munich", latitude: "48.1351", longitude: "11.5820" },
-  { name: "Hamburg", slug: "hamburg", latitude: "53.5511", longitude: "9.9937" },
-  { name: "Frankfurt", slug: "frankfurt", latitude: "50.1109", longitude: "8.6821" },
-  { name: "Cologne", slug: "cologne", latitude: "50.9333", longitude: "6.9500" },
+  { name: "North Chapter",   slug: "berlin",    latitude: "59.3293", longitude: "18.0686" }, // Stockholm
+  { name: "South Chapter",   slug: "munich",    latitude: "41.3851", longitude: "2.1734"  }, // Barcelona
+  { name: "Coast Chapter",   slug: "hamburg",   latitude: "51.5074", longitude: "-0.1278" }, // London
+  { name: "Central Chapter", slug: "frankfurt", latitude: "48.2082", longitude: "16.3738" }, // Vienna
+  { name: "West Chapter",    slug: "cologne",   latitude: "48.8566", longitude: "2.3522"  }, // Paris
 ];
 
 const existingGroups = db.select().from(schema.groups).all();
@@ -539,35 +470,72 @@ for (const m of membershipPlan) {
 }
 console.log("  memberships seeded");
 
-// ─── 7. Representatives ──────────────────────────────────────────────────────
-
-const repPlan: Array<{ userId: string; groupSlug: string }> = [
-  { userId: testUsers[0]?.id, groupSlug: "munich" },
-  { userId: testUsers[2]?.id, groupSlug: "munich" },
-  { userId: testUsers[6]?.id, groupSlug: "hamburg" },
-  { userId: testUsers[4]?.id, groupSlug: "frankfurt" },
-  { userId: testUsers[8]?.id, groupSlug: "cologne" },
-  { userId: hostUser.id, groupSlug: "hamburg" },
-].filter((r) => r.userId);
-
-const existingReps = db.select().from(schema.groupRepresentatives).all();
-
-for (const r of repPlan) {
-  const already = existingReps.some(
-    (er) => er.userId === r.userId && er.groupId === groupIds[r.groupSlug],
+// Assign bulk faker users to groups (1–2 groups each, random)
+{
+  const assignedSet = new Set(
+    db.select().from(schema.groupMemberships).all()
+      .map((m) => `${m.userId}::${m.groupId}`),
   );
-  if (already) continue;
-  db.insert(schema.groupRepresentatives)
-    .values({
-      id: uuid(),
-      userId: r.userId,
-      groupId: groupIds[r.groupSlug],
-      promotedBy: adminUser.id,
-      promotedAt: now(),
-    })
-    .run();
+  const groupSlugList = Object.keys(groupIds);
+  const bulkUserIds = db.select().from(schema.users).all()
+    .filter(
+      (u) =>
+        u.id !== adminUser.id &&
+        u.id !== hostUser.id &&
+        !testLoginIds.has(u.loginId),
+    )
+    .map((u) => u.id);
+
+  let bulkMembershipCount = 0;
+  for (const userId of bulkUserIds) {
+    const shuffled = [...groupSlugList].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < 1; i++) {
+      const groupId = groupIds[shuffled[i]];
+      const key = `${userId}::${groupId}`;
+      if (assignedSet.has(key)) continue;
+      assignedSet.add(key);
+      db.insert(schema.groupMemberships)
+        .values({
+          id: uuid(),
+          userId,
+          groupId,
+          joinedAt: faker.date.between({ from: "2020-01-01", to: new Date() }).toISOString(),
+        })
+        .run();
+      bulkMembershipCount++;
+    }
+  }
+  console.log(`  bulk user memberships seeded (${bulkMembershipCount} across ${bulkUserIds.length} users)`);
 }
-console.log("  representatives seeded");
+
+// ─── 7. Representatives ──────────────────────────────────────────────────────
+// Ensure every group has at least one rep. Pick one from the group's bulk members.
+{
+  const existingReps = db.select().from(schema.groupRepresentatives).all();
+  const groupsWithRep = new Set(existingReps.map((r) => r.groupId));
+  const allMemberships = db.select().from(schema.groupMemberships).all();
+
+  for (const [, groupId] of Object.entries(groupIds)) {
+    if (groupsWithRep.has(groupId)) continue;
+    // Pick a random member who is not admin/host
+    const candidates = allMemberships.filter(
+      (m) => m.groupId === groupId && m.userId !== adminUser.id && m.userId !== hostUser.id,
+    );
+    if (candidates.length === 0) continue;
+    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    db.insert(schema.groupRepresentatives)
+      .values({
+        id: uuid(),
+        userId: pick.userId,
+        groupId,
+        promotedBy: adminUser.id,
+        promotedAt: now(),
+      })
+      .run();
+    groupsWithRep.add(groupId);
+  }
+  console.log("  representatives seeded");
+}
 
 // ─── 8. Posts ────────────────────────────────────────────────────────────────
 
@@ -579,92 +547,92 @@ const postDefs: Array<{
   authorIdx: number;
 }> = [
   {
-    title: "Welcome to the Berlin Group!",
-    body: "<p>Hey everyone, great to have you here. This is the official group for all Berlin-based members.</p>",
+    title: "Welcome to the North Chapter!",
+    body: "<p>Hey everyone, great to have you here. This is the official group for all North Chapter members. Introduce yourself and say hello!</p>",
     groupSlug: "berlin",
     visibility: "global",
     authorIdx: 0,
   },
   {
-    title: "Berlin Meetup Recap – Spring Edition",
-    body: "<p>What a fantastic evening! We had over 30 people join us at the Kulturbrauerei.</p>",
+    title: "Spring Meetup Recap",
+    body: "<p>What a fantastic evening! We had over 30 people join us for our spring gathering. Thanks to everyone who came out — see you at the next one.</p>",
     groupSlug: "berlin",
     visibility: "group-only",
     authorIdx: 0,
   },
   {
     title: "New Members – Introduce Yourself!",
-    body: "<p>We've had a wave of new sign-ups recently. Drop a comment below and tell the group a bit about yourself.</p>",
+    body: "<p>We've had a wave of new sign-ups recently. Drop a reply below and tell the group a bit about yourself — where you're based, what you do, and what you're hoping to get from the community.</p>",
     groupSlug: "berlin",
     visibility: "group-only",
     authorIdx: 5,
   },
   {
-    title: "Munich Group – First Update",
-    body: "<p>Welcome to Munich! We're just getting started here but we already have some exciting events planned.</p>",
+    title: "South Chapter Is Here",
+    body: "<p>Welcome to the South Chapter! We're just getting started but already have some exciting events in the pipeline. Watch this space.</p>",
     groupSlug: "munich",
     visibility: "global",
     authorIdx: 2,
   },
   {
-    title: "Oktoberfest Community Meetup Planning",
-    body: "<p>We're planning a group outing around Oktoberfest season. Reply if you're interested!</p>",
+    title: "Summer Networking Evening – Interested?",
+    body: "<p>We're thinking of organising a casual networking evening this summer. Reply below if you'd be up for it and we'll lock in a date.</p>",
     groupSlug: "munich",
     visibility: "group-only",
     authorIdx: 7,
   },
   {
-    title: "Hamburg Is Live!",
-    body: "<p>The Hamburg group is now officially open. Whether you're a local or just visiting, you're welcome here.</p>",
+    title: "Coast Chapter – Now Open",
+    body: "<p>The Coast Chapter is officially open. Whether you're a long-time member or just joined, you're welcome here. Looking forward to building something great together.</p>",
     groupSlug: "hamburg",
     visibility: "global",
     authorIdx: 6,
   },
   {
-    title: "Harbour Walk – Members Only Event",
-    body: "<p>We're organising a guided walk along the harbour on Saturday morning. Details in Events.</p>",
+    title: "Morning Walk – Members Only",
+    body: "<p>We're organising a guided walk along the waterfront on Saturday morning. Limited spots — reply to join. Details will be shared with confirmed attendees.</p>",
     groupSlug: "hamburg",
     visibility: "group-only",
     authorIdx: 3,
   },
   {
-    title: "Frankfurt Group Launch",
-    body: "<p>Frankfurt is now on the map! We're excited to build a community here.</p>",
+    title: "Central Chapter Launches",
+    body: "<p>Central Chapter is now live! We're excited to build a local community here. If you're in the area, join the group and say hello.</p>",
     groupSlug: "frankfurt",
     visibility: "global",
     authorIdx: 4,
   },
   {
-    title: "Finance & Tech Networking Night",
-    body: "<p>We're hosting a networking evening for members in finance and tech. Bring your business cards!</p>",
+    title: "Networking Night – Save the Date",
+    body: "<p>We're hosting a networking evening for members next month. More details to follow — mark your calendars and spread the word.</p>",
     groupSlug: "frankfurt",
     visibility: "group-only",
     authorIdx: 8,
   },
   {
-    title: "Cologne Group – Welcome Post",
-    body: "<p>We're thrilled to open the Cologne group. A space for everyone in the Cologne area.</p>",
+    title: "West Chapter – Welcome",
+    body: "<p>We're thrilled to open the West Chapter. A space for local members to connect, share, and organise events together.</p>",
     groupSlug: "cologne",
     visibility: "global",
     authorIdx: -2,
   },
   {
-    title: "Carnival Pre-Party – Members Only",
-    body: "<p>Cologne Carnival is around the corner! We're organising a private pre-party. Limited spots.</p>",
+    title: "Members-Only Gathering – Limited Spots",
+    body: "<p>We're organising a private members-only get-together. Spots are limited so reply early to secure yours. Location shared with confirmed attendees.</p>",
     groupSlug: "cologne",
     visibility: "group-only",
     authorIdx: 3,
   },
   {
-    title: "Platform Announcement: New Features Live",
-    body: "<p>We've just rolled out new features including improved group pages, better event management, and a refreshed profile page.</p>",
+    title: "New Features Live on the Platform",
+    body: "<p>We've just rolled out a set of improvements including updated group pages, better event management, and a cleaner profile experience. Let us know what you think.</p>",
     groupSlug: null,
     visibility: "global",
     authorIdx: -1,
   },
   {
-    title: "Community Guidelines Update",
-    body: "<p>Please review our updated community guidelines. We've added clearer rules around respectful communication.</p>",
+    title: "Community Guidelines — Updated",
+    body: "<p>We've refreshed our community guidelines to keep things clear and respectful for everyone. Please take a moment to read through them.</p>",
     groupSlug: null,
     visibility: "global",
     authorIdx: -1,
@@ -698,6 +666,42 @@ postDefs.forEach((p, i) => {
 });
 console.log(`  posts seeded (${postDefs.length})`);
 
+// Add faker-generated posts for each group (3 per group)
+{
+  const groupSlugsForPosts = Object.entries(groupIds); // [slug, id][]
+  const allGroupPosts = db.select().from(schema.posts).all();
+  const fakerPostTopics = [
+    () => ({ title: faker.company.catchPhrase(), body: `<p>${faker.lorem.paragraph()}</p><p>${faker.lorem.paragraph()}</p>` }),
+    () => ({ title: `Upcoming: ${faker.lorem.words(3)}`, body: `<p>${faker.lorem.paragraph()}</p><p>${faker.lorem.paragraph()}</p>` }),
+    () => ({ title: `Member spotlight: ${faker.person.firstName()} ${faker.person.lastName()}`, body: `<p>${faker.lorem.paragraph()}</p><p>${faker.lorem.paragraph()}</p>` }),
+    () => ({ title: `Community update — ${faker.date.month()}`, body: `<p>${faker.lorem.paragraph()}</p>` }),
+    () => ({ title: faker.lorem.sentence({ min: 4, max: 7 }).replace(/\.$/, ""), body: `<p>${faker.lorem.paragraph()}</p><p>${faker.lorem.paragraph()}</p>` }),
+  ];
+
+  for (const [, groupId] of groupSlugsForPosts) {
+    const existingCount = allGroupPosts.filter((p) => p.groupId === groupId).length;
+    const toAdd = Math.max(0, 3 - existingCount);
+    for (let i = 0; i < toAdd; i++) {
+      const { title, body } = fakerPostTopics[i % fakerPostTopics.length]();
+      const createdAt = faker.date.between({ from: "2023-01-01", to: new Date() }).toISOString();
+      db.insert(schema.posts)
+        .values({
+          id: uuid(),
+          title,
+          body,
+          editorState: null,
+          userId: adminUser.id,
+          groupId,
+          visibility: "global",
+          createdAt,
+          updatedAt: createdAt,
+        })
+        .run();
+    }
+  }
+  console.log(`  faker posts added per group`);
+}
+
 // ─── 9. Events ───────────────────────────────────────────────────────────────
 
 const eventDefs: Array<{
@@ -715,186 +719,214 @@ const eventDefs: Array<{
   longitude: string;
 }> = [
   {
-    title: "Berlin Summer Social",
-    body: "<p>Join us for our annual summer social in Görlitzer Park. Free, informal gathering for all Berlin members.</p>",
+    title: "Evening Social — Tickets Available",
+    body: "<p>A relaxed evening gathering for all community members. Light refreshments included. A great opportunity to meet people and enjoy the community in a social setting.</p>",
+    groupSlug: null,
+    visibility: "global",
+    authorIdx: -1,
+    startOffsetDays: 5,
+    durationHours: 3,
+    city: "Demo City",
+    country: "Exampleland",
+    address: "The Grand Hall, Demo City",
+    latitude: "52.5200",
+    longitude: "13.4050",
+  },
+  {
+    title: "North Chapter – Summer Social",
+    body: "<p>A free, informal gathering for all North Chapter members. Bring friends, enjoy the weather, and meet your local community.</p>",
     groupSlug: "berlin",
     visibility: "global",
     authorIdx: 0,
     startOffsetDays: 14,
     durationHours: 4,
-    city: "Berlin",
-    country: "Germany",
-    address: "Görlitzer Park, Wiener Str. 59, 10999 Berlin",
+    city: "Demo City",
+    country: "Exampleland",
+    address: "Central Park, Demo City",
     latitude: "52.4988",
     longitude: "13.4439",
   },
   {
-    title: "Berlin Tech Talk: AI in 2025",
-    body: "<p>A members-only evening of short talks on the latest in AI and machine learning.</p>",
+    title: "Tech Talk: AI & Automation",
+    body: "<p>A members-only evening of short talks on artificial intelligence and workflow automation. All skill levels welcome.</p>",
     groupSlug: "berlin",
     visibility: "group-only",
     authorIdx: 5,
     startOffsetDays: 21,
     durationHours: 3,
-    city: "Berlin",
-    country: "Germany",
-    address: "Factory Berlin, Rheinsberger Str. 76/77, 10115 Berlin",
+    city: "Demo City",
+    country: "Exampleland",
+    address: "Innovation Hub, Demo City",
     latitude: "52.5369",
     longitude: "13.4008",
   },
   {
-    title: "Berlin New Members Welcome Night",
-    body: "<p>Just joined? Come along to our relaxed welcome night at a local bar.</p>",
+    title: "New Members Welcome Night",
+    body: "<p>Just joined? Come along to our relaxed welcome evening and meet other members over drinks.</p>",
     groupSlug: "berlin",
     visibility: "group-only",
     authorIdx: -2,
     startOffsetDays: 7,
     durationHours: 2,
-    city: "Berlin",
-    country: "Germany",
-    address: "Prater Garten, Kastanienallee 7-9, 10435 Berlin",
+    city: "Demo City",
+    country: "Exampleland",
+    address: "The Local Bar, Demo City",
     latitude: "52.5396",
     longitude: "13.4119",
   },
   {
-    title: "Munich Community Hike – Englischer Garten",
-    body: "<p>Let's explore the Englischer Garten together! All fitness levels welcome.</p>",
+    title: "South Chapter – Community Hike",
+    body: "<p>A group hike through the local park. All fitness levels welcome — we'll keep a comfortable pace.</p>",
     groupSlug: "munich",
     visibility: "global",
     authorIdx: 2,
     startOffsetDays: 10,
     durationHours: 3,
-    city: "Munich",
-    country: "Germany",
-    address: "Chinesischer Turm, Englischer Garten, 80538 Munich",
+    city: "Southville",
+    country: "Exampleland",
+    address: "Riverside Trail, Southville",
     latitude: "48.1545",
     longitude: "11.5956",
   },
   {
-    title: "Munich Members Workshop: Public Speaking",
-    body: "<p>A practical workshop on public speaking for members. Space is limited to 15 people.</p>",
+    title: "Workshop: Public Speaking Skills",
+    body: "<p>A practical workshop on public speaking. Limited to 15 participants for a hands-on experience.</p>",
     groupSlug: "munich",
     visibility: "group-only",
     authorIdx: 7,
     startOffsetDays: 30,
     durationHours: 2,
-    city: "Munich",
-    country: "Germany",
-    address: "Impact Hub Munich, Gotzinger Str. 8, 81371 Munich",
+    city: "Southville",
+    country: "Exampleland",
+    address: "Community Centre, Southville",
     latitude: "48.1247",
     longitude: "11.5456",
   },
   {
-    title: "Hamburg Harbour Morning Walk",
-    body: "<p>Start your Saturday right with a 90-minute guided walk along the Hamburg harbour.</p>",
+    title: "Coast Chapter – Morning Walk",
+    body: "<p>Start your Saturday right with a 90-minute walk along the waterfront. Relaxed pace, great views.</p>",
     groupSlug: "hamburg",
     visibility: "group-only",
     authorIdx: 6,
     startOffsetDays: 6,
     durationHours: 2,
-    city: "Hamburg",
-    country: "Germany",
-    address: "Landungsbrücken, St. Pauli, 20359 Hamburg",
+    city: "Portstown",
+    country: "Exampleland",
+    address: "Harbourside, Portstown",
     latitude: "53.5446",
     longitude: "9.9685",
   },
   {
-    title: "Hamburg Open Meetup",
-    body: "<p>An open-door meetup for everyone in Hamburg. No agenda, just great people.</p>",
+    title: "Coast Chapter – Open Meetup",
+    body: "<p>An open-door meetup. No agenda, no pressure — just a chance to connect with fellow members.</p>",
     groupSlug: "hamburg",
     visibility: "global",
     authorIdx: 3,
     startOffsetDays: 18,
     durationHours: 3,
-    city: "Hamburg",
-    country: "Germany",
-    address: "Alsterpark, Am Alsterufer, 20354 Hamburg",
+    city: "Portstown",
+    country: "Exampleland",
+    address: "Waterfront Park, Portstown",
     latitude: "53.5668",
     longitude: "9.9961",
   },
   {
-    title: "Frankfurt Networking Breakfast",
-    body: "<p>An early morning networking session over coffee and pastries. Frankfurt members only.</p>",
+    title: "Networking Breakfast",
+    body: "<p>An early-morning networking session over coffee and pastries. Central Chapter members only.</p>",
     groupSlug: "frankfurt",
     visibility: "group-only",
     authorIdx: 4,
     startOffsetDays: 12,
     durationHours: 2,
-    city: "Frankfurt",
-    country: "Germany",
-    address: "MainTor, Neue Mainzer Str. 6-10, 60311 Frankfurt",
+    city: "Midtown",
+    country: "Exampleland",
+    address: "The Grand Café, Midtown",
     latitude: "50.1054",
     longitude: "8.6768",
   },
   {
-    title: "Frankfurt Startup Pitch Night",
-    body: "<p>Five members will pitch their startup ideas to the group. Attendees will vote for their favourite.</p>",
+    title: "Startup Pitch Night",
+    body: "<p>Five members pitch their ideas to the group. Attendees vote for their favourite. Light drinks provided.</p>",
     groupSlug: "frankfurt",
     visibility: "global",
     authorIdx: 8,
     startOffsetDays: 25,
     durationHours: 3,
-    city: "Frankfurt",
-    country: "Germany",
-    address: "Kap Europa, Osloer Str. 5, 60327 Frankfurt",
+    city: "Midtown",
+    country: "Exampleland",
+    address: "Coworking Space, Midtown",
     latitude: "50.1044",
     longitude: "8.6513",
   },
   {
-    title: "Cologne Members Dinner",
-    body: "<p>A sit-down dinner for Cologne members. Tickets cover a three-course meal.</p>",
+    title: "West Chapter Members Dinner",
+    body: "<p>A sit-down dinner for West Chapter members. Tickets include a three-course meal.</p>",
     groupSlug: "cologne",
     visibility: "group-only",
     authorIdx: -2,
     startOffsetDays: 9,
     durationHours: 3,
-    city: "Cologne",
-    country: "Germany",
-    address: "Brauhaus Früh am Dom, Am Hof 12-14, 50667 Cologne",
+    city: "Westford",
+    country: "Exampleland",
+    address: "The Riverside Restaurant, Westford",
     latitude: "50.9417",
     longitude: "6.9590",
   },
   {
-    title: "Cologne Public Meet & Greet",
-    body: "<p>Come and meet the Cologne community! Open event – bring a friend.</p>",
+    title: "West Chapter – Public Meet & Greet",
+    body: "<p>Come and meet the West Chapter! Open to everyone — bring a friend along.</p>",
     groupSlug: "cologne",
     visibility: "global",
     authorIdx: 3,
     startOffsetDays: 35,
     durationHours: 4,
-    city: "Cologne",
-    country: "Germany",
-    address: "Rheinpark, Sachsenbergstr., 50679 Cologne",
+    city: "Westford",
+    country: "Exampleland",
+    address: "Town Square, Westford",
     latitude: "50.9440",
     longitude: "6.9831",
   },
   {
-    title: "Checkout Matrix Demo Event",
-    body: "<p>Demo event for testing checkout with multiple inventory groups and paid product choices.</p>",
+    title: "Checkout Demo Event",
+    body: "<p>Demo event for testing checkout with multiple ticket types and paid product choices.</p>",
     groupSlug: "berlin",
     visibility: "global",
     authorIdx: -1,
     startOffsetDays: 20,
     durationHours: 3,
-    city: "Berlin",
-    country: "Germany",
-    address: "Betahaus, Rudi-Dutschke-Str. 23, 10969 Berlin",
+    city: "Demo City",
+    country: "Exampleland",
+    address: "Demo Venue, Demo City",
     latitude: "52.5060",
     longitude: "13.3903",
   },
   {
-    title: "Checkout QA Multi-Quantity & Participant Capacity",
-    body: "<p>Purpose-built QA event for manual checkout validation: quantity controls, participant assignment, and autocomplete by name.</p>",
-    groupSlug: "berlin",
+    title: "Photography Workshop — Sold Out",
+    body: "<p>A hands-on photography workshop. This event is fully booked — join the waitlist to be notified if spots open up.</p>",
+    groupSlug: null,
     visibility: "global",
     authorIdx: -1,
-    startOffsetDays: 16,
-    durationHours: 4,
-    city: "Berlin",
-    country: "Germany",
-    address: "MotionLab Berlin, Bouchestr. 12, 12435 Berlin",
-    latitude: "52.4899",
-    longitude: "13.4450",
+    startOffsetDays: 22,
+    durationHours: 3,
+    city: "Midtown",
+    country: "Exampleland",
+    address: "Studio Space, Midtown",
+    latitude: "50.1109",
+    longitude: "8.6821",
+  },
+  {
+    title: "Annual Community Conference",
+    body: "<p>Our biggest event of the year. Ticket sales will open 30 days before the event. Mark your calendar!</p>",
+    groupSlug: null,
+    visibility: "global",
+    authorIdx: -1,
+    startOffsetDays: 90,
+    durationHours: 8,
+    city: "Demo City",
+    country: "Exampleland",
+    address: "Convention Centre, Demo City",
+    latitude: "52.5200",
+    longitude: "13.4050",
   },
   {
     title: "All-Groups Online Town Hall",
@@ -905,24 +937,10 @@ const eventDefs: Array<{
     startOffsetDays: 45,
     durationHours: 1,
     city: "Online",
-    country: "Germany",
+    country: "Exampleland",
     address: "",
     latitude: "52.5200",
     longitude: "13.4050",
-  },
-  {
-    title: "Past Meetup (E2E)",
-    body: "<p>Past event used for E2E tests.</p>",
-    groupSlug: "berlin",
-    visibility: "global",
-    authorIdx: -1,
-    startOffsetDays: -30,
-    durationHours: 2,
-    city: "Berlin",
-    country: "Germany",
-    address: "Old Venue",
-    latitude: "52.5200",
-    longitude: "13.4000",
   },
 ];
 
@@ -957,19 +975,21 @@ console.log(`  events seeded (${eventDefs.length})`);
 // ─── 10. Participation statuses ──────────────────────────────────────────────
 
 const statusEvents = [
-  "Berlin Summer Social",
-  "Berlin Tech Talk: AI in 2025",
-  "Berlin New Members Welcome Night",
-  "Munich Community Hike – Englischer Garten",
-  "Munich Members Workshop: Public Speaking",
-  "Hamburg Harbour Morning Walk",
-  "Hamburg Open Meetup",
-  "Frankfurt Networking Breakfast",
-  "Frankfurt Startup Pitch Night",
-  "Cologne Members Dinner",
-  "Cologne Public Meet & Greet",
+  "Evening Social — Tickets Available",
+  "North Chapter – Summer Social",
+  "Tech Talk: AI & Automation",
+  "New Members Welcome Night",
+  "South Chapter – Community Hike",
+  "Workshop: Public Speaking Skills",
+  "Coast Chapter – Morning Walk",
+  "Coast Chapter – Open Meetup",
+  "Networking Breakfast",
+  "Startup Pitch Night",
+  "West Chapter Members Dinner",
+  "West Chapter – Public Meet & Greet",
+  "Photography Workshop — Sold Out",
+  "Annual Community Conference",
   "All-Groups Online Town Hall",
-  "Past Meetup (E2E)",
 ];
 
 const statuses = ["yes", "no", "maybe"] as const;
@@ -1071,7 +1091,19 @@ function seedInventory(opts: {
 }
 
 seedInventory({
-  eventTitle: "Berlin Summer Social",
+  eventTitle: "Evening Social — Tickets Available",
+  inventoryName: "Social Evening Tickets",
+  maxCapacity: 80,
+  salesStartOffset: -14,
+  salesEndOffset: 4,
+  products: [
+    { name: "General Admission", price: 15, maxQuantity: 60, soldQuantity: 14 },
+    { name: "VIP Entry (incl. welcome drink)", price: 30, maxQuantity: 20, soldQuantity: 5 },
+  ],
+});
+
+seedInventory({
+  eventTitle: "North Chapter – Summer Social",
   inventoryName: "General Admission",
   maxCapacity: 50,
   salesStartOffset: -7,
@@ -1082,7 +1114,7 @@ seedInventory({
 });
 
 seedInventory({
-  eventTitle: "Berlin Tech Talk: AI in 2025",
+  eventTitle: "Tech Talk: AI & Automation",
   inventoryName: "Seats",
   maxCapacity: 30,
   salesStartOffset: -5,
@@ -1094,7 +1126,7 @@ seedInventory({
 });
 
 seedInventory({
-  eventTitle: "Berlin New Members Welcome Night",
+  eventTitle: "New Members Welcome Night",
   inventoryName: "Welcome Night Spots",
   maxCapacity: 20,
   salesStartOffset: -3,
@@ -1105,7 +1137,7 @@ seedInventory({
 });
 
 seedInventory({
-  eventTitle: "Munich Community Hike – Englischer Garten",
+  eventTitle: "South Chapter – Community Hike",
   inventoryName: "Hike Spots",
   maxCapacity: 25,
   salesStartOffset: -7,
@@ -1116,7 +1148,7 @@ seedInventory({
 });
 
 seedInventory({
-  eventTitle: "Munich Members Workshop: Public Speaking",
+  eventTitle: "Workshop: Public Speaking Skills",
   inventoryName: "Workshop Seats",
   maxCapacity: 15,
   salesStartOffset: -10,
@@ -1127,7 +1159,7 @@ seedInventory({
 });
 
 seedInventory({
-  eventTitle: "Hamburg Harbour Morning Walk",
+  eventTitle: "Coast Chapter – Morning Walk",
   inventoryName: "Walk Spots",
   maxCapacity: 15,
   salesStartOffset: -5,
@@ -1138,7 +1170,7 @@ seedInventory({
 });
 
 seedInventory({
-  eventTitle: "Hamburg Open Meetup",
+  eventTitle: "Coast Chapter – Open Meetup",
   inventoryName: "Open Meetup Spots",
   maxCapacity: 40,
   salesStartOffset: -7,
@@ -1149,7 +1181,7 @@ seedInventory({
 });
 
 seedInventory({
-  eventTitle: "Frankfurt Networking Breakfast",
+  eventTitle: "Networking Breakfast",
   inventoryName: "Breakfast Seats",
   maxCapacity: 20,
   salesStartOffset: -5,
@@ -1160,7 +1192,7 @@ seedInventory({
 });
 
 seedInventory({
-  eventTitle: "Frankfurt Startup Pitch Night",
+  eventTitle: "Startup Pitch Night",
   inventoryName: "Pitch Night Tickets",
   maxCapacity: 60,
   salesStartOffset: -10,
@@ -1172,7 +1204,7 @@ seedInventory({
 });
 
 seedInventory({
-  eventTitle: "Cologne Members Dinner",
+  eventTitle: "West Chapter Members Dinner",
   inventoryName: "Dinner Tickets",
   maxCapacity: 20,
   salesStartOffset: -1,
@@ -1183,7 +1215,7 @@ seedInventory({
 });
 
 seedInventory({
-  eventTitle: "Cologne Public Meet & Greet",
+  eventTitle: "West Chapter – Public Meet & Greet",
   inventoryName: "Meet & Greet Spots",
   maxCapacity: 40,
   salesStartOffset: -5,
@@ -1194,7 +1226,31 @@ seedInventory({
 });
 
 seedInventory({
-  eventTitle: "Checkout Matrix Demo Event",
+  eventTitle: "Photography Workshop — Sold Out",
+  inventoryName: "Workshop Spots",
+  maxCapacity: 10,
+  salesStartOffset: -14,
+  salesEndOffset: 21,
+  products: [
+    { name: "Workshop Ticket", price: 20, maxQuantity: 10, soldQuantity: 10 },
+  ],
+});
+
+// Sales open 30 days from now — tests the "coming soon" CTA state
+seedInventory({
+  eventTitle: "Annual Community Conference",
+  inventoryName: "Conference Passes",
+  maxCapacity: 300,
+  salesStartOffset: 30,
+  salesEndOffset: 89,
+  products: [
+    { name: "Early Bird Pass", price: 49, maxQuantity: 100, soldQuantity: 0 },
+    { name: "Standard Pass",   price: 79, maxQuantity: 200, soldQuantity: 0 },
+  ],
+});
+
+seedInventory({
+  eventTitle: "Checkout Demo Event",
   inventoryName: "Main Hall Passes",
   maxCapacity: 120,
   salesStartOffset: -7,
@@ -1206,7 +1262,7 @@ seedInventory({
 });
 
 seedInventory({
-  eventTitle: "Checkout Matrix Demo Event",
+  eventTitle: "Checkout Demo Event",
   inventoryName: "Workshops",
   maxCapacity: 50,
   salesStartOffset: -7,
@@ -1214,61 +1270,6 @@ seedInventory({
   products: [
     { name: "AI Hands-on Workshop", price: 22, maxQuantity: 30, soldQuantity: 4 },
     { name: "Founder Coaching Session", price: 45, maxQuantity: 20, soldQuantity: 3 },
-  ],
-});
-
-seedInventory({
-  eventTitle: "Checkout QA Multi-Quantity & Participant Capacity",
-  inventoryName: "QA Main Passes",
-  maxCapacity: 80,
-  salesStartOffset: -5,
-  salesEndOffset: 25,
-  products: [
-    {
-      name: "QA Standard Pass",
-      price: 19,
-      maxQuantity: 6,
-      soldQuantity: 1,
-      participantCapacity: 1,
-    },
-    {
-      name: "QA One-Time VIP Seat",
-      price: 49,
-      maxQuantity: 1,
-      soldQuantity: 0,
-      participantCapacity: 1,
-    },
-    {
-      name: "QA Premium Pass",
-      price: 34,
-      maxQuantity: 4,
-      soldQuantity: 0,
-      participantCapacity: 1,
-    },
-  ],
-});
-
-seedInventory({
-  eventTitle: "Checkout QA Multi-Quantity & Participant Capacity",
-  inventoryName: "QA Team Workshops",
-  maxCapacity: 36,
-  salesStartOffset: -5,
-  salesEndOffset: 25,
-  products: [
-    {
-      name: "QA Pair Workshop (2 participants)",
-      price: 54,
-      maxQuantity: 6,
-      soldQuantity: 1,
-      participantCapacity: 2,
-    },
-    {
-      name: "QA Trio Lab (3 participants)",
-      price: 72,
-      maxQuantity: 4,
-      soldQuantity: 0,
-      participantCapacity: 3,
-    },
   ],
 });
 
@@ -1283,271 +1284,140 @@ seedInventory({
   ],
 });
 
-seedInventory({
-  eventTitle: "Past Meetup (E2E)",
-  inventoryName: "Past Tickets",
-  maxCapacity: 30,
-  salesStartOffset: -60,
-  salesEndOffset: -31,
-  products: [
-    { name: "Entry Ticket", price: 5, maxQuantity: 30, soldQuantity: 10 },
-  ],
-});
-
 console.log("  inventory & products seeded");
 
-// ─── 11b. Transactions, tickets, and participants ────────────────────────────
+// ─── 11c. Historical events (past 10 years) with participants ─────────────────
 
-const allProducts = db.select().from(schema.products).all();
-const productsByEvent: Record<string, typeof allProducts> = {};
-for (const p of allProducts) {
-  if (!productsByEvent[p.eventId]) productsByEvent[p.eventId] = [];
-  productsByEvent[p.eventId].push(p);
-}
+{
+  const bulkUsers = db.select().from(schema.users).all()
+    .filter((u) => u.id !== adminUser.id && u.id !== hostUser.id && !testLoginIds.has(u.loginId));
+  const bulkUserPool = bulkUsers.map((u) => u.id);
+  const bulkUserById = new Map(bulkUsers.map((u) => [u.id, u]));
+  const loginEmailById = new Map(
+    db.select().from(schema.logins).all().map((l) => [l.id, l.email]),
+  );
 
-/**
- * Create a transaction chain: transaction → transaction_items → tickets → ticket_participants.
- * Some tickets get scannedAt set (for past events / simulating check-in).
- */
-function seedTransaction(opts: {
-  eventTitle: string;
-  buyerIdx: number;
-  items: Array<{ productName: string; quantity: number }>;
-  daysAgo: number;
-  scanned?: boolean;
-  /** When set, slot 1 of every ticket is assigned to this email instead of the buyer's */
-  assignedToEmail?: string;
-}) {
-  const event = eventByTitle[opts.eventTitle];
-  if (!event) return;
-  const buyer = opts.buyerIdx >= 0 ? testUsers[opts.buyerIdx] : opts.buyerIdx === -1 ? adminUser! : hostUser!;
-  const eventProducts = productsByEvent[event.id] ?? [];
-
-  const txId = uuid();
-  let totalAmount = 0;
-  const itemValues: Array<{
-    id: string;
-    transactionId: string;
-    productId: string;
-    quantity: number;
-    unitPrice: number;
-  }> = [];
-  const ticketValues: Array<{
-    id: string;
-    qrCodeUuid: string;
-    transactionId: string;
-    productId: string;
-    eventId: string;
-    buyerId: string;
-    scannedAt: string | null;
-    createdAt: string;
-  }> = [];
-
-  for (const item of opts.items) {
-    const product = eventProducts.find((p) => p.name === item.productName);
-    if (!product) {
-      console.warn(`  skipping product '${item.productName}' for '${opts.eventTitle}'`);
-      continue;
-    }
-    totalAmount += product.price * item.quantity;
-    const itemId = uuid();
-    itemValues.push({
-      id: itemId,
-      transactionId: txId,
-      productId: product.id,
-      quantity: item.quantity,
-      unitPrice: product.price,
-    });
-
-    // Create one ticket per quantity
-    for (let q = 0; q < item.quantity; q++) {
-      const ticketId = uuid();
-      const purchaseDate = new Date();
-      purchaseDate.setDate(purchaseDate.getDate() - opts.daysAgo);
-      ticketValues.push({
-        id: ticketId,
-        qrCodeUuid: uuid(),
-        transactionId: txId,
-        productId: product.id,
-        eventId: event.id,
-        buyerId: buyer.id,
-        scannedAt: opts.scanned ? new Date(new Date(event.startDate).getTime() + 30 * 60000).toISOString() : null,
-        createdAt: purchaseDate.toISOString(),
-      });
-    }
+  function pickBuyers(n: number): string[] {
+    return [...bulkUserPool].sort(() => Math.random() - 0.5).slice(0, n);
   }
 
-  const fee = totalAmount > 0 ? Math.round(totalAmount * 0.029 * 100) / 100 : 0;
-  const purchaseDate = new Date();
-  purchaseDate.setDate(purchaseDate.getDate() - opts.daysAgo);
+  function seedHistoricalEvent(opts: {
+    title: string;
+    body: string;
+    groupSlug: string | null;
+    startDate: string;
+    durationHours: number;
+    city: string;
+    country: string;
+    address: string;
+    latitude: string;
+    longitude: string;
+    locationType: "in-person" | "online";
+    onlineUrl?: string;
+    products: Array<{ name: string; price: number; capacity: number; attendees: number }>;
+  }) {
+    if (db.select().from(schema.events).all().find((e) => e.title === opts.title)) return;
 
-  db.insert(schema.transactions)
-    .values({
-      id: txId,
-      eventId: event.id,
-      userId: buyer.id,
-      totalAmount,
-      transactionFee: fee,
-      stripeSessionId: `cs_seed_${uuid().slice(0, 8)}`,
-      stripePaymentId: totalAmount > 0 ? `pi_seed_${uuid().slice(0, 8)}` : null,
-      paymentDate: purchaseDate.toISOString(),
-      createdAt: purchaseDate.toISOString(),
-    })
-    .run();
+    const eventId = uuid();
+    const endDate = new Date(new Date(opts.startDate).getTime() + opts.durationHours * 3_600_000).toISOString();
+    const createdAt = new Date(new Date(opts.startDate).getTime() - 30 * 86_400_000).toISOString();
 
-  for (const iv of itemValues) {
-    db.insert(schema.transactionItems).values(iv).run();
-  }
+    db.insert(schema.events).values({
+      id: eventId, title: opts.title, body: opts.body,
+      startDate: opts.startDate, endDate,
+      locationType: opts.locationType === "online" ? "online" : "in-person",
+      address: opts.address || null, city: opts.city, country: opts.country,
+      longitude: opts.longitude, latitude: opts.latitude,
+      onlineUrl: opts.onlineUrl ?? null,
+      userId: adminUser.id,
+      groupId: opts.groupSlug ? groupIds[opts.groupSlug] : null,
+      visibility: "global", createdAt, updatedAt: createdAt,
+    }).run();
 
-  for (const tv of ticketValues) {
-    db.insert(schema.tickets).values(tv).run();
-  }
+    const invId = uuid();
+    db.insert(schema.inventoryGroups).values({
+      id: invId, eventId, name: "Tickets",
+      maxCapacity: opts.products.reduce((s, p) => s + p.capacity, 0),
+      needsTicket: true,
+      salesStartAt: new Date(new Date(opts.startDate).getTime() - 60 * 86_400_000).toISOString(),
+      salesEndAt:   new Date(new Date(opts.startDate).getTime() -      86_400_000).toISOString(),
+      createdAt, updatedAt: createdAt,
+    }).run();
 
-  // Add participants to each ticket
-  const FIRST_NAMES = ["Anna", "Ben", "Clara", "David", "Elena", "Felix", "Greta", "Hans", "Iris", "Jan"];
-  const LAST_NAMES = ["Müller", "Schmidt", "Schneider", "Fischer", "Weber", "Meyer", "Wagner", "Becker", "Schulz", "Koch"];
+    for (const product of opts.products) {
+      const productId = uuid();
+      db.insert(schema.products).values({
+        id: productId, eventId, inventoryGroupId: invId,
+        name: product.name, price: product.price,
+        maxQuantity: product.capacity, soldQuantity: product.attendees,
+        participantCapacity: 1, features: [], imageKey: null, stripeProductId: null,
+        createdAt, updatedAt: createdAt,
+      }).run();
 
-  // Resolve the buyer's actual login email for correct assignedAway detection
-  const buyerLogin = buyer.loginId
-    ? db.select().from(schema.logins).all().find((l) => l.id === buyer.loginId)
-    : null;
-  const buyerEmail = buyerLogin?.email ?? null;
-
-  for (const tv of ticketValues) {
-    const product = eventProducts.find((p) => p.id === tv.productId);
-    const capacity = product?.participantCapacity ?? 1;
-    for (let p = 1; p <= capacity; p++) {
-      const nameIdx = Math.floor(Math.random() * FIRST_NAMES.length);
-      const lastIdx = Math.floor(Math.random() * LAST_NAMES.length);
-      const first = p === 1 ? buyer.name : FIRST_NAMES[nameIdx];
-      const last = p === 1 ? (buyer as any).familyName ?? "Seed" : LAST_NAMES[lastIdx];
-      db.insert(schema.ticketParticipants)
-        .values({
+      for (const buyerId of pickBuyers(product.attendees)) {
+        const buyer = bulkUserById.get(buyerId)!;
+        const buyerEmail = buyer.loginId ? loginEmailById.get(buyer.loginId) ?? null : null;
+        const purchaseDate = new Date(
+          new Date(opts.startDate).getTime() - Math.random() * 25 * 86_400_000,
+        ).toISOString();
+        const txId = uuid();
+        db.insert(schema.transactions).values({
+          id: txId, eventId, userId: buyerId,
+          totalAmount: product.price,
+          transactionFee: product.price > 0 ? Math.round(product.price * 0.029 * 100) / 100 : 0,
+          stripeSessionId: `cs_hist_${uuid().slice(0, 8)}`,
+          stripePaymentId: product.price > 0 ? `pi_hist_${uuid().slice(0, 8)}` : null,
+          paymentDate: purchaseDate, createdAt: purchaseDate,
+        }).run();
+        db.insert(schema.transactionItems).values({
+          id: uuid(), transactionId: txId, productId, quantity: 1, unitPrice: product.price,
+        }).run();
+        const ticketId = uuid();
+        db.insert(schema.tickets).values({
+          id: ticketId, qrCodeUuid: uuid(), transactionId: txId,
+          productId, eventId, buyerId,
+          scannedAt: new Date(new Date(opts.startDate).getTime() + Math.random() * 3_600_000).toISOString(),
+          createdAt: purchaseDate,
+        }).run();
+        db.insert(schema.ticketParticipants).values({
           id: uuid(),
-          ticketId: tv.id,
-          participantOrder: p,
-          name: `${first} ${last}`,
-          // Slot 1: use assignedToEmail override if provided, otherwise buyer's real email
-          email: p === 1 && opts.assignedToEmail
-            ? opts.assignedToEmail
-            : p === 1 && buyerEmail
-            ? buyerEmail
-            : `${first.toLowerCase()}.${last.toLowerCase()}@example.com`,
-          userId: p === 1 && !opts.assignedToEmail ? buyer.id : undefined,
-        })
-        .run();
+          ticketId,
+          participantOrder: 1,
+          name: `${buyer.name} ${(buyer as any).familyName ?? ""}`.trim(),
+          email: buyerEmail ?? `${buyer.name.toLowerCase()}@example.com`,
+          userId: buyerId,
+        }).run();
+      }
     }
   }
+
+  const p = (text: string) => `<p>${text}</p>`;
+
+  // ── Global events ─────────────────────────────────────────────────────────
+  seedHistoricalEvent({ title: "Community Founding Meetup", body: p(faker.lorem.paragraph()), groupSlug: null, startDate: "2015-06-12T18:00:00.000Z", durationHours: 3, city: "Demo City", country: "Exampleland", address: "The Foundry, Demo City", latitude: "52.5200", longitude: "13.4050", locationType: "in-person", products: [{ name: "Free Entry", price: 0, capacity: 60, attendees: 42 }] });
+  seedHistoricalEvent({ title: "Annual Gathering 2016", body: p(faker.lorem.paragraph()), groupSlug: null, startDate: "2016-10-08T10:00:00.000Z", durationHours: 8, city: "Demo City", country: "Exampleland", address: "Grand Hall, Demo City", latitude: "52.5200", longitude: "13.4050", locationType: "in-person", products: [{ name: "Standard Ticket", price: 15, capacity: 80, attendees: 68 }, { name: "VIP Ticket", price: 35, capacity: 20, attendees: 14 }] });
+  seedHistoricalEvent({ title: "Summer Social 2017", body: p(faker.lorem.paragraph()), groupSlug: null, startDate: "2017-07-14T17:00:00.000Z", durationHours: 4, city: "Demo City", country: "Exampleland", address: "Riverside Park, Demo City", latitude: "52.5200", longitude: "13.4050", locationType: "in-person", products: [{ name: "Free Entry", price: 0, capacity: 80, attendees: 63 }] });
+  seedHistoricalEvent({ title: "Annual Conference 2018", body: p(faker.lorem.paragraph()), groupSlug: null, startDate: "2018-09-21T09:00:00.000Z", durationHours: 9, city: "Demo City", country: "Exampleland", address: "Convention Centre, Demo City", latitude: "52.5200", longitude: "13.4050", locationType: "in-person", products: [{ name: "Day Pass", price: 20, capacity: 120, attendees: 98 }, { name: "VIP Pass", price: 45, capacity: 30, attendees: 22 }] });
+  seedHistoricalEvent({ title: "Annual Conference 2019", body: p(faker.lorem.paragraph()), groupSlug: null, startDate: "2019-10-05T09:00:00.000Z", durationHours: 10, city: "Southville", country: "Exampleland", address: "Expo Centre, Southville", latitude: "41.3851", longitude: "2.1734", locationType: "in-person", products: [{ name: "Standard Pass", price: 25, capacity: 160, attendees: 143 }, { name: "Premium Pass", price: 55, capacity: 40, attendees: 31 }] });
+  seedHistoricalEvent({ title: "Online Town Hall — Spring 2020", body: p("Our first fully online event, bringing all chapters together virtually."), groupSlug: null, startDate: "2020-05-20T17:00:00.000Z", durationHours: 2, city: "Online", country: "Exampleland", address: "", latitude: "52.5200", longitude: "13.4050", locationType: "online", onlineUrl: "https://meet.example.com/townhall-2020", products: [{ name: "Free Entry", price: 0, capacity: 200, attendees: 147 }] });
+  seedHistoricalEvent({ title: "Online Workshop — Autumn 2020", body: p(faker.lorem.paragraph()), groupSlug: null, startDate: "2020-11-14T10:00:00.000Z", durationHours: 3, city: "Online", country: "Exampleland", address: "", latitude: "52.5200", longitude: "13.4050", locationType: "online", onlineUrl: "https://meet.example.com/workshop-2020", products: [{ name: "Free Entry", price: 0, capacity: 150, attendees: 89 }] });
+  seedHistoricalEvent({ title: "First In-Person Since 2020", body: p("A long-awaited return to meeting face-to-face. " + faker.lorem.sentence()), groupSlug: null, startDate: "2021-07-03T15:00:00.000Z", durationHours: 4, city: "Demo City", country: "Exampleland", address: "Rooftop Bar, Demo City", latitude: "52.5200", longitude: "13.4050", locationType: "in-person", products: [{ name: "Free Entry", price: 0, capacity: 80, attendees: 71 }] });
+  seedHistoricalEvent({ title: "Annual Conference 2022", body: p(faker.lorem.paragraph()), groupSlug: null, startDate: "2022-06-17T09:00:00.000Z", durationHours: 10, city: "Portstown", country: "Exampleland", address: "Harbour Convention Centre, Portstown", latitude: "51.5074", longitude: "-0.1278", locationType: "in-person", products: [{ name: "Standard Pass", price: 30, capacity: 200, attendees: 176 }, { name: "VIP Pass", price: 60, capacity: 50, attendees: 38 }] });
+  seedHistoricalEvent({ title: "Summer Social 2023", body: p(faker.lorem.paragraph()), groupSlug: null, startDate: "2023-07-22T16:00:00.000Z", durationHours: 5, city: "Demo City", country: "Exampleland", address: "Rooftop Terrace, Demo City", latitude: "52.5200", longitude: "13.4050", locationType: "in-person", products: [{ name: "Free Entry", price: 0, capacity: 100, attendees: 83 }] });
+  seedHistoricalEvent({ title: "Annual Conference 2024", body: p(faker.lorem.paragraph()), groupSlug: null, startDate: "2024-04-19T09:00:00.000Z", durationHours: 10, city: "Midtown", country: "Exampleland", address: "Innovation Hub, Midtown", latitude: "48.2082", longitude: "16.3738", locationType: "in-person", products: [{ name: "Standard Pass", price: 35, capacity: 250, attendees: 214 }, { name: "VIP Pass", price: 70, capacity: 50, attendees: 41 }] });
+
+  // ── Local chapter events ──────────────────────────────────────────────────
+  seedHistoricalEvent({ title: "North Chapter — Spring Social 2016", body: p(faker.lorem.paragraph()), groupSlug: "berlin", startDate: "2016-04-09T14:00:00.000Z", durationHours: 3, city: "Demo City", country: "Exampleland", address: "Local Café, Demo City", latitude: "59.3293", longitude: "18.0686", locationType: "in-person", products: [{ name: "Free Entry", price: 0, capacity: 30, attendees: 23 }] });
+  seedHistoricalEvent({ title: "South Chapter — Hiking Day 2018", body: p(faker.lorem.paragraph()), groupSlug: "munich", startDate: "2018-05-19T09:00:00.000Z", durationHours: 5, city: "Southville", country: "Exampleland", address: "Trailhead, Southville", latitude: "41.3851", longitude: "2.1734", locationType: "in-person", products: [{ name: "Free Entry", price: 0, capacity: 25, attendees: 19 }] });
+  seedHistoricalEvent({ title: "Coast Chapter — Harbour Walk 2019", body: p(faker.lorem.paragraph()), groupSlug: "hamburg", startDate: "2019-09-07T10:00:00.000Z", durationHours: 2, city: "Portstown", country: "Exampleland", address: "Harbourside, Portstown", latitude: "51.5074", longitude: "-0.1278", locationType: "in-person", products: [{ name: "Free Entry", price: 0, capacity: 20, attendees: 17 }] });
+  seedHistoricalEvent({ title: "Central Chapter — Networking Dinner 2021", body: p(faker.lorem.paragraph()), groupSlug: "frankfurt", startDate: "2021-10-14T19:00:00.000Z", durationHours: 3, city: "Midtown", country: "Exampleland", address: "The Grand Café, Midtown", latitude: "48.2082", longitude: "16.3738", locationType: "in-person", products: [{ name: "Dinner Ticket", price: 18, capacity: 40, attendees: 32 }] });
+  seedHistoricalEvent({ title: "West Chapter — End of Year Party 2022", body: p(faker.lorem.paragraph()), groupSlug: "cologne", startDate: "2022-12-02T19:00:00.000Z", durationHours: 4, city: "Westford", country: "Exampleland", address: "Town Square Venue, Westford", latitude: "48.8566", longitude: "2.3522", locationType: "in-person", products: [{ name: "Entry Ticket", price: 10, capacity: 50, attendees: 41 }] });
+  seedHistoricalEvent({ title: "North Chapter — Annual Dinner 2023", body: p(faker.lorem.paragraph()), groupSlug: "berlin", startDate: "2023-11-18T19:00:00.000Z", durationHours: 3, city: "Demo City", country: "Exampleland", address: "The Riverside Restaurant, Demo City", latitude: "59.3293", longitude: "18.0686", locationType: "in-person", products: [{ name: "Dinner Ticket", price: 22, capacity: 45, attendees: 38 }] });
+  seedHistoricalEvent({ title: "South Chapter — Workshop Day 2024", body: p(faker.lorem.paragraph()), groupSlug: "munich", startDate: "2024-02-24T10:00:00.000Z", durationHours: 6, city: "Southville", country: "Exampleland", address: "Community Centre, Southville", latitude: "41.3851", longitude: "2.1734", locationType: "in-person", products: [{ name: "Workshop Ticket", price: 12, capacity: 30, attendees: 27 }] });
+
+  const pastCount = db.select().from(schema.events).all().filter((e) => new Date(e.startDate) < new Date()).length;
+  console.log(`  historical events seeded (${pastCount} total past events with participants)`);
 }
-
-// ── Past event — all tickets scanned ──
-seedTransaction({ eventTitle: "Past Meetup (E2E)", buyerIdx: 0, items: [{ productName: "Entry Ticket", quantity: 1 }], daysAgo: 35, scanned: true });
-seedTransaction({ eventTitle: "Past Meetup (E2E)", buyerIdx: 1, items: [{ productName: "Entry Ticket", quantity: 2 }], daysAgo: 34, scanned: true });
-seedTransaction({ eventTitle: "Past Meetup (E2E)", buyerIdx: 2, items: [{ productName: "Entry Ticket", quantity: 1 }], daysAgo: 33, scanned: true });
-seedTransaction({ eventTitle: "Past Meetup (E2E)", buyerIdx: 3, items: [{ productName: "Entry Ticket", quantity: 1 }], daysAgo: 32, scanned: true });
-seedTransaction({ eventTitle: "Past Meetup (E2E)", buyerIdx: -1, items: [{ productName: "Entry Ticket", quantity: 2 }], daysAgo: 38, scanned: true });
-seedTransaction({ eventTitle: "Past Meetup (E2E)", buyerIdx: -2, items: [{ productName: "Entry Ticket", quantity: 1 }], daysAgo: 36, scanned: true });
-seedTransaction({ eventTitle: "Past Meetup (E2E)", buyerIdx: 7, items: [{ productName: "Entry Ticket", quantity: 2 }], daysAgo: 31, scanned: true });
-
-// ── Berlin Summer Social — mixed ──
-seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 0, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 5 });
-seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 1, items: [{ productName: "Free Entry", quantity: 2 }], daysAgo: 4 });
-seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 3, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 3 });
-seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 5, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 2 });
-seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 7, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 2 });
-seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: 9, items: [{ productName: "Free Entry", quantity: 2 }], daysAgo: 1 });
-// Admin buys a ticket but assigns it to a registered user (hidden from QR wall)
-seedTransaction({ eventTitle: "Berlin Summer Social", buyerIdx: -1, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 2, assignedToEmail: "user1@example.com" });
-
-// ── Berlin Tech Talk — standard + VIP ──
-seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 0, items: [{ productName: "Standard Seat", quantity: 1 }], daysAgo: 10 });
-seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 1, items: [{ productName: "Standard Seat", quantity: 2 }], daysAgo: 8 });
-seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 5, items: [{ productName: "VIP Seat (front row + networking)", quantity: 1 }], daysAgo: 7 });
-seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 7, items: [{ productName: "Standard Seat", quantity: 1 }], daysAgo: 6 });
-seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: -1, items: [{ productName: "VIP Seat (front row + networking)", quantity: 1 }], daysAgo: 12 });
-seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: 3, items: [{ productName: "Standard Seat", quantity: 2 }], daysAgo: 5 });
-// Admin buys 2 tickets: one for self (appears in QR wall), one assigned away to a registered user (hidden)
-seedTransaction({ eventTitle: "Berlin Tech Talk: AI in 2025", buyerIdx: -1, items: [{ productName: "Standard Seat", quantity: 1 }], daysAgo: 3, assignedToEmail: "user2@example.com" });
-
-// ── Welcome Night ──
-seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: 3, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 2 });
-seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: 7, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 2 });
-seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: 9, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 1 });
-seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: -2, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 3 });
-// Admin buys a ticket assigned to a registered user (should NOT appear in admin's QR wall)
-seedTransaction({ eventTitle: "Berlin New Members Welcome Night", buyerIdx: -1, items: [{ productName: "Welcome Night Ticket", quantity: 1 }], daysAgo: 1, assignedToEmail: "user3@example.com" });
-
-// ── Munich Hike ──
-seedTransaction({ eventTitle: "Munich Community Hike – Englischer Garten", buyerIdx: 2, items: [{ productName: "Hiker Spot", quantity: 1 }], daysAgo: 6 });
-seedTransaction({ eventTitle: "Munich Community Hike – Englischer Garten", buyerIdx: 5, items: [{ productName: "Hiker Spot", quantity: 2 }], daysAgo: 4 });
-seedTransaction({ eventTitle: "Munich Community Hike – Englischer Garten", buyerIdx: 7, items: [{ productName: "Hiker Spot", quantity: 1 }], daysAgo: 3 });
-seedTransaction({ eventTitle: "Munich Community Hike – Englischer Garten", buyerIdx: -1, items: [{ productName: "Hiker Spot", quantity: 1 }], daysAgo: 5 });
-
-// ── Munich Workshop (paid) ──
-seedTransaction({ eventTitle: "Munich Members Workshop: Public Speaking", buyerIdx: 2, items: [{ productName: "Workshop Ticket", quantity: 1 }], daysAgo: 14 });
-seedTransaction({ eventTitle: "Munich Members Workshop: Public Speaking", buyerIdx: 5, items: [{ productName: "Workshop Ticket", quantity: 1 }], daysAgo: 12 });
-seedTransaction({ eventTitle: "Munich Members Workshop: Public Speaking", buyerIdx: 7, items: [{ productName: "Workshop Ticket", quantity: 2 }], daysAgo: 10 });
-seedTransaction({ eventTitle: "Munich Members Workshop: Public Speaking", buyerIdx: 0, items: [{ productName: "Workshop Ticket", quantity: 1 }], daysAgo: 9 });
-seedTransaction({ eventTitle: "Munich Members Workshop: Public Speaking", buyerIdx: -1, items: [{ productName: "Workshop Ticket", quantity: 2 }], daysAgo: 15 });
-
-// ── Hamburg Walk ──
-seedTransaction({ eventTitle: "Hamburg Harbour Morning Walk", buyerIdx: 1, items: [{ productName: "Walk Ticket", quantity: 1 }], daysAgo: 3 });
-seedTransaction({ eventTitle: "Hamburg Harbour Morning Walk", buyerIdx: 6, items: [{ productName: "Walk Ticket", quantity: 1 }], daysAgo: 2 });
-seedTransaction({ eventTitle: "Hamburg Harbour Morning Walk", buyerIdx: 3, items: [{ productName: "Walk Ticket", quantity: 1 }], daysAgo: 1 });
-
-// ── Hamburg Open Meetup ──
-seedTransaction({ eventTitle: "Hamburg Open Meetup", buyerIdx: 1, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 4 });
-seedTransaction({ eventTitle: "Hamburg Open Meetup", buyerIdx: 3, items: [{ productName: "Free Entry", quantity: 2 }], daysAgo: 3 });
-seedTransaction({ eventTitle: "Hamburg Open Meetup", buyerIdx: 6, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 2 });
-seedTransaction({ eventTitle: "Hamburg Open Meetup", buyerIdx: 8, items: [{ productName: "Free Entry", quantity: 2 }], daysAgo: 1 });
-
-// ── Frankfurt Breakfast (paid) ──
-seedTransaction({ eventTitle: "Frankfurt Networking Breakfast", buyerIdx: 2, items: [{ productName: "Breakfast Ticket (incl. food)", quantity: 1 }], daysAgo: 7 });
-seedTransaction({ eventTitle: "Frankfurt Networking Breakfast", buyerIdx: 4, items: [{ productName: "Breakfast Ticket (incl. food)", quantity: 2 }], daysAgo: 5 });
-seedTransaction({ eventTitle: "Frankfurt Networking Breakfast", buyerIdx: 8, items: [{ productName: "Breakfast Ticket (incl. food)", quantity: 1 }], daysAgo: 4 });
-seedTransaction({ eventTitle: "Frankfurt Networking Breakfast", buyerIdx: -2, items: [{ productName: "Breakfast Ticket (incl. food)", quantity: 1 }], daysAgo: 6 });
-
-// ── Frankfurt Pitch Night (paid + free pitcher) ──
-seedTransaction({ eventTitle: "Frankfurt Startup Pitch Night", buyerIdx: 4, items: [{ productName: "Audience Ticket", quantity: 2 }], daysAgo: 10 });
-seedTransaction({ eventTitle: "Frankfurt Startup Pitch Night", buyerIdx: 8, items: [{ productName: "Audience Ticket", quantity: 3 }], daysAgo: 8 });
-seedTransaction({ eventTitle: "Frankfurt Startup Pitch Night", buyerIdx: 2, items: [{ productName: "Audience Ticket", quantity: 2 }], daysAgo: 7 });
-seedTransaction({ eventTitle: "Frankfurt Startup Pitch Night", buyerIdx: 6, items: [{ productName: "Audience Ticket", quantity: 1 }], daysAgo: 6 });
-seedTransaction({ eventTitle: "Frankfurt Startup Pitch Night", buyerIdx: 0, items: [{ productName: "Pitcher Ticket (present your startup)", quantity: 1 }], daysAgo: 14 });
-seedTransaction({ eventTitle: "Frankfurt Startup Pitch Night", buyerIdx: 4, items: [{ productName: "Pitcher Ticket (present your startup)", quantity: 1 }], daysAgo: 12 });
-seedTransaction({ eventTitle: "Frankfurt Startup Pitch Night", buyerIdx: -1, items: [{ productName: "Audience Ticket", quantity: 4 }], daysAgo: 9 });
-seedTransaction({ eventTitle: "Frankfurt Startup Pitch Night", buyerIdx: 9, items: [{ productName: "Pitcher Ticket (present your startup)", quantity: 1 }], daysAgo: 11 });
-
-// ── Cologne Dinner (paid) ──
-seedTransaction({ eventTitle: "Cologne Members Dinner", buyerIdx: 3, items: [{ productName: "Dinner Ticket (3-course meal)", quantity: 2 }], daysAgo: 5 });
-seedTransaction({ eventTitle: "Cologne Members Dinner", buyerIdx: 8, items: [{ productName: "Dinner Ticket (3-course meal)", quantity: 1 }], daysAgo: 4 });
-seedTransaction({ eventTitle: "Cologne Members Dinner", buyerIdx: -2, items: [{ productName: "Dinner Ticket (3-course meal)", quantity: 2 }], daysAgo: 6 });
-seedTransaction({ eventTitle: "Cologne Members Dinner", buyerIdx: 4, items: [{ productName: "Dinner Ticket (3-course meal)", quantity: 1 }], daysAgo: 3 });
-seedTransaction({ eventTitle: "Cologne Members Dinner", buyerIdx: 0, items: [{ productName: "Dinner Ticket (3-course meal)", quantity: 2 }], daysAgo: 7 });
-
-// ── Cologne Meet & Greet ──
-seedTransaction({ eventTitle: "Cologne Public Meet & Greet", buyerIdx: 3, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 3 });
-seedTransaction({ eventTitle: "Cologne Public Meet & Greet", buyerIdx: 8, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 2 });
-seedTransaction({ eventTitle: "Cologne Public Meet & Greet", buyerIdx: -2, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 2 });
-seedTransaction({ eventTitle: "Cologne Public Meet & Greet", buyerIdx: 4, items: [{ productName: "Free Entry", quantity: 1 }], daysAgo: 1 });
-
-// ── Town Hall (global, free) ──
-seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: -1, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 10 });
-seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 0, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 8 });
-seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 2, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 7 });
-seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 4, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 6 });
-seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 6, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 5 });
-seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 8, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 4 });
-seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: -2, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 3 });
-seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 1, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 2 });
-seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 3, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 2 });
-seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 5, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 1 });
-seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 7, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 1 });
-seedTransaction({ eventTitle: "All-Groups Online Town Hall", buyerIdx: 9, items: [{ productName: "Virtual Seat", quantity: 1 }], daysAgo: 1 });
-
-const txCount = db.select().from(schema.transactions).all().length;
-const ticketCount = db.select().from(schema.tickets).all().length;
-const participantCount = db.select().from(schema.ticketParticipants).all().length;
-console.log(`  transactions seeded (${txCount} transactions, ${ticketCount} tickets, ${participantCount} participants)`);
 
 // ─── 12. Placeholder images ──────────────────────────────────────────────────
 
@@ -1566,16 +1436,6 @@ for (let i = 0; i < usersWithoutProfile.length; i++) {
       updatedAt: now(),
     })
     .where(eq(schema.users.id, usersWithoutProfile[i].id))
-    .run();
-}
-
-for (let i = 0; i < qaCheckoutUsers.length; i++) {
-  db.update(schema.users)
-    .set({
-      profilePicture: imageKeys[(i + 2) % imageKeys.length],
-      updatedAt: now(),
-    })
-    .where(eq(schema.users.id, qaCheckoutUsers[i].id))
     .run();
 }
 
@@ -1613,11 +1473,7 @@ for (let i = 0; i < groupsNoImg.length; i++) {
 }
 
 console.log(`  images downloaded/uploaded and linked (${eventsNoImg.length} events, ${postsNoImg.length} posts, ${groupsNoImg.length} groups)`);
-console.log(`  user profile pictures assigned (${usersWithoutProfile.length} users, QA users emphasized=${qaCheckoutUsers.length})`);
-console.log("  checkout QA scenario ready:");
-console.log("    Event: Checkout QA Multi-Quantity & Participant Capacity");
-console.log("    Products: QA Standard Pass, QA Premium Pass, QA Pair Workshop (2 participants), QA Trio Lab (3 participants)");
-console.log("    Search users: Marta Keller, Jonas Richter, Leonie Baumann, Tariq Hassan");
+console.log(`  user profile pictures assigned (${usersWithoutProfile.length} users)`);
 
 // ─── 13. Forms ───────────────────────────────────────────────────────────────
 
@@ -1712,7 +1568,7 @@ if (onboardingForm) {
   // Delete any existing form results for test users so they land on the survey fresh.
   const testUserIdsForCleanup = new Set(
     db.select().from(schema.users).all()
-      .filter((u) => u.familyName === "Test")
+      .filter((u) => testLoginIds.has(u.loginId))
       .map((u) => u.id),
   );
   for (const userId of testUserIdsForCleanup) {
@@ -1729,49 +1585,35 @@ if (onboardingForm) {
 
   const alreadySubmitted = new Set(existingResultRows.map((r) => r.userId));
 
+  // Generic placeholder responses — matches the shape the onboarding form expects
   const affiliationPool = [
-    // Master's degree — various universities and tracks
-    { academicPath: [{ affilation: "master", year: 2018, entry_university: "tu_berlin", exit_university: "kth_royal_institute_of_technology", track: "dsc" }] },
-    { academicPath: [{ affilation: "master", year: 2019, entry_university: "aalto_university", exit_university: "tu_berlin", track: "cse" }] },
-    { academicPath: [{ affilation: "master", year: 2020, entry_university: "kth_royal_institute_of_technology", exit_university: "sorbonne_university", track: "hcid" }] },
-    { academicPath: [{ affilation: "master", year: 2017, entry_university: "university_of_twente", exit_university: "delft_university_of_technology", track: "cni" }] },
-    { academicPath: [{ affilation: "master", year: 2021, entry_university: "polimi_polytechnic_university_of_milan", exit_university: "tu_eindhoven", track: "ita" }] },
-    { academicPath: [{ affilation: "master", year: 2016, entry_university: "bme_budapest_university_of_technology_and_economics", exit_university: "saarland_university", track: "ccs" }] },
-    { academicPath: [{ affilation: "master", year: 2019, entry_university: "elte_eotvos_lorand_university", exit_university: "tu_darmstadt", track: "ft" }] },
-    { academicPath: [{ affilation: "master", year: 2022, entry_university: "unitn_university_of_trento", exit_university: "ucl_university_college_london", track: "sap" }] },
-    { academicPath: [{ affilation: "master", year: 2020, entry_university: "upm_universidad_politecnica_de_madrid", exit_university: "polimi_polytechnic_university_of_milan", track: "sde" }] },
-    { academicPath: [{ affilation: "master", year: 2023, entry_university: "aalto_university", exit_university: "tu_eindhoven", track: "aus" }] },
-    { academicPath: [{ affilation: "master", year: 2018, entry_university: "riga_technical_university", exit_university: "taltech_tallinn_university_of_technology", track: "dss" }] },
-    { academicPath: [{ affilation: "master", year: 2021, entry_university: "universite_cote_d_azur", exit_university: "eurecom", track: "vcc" }] },
-    // Summer school only
-    { academicPath: [{ affilation: "summer", summerSchool: "2022_helsinki_digital_platforms_for_smart_cities" }] },
-    { academicPath: [{ affilation: "summer", summerSchool: "2023_milan_innovative_digital_technologies_for_health" }] },
-    { academicPath: [{ affilation: "summer", summerSchool: "2019_munich_iot_platforms_for_industry_4_0" }] },
-    { academicPath: [{ affilation: "summer", summerSchool: "2024_madrid_fintech_frontier" }] },
-    { academicPath: [{ affilation: "summer", summerSchool: "2023_nice_quantum_computing_and_information" }] },
-    { academicPath: [{ affilation: "summer", summerSchool: "2023_tallinn_e_health_personalised_prevention" }] },
-    { academicPath: [{ affilation: "summer", summerSchool: "2024_milan_ai4sustainability" }] },
-    { academicPath: [{ affilation: "summer", summerSchool: "2025_barcelona_upbeat_summer_school" }] },
-    // Master's + summer school
-    { academicPath: [{ affilation: "master", year: 2019, entry_university: "tu_berlin", exit_university: "kth_royal_institute_of_technology", track: "dsc", summerSchool: "2018_stockholm_big_data_analytics" }] },
-    { academicPath: [{ affilation: "master", year: 2020, entry_university: "aalto_university", exit_university: "tu_berlin", track: "hcid", summerSchool: "2019_lisbon_longer_independent_living" }] },
-    // PhD
-    { academicPath: [{ affilation: "Item 3" }] },
-    // EITDigital employee
-    { academicPath: [{ affilation: "Item 1" }] },
-    // Friends / network
-    { academicPath: [{ affilation: "Item 2" }] },
-    // Speed Master
-    { academicPath: [{ affilation: "Item 4" }] },
-    // Accelerator
-    { academicPath: [{ affilation: "Item 5" }] },
+    { status: "graduate",        faculty: "engineering",     programme_engineering: "software_engineering",  degree_level: "master",   graduation_year: 2022, how_did_you_hear: "classmate" },
+    { status: "graduate",        faculty: "science",         programme_science: "computer_science",          degree_level: "master",   graduation_year: 2021, how_did_you_hear: "social_media" },
+    { status: "graduate",        faculty: "social_sciences", programme_social: "economics",                  degree_level: "bachelor", graduation_year: 2023, how_did_you_hear: "professor" },
+    { status: "graduate",        faculty: "engineering",     programme_engineering: "electrical_engineering", degree_level: "bachelor", graduation_year: 2020, how_did_you_hear: "uni_email" },
+    { status: "graduate",        faculty: "arts",            programme_arts: "media_studies",                degree_level: "bachelor", graduation_year: 2019, how_did_you_hear: "event" },
+    { status: "graduate",        faculty: "medicine",        programme_medicine: "medicine",                 degree_level: "master",   graduation_year: 2024, how_did_you_hear: "classmate" },
+    { status: "graduate",        faculty: "science",         programme_science: "data_science",              degree_level: "master",   graduation_year: 2023, how_did_you_hear: "social_media" },
+    { status: "graduate",        faculty: "law",             programme_law: "law",                           degree_level: "master",   graduation_year: 2022, how_did_you_hear: "professor" },
+    { status: "graduate",        faculty: "social_sciences", programme_social: "psychology",                 degree_level: "bachelor", graduation_year: 2021, how_did_you_hear: "event" },
+    { status: "graduate",        faculty: "engineering",     programme_engineering: "civil_engineering",     degree_level: "bachelor", graduation_year: 2018, how_did_you_hear: "uni_email" },
+    { status: "graduate",        faculty: "architecture",    programme_architecture: "architecture",         degree_level: "master",   graduation_year: 2020, how_did_you_hear: "classmate" },
+    { status: "graduate",        faculty: "science",         programme_science: "mathematics",               degree_level: "phd",      graduation_year: 2024, how_did_you_hear: "professor" },
+    { status: "current_student", faculty: "engineering",     programme_engineering: "software_engineering",  degree_level: "bachelor", current_year: "year_3", how_did_you_hear: "classmate" },
+    { status: "current_student", faculty: "social_sciences", programme_social: "business_admin",            degree_level: "master",   current_year: "year_1", how_did_you_hear: "social_media" },
+    { status: "current_student", faculty: "science",         programme_science: "computer_science",          degree_level: "bachelor", current_year: "year_2", how_did_you_hear: "uni_email" },
+    { status: "current_student", faculty: "arts",            programme_arts: "history",                      degree_level: "bachelor", current_year: "year_3", how_did_you_hear: "professor" },
+    { status: "current_student", faculty: "medicine",        programme_medicine: "nursing",                  degree_level: "bachelor", current_year: "year_4", how_did_you_hear: "event" },
+    { status: "current_student", faculty: "engineering",     programme_engineering: "mechanical_engineering", degree_level: "master",  current_year: "postgrad_year", how_did_you_hear: "classmate" },
+    { status: "staff",           faculty: "science",         how_did_you_hear: "other" },
+    { status: "graduate",        faculty: "social_sciences", programme_social: "political_science",          degree_level: "master",   graduation_year: 2019, how_did_you_hear: "other" },
   ];
 
   // Re-query all users now that all bulk users have been inserted
-  // Exclude test users (familyName "Test") so they land on the survey fresh each time.
+  // Exclude test users so they land on the survey fresh each time.
   const testUserIds = new Set(
     db.select().from(schema.users).all()
-      .filter((u) => u.familyName === "Test")
+      .filter((u) => testLoginIds.has(u.loginId))
       .map((u) => u.id),
   );
   const usersToSeed = db.select().from(schema.users).all();
@@ -1817,34 +1659,74 @@ const pageDefs: Array<{ title: string; slug: string; status: "published" | "draf
     content: [
       { id: uuid(), componentType: "HeroSectionBlock", order: 0, data: {} },
       { id: uuid(), componentType: "SpacerBlock", order: 1, data: { height: 40 } },
-      { id: uuid(), componentType: "TitleBlock", order: 2, data: { text: "What We Do", level: "2", align: "center" } },
-      { id: uuid(), componentType: "TextBlock", order: 3, data: { content: "<p>We bring together people from all walks of life to build meaningful connections, share knowledge, and grow together. Our local communities across Germany organise regular meetups, workshops, and social events.</p>" } },
+      { id: uuid(), componentType: "TitleBlock", order: 2, data: { text: "Upcoming Events", level: "2", align: "center" } },
+      { id: uuid(), componentType: "UpcomingEventsBlock", order: 3, data: {} },
       { id: uuid(), componentType: "SpacerBlock", order: 4, data: { height: 40 } },
-      { id: uuid(), componentType: "FeatureBlock", order: 5, data: { layout: '"left-top middle right-top" "left-bottom middle right-top" "left-bottom middle right-bottom"', gap: 24, tilesJson: DEFAULT_TILES } },
-      { id: uuid(), componentType: "SpacerBlock", order: 6, data: { height: 40 } },
-      { id: uuid(), componentType: "TitleBlock", order: 7, data: { text: "Upcoming Events", level: "2", align: "center" } },
-      { id: uuid(), componentType: "UpcomingEventsBlock", order: 8, data: {} },
-      { id: uuid(), componentType: "SpacerBlock", order: 9, data: { height: 40 } },
-      { id: uuid(), componentType: "TitleBlock", order: 10, data: { text: "Our Communities", level: "2", align: "center" } },
-      { id: uuid(), componentType: "GroupsListBlock", order: 11, data: {} },
-      { id: uuid(), componentType: "SpacerBlock", order: 12, data: { height: 40 } },
-      { id: uuid(), componentType: "TitleBlock", order: 13, data: { text: "Latest Posts", level: "2", align: "center" } },
-      { id: uuid(), componentType: "PostsListBlock", order: 14, data: { limit: 6 } },
+      { id: uuid(), componentType: "TitleBlock", order: 5, data: { text: "Our Communities", level: "2", align: "center" } },
+      { id: uuid(), componentType: "GroupsListBlock", order: 6, data: {} },
+      { id: uuid(), componentType: "SpacerBlock", order: 7, data: { height: 40 } },
+      { id: uuid(), componentType: "TitleBlock", order: 8, data: { text: "Latest Posts", level: "2", align: "center" } },
+      { id: uuid(), componentType: "PostsListBlock", order: 9, data: { limit: 6 } },
     ],
   },
   {
-    title: "About Us",
-    slug: "/about-us",
+    title: "About",
+    slug: "/about",
     status: "published",
     content: [
-      { id: uuid(), componentType: "TitleBlock", order: 0, data: { text: "About Us", level: "1", align: "center" } },
+      { id: uuid(), componentType: "TitleBlock", order: 0, data: { text: "About This Community", level: "1", align: "center" } },
       { id: uuid(), componentType: "SpacerBlock", order: 1, data: { height: 20 } },
-      { id: uuid(), componentType: "TextBlock", order: 2, data: { content: "<p>We started as a small group of friends who wanted to build a space for people to connect beyond the usual networking events. What began in Berlin quickly spread to Munich, Hamburg, Frankfurt, and Cologne.</p><p>Today, we are a growing community of over 2,000 members across Germany. Our mission is simple: bring people together, foster genuine relationships, and create opportunities for personal and professional growth.</p>" } },
+      { id: uuid(), componentType: "TextBlock", order: 2, data: { content: "<p>We started as a small group of people who wanted to build a space to connect beyond the usual networking events. What began as a single local chapter quickly grew into a network of communities across different cities.</p><p>Today, we are a growing community with members spread across multiple chapters. Our mission is simple: bring people together, foster genuine relationships, and create opportunities for personal and professional growth.</p>" } },
       { id: uuid(), componentType: "SpacerBlock", order: 3, data: { height: 40 } },
-      { id: uuid(), componentType: "ImageBlock", order: 4, data: { src: "https://picsum.photos/800/400", alt: "Community gathering", caption: "" } },
-      { id: uuid(), componentType: "SpacerBlock", order: 5, data: { height: 40 } },
-      { id: uuid(), componentType: "TitleBlock", order: 6, data: { text: "Our Values", level: "2", align: "left" } },
-      { id: uuid(), componentType: "TextBlock", order: 7, data: { content: "<p><strong>Openness</strong> — Everyone is welcome, regardless of background or experience.</p><p><strong>Authenticity</strong> — We value real connections over superficial networking.</p><p><strong>Local Roots</strong> — Each community is shaped by its members and the city it calls home.</p>" } },
+      { id: uuid(), componentType: "TitleBlock", order: 4, data: { text: "Our Values", level: "2", align: "left" } },
+      { id: uuid(), componentType: "TextBlock", order: 5, data: { content: "<p><strong>Openness</strong> — Everyone is welcome, regardless of background or experience.</p><p><strong>Authenticity</strong> — We value real connections over superficial networking.</p><p><strong>Local Roots</strong> — Each chapter is shaped by its members and the place it calls home.</p>" } },
+      { id: uuid(), componentType: "SpacerBlock", order: 6, data: { height: 40 } },
+      { id: uuid(), componentType: "QuoteBlock", order: 7, data: { quote: "Great communities are built on trust, not transactions.", attribution: "Community Team" } },
+    ],
+  },
+  {
+    title: "Block Gallery",
+    slug: "/block-gallery",
+    status: "published",
+    content: [
+      { id: uuid(), componentType: "TitleBlock", order: 0, data: { text: "Block Gallery", level: "1", align: "center" } },
+      { id: uuid(), componentType: "TextBlock", order: 1, data: { content: "<p>This page showcases all available content blocks. Open the page builder in the admin to add, remove, and configure them on any page.</p>" } },
+      { id: uuid(), componentType: "SpacerBlock", order: 2, data: { height: 40 } },
+
+      { id: uuid(), componentType: "TitleBlock", order: 3, data: { text: "Callout", level: "2", align: "left" } },
+      { id: uuid(), componentType: "CalloutBlock", order: 4, data: { type: "info", title: "Info callout", body: "Use this for helpful tips, notes, or supplementary information." } },
+      { id: uuid(), componentType: "CalloutBlock", order: 5, data: { type: "tip", title: "Tip callout", body: "Great for pro tips or recommended actions." } },
+      { id: uuid(), componentType: "CalloutBlock", order: 6, data: { type: "warning", title: "Warning callout", body: "Draws attention to something the reader should be careful about." } },
+      { id: uuid(), componentType: "CalloutBlock", order: 7, data: { type: "danger", title: "Danger callout", body: "Reserved for critical alerts or irreversible actions." } },
+      { id: uuid(), componentType: "SpacerBlock", order: 8, data: { height: 40 } },
+
+      { id: uuid(), componentType: "TitleBlock", order: 9, data: { text: "Quote", level: "2", align: "left" } },
+      { id: uuid(), componentType: "QuoteBlock", order: 10, data: { quote: "The strength of the community is each individual member. The strength of each member is the community.", attribution: "Phil Jackson", role: "Coach" } },
+      { id: uuid(), componentType: "SpacerBlock", order: 11, data: { height: 40 } },
+
+      { id: uuid(), componentType: "TitleBlock", order: 12, data: { text: "Accordion", level: "2", align: "left" } },
+      { id: uuid(), componentType: "AccordionBlock", order: 13, data: { heading: "Frequently Asked Questions", items: JSON.stringify([
+        { question: "How do I join a chapter?", answer: "Browse the Communities page and click 'View Group' on any chapter. From there you can join with a single click." },
+        { question: "Can I create my own chapter?", answer: "Yes — contact an admin to request a new chapter for your city or region." },
+        { question: "How do I post an event?", answer: "Events are created from the admin panel. Navigate to Admin → Events → New Event." },
+        { question: "Is membership free?", answer: "Basic membership is always free. Some events may have a ticket price set by the organiser." },
+      ]) } },
+      { id: uuid(), componentType: "SpacerBlock", order: 14, data: { height: 40 } },
+
+      { id: uuid(), componentType: "TitleBlock", order: 15, data: { text: "Video", level: "2", align: "left" } },
+      { id: uuid(), componentType: "TextBlock", order: 16, data: { content: "<p>Paste any YouTube, Vimeo, or direct <code>.mp4</code> URL into the Video block config to embed it.</p>" } },
+      { id: uuid(), componentType: "VideoBlock", order: 17, data: { url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", caption: "Example: a YouTube video embedded with the Video block." } },
+      { id: uuid(), componentType: "SpacerBlock", order: 18, data: { height: 40 } },
+
+      { id: uuid(), componentType: "TitleBlock", order: 19, data: { text: "Action Button", level: "2", align: "left" } },
+      { id: uuid(), componentType: "ActionButtonBlock", order: 20, data: { text: "Go to Admin Panel", href: "/admin/global", align: "left" } },
+      { id: uuid(), componentType: "SpacerBlock", order: 21, data: { height: 40 } },
+
+      { id: uuid(), componentType: "TitleBlock", order: 22, data: { text: "Dynamic Blocks", level: "2", align: "left" } },
+      { id: uuid(), componentType: "CalloutBlock", order: 23, data: { type: "info", title: "Self-fetching blocks", body: "The blocks below (Upcoming Events, Groups List, Posts List) fetch their own data from the database. Drop them on any page and they update automatically." } },
+      { id: uuid(), componentType: "SpacerBlock", order: 24, data: { height: 20 } },
+      { id: uuid(), componentType: "TitleBlock", order: 25, data: { text: "Upcoming Events", level: "3", align: "left" } },
+      { id: uuid(), componentType: "UpcomingEventsBlock", order: 26, data: {} },
     ],
   },
   {
@@ -1868,9 +1750,8 @@ const pageDefs: Array<{ title: string; slug: string; status: "published" | "draf
       { id: uuid(), componentType: "TitleBlock", order: 0, data: { text: "Our Communities", level: "1", align: "center" } },
       { id: uuid(), componentType: "SpacerBlock", order: 1, data: { height: 20 } },
       { id: uuid(), componentType: "TextBlock", order: 2, data: { content: "<p>Find your local community and connect with members in your area.</p>" } },
-      { id: uuid(), componentType: "LocalCommunitiesMapBlock", order: 3, data: {} },
-      { id: uuid(), componentType: "SpacerBlock", order: 4, data: { height: 40 } },
-      { id: uuid(), componentType: "GroupsListBlock", order: 5, data: {} },
+      { id: uuid(), componentType: "SpacerBlock", order: 3, data: { height: 40 } },
+      { id: uuid(), componentType: "GroupsListBlock", order: 4, data: {} },
     ],
   },
   {
@@ -1920,22 +1801,20 @@ console.log(`  pages seeded (${pageDefs.length})`);
 // Pages that have a builder-managed content page are linked via pageId.
 // Footer-only items (Contact, Privacy, Terms) are plain links with no page.
 const menuDefs: Array<{ title: string; url: string; position: number; menuName: string; hasPage?: boolean }> = [
-  { menuName: "main", title: "Home", url: "/", position: 0, hasPage: true },
-  { menuName: "main", title: "Events", url: "/events", position: 1, hasPage: true },
-  { menuName: "main", title: "Communities", url: "/communities", position: 2, hasPage: true },
-  { menuName: "main", title: "News", url: "/news", position: 3, hasPage: true },
-  { menuName: "main", title: "Jobs", url: "/jobs", position: 4 },
-  { menuName: "main", title: "About Us", url: "/about-us", position: 5, hasPage: true },
-  { menuName: "footer", title: "Home", url: "/", position: 0, hasPage: true },
-  { menuName: "footer", title: "Events", url: "/events", position: 1, hasPage: true },
-  { menuName: "footer", title: "Communities", url: "/communities", position: 2, hasPage: true },
-  { menuName: "footer", title: "About Us", url: "/about-us", position: 3, hasPage: true },
-  { menuName: "footer", title: "News", url: "/news", position: 4, hasPage: true },
-  { menuName: "footer", title: "Deals", url: "/deals", position: 5, hasPage: true },
-  { menuName: "footer", title: "Jobs", url: "/jobs", position: 6 },
-  { menuName: "footer", title: "Contact", url: "/contact", position: 7 },
-  { menuName: "footer", title: "Privacy Policy", url: "/privacy", position: 8 },
-  { menuName: "footer", title: "Terms of Service", url: "/terms", position: 9 },
+  { menuName: "main", title: "Home",          url: "/",              position: 0, hasPage: true },
+  { menuName: "main", title: "Events",        url: "/events",        position: 1, hasPage: true },
+  { menuName: "main", title: "Communities",   url: "/communities",   position: 2, hasPage: true },
+  { menuName: "main", title: "News",          url: "/news",          position: 3, hasPage: true },
+  { menuName: "main", title: "Jobs",          url: "/jobs",          position: 4 },
+  { menuName: "main", title: "About",         url: "/about",         position: 5, hasPage: true },
+  { menuName: "footer", title: "Home",        url: "/",              position: 0, hasPage: true },
+  { menuName: "footer", title: "Events",      url: "/events",        position: 1, hasPage: true },
+  { menuName: "footer", title: "Communities", url: "/communities",   position: 2, hasPage: true },
+  { menuName: "footer", title: "News",        url: "/news",          position: 3, hasPage: true },
+  { menuName: "footer", title: "Deals",       url: "/deals",         position: 4, hasPage: true },
+  { menuName: "footer", title: "Jobs",        url: "/jobs",          position: 5 },
+  { menuName: "footer", title: "About",       url: "/about",         position: 6, hasPage: true },
+  { menuName: "footer", title: "Block Gallery", url: "/block-gallery", position: 7, hasPage: true },
 ];
 
 for (const m of menuDefs) {
@@ -1958,48 +1837,54 @@ console.log(`  menu items seeded (${menuDefs.length})`);
 
 // ─── 16. Deals ───────────────────────────────────────────────────────────────
 
-// Upload the seed SVG logo to S3 once, reuse the key for all deals
-async function uploadSeedSvg(): Promise<string | null> {
-  const svgPath = path.join(process.cwd(), "instagram-logo-facebook-2-svgrepo-com.svg");
-  if (!fs.existsSync(svgPath)) {
-    console.warn("  SVG file not found, skipping logo upload for deals");
-    return null;
-  }
+const dealS3 = new S3Client({
+  region: seedStorageConfig.region,
+  endpoint: seedStorageConfig.endpoint,
+  forcePathStyle: true,
+  credentials: {
+    accessKeyId: seedStorageConfig.accessKeyId,
+    secretAccessKey: seedStorageConfig.secretAccessKey,
+  },
+});
 
-  const s3 = new S3Client({
-    region: seedStorageConfig.region,
-    endpoint: seedStorageConfig.endpoint,
-    forcePathStyle: true,
-    credentials: {
-      accessKeyId: seedStorageConfig.accessKeyId,
-      secretAccessKey: seedStorageConfig.secretAccessKey,
-    },
-  });
-
-  const svgKey = "public/deals/logos/seed-logo.svg";
-  await s3.send(
-    new PutObjectCommand({
+async function uploadDealLogo(slug: string, bgColor: string, letter: string): Promise<string | null> {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="${bgColor}"/>
+  <text x="100" y="115" text-anchor="middle" dominant-baseline="middle"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-size="96" font-weight="700" fill="white">${letter}</text>
+</svg>`;
+  const key = `public/deals/logos/seed-${slug}.svg`;
+  try {
+    await dealS3.send(new PutObjectCommand({
       Bucket: seedStorageConfig.bucket,
-      Key: svgKey,
-      Body: fs.readFileSync(svgPath),
+      Key: key,
+      Body: Buffer.from(svg, "utf8"),
       ContentType: "image/svg+xml",
       CacheControl: "public, max-age=86400",
-    }),
-  );
-  return svgKey;
+    }));
+    return key;
+  } catch {
+    console.warn(`  could not upload deal logo for ${slug}, skipping`);
+    return null;
+  }
 }
 
-const svgLogoKey = await uploadSeedSvg();
-
 const dealDefs: Array<{
+  slug: string;
+  logoColor: string;
+  logoLetter: string;
   name: string;
   description: string;
   validUntilOffsetDays: number | null;
   steps: schema.DealStep[];
 }> = [
   {
+    slug: "cafe",
+    logoColor: "#0d9488",
+    logoLetter: "C",
     name: "10% Off at Partner Café",
-    description: "Enjoy an exclusive 10% discount at our partner café chain across all German locations.",
+    description: "Enjoy an exclusive 10% discount at our partner café chain.",
     validUntilOffsetDays: 90,
     steps: [
       {
@@ -2026,8 +1911,11 @@ const dealDefs: Array<{
     ],
   },
   {
+    slug: "gym",
+    logoColor: "#ea580c",
+    logoLetter: "G",
     name: "Free Month at FitSpace Gym",
-    description: "Get your first month completely free at any FitSpace gym in Germany.",
+    description: "Get your first month completely free at any FitSpace gym location.",
     validUntilOffsetDays: 60,
     steps: [
       {
@@ -2054,6 +1942,9 @@ const dealDefs: Array<{
     ],
   },
   {
+    slug: "cowork",
+    logoColor: "#7c3aed",
+    logoLetter: "W",
     name: "20% Off Co-Working Day Pass",
     description: "Work from one of our co-working partner spaces at a special member rate.",
     validUntilOffsetDays: null,
@@ -2061,7 +1952,7 @@ const dealDefs: Array<{
       {
         type: "text",
         title: "Valid Locations",
-        text: "Valid at all SpaceHub co-working locations in Berlin, Munich, Hamburg, Frankfurt and Cologne.",
+        text: "Valid at all SpaceHub co-working partner locations. Find a location near you on their website.",
         requiresLogin: false,
       },
       {
@@ -2074,6 +1965,9 @@ const dealDefs: Array<{
     ],
   },
   {
+    slug: "expired",
+    logoColor: "#6b7280",
+    logoLetter: "X",
     name: "Expired Deal (Seed)",
     description: "This deal has already expired — used to test expiry filtering.",
     validUntilOffsetDays: -10,
@@ -2089,6 +1983,7 @@ const dealDefs: Array<{
 ];
 
 for (const d of dealDefs) {
+  const logoKey = await uploadDealLogo(d.slug, d.logoColor, d.logoLetter);
   const validUntil =
     d.validUntilOffsetDays !== null ? daysFromNow(d.validUntilOffsetDays) : null;
   db.insert(schema.deals)
@@ -2096,7 +1991,7 @@ for (const d of dealDefs) {
       id: uuid(),
       name: d.name,
       description: d.description,
-      logo: svgLogoKey,
+      logo: logoKey,
       validUntil,
       steps: d.steps,
       createdAt: now(),
@@ -2122,10 +2017,10 @@ const jobDefs: Array<{
 }> = [
   {
     title: "Senior Full-Stack Engineer",
-    body: `<h2>About the role</h2><p>We are looking for a Senior Full-Stack Engineer to join our product team in Berlin. You will own features end-to-end — from database design through to the user interface.</p><h2>What you'll do</h2><ul><li>Design and build scalable backend APIs with Node.js</li><li>Develop responsive frontend components in React or similar</li><li>Collaborate with product and design in a small, fast-moving team</li></ul><h2>What we're looking for</h2><ul><li>5+ years of professional software development experience</li><li>Solid TypeScript and SQL skills</li><li>Strong communication and ownership mindset</li></ul>`,
+    body: `<h2>About the role</h2><p>We are looking for a Senior Full-Stack Engineer to join our product team. You will own features end-to-end — from database design through to the user interface.</p><h2>What you'll do</h2><ul><li>Design and build scalable backend APIs with Node.js</li><li>Develop responsive frontend components in React or similar</li><li>Collaborate with product and design in a small, fast-moving team</li></ul><h2>What we're looking for</h2><ul><li>5+ years of professional software development experience</li><li>Solid TypeScript and SQL skills</li><li>Strong communication and ownership mindset</li></ul>`,
     locationType: "on-site",
-    city: "Berlin",
-    country: "Germany",
+    city: "Demo City",
+    country: "Exampleland",
     link: "https://example.com/jobs/senior-fullstack",
     posterRelation: "hiring",
     expiresAtOffsetDays: 25,
@@ -2143,21 +2038,21 @@ const jobDefs: Array<{
     authorIdx: 2,
   },
   {
-    title: "Data Analyst — Germany",
+    title: "Data Analyst — Remote",
     body: `<h2>What you'll be doing</h2><p>Join our analytics team and help us turn data into decisions. You'll build dashboards, run analyses, and work with stakeholders across the business.</p><h2>Skills & experience</h2><ul><li>Strong SQL and Python skills</li><li>Experience with BI tools such as Metabase or Looker</li><li>Comfortable presenting findings to non-technical audiences</li></ul>`,
     locationType: "remote-country",
-    country: "Germany",
+    country: "Exampleland",
     posterRelation: "works-there",
     expiresAtOffsetDays: 18,
     status: "approved",
     authorIdx: 4,
   },
   {
-    title: "Community Manager — Munich",
-    body: `<h2>About this role</h2><p>We are growing our Munich presence and are looking for a Community Manager to cultivate and grow the local member base. You'll organise events, onboard new members, and be the face of the community in the city.</p><h2>What we need</h2><ul><li>Excellent interpersonal and organisational skills</li><li>Experience planning and running events</li><li>Fluency in German and English</li></ul>`,
+    title: "Community Manager",
+    body: `<h2>About this role</h2><p>We are growing our local presence and are looking for a Community Manager to cultivate and grow the member base. You'll organise events, onboard new members, and be the face of the community.</p><h2>What we need</h2><ul><li>Excellent interpersonal and organisational skills</li><li>Experience planning and running events</li><li>Strong communication skills</li></ul>`,
     locationType: "on-site",
-    city: "Munich",
-    country: "Germany",
+    city: "Southville",
+    country: "Exampleland",
     posterRelation: "founder",
     expiresAtOffsetDays: 28,
     status: "approved",
@@ -2165,10 +2060,10 @@ const jobDefs: Array<{
   },
   {
     title: "Backend Engineer — Pending Review",
-    body: `<h2>The role</h2><p>We are hiring a Backend Engineer to work on our core platform API. This is a full-time position based in Frankfurt.</p><h2>Requirements</h2><ul><li>3+ years backend experience (Go, Node.js, or Python)</li><li>Experience with REST and/or GraphQL APIs</li><li>Familiarity with cloud infrastructure (AWS, GCP)</li></ul>`,
+    body: `<h2>The role</h2><p>We are hiring a Backend Engineer to work on our core platform API.</p><h2>Requirements</h2><ul><li>3+ years backend experience (Go, Node.js, or Python)</li><li>Experience with REST and/or GraphQL APIs</li><li>Familiarity with cloud infrastructure (AWS, GCP)</li></ul>`,
     locationType: "on-site",
-    city: "Frankfurt",
-    country: "Germany",
+    city: "Midtown",
+    country: "Exampleland",
     link: "https://example.com/jobs/backend-engineer",
     posterRelation: "hiring",
     expiresAtOffsetDays: 30,
@@ -2177,7 +2072,7 @@ const jobDefs: Array<{
   },
   {
     title: "Marketing Lead — Pending Review",
-    body: `<h2>Overview</h2><p>We are looking for a Marketing Lead to own our growth channels and brand strategy across Germany.</p><h2>What you'll do</h2><ul><li>Define and execute the marketing roadmap</li><li>Manage social media, email, and paid channels</li><li>Measure and report on campaign performance</li></ul>`,
+    body: `<h2>Overview</h2><p>We are looking for a Marketing Lead to own our growth channels and brand strategy.</p><h2>What you'll do</h2><ul><li>Define and execute the marketing roadmap</li><li>Manage social media, email, and paid channels</li><li>Measure and report on campaign performance</li></ul>`,
     locationType: "remote-eu",
     posterRelation: "direct-team",
     expiresAtOffsetDays: 14,
@@ -2188,8 +2083,8 @@ const jobDefs: Array<{
     title: "Expired Role (Seed)",
     body: "<p>This job listing has already expired and should not appear in the public job board.</p>",
     locationType: "on-site",
-    city: "Hamburg",
-    country: "Germany",
+    city: "Portstown",
+    country: "Exampleland",
     expiresAtOffsetDays: -5,
     status: "approved",
     authorIdx: 6,
@@ -2229,7 +2124,7 @@ const tagDefDefs: Array<{ slug: string; label: string; category: "board" | "qual
   // Participation
   { slug: "event-speaker",   label: "Event Speaker",   category: "participation",  description: "Has spoken at one of our events." },
   { slug: "event-volunteer", label: "Event Volunteer", category: "participation",  description: "Has volunteered at one of our events." },
-  { slug: "summer-school-alumni", label: "Summer School Alumni", category: "participation", description: "Attended a summer school." },
+  { slug: "program-graduate", label: "Program Graduate", category: "participation", description: "Completed one of our programs." },
   // Custom
   { slug: "mentor",          label: "Mentor",          category: "custom",         description: "Active mentor in the community." },
   { slug: "ambassador",      label: "Ambassador",      category: "custom",         description: "Community ambassador in their city or region." },
@@ -2373,128 +2268,6 @@ console.log(`  user qualifications seeded (${qualCount})`);
 console.log(`  user memberships seeded (${membershipCount})`);
 console.log(`  user tags seeded (${tagCount})`);
 
-// ─── 20. Elections ────────────────────────────────────────────────────────────
-
-const electionCycleDefs: Array<{
-  title: string;
-  year: number;
-  description: string;
-  status: "draft" | "open" | "closed";
-  requiredMembershipTier: "associated" | "full" | null;
-}> = [
-  {
-    title: "Board Elections 2024",
-    year: 2024,
-    description: "Annual board elections for the 2024–2026 term.",
-    status: "closed",
-    requiredMembershipTier: "full",
-  },
-  {
-    title: "Board Elections 2026",
-    year: 2026,
-    description: "Nominations are open for the 2026–2028 board term. Full members may apply.",
-    status: "open",
-    requiredMembershipTier: "full",
-  },
-];
-
-const existingCycles = db.select().from(schema.electionCycles).all();
-const cycleIdByTitle: Record<string, string> = {};
-
-for (const c of electionCycleDefs) {
-  const existing = existingCycles.find((ec) => ec.title === c.title);
-  if (existing) {
-    cycleIdByTitle[c.title] = existing.id;
-  } else {
-    const id = uuid();
-    db.insert(schema.electionCycles)
-      .values({ id, title: c.title, year: c.year, description: c.description, status: c.status, requiredMembershipTier: c.requiredMembershipTier, createdAt: now(), updatedAt: now() })
-      .run();
-    cycleIdByTitle[c.title] = id;
-    console.log(`  created election cycle '${c.title}'`);
-  }
-}
-
-const positionDefs: Array<{ cycleTitle: string; title: string; description: string }> = [
-  { cycleTitle: "Board Elections 2024", title: "Board President", description: "Leads the board and chairs meetings." },
-  { cycleTitle: "Board Elections 2024", title: "Secretary", description: "Manages communication and minutes." },
-  { cycleTitle: "Board Elections 2026", title: "Board President", description: "Leads the board and chairs meetings." },
-  { cycleTitle: "Board Elections 2026", title: "Treasurer", description: "Oversees finances and budgeting." },
-  { cycleTitle: "Board Elections 2026", title: "Secretary", description: "Manages communication and minutes." },
-];
-
-const existingPositions = db.select().from(schema.electionPositions).all();
-const positionIdByKey: Record<string, string> = {};
-
-for (const p of positionDefs) {
-  const cycleId = cycleIdByTitle[p.cycleTitle];
-  if (!cycleId) continue;
-  const key = `${p.cycleTitle}::${p.title}`;
-  const existing = existingPositions.find((ep) => ep.cycleId === cycleId && ep.title === p.title);
-  if (existing) {
-    positionIdByKey[key] = existing.id;
-  } else {
-    const id = uuid();
-    db.insert(schema.electionPositions)
-      .values({ id, cycleId, title: p.title, description: p.description, createdAt: now() })
-      .run();
-    positionIdByKey[key] = id;
-  }
-}
-
-const applicationDefs: Array<{
-  cycleTitle: string;
-  positionTitle: string;
-  userIdx: number;
-  status: "pending" | "approved" | "rejected";
-  adminNote?: string;
-}> = [
-  // 2024 historical (closed cycle)
-  { cycleTitle: "Board Elections 2024", positionTitle: "Board President", userIdx: 0, status: "approved" },
-  { cycleTitle: "Board Elections 2024", positionTitle: "Secretary", userIdx: 2, status: "approved" },
-  { cycleTitle: "Board Elections 2024", positionTitle: "Secretary", userIdx: 6, status: "rejected", adminNote: "Withdrew candidacy before vote." },
-
-  // 2026 active (open cycle)
-  { cycleTitle: "Board Elections 2026", positionTitle: "Board President", userIdx: 0, status: "pending" },
-  { cycleTitle: "Board Elections 2026", positionTitle: "Board President", userIdx: 2, status: "pending" },
-  { cycleTitle: "Board Elections 2026", positionTitle: "Treasurer", userIdx: 1, status: "approved" },
-  { cycleTitle: "Board Elections 2026", positionTitle: "Secretary", userIdx: 6, status: "approved" },
-  { cycleTitle: "Board Elections 2026", positionTitle: "Secretary", userIdx: -1, status: "rejected", adminNote: "Admin cannot serve on the board while also administering the platform." },
-];
-
-const existingApplications = db.select().from(schema.electionApplications).all();
-
-for (const a of applicationDefs) {
-  const cycleId = cycleIdByTitle[a.cycleTitle];
-  const positionId = positionIdByKey[`${a.cycleTitle}::${a.positionTitle}`];
-  const userId = a.userIdx === -1 ? adminUser!.id : testUsers[a.userIdx]?.id;
-  if (!cycleId || !positionId || !userId) continue;
-
-  const exists = existingApplications.find((ea) => ea.positionId === positionId && ea.userId === userId);
-  if (exists) continue;
-
-  db.insert(schema.electionApplications)
-    .values({
-      id: uuid(),
-      positionId,
-      cycleId,
-      userId,
-      status: a.status,
-      motivationWhy: "I am passionate about the community and believe I can contribute meaningfully to its direction and growth.",
-      motivationExperience: "I have been an active member for several years and have organised multiple events across different cities.",
-      motivationGoals: "I want to strengthen member engagement, improve transparency in decision-making, and grow our local chapters.",
-      adminNote: a.adminNote ?? null,
-      createdAt: now(),
-      updatedAt: now(),
-    })
-    .run();
-}
-
-const electionCycleCount = db.select().from(schema.electionCycles).all().length;
-const electionPositionCount = db.select().from(schema.electionPositions).all().length;
-const electionApplicationCount = db.select().from(schema.electionApplications).all().length;
-console.log(`  elections seeded (${electionCycleCount} cycles, ${electionPositionCount} positions, ${electionApplicationCount} applications)`);
-
 // ─── Done ────────────────────────────────────────────────────────────────────
 
 const counts = {
@@ -2506,9 +2279,6 @@ const counts = {
   events: db.select().from(schema.events).all().length,
   inventoryGroups: db.select().from(schema.inventoryGroups).all().length,
   products: db.select().from(schema.products).all().length,
-  transactions: db.select().from(schema.transactions).all().length,
-  tickets: db.select().from(schema.tickets).all().length,
-  ticketParticipants: db.select().from(schema.ticketParticipants).all().length,
   participationStatus: db.select().from(schema.participationStatus).all().length,
   pages: db.select().from(schema.pages).all().length,
   menuItems: db.select().from(schema.menuItems).all().length,
@@ -2519,9 +2289,6 @@ const counts = {
   userQualifications: db.select().from(schema.userQualifications).all().length,
   userMemberships: db.select().from(schema.userMemberships).all().length,
   userTags: db.select().from(schema.userTags).all().length,
-  electionCycles: db.select().from(schema.electionCycles).all().length,
-  electionPositions: db.select().from(schema.electionPositions).all().length,
-  electionApplications: db.select().from(schema.electionApplications).all().length,
 };
 
 console.log("\n✅ Seed complete:");

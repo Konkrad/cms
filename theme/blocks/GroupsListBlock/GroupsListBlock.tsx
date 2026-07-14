@@ -4,7 +4,7 @@ import type { BlockDefinition } from "~/db/schema";
 import type { Group } from "~/db/schema";
 import { groupsService } from "~/services/groups.service";
 import { groupMembershipsService } from "~/services/group-memberships.service";
-import { ListCard } from "../ListCard";
+import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 
 export const definition: BlockDefinition = {
@@ -63,15 +63,15 @@ export default component$(() => {
       ) : groups.value.length === 0 ? (
         <p class="text-text-muted text-center py-8">No groups found.</p>
       ) : (
-        <div class="flex flex-col gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {groups.value.map((group) => (
-            <ListCard
+            <ContentCard
               key={group.id}
               title={group.name}
               image={group.image1 ? publicImageUrlFromKey(deriveThumbnailKey(group.image1)) : null}
-              topRight={`${group.memberCount} ${group.memberCount === 1 ? "member" : "members"}`}
-              readMoreHref={`/groups/${group.slug}`}
-              readMoreLabel="Read More"
+              meta={`${group.memberCount} ${group.memberCount === 1 ? "member" : "members"}`}
+              href={`/groups/${group.slug}`}
+              label="View Group"
             />
           ))}
         </div>

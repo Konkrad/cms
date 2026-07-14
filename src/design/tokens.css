@@ -10,11 +10,11 @@
  */
 :root {
   /* ── Brand ── */
-  --color-primary: #034EA2;
-  --color-primary-light: #0a6dd6;
-  --color-primary-dark: #031241;
-  --color-accent: #96C247;
-  --color-accent-dark: #7da636;
+  --color-primary: #111827;
+  --color-primary-light: #1f2937;
+  --color-primary-dark: #030712;
+  --color-accent: #7c3aed;
+  --color-accent-dark: #6d28d9;
 
   /* ── Neutrals ── */
   --color-bg: #f9fafb;
@@ -41,14 +41,17 @@
   --color-danger-dark: #b91c1c;
 
   /* ── Focus ── */
-  --color-focus-ring: #034EA2;
-  --focus-ring: 0 0 0 2px rgba(3, 78, 162, 0.25);
+  --color-focus-ring: #7c3aed;
+  --focus-ring: 0 0 0 2px rgba(124, 58, 237, 0.25);
 
   /* ── Radii ── */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
+  --radius: 0.125rem;
+  --radius-sm: 0.125rem;
+  --radius-md: 0.125rem;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
 
   /* ── Shadows ── */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);

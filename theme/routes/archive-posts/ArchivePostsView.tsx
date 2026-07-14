@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
-import { ListCard } from "~theme/blocks/ListCard";
+import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 import { formatPostDate, toPlainText } from "~/utils/posts";
 import type { ArchivePostsViewData } from "~/contracts/archive-posts";
 
@@ -26,7 +26,7 @@ export const ArchivePostsView = component$<{ data: ArchivePostsViewData }>(
     return (
       <div class="max-w-6xl mx-auto px-4 py-12">
         <div class="mb-8">
-          <h1 class="font-['Rubik',sans-serif] font-semibold text-[36px] md:text-[44px] leading-[1.1] text-text-heading">
+          <h1 class="font-semibold text-[36px] md:text-[44px] leading-[1.1] text-text-heading">
             Post Archive
           </h1>
         </div>
@@ -34,16 +34,16 @@ export const ArchivePostsView = component$<{ data: ArchivePostsViewData }>(
         {items.length === 0 ? (
           <p class="text-text-muted text-center py-8">No posts found.</p>
         ) : (
-          <div class="flex flex-col gap-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {items.map((post) => (
-              <ListCard
+              <ContentCard
                 key={post.id}
                 title={post.title}
                 image={post.featuredImage ?? undefined}
                 date={formatPostDate(post.createdAt)}
                 description={toPlainText(post.body).substring(0, 180)}
-                readMoreHref={`/posts/${post.id}`}
-                readMoreLabel="Read More"
+                href={`/posts/${post.id}`}
+                label="Read More"
               />
             ))}
           </div>
@@ -54,7 +54,7 @@ export const ArchivePostsView = component$<{ data: ArchivePostsViewData }>(
             {previousHref ? (
               <Link
                 href={previousHref}
-                class="px-4 py-2 rounded-full border border-border-strong text-sm font-medium text-text-heading hover:bg-bg"
+                class="px-4 py-2 border border-border-strong text-sm font-medium text-text-heading hover:bg-bg"
               >
                 Previous
               </Link>
@@ -67,7 +67,7 @@ export const ArchivePostsView = component$<{ data: ArchivePostsViewData }>(
             {nextHref ? (
               <Link
                 href={nextHref}
-                class="px-4 py-2 rounded-full border border-border-strong text-sm font-medium text-text-heading hover:bg-bg"
+                class="px-4 py-2 border border-border-strong text-sm font-medium text-text-heading hover:bg-bg"
               >
                 Next
               </Link>

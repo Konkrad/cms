@@ -40,7 +40,7 @@ export default defineConfig({
   reporter: "list",
   webServer: {
     // Reseed the isolated test DB, then start the dedicated server bound to it.
-    command: `npm run db:seed && npm run dev -- --port ${PORT}`,
+    command: `npm run db:seed && npm run db:seed:test && npm run dev -- --port ${PORT}`,
     url: BASE_URL,
     // Never reuse an ambient dev server — always start a dedicated one bound to
     // the freshly-seeded test DB. Fails loudly if the port is already taken.

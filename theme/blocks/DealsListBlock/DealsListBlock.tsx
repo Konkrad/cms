@@ -4,7 +4,7 @@ import type { BlockDefinition } from "~/db/schema";
 import type { Deal } from "~/db/schemas/deals";
 import { dealsService } from "~/services/deals.service";
 import { publicImageUrlFromKey } from "~/utils/images";
-import { ListCard } from "../ListCard";
+import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 
 export const definition: BlockDefinition = {
   name: "Deals",
@@ -47,16 +47,16 @@ export default component$(() => {
       ) : deals.value.length === 0 ? (
         <p class="text-text-muted text-center py-8">No deals available.</p>
       ) : (
-        <div class="flex flex-col gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {deals.value.map((deal) => (
-            <ListCard
+            <ContentCard
               key={deal.id}
               title={deal.name}
               image={publicImageUrlFromKey(deal.logo)}
               imageAlt={deal.name}
               description={deal.description ?? undefined}
-              readMoreHref={`/deals/${deal.id}`}
-              readMoreLabel="View deal"
+              href={`/deals/${deal.id}`}
+              label="View deal"
             />
           ))}
         </div>

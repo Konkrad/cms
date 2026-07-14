@@ -47,7 +47,7 @@ export const ParticipantsTile = component$<ParticipantsTileProps>((props) => {
       class={`${bgClass} rounded-[25px] p-8 h-full flex flex-col justify-between`}
       style={props.area ? { gridArea: props.area } : undefined}
     >
-      <h3 class="font-['Rubik',sans-serif] font-semibold text-[30px] leading-[1.406] text-white mb-6">
+      <h3 class="font-semibold text-[30px] leading-[1.406] text-white mb-6">
         {title}
       </h3>
 
@@ -94,15 +94,15 @@ export const ParticipantsTile = component$<ParticipantsTileProps>((props) => {
           </div>
 
           <div class="space-y-1 mb-2">
-            <p class="font-['Lato',sans-serif] font-bold text-[16px] leading-[1.348] text-white">
+            <p class="font-bold text-[16px] leading-[1.348] text-white">
               {displayParticipants[0] && formatUserName(displayParticipants[0])}
               <span class="font-normal"> and</span>
             </p>
-            <p class="font-['Lato',sans-serif] text-[16px] leading-[1.348] text-white">
+            <p class="text-[16px] leading-[1.348] text-white">
               <span class="font-bold">{count - 1} others</span>
             </p>
             {props.summaryLine && (
-              <p class="font-['Lato',sans-serif] text-[16px] leading-[1.348] text-white">
+              <p class="text-[16px] leading-[1.348] text-white">
                 {props.summaryLine}
               </p>
             )}
@@ -115,8 +115,8 @@ export const ParticipantsTile = component$<ParticipantsTileProps>((props) => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM3 20a6 6 0 0 1 12 0v1H3v-1Z" />
             </svg>
           </div>
-          <p class="font-['Lato',sans-serif] font-bold text-[18px] text-white mb-1">{emptyTitle}</p>
-          <p class="font-['Lato',sans-serif] text-[14px] text-white/70 leading-snug">{emptyBody}</p>
+          <p class="font-bold text-[18px] text-white mb-1">{emptyTitle}</p>
+          <p class="text-[14px] text-white/70 leading-snug">{emptyBody}</p>
         </div>
       )}
 
@@ -125,7 +125,7 @@ export const ParticipantsTile = component$<ParticipantsTileProps>((props) => {
           {props.seeAllHref ? (
             <a href={props.seeAllHref} class="flex items-center gap-2 group mt-4 cursor-pointer">
               <SeeAllIcon />
-              <span class="font-['Lato',sans-serif] font-bold text-[14px] leading-[1.348] text-white group-hover:underline">
+              <span class="font-bold text-[14px] leading-[1.348] text-white group-hover:underline">
                 {seeAllLabel}
               </span>
             </a>
@@ -135,7 +135,7 @@ export const ParticipantsTile = component$<ParticipantsTileProps>((props) => {
               class="flex items-center gap-2 group mt-4 cursor-pointer bg-transparent border-none p-0"
             >
               <SeeAllIcon />
-              <span class="font-['Lato',sans-serif] font-bold text-[14px] leading-[1.348] text-white group-hover:underline">
+              <span class="font-bold text-[14px] leading-[1.348] text-white group-hover:underline">
                 {seeAllLabel}
               </span>
             </button>

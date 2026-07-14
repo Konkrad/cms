@@ -254,7 +254,7 @@ let testUsers = db
   .select()
   .from(schema.users)
   .all()
-  .filter((u) => u.role === "user" && testLoginIds.has(u.loginId));
+  .filter((u) => u.role === "user" && testLoginIds.has(u.loginId ?? ""));
 
 // Ensure existing test users have the consent fields needed to reach the survey phase.
 for (const u of testUsers) {
@@ -292,7 +292,7 @@ if (testUsers.length < 10) {
     .select()
     .from(schema.users)
     .all()
-    .filter((u) => u.role === "user" && testLoginIds.has(u.loginId));
+    .filter((u) => u.role === "user" && testLoginIds.has(u.loginId ?? ""));
   console.log(`  ensured 10 test users exist (now ${testUsers.length})`);
 }
 
@@ -316,7 +316,7 @@ const allBulkUsers = db
   .filter(
     (u) =>
       u.role === "user" &&
-      !testLoginIds.has(u.loginId),
+      !testLoginIds.has(u.loginId ?? ""),
   );
 
 // All users missing a city (includes admin, host, test, QA users)
@@ -482,7 +482,7 @@ console.log("  memberships seeded");
       (u) =>
         u.id !== adminUser.id &&
         u.id !== hostUser.id &&
-        !testLoginIds.has(u.loginId),
+        !testLoginIds.has(u.loginId ?? ""),
     )
     .map((u) => u.id);
 
@@ -1290,7 +1290,7 @@ console.log("  inventory & products seeded");
 
 {
   const bulkUsers = db.select().from(schema.users).all()
-    .filter((u) => u.id !== adminUser.id && u.id !== hostUser.id && !testLoginIds.has(u.loginId));
+    .filter((u) => u.id !== adminUser.id && u.id !== hostUser.id && !testLoginIds.has(u.loginId ?? ""));
   const bulkUserPool = bulkUsers.map((u) => u.id);
   const bulkUserById = new Map(bulkUsers.map((u) => [u.id, u]));
   const loginEmailById = new Map(
@@ -1329,7 +1329,7 @@ console.log("  inventory & products seeded");
       address: opts.address || null, city: opts.city, country: opts.country,
       longitude: opts.longitude, latitude: opts.latitude,
       onlineUrl: opts.onlineUrl ?? null,
-      userId: adminUser.id,
+      userId: adminUser!.id,
       groupId: opts.groupSlug ? groupIds[opts.groupSlug] : null,
       visibility: "global", createdAt, updatedAt: createdAt,
     }).run();
@@ -1339,9 +1339,9 @@ console.log("  inventory & products seeded");
       id: invId, eventId, name: "Tickets",
       maxCapacity: opts.products.reduce((s, p) => s + p.capacity, 0),
       needsTicket: true,
-      salesStartAt: new Date(new Date(opts.startDate).getTime() - 60 * 86_400_000).toISOString(),
-      salesEndAt:   new Date(new Date(opts.startDate).getTime() -      86_400_000).toISOString(),
-      createdAt, updatedAt: createdAt,
+      salesStartDate: new Date(new Date(opts.startDate).getTime() - 60 * 86_400_000).toISOString(),
+      salesEndDate:   new Date(new Date(opts.startDate).getTime() -      86_400_000).toISOString(),
+      createdAt,
     }).run();
 
     for (const product of opts.products) {
@@ -1568,7 +1568,7 @@ if (onboardingForm) {
   // Delete any existing form results for test users so they land on the survey fresh.
   const testUserIdsForCleanup = new Set(
     db.select().from(schema.users).all()
-      .filter((u) => testLoginIds.has(u.loginId))
+      .filter((u) => testLoginIds.has(u.loginId ?? ""))
       .map((u) => u.id),
   );
   for (const userId of testUserIdsForCleanup) {
@@ -1613,7 +1613,7 @@ if (onboardingForm) {
   // Exclude test users so they land on the survey fresh each time.
   const testUserIds = new Set(
     db.select().from(schema.users).all()
-      .filter((u) => testLoginIds.has(u.loginId))
+      .filter((u) => testLoginIds.has(u.loginId ?? ""))
       .map((u) => u.id),
   );
   const usersToSeed = db.select().from(schema.users).all();

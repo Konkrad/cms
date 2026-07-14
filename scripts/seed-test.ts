@@ -121,7 +121,7 @@ const testLoginIds = new Set(
 );
 
 let testUsers = db.select().from(schema.users).all()
-  .filter((u) => u.role === "user" && testLoginIds.has(u.loginId));
+  .filter((u) => u.role === "user" && testLoginIds.has(u.loginId ?? ""));
 
 if (testUsers.length < 10) {
   for (let i = testUsers.length; i < 10; i++) {
@@ -145,7 +145,7 @@ if (testUsers.length < 10) {
       .run();
   }
   testUsers = db.select().from(schema.users).all()
-    .filter((u) => u.role === "user" && testLoginIds.has(u.loginId));
+    .filter((u) => u.role === "user" && testLoginIds.has(u.loginId ?? ""));
 }
 console.log(`  test users: ${testUsers.length}`);
 

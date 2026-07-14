@@ -53,7 +53,7 @@ async function saveAndConfirm(page: Page) {
 
 test.describe("Pages — create & edit", () => {
   test("create new page redirects to builder", async ({ adminPage: page }) => {
-    const ts = Date.now();
+    const ts = Date.now().toString(36);
     const url = `/e2e-create-${ts}`;
     let createdPageId: string | null = null;
 
@@ -80,7 +80,7 @@ test.describe("Pages — create & edit", () => {
   });
 
   test("edit page settings updates title, status and visibility", async ({ adminPage: page }) => {
-    const ts = Date.now();
+    const ts = Date.now().toString(36);
     const { pageId } = createPageInDb({
       title: `E2E Edit Test ${ts}`,
       url: `/e2e-edit-${ts}`,
@@ -110,7 +110,7 @@ test.describe("Pages — create & edit", () => {
 
 test.describe("Pages — menu management", () => {
   test("add a footer link via the footer form", async ({ adminPage: page }) => {
-    const ts = Date.now();
+    const ts = Date.now().toString(36);
     const title = `E2E Footer ${ts}`;
     const url = `/e2e-footer-${ts}`;
 
@@ -133,7 +133,7 @@ test.describe("Pages — menu management", () => {
   });
 
   test("delete a page-linked menu item from the list", async ({ adminPage: page }) => {
-    const ts = Date.now();
+    const ts = Date.now().toString(36);
     const { pageId } = createPageInDb({
       title: `E2E Delete Me ${ts}`,
       url: `/e2e-delete-${ts}`,
@@ -161,7 +161,7 @@ test.describe("Pages — menu management", () => {
   });
 
   test("reorder footer links via drag-and-drop", async ({ adminPage: page }) => {
-    const ts = Date.now();
+    const ts = Date.now().toString(36);
     // Create two footer items with explicit positions so we know their order
     const idA = createMenuItemInDb({
       menuName: "footer",
@@ -641,7 +641,7 @@ test.describe("Pages — builder: complex blocks", () => {
 
 test.describe("Pages — public rendering", () => {
   test("published page is accessible at its configured URL", async ({ adminPage: page }) => {
-    const ts = Date.now();
+    const ts = Date.now().toString(36);
     const publicUrl = `/e2e-public-${ts}`;
     const { pageId } = createPageInDb({
       title: `E2E Public Page ${ts}`,
@@ -666,7 +666,7 @@ test.describe("Pages — public rendering", () => {
   });
 
   test("draft page returns 404 or redirects away", async ({ adminPage: page }) => {
-    const ts = Date.now();
+    const ts = Date.now().toString(36);
     const draftUrl = `/e2e-draft-${ts}`;
     const { pageId } = createPageInDb({
       title: `E2E Draft Page ${ts}`,

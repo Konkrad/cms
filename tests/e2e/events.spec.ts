@@ -148,6 +148,8 @@ test.describe('Events — logged-in interactions', () => {
     await page.goto(`/events/${ev.id}`);
     await expect(page.locator('text=Join Waitlist')).toBeVisible({ timeout: 5_000 });
     await page.click('text=Join Waitlist');
-    await expect(page.locator("text=✓ You're on the waitlist!")).toBeVisible({ timeout: 5_000 });
+    // The action does a 303 redirect — wait for the page to reload before asserting.
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("text=✓ You're on the waitlist!")).toBeVisible({ timeout: 15_000 });
   });
 });

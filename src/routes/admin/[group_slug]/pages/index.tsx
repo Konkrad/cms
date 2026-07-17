@@ -1,4 +1,4 @@
-import { $, component$ } from "@qwik.dev/core";
+import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { MenuTable } from "~/components/admin/MenuTable/MenuTable";
@@ -386,6 +386,14 @@ export default component$(() => {
   const moveMenuItemAction = useMoveMenuItem();
   const deleteMenuItemAction = useDeleteMenuItem();
 
+  // The action's implicit loader revalidation isn't reliably reflected client-side
+  // after a Form/action submit in this app, so add/update/delete patch this local
+  // copy optimistically instead of depending purely on `menuItemsData.value`
+  // (mirrors the pattern used for event participation and election status).
+  const optimisticMenu = useSignal<{ main: MenuItem[]; footer: MenuItem[] } | null>(null);
+  const displayMain = optimisticMenu.value?.main ?? menuItemsData.value.main;
+  const displayFooter = optimisticMenu.value?.footer ?? menuItemsData.value.footer;
+
   return (
     <div>
       <div class="flex justify-between items-center mb-6">
@@ -396,8 +404,8 @@ export default component$(() => {
       </div>
 
       <MenuTable
-        mainItems={menuItemsData.value.main}
-        footerItems={menuItemsData.value.footer}
+        mainItems={displayMain}
+        footerItems={displayFooter}
         staticUrls={STATIC_MENU_LINKS.map((l) => normalizeUrl(l.url))}
         onMove$={$(async (params) => {
           const result = await moveMenuItemAction.submit(params);
@@ -411,16 +419,55 @@ export default component$(() => {
             target: params.target as "_self" | "_blank" | "_parent" | "_top",
           });
           if (!result.value || "failed" in result.value) return { success: false };
+          if (result.value.success) {
+            const base = optimisticMenu.value ?? { main: menuItemsData.value.main, footer: menuItemsData.value.footer };
+            const patch = (item: MenuItem): MenuItem =>
+              item.id === params.menuItemId
+                ? { ...item, title: params.title, url: params.url, target: params.target as any, icon: params.icon ?? item.icon }
+                : item;
+            optimisticMenu.value = { main: base.main.map(patch), footer: base.footer.map(patch) };
+          }
           return { success: result.value.success ?? false, error: result.value.error };
         })}
         onAdd$={$(async (params) => {
           const result = await addToMenuAction.submit(params);
           if (!result.value || "failed" in result.value) return { success: false };
+          if (result.value.success) {
+            const base = optimisticMenu.value ?? { main: menuItemsData.value.main, footer: menuItemsData.value.footer };
+            const list = params.menuName === "footer" ? base.footer : base.main;
+            const maxPosition = list.reduce((max, item) => Math.max(max, item.position), 0);
+            const now = new Date().toISOString();
+            const newItem: MenuItem = {
+              id: crypto.randomUUID(),
+              title: params.title,
+              url: normalizeUrl(params.url),
+              pageId: null,
+              parentId: null,
+              position: maxPosition + 1,
+              status: params.status ?? "hidden",
+              menuName: params.menuName,
+              icon: params.icon ?? null,
+              target: "_self",
+              createdAt: now,
+              updatedAt: now,
+            };
+            optimisticMenu.value = {
+              main: params.menuName === "main" ? [...base.main, newItem] : base.main,
+              footer: params.menuName === "footer" ? [...base.footer, newItem] : base.footer,
+            };
+          }
           return { success: result.value.success ?? false, error: result.value.error };
         })}
         onDelete$={$(async (params) => {
           const result = await deleteMenuItemAction.submit(params);
           if (!result.value || "failed" in result.value) return { success: false };
+          if (result.value.success) {
+            const base = optimisticMenu.value ?? { main: menuItemsData.value.main, footer: menuItemsData.value.footer };
+            optimisticMenu.value = {
+              main: base.main.filter((i) => i.id !== params.menuItemId),
+              footer: base.footer.filter((i) => i.id !== params.menuItemId),
+            };
+          }
           return { success: result.value.success ?? false, error: result.value.error };
         })}
       />

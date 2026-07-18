@@ -127,9 +127,6 @@ export const EventView = component$<{
                   value="maybe"
                   size="lg"
                   disabled={updateParticipation.isRunning}
-                  onClick$={() => {
-                    optimisticParticipationStatus.value = "maybe";
-                  }}
                 >
                   {effectiveParticipationStatus === "maybe"
                     ? "✓ On Waitlist"

@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+# Runs Biome against staged files only, so pre-existing repo-wide lint/format
+# debt doesn't block unrelated commits. Fix what you touch.
+# Activated via `git config core.hooksPath .githooks` (see package.json "prepare").
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' '*.json' '*.css')
+
+if [ -z "$staged" ]; then
+  exit 0
+fi
+
+echo "$staged" | xargs npx biome check --no-errors-on-unmatched

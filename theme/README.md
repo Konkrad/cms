@@ -16,7 +16,7 @@ this folder to reskin the public site without touching core logic.
   (brand colors → utility generation + `:root` variables). `tokens.ts` exposes
   the same values as TypeScript constants for email/inline styles.
 - `chrome/` — public layout chrome (Navigation, SiteFooter). *(Phase 1)*
-- `blocks/` — page-block components rendered by the page builder. *(Phase 1)*
+- `blocks/` — page-block components rendered by the page builder. *(Phase 1)* The page builder has no route loader to supply blocks with props, so "dynamic" blocks (data-driven, not pure content) call a core-owned headless composable (`src/components/builder/blocks/use*.ts`) for their data/pagination instead of importing a service directly — see "The boundary" below.
 - `routes/` — presentational components for the public routes (one `*View` per
   route). Each receives a typed, secret-stripped props object produced by the
   corresponding route loader in `src/routes/**`.
@@ -42,7 +42,14 @@ in the loader** before delegating rendering to a theme `*View` component.
 
 The **props type is the contract**: it is derived from the loader and re-exported
 from `src/contracts/**`. Theme components import `~/contracts/*` and **must not**
-import `db`, `env`, services, or `~/utils/server-auth`.
+import `db`, `env`, services, or `~/utils/server-auth`. Where a component needs
+live data after SSR (page-builder block data, `/jobs` pagination), it calls a
+core-owned headless composable instead (`src/components/builder/blocks/*.ts`,
+`src/routes/jobs/useJobsPagination.ts`) — the composable owns the service/db/auth
+calls, the theme component only renders the signals it returns. This is enforced,
+not just documented: `biome.json` has a `noRestrictedImports` override on
+`theme/**` that fails the build on a direct `~/services/*`/`~/db/*`/
+`~/utils/server-auth`/`~/env` import.
 
 The **admin panel is core and is not themeable.** Its token values are pinned via
 the `.admin-shell` scope in `src/global.css`, so theme brand changes never leak

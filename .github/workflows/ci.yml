@@ -6,6 +6,63 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Determine changed files
+        id: changed
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          else
+            base="${{ github.event.before }}"
+          fi
+
+          # Fall back to the previous commit if the base isn't fetchable
+          # (e.g. force-push, or the first commit on a new branch).
+          if [ -z "$base" ] || ! git cat-file -e "$base" 2>/dev/null; then
+            base=$(git rev-parse HEAD~1 2>/dev/null || echo "")
+          fi
+
+          {
+            echo "files<<BIOME_FILES_EOF"
+            if [ -n "$base" ]; then
+              git diff --name-only --diff-filter=ACMR "$base" "${{ github.sha }}" -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' '*.json' '*.css'
+            fi
+            echo "BIOME_FILES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # Scoped to files changed in this PR/push, not the whole repo — same
+      # rationale as .githooks/pre-commit: fix what you touch, don't block on
+      # pre-existing repo-wide lint debt. `theme/**`'s noRestrictedImports
+      # boundary rule (see CLAUDE.md) still applies to any theme file touched.
+      - name: Run Biome on changed files
+        if: steps.changed.outputs.files != ''
+        env:
+          CHANGED_FILES: ${{ steps.changed.outputs.files }}
+        run: |
+          set -euo pipefail
+          mapfile -t files <<< "$CHANGED_FILES"
+          if [ "${#files[@]}" -eq 0 ] || [ -z "${files[0]}" ]; then
+            echo "No relevant files changed."
+            exit 0
+          fi
+          npx biome check --no-errors-on-unmatched "${files[@]}"
+
   test:
     runs-on: ubuntu-latest
     env:
@@ -132,7 +189,7 @@ jobs:
           retention-days: 7
 
   build-image:
-    needs: test
+    needs: [lint, test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

@@ -33,5 +33,49 @@
 				"organizeImports": "on"
 			}
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["theme/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": ["~/services/**"],
+										"message": "theme must not import core services directly — add or use a headless composable in ~/components/builder/blocks/* instead."
+									},
+									{
+										"group": ["~/db/**"],
+										"message": "theme must not import core db/schema directly — use a type from ~/contracts/* instead."
+									},
+									{
+										"group": ["~/utils/server-auth"],
+										"message": "theme must not import server-auth directly — auth checks belong in a core-owned composable or route loader/action."
+									},
+									{
+										"group": ["~/env"],
+										"message": "theme must not import ~/env directly."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["theme/routes/profile/QrTicketWall/QrTicketWall.tsx"],
+			"linter": {
+				"rules": {
+					"a11y": {
+						"noNoninteractiveTabindex": "off"
+					}
+				}
+			}
+		}
+	]
 }

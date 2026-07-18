@@ -1,5 +1,5 @@
 import { component$ } from "@qwik.dev/core";
-import type { BlockDefinition } from "~/db/schema";
+import type { BlockDefinition } from "~/contracts/blocks";
 import { publicImageUrlFromKey } from "~/utils/images";
 
 interface ImageBlockProps {
@@ -54,9 +54,16 @@ export default component$<ImageBlockProps>((props) => {
 		<div class="max-w-4xl mx-auto px-4 py-8">
 			<figure>
 				<img
-					src={publicImageUrlFromKey(src) ?? src ?? publicImageUrlFromKey("public/events/seed-1.webp") ?? ""}
+					src={
+						publicImageUrlFromKey(src) ??
+						src ??
+						publicImageUrlFromKey("public/events/seed-1.webp") ??
+						""
+					}
 					alt={alt || "Image"}
 					class="w-full rounded-lg shadow-lg"
+					width={1024}
+					height={1024}
 				/>
 				{caption && (
 					<figcaption class="mt-3 text-center text-text-secondary text-sm">

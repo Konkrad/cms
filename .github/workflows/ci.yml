@@ -171,8 +171,11 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      # --no-file-parallelism: tests/vitest-global-setup.ts shares one SQLite
+      # file across all test files; parallel workers can hit "database is
+      # locked" on unrelated tests (see .githooks/pre-commit).
       - name: Run unit tests
-        run: npm run test:unit
+        run: npx vitest run --no-file-parallelism
 
       - name: Seed database
         run: npx tsx scripts/seed.ts --fresh

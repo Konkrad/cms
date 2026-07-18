@@ -182,11 +182,20 @@ export default component$<PurchaseListProps>(
 									key={tx.id}
 									class="rounded-xl border border-border bg-white shadow-sm overflow-hidden"
 								>
-									{/* Purchase header — click to expand */}
-									<button
-										type="button"
+									{/* Purchase header — click to expand. A native <button> can't be
+									used here: it contains block-level <div> content (receipt line
+									items, total), which Qwik's SSR rejects as invalid button content. */}
+									{/* biome-ignore lint/a11y/useSemanticElements: <button> cannot contain block-level content (Qwik SSR enforces this strictly) */}
+									<div
+										role="button"
+										tabIndex={0}
 										onClick$={() => {
 											expandedTxId[tx.id] = !isOpen;
+										}}
+										onKeyDown$={(e) => {
+											if (e.key === "Enter" || e.key === " ") {
+												expandedTxId[tx.id] = !isOpen;
+											}
 										}}
 										class="w-full text-left px-4 py-3 cursor-pointer select-none"
 									>
@@ -243,7 +252,7 @@ export default component$<PurchaseListProps>(
 												{formatCurrency(tx.totalAmount)}
 											</span>
 										</div>
-									</button>
+									</div>
 
 									{/* Tickets (expanded) */}
 									{isOpen && tx.tickets.length > 0 && (

@@ -201,7 +201,6 @@ export const EventView = component$<{
               area="middle"
               image={mapImage}
               location={event.locationDisplay}
-              mapboxAccessToken={event.mapboxAccessToken}
               lat={
                 event.locationType !== "online" && event.latitude
                   ? parseFloat(event.latitude)

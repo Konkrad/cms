@@ -28,7 +28,6 @@ jobs:
       STRIPE_API_BASE_URL: http://localhost:12111
       TELEGRAM_BOT_TOKEN: test
       TELEGRAM_CHANNEL_ID: test
-      PUBLIC_MAPBOX_ACCESS_TOKEN: test
       ALTCHA_HMAC_KEY: test
       E2E_ALLOW_DB_WRITE: "true"
     services:

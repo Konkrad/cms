@@ -1,13 +1,12 @@
 import { component$, useSignal, useVisibleTask$ } from "@qwik.dev/core";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 interface LocationTileProps {
   image: string;
   location: string;
   area?: string;
   lat?: number;
   lng?: number;
-  mapboxAccessToken?: string;
 }
 
 export const LocationTile = component$<LocationTileProps>((props) => {
@@ -24,24 +23,24 @@ export const LocationTile = component$<LocationTileProps>((props) => {
       !isNaN(lng) &&
       mapContainer.value
     ) {
-      if (props.mapboxAccessToken) {
-        mapboxgl.accessToken = props.mapboxAccessToken;
-      }
-      const map = new mapboxgl.Map({
+      const map = new maplibregl.Map({
         container: mapContainer.value,
-        style: "mapbox://styles/mapbox/streets-v12",
+        style: "https://tiles.openfreemap.org/styles/liberty",
         center: [lng, lat],
         zoom: 14,
         interactive: false,
       });
 
       map.on("load", () => {
-        if (map.getLayer("poi-label")) {
-          map.setLayoutProperty("poi-label", "visibility", "none");
+        const poiLabelLayers = map
+          .getStyle()
+          .layers?.filter((layer) => layer.id.startsWith("poi") && layer.type === "symbol");
+        for (const layer of poiLabelLayers ?? []) {
+          map.setLayoutProperty(layer.id, "visibility", "none");
         }
       });
 
-      new mapboxgl.Marker({ color: "#ff0000" })
+      new maplibregl.Marker({ color: "#ff0000" })
         .setLngLat([lng, lat])
         .addTo(map);
 

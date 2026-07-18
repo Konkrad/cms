@@ -82,9 +82,6 @@ const envSchema = z.object({
   // Optional: point to a local mock server (e.g. http://localhost:8099) in tests
   TELEGRAM_API_URL: z.url().optional(),
 
-  // Mapbox
-  PUBLIC_MAPBOX_ACCESS_TOKEN: z.string(),
-
   // ALTCHA
   ALTCHA_HMAC_KEY: z.string().default("change-this-altcha-key"),
 
@@ -142,7 +139,6 @@ export const env = {
   TELEGRAM_BOT_TOKEN: _env.TELEGRAM_BOT_TOKEN,
   TELEGRAM_CHANNEL_ID: _env.TELEGRAM_CHANNEL_ID,
   TELEGRAM_API_URL: _env.TELEGRAM_API_URL,
-  PUBLIC_MAPBOX_ACCESS_TOKEN: _env.PUBLIC_MAPBOX_ACCESS_TOKEN,
   ALTCHA_HMAC_KEY: _env.ALTCHA_HMAC_KEY,
   LOGIN_EMAIL_MAX_PER_WINDOW: _env.LOGIN_EMAIL_MAX_PER_WINDOW,
   LOGIN_EMAIL_WINDOW_MINUTES: _env.LOGIN_EMAIL_WINDOW_MINUTES,

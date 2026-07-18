@@ -15,6 +15,10 @@ const srcDir = fileURLToPath(new URL("./src/", import.meta.url));
 // Absolute path to ./theme for the "~theme" alias below. The theme layer is a
 // separately-licensed folder; the public site's presentational components live here.
 const themeDir = fileURLToPath(new URL("./theme/", import.meta.url));
+// Static assets served at the site root (favicon, manifest, robots.txt, fonts, logo)
+// live under theme/static since they're theme/brand-owned — a fork replaces this
+// whole directory to reskin the site's identity.
+const publicDir = fileURLToPath(new URL("./theme/static/", import.meta.url));
 
 type PkgDep = Record<string, string>;
 const { dependencies = {}, devDependencies = {} } = pkg as any as {
@@ -29,6 +33,7 @@ errorOnDuplicatesPkgDeps(devDependencies, dependencies);
  */
 export default defineConfig(({ command, mode }): UserConfig => {
   return {
+    publicDir,
     plugins: [
       tailwindcss(),
       // strictLoaders defaults to true as of @qwik.dev/router beta.37, which makes every

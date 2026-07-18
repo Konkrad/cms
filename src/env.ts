@@ -34,7 +34,7 @@ const envSchema = z.object({
   // deployment / app urls
   PORT: z.coerce.number().int().positive().default(3000),
   APP_URL: z.string().url().default("http://localhost:5173"),
-  APP_NAME: z.string().default("Digitalumni"),
+  APP_NAME: z.string().default("Community Management System"),
 
   // security
   MAGIC_LINK_SECRET: z.string(),

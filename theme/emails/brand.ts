@@ -5,7 +5,7 @@
  * (react-email, nodemailer) stays in core; only the branding strings live here.
  */
 export const emailBrand = {
-  siteName: "Digitalumni",
-  logoAlt: "Digitalumni Logo",
-  footerCopyright: "Digitalumni",
+  siteName: "Community Management System",
+  logoAlt: "Community Management System Logo",
+  footerCopyright: "Community Management System",
 };

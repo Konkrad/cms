@@ -101,4 +101,4 @@ themeable. See [CLAUDE.md](CLAUDE.md) for the theme/core boundary rules.
 
 ## Deployment
 
-The app deploys with Kamal (single server, Docker, SQLite + Litestream backups). See [docs/deployment.md](docs/deployment.md).
+The app ships as a single Docker container (SQLite + optional Litestream backups) — the deploy tool is up to you. See [docs/deployment.md](docs/deployment.md).

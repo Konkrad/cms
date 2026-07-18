@@ -12,7 +12,7 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       NODE_ENV: test
       APP_URL: http://localhost:5173
-      APP_NAME: Digitalumni
+      APP_NAME: Community Management System
       MAGIC_LINK_SECRET: test
       SMTP_HOST: localhost
       SMTP_PORT: "1025"
@@ -28,7 +28,6 @@ jobs:
       STRIPE_API_BASE_URL: http://localhost:12111
       TELEGRAM_BOT_TOKEN: test
       TELEGRAM_CHANNEL_ID: test
-      PUBLIC_MAPBOX_ACCESS_TOKEN: test
       ALTCHA_HMAC_KEY: test
       E2E_ALLOW_DB_WRITE: "true"
     services:

@@ -6,6 +6,12 @@ this folder to reskin the public site without touching core logic.
 
 ## What lives here
 
+- `static/` — Vite's `publicDir` (configured in `vite.config.ts`), served at the
+  site root: `favicon.svg`, `manifest.json`, `robots.txt`, `fonts/`, and
+  `static/logo.svg` (the brand asset referenced by `${baseUrl}/static/logo.svg`
+  in emails). These are site-identity assets — a fork replaces this directory
+  wholesale to reskin the site. Core never reads files here directly, only the
+  resulting root-relative URLs.
 - `tokens/` — design tokens. `theme.css` holds the Tailwind v4 `@theme {}` block
   (brand colors → utility generation + `:root` variables). `tokens.ts` exposes
   the same values as TypeScript constants for email/inline styles.

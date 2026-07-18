@@ -6,8 +6,8 @@
  * which is what the Docker image runs.
  *
  * The server listens on PORT (default 3000) and binds 0.0.0.0 so it is reachable from
- * the Kamal proxy. Origin/CSRF resolution uses the ORIGIN env var (set to APP_URL in
- * production) since the app runs behind a TLS-terminating reverse proxy.
+ * whatever reverse proxy fronts it. Origin/CSRF resolution uses the ORIGIN env var (set
+ * to APP_URL in production) since the app runs behind a TLS-terminating reverse proxy.
  */
 import {
   createQwikRouter,

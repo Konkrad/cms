@@ -20,7 +20,6 @@ import { groups as groupsTable } from "~/db/schemas/groups";
 import { groupMemberships } from "~/db/schemas/group-memberships";
 import { eq, and, isNull, inArray, like } from "drizzle-orm";
 import { getCurrentUserData } from "~/utils/server-auth";
-import { env } from "~/env";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { formatUser, buildProfileUrl } from "~/utils/users";
 import { EventView } from "~theme/routes/events/EventView";
@@ -340,7 +339,6 @@ export const useEvent = routeLoader$(async (requestEvent) => {
     mapImageUrl,
     locationDisplay,
     participants,
-    mapboxAccessToken: env.PUBLIC_MAPBOX_ACCESS_TOKEN,
     image1: publicImageUrlFromKey(event.image1),
     image2: publicImageUrlFromKey(event.image2),
   };

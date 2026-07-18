@@ -39,7 +39,6 @@ export async function setup() {
   process.env.MAGIC_LINK_SECRET ??= "vitest-test-secret-not-for-production";
   process.env.TELEGRAM_BOT_TOKEN ??= "0:dummy";
   process.env.TELEGRAM_CHANNEL_ID ??= "0";
-  process.env.PUBLIC_MAPBOX_ACCESS_TOKEN ??= "pk.dummy";
 
   // ── 3. Containers ─────────────────────────────────────────────────────────
   [mailpit, minio, stripeMock] = await Promise.all([

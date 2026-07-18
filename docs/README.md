@@ -18,7 +18,7 @@ managing site content.
 | Doc | Read this if you're... |
 |---|---|
 | [Building a Custom Theme](./theme-development.md) | Standing up a new deployment with its own branding/theme on this core |
-| [Deployment](./deployment.md) | Setting up or operating the Kamal/Docker/Litestream deployment |
+| [Deployment](./deployment.md) | Building and running the Docker image, wiring up your own deploy tooling |
 | [Event CTA Flow](./event-flow.md) | Modifying the event page's call-to-action logic or the paid-checkout state machine — precise flowcharts of both |
 | [Ticket Sales Reasoning](./event-tickets.md) | Modifying the products/inventory-groups schema — the *why* behind that data model |
 

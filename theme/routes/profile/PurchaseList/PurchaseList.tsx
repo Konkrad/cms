@@ -63,10 +63,6 @@ export default component$<PurchaseListProps>(
     const pendingSlots = useStore<Record<string, ParticipantFormSlot[]>>({});
     const saving = useStore<Record<string, boolean>>({});
     const saveError = useStore<Record<string, string>>({});
-    // The action's implicit loader revalidation isn't reliably reflected client-side
-    // after a submit in this app, so patch the displayed participant locally on
-    // success instead of depending purely on `ticket.participants` from props.
-    const participantOverride = useStore<Record<string, TicketParticipant[]>>({});
 
     const now = new Date();
     const upcoming = transactions.filter(
@@ -80,7 +76,7 @@ export default component$<PurchaseListProps>(
       ticket: TicketWithRelations,
       isUpcoming: boolean,
     ) => {
-      const p0 = (participantOverride[ticket.id] ?? ticket.participants)[0];
+      const p0 = ticket.participants[0];
       const isAssignedAway = !!p0 && p0.userId !== buyerUserId;
       const isExpanded = !!expandedTicketId[ticket.id];
       const slots = pendingSlots[ticket.id] ?? buildInitialSlots(ticket);
@@ -154,13 +150,14 @@ export default component$<PurchaseListProps>(
                   onClick$={async () => {
                     saving[ticket.id] = true;
                     saveError[ticket.id] = "";
-                    const savedSlots = (pendingSlots[ticket.id] ?? []).map((s) => ({
-                      name: s.name,
-                      email: s.email,
-                    }));
                     const result = await updateParticipantsAction.submit({
                       ticketId: ticket.id,
-                      slots: JSON.stringify(savedSlots),
+                      slots: JSON.stringify(
+                        (pendingSlots[ticket.id] ?? []).map((s) => ({
+                          name: s.name,
+                          email: s.email,
+                        })),
+                      ),
                     });
                     saving[ticket.id] = false;
                     if (result.value?.failed) {
@@ -170,17 +167,6 @@ export default component$<PurchaseListProps>(
                       if (result.value?.newQrCodeUuid) {
                         qrBust[ticket.id] = result.value.newQrCodeUuid;
                       }
-                      participantOverride[ticket.id] = savedSlots
-                        .filter((s) => s.name && s.email)
-                        .map((s, i) => ({
-                          id: `optimistic-${ticket.id}-${i}`,
-                          ticketId: ticket.id,
-                          participantOrder: i,
-                          name: s.name,
-                          email: s.email,
-                          userId: null,
-                          createdAt: new Date().toISOString(),
-                        }));
                       expandedTicketId[ticket.id] = false;
                     }
                   }}

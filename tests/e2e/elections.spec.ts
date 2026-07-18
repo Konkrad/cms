@@ -88,29 +88,27 @@ test.describe("Elections — admin: status lifecycle", () => {
 
       page.on("dialog", (d) => d.accept());
 
-      const readStatus = () => {
-        const db = openDb();
-        const status = (db.prepare("SELECT status FROM election_cycles WHERE id = ?").get(cycleId) as any)?.status;
-        db.close();
-        return status;
-      };
-
-      // draft → open (the button re-renders optimistically on click, ahead of the
-      // server round-trip, so poll the DB rather than asserting immediately)
+      // draft → open (wait for the next button to confirm re-render)
       await expect(page.locator("button:has-text('Open for Applications')")).toBeVisible({ timeout: 10_000 });
       await page.locator("button:has-text('Open for Applications')").click();
       await expect(page.locator("button:has-text('Close Applications')")).toBeVisible({ timeout: 15_000 });
-      await expect.poll(readStatus, { timeout: 10_000 }).toBe("open");
+      const db1 = openDb();
+      expect((db1.prepare("SELECT status FROM election_cycles WHERE id = ?").get(cycleId) as any)?.status).toBe("open");
+      db1.close();
 
       // open → voting (wait for "Close Election" to confirm re-render)
       await page.locator("button:has-text('Close Applications')").click();
       await expect(page.locator("button:has-text('Close Election')")).toBeVisible({ timeout: 15_000 });
-      await expect.poll(readStatus, { timeout: 10_000 }).toBe("voting");
+      const db2 = openDb();
+      expect((db2.prepare("SELECT status FROM election_cycles WHERE id = ?").get(cycleId) as any)?.status).toBe("voting");
+      db2.close();
 
       // voting → closed (no more advance button after closing)
       await page.locator("button:has-text('Close Election')").click();
       await expect(page.locator("button:has-text('Close Election')")).not.toBeVisible({ timeout: 15_000 });
-      await expect.poll(readStatus, { timeout: 10_000 }).toBe("closed");
+      const db3 = openDb();
+      expect((db3.prepare("SELECT status FROM election_cycles WHERE id = ?").get(cycleId) as any)?.status).toBe("closed");
+      db3.close();
     } finally {
       cleanup();
     }

@@ -102,15 +102,7 @@ export default component$(() => {
   const activeTab = useSignal<"positions" | "applications">("applications");
 
   const { cycle, applications } = data.value;
-  // The action's implicit loader revalidation isn't reliably reflected client-side
-  // after a redirect-free Form submit, so track status optimistically instead of
-  // depending purely on `cycle.status` from the loader (mirrors the pattern used
-  // for event participation in theme/routes/events/EventView.tsx).
-  const optimisticStatus = useSignal<string | null>(null);
-  const effectiveStatus = advanceAction.value?.failed
-    ? cycle.status
-    : (optimisticStatus.value ?? cycle.status);
-  const nextStatus = STATUS_NEXT[effectiveStatus];
+  const nextStatus = STATUS_NEXT[cycle.status];
 
   const appsByPosition = cycle.positions.map((pos) => ({
     position: pos,
@@ -127,7 +119,7 @@ export default component$(() => {
           <h2 class="text-2xl font-bold text-gray-800 mt-1">{cycle.title}</h2>
         </div>
         <div class="flex items-center gap-3">
-          <span class={statusBadge(effectiveStatus)}>{effectiveStatus}</span>
+          <span class={statusBadge(cycle.status)}>{cycle.status}</span>
           {nextStatus && (
             <Form action={advanceAction}>
               <input type="hidden" name="cycleId" value={cycle.id} />
@@ -138,11 +130,10 @@ export default component$(() => {
                 preventdefault:click
                 onClick$={(e) => {
                   if (!confirm(`Move cycle to "${nextStatus}"?`)) return;
-                  optimisticStatus.value = nextStatus;
                   (e.target as HTMLElement).closest("form")?.requestSubmit();
                 }}
               >
-                {STATUS_NEXT_LABEL[effectiveStatus] ?? `Set to ${nextStatus}`}
+                {STATUS_NEXT_LABEL[cycle.status] ?? `Set to ${nextStatus}`}
               </button>
             </Form>
           )}

@@ -29,7 +29,15 @@ errorOnDuplicatesPkgDeps(devDependencies, dependencies);
  */
 export default defineConfig(({ command, mode }): UserConfig => {
   return {
-    plugins: [tailwindcss(), qwikRouter({ trailingSlash: false }), qwikVite()],
+    plugins: [
+      tailwindcss(),
+      // strictLoaders defaults to true as of @qwik.dev/router beta.37, which makes every
+      // routeAction$ send an empty loaderHashes list unless it explicitly opts specific
+      // loaders in via `invalidate: [...]`. That silently disables the documented default
+      // ("all current route loaders are invalidated after an action") for the whole app.
+      qwikRouter({ trailingSlash: false, strictLoaders: false }),
+      qwikVite(),
+    ],
     build: {
       // Use esbuild for CSS minification — stricter minifiers (lightningcss) reject
       // some third-party CSS shipped by deps (e.g. @blocknote/mantine's invalid

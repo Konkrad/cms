@@ -409,7 +409,14 @@ export const useUpdateParticipation = routeAction$(
       }
     }
 
-    throw event.redirect(303, event.url.pathname);
+    // No redirect: the client only reads a routeAction$'s embedded "redirect"
+    // instruction when the underlying fetch response is an actual HTTP redirect
+    // (response.redirected) — for an SPA action POST resolved with a 303 to the
+    // same page, Qwik's client returns the parsed { redirect } field but never
+    // consumes it, so the UI never updates. Return success and let the
+    // automatic post-action loader invalidation (see vite.config.ts
+    // strictLoaders: false) refresh useEvent() in place instead.
+    return { success: true };
   },
   zod$({
     status: z.enum(["yes", "no", "maybe"]),

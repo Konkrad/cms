@@ -13,7 +13,6 @@ sqlite.pragma("foreign_keys = ON");
 
 const db = drizzle({
 	client: sqlite,
-	schema,
 	relations: schema.schemaRelations,
 });
 

@@ -25,7 +25,7 @@ dotenv.config();
 
 const DB_PATH = process.env.DB_PATH ?? "my-database.db";
 const sqlite = new Database(DB_PATH);
-const db = drizzle({ client: sqlite, schema, relations: schema.schemaRelations });
+const db = drizzle({ client: sqlite, relations: schema.schemaRelations });
 
 function uuid() { return crypto.randomUUID(); }
 function now() { return new Date().toISOString(); }

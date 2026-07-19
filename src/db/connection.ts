@@ -1,8 +1,9 @@
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
+import { env } from "../env";
 import * as schema from "./schema";
 
-const sqlite = new Database(process.env.DB_PATH ?? "my-database.db");
+const sqlite = new Database(env.DB_PATH);
 
 // WAL is required by Litestream (continuous backup) and lets reads run concurrently
 // with the single writer. busy_timeout retries briefly instead of erroring on lock

@@ -10,29 +10,32 @@
  * to APP_URL in production) since the app runs behind a TLS-terminating reverse proxy.
  */
 import {
-  createQwikRouter,
-  type PlatformNode,
+	createQwikRouter,
+	type PlatformNode,
 } from "@qwik.dev/router/middleware/node";
 import "dotenv/config";
 import { createServer } from "node:http";
+import { runMigrations } from "./db/migrate";
 import render from "./entry.ssr";
 import { env } from "./env";
 
 declare global {
-  interface QwikRouterPlatform extends PlatformNode {}
+	interface QwikRouterPlatform extends PlatformNode {}
 }
+
+runMigrations();
 
 const { router, notFound, staticFile } = createQwikRouter({ render });
 
 const server = createServer((req, res) => {
-  staticFile(req, res, () => {
-    router(req, res, () => {
-      notFound(req, res, () => {});
-    });
-  });
+	staticFile(req, res, () => {
+		router(req, res, () => {
+			notFound(req, res, () => {});
+		});
+	});
 });
 
 server.listen(env.PORT, "0.0.0.0", () => {
-  // eslint-disable-next-line no-console
-  console.log(`Server started: http://0.0.0.0:${env.PORT}/`);
+	// eslint-disable-next-line no-console
+	console.log(`Server started: http://0.0.0.0:${env.PORT}/`);
 });

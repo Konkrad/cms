@@ -46,7 +46,6 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/server ./server
 COPY --from=build /app/drizzle ./drizzle
-COPY --from=build /app/scripts/migrate.js ./scripts/migrate.js
 COPY --from=build /app/package.json ./package.json
 COPY litestream.yml ./litestream.yml
 COPY docker/entrypoint.sh ./docker/entrypoint.sh

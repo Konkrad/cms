@@ -10,4 +10,4 @@ npm install
 echo "🌱 Seeding database..."
 npm run db:seed || echo "⚠️ Warning: Seed failed, check logs."
 
-echo "🎉 Done! Run 'npm run dev' to start."
+echo "🎉 Done! Run 'npm start' to start."

@@ -8,7 +8,7 @@
 6. Do not create ad hoc types if a package already provides them; install the existing package types instead.
 7. Do not wrap everything in `try/catch`. Catch only expected errors and let unexpected failures bubble up.
 8. Do not create README or other documentation unless asked.
-9. Local development: apply schema changes directly with `drizzle-kit push` (no committed migration files needed). For deployed environments: generate committed migrations with `npm run db:generate` and apply them with `npm run migrate` (the programmatic runner in `scripts/migrate.js`) — the deploy container runs this at startup. Keep the `drizzle/` migration files in sync with the schema.
+9. Migrations use one mechanism everywhere, local dev included: after changing a schema file, run `npm run db:generate` once to write the migration file, then commit it under `drizzle/`. Applying migrations is fully automatic and built into the app itself, not an external script or npm hook — `runMigrations()` in `src/db/migrate.ts` is called directly from `src/entry.node-server.tsx` before it starts listening (prod) and from `vite.config.ts` on dev-server boot (`command === "serve"`, dynamically imported so `vite build` never eagerly loads `src/env.ts`'s validation). It runs whenever the server process starts, regardless of how it's launched — no manual init/migrate step, no shell wrapper. Never apply schema changes with `drizzle-kit push` — a DB it creates has no `__drizzle_migrations` tracking row, so the migration runner will later try to recreate tables that already exist and fail. If a local `my-database.db` predates this (was built via `push`), delete it (and its `-shm`/`-wal` files) and let `npm start` recreate it from `drizzle/`.
 
 ## Qwik And Data Flow
 

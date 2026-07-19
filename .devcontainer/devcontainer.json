@@ -1,50 +1,43 @@
 {
-  "name": "CMS Codespace",
-  // Use dockerComposeFile instead of a direct image
-  "dockerComposeFile": [
-    "../docker-compose.yml"
-  ],
-  // This MUST match the name of the app/web service in your docker-compose.yml
-  "service": "app", 
-  "workspaceFolder": "/workspace",
-  
-  "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:1": {}
-  },
+	"name": "CMS Codespace",
+	// Use dockerComposeFile instead of a direct image
+	"dockerComposeFile": ["../docker-compose.yml"],
+	// This MUST match the name of the app/web service in your docker-compose.yml
+	"service": "app",
+	"workspaceFolder": "/workspace",
 
-  "portsAttributes": {
-    "5173": { "label": "App", "onAutoForward": "notify" },
-    "8025": { "label": "Mailpit UI"},
-    "9000": { "label": "Minio API", "onAutoForward": "notify" },
-    "9001": { "label": "Minio UI"}
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:1": {}
+	},
 
-  },
+	"portsAttributes": {
+		"5173": { "label": "App", "onAutoForward": "notify" },
+		"8025": { "label": "Mailpit UI" },
+		"9000": { "label": "Minio API", "onAutoForward": "notify" },
+		"9001": { "label": "Minio UI" }
+	},
 
-  "runServices": [
-    "mailpit",
-    "minio",
-    "stripe-mock"
-  ],
+	"runServices": ["mailpit", "minio", "stripe-mock"],
 
-  "forwardPorts": [5173, 8025, 9000, 9001],
+	"forwardPorts": [5173, 8025, 9000, 9001],
 
-  "containerEnv": {
-    "APP_URL": "http://localhost:5173",
-    "MAILPIT_API_URL": "http://mailpit:8025",
-    "AWS_ENDPOINT": "http://minio:9000",
-    "AWS_ACCESS_KEY_ID": "test",
-    "AWS_SECRET_ACCESS_KEY": "testtest",
-    "AWS_REGION": "us-east-1",
-    "S3_BUCKET": "dev-bucket",
-    "STRIPE_API_BASE_URL": "http://stripe-mock:12111",
-    "STRIPE_SECRET_KEY": "sk_test_codespace",
-    "STRIPE_PUBLISHABLE_KEY": "pk_test_codespace",
-    "DB_PATH": "./my-database.db"
-  },
+	"containerEnv": {
+		"APP_URL": "http://localhost:5173",
+		"MAILPIT_API_URL": "http://mailpit:8025",
+		"AWS_ENDPOINT": "http://minio:9000",
+		"AWS_ACCESS_KEY_ID": "test",
+		"AWS_SECRET_ACCESS_KEY": "testtest",
+		"AWS_REGION": "us-east-1",
+		"S3_BUCKET": "dev-bucket",
+		"STRIPE_API_BASE_URL": "http://stripe-mock:12111",
+		"STRIPE_SECRET_KEY": "sk_test_codespace",
+		"STRIPE_PUBLISHABLE_KEY": "pk_test_codespace",
+		"DB_PATH": "./my-database.db"
+	},
 
-  "postCreateCommand": "chmod +x .devcontainer/post-create.sh && ./.devcontainer/post-create.sh",
-  "postStartCommand": "nohup npm run dev >/tmp/vite.log 2>&1 &",
+	"postCreateCommand": "chmod +x .devcontainer/post-create.sh && ./.devcontainer/post-create.sh",
+	"postStartCommand": "nohup npm start >/tmp/vite.log 2>&1 &",
 
-  // "node" is the default user for the mcr...javascript-node image
-  "remoteUser": "node"
+	// "node" is the default user for the mcr...javascript-node image
+	"remoteUser": "node"
 }

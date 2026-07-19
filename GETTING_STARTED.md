@@ -13,13 +13,15 @@ cp .env.example .env
 
 All configuration is centralized in `src/env.ts` (validated with Zod at startup) — fill in `.env` with your own SMTP, S3/AWS, Stripe, and Telegram credentials. `docker-compose.yml` provides local stand-ins (Mailpit, MinIO, stripe-mock) if you don't want to wire up real services yet.
 
-## 2. Set up the database
+## 2. Run it
 
 ```bash
-npm run db:generate   # only if you changed the schema
-npm run migrate       # apply committed migrations (drizzle/)
-npm run db:seed       # optional: seed sample content
+npm start
 ```
+
+To reach the dev server from another device on your network (phone, tablet, etc.), set `AWS_ENDPOINT` in `.env` to your machine's LAN IP instead of `localhost` so image URLs stay reachable from that device.
+
+The database is managed for you — migrations are built into the app itself and apply automatically the moment the server process starts (like Bitwarden's self-managed DB), so there's no separate init or migrate step to run by hand. The DB file and schema are created from scratch on first run if it doesn't exist yet. Seed sample content any time with `npm run db:seed`.
 
 ## 3. Customize the branding/theme
 
@@ -27,7 +29,7 @@ Everything a logged-in or logged-out member sees on the public site — layout, 
 
 ## 4. Deploy it
 
-The repo ships as a single Docker image (multi-stage build, SQLite + optional Litestream replication to S3, migrations run automatically at boot). There's no prescribed deploy tool — build the image and run it with whatever fits your infrastructure (Fly.io, Kamal, a plain VPS, etc.). See [Deployment](./docs/deployment.md) for the full checklist (persistent volume for the DB, required env vars, health check endpoint, build-time vs runtime vars).
+The repo ships as a single Docker image (multi-stage build, SQLite + optional Litestream replication to S3). The container manages its own database end to end — the entrypoint restores from a replica if the volume is empty, then the server itself applies any pending migrations before it starts listening, using the exact same code path as local dev, so a redeploy is just "replace the container." There's no prescribed deploy tool — build the image and run it with whatever fits your infrastructure (Fly.io, Kamal, a plain VPS, etc.). See [Deployment](./docs/deployment.md) for the full checklist (persistent volume for the DB, required env vars, health check endpoint, build-time vs runtime vars).
 
 ```bash
 docker build \

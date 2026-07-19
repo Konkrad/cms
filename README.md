@@ -1,104 +1,23 @@
 # Community Management System
 
-Opinionated, minimal Content Management System for community management.
+Opinionated, minimal Content Management System specially tailored for community management.
 
-Features:
-- Zod for schemas
-- Drizzle for ORM
-- Turso for database
-- Qwik with QwikCity as a framework
+## Philosophy
 
-## Getting Started
+Give the people who manage a community tools in their hands which work out of the box. The most important engagement happens in events, both online or offline, not on a website. The websites main mission is to easily facilitate these events. Therefore we limit the social interacts on the platform to a minimum. We will never be as important as other social networks to the user.
 
-### Prerequisites
-- Node.js (^18.17.0 || ^20.3.0 || >=21.0.0)
-- Docker (for Mailpit, MinIO, stripe-mock)
+## Features
+- Content creation tools for both posts and pages
+- Event management with (paid) ticketing, event registration and attendee management
+- A simple job portal to post community internal listings
+- A deal box for community deals and promotions
+- User management system which allows to collect consents and assigns community status.
+- Self governed sub community support
+- Community board election management
 
-### Setup
+## How to use it
 
-```sh
-# 1. Install dependencies
-npm install
+There are two guides depending on what you're trying to do:
 
-# 2. Start local services (Mailpit, MinIO, stripe-mock)
-docker compose up -d
-
-# 3. Copy env and fill in values
-cp .env.example .env
-
-# 4. Seed the database (creates a fresh SQLite DB with test data)
-npm run db:seed
-
-# 5. Start the dev server
-npm run dev
-```
-
-### Seeded Admin Account
-
-The seed creates an admin account you can use to log in:
-
-| Field | Value |
-|-------|-------|
-| Email | `admin@example.com` |
-| Auth  | Magic link (check Mailpit at http://localhost:8025) |
-
-Go to the login page, enter `admin@example.com`, then open Mailpit to click the magic link.
-
-### Local Services (docker compose)
-
-| Service | URL | Purpose |
-|---------|-----|---------|
-| Mailpit UI | http://localhost:8025 | Email inbox (catches all outgoing mail) |
-| Mailpit SMTP | localhost:1025 | SMTP server |
-| MinIO Console | http://localhost:9001 | S3-compatible file storage (user: `test`, pass: `testtest`) |
-| MinIO API | http://localhost:9000 | S3 API |
-| stripe-mock | http://localhost:12111 | Stripe API mock |
-
-### npm Scripts
-
-| Script | Purpose |
-|--------|---------|
-| `npm run dev` | Start dev server |
-| `npm run db:seed` | Seed database (fresh, deletes existing) |
-| `npm run db:studio` | Open Drizzle Studio (DB browser) |
-| `npm run test` | Run Playwright tests |
-| `npm run test:unit` | Run Vitest unit tests |
-| `npm run biome` | Lint & format |
-
-Environment variables
----------------------
-
-All environment variables for the application are managed in one central place and validated at startup using Zod to ensure the app fails fast on misconfiguration.
-
-Central file
-- `src/env.ts`:
-  - Loads `.env` in non-production environments.
-  - Validates and parses environment variables using Zod (schema-driven).
-  - Exposes a typed `env` object for the rest of the app (e.g. `env.APP_URL`, `env.SMTP_HOST`, `env.isProduction`).
-  - Produces clear, structured error output and prevents the server from starting if the configuration is invalid.
-
-Development
-- Copy `.env.example` to `.env` and fill in values for local development.
-- Keep real secrets out of version control and use your deployment platform's secret store in production.
-
-Usage
-- Import the validated environment from anywhere in the codebase:
-  - `import { env } from '~/env'`
-- Use `env` instead of `process.env.*` so you get typed access and guaranteed validation.
-- When adding new environment variables, update the schema in `src/env.ts` and (optionally) add examples to `.env.example`.
-
-Why this matters
-- Centralizing environment variables makes configuration consistent and easier to maintain.
-- Zod validation ensures misconfiguration is caught early with actionable errors.
-
-## Theming
-
-Public-facing presentation (design tokens, layout chrome, page blocks, and
-route views) lives in [`theme/`](theme/README.md) and is licensed separately
-from the rest of the app — a community can fork or swap that folder to reskin
-the public site without touching core logic. The admin panel is **not**
-themeable. See [CLAUDE.md](CLAUDE.md) for the theme/core boundary rules.
-
-## Deployment
-
-The app ships as a single Docker container (SQLite + optional Litestream backups) — the deploy tool is up to you. See [docs/deployment.md](docs/deployment.md).
+- **[Getting Started](./GETTING_STARTED.md)** — you want to run this for your own community: install it, configure it, customize the branding/theme, and deploy it.
+- **[Contributing](./CONTRIBUTING.md)** — you want to run the project locally to fix a bug or build a new feature for everyone.

@@ -6,7 +6,7 @@ Quick summary
 - A page-block file must export:
   - a named `definition: BlockDefinition` (metadata + config schema)
   - a default Qwik component (the UI rendered on pages and in the canvas)
-- Register the block in `src/services/component-loader.service.ts` so it can be discovered and dynamically loaded by the builder.
+- Register the block in `theme/blocks/index.ts` (add it to `blockDefinitions` and `blockRegistry`) so it can be discovered and dynamically loaded by the builder — `src/services/component-loader.service.ts` just consumes that registry, no separate registration step needed there.
 - The admin builder UI uses the `definition` to render the sidebar and the `PropertiesPanel` to edit a block's `data`.
 
 Key types (see schema)
@@ -46,14 +46,14 @@ How the builder uses these
 Creating a new block (step-by-step)
 1. Create a new component file (example: `theme/blocks/MyBlock.tsx`).
 2. Export a `definition: BlockDefinition` that describes the block and its `configSchema` and `defaultData`.
-3. Export a default `component$` which accepts the fields from your `configSchema` as props and renders UI.
-4. Register it in `src/services/component-loader.service.ts` by adding a mapping to `componentModules`.
+3. Export a default `component$` which accepts the fields from your `configSchema` as props and renders UI. If the block needs server data, see "Dynamic blocks" below first — theme files must not import `~/services/*`/`~/db/*` directly (enforced by a Biome rule).
+4. Register it in `theme/blocks/index.ts`: import the component + `definition` and add both to `blockRegistry`/`blockDefinitions`.
 5. Restart dev server (or clear the loader cache with `componentLoaderService.clearCache()` if you need to reload definitions at runtime).
 
 Minimal example
 ```/dev/null/ExampleBlock.tsx#L1-80
 import { component$ } from "@qwik.dev/core";
-import type { BlockDefinition } from "~/db/schema";
+import type { BlockDefinition } from "~/contracts/blocks";
 
 interface ExampleBlockProps {
   title?: string;
@@ -86,12 +86,17 @@ export default component$<ExampleBlockProps>((props) => {
 ```
 
 Registering the component
-```src/services/component-loader.service.ts#L1-24
-const componentModules = {
-  HeroBlock: () => import("~theme/blocks/HeroBlock"),
-  TextBlock: () => import("~theme/blocks/TextBlock"),
-  // add your block:
-  ExampleBlock: () => import("~theme/blocks/ExampleBlock"),
+```theme/blocks/index.ts
+import ExampleBlock, { definition as ExampleBlockDef } from "./ExampleBlock";
+
+export const blockDefinitions: BlockDefinition[] = [
+  // ...existing definitions,
+  ExampleBlockDef,
+];
+
+export const blockRegistry: Record<string, any> = {
+  // ...existing components,
+  ExampleBlock,
 };
 ```
 
@@ -104,10 +109,10 @@ Field types supported by the `PropertiesPanel` UI
 - `color` → color picker
 
 Dynamic blocks
-- For blocks that fetch server data, use `server$` or existing services (see `UpcomingEventsBlock` / `PostsListBlock` for examples). Mark the block `category: "dynamic"` in its definition so the UI groups it accordingly.
+- For blocks that fetch server data: the page builder has no route loader to supply props, so the block itself must not import `~/services/*`/`~/db/*`/`~/utils/server-auth` directly (theme is licensed separately from core; this is enforced by a `noRestrictedImports` Biome rule scoped to `theme/**`). Instead, add a headless composable — a plain function using `useSignal`/`useTask$`/`server$()`, Qwik's native "custom hook" pattern — under `src/components/builder/blocks/useMyBlock.ts` that owns the service/db/auth calls and returns signals + action handlers. The theme block calls the composable and only renders. See `useUpcomingEvents.ts` (initial fetch + "Load More" pagination) or `useDealsList.ts` (simple single fetch) for the pattern, and the matching theme files (`UpcomingEventsBlock.tsx`, `DealsListBlock.tsx`) for how little the block itself does. Add any new public type the composable returns to `src/contracts/*.ts` rather than having the block import a raw `~/services/*`/`~/db/*` type. Mark the block `category: "dynamic"` in its definition so the UI groups it accordingly.
 
 Tips
-- Keep `componentType` unique and in sync with the key you add to `componentModules`.
+- Keep `componentType` unique and in sync with the key you add to `blockRegistry`.
 - Ensure `defaultData` keys match your `configSchema` names so newly added blocks are pre-populated correctly.
 - Look at existing blocks in `theme/blocks/` for examples and patterns.
 

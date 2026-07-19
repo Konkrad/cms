@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+# Runs Biome against staged files only, so pre-existing repo-wide lint/format
+# debt doesn't block unrelated commits. Fix what you touch.
+# Also runs the unit test suite (Vitest) — fast and self-contained, no
+# external services required. e2e tests (Playwright) are intentionally
+# excluded: they need Docker services (MinIO, Mailpit, stripe-mock) and a
+# seeded DB, which isn't practical for every commit — those run in CI.
+# --no-file-parallelism: tests/vitest-global-setup.ts shares one SQLite file
+# across all test files; running them in parallel workers causes intermittent
+# "database is locked" failures on unrelated tests. Sequential adds ~2s.
+# Activated via `git config core.hooksPath .githooks` (see package.json "prepare").
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' '*.json' '*.css')
+
+if [ -n "$staged" ]; then
+  echo "$staged" | xargs npx biome check --no-errors-on-unmatched || exit 1
+fi
+
+npx vitest run --no-file-parallelism || exit 1

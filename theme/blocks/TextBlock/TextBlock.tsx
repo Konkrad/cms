@@ -1,5 +1,5 @@
 import { component$ } from "@qwik.dev/core";
-import type { BlockDefinition } from "~/db/schema";
+import type { BlockDefinition } from "~/contracts/blocks";
 
 interface TextBlockProps {
 	content?: string;

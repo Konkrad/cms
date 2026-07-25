@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /jobs
+Disallow: /profile
+Disallow: /onboarding
+Disallow: /login
+Disallow: /auth/
+Disallow: /users/
+Disallow: /elections
+Disallow: /qualifications/
+Disallow: /events/*/checkout
+Disallow: /events/*/photos
+
+Sitemap: /sitemap.xml

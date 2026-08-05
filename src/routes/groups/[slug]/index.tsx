@@ -22,7 +22,7 @@ export const useGroupData = routeLoader$(async (event) => {
 	const group = await groupsService.getBySlug(params.slug);
 	if (!group) throw redirect(302, "/groups");
 
-	const user = await getCurrentUserData(event as any);
+	const user = await getCurrentUserData(event);
 	const now = new Date().toISOString();
 
 	const [
@@ -67,7 +67,16 @@ export const useGroupData = routeLoader$(async (event) => {
 			},
 			orderBy: { createdAt: "desc" },
 			limit: 3,
-		}) as any,
+		}) as unknown as Promise<
+			Array<{
+				id: string;
+				title: string;
+				body: string;
+				createdAt: string;
+				featuredImage: string | null;
+				user: { name: string; familyName: string };
+			}>
+		>,
 	]);
 
 	const toPublicUrl = (key: string | null | undefined) =>
@@ -79,7 +88,8 @@ export const useGroupData = routeLoader$(async (event) => {
 				subtitle: `Local Rep ${group.name}`,
 				profilePictureUrl: rep.user.profilePicture
 					? toPublicUrl(
-							(rep.user as any).profilePictureSmall ??
+							(rep.user as { profilePictureSmall?: string | null })
+								.profilePictureSmall ??
 								deriveThumbnailKey(rep.user.profilePicture),
 						)
 					: null,
@@ -101,8 +111,8 @@ export const useGroupData = routeLoader$(async (event) => {
 			familyName: m.familyName,
 			profilePictureSmall: m.profilePicture
 				? toPublicUrl(
-						(m as any).profilePictureSmall ??
-							deriveThumbnailKey(m.profilePicture),
+						(m as { profilePictureSmall?: string | null })
+							.profilePictureSmall ?? deriveThumbnailKey(m.profilePicture),
 					)
 				: null,
 			profileUrl: buildProfileUrl({
@@ -124,13 +134,13 @@ export const useGroupData = routeLoader$(async (event) => {
 			city: e.city,
 			address: e.address,
 		})),
-		recentPosts: recentPosts.map((p: any) => ({
+		recentPosts: recentPosts.map((p) => ({
 			id: p.id,
 			title: p.title,
 			body: p.body,
 			createdAt: p.createdAt,
-			featuredImage: toPublicUrl((p as any).featuredImage ?? null),
-			authorName: `${(p as any).user.name} ${(p as any).user.familyName}`,
+			featuredImage: toPublicUrl(p.featuredImage ?? null),
+			authorName: `${p.user.name} ${p.user.familyName}`,
 		})),
 		groupImage1: toPublicUrl(group.image1),
 		groupImage2: toPublicUrl(group.image2),
@@ -140,7 +150,7 @@ export const useGroupData = routeLoader$(async (event) => {
 
 export const useJoinGroup = routeAction$(async (_data, event) => {
 	const { params, redirect } = event;
-	const user = await getCurrentUserData(event as any);
+	const user = await getCurrentUserData(event);
 	if (!user) throw redirect(302, "/login");
 
 	const group = await groupsService.getBySlug(params.slug);
@@ -159,7 +169,7 @@ export default component$(() => {
 export const head: DocumentHead = ({ resolveValue, url }) => {
 	try {
 		const data = resolveValue(useGroupData);
-		const canonical = canonicalUrl(url.pathname);
+		const canonical = canonicalUrl(url.pathname, url.origin);
 		const description = `${data.group.name} — ${data.memberCount} members. Join the local community group.`;
 
 		return {

@@ -33,8 +33,10 @@ export default component$(() => {
 	return <ArchivePostsView data={archivePage.value} />;
 });
 
-export const head: DocumentHead = () => ({
+export const head: DocumentHead = ({ url }) => ({
 	title: "Post Archive",
 	meta: [{ name: "description", content: "Browse all past community posts." }],
-	links: [{ rel: "canonical", href: canonicalUrl("/archive/posts") }],
+	links: [
+		{ rel: "canonical", href: canonicalUrl("/archive/posts", url.origin) },
+	],
 });

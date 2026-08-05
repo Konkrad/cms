@@ -128,7 +128,23 @@ export const useEvent = routeLoader$(async (requestEvent) => {
 		with: {
 			products: true,
 		},
-	})) as any[];
+	})) as unknown as Array<{
+		id: string;
+		name: string;
+		maxCapacity: number;
+		salesStartDate: string | null;
+		salesEndDate: string | null;
+		products: Array<{
+			id: string;
+			name: string;
+			price: number;
+			maxQuantity: number;
+			participantCapacity: number;
+			features: string[];
+			imageKey: string | null;
+			soldQuantity: number;
+		}>;
+	}>;
 
 	// Check sales period status
 	const salesValidation = await eventsService.validateSalesPeriod(event);
@@ -170,7 +186,19 @@ export const useEvent = routeLoader$(async (requestEvent) => {
 	const participationRows = (await db.query.participationStatus.findMany({
 		where: { eventId: params.id },
 		with: { user: true },
-	})) as any[];
+	})) as unknown as Array<{
+		status: "yes" | "no" | "maybe";
+		userId: string;
+		user: {
+			id: string;
+			name: string;
+			familyName: string;
+			profilePicture: string | null;
+			profilePictureSmall: string | null;
+			city: string | null;
+			country: string | null;
+		};
+	}>;
 
 	const goingRows = participationRows.filter(
 		(r) => r.status === "yes" || r.status === "maybe",
@@ -221,7 +249,7 @@ export const useEvent = routeLoader$(async (requestEvent) => {
 	const buildPicUrl = (s3Key: string | null) => publicImageUrlFromKey(s3Key);
 
 	const participantsUnsorted = goingRows.map((r) => {
-		const u = r.user as any;
+		const u = r.user;
 		return {
 			id: u.id,
 			name: u.name as string,
@@ -296,10 +324,7 @@ export const useEvent = routeLoader$(async (requestEvent) => {
 		}
 
 		const soldQuantity =
-			group.products?.reduce(
-				(sum: number, p: any) => sum + (p.soldQuantity || 0),
-				0,
-			) || 0;
+			group.products?.reduce((sum, p) => sum + (p.soldQuantity || 0), 0) || 0;
 		const remainingCapacity = group.maxCapacity - soldQuantity;
 
 		if (withinWindow && remainingCapacity > 0) {
@@ -401,8 +426,8 @@ export const useUpdateParticipation = routeAction$(
 								event: {
 									title: ev.title,
 									startDate: ev.startDate,
-									address: (ev as any).address,
-									onlineUrl: (ev as any).onlineUrl,
+									address: ev.address,
+									onlineUrl: ev.onlineUrl,
 								},
 								transactionId: ticket.transactionId || ticket.id,
 								products: [{ name: product.name, quantity: 1, amount: 0 }],
@@ -449,7 +474,7 @@ export const head: DocumentHead = ({ resolveValue, url }) => {
 		};
 	}
 
-	const canonical = canonicalUrl(url.pathname);
+	const canonical = canonicalUrl(url.pathname, url.origin);
 	const description = htmlToDescription(event.body) || `Event: ${event.title}`;
 
 	return {

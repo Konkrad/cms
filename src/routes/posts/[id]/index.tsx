@@ -27,8 +27,8 @@ export const usePost = routeLoader$(async ({ params, status }) => {
 	let authorAvatarUrl: string | null = null;
 	if (post.user?.profilePicture) {
 		const thumbKey =
-			(post.user as any).profilePictureSmall ??
-			deriveThumbnailKey(post.user.profilePicture);
+			(post.user as { profilePictureSmall?: string | null })
+				.profilePictureSmall ?? deriveThumbnailKey(post.user.profilePicture);
 		authorAvatarUrl = publicImageUrlFromKey(thumbKey);
 	}
 
@@ -67,7 +67,7 @@ export const head: DocumentHead = ({ resolveValue, url }) => {
 		return { title: "Post Not Found" };
 	}
 
-	const canonical = canonicalUrl(url.pathname);
+	const canonical = canonicalUrl(url.pathname, url.origin);
 	const description = htmlToDescription(post.body);
 
 	return {

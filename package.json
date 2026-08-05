@@ -22,9 +22,11 @@
 		"db:studio": "drizzle-kit studio",
 		"db:seed": "tsx scripts/seed.ts --fresh",
 		"db:seed:test": "tsx scripts/seed-test.ts",
+		"db:seed:promo": "tsx scripts/seed-promo.ts",
 		"email:dev": "email dev --dir=theme/emails",
 		"biome": "biome check . --write",
 		"test": "playwright test",
+		"promo-videos": "playwright test -c playwright.promo.config.ts",
 		"test:unit": "vitest",
 		"prepare": "git config core.hooksPath .githooks"
 	},

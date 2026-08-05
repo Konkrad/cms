@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "name": "CMS - Community Management System",
+  "short_name": "CMS",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fafaf8",
+  "theme_color": "#1f4d3c",
+  "description": "A self-hosted community platform for volunteer-run chapters, clubs, and associations.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    }
+  ]
+}

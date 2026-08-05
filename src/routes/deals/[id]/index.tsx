@@ -35,7 +35,7 @@ export default component$(() => {
 export const head: DocumentHead = ({ resolveValue, url }) => {
 	try {
 		const { deal } = resolveValue(useDeal);
-		const canonical = canonicalUrl(url.pathname);
+		const canonical = canonicalUrl(url.pathname, url.origin);
 		const description = deal.description || `Member deal: ${deal.name}`;
 		const logoUrl = publicImageUrlFromKey(deal.logo);
 

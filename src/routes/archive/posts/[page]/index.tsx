@@ -53,8 +53,10 @@ export default component$(() => {
 // Paginated archive listings beyond page 1 are thin/duplicate content (same
 // layout, no unique text) — keep them out of the index and point crawlers
 // back at the canonical first page instead.
-export const head: DocumentHead = () => ({
+export const head: DocumentHead = ({ url }) => ({
 	title: "Post Archive",
 	meta: [{ name: "robots", content: "noindex, follow" }],
-	links: [{ rel: "canonical", href: canonicalUrl("/archive/posts") }],
+	links: [
+		{ rel: "canonical", href: canonicalUrl("/archive/posts", url.origin) },
+	],
 });

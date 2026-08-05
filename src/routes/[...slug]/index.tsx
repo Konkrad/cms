@@ -57,7 +57,7 @@ export const head: DocumentHead = ({ resolveValue, url }) => {
 
 		const title = page.menuItem?.title ?? "Community Hub";
 		const description = descriptionFromBlocks(page.content);
-		const canonical = canonicalUrl(url.pathname);
+		const canonical = canonicalUrl(url.pathname, url.origin);
 
 		return {
 			title,

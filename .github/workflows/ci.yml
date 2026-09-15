@@ -89,7 +89,7 @@ jobs:
       E2E_ALLOW_DB_WRITE: "true"
     services:
       minio:
-        image: minio/minio:latest
+        image: ghcr.io/coollabsio/minio:latest
         ports:
           - 9000:9000
           - 9001:9001

@@ -27,7 +27,7 @@ services:
       - 1025:1025
 
   minio:
-    image: minio/minio
+    image: ghcr.io/coollabsio/minio
     container_name: minio
     restart: unless-stopped
     networks:

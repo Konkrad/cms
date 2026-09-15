@@ -53,7 +53,7 @@ export async function setup() {
       .start(),
 
     // minio: S3-compatible storage
-    new GenericContainer("minio/minio")
+    new GenericContainer("ghcr.io/coollabsio/minio")
       .withExposedPorts(9000)
       .withEnvironment({
         MINIO_ROOT_USER: "test",

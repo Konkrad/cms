@@ -9,6 +9,10 @@ import { qwikRouter } from "@qwik.dev/router/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, type UserConfig } from "vite";
 import pkg from "./package.json";
+import {
+	THEME_PREFIX,
+	themeAwareChunkName,
+} from "./scripts/theme-swap/chunk-naming";
 
 // Absolute path to ./src for the "~" alias below.
 const srcDir = fileURLToPath(new URL("./src/", import.meta.url));
@@ -60,6 +64,28 @@ export default defineConfig(
 				// some third-party CSS shipped by deps (e.g. @blocknote/mantine's invalid
 				// `@media (max-device-width: em(500px))`), which would fail the production build.
 				cssMinify: "esbuild",
+				rollupOptions: {
+					output: {
+						// Chunk names are derived from source path (see chunk-naming.ts) so a
+						// fork's theme build produces filenames identical to this repo's —
+						// required for scripts/theme-swap/{extract,merge}.ts to drop a fork's
+						// theme output into this build without rebuilding it. See
+						// docs/theme-development.md. Only theme/-owned modules are named
+						// (everything else falls back to Rolldown's default bundling) — the
+						// same function is reused by the SSR build in
+						// adapters/node-server/vite.config.ts. The [name] placeholder is
+						// filled from codeSplitting.groups below; no [hash] means no
+						// per-build drift for theme chunks (non-theme chunks keep their
+						// normal hashed names).
+						chunkFileNames: (chunkInfo) =>
+							chunkInfo.name?.startsWith(THEME_PREFIX)
+								? "build/[name].js"
+								: "build/[name]-[hash].js",
+						codeSplitting: {
+							groups: [{ name: themeAwareChunkName }],
+						},
+					},
+				},
 			},
 			resolve: {
 				// Explicit "~" -> ./src and "~theme" -> ./theme aliases. tsconfigPaths alone

@@ -15,6 +15,7 @@ import {
 	renderToStream,
 } from "@qwik.dev/core/server";
 import Root from "./root";
+import { themeAwareSymbolMapper } from "./utils/theme-manifest";
 
 export default function (opts: RenderToStreamOptions) {
 	return renderToStream(<Root />, {
@@ -27,5 +28,8 @@ export default function (opts: RenderToStreamOptions) {
 		serverData: {
 			...opts.serverData,
 		},
+		// Production only — dev mode's SSR resolves symbols through its own
+		// dev-specific path; see src/utils/theme-manifest.ts.
+		...(import.meta.env.DEV ? {} : { symbolMapper: themeAwareSymbolMapper }),
 	});
 }

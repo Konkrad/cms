@@ -1,0 +1,74 @@
+# syntax=docker/dockerfile:1
+#
+# Template Dockerfile for a downstream "theme fork" — a thin repo that owns
+# only its own theme/ directory and wants to ship a themed image without
+# rebuilding all of core. Copy this file into the fork repo (it is not run
+# from core's own checkout) and fill in the ARGs below. See
+# docs/theme-development.md ("Drop-in theme overlay") for the full
+# mechanism this relies on, including its known limitations.
+#
+# Requirements:
+#   - CORE_REF must be the exact core commit/tag BASE_IMAGE was built from.
+#     Both builds must compile identical core source — only theme/ may
+#     differ — or the deterministic chunk names and manifest entries this
+#     mechanism depends on won't line up between the two.
+#   - This repo provides its own theme/ directory at its root, laid out the
+#     same way as core's (see theme/README.md), which is overlaid onto
+#     core's before building.
+#
+# Usage:
+#   docker build -f Dockerfile.theme-overlay \
+#     --build-arg CORE_REPO=https://github.com/<org>/cms.git \
+#     --build-arg CORE_REF=<commit-or-tag-that-built-BASE_IMAGE> \
+#     --build-arg BASE_IMAGE=ghcr.io/<org>/cms:<same-ref> \
+#     --build-arg VITE_S3_BASE_URL=https://<bucket>.s3.<region>.amazonaws.com \
+#     -t my-chapter-site .
+
+# ---- Theme build stage: compile only theme/ against pinned core source --
+FROM node:24-bookworm-slim AS theme-build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ git \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+ARG CORE_REPO
+ARG CORE_REF
+RUN git clone --depth 1 --branch "${CORE_REF}" "${CORE_REPO}" .
+
+# VITE_S3_BASE_URL is compiled into the client bundle (import.meta.env), so it
+# MUST be available at build time, and must match the value BASE_IMAGE was
+# built with (the compiled reference is core-owned code, unaffected by the
+# theme swap, so it has to already agree with the base).
+ARG VITE_S3_BASE_URL
+ENV VITE_S3_BASE_URL=${VITE_S3_BASE_URL}
+
+RUN npm ci
+
+# Overlay this fork's own theme/ directory over core's default one, then
+# build. Only theme/ differs from the build that produced BASE_IMAGE.
+COPY theme ./theme
+RUN npm run build.client && npm run build.server \
+  && npm run theme:extract -- --out=theme-artifact
+
+# ---- Runtime stage: overlay the extracted theme onto the published base --
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE} AS runtime
+
+WORKDIR /app
+
+COPY --from=theme-build /app/theme-artifact ./theme-artifact
+# theme/static/ (favicon, manifest.json, fonts, logo) is copied byte-for-byte
+# by Vite's publicDir at build time — no content hashing, so unlike the
+# JS/CSS build output there's nothing to extract/merge; it's overlaid
+# directly onto the base's dist/.
+COPY --from=theme-build /app/theme/static/. ./dist/
+
+# node_modules and scripts/theme-swap come from the base image (see
+# Dockerfile) — reused as-is rather than reinstalled.
+RUN node_modules/.bin/tsx scripts/theme-swap/merge.ts --theme=theme-artifact \
+  && rm -rf theme-artifact
+
+# ENTRYPOINT, EXPOSE, and the litestream/migration setup are inherited from
+# BASE_IMAGE unchanged.

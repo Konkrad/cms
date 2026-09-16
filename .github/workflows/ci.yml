@@ -79,6 +79,7 @@ jobs:
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: testtest
       S3_BUCKET: test
+      S3_BASE_URL: http://localhost:9000/test
       STRIPE_SECRET_KEY: sk_test_123
       STRIPE_PUBLISHABLE_KEY: pk_test_123
       STRIPE_WEBHOOK_SECRET: whsec_test

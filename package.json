@@ -17,6 +17,8 @@
 		"build.server": "vite build -c adapters/node-server/vite.config.ts",
 		"build.types": "tsc --noEmit",
 		"preview": "qwik build preview && vite preview --host 0.0.0.0",
+		"theme:extract": "tsx scripts/theme-swap/extract.ts",
+		"theme:merge": "tsx scripts/theme-swap/merge.ts",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
@@ -28,7 +30,7 @@
 		"test": "playwright test",
 		"promo-videos": "playwright test -c playwright.promo.config.ts",
 		"test:unit": "vitest",
-		"prepare": "git config core.hooksPath .githooks"
+		"prepare": "git rev-parse --git-dir > /dev/null 2>&1 && git config core.hooksPath .githooks || true"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.10",

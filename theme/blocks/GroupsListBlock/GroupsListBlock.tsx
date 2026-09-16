@@ -13,7 +13,7 @@ export const definition: BlockDefinition = {
 	defaultData: {},
 };
 
-export default component$(() => {
+export default component$<{ s3BaseUrl: string }>((props) => {
 	const { groups, isLoading, error } = useGroupsList();
 
 	return (
@@ -36,7 +36,10 @@ export default component$(() => {
 							title={group.name}
 							image={
 								group.image1
-									? publicImageUrlFromKey(deriveThumbnailKey(group.image1))
+									? publicImageUrlFromKey(
+											deriveThumbnailKey(group.image1),
+											props.s3BaseUrl,
+										)
 									: null
 							}
 							meta={`${group.memberCount} ${group.memberCount === 1 ? "member" : "members"}`}

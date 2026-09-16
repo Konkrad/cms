@@ -10,11 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# VITE_S3_BASE_URL is compiled into the client bundle (import.meta.env), so it MUST
-# be available at build time — pass it via `docker build --build-arg`.
-ARG VITE_S3_BASE_URL
-ENV VITE_S3_BASE_URL=${VITE_S3_BASE_URL}
-
 COPY package.json package-lock.json ./
 RUN npm ci
 
@@ -47,6 +42,10 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/server ./server
 COPY --from=build /app/drizzle ./drizzle
 COPY --from=build /app/package.json ./package.json
+# Lets a downstream "theme fork" image (see Dockerfile.theme-overlay) run
+# `tsx scripts/theme-swap/merge.ts` against this image without rebuilding
+# core — see docs/theme-development.md ("Drop-in theme overlay").
+COPY --from=build /app/scripts/theme-swap ./scripts/theme-swap
 COPY litestream.yml ./litestream.yml
 COPY docker/entrypoint.sh ./docker/entrypoint.sh
 RUN chmod +x ./docker/entrypoint.sh

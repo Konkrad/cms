@@ -16,6 +16,7 @@ below are the same regardless of the tool driving them.
 | `src/routes/up/index.ts` | Health check endpoint (`/up`) — wire it into whatever proxy/load balancer you use |
 | `src/db/migrate.ts` | Programmatic Drizzle migration runner (idempotent), called directly by the server on every start |
 | `src/entry.node-server.tsx` | Production Node server entry, built to `server/entry.node-server.js`; runs migrations before it starts listening |
+| `scripts/theme-swap/` | `extract.ts`/`merge.ts` — drop-in theme overlay mechanism for downstream deployments, see below and [Building a Custom Theme](./theme-development.md) |
 
 ## The container's expectations
 
@@ -29,10 +30,10 @@ below are the same regardless of the tool driving them.
   § Core Rules).
 - **`/up` only proves the process serves HTTP** — it deliberately checks no
   downstream services (DB, S3, SMTP). Point your platform's health check at it.
-- **Env vars**: everything in `src/env.ts` must be set. `VITE_S3_BASE_URL` is the
-  one exception — it's a *build-time* value baked into the client bundle
-  (`import.meta.env`), so it must be passed as a Docker build arg, not a runtime
-  env var; changing it requires a rebuild.
+- **Env vars**: everything in `src/env.ts` must be set, including `S3_BASE_URL`
+  (the public base URL for S3 objects) — it's a plain runtime var like the
+  rest, resolved at request time rather than compiled into the client bundle,
+  so changing it doesn't require a rebuild.
 - **Litestream is optional.** If you want continuous SQLite → S3 replication for
   disaster recovery, set `DB_PATH`/`S3_BUCKET`/`AWS_*` and run the container as
   written (`entrypoint.sh` wraps the server in `litestream replicate -exec`). If
@@ -42,9 +43,7 @@ below are the same regardless of the tool driving them.
 ## Building the image
 
 ```bash
-docker build \
-  --build-arg VITE_S3_BASE_URL=https://your-bucket.s3.your-region.amazonaws.com \
-  -t your-registry/cms:latest .
+docker build -t your-registry/cms:latest .
 ```
 
 Push it to whatever registry your deploy tool expects, then run it with the env
@@ -54,11 +53,22 @@ vars from `src/env.ts` and a volume mounted at `DB_PATH`.
 
 The public-facing look of the site lives entirely in `theme/` (see
 [Building a Custom Theme](./theme-development.md)) — the core app underneath is
-the same regardless of who's running it. The intended flow is:
+the same regardless of who's running it. There are two ways to turn a themed
+deployment into an image:
 
-1. Fork or wrap this repo, replace `theme/` with your own branding/layout.
-2. Build the Docker image from your customized checkout.
-3. Deploy that image with whatever tooling fits your infrastructure.
+1. **Full rebuild.** Fork or wrap this repo, replace `theme/` with your own
+   branding/layout, build the Docker image from your customized checkout,
+   deploy it. Always works, no constraints — the right default.
+2. **Drop-in theme overlay.** Core publishes one base image (built via the
+   plain `Dockerfile` in this repo). A deployment repo that only needs to
+   swap `theme/` — not touch core — can instead overlay its theme onto that
+   published image directly, without rebuilding the rest of the app. See
+   [Building a Custom Theme § Drop-in theme overlay](./theme-development.md)
+   for how it works and its requirements, and `Dockerfile.theme-overlay` at
+   the repo root for a starting template. This trades a bit of setup
+   (pinning the deployment repo's build to the exact core commit the base
+   image shipped) for much faster iteration once it's wired up — no full
+   `npm ci` + core build on every theme change.
 
 There's no single "correct" deployment path baked into this repo on purpose —
 this is meant to be adapted per-deployment, not a specific ops setup that

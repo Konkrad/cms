@@ -31,6 +31,7 @@ interface FeatureBlockProps {
 	layout?: string;
 	gap?: number;
 	tilesJson?: string;
+	s3BaseUrl: string;
 }
 
 const DEFAULT_LAYOUT = `"left-top middle right-top" "left-bottom middle right-top" "left-bottom middle right-bottom"`;
@@ -141,6 +142,7 @@ export default component$<FeatureBlockProps>((props) => {
 								image={tile.image ?? "public/events/seed-1.webp"}
 								alt={tile.alt}
 								overlayText={tile.overlayText}
+								s3BaseUrl={props.s3BaseUrl}
 							/>
 						);
 					}

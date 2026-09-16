@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
+import { env } from "~/env";
 import { dealsService } from "~/services/deals.service";
 import { publicImageUrlFromKey } from "~/utils/images";
 import { canonicalUrl } from "~/utils/seo";
@@ -37,7 +38,7 @@ export const head: DocumentHead = ({ resolveValue, url }) => {
 		const { deal } = resolveValue(useDeal);
 		const canonical = canonicalUrl(url.pathname, url.origin);
 		const description = deal.description || `Member deal: ${deal.name}`;
-		const logoUrl = publicImageUrlFromKey(deal.logo);
+		const logoUrl = publicImageUrlFromKey(deal.logo, env.S3_BASE_URL);
 
 		return {
 			title: deal.name,

@@ -82,8 +82,9 @@ Core publishes one production image, built and tested once. A deployment
 repo can then overlay just its own `theme/` onto that published image —
 compiling only the theme, not the whole app — using
 `Dockerfile.theme-overlay` at the repo root as a starting template. Copy it
-into the deployment repo and fill in its `CORE_REPO`/`CORE_REF`/`BASE_IMAGE`
-build args.
+into the deployment repo and fill in its core-commit and base-image
+placeholders directly (they're committed literals, not build args — see the
+template's own header comment for why).
 
 This works because core's build (`vite.config.ts`,
 `adapters/node-server/vite.config.ts`) gives every module compiled from

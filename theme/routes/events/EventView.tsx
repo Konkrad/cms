@@ -17,7 +17,8 @@ import { ParticipationToggle } from "~theme/shared/ParticipationToggle/Participa
 export const EventView = component$<{
 	event: EventViewData;
 	updateParticipation: UpdateParticipationAction;
-}>(({ event: eventData, updateParticipation }) => {
+	s3BaseUrl: string;
+}>(({ event: eventData, updateParticipation, s3BaseUrl }) => {
 	if (!eventData) {
 		return (
 			<div class="max-w-4xl mx-auto px-4 py-16 text-center">
@@ -231,6 +232,7 @@ export const EventView = component$<{
 							area="middle"
 							image="https://picsum.photos/600/700"
 							alt="Event"
+							s3BaseUrl={s3BaseUrl}
 						/>
 					)}
 
@@ -240,6 +242,7 @@ export const EventView = component$<{
 							area="right-top"
 							image={event.image2}
 							alt={event.title}
+							s3BaseUrl={s3BaseUrl}
 						/>
 					)}
 
@@ -249,6 +252,7 @@ export const EventView = component$<{
 							area="left-bottom"
 							image={event.image1}
 							alt={event.title}
+							s3BaseUrl={s3BaseUrl}
 						/>
 					)}
 

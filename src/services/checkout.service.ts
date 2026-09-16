@@ -1,161 +1,174 @@
-import { stripeService } from "./stripe.service";
+import { env } from "~/env";
+import { publicImageUrlFromKey } from "~/utils/images";
 import { inventoryGroupsService } from "./inventory-groups.service";
 import { productsService } from "./products.service";
-import { publicImageUrlFromKey } from "~/utils/images";
-import { env } from "~/env";
+import { stripeService } from "./stripe.service";
 
-function absoluteImageUrlFromKey(value: string | null | undefined): string | null {
-  const path = publicImageUrlFromKey(value);
-  return path ? new URL(path, env.APP_URL).toString() : null;
+function absoluteImageUrlFromKey(
+	value: string | null | undefined,
+): string | null {
+	const path = publicImageUrlFromKey(value, env.S3_BASE_URL);
+	return path ? new URL(path, env.APP_URL).toString() : null;
 }
 
 interface CheckoutItem {
-  productId: string;
-  quantity: number;
+	productId: string;
+	quantity: number;
 }
 
 export const checkoutService = {
-  async validateInventory(
-    eventId: string,
-    items: CheckoutItem[],
-  ): Promise<{ valid: boolean; errors: string[] }> {
-    const errors: string[] = [];
+	async validateInventory(
+		eventId: string,
+		items: CheckoutItem[],
+	): Promise<{ valid: boolean; errors: string[] }> {
+		const errors: string[] = [];
 
-    // Get all products and inventory groups
-    const productIds = items.map((item) => item.productId);
-    const products = await Promise.all(
-      productIds.map((id) => productsService.getById(id)),
-    );
+		// Get all products and inventory groups
+		const productIds = items.map((item) => item.productId);
+		const products = await Promise.all(
+			productIds.map((id) => productsService.getById(id)),
+		);
 
-    // Validate each product exists
-    for (let i = 0; i < items.length; i++) {
-      const product = products[i];
-      if (!product) {
-        errors.push(`Product ${items[i].productId} not found`);
-        continue;
-      }
+		// Validate each product exists
+		for (let i = 0; i < items.length; i++) {
+			const product = products[i];
+			if (!product) {
+				errors.push(`Product ${items[i].productId} not found`);
+				continue;
+			}
 
-      // Check if product belongs to the event
-      if (product.eventId !== eventId) {
-        errors.push(`Product ${product.name} does not belong to this event`);
-        continue;
-      }
+			// Check if product belongs to the event
+			if (product.eventId !== eventId) {
+				errors.push(`Product ${product.name} does not belong to this event`);
+				continue;
+			}
 
-      // Check max quantity per purchase
-      if (product.maxQuantity > 0 && items[i].quantity > product.maxQuantity) {
-        errors.push(
-          `Product ${product.name} allows maximum ${product.maxQuantity} per purchase`,
-        );
-      }
+			// Check max quantity per purchase
+			if (product.maxQuantity > 0 && items[i].quantity > product.maxQuantity) {
+				errors.push(
+					`Product ${product.name} allows maximum ${product.maxQuantity} per purchase`,
+				);
+			}
 
-      // Check remaining product quantity against sold stock
-      if (product.maxQuantity > 0) {
-        const remainingProductQuantity =
-          product.maxQuantity - (product.soldQuantity || 0);
-        if (items[i].quantity > remainingProductQuantity) {
-          errors.push(
-            `Product ${product.name} has only ${Math.max(0, remainingProductQuantity)} remaining`,
-          );
-        }
-      }
-    }
+			// Check remaining product quantity against sold stock
+			if (product.maxQuantity > 0) {
+				const remainingProductQuantity =
+					product.maxQuantity - (product.soldQuantity || 0);
+				if (items[i].quantity > remainingProductQuantity) {
+					errors.push(
+						`Product ${product.name} has only ${Math.max(0, remainingProductQuantity)} remaining`,
+					);
+				}
+			}
+		}
 
-    // Group items by inventory group
-    const groupedByInventory = new Map<string, { productIds: string[]; totalQty: number }>();
-    
-    for (let i = 0; i < items.length; i++) {
-      const product = products[i];
-      if (!product) continue;
+		// Group items by inventory group
+		const groupedByInventory = new Map<
+			string,
+			{ productIds: string[]; totalQty: number }
+		>();
 
-      const inventoryGroupId = product.inventoryGroupId;
-      const existing = groupedByInventory.get(inventoryGroupId) || {
-        productIds: [],
-        totalQty: 0,
-      };
-      existing.productIds.push(product.id);
-      existing.totalQty += items[i].quantity;
-      groupedByInventory.set(inventoryGroupId, existing);
-    }
+		for (let i = 0; i < items.length; i++) {
+			const product = products[i];
+			if (!product) continue;
 
-    // Validate inventory capacity for each group
-    for (const [inventoryGroupId, data] of groupedByInventory.entries()) {
-      const inventoryGroup = await inventoryGroupsService.getById(inventoryGroupId);
-      if (!inventoryGroup) {
-        errors.push(`Inventory group not found`);
-        continue;
-      }
+			const inventoryGroupId = product.inventoryGroupId;
+			const existing = groupedByInventory.get(inventoryGroupId) || {
+				productIds: [],
+				totalQty: 0,
+			};
+			existing.productIds.push(product.id);
+			existing.totalQty += items[i].quantity;
+			groupedByInventory.set(inventoryGroupId, existing);
+		}
 
-      // Check remaining capacity
-      const validation = await inventoryGroupsService.validatePurchase(
-        inventoryGroupId,
-        data.totalQty,
-      );
-      if (!validation.allowed) {
-        errors.push(
-          validation.reason ||
-            `Not enough capacity in ${inventoryGroup.name}. Only ${validation.remainingCapacity} spots remaining.`,
-        );
-      }
-    }
+		// Validate inventory capacity for each group
+		for (const [inventoryGroupId, data] of groupedByInventory.entries()) {
+			const inventoryGroup =
+				await inventoryGroupsService.getById(inventoryGroupId);
+			if (!inventoryGroup) {
+				errors.push(`Inventory group not found`);
+				continue;
+			}
 
-    return {
-      valid: errors.length === 0,
-      errors,
-    };
-  },
+			// Check remaining capacity
+			const validation = await inventoryGroupsService.validatePurchase(
+				inventoryGroupId,
+				data.totalQty,
+			);
+			if (!validation.allowed) {
+				errors.push(
+					validation.reason ||
+						`Not enough capacity in ${inventoryGroup.name}. Only ${validation.remainingCapacity} spots remaining.`,
+				);
+			}
+		}
 
-  async createSession(params: {
-    eventId: string;
-    userId: string;
-    items: CheckoutItem[];
-    successUrl: string;
-    cancelUrl: string;
-  }): Promise<{ sessionId: string; url: string } | { error: string }> {
-    // Validate inventory first
-    const validation = await this.validateInventory(params.eventId, params.items);
-    if (!validation.valid) {
-      return { error: validation.errors.join("; ") };
-    }
+		return {
+			valid: errors.length === 0,
+			errors,
+		};
+	},
 
-    // Get product details
-    const products = await Promise.all(
-      params.items.map(async (item) => {
-        const product = await productsService.getById(item.productId);
-        return { ...item, product };
-      }),
-    );
+	async createSession(params: {
+		eventId: string;
+		userId: string;
+		items: CheckoutItem[];
+		successUrl: string;
+		cancelUrl: string;
+	}): Promise<{ sessionId: string; url: string } | { error: string }> {
+		// Validate inventory first
+		const validation = await this.validateInventory(
+			params.eventId,
+			params.items,
+		);
+		if (!validation.valid) {
+			return { error: validation.errors.join("; ") };
+		}
 
-    // Build line items for Stripe
-    const lineItems = products
-      .filter((p) => p.product)
-      .map((p) => ({
-        price_data: {
-          currency: "eur",
-          product_data: {
-            name: p.product!.name,
-            description: p.product!.features.join(", "),
-            images: p.product!.imageKey ? [absoluteImageUrlFromKey(p.product!.imageKey)].filter((x): x is string => x != null) : [],
-          },
-          unit_amount: Math.round(p.product!.price * 100), // Convert to cents
-        },
-        quantity: p.quantity,
-      }));
+		// Get product details
+		const products = await Promise.all(
+			params.items.map(async (item) => {
+				const product = await productsService.getById(item.productId);
+				return { ...item, product };
+			}),
+		);
 
-    // Create Stripe checkout session
-    const session = await stripeService.createCheckoutSession({
-      lineItems,
-      successUrl: params.successUrl,
-      cancelUrl: params.cancelUrl,
-      metadata: {
-        eventId: params.eventId,
-        userId: params.userId,
-        items: JSON.stringify(params.items),
-      },
-    });
+		// Build line items for Stripe
+		const lineItems = products
+			.filter((p) => p.product)
+			.map((p) => ({
+				price_data: {
+					currency: "eur",
+					product_data: {
+						name: p.product!.name,
+						description: p.product!.features.join(", "),
+						images: p.product!.imageKey
+							? [absoluteImageUrlFromKey(p.product!.imageKey)].filter(
+									(x): x is string => x != null,
+								)
+							: [],
+					},
+					unit_amount: Math.round(p.product!.price * 100), // Convert to cents
+				},
+				quantity: p.quantity,
+			}));
 
-    return {
-      sessionId: session.id,
-      url: session.url || "",
-    };
-  },
+		// Create Stripe checkout session
+		const session = await stripeService.createCheckoutSession({
+			lineItems,
+			successUrl: params.successUrl,
+			cancelUrl: params.cancelUrl,
+			metadata: {
+				eventId: params.eventId,
+				userId: params.userId,
+				items: JSON.stringify(params.items),
+			},
+		});
+
+		return {
+			sessionId: session.id,
+			url: session.url || "",
+		};
+	},
 };

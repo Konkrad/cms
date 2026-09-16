@@ -30,10 +30,10 @@ below are the same regardless of the tool driving them.
   § Core Rules).
 - **`/up` only proves the process serves HTTP** — it deliberately checks no
   downstream services (DB, S3, SMTP). Point your platform's health check at it.
-- **Env vars**: everything in `src/env.ts` must be set. `VITE_S3_BASE_URL` is the
-  one exception — it's a *build-time* value baked into the client bundle
-  (`import.meta.env`), so it must be passed as a Docker build arg, not a runtime
-  env var; changing it requires a rebuild.
+- **Env vars**: everything in `src/env.ts` must be set, including `S3_BASE_URL`
+  (the public base URL for S3 objects) — it's a plain runtime var like the
+  rest, resolved at request time rather than compiled into the client bundle,
+  so changing it doesn't require a rebuild.
 - **Litestream is optional.** If you want continuous SQLite → S3 replication for
   disaster recovery, set `DB_PATH`/`S3_BUCKET`/`AWS_*` and run the container as
   written (`entrypoint.sh` wraps the server in `litestream replicate -exec`). If
@@ -43,9 +43,7 @@ below are the same regardless of the tool driving them.
 ## Building the image
 
 ```bash
-docker build \
-  --build-arg VITE_S3_BASE_URL=https://your-bucket.s3.your-region.amazonaws.com \
-  -t your-registry/cms:latest .
+docker build -t your-registry/cms:latest .
 ```
 
 Push it to whatever registry your deploy tool expects, then run it with the env

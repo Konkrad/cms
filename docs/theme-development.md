@@ -59,73 +59,43 @@ admin-only component should never expect a theme's brand colors to apply to
 it — if you're building new admin UI and it looks themed, something's
 wrong.
 
+## Dev image + theme folder mapping
+
+Core publishes a dev image — `ghcr.io/konkrad/cms:dev`, built from
+`Dockerfile.dev` — alongside the production image, from the same CI job
+(`.github/workflows/ci.yml`). It bakes in core's full source and
+`node_modules`, and runs `npm start` (`vite --mode ssr --host 0.0.0.0`) as
+its command instead of a production build.
+
+Because Vite's dev server compiles on demand per file (unlike `vite build`),
+a deployment repo can bind-mount its own `theme/` directory straight over
+the image's default one and get true hot reload — no core checkout, no
+build step, no custom tooling on the deployment repo's side. Editing a file
+under the mounted `theme/` shows up as a `[vite] (ssr) page reload ...` in
+the container logs a couple of seconds later.
+
+```
+docker compose up
+open http://localhost:3100
+```
+
+See `docker-compose.yml` in a deployment repo (e.g. `cms-deploy`) for the
+full setup — it maps `./theme:/app/theme` and `./data:/data` onto the `:dev`
+image alongside local mailpit/minio/stripe-mock, so nothing needs real
+SMTP/S3/Stripe to boot. Only `theme/` is mounted, not the whole app, so
+`node_modules` (including native modules like `better-sqlite3`) stays
+inside the image regardless of host platform.
+
+This is local-dev tooling only — it has no bearing on how a deployment
+repo actually ships to production; see below.
+
 ## How a deployment repo actually ships its theme
 
 A deployment repo (like a specific chapter's site) is a thin wrapper: its
 own `theme/` directory, deploy config, and any data-import scripts — no
-fork of core. There are two ways it turns that into a deployable image:
-
-### Full rebuild (simplest, always works)
-
-At build time, its Dockerfile clones a fresh checkout of this core repo,
-then `COPY`s the deployment repo's own files (its `theme/` directory,
-`public/` assets, etc.) directly on top before running the production
-build. The deployment repo never needs to touch core source at all; the
-whole customization surface is the `~theme/*`-importable directory
-described above. This is the default, and the right choice unless you're
-specifically optimizing for iteration speed or want to publish one base
-image and reuse it across several themed deployments.
-
-### Drop-in theme overlay (faster iteration, no core rebuild)
-
-Core publishes one production image, built and tested once. A deployment
-repo can then overlay just its own `theme/` onto that published image —
-compiling only the theme, not the whole app — using
-`Dockerfile.theme-overlay` at the repo root as a starting template. Copy it
-into the deployment repo and fill in its core-commit and base-image
-placeholders directly (they're committed literals, not build args — see the
-template's own header comment for why).
-
-This works because core's build (`vite.config.ts`,
-`adapters/node-server/vite.config.ts`) gives every module compiled from
-`theme/**` a chunk name derived purely from its source path
-(`scripts/theme-swap/chunk-naming.ts`), instead of Rolldown's normal
-content-hash-based naming. Two builds of the *same* theme source, even from
-completely separate `npm run build` invocations, produce byte-for-byte the
-same set of chunk filenames — which is what makes it possible to replace
-just those files (client JS, server JS, and the theme-owned slice of
-`dist/q-manifest.json`) in an already-built image without touching anything
-core-owned. `npm run theme:extract` pulls that theme-owned slice out of a
-completed build into a standalone directory; `npm run theme:merge` overlays
-it onto another build (or, unpacked from the base image's own layers, onto
-that image directly). See the scripts' own doc comments
-(`scripts/theme-swap/extract.ts`, `scripts/theme-swap/merge.ts`) for the
-exact mechanics.
-
-**Requirements and known limitations:**
-
-- The deployment repo's theme build must compile against the *exact* core
-  commit the base image was built from. Core and the fork share chunk
-  filenames only because they compiled identical core source; if core
-  itself changed between the two builds, the overlay can silently ship a
-  broken mix (a theme chunk calling into a core API shape the base image's
-  core chunks don't match).
-- The overlay replaces the app's single global stylesheet wholesale rather
-  than merging it. Tailwind compiles one atomic CSS file covering core and
-  theme utility classes together — there's no per-module boundary in that
-  file the way there is for JS chunks. As long as the fork's theme only
-  restyles via the token system (`theme/tokens/theme.css`, see above) rather
-  than introducing wholly new class usage patterns that core routes also
-  depend on, this is safe: the fork's CSS build already includes everything
-  core needs (core JSX is unchanged, so it needs the same utility classes
-  either way) plus the fork's own variations.
-- `theme/static/` (favicon, `manifest.json`, fonts, logo) isn't handled by
-  `extract`/`merge` at all — Vite's `publicDir` copies it byte-for-byte with
-  no content hashing, so a deployment repo's Dockerfile just `COPY`s it
-  directly onto the base image's `dist/`, as `Dockerfile.theme-overlay`
-  does.
-- This assumes the deployment repo's theme only changes files under
-  `theme/**` in ways that don't change the *set* of exported
-  components/props core relies on — content, copy, styling, and internal
-  logic changes are fine; restructuring what a theme file exports needs a
-  full rebuild instead.
+fork of core. At build time, its Dockerfile clones a fresh checkout of this
+core repo, then `COPY`s the deployment repo's own files (its `theme/`
+directory, `public/` assets, etc.) directly on top before running the
+production build. The deployment repo never needs to touch core source at
+all; the whole customization surface is the `~theme/*`-importable directory
+described above.

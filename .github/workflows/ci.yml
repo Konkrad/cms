@@ -219,3 +219,19 @@ jobs:
             ghcr.io/konkrad/cms:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Dev image for the theme/-folder-mapping workflow (see
+      # docs/theme-development.md) — a deployment repo bind-mounts its own
+      # theme/ over this image's and gets hot reload via the Vite dev server,
+      # no core checkout or build step on their side.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.dev
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/konkrad/cms:dev-${{ github.sha }}
+            ghcr.io/konkrad/cms:dev
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

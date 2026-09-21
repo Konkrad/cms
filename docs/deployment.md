@@ -12,6 +12,8 @@ below are the same regardless of the tool driving them.
 |---|---|
 | `Dockerfile` | Two-stage build: compile client + server bundles, then a slim runtime with Litestream |
 | `docker/entrypoint.sh` | Boot sequence: restore DB if missing → start server (optionally under Litestream) |
+| `Dockerfile.runtime-theme` | Alternative image: builds at container startup against a mounted theme/, see "Runtime theme build" below |
+| `docker/entrypoint-runtime-theme.sh` | Boot sequence for that image: overlay mounted theme (if any) → build → restore DB if missing → start server |
 | `litestream.yml` | Optional: continuously replicates the SQLite DB to S3-compatible object storage under the `db-backups/` prefix |
 | `src/routes/up/index.ts` | Health check endpoint (`/up`) — wire it into whatever proxy/load balancer you use |
 | `src/db/migrate.ts` | Programmatic Drizzle migration runner (idempotent), called directly by the server on every start |
@@ -54,7 +56,7 @@ vars from `src/env.ts` and a volume mounted at `DB_PATH`.
 
 The public-facing look of the site lives entirely in `theme/` (see
 [Building a Custom Theme](./theme-development.md)) — the core app underneath is
-the same regardless of who's running it. The intended flow is:
+the same regardless of who's running it. The default flow:
 
 1. Fork or wrap this repo, replace `theme/` with your own branding/layout.
 2. Build the Docker image from your customized checkout.
@@ -62,4 +64,55 @@ the same regardless of who's running it. The intended flow is:
 
 There's no single "correct" deployment path baked into this repo on purpose —
 this is meant to be adapted per-deployment, not a specific ops setup that
-everyone has to reuse.
+everyone has to reuse. `Dockerfile.runtime-theme` (below) is one such
+alternative.
+
+## Runtime theme build
+
+`Dockerfile.runtime-theme` builds a different kind of image: instead of
+baking a theme in at `docker build` time, it ships full build tooling
+(`node_modules` with devDependencies, the native-module toolchain, `vite`
+itself) and runs `npm run build.client && npm run build.server` at
+**container startup**, via `docker/entrypoint-runtime-theme.sh`. The
+deployer mounts their `theme/` directory at `/theme-src` (bind mount,
+ConfigMap, PVC — whatever the orchestrator supports); the entrypoint
+overlays it onto the image's own `theme/` before building. With nothing
+mounted, it falls back to building the image's bundled default theme, so
+the image is runnable standalone.
+
+```bash
+docker build -f Dockerfile.runtime-theme -t your-registry/cms:runtime-theme .
+
+docker run \
+  -v /path/to/my-theme:/theme-src:ro \
+  -v cms-data:/data \
+  -e DB_PATH=/data/db.sqlite \
+  -e VITE_S3_BASE_URL=https://your-bucket.s3.your-region.amazonaws.com \
+  <the rest of src/env.ts's required vars> \
+  your-registry/cms:runtime-theme
+```
+
+This is a genuinely different tradeoff from the plain `Dockerfile`, not a
+strict improvement:
+
+- **One image, any theme.** Since the build happens against whatever's
+  mounted in, the same published image tag serves every deployment — swap
+  the mounted directory and restart the container. No per-theme image
+  build, no chunk-naming/manifest-merge machinery to keep theme-owned and
+  core-owned build output apart (contrast a hypothetical build-time overlay
+  mechanism) — it's just one ordinary `vite build`, so there's no CSS
+  wholesale-replace caveat either: Tailwind compiles core and theme
+  together in the same pass, correctly, every time.
+- **Startup latency.** Every container start (including a routine restart
+  or a rolling deploy replica) pays for a full build — seconds at minimum,
+  more depending on hardware and how much CI-style caching (if any) is
+  wired up for `node_modules`/Vite's own cache in the deployment
+  environment. Not a fit for aggressive autoscaling or restart-heavy
+  workflows without addressing that first.
+- **A larger, less locked-down runtime image.** The native-module
+  toolchain (`python3 make g++`) and full `devDependencies` stay in the
+  image that actually serves traffic, rather than being discarded after a
+  build stage the way the plain `Dockerfile` does it.
+- **`VITE_S3_BASE_URL` still works exactly as documented above** — it's
+  read from the container's own runtime environment when the build runs
+  inside the entrypoint, no build-arg plumbing needed.

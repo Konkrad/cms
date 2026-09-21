@@ -15,6 +15,8 @@ import { groups as groupsTable } from "~/db/schemas/groups";
 import { products as productsTable } from "~/db/schemas/products";
 import { tickets } from "~/db/schemas/tickets";
 import { transactions } from "~/db/schemas/transactions";
+import { env } from "~/env";
+import { useS3BaseUrl } from "~/routes/layout";
 import { eventsService } from "~/services/events.service";
 import { participationService } from "~/services/participation.service";
 import { productsService } from "~/services/products.service";
@@ -246,7 +248,8 @@ export const useEvent = routeLoader$(async (requestEvent) => {
 		}
 	}
 
-	const buildPicUrl = (s3Key: string | null) => publicImageUrlFromKey(s3Key);
+	const buildPicUrl = (s3Key: string | null) =>
+		publicImageUrlFromKey(s3Key, env.S3_BASE_URL);
 
 	const participantsUnsorted = goingRows.map((r) => {
 		const u = r.user;
@@ -371,8 +374,8 @@ export const useEvent = routeLoader$(async (requestEvent) => {
 		mapImageUrl,
 		locationDisplay,
 		participants,
-		image1: publicImageUrlFromKey(event.image1),
-		image2: publicImageUrlFromKey(event.image2),
+		image1: publicImageUrlFromKey(event.image1, env.S3_BASE_URL),
+		image2: publicImageUrlFromKey(event.image2, env.S3_BASE_URL),
 	};
 });
 
@@ -460,8 +463,13 @@ export const useUpdateParticipation = routeAction$(
 export default component$(() => {
 	const event = useEvent();
 	const updateParticipation = useUpdateParticipation();
+	const s3BaseUrl = useS3BaseUrl();
 	return (
-		<EventView event={event.value} updateParticipation={updateParticipation} />
+		<EventView
+			event={event.value}
+			updateParticipation={updateParticipation}
+			s3BaseUrl={s3BaseUrl.value}
+		/>
 	);
 });
 

@@ -1,0 +1,24 @@
+# syntax=docker/dockerfile:1
+
+# Local-dev image: source + deps baked in, Vite dev server as the command.
+# Unlike the production Dockerfile, this is not a multi-stage build — there's
+# no `npm run build` step, since Vite's dev server compiles on demand per
+# file. That's what gives a bind-mounted theme/ true hot reload. See
+# docs/theme-development.md ("Local theme development with Docker Compose").
+FROM node:24-bookworm-slim
+
+WORKDIR /app
+
+# Toolchain for native modules (better-sqlite3, sharp).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+EXPOSE 5173
+
+CMD ["npm", "start"]

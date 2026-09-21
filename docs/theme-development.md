@@ -59,6 +59,36 @@ admin-only component should never expect a theme's brand colors to apply to
 it — if you're building new admin UI and it looks themed, something's
 wrong.
 
+## Dev image + theme folder mapping
+
+Core publishes a dev image — `ghcr.io/konkrad/cms:dev`, built from
+`Dockerfile.dev` — alongside the production image, from the same CI job
+(`.github/workflows/ci.yml`). It bakes in core's full source and
+`node_modules`, and runs `npm start` (`vite --mode ssr --host 0.0.0.0`) as
+its command instead of a production build.
+
+Because Vite's dev server compiles on demand per file (unlike `vite build`),
+a deployment repo can bind-mount its own `theme/` directory straight over
+the image's default one and get true hot reload — no core checkout, no
+build step, no custom tooling on the deployment repo's side. Editing a file
+under the mounted `theme/` shows up as a `[vite] (ssr) page reload ...` in
+the container logs a couple of seconds later.
+
+```
+docker compose up
+open http://localhost:3100
+```
+
+See `docker-compose.yml` in a deployment repo (e.g. `cms-deploy`) for the
+full setup — it maps `./theme:/app/theme` and `./data:/data` onto the `:dev`
+image alongside local mailpit/minio/stripe-mock, so nothing needs real
+SMTP/S3/Stripe to boot. Only `theme/` is mounted, not the whole app, so
+`node_modules` (including native modules like `better-sqlite3`) stays
+inside the image regardless of host platform.
+
+This is local-dev tooling only — it has no bearing on how a deployment
+repo actually ships to production; see below.
+
 ## How a deployment repo actually ships its theme
 
 A deployment repo (like a specific chapter's site) is a thin wrapper: its
@@ -67,5 +97,5 @@ fork of core. At build time, its Dockerfile clones a fresh checkout of this
 core repo, then `COPY`s the deployment repo's own files (its `theme/`
 directory, `public/` assets, etc.) directly on top before running the
 production build. The deployment repo never needs to touch core source at
-all; the whole customization surface is the `~theme/*`-importable
-directory described above.
+all; the whole customization surface is the `~theme/*`-importable directory
+described above.

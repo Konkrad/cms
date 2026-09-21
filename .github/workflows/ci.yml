@@ -79,6 +79,7 @@ jobs:
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: testtest
       S3_BUCKET: test
+      S3_BASE_URL: http://localhost:9000/test
       STRIPE_SECRET_KEY: sk_test_123
       STRIPE_PUBLISHABLE_KEY: pk_test_123
       STRIPE_WEBHOOK_SECRET: whsec_test
@@ -214,10 +215,24 @@ jobs:
           context: .
           platforms: linux/amd64
           push: true
-          build-args: |
-            VITE_S3_BASE_URL=${{ vars.VITE_S3_BASE_URL }}
           tags: |
             ghcr.io/konkrad/cms:${{ github.sha }}
             ghcr.io/konkrad/cms:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Dev image for the theme/-folder-mapping workflow (see
+      # docs/theme-development.md) — a deployment repo bind-mounts its own
+      # theme/ over this image's and gets hot reload via the Vite dev server,
+      # no core checkout or build step on their side.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.dev
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/konkrad/cms:dev-${{ github.sha }}
+            ghcr.io/konkrad/cms:dev
           cache-from: type=gha
           cache-to: type=gha,mode=max

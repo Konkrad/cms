@@ -7,6 +7,8 @@ import {
 import { eq } from "drizzle-orm";
 import { db } from "~/db/connection";
 import { groupMemberships, users } from "~/db/schema";
+import { env } from "~/env";
+import { useS3BaseUrl } from "~/routes/layout";
 import { eventsService } from "~/services/events.service";
 import { groupMembershipsService } from "~/services/group-memberships.service";
 import { groupRepresentativesService } from "~/services/group-representatives.service";
@@ -80,7 +82,7 @@ export const useGroupData = routeLoader$(async (event) => {
 	]);
 
 	const toPublicUrl = (key: string | null | undefined) =>
-		publicImageUrlFromKey(key);
+		publicImageUrlFromKey(key, env.S3_BASE_URL);
 
 	const repData = rep
 		? {
@@ -163,7 +165,14 @@ export const useJoinGroup = routeAction$(async (_data, event) => {
 export default component$(() => {
 	const data = useGroupData();
 	const joinAction = useJoinGroup();
-	return <GroupView data={data.value} joinAction={joinAction} />;
+	const s3BaseUrl = useS3BaseUrl();
+	return (
+		<GroupView
+			data={data.value}
+			joinAction={joinAction}
+			s3BaseUrl={s3BaseUrl.value}
+		/>
+	);
 });
 
 export const head: DocumentHead = ({ resolveValue, url }) => {

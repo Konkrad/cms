@@ -3,12 +3,13 @@
 1. Centralize configuration in `src/env.ts` with Zod validation.
 2. Assume environment variables exist; set defaults in the central config object, not at call sites.
 3. Do not access `process.env.*` outside `src/env.ts`.
-4. Break things rather than preserving backward compatibility unless explicitly asked otherwise.
-5. Do not create APIs unless they are explicitly needed. When in doubt, ask the user.
-6. Do not create ad hoc types if a package already provides them; install the existing package types instead.
-7. Do not wrap everything in `try/catch`. Catch only expected errors and let unexpected failures bubble up.
-8. Do not create README or other documentation unless asked.
-9. Migrations use one mechanism everywhere, local dev included: after changing a schema file, run `npm run db:generate` once to write the migration file, then commit it under `drizzle/`. Applying migrations is fully automatic and built into the app itself, not an external script or npm hook — `runMigrations()` in `src/db/migrate.ts` is called directly from `src/entry.node-server.tsx` before it starts listening (prod) and from `vite.config.ts` on dev-server boot (`command === "serve"`, dynamically imported so `vite build` never eagerly loads `src/env.ts`'s validation). It runs whenever the server process starts, regardless of how it's launched — no manual init/migrate step, no shell wrapper. Never apply schema changes with `drizzle-kit push` — a DB it creates has no `__drizzle_migrations` tracking row, so the migration runner will later try to recreate tables that already exist and fail. If a local `my-database.db` predates this (was built via `push`), delete it (and its `-shm`/`-wal` files) and let `npm start` recreate it from `drizzle/`.
+4. Default every env var to a runtime value read through `src/env.ts`, not a Vite build-time constant (`import.meta.env.VITE_*`). A `VITE_`-prefixed var gets compiled by literal substitution into whatever chunk references it at build time — this is exactly how the `VITE_S3_BASE_URL` bug happened (see `docs/theme-development.md`). Only reach for a `VITE_` var if a value must be read in code that runs in the browser *and* has no reasonable way to receive it via props or a `routeLoader$` (see `useS3BaseUrl` in `src/routes/layout.tsx` for the pattern: a root-layout loader resolves an `env.ts` value once, core components call the loader hook directly, theme components receive it as a prop threaded down from a core caller — never a theme file importing `~/env` or a core loader directly).
+5. Break things rather than preserving backward compatibility unless explicitly asked otherwise.
+6. Do not create APIs unless they are explicitly needed. When in doubt, ask the user.
+7. Do not create ad hoc types if a package already provides them; install the existing package types instead.
+8. Do not wrap everything in `try/catch`. Catch only expected errors and let unexpected failures bubble up.
+9. Do not create README or other documentation unless asked.
+10. Migrations use one mechanism everywhere, local dev included: after changing a schema file, run `npm run db:generate` once to write the migration file, then commit it under `drizzle/`. Applying migrations is fully automatic and built into the app itself, not an external script or npm hook — `runMigrations()` in `src/db/migrate.ts` is called directly from `src/entry.node-server.tsx` before it starts listening (prod) and from `vite.config.ts` on dev-server boot (`command === "serve"`, dynamically imported so `vite build` never eagerly loads `src/env.ts`'s validation). It runs whenever the server process starts, regardless of how it's launched — no manual init/migrate step, no shell wrapper. Never apply schema changes with `drizzle-kit push` — a DB it creates has no `__drizzle_migrations` tracking row, so the migration runner will later try to recreate tables that already exist and fail. If a local `my-database.db` predates this (was built via `push`), delete it (and its `-shm`/`-wal` files) and let `npm start` recreate it from `drizzle/`.
 
 ## Qwik And Data Flow
 
@@ -39,9 +40,9 @@ The presentational layer for public-facing routes lives in `theme/` and is licen
 
 - Keep schema files in `src/db/schemas/` and use `better-sqlite3` with Drizzle.
 - Authentication is magic-link plus OTP email-based; follow the helpers in `src/utils/server-auth.ts` and the existing login flow.
-- Public images (events, posts, groups): store the S3 key in the DB; call `publicImageUrlFromKey(key)` from `~/utils/images` to build a direct browser URL using `VITE_S3_BASE_URL`. Thumbnails are derived with `deriveThumbnailKey(key)`.
+- Public images (events, posts, groups): store the S3 key in the DB; call `publicImageUrlFromKey(key, base)` from `~/utils/images` to build a direct browser URL. Thumbnails are derived with `deriveThumbnailKey(key)`.
 - Profile pictures are split: the full-size image (`private/profile-pictures/`) is stored in `users.profilePicture` and must be presigned server-side via `resolvePrivateImageUrl(key)` from `~/utils/secure-urls`; the thumbnail (`public/profile-pictures/`) is stored separately in `users.profilePictureSmall` and served as a direct public URL via `publicImageUrlFromKey`.
-- `VITE_S3_BASE_URL` (e.g. `http://localhost:9000/data` locally, `https://<bucket>.s3.<region>.amazonaws.com` in prod) is the base URL for all public S3 objects. It is a Vite env var accessed via `import.meta.env.VITE_S3_BASE_URL`, not through `src/env.ts`.
+- `env.S3_BASE_URL` (e.g. `http://localhost:9000/data` locally, `https://<bucket>.s3.<region>.amazonaws.com` in prod) is the base URL for all public S3 objects, resolved at runtime like every other `src/env.ts` var (deliberately *not* a Vite build-time constant — a compiled-in value would defeat the drop-in theme overlay, see docs/theme-development.md). `publicImageUrlFromKey` takes it as an explicit `base` param rather than reading it internally, since the function runs both server-only and inside client-executed component render bodies (the admin page builder's live preview), and `src/env.ts` must never be bundled to the client. Server call sites pass `env.S3_BASE_URL` directly; client call sites use the `useS3BaseUrl()` root-layout loader (core code) or receive it as a prop (theme code).
 
 ## Security
 

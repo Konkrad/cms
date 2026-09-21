@@ -10,10 +10,9 @@ below are the same regardless of the tool driving them.
 
 | File | Purpose |
 |---|---|
-| `Dockerfile` | Two-stage build: compile client + server bundles, then a slim runtime with Litestream |
-| `docker/entrypoint.sh` | Boot sequence: restore DB if missing → start server (optionally under Litestream) |
-| `Dockerfile.runtime-theme` | Alternative image: builds at container startup against a mounted theme/, see "Runtime theme build" below |
-| `docker/entrypoint-runtime-theme.sh` | Boot sequence for that image: overlay mounted theme (if any) → build → restore DB if missing → start server |
+| `Dockerfile` | Multi-stage build with two final targets (`docker build --target=<name>`): `runtime` (theme baked in, slim image) and `runtime-theme` (builds at container startup against a mounted theme/, see "Runtime theme build" below) |
+| `docker/entrypoint.sh` | Boot sequence for the `runtime` target: restore DB if missing → start server (optionally under Litestream) |
+| `docker/entrypoint-runtime-theme.sh` | Boot sequence for the `runtime-theme` target: overlay mounted theme (if any) → build → restore DB if missing → start server |
 | `litestream.yml` | Optional: continuously replicates the SQLite DB to S3-compatible object storage under the `db-backups/` prefix |
 | `src/routes/up/index.ts` | Health check endpoint (`/up`) — wire it into whatever proxy/load balancer you use |
 | `src/db/migrate.ts` | Programmatic Drizzle migration runner (idempotent), called directly by the server on every start |
@@ -44,13 +43,17 @@ below are the same regardless of the tool driving them.
 ## Building the image
 
 ```bash
-docker build \
+docker build --target=runtime \
   --build-arg VITE_S3_BASE_URL=https://your-bucket.s3.your-region.amazonaws.com \
   -t your-registry/cms:latest .
 ```
 
 Push it to whatever registry your deploy tool expects, then run it with the env
-vars from `src/env.ts` and a volume mounted at `DB_PATH`.
+vars from `src/env.ts` and a volume mounted at `DB_PATH`. (`--target=runtime` is
+this repo's default target too, so a bare `docker build` without `--target`
+builds the same thing — pass it explicitly to be unambiguous about which of
+the Dockerfile's two targets you mean; see "Runtime theme build" below for
+the other one.)
 
 ## Suggested approach
 
@@ -64,15 +67,15 @@ the same regardless of who's running it. The default flow:
 
 There's no single "correct" deployment path baked into this repo on purpose —
 this is meant to be adapted per-deployment, not a specific ops setup that
-everyone has to reuse. `Dockerfile.runtime-theme` (below) is one such
-alternative.
+everyone has to reuse. The Dockerfile's `runtime-theme` target (below) is one
+such alternative.
 
 ## Runtime theme build
 
-`Dockerfile.runtime-theme` builds a different kind of image: instead of
-baking a theme in at `docker build` time, it ships full build tooling
-(`node_modules` with devDependencies, the native-module toolchain, `vite`
-itself) and runs `npm run build.client && npm run build.server` at
+The Dockerfile's `runtime-theme` target builds a different kind of image:
+instead of baking a theme in at `docker build` time, it ships full build
+tooling (`node_modules` with devDependencies, the native-module toolchain,
+`vite` itself) and runs `npm run build.client && npm run build.server` at
 **container startup**, via `docker/entrypoint-runtime-theme.sh`. The
 deployer mounts their `theme/` directory at `/theme-src` (bind mount,
 ConfigMap, PVC — whatever the orchestrator supports); the entrypoint
@@ -81,7 +84,7 @@ mounted, it falls back to building the image's bundled default theme, so
 the image is runnable standalone.
 
 ```bash
-docker build -f Dockerfile.runtime-theme -t your-registry/cms:runtime-theme .
+docker build --target=runtime-theme -t your-registry/cms:runtime-theme .
 
 docker run \
   -v /path/to/my-theme:/theme-src:ro \
@@ -92,7 +95,7 @@ docker run \
   your-registry/cms:runtime-theme
 ```
 
-This is a genuinely different tradeoff from the plain `Dockerfile`, not a
+This is a genuinely different tradeoff from the `runtime` target, not a
 strict improvement:
 
 - **One image, any theme.** Since the build happens against whatever's
@@ -112,7 +115,7 @@ strict improvement:
 - **A larger, less locked-down runtime image.** The native-module
   toolchain (`python3 make g++`) and full `devDependencies` stay in the
   image that actually serves traffic, rather than being discarded after a
-  build stage the way the plain `Dockerfile` does it.
+  build stage the way the `runtime` target does it.
 - **`VITE_S3_BASE_URL` still works exactly as documented above** — it's
   read from the container's own runtime environment when the build runs
   inside the entrypoint, no build-arg plumbing needed.

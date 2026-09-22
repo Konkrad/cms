@@ -40,7 +40,25 @@ below are the same regardless of the tool driving them.
   you don't want it, strip that step out of `entrypoint.sh` and drop
   `litestream.yml` — nothing else depends on it.
 
-## Building the image
+## Published images
+
+CI builds and pushes both Dockerfile targets from every push to `main`, so
+you don't have to build the image yourself unless you're customizing
+`theme/` in your own fork:
+
+| Tag | Target | What it is |
+|---|---|---|
+| `ghcr.io/konkrad/cms:latest` (and `:<sha>`) | `runtime` | Slim image, this repo's own default theme baked in at build time. |
+| `ghcr.io/konkrad/cms:dev` (and `:dev-<sha>`) | `runtime-theme` | Ships build tooling and builds at container startup against whatever `theme/` you mount at `/theme-src`. Use this directly in a `docker compose` file for local/live use with your own theme — no image build required, just mount your theme and go. See "Runtime theme build" below. |
+
+`:dev` also works as a `FROM` base if you'd rather bake your theme in at your
+own build time instead of mounting it at runtime: copy your `theme/` over the
+image's own, then run `npm run build.client && npm run build.server` in your
+own Dockerfile's build step, same as the `runtime` target does internally.
+
+## Building the image yourself
+
+Only needed if you're changing core, not just swapping `theme/`:
 
 ```bash
 docker build --target=runtime \
@@ -83,16 +101,25 @@ overlays it onto the image's own `theme/` before building. With nothing
 mounted, it falls back to building the image's bundled default theme, so
 the image is runnable standalone.
 
-```bash
-docker build --target=runtime-theme -t your-registry/cms:runtime-theme .
+CI already publishes this target as `ghcr.io/konkrad/cms:dev` (see
+"Published images" above), so most deployments don't need to build it — just
+mount a theme and run:
 
+```bash
 docker run \
   -v /path/to/my-theme:/theme-src:ro \
   -v cms-data:/data \
   -e DB_PATH=/data/db.sqlite \
   -e VITE_S3_BASE_URL=https://your-bucket.s3.your-region.amazonaws.com \
   <the rest of src/env.ts's required vars> \
-  your-registry/cms:runtime-theme
+  ghcr.io/konkrad/cms:dev
+```
+
+Building it yourself works the same way as the `runtime` target above, just
+with the other target name:
+
+```bash
+docker build --target=runtime-theme -t your-registry/cms:dev .
 ```
 
 This is a genuinely different tradeoff from the `runtime` target, not a

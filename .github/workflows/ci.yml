@@ -209,9 +209,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # runtime: theme baked in at build time, slim final image.
       - uses: docker/build-push-action@v6
         with:
           context: .
+          target: runtime
           platforms: linux/amd64
           push: true
           build-args: |
@@ -219,5 +221,20 @@ jobs:
           tags: |
             ghcr.io/konkrad/cms:${{ github.sha }}
             ghcr.io/konkrad/cms:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # runtime-theme: builds at container startup against a mounted theme/.
+      # No VITE_S3_BASE_URL build-arg here — that target reads it from the
+      # container's own runtime env when the build runs inside the entrypoint.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runtime-theme
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/konkrad/cms:dev-${{ github.sha }}
+            ghcr.io/konkrad/cms:dev
           cache-from: type=gha
           cache-to: type=gha,mode=max

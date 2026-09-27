@@ -18,7 +18,12 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+RUN chmod +x ./docker/dev-entrypoint.sh
 
 EXPOSE 5173
 
+# dev-entrypoint.sh additively installs a bind-mounted theme's own
+# dependencies (if any) before starting the dev server — see the script and
+# docs/theme-development.md ("Theme-owned dependencies").
+ENTRYPOINT ["./docker/dev-entrypoint.sh"]
 CMD ["npm", "start"]

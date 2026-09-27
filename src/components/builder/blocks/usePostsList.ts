@@ -2,6 +2,7 @@ import { $, useOnWindow, useSignal, useVisibleTask$ } from "@qwik.dev/core";
 import type { RequestEventCommon } from "@qwik.dev/router";
 import { server$ } from "@qwik.dev/router";
 import type { PostsPage } from "~/contracts/posts";
+import { env } from "~/env";
 import { publicImageUrlFromKey } from "~/utils/images";
 
 const fetchPosts = server$(async function (options: {
@@ -22,7 +23,7 @@ const fetchPosts = server$(async function (options: {
 
 	const items = res.items.map((post) => ({
 		...post,
-		featuredImage: publicImageUrlFromKey(post.featuredImage),
+		featuredImage: publicImageUrlFromKey(post.featuredImage, env.S3_BASE_URL),
 		user: formatUser(post.user, !!session),
 	}));
 

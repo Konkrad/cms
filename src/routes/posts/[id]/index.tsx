@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
+import { env } from "~/env";
 import { postsService } from "~/services/posts.service";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { canonicalUrl, htmlToDescription } from "~/utils/seo";
@@ -22,14 +23,17 @@ export const usePost = routeLoader$(async ({ params, status }) => {
 	}
 
 	// Resolve image URLs server-side
-	const featuredImageUrl = publicImageUrlFromKey(post.featuredImage);
+	const featuredImageUrl = publicImageUrlFromKey(
+		post.featuredImage,
+		env.S3_BASE_URL,
+	);
 
 	let authorAvatarUrl: string | null = null;
 	if (post.user?.profilePicture) {
 		const thumbKey =
 			(post.user as { profilePictureSmall?: string | null })
 				.profilePictureSmall ?? deriveThumbnailKey(post.user.profilePicture);
-		authorAvatarUrl = publicImageUrlFromKey(thumbKey);
+		authorAvatarUrl = publicImageUrlFromKey(thumbKey, env.S3_BASE_URL);
 	}
 
 	// Fetch related posts (recent, excluding this one)
@@ -40,7 +44,7 @@ export const usePost = routeLoader$(async ({ params, status }) => {
 		.map((p) => ({
 			id: p.id,
 			title: p.title,
-			featuredImageUrl: publicImageUrlFromKey(p.featuredImage),
+			featuredImageUrl: publicImageUrlFromKey(p.featuredImage, env.S3_BASE_URL),
 			createdAt: p.createdAt,
 		}));
 

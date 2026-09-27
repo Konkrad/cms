@@ -1,6 +1,7 @@
 import { $, useSignal, useTask$ } from "@qwik.dev/core";
 import { server$ } from "@qwik.dev/router";
 import type { EventsPage } from "~/contracts/events";
+import { env } from "~/env";
 import { eventsService } from "~/services/events.service";
 import { publicImageUrlFromKey } from "~/utils/images";
 
@@ -9,7 +10,7 @@ const fetchUpcomingInitial = server$(async (): Promise<EventsPage> => {
 	return {
 		events: items.map((e) => ({
 			...e,
-			image1: publicImageUrlFromKey(e.image1),
+			image1: publicImageUrlFromKey(e.image1, env.S3_BASE_URL),
 		})),
 		nextCursor,
 	};
@@ -24,7 +25,7 @@ const fetchUpcomingMore = server$(
 		return {
 			events: items.map((e) => ({
 				...e,
-				image1: publicImageUrlFromKey(e.image1),
+				image1: publicImageUrlFromKey(e.image1, env.S3_BASE_URL),
 			})),
 			nextCursor,
 		};

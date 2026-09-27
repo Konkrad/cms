@@ -6,6 +6,7 @@ interface ImageBlockProps {
 	src?: string;
 	alt?: string;
 	caption?: string;
+	s3BaseUrl: string;
 }
 
 export const definition: BlockDefinition = {
@@ -48,16 +49,16 @@ export const definition: BlockDefinition = {
 };
 
 export default component$<ImageBlockProps>((props) => {
-	const { src, alt, caption } = props;
+	const { src, alt, caption, s3BaseUrl } = props;
 
 	return (
 		<div class="max-w-4xl mx-auto px-4 py-8">
 			<figure>
 				<img
 					src={
-						publicImageUrlFromKey(src) ??
+						publicImageUrlFromKey(src, s3BaseUrl) ??
 						src ??
-						publicImageUrlFromKey("public/events/seed-1.webp") ??
+						publicImageUrlFromKey("public/events/seed-1.webp", s3BaseUrl) ??
 						""
 					}
 					alt={alt || "Image"}

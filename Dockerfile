@@ -10,11 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# VITE_S3_BASE_URL is compiled into the client bundle (import.meta.env), so it MUST
-# be available at build time — pass it via `docker build --build-arg`.
-ARG VITE_S3_BASE_URL
-ENV VITE_S3_BASE_URL=${VITE_S3_BASE_URL}
-
 COPY package.json package-lock.json ./
 RUN npm ci
 

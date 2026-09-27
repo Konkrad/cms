@@ -69,6 +69,12 @@ const envSchema = z.object({
 	AWS_SECRET_ACCESS_KEY: z.string(),
 	S3_BUCKET: z.string(),
 	S3_UPLOAD_PATH: z.string().default("uploads"),
+	// Public base URL for direct browser access to public/* S3 objects (e.g.
+	// http://localhost:9000/data locally, https://<bucket>.s3.<region>.amazonaws.com
+	// in prod). Resolved at runtime (not a Vite build-time constant) so a
+	// drop-in themed deployment can point at its own bucket without a
+	// core rebuild — see publicImageUrlFromKey in ~/utils/images.
+	S3_BASE_URL: z.string(),
 
 	// Stripe
 	STRIPE_SECRET_KEY: z.string(),
@@ -135,6 +141,7 @@ export const env = {
 	AWS_SECRET_ACCESS_KEY: _env.AWS_SECRET_ACCESS_KEY,
 	S3_BUCKET: _env.S3_BUCKET,
 	S3_UPLOAD_PATH: _env.S3_UPLOAD_PATH,
+	S3_BASE_URL: _env.S3_BASE_URL,
 	STRIPE_SECRET_KEY: _env.STRIPE_SECRET_KEY,
 	STRIPE_PUBLISHABLE_KEY: _env.STRIPE_PUBLISHABLE_KEY,
 	STRIPE_WEBHOOK_SECRET: _env.STRIPE_WEBHOOK_SECRET,

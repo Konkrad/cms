@@ -13,7 +13,7 @@ export const definition: BlockDefinition = {
 	defaultData: {},
 };
 
-export default component$(() => {
+export default component$<{ s3BaseUrl: string }>((props) => {
 	const { deals, isLoading, error: errorMsg } = useDealsList();
 
 	return (
@@ -34,7 +34,7 @@ export default component$(() => {
 						<ContentCard
 							key={deal.id}
 							title={deal.name}
-							image={publicImageUrlFromKey(deal.logo)}
+							image={publicImageUrlFromKey(deal.logo, props.s3BaseUrl)}
 							imageAlt={deal.name}
 							description={deal.description ?? undefined}
 							href={`/deals/${deal.id}`}

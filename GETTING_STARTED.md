@@ -29,12 +29,10 @@ Everything a logged-in or logged-out member sees on the public site — layout, 
 
 ## 4. Deploy it
 
-The repo ships as a single Docker image (multi-stage build, SQLite + optional Litestream replication to S3). The container manages its own database end to end — the entrypoint restores from a replica if the volume is empty, then the server itself applies any pending migrations before it starts listening, using the exact same code path as local dev, so a redeploy is just "replace the container." There's no prescribed deploy tool — build the image and run it with whatever fits your infrastructure (Fly.io, Kamal, a plain VPS, etc.). See [Deployment](./docs/deployment.md) for the full checklist (persistent volume for the DB, required env vars, health check endpoint, build-time vs runtime vars).
+The repo ships as a single Docker image (multi-stage build, SQLite + optional Litestream replication to S3). The container manages its own database end to end — the entrypoint restores from a replica if the volume is empty, then the server itself applies any pending migrations before it starts listening, using the exact same code path as local dev, so a redeploy is just "replace the container." There's no prescribed deploy tool — build the image and run it with whatever fits your infrastructure (Fly.io, Kamal, a plain VPS, etc.). See [Deployment](./docs/deployment.md) for the full checklist (persistent volume for the DB, required env vars, health check endpoint).
 
 ```bash
-docker build \
-  --build-arg VITE_S3_BASE_URL=https://your-bucket.s3.your-region.amazonaws.com \
-  -t your-registry/cms:latest .
+docker build -t your-registry/cms:latest .
 ```
 
 For a tour of what's manageable from the admin panel once it's running, see the [Admin Guide](./docs/admin-guide.md).

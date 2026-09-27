@@ -1,6 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import type { ArchivePostsViewData } from "~/contracts/archive-posts";
+import { env } from "~/env";
 import { postsService } from "~/services/posts.service";
 import { publicImageUrlFromKey } from "~/utils/images";
 import { canonicalUrl } from "~/utils/seo";
@@ -14,7 +15,7 @@ export const useArchivePostsPage = routeLoader$(
 		const result = await postsService.getPage(page, POSTS_PER_PAGE);
 		const items = result.items.map((post) => ({
 			...post,
-			featuredImage: publicImageUrlFromKey(post.featuredImage),
+			featuredImage: publicImageUrlFromKey(post.featuredImage, env.S3_BASE_URL),
 		}));
 
 		return {

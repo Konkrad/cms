@@ -1,6 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import type { BlockData } from "~/db/schemas/shared";
+import { useS3BaseUrl } from "~/routes/layout";
 import { pagesService } from "~/services/pages.service";
 import { canonicalUrl, htmlToDescription } from "~/utils/seo";
 import { PageView } from "~theme/routes/page/PageView";
@@ -40,7 +41,8 @@ export const usePage = routeLoader$(async ({ params, status }) => {
 
 export default component$(() => {
 	const page = usePage();
-	return <PageView page={page.value} />;
+	const s3BaseUrl = useS3BaseUrl();
+	return <PageView page={page.value} s3BaseUrl={s3BaseUrl.value} />;
 });
 
 export const head: DocumentHead = ({ resolveValue, url }) => {

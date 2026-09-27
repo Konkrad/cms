@@ -3,35 +3,39 @@
  * Convention: {name}.webp → {name}-thumb.webp
  */
 export function deriveThumbnailKey(mainKey: string): string {
-  return mainKey.replace(/\.webp$/, "-thumb.webp");
+	return mainKey.replace(/\.webp$/, "-thumb.webp");
 }
 
 /**
  * Resolve a stored S3 key to a direct browser-safe URL.
  *
- * Uses VITE_S3_BASE_URL (e.g. https://bucket.s3.region.amazonaws.com or
- * http://192.168.x.x:9000/bucket for local dev). Falls back to the
- * /api/images redirect if the env var is not configured.
+ * `base` is env.S3_BASE_URL, resolved at runtime by the caller — never read
+ * here directly, since this function runs both server-only and inside
+ * client-executed component render bodies (the admin page builder's live
+ * preview), and src/env.ts must never be bundled to the client. Server call
+ * sites pass `env.S3_BASE_URL` directly; client call sites get it via the
+ * `useS3BaseUrl()` root-layout loader (core code) or as a prop threaded down
+ * from a core caller (theme code).
  *
  * Only call this for public/* keys. Private keys must be presigned
  * server-side via resolvePrivateImageUrl in secure-urls.ts.
  */
 export function publicImageUrlFromKey(
-  value: string | null | undefined,
+	value: string | null | undefined,
+	base: string,
 ): string | null {
-  if (!value) return null;
+	if (!value) return null;
 
-  if (
-    value.startsWith("http://") ||
-    value.startsWith("https://") ||
-    value.startsWith("blob:") ||
-    value.startsWith("data:")
-  ) {
-    return value;
-  }
+	if (
+		value.startsWith("http://") ||
+		value.startsWith("https://") ||
+		value.startsWith("blob:") ||
+		value.startsWith("data:")
+	) {
+		return value;
+	}
 
-  const base: string | undefined = import.meta.env.VITE_S3_BASE_URL;
-  const normalizedKey = value.replace(/^\//, "");
+	const normalizedKey = value.replace(/^\//, "");
 
-  return `${(base ?? "").replace(/\/$/, "")}/${normalizedKey}`;
+	return `${base.replace(/\/$/, "")}/${normalizedKey}`;
 }

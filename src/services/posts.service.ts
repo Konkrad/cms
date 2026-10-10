@@ -1,216 +1,233 @@
-import { desc, eq, lt, isNull, and, or, inArray, sql } from "drizzle-orm";
-import { db } from "~/db/connection";
-import type { InsertPost, UpdatePost, Post } from "~/db/schemas/posts";
-import { posts, insertPostSchema, updatePostSchema } from "~/db/schemas/posts";
-import { users as usersTable } from "~/db/schemas/users";
 import {
-  decodeCursor,
-  paginateRows,
-  getNextCursorFromRows,
-  type PageDirection,
-} from "~/services/pagination";
+	and,
+	desc,
+	eq,
+	inArray,
+	isNull,
+	lt,
+	or,
+	type SQL,
+	sql,
+} from "drizzle-orm";
+import { db } from "~/db/connection";
+import type { InsertPost, Post, UpdatePost } from "~/db/schemas/posts";
+import { insertPostSchema, posts, updatePostSchema } from "~/db/schemas/posts";
+import { users as usersTable } from "~/db/schemas/users";
 import { groupMembershipsService } from "~/services/group-memberships.service";
+import {
+	decodeCursor,
+	getNextCursorFromRows,
+	type PageDirection,
+	paginateRows,
+} from "~/services/pagination";
 import { sanitizeRichHtml } from "~/utils/sanitize-html";
 
 export type PostWithUser = Post & {
-  user: User;
+	user: User;
 };
 
 import type { User } from "~/db/schemas/users";
 
 export const postsService = {
-  async getAll(
-    limit: number = 10,
-    cursor?: string | null,
-    direction: PageDirection = "forward",
-  ): Promise<{ items: PostWithUser[]; nextCursor: string | null; prevCursor: string | null }> {
-    const cursorObj = decodeCursor(cursor ?? null);
+	async getAll(
+		limit: number = 10,
+		cursor?: string | null,
+		direction: PageDirection = "forward",
+	): Promise<{
+		items: PostWithUser[];
+		nextCursor: string | null;
+		prevCursor: string | null;
+	}> {
+		const cursorObj = decodeCursor(cursor ?? null);
 
-    const results = await db.query.posts.findMany({
-      with: {
-        user: true,
-      },
-      orderBy:
-        direction === "forward"
-          ? { createdAt: "desc", id: "desc" }
-          : { createdAt: "asc", id: "asc" },
-      limit: limit + 1,
-      where: {
-        deletedAt: { isNull: true },
-        ...(cursorObj?.createdAt
-          ? direction === "forward"
-            ? { createdAt: { lt: cursorObj.createdAt } }
-            : { createdAt: { gte: cursorObj.createdAt } }
-          : {}),
-      },
-    });
+		const results = await db.query.posts.findMany({
+			with: {
+				user: true,
+			},
+			orderBy:
+				direction === "forward"
+					? { createdAt: "desc", id: "desc" }
+					: { createdAt: "asc", id: "asc" },
+			limit: limit + 1,
+			where: {
+				deletedAt: { isNull: true },
+				...(cursorObj?.createdAt
+					? direction === "forward"
+						? { createdAt: { lt: cursorObj.createdAt } }
+						: { createdAt: { gte: cursorObj.createdAt } }
+					: {}),
+			},
+		});
 
-    return paginateRows(
-      results as PostWithUser[],
-      ["createdAt"],
-      limit,
-      direction,
-      cursor ?? null,
-    );
-  },
+		return paginateRows(
+			results as PostWithUser[],
+			["createdAt"],
+			limit,
+			direction,
+			cursor ?? null,
+		);
+	},
 
-  async getRecent(limit: number = 3): Promise<PostWithUser[]> {
-    const res = await this.getAll(limit);
-    return res.items;
-  },
+	async getRecent(limit: number = 3): Promise<PostWithUser[]> {
+		const res = await this.getAll(limit);
+		return res.items;
+	},
 
-  async getPage(
-    page: number,
-    perPage: number = 10,
-  ): Promise<{ items: PostWithUser[]; totalPages: number }> {
-    const pageIndex = Math.max(0, page);
-    const safePerPage = Math.max(1, perPage);
+	async getPage(
+		page: number,
+		perPage: number = 10,
+	): Promise<{ items: PostWithUser[]; totalPages: number }> {
+		const pageIndex = Math.max(0, page);
+		const safePerPage = Math.max(1, perPage);
 
-    const totalResult = await db
-      .select({ total: sql<number>`count(*)` })
-      .from(posts)
-      .where(isNull(posts.deletedAt));
+		const totalResult = await db
+			.select({ total: sql<number>`count(*)` })
+			.from(posts)
+			.where(isNull(posts.deletedAt));
 
-    const total = Number(totalResult[0]?.total ?? 0);
-    const totalPages = Math.ceil(total / safePerPage);
+		const total = Number(totalResult[0]?.total ?? 0);
+		const totalPages = Math.ceil(total / safePerPage);
 
-    const items = await db.query.posts.findMany({
-      with: {
-        user: true,
-      },
-      where: {
-        deletedAt: { isNull: true },
-      },
-      orderBy: { createdAt: "desc", id: "desc" },
-      limit: safePerPage,
-      offset: pageIndex * safePerPage,
-    });
+		const items = await db.query.posts.findMany({
+			with: {
+				user: true,
+			},
+			where: {
+				deletedAt: { isNull: true },
+			},
+			orderBy: { createdAt: "desc", id: "desc" },
+			limit: safePerPage,
+			offset: pageIndex * safePerPage,
+		});
 
-    return {
-      items: items as PostWithUser[],
-      totalPages,
-    };
-  },
+		return {
+			items: items as PostWithUser[],
+			totalPages,
+		};
+	},
 
-  async getById(id: string): Promise<PostWithUser | undefined> {
-    const result = await db.query.posts.findFirst({
-      where: {
-        id,
-        deletedAt: { isNull: true },
-      },
-      with: {
-        user: true,
-      },
-    });
+	async getById(id: string): Promise<PostWithUser | undefined> {
+		const result = await db.query.posts.findFirst({
+			where: {
+				id,
+				deletedAt: { isNull: true },
+			},
+			with: {
+				user: true,
+			},
+		});
 
-    return result as PostWithUser | undefined;
-  },
+		return result as PostWithUser | undefined;
+	},
 
-  async getVisiblePosts(
-    userId: string | null,
-    limit: number = 10,
-    cursor?: string | null
-  ): Promise<{ items: PostWithUser[]; nextCursor?: string | null }> {
-    const cursorObj = decodeCursor(cursor ?? null);
+	async getVisiblePosts(
+		userId: string | null,
+		limit: number = 10,
+		cursor?: string | null,
+	): Promise<{ items: PostWithUser[]; nextCursor?: string | null }> {
+		const cursorObj = decodeCursor(cursor ?? null);
 
-    let visibilityCondition;
-    if (userId) {
-      const userGroups = await groupMembershipsService.getUserGroups(userId);
-      const groupIds = userGroups.map((g) => g.id);
+		let visibilityCondition: SQL | undefined;
+		if (userId) {
+			const userGroups = await groupMembershipsService.getUserGroups(userId);
+			const groupIds = userGroups.map((g) => g.id);
 
-      visibilityCondition =
-        groupIds.length > 0
-          ? or(
-              eq(posts.visibility, "global"),
-              and(
-                eq(posts.visibility, "group-only"),
-                inArray(posts.groupId, groupIds),
-              ),
-            )
-          : eq(posts.visibility, "global");
-    } else {
-      visibilityCondition = eq(posts.visibility, "global");
-    }
+			visibilityCondition =
+				groupIds.length > 0
+					? or(
+							eq(posts.visibility, "global"),
+							and(
+								eq(posts.visibility, "group-only"),
+								inArray(posts.groupId, groupIds),
+							),
+						)
+					: eq(posts.visibility, "global");
+		} else {
+			visibilityCondition = eq(posts.visibility, "global");
+		}
 
-    const results = await db
-      .select({ post: posts, user: usersTable })
-      .from(posts)
-      .innerJoin(usersTable, eq(posts.userId, usersTable.id))
-      .where(
-        and(
-          isNull(posts.deletedAt),
-          visibilityCondition,
-          cursorObj?.createdAt
-            ? lt(posts.createdAt, cursorObj.createdAt)
-            : undefined,
-        ),
-      )
-      .orderBy(desc(posts.createdAt), desc(posts.id))
-      .limit(limit + 1);
+		const results = await db
+			.select({ post: posts, user: usersTable })
+			.from(posts)
+			.innerJoin(usersTable, eq(posts.userId, usersTable.id))
+			.where(
+				and(
+					isNull(posts.deletedAt),
+					visibilityCondition,
+					cursorObj?.createdAt
+						? lt(posts.createdAt, cursorObj.createdAt)
+						: undefined,
+				),
+			)
+			.orderBy(desc(posts.createdAt), desc(posts.id))
+			.limit(limit + 1);
 
-    let nextCursor: string | undefined | null = undefined;
-    let items = results;
-    if (results.length > limit) {
-      nextCursor = getNextCursorFromRows(
-        results.map((r) => r.post),
-        ["createdAt"],
-        limit,
-      );
-      items = results.slice(0, limit);
-    }
+		let nextCursor: string | undefined | null;
+		let items = results;
+		if (results.length > limit) {
+			nextCursor = getNextCursorFromRows(
+				results.map((r) => r.post),
+				["createdAt"],
+				limit,
+			);
+			items = results.slice(0, limit);
+		}
 
-    return {
-      items: items.map((row) => ({ ...row.post, user: row.user })) as PostWithUser[],
-      nextCursor: nextCursor ?? null,
-    };
-  },
+		return {
+			items: items.map((row) => ({
+				...row.post,
+				user: row.user,
+			})) as PostWithUser[],
+			nextCursor: nextCursor ?? null,
+		};
+	},
 
-  async create(data: InsertPost): Promise<Post> {
-    const parsed = await insertPostSchema.parseAsync(data);
+	async create(data: InsertPost): Promise<Post> {
+		const parsed = await insertPostSchema.parseAsync(data);
 
-    // body is BlockNote HTML rendered later with dangerouslySetInnerHTML — sanitize on write.
-    if (typeof parsed.body === "string") {
-      parsed.body = sanitizeRichHtml(parsed.body);
-    }
+		// body is BlockNote HTML rendered later with dangerouslySetInnerHTML — sanitize on write.
+		if (typeof parsed.body === "string") {
+			parsed.body = sanitizeRichHtml(parsed.body);
+		}
 
-    const [result] = await db
-      .insert(posts)
-      .values(parsed as any)
-      .returning();
+		const [result] = await db
+			.insert(posts)
+			.values(parsed as any)
+			.returning();
 
-    return result;
-  },
+		return result;
+	},
 
-  async update(id: string, data: UpdatePost): Promise<Post | undefined> {
-    const parsed = await updatePostSchema.parseAsync(data);
+	async update(id: string, data: UpdatePost): Promise<Post | undefined> {
+		const parsed = await updatePostSchema.parseAsync(data);
 
-    if (typeof parsed.body === "string") {
-      parsed.body = sanitizeRichHtml(parsed.body);
-    }
+		if (typeof parsed.body === "string") {
+			parsed.body = sanitizeRichHtml(parsed.body);
+		}
 
-    const [result] = await db
-      .update(posts)
-      .set(parsed as any)
-      .where(eq(posts.id, id))
-      .returning();
+		const [result] = await db
+			.update(posts)
+			.set(parsed as any)
+			.where(eq(posts.id, id))
+			.returning();
 
-    return result;
-  },
+		return result;
+	},
 
-  async delete(id: string): Promise<void> {
-    await db.delete(posts).where(eq(posts.id, id));
-  },
+	async delete(id: string): Promise<void> {
+		await db.delete(posts).where(eq(posts.id, id));
+	},
 
-  async softDelete(id: string, deletedBy: string): Promise<Post | undefined> {
-    const [result] = await db
-      .update(posts)
-      .set({
-        deletedAt: new Date().toISOString(),
-        deletedBy,
-      })
-      .where(eq(posts.id, id))
-      .returning();
+	async softDelete(id: string, deletedBy: string): Promise<Post | undefined> {
+		const [result] = await db
+			.update(posts)
+			.set({
+				deletedAt: new Date().toISOString(),
+				deletedBy,
+			})
+			.where(eq(posts.id, id))
+			.returning();
 
-    return result;
-  },
+		return result;
+	},
 };

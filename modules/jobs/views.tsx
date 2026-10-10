@@ -2,7 +2,6 @@ import { component$ } from "@qwik.dev/core";
 import type {
 	EditMyJobData,
 	JobDetailData,
-	JobsListData,
 	MyJobsData,
 } from "~/contracts/jobs";
 import type { PageViews } from "~/core-api";
@@ -22,14 +21,6 @@ function maxDateStr() {
 	maxDate.setDate(maxDate.getDate() + MAX_DAYS);
 	return maxDate.toISOString().slice(0, 10);
 }
-
-const JobsListPage = component$<{ data: JobsListData }>(({ data }) => (
-	<JobsListView data={data} />
-));
-
-const JobDetailPage = component$<{ data: JobDetailData }>(({ data }) => (
-	<JobDetailView data={data} />
-));
 
 const MyJobsPage = component$<{ data: MyJobsData }>(({ data }) => {
 	const deleteAction = useDeleteMyJob();
@@ -97,12 +88,12 @@ const EditMyJobPage = component$<{ data: EditMyJobData }>(({ data }) => {
 });
 
 export const jobsViews: PageViews = {
-	"jobs.list": { view: JobsListPage },
+	"jobs.list": { view: JobsListView },
 	"jobs.new": { view: NewJobPage },
 	"jobs.mine": { view: MyJobsPage },
 	"jobs.mine.edit": { view: EditMyJobPage },
 	"jobs.detail": {
-		view: JobDetailPage,
+		view: JobDetailView,
 		head: (data) => ({ title: (data as JobDetailData).job.title }),
 	},
 };

@@ -1,12 +1,12 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
+import { requireModuleAdmin, toPublicUser } from "~/core-api";
 import { PAGE_SIZE } from "~/ui";
 import { electionsService } from "../service";
-import { requireElectionsAdmin } from "./auth";
 
 /** Server-only: import from route loaders only, never from components. */
 
 export async function loadAdminElections(event: RequestEventLoader) {
-	await requireElectionsAdmin(event);
+	await requireModuleAdmin(event, { module: "elections", scope: "global" });
 
 	const search = event.url.searchParams.get("search")?.trim() ?? "";
 	const page = Math.max(
@@ -27,12 +27,12 @@ export async function loadAdminElections(event: RequestEventLoader) {
 
 /** Guard for the create-cycle form, which loads no data. */
 export async function guardNewElection(event: RequestEventLoader) {
-	await requireElectionsAdmin(event);
+	await requireModuleAdmin(event, { module: "elections", scope: "global" });
 	return {};
 }
 
 export async function loadAdminCycle(event: RequestEventLoader) {
-	await requireElectionsAdmin(event);
+	await requireModuleAdmin(event, { module: "elections", scope: "global" });
 	const cycle = await electionsService.getCycleById(event.params.id);
 	if (!cycle) throw event.redirect(302, "/admin/global/elections");
 	const applications = await electionsService.getApplicationsByCycle(cycle.id);
@@ -41,13 +41,13 @@ export async function loadAdminCycle(event: RequestEventLoader) {
 		// The admin table shows the applicant's name only; keep the rest of the users row server-side.
 		applications: applications.map(({ user, ...app }) => ({
 			...app,
-			user: { id: user.id, name: user.name, familyName: user.familyName },
+			user: toPublicUser(user),
 		})),
 	};
 }
 
 export async function loadAdminNewPosition(event: RequestEventLoader) {
-	await requireElectionsAdmin(event);
+	await requireModuleAdmin(event, { module: "elections", scope: "global" });
 	const cycle = await electionsService.getCycleById(event.params.id);
 	if (!cycle) throw event.redirect(302, "/admin/global/elections");
 	if (cycle.status !== "draft") {

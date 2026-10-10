@@ -1,14 +1,18 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
 import { and, desc, eq, isNull, like, or, sql } from "drizzle-orm";
-import { db, groupsService, users as usersTable } from "~/core-api";
+import {
+	db,
+	groupsService,
+	requireModuleAdmin,
+	users as usersTable,
+} from "~/core-api";
 import { PAGE_SIZE } from "~/ui";
 import { events } from "../schema/events";
 import { participationService } from "../services/participation";
-import { requireEventsAdmin } from "./auth";
 
 /** Server-only: import from route loaders only, never from components. */
 export async function loadAdminEvents(event: RequestEventLoader) {
-	await requireEventsAdmin(event);
+	await requireModuleAdmin(event, { module: "events", scope: "any" });
 	const { params, url } = event;
 	const groupSlug = params.group_slug;
 	const search = url.searchParams.get("search")?.trim() ?? "";

@@ -13,6 +13,7 @@ import {
 	groups as groupsTable,
 	matchPath,
 	publicImageUrlFromKey,
+	toPublicUser,
 } from "~/core-api";
 import { eventsService } from "./services/events";
 import { participationService } from "./services/participation";
@@ -274,6 +275,8 @@ export async function loadEventPage(
 		event.address ||
 		(event.locationType === "online" ? "Online" : "");
 
+	const organizer = toPublicUser(event.user);
+
 	// Explicit allowlist: the event row and its organizer come from `getById` with the
 	// organizer's full user row and email, which must never reach an anonymous visitor.
 	return {
@@ -289,11 +292,12 @@ export async function loadEventPage(
 		latitude: event.latitude,
 		longitude: event.longitude,
 		onlineUrl: event.onlineUrl,
+		// Guests only get the organizer's first name.
 		user: {
-			id: event.user.id,
+			id: organizer.id,
 			displayName: isLoggedIn
-				? `${event.user.name} ${event.user.familyName}`
-				: event.user.name,
+				? `${organizer.name} ${organizer.familyName}`
+				: organizer.name,
 		},
 		salesStatus: salesValidation,
 		userParticipation: participationStatus,

@@ -10,8 +10,8 @@ import {
 	VisibilitySelector,
 } from "~/ui";
 import { eventsService } from "../services/events";
-import { requireAdminEvent } from "./auth";
 import type { AdminEventEditData } from "./edit-data";
+import { requireAdminEvent } from "./event-guards";
 import type { NewEventContext } from "./new-data";
 
 const editEventSchema = z.object({

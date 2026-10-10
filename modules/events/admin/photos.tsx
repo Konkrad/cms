@@ -3,7 +3,7 @@ import { Link, routeAction$, useLocation, z, zod$ } from "@qwik.dev/router";
 import { deleteS3Objects, deriveThumbnailKey } from "~/core-api";
 import { Button, Card, ImageUploader } from "~/ui";
 import { photosService } from "../services/photos";
-import { requireAdminEvent } from "./auth";
+import { requireAdminEvent } from "./event-guards";
 import type { AdminPhotosData } from "./photos-data";
 
 export const useCreatePhoto = routeAction$(

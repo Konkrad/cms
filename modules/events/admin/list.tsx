@@ -3,7 +3,7 @@ import { Form, Link, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { format } from "date-fns";
 import { Button, Pagination, SearchBar } from "~/ui";
 import { eventsService } from "../services/events";
-import { requireAdminEventById } from "./auth";
+import { requireAdminEventById } from "./event-guards";
 import type { AdminEventsData } from "./list-data";
 
 export const useDeleteEvent = routeAction$(

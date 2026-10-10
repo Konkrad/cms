@@ -1,14 +1,14 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, Link, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { format } from "date-fns";
+import { requireModuleAdmin } from "~/core-api";
 import { Pagination, SearchBar } from "~/ui";
 import { jobsService } from "../service";
-import { requireJobsAdmin } from "./auth";
 import type { AdminJobsData } from "./list-data";
 
 export const useApproveJob = routeAction$(
 	async (data, event) => {
-		await requireJobsAdmin(event);
+		await requireModuleAdmin(event, { module: "jobs", scope: "global" });
 		await jobsService.update(data.jobId, { status: "approved" } as any);
 		return { success: true };
 	},
@@ -17,7 +17,7 @@ export const useApproveJob = routeAction$(
 
 export const useDeleteJob = routeAction$(
 	async (data, event) => {
-		await requireJobsAdmin(event);
+		await requireModuleAdmin(event, { module: "jobs", scope: "global" });
 		await jobsService.delete(data.jobId);
 		return { success: true };
 	},

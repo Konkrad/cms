@@ -1,5 +1,6 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
+import { requireModuleAdmin } from "~/core-api";
 import {
 	AddressAutocomplete,
 	Button,
@@ -11,7 +12,6 @@ import {
 	VisibilitySelector,
 } from "~/ui";
 import { eventsService } from "../services/events";
-import { requireEventsAdmin } from "./auth";
 import type { NewEventContext } from "./new-data";
 
 const eventSchema = z.object({
@@ -32,7 +32,10 @@ const eventSchema = z.object({
 });
 
 export const useCreateEvent = routeAction$(async (data, event) => {
-	const { user, isGlobal, group } = await requireEventsAdmin(event);
+	const { user, isGlobal, group } = await requireModuleAdmin(event, {
+		module: "events",
+		scope: "any",
+	});
 
 	if (data.locationType !== "online" && !data.address) {
 		return {

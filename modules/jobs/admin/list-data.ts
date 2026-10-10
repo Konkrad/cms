@@ -1,11 +1,12 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
+import { requireModuleAdmin } from "~/core-api";
 import { PAGE_SIZE } from "~/ui";
-import { type JobWithUser, jobsService } from "../service";
-import { requireJobsAdmin } from "./auth";
+import { toPublicJob } from "../public-job";
+import { jobsService } from "../service";
 
 /** Server-only: import from route loaders only, never from components. */
 export async function loadAdminJobs(event: RequestEventLoader) {
-	await requireJobsAdmin(event);
+	await requireModuleAdmin(event, { module: "jobs", scope: "global" });
 
 	const search = event.url.searchParams.get("search")?.trim() ?? "";
 	const page = Math.max(
@@ -13,7 +14,7 @@ export async function loadAdminJobs(event: RequestEventLoader) {
 		parseInt(event.url.searchParams.get("page") ?? "1") || 1,
 	);
 
-	const all = (await jobsService.getAll()) as JobWithUser[];
+	const all = (await jobsService.getAll()).map(toPublicJob);
 	const filtered = search
 		? all.filter(
 				(j) =>

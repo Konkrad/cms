@@ -1,13 +1,12 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
-import { requireActiveModule, requireAuth } from "~/core-api";
+import { requireModuleAuth } from "~/core-api";
 import { participantsService } from "./services/participants";
 import { ticketsService } from "./services/tickets";
 import { transactionsService } from "./services/transactions";
 
 /** Server-only: import from route loaders only, never from components. */
 export async function loadUserDashboard(event: RequestEventLoader) {
-	const userData = await requireAuth(event);
-	requireActiveModule(event, "events");
+	const userData = await requireModuleAuth(event, "events");
 
 	const userId = userData.id;
 	const userEmail = userData.email ?? "";

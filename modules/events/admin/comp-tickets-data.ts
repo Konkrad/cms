@@ -1,6 +1,6 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
 import { productsService } from "../services/products";
-import { requireCompTicketsAdmin } from "./auth";
+import { requireCompTicketsAdmin } from "./event-guards";
 
 /** Server-only: import from route loaders only, never from components. */
 export async function loadAdminCompTickets(event: RequestEventLoader) {

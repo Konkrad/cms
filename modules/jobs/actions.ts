@@ -1,18 +1,12 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import {
-	currentScopeRest,
-	matchPath,
-	requireActiveModule,
-	requireAuth,
-} from "~/core-api";
+import { currentScopeRest, matchPath, requireModuleAuth } from "~/core-api";
 import { jobsService } from "./service";
 
 const MAX_DAYS = 30;
 
 export const useSubmitJob = routeAction$(
 	async (data, event) => {
-		const user = await requireAuth(event);
-		requireActiveModule(event, "jobs");
+		const user = await requireModuleAuth(event, "jobs");
 
 		const expiresAt = new Date(data.expiresAt);
 		const maxExpiry = new Date();
@@ -61,8 +55,7 @@ export const useSubmitJob = routeAction$(
 
 export const useDeleteMyJob = routeAction$(
 	async (data, event) => {
-		const user = await requireAuth(event);
-		requireActiveModule(event, "jobs");
+		const user = await requireModuleAuth(event, "jobs");
 
 		const job = await jobsService.getById(data.jobId);
 		if (!job || job.suggestedBy !== user.id || job.status !== "pending") {
@@ -77,8 +70,7 @@ export const useDeleteMyJob = routeAction$(
 
 export const useUpdateMyJob = routeAction$(
 	async (data, event) => {
-		const user = await requireAuth(event);
-		requireActiveModule(event, "jobs");
+		const user = await requireModuleAuth(event, "jobs");
 
 		const jobId = matchPath("/jobs/mine/:id/edit", currentScopeRest(event))?.id;
 		const job = jobId ? await jobsService.getById(jobId) : undefined;

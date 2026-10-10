@@ -4,7 +4,7 @@ import {
 	getCurrentUserData,
 	getServerSession,
 	requireActiveModule,
-	requireAuth,
+	requireModuleAuth,
 	usersService,
 } from "~/core-api";
 import type {
@@ -379,8 +379,7 @@ export const useCreateCheckoutSession = routeAction$(
 
 export const useCheckPaymentStatus = routeAction$(
 	async (data, event) => {
-		await requireAuth(event);
-		requireActiveModule(event, "events");
+		await requireModuleAuth(event, "events");
 
 		console.log("[Server] useCheckPaymentStatus called");
 

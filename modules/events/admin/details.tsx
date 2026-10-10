@@ -9,8 +9,8 @@ import {
 	TextArea,
 } from "~/ui";
 import { eventsService } from "../services/events";
-import { requireAdminEvent } from "./auth";
 import type { AdminEventDetailsData } from "./details-data";
+import { requireAdminEvent } from "./event-guards";
 
 const eventSchema = z
 	.object({

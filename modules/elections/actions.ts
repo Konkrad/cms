@@ -1,11 +1,10 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { requireActiveModule, requireAuth } from "~/core-api";
+import { requireModuleAuth } from "~/core-api";
 import { electionsService } from "./service";
 
 export const useSubmitApplication = routeAction$(
 	async (data, event) => {
-		const user = await requireAuth(event);
-		requireActiveModule(event, "elections");
+		const user = await requireModuleAuth(event, "elections");
 		const result = await electionsService.createApplication({
 			positionId: data.positionId,
 			cycleId: data.cycleId,

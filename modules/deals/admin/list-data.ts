@@ -1,11 +1,11 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
+import { requireModuleAdmin } from "~/core-api";
 import { PAGE_SIZE } from "~/ui";
 import { dealsService } from "../service";
-import { requireDealsAdmin } from "./auth";
 
 /** Server-only: import from route loaders only, never from components. */
 export async function loadAdminDeals(event: RequestEventLoader) {
-	await requireDealsAdmin(event);
+	await requireModuleAdmin(event, { module: "deals", scope: "global" });
 
 	const search = event.url.searchParams.get("search")?.trim() ?? "";
 	const page = Math.max(

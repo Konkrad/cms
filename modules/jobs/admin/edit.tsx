@@ -1,12 +1,13 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
+import { requireModuleAdmin } from "~/core-api";
 import { BlockNoteEditor, Button, Input, Select } from "~/ui";
-import { type JobWithUser, jobsService } from "../service";
-import { requireJobsAdmin } from "./auth";
+import type { PublicJob } from "../public-job";
+import { jobsService } from "../service";
 
 export const useUpdateJob = routeAction$(
 	async (data, event) => {
-		await requireJobsAdmin(event);
+		await requireModuleAdmin(event, { module: "jobs", scope: "global" });
 
 		await jobsService.update(event.params.id, {
 			title: data.title,
@@ -42,7 +43,7 @@ export const useUpdateJob = routeAction$(
 	}),
 );
 
-export const AdminJobEdit = component$<{ job: JobWithUser }>(({ job }) => {
+export const AdminJobEdit = component$<{ job: PublicJob }>(({ job }) => {
 	const updateAction = useUpdateJob();
 
 	const body = useSignal(job.body ?? "");

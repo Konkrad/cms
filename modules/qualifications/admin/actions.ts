@@ -1,10 +1,13 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
+import { requireModuleAdmin } from "~/core-api";
 import { qualificationsService } from "../service";
-import { requireQualificationsAdmin } from "./auth";
 
 export const useCreateType = routeAction$(
 	async (data, event) => {
-		await requireQualificationsAdmin(event);
+		await requireModuleAdmin(event, {
+			module: "qualifications",
+			scope: "global",
+		});
 		await qualificationsService.createType(data);
 		return { success: true };
 	},
@@ -18,7 +21,10 @@ export const useCreateType = routeAction$(
 
 export const useDeleteType = routeAction$(
 	async (data, event) => {
-		await requireQualificationsAdmin(event);
+		await requireModuleAdmin(event, {
+			module: "qualifications",
+			scope: "global",
+		});
 		await qualificationsService.deleteType(data.typeId);
 		return { success: true };
 	},
@@ -27,7 +33,10 @@ export const useDeleteType = routeAction$(
 
 export const useApproveQualification = routeAction$(
 	async (data, event) => {
-		const { user } = await requireQualificationsAdmin(event);
+		const { user } = await requireModuleAdmin(event, {
+			module: "qualifications",
+			scope: "global",
+		});
 		await qualificationsService.approve(
 			data.qualId,
 			user.id,
@@ -40,7 +49,10 @@ export const useApproveQualification = routeAction$(
 
 export const useRejectQualification = routeAction$(
 	async (data, event) => {
-		const { user } = await requireQualificationsAdmin(event);
+		const { user } = await requireModuleAdmin(event, {
+			module: "qualifications",
+			scope: "global",
+		});
 		await qualificationsService.reject(data.qualId, user.id, data.notes);
 		return { success: true };
 	},
@@ -52,7 +64,10 @@ export const useRejectQualification = routeAction$(
 
 export const useGenerateToken = routeAction$(
 	async (data, event) => {
-		const { user } = await requireQualificationsAdmin(event);
+		const { user } = await requireModuleAdmin(event, {
+			module: "qualifications",
+			scope: "global",
+		});
 		await qualificationsService.createToken(
 			data.typeId,
 			user.id,
@@ -68,7 +83,10 @@ export const useGenerateToken = routeAction$(
 
 export const useRevokeToken = routeAction$(
 	async (data, event) => {
-		await requireQualificationsAdmin(event);
+		await requireModuleAdmin(event, {
+			module: "qualifications",
+			scope: "global",
+		});
 		await qualificationsService.revokeToken(data.tokenId);
 		return { success: true };
 	},

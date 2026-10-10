@@ -1,10 +1,10 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
+import { requireModuleAdmin } from "~/core-api";
 import { electionsService } from "../service";
-import { requireElectionsAdmin } from "./auth";
 
 export const useCreateCycle = routeAction$(
 	async (data, event) => {
-		await requireElectionsAdmin(event);
+		await requireModuleAdmin(event, { module: "elections", scope: "global" });
 
 		const cycle = await electionsService.createCycle({
 			title: data.title,
@@ -25,7 +25,7 @@ export const useCreateCycle = routeAction$(
 
 export const useCreatePosition = routeAction$(
 	async (data, event) => {
-		await requireElectionsAdmin(event);
+		await requireModuleAdmin(event, { module: "elections", scope: "global" });
 		// Positions can only be added while the cycle is a draft (the loader checks this
 		// too, but an action runs before loaders and can be posted to directly).
 		const cycle = await electionsService.getCycleById(data.cycleId);
@@ -55,7 +55,7 @@ export const useCreatePosition = routeAction$(
 
 export const useAdvanceStatus = routeAction$(
 	async (data, event) => {
-		await requireElectionsAdmin(event);
+		await requireModuleAdmin(event, { module: "elections", scope: "global" });
 		try {
 			await electionsService.updateCycle(data.cycleId, {
 				status: data.status,
@@ -74,7 +74,7 @@ export const useAdvanceStatus = routeAction$(
 
 export const useSetVotingUrl = routeAction$(
 	async (data, event) => {
-		await requireElectionsAdmin(event);
+		await requireModuleAdmin(event, { module: "elections", scope: "global" });
 		await electionsService.updateCycle(data.cycleId, {
 			votingUrl: data.votingUrl || null,
 		});
@@ -85,7 +85,7 @@ export const useSetVotingUrl = routeAction$(
 
 export const useDeletePosition = routeAction$(
 	async (data, event) => {
-		await requireElectionsAdmin(event);
+		await requireModuleAdmin(event, { module: "elections", scope: "global" });
 		const result = await electionsService.deletePosition(data.positionId);
 		if (result.error) return { failed: true, error: result.error };
 		return { success: true };
@@ -95,7 +95,7 @@ export const useDeletePosition = routeAction$(
 
 export const useApproveApplication = routeAction$(
 	async (data, event) => {
-		await requireElectionsAdmin(event);
+		await requireModuleAdmin(event, { module: "elections", scope: "global" });
 		await electionsService.updateApplicationStatus(
 			data.appId,
 			"approved",
@@ -108,7 +108,7 @@ export const useApproveApplication = routeAction$(
 
 export const useRejectApplication = routeAction$(
 	async (data, event) => {
-		await requireElectionsAdmin(event);
+		await requireModuleAdmin(event, { module: "elections", scope: "global" });
 		await electionsService.updateApplicationStatus(
 			data.appId,
 			"rejected",

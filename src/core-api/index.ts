@@ -9,6 +9,8 @@ export { defineModule } from "~/core/modules";
 export type { PageViews } from "~/core/page-views";
 export { definePage, matchPath } from "~/core/pages";
 export type { PaymentContext, PaymentHandlers } from "~/core/payments";
+export type { PublicUser } from "~/core/public-user";
+export { toPublicUser } from "~/core/public-user";
 export { requireActiveModule } from "~/core/registry/manifests";
 // Server-only: do not call from client code (reference only inside loaders/actions/server$).
 export { db } from "~/db/connection";
@@ -48,3 +50,6 @@ export { buildProfileUrl } from "~/utils/users";
 export * from "./db-schema";
 // Env-derived values (server-only).
 export { getAppUrl, getStripeEnv, getStripePublishableKey } from "./env";
+// Module guards (own file: they load the registry, which imports the modules, which import this
+// file back, so they must be exported after the definitions above).
+export { requireModuleAdmin, requireModuleAuth } from "./guards";

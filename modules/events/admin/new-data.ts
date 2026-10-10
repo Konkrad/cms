@@ -1,9 +1,12 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
-import { requireEventsAdmin } from "./auth";
+import { requireModuleAdmin } from "~/core-api";
 
 /** Server-only: import from route loaders only, never from components. */
 export async function loadNewEventContext(event: RequestEventLoader) {
-	const ctx = await requireEventsAdmin(event);
+	const ctx = await requireModuleAdmin(event, {
+		module: "events",
+		scope: "any",
+	});
 	return ctx.isGlobal
 		? ({ isGlobal: true, group: undefined } as const)
 		: ({ isGlobal: false, group: { slug: ctx.group.slug } } as const);

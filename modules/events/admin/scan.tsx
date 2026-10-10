@@ -2,7 +2,7 @@ import { $, component$ } from "@qwik.dev/core";
 import { Link, routeAction$, useLocation, z, zod$ } from "@qwik.dev/router";
 import { TicketScanner } from "../components/EventTicketScanner";
 import { ticketsService } from "../services/tickets";
-import { requireAdminEvent } from "./auth";
+import { requireAdminEvent } from "./event-guards";
 import type { AdminScanData } from "./scan-data";
 
 export const useScanEventTicket = routeAction$(

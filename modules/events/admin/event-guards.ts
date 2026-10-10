@@ -1,23 +1,9 @@
 import type { RequestEventCommon } from "@qwik.dev/router";
-import { requireActiveModule, requireGroupAdmin } from "~/core-api";
+import { requireModuleAdmin } from "~/core-api";
 import { eventsService } from "../services/events";
 
 /**
- * Events admin works in every scope: the global admin manages all events, a group's
- * representatives manage that group's events. Call as the first statement of every admin
- * loader/action (before any try block): resolves the `[group_slug]` scope (login, platform
- * admin or representative), then 404s when the module is inactive.
- */
-export async function requireEventsAdmin(event: RequestEventCommon) {
-	const ctx = await requireGroupAdmin(
-		event as Parameters<typeof requireGroupAdmin>[0],
-	);
-	requireActiveModule(event, "events");
-	return ctx;
-}
-
-/**
- * `requireEventsAdmin` plus the per-event scope check for routes under `events/[id]`: the event
+ * The events admin guard (`requireModuleAdmin`, any scope: global admin or a group's representatives) plus the per-event scope check for routes under `events/[id]`: the event
  * must exist and, outside the global scope, belong to the group of the `[group_slug]` in the URL.
  * A representative of group A therefore can neither read nor change group B's events by id, and
  * an event of A is not reachable under B's slug either.
@@ -37,7 +23,10 @@ export async function requireAdminEventById(
 	eventId: string,
 	opts: { onMissing?: "404" | "redirect" } = {},
 ) {
-	const ctx = await requireEventsAdmin(event);
+	const ctx = await requireModuleAdmin(event, {
+		module: "events",
+		scope: "any",
+	});
 	const target = await eventsService.getById(eventId);
 	if (!target) {
 		if (opts.onMissing === "redirect") {

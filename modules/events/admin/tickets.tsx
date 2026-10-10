@@ -3,7 +3,7 @@ import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import TicketScanner from "../components/AdminTicketScanner";
 import TicketsList from "../components/TicketsList";
 import { ticketsService } from "../services/tickets";
-import { requireAdminEvent } from "./auth";
+import { requireAdminEvent } from "./event-guards";
 import type { AdminTicketsData } from "./tickets-data";
 
 export const useScanTicketByQr = routeAction$(

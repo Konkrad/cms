@@ -1,7 +1,7 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
 import { deriveThumbnailKey, generatePresignedGetUrl } from "~/core-api";
 import { photosService } from "../services/photos";
-import { requireAdminEvent } from "./auth";
+import { requireAdminEvent } from "./event-guards";
 
 /** Server-only: import from route loaders only, never from components. */
 export async function loadAdminPhotos(event: RequestEventLoader) {

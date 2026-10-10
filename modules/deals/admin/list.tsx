@@ -1,14 +1,14 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, Link, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { format } from "date-fns";
+import { requireModuleAdmin } from "~/core-api";
 import { Button, Pagination, SearchBar } from "~/ui";
 import { dealsService } from "../service";
-import { requireDealsAdmin } from "./auth";
 import type { AdminDealsData } from "./list-data";
 
 export const useDeleteDeal = routeAction$(
 	async (data, event) => {
-		await requireDealsAdmin(event);
+		await requireModuleAdmin(event, { module: "deals", scope: "global" });
 		await dealsService.delete(data.dealId);
 		return { success: true };
 	},

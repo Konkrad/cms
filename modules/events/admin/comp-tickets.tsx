@@ -4,8 +4,8 @@ import { usersService } from "~/core-api";
 import { Button, Input, Select } from "~/ui";
 import { productsService } from "../services/products";
 import { ticketsService } from "../services/tickets";
-import { requireCompTicketsAdmin } from "./auth";
 import type { AdminCompTicketsData } from "./comp-tickets-data";
+import { requireCompTicketsAdmin } from "./event-guards";
 
 export const useIssueCompTicket = routeAction$(
 	async (data, event) => {

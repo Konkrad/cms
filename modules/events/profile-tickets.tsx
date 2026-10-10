@@ -1,6 +1,6 @@
 import { component$, useStore } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { requireActiveModule, requireAuth } from "~/core-api";
+import { requireModuleAuth } from "~/core-api";
 import PurchaseList from "~theme/routes/profile/PurchaseList";
 import QrTicketWall from "~theme/routes/profile/QrTicketWall";
 import type { UserDashboardData } from "./profile-tickets-data";
@@ -11,8 +11,7 @@ const slotsSchema = z.array(z.object({ name: z.string(), email: z.string() }));
 
 export const useUpdateParticipants = routeAction$(
 	async (input, event) => {
-		const userData = await requireAuth(event);
-		requireActiveModule(event, "events");
+		const userData = await requireModuleAuth(event, "events");
 
 		// Verify the user owns this ticket
 		const ticket = await ticketsService.getById(input.ticketId);

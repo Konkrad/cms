@@ -1,15 +1,15 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { format } from "date-fns";
+import { requireModuleAdmin } from "~/core-api";
 import { Button, ImageUploader, Input, TextArea } from "~/ui";
 import { dealsService } from "../service";
-import { requireDealsAdmin } from "./auth";
 import type { AdminDealData } from "./edit-data";
 import { StepsEditor } from "./StepsEditor";
 
 export const useUpdateDeal = routeAction$(
 	async (data, event) => {
-		await requireDealsAdmin(event);
+		await requireModuleAdmin(event, { module: "deals", scope: "global" });
 
 		const steps = JSON.parse(data.steps || "[]");
 

@@ -5,7 +5,7 @@ import { InventoryGroupForm } from "../components/InventoryGroupForm";
 import { ProductForm } from "../components/ProductForm";
 import { inventoryGroupsService } from "../services/inventory-groups";
 import { productsService } from "../services/products";
-import { requireAdminEvent } from "./auth";
+import { requireAdminEvent } from "./event-guards";
 import type { AdminProductsData } from "./products-data";
 
 export const useCreateInventoryGroup = routeAction$(

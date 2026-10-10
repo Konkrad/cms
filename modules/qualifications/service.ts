@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { and, eq, lte } from "drizzle-orm";
-import { db, membershipsService, userTagsService } from "~/core-api";
+import { db, membershipsService, type User, userTagsService } from "~/core-api";
 import {
 	insertQualificationTokenSchema,
 	type QualificationToken,
@@ -20,6 +20,11 @@ import {
 
 export type UserQualificationWithType = UserQualification & {
 	type: QualificationType;
+};
+
+/** Admin application row: includes the applicant's full users row (strip it before serializing). */
+export type UserQualificationWithApplicant = UserQualificationWithType & {
+	user: User;
 };
 
 export const qualificationsService = {
@@ -76,21 +81,21 @@ export const qualificationsService = {
 
 	// User qualifications
 
-	async getPendingApplications(): Promise<UserQualificationWithType[]> {
+	async getPendingApplications(): Promise<UserQualificationWithApplicant[]> {
 		const rows = await db.query.userQualifications.findMany({
 			where: { status: "pending" },
 			orderBy: { createdAt: "asc" },
 			with: { type: true, user: true },
 		});
-		return rows as UserQualificationWithType[];
+		return rows as UserQualificationWithApplicant[];
 	},
 
-	async getAllApplications(): Promise<UserQualificationWithType[]> {
+	async getAllApplications(): Promise<UserQualificationWithApplicant[]> {
 		const rows = await db.query.userQualifications.findMany({
 			orderBy: { createdAt: "desc" },
 			with: { type: true, user: true },
 		});
-		return rows as UserQualificationWithType[];
+		return rows as UserQualificationWithApplicant[];
 	},
 
 	async getByUser(userId: string): Promise<UserQualificationWithType[]> {

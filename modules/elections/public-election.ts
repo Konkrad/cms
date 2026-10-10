@@ -1,3 +1,4 @@
+import { toPublicUser } from "~/core-api";
 import type { ElectionApplicationPublic } from "./service";
 
 /**
@@ -11,10 +12,6 @@ export function toPublicCandidate(app: ElectionApplicationPublic) {
 		motivationWhy: app.motivationWhy,
 		motivationExperience: app.motivationExperience,
 		motivationGoals: app.motivationGoals,
-		user: {
-			id: app.user.id,
-			name: app.user.name,
-			familyName: app.user.familyName,
-		},
+		user: toPublicUser(app.user),
 	};
 }

@@ -1,11 +1,17 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
 import QRCode from "qrcode";
-import { qualificationsService } from "../service";
-import { requireQualificationsAdmin } from "./auth";
+import { requireModuleAdmin, toPublicUser } from "~/core-api";
+import {
+	qualificationsService,
+	type UserQualificationWithApplicant,
+} from "../service";
 
 /** Server-only: import from route loaders only, never from components. */
 export async function loadAdminQualifications(event: RequestEventLoader) {
-	await requireQualificationsAdmin(event);
+	await requireModuleAdmin(event, {
+		module: "qualifications",
+		scope: "global",
+	});
 	const [types, pending, all] = await Promise.all([
 		qualificationsService.getTypes(),
 		qualificationsService.getPendingApplications(),
@@ -37,7 +43,16 @@ export async function loadAdminQualifications(event: RequestEventLoader) {
 		tokensWithQr.map((t) => [t.typeId, t.tokens]),
 	);
 
-	return { types, pending, all, tokensByType };
+	// The admin tables show the applicant's name only; keep the rest of the users row server-side.
+	const withPublicUser = (rows: UserQualificationWithApplicant[]) =>
+		rows.map(({ user, ...row }) => ({ ...row, user: toPublicUser(user) }));
+
+	return {
+		types,
+		pending: withPublicUser(pending),
+		all: withPublicUser(all),
+		tokensByType,
+	};
 }
 
 export type AdminQualificationsData = Awaited<

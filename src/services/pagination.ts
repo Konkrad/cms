@@ -34,33 +34,33 @@
 export type Cursor = Record<string, any> | null;
 
 export type PaginationParams = {
-  limit?: number;
-  sortOrder?: "asc" | "desc";
-  cursor?: string | null;
+	limit?: number;
+	sortOrder?: "asc" | "desc";
+	cursor?: string | null;
 };
 
 export type PagedResult<T> = {
-  items: T[];
-  nextCursor?: string | null;
+	items: T[];
+	nextCursor?: string | null;
 };
 
 /**
  * Encode a plain object into a URL-safe base64 cursor.
  */
 export function encodeCursor(obj: Record<string, any>): string {
-  const json = JSON.stringify(obj);
-  return Buffer.from(json, "utf-8").toString("base64url");
+	const json = JSON.stringify(obj);
+	return Buffer.from(json, "utf-8").toString("base64url");
 }
 
 /**
  * Decode a cursor created with `encodeCursor`. Returns `null` for missing/invalid cursors.
  */
 export function decodeCursor(
-  cursor?: string | null,
+	cursor?: string | null,
 ): Record<string, any> | null {
-  if (!cursor) return null;
-  const json = Buffer.from(cursor, "base64url").toString("utf-8");
-  return JSON.parse(json);
+	if (!cursor) return null;
+	const json = Buffer.from(cursor, "base64url").toString("utf-8");
+	return JSON.parse(json);
 }
 
 /**
@@ -71,18 +71,18 @@ export function decodeCursor(
  *  createCursorFromItem(item, ['createdAt', 'id'])
  */
 export function createCursorFromItem<T extends Record<string, any>>(
-  item: T,
-  fields: string[],
+	item: T,
+	fields: string[],
 ): string {
-  const payload: Record<string, any> = {};
-  for (const f of fields) {
-    let v = (item as any)[f];
-    if (v instanceof Date) {
-      v = v.toISOString();
-    }
-    payload[f] = v;
-  }
-  return encodeCursor(payload);
+	const payload: Record<string, any> = {};
+	for (const f of fields) {
+		let v = (item as any)[f];
+		if (v instanceof Date) {
+			v = v.toISOString();
+		}
+		payload[f] = v;
+	}
+	return encodeCursor(payload);
 }
 
 /**
@@ -97,22 +97,22 @@ export function createCursorFromItem<T extends Record<string, any>>(
  * Returns `undefined` when no subsequent page exists.
  */
 export function getNextCursorFromRows<T extends Record<string, any>>(
-  fetchedRows: T[],
-  fields: string[],
-  limit?: number,
+	fetchedRows: T[],
+	fields: string[],
+	limit?: number,
 ): string | undefined {
-  if (!fetchedRows || fetchedRows.length === 0) return undefined;
+	if (!fetchedRows || fetchedRows.length === 0) return undefined;
 
-  if (typeof limit === "number") {
-    // If the service fetched limit + 1 rows, presence of the extra row indicates another page.
-    if (fetchedRows.length <= limit) return undefined;
-    const lastItemForPage = fetchedRows[limit - 1];
-    return createCursorFromItem(lastItemForPage, fields);
-  } else {
-    // No limit provided — return a cursor for the last row
-    const last = fetchedRows[fetchedRows.length - 1];
-    return createCursorFromItem(last, fields);
-  }
+	if (typeof limit === "number") {
+		// If the service fetched limit + 1 rows, presence of the extra row indicates another page.
+		if (fetchedRows.length <= limit) return undefined;
+		const lastItemForPage = fetchedRows[limit - 1];
+		return createCursorFromItem(lastItemForPage, fields);
+	} else {
+		// No limit provided — return a cursor for the last row
+		const last = fetchedRows[fetchedRows.length - 1];
+		return createCursorFromItem(last, fields);
+	}
 }
 
 export type PageDirection = "forward" | "backward";
@@ -132,28 +132,30 @@ export type PageDirection = "forward" | "backward";
  * was rewound from).
  */
 export function paginateRows<T extends Record<string, any>>(
-  rows: T[],
-  fields: string[],
-  limit: number,
-  direction: PageDirection,
-  inputCursor: string | null,
+	rows: T[],
+	fields: string[],
+	limit: number,
+	direction: PageDirection,
+	inputCursor: string | null,
 ): { items: T[]; nextCursor: string | null; prevCursor: string | null } {
-  const hasMore = rows.length > limit;
-  const slice = rows.slice(0, limit);
+	const hasMore = rows.length > limit;
+	const slice = rows.slice(0, limit);
 
-  if (direction === "forward") {
-    return {
-      items: slice,
-      nextCursor: hasMore ? createCursorFromItem(rows[limit - 1], fields) : null,
-      prevCursor: inputCursor,
-    };
-  }
+	if (direction === "forward") {
+		return {
+			items: slice,
+			nextCursor: hasMore
+				? createCursorFromItem(rows[limit - 1], fields)
+				: null,
+			prevCursor: inputCursor,
+		};
+	}
 
-  return {
-    items: slice.reverse(),
-    nextCursor: inputCursor,
-    prevCursor: hasMore ? createCursorFromItem(rows[limit], fields) : null,
-  };
+	return {
+		items: slice.reverse(),
+		nextCursor: inputCursor,
+		prevCursor: hasMore ? createCursorFromItem(rows[limit], fields) : null,
+	};
 }
 
 /**
@@ -165,7 +167,7 @@ export function paginateRows<T extends Record<string, any>>(
  * Each inner chain should be combined with AND, and the chains combined with OR.
  */
 export type KeysetChainItem = {
-  column: string;
-  operator: "lt" | "lte" | "gt" | "gte" | "eq";
-  value: any;
+	column: string;
+	operator: "lt" | "lte" | "gt" | "gte" | "eq";
+	value: any;
 };

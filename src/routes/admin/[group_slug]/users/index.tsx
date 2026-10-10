@@ -17,12 +17,12 @@ import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
 import { logins } from "~/core/auth/schema/logins";
 import { sessions } from "~/core/auth/schema/sessions";
 import { db } from "~/core/db/connection";
+import { membershipsService } from "~/core/memberships/memberships.service";
+import { userMemberships } from "~/core/memberships/schema";
 import { reevaluateUserTagsForUser } from "~/core/registry/manifests";
 import { groupsService } from "~/core/scopes/groups.service";
 import { groupMemberships } from "~/core/scopes/schema/group-memberships";
 import { users } from "~/core/users/schema";
-import { userMemberships } from "~/db/schemas/user-memberships";
-import { membershipsService } from "~/services/memberships.service";
 import { userTagsService } from "~/services/user-tags.service";
 
 export const useUsers = routeLoader$(async ({ params, url }) => {

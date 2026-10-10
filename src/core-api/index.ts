@@ -24,7 +24,7 @@ export { groupMembershipsService } from "~/core/scopes/group-memberships.service
 export { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
 export { groupsService } from "~/core/scopes/groups.service";
 export { deleteS3Objects } from "~/services/image-processing.service";
-export { membershipsService } from "~/services/memberships.service";
+export { membershipsService } from "~/core/memberships/memberships.service";
 export type { PageDirection } from "~/services/pagination";
 export {
 	createCursorFromItem,

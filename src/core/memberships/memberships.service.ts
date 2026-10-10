@@ -5,7 +5,7 @@ import {
 	insertUserMembershipSchema,
 	type UserMembership,
 	userMemberships,
-} from "~/db/schemas/user-memberships";
+} from "~/core/memberships/schema";
 
 const TIER_RANK: Record<string, number> = { associated: 1, full: 2 };
 

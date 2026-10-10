@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { membershipsService } from "~/services/memberships.service";
+import { membershipsService } from "~/core/memberships/memberships.service";
 import { createTestMembership, createTestUser, openDb } from "./helpers";
 
 const cleanupIds: string[] = [];

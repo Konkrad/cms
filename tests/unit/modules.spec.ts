@@ -5,6 +5,7 @@ import {
 	disabledBlockTypes,
 	menuLinksOf,
 	pagesOf,
+	profileExtrasOf,
 	selectActive,
 	sitemapEntriesOf,
 	withoutDisabledBlocks,
@@ -94,6 +95,39 @@ describe("sitemapEntriesOf", () => {
 	});
 });
 
+describe("profileExtrasOf", () => {
+	const ctx = { userId: "u1", viewerId: "u2", isOwnProfile: false };
+	const withHistory = defineModule({
+		id: "history",
+		profile: async ({ userId, isOwnProfile }) =>
+			isOwnProfile
+				? { electionGroups: [{ title: `for ${userId}`, year: 2026, apps: [] }] }
+				: {},
+	});
+
+	it("merges the sections of the given modules and passes the context through", async () => {
+		const own = { userId: "u1", viewerId: "u1", isOwnProfile: true };
+		expect(await profileExtrasOf([alpha, withHistory], own)).toEqual({
+			electionGroups: [{ title: "for u1", year: 2026, apps: [] }],
+		});
+	});
+
+	it("lets a module withhold a section from other viewers", async () => {
+		expect(await profileExtrasOf([withHistory], ctx)).toEqual({});
+	});
+
+	it("is empty without modules or hooks", async () => {
+		expect(await profileExtrasOf([], ctx)).toEqual({});
+		expect(await profileExtrasOf([alpha, beta], ctx)).toEqual({});
+	});
+
+	it("contributes nothing from an inactive module", async () => {
+		const own = { userId: "u1", viewerId: "u1", isOwnProfile: true };
+		const active = selectActive([alpha, withHistory], ["alpha"]);
+		expect(await profileExtrasOf(active, own)).toEqual({});
+	});
+});
+
 describe("disabledBlockTypes", () => {
 	const moduleBlocks = {
 		alpha: ["AlphaBlock"],
@@ -170,7 +204,7 @@ describe("registry with the checked-in config", () => {
 		expect(modulePages.some((p) => p.id === "jobs.list")).toBe(true);
 	});
 
-	it("includes deals pages and admin section between groups and jobs", async () => {
+	it("includes deals pages and admin sections ordered by nav position", async () => {
 		const { modulePages, activeAdminSections } = await import(
 			"~/core/registry/manifests"
 		);
@@ -178,6 +212,7 @@ describe("registry with the checked-in config", () => {
 		expect(activeAdminSections.map((s) => s.path)).toEqual([
 			"deals",
 			"jobs",
+			"elections",
 			"qualifications",
 		]);
 	});

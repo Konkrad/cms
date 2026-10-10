@@ -3,9 +3,9 @@ import { type InferSelectModel, sql } from "drizzle-orm";
 import { index, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { users } from "~/core-api/db-schema";
 import { electionCycles } from "./election-cycles";
 import { electionPositions } from "./election-positions";
-import { users } from "./users";
 
 export const electionApplications = sqliteTable(
 	"election_applications",

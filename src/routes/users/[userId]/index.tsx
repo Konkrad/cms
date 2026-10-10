@@ -3,7 +3,6 @@ import { routeLoader$ } from "@qwik.dev/router";
 import { eq } from "drizzle-orm";
 import { db } from "~/db/connection";
 import { logins } from "~/db/schemas/logins";
-import { electionsService } from "~/services/elections.service";
 import { formResultsService } from "~/services/form-results.service";
 import { groupMembershipsService } from "~/services/group-memberships.service";
 import { participationService } from "~/services/participation.service";
@@ -13,6 +12,7 @@ import { buildFormPath } from "~/utils/forms";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { PublicProfileView } from "~theme/routes/users/PublicProfileView";
+import { activeProfileExtras } from "../../../core/registry/manifests";
 
 export const usePublicProfile = routeLoader$(async (event) => {
 	await requireAuth(event);
@@ -42,15 +42,17 @@ export const usePublicProfile = routeLoader$(async (event) => {
 	const isAdmin = currentUser?.role === "admin";
 
 	const { userTagsService } = await import("~/services/user-tags.service");
-	const [groups, participation, tags, submittedFormRows, electionApplications] =
+	const [groups, participation, tags, submittedFormRows, extras] =
 		await Promise.all([
 			groupMembershipsService.getUserGroups(user.id),
 			participationService.getByUserId(user.id),
 			userTagsService.getByUser(user.id),
 			formResultsService.getByUser(user.id),
-			isOwner
-				? electionsService.getApplicationsByUser(user.id)
-				: Promise.resolve([]),
+			activeProfileExtras({
+				userId: user.id,
+				viewerId: currentUser?.id ?? null,
+				isOwnProfile: isOwner,
+			}),
 		]);
 
 	const formatResponseValue = (value: unknown): string => {
@@ -76,22 +78,8 @@ export const usePublicProfile = routeLoader$(async (event) => {
 		return JSON.stringify(value);
 	};
 
-	const electionsByCycle = new Map<
-		string,
-		{ title: string; year: number; apps: typeof electionApplications }
-	>();
-	for (const app of electionApplications) {
-		if (!electionsByCycle.has(app.cycleId)) {
-			electionsByCycle.set(app.cycleId, {
-				title: app.cycle.title,
-				year: app.cycle.year,
-				apps: [],
-			});
-		}
-		electionsByCycle.get(app.cycleId)!.apps.push(app);
-	}
-
 	return {
+		...extras,
 		name: user.name,
 		familyName: user.familyName,
 		role: user.role,
@@ -111,18 +99,6 @@ export const usePublicProfile = routeLoader$(async (event) => {
 		email: isOwner ? email : null,
 		yearOfBirth: isOwner ? (user.yearOfBirth ?? null) : null,
 		sex: isOwner ? (user.sex ?? null) : null,
-		electionGroups: isOwner
-			? [...electionsByCycle.values()]
-					.sort((a, b) => b.year - a.year)
-					.map((g) => ({
-						...g,
-						apps: g.apps.map((a) => ({
-							id: a.id,
-							status: a.status,
-							position: (a as any).position ?? null,
-						})),
-					}))
-			: undefined,
 		affiliationEntries: (() => {
 			const onboarding = submittedFormRows.find(
 				(s) => s.formSlug === "onboarding",

@@ -25,15 +25,30 @@
  * Guards
  *  - Unauthenticated access redirects to /login
  *  - Voting cycle hides apply button
+ *
+ * Module wiring
+ *  - Created cycle is persisted as a draft (the create action is exported by its route)
+ *  - Group-scoped admin URLs do not render the elections admin UI
+ *  - Public pages render under a scope prefix
+ *  - Election history shows on /users/<own id> but not on someone else's page
+ *  - The public cycle page does not serialize applicants' private user data
+ *  - An application cannot target a position of another cycle
  */
 
 import {
+	addGroupRepresentative,
 	createElectionApplicationInDb,
 	createElectionCycleInDb,
 	createElectionPositionInDb,
+	createGroupInDb,
+	createScopeInDb,
 	createUserSession,
 	createUserSessionWithMembership,
+	deleteGroupInDb,
+	deleteGroupRepresentative,
+	deleteScopeById,
 	expect,
+	getUserById,
 	openDb,
 	test,
 } from "../fixtures";
@@ -89,6 +104,21 @@ test.describe("Elections — admin: create cycle", () => {
 			);
 			await expect(page.locator(`text=${title}`)).toBeVisible({
 				timeout: 5_000,
+			});
+
+			const check = openDb();
+			const row = check
+				.prepare(
+					"SELECT status, year, description FROM election_cycles WHERE title = ?",
+				)
+				.get(title) as
+				| { status: string; year: number; description: string }
+				| undefined;
+			check.close();
+			expect(row).toMatchObject({
+				status: "draft",
+				year: 2099,
+				description: "Test cycle created by E2E",
 			});
 		} finally {
 			const db = openDb();
@@ -655,6 +685,254 @@ test.describe("Elections — application flow", () => {
 			ac();
 			cleanup();
 			pc();
+			session.cleanup();
+		}
+	});
+});
+
+// ── Module wiring ─────────────────────────────────────────────────────────────
+
+test.describe("Elections — module wiring", () => {
+	test("group-scoped admin URLs do not render the elections admin UI", async ({
+		guestPage: page,
+	}) => {
+		const admin = createUserSession("admin");
+		const slug = `elec-scope-${Date.now()}`;
+		const groupId = createGroupInDb({ name: "Elections Scope Group", slug });
+		addGroupRepresentative(admin.userId, groupId);
+		const { cycleId, cleanup } = createElectionCycleInDb({
+			status: "draft",
+			title: "Scoped Hidden Cycle",
+		});
+		try {
+			await loginAs(page, admin.sessionToken);
+
+			await page.goto(`/admin/${slug}/elections/${cycleId}`);
+			// The global list names every cycle, so check for the manage view's own controls instead.
+			await expect(page).toHaveURL(/\/admin\/global\/elections$/, {
+				timeout: 10_000,
+			});
+			await expect(page.locator('input[name="cycleId"]')).toHaveCount(0);
+			await expect(
+				page.getByRole("button", { name: /^Applications \(/ }),
+			).toHaveCount(0);
+
+			await page.goto(`/admin/${slug}/elections/new`);
+			await expect(page.locator('input[name="title"]')).toHaveCount(0);
+			await expect(page).toHaveURL(/\/admin\/global\/elections$/, {
+				timeout: 10_000,
+			});
+
+			await page.goto(`/admin/${slug}/elections/${cycleId}/positions/new`);
+			await expect(page.locator('input[name="title"]')).toHaveCount(0);
+			await expect(page).toHaveURL(/\/admin\/global\/elections$/, {
+				timeout: 10_000,
+			});
+		} finally {
+			cleanup();
+			try {
+				deleteGroupRepresentative(admin.userId, groupId);
+				deleteGroupInDb(groupId);
+			} catch {}
+			admin.cleanup();
+		}
+	});
+
+	test("public pages render under a scope prefix", async ({
+		guestPage: page,
+	}) => {
+		const suffix = Date.now().toString(36);
+		const region = `e2e-elec-region-${suffix}`;
+		const chapter = `e2e-elec-chapter-${suffix}`;
+		const prefix = `/${region}/${chapter}`;
+		const regionId = createScopeInDb({ parentPath: "/", slug: region }).id;
+		const chapterId = createScopeInDb({
+			parentPath: `/${region}/`,
+			slug: chapter,
+		}).id;
+		const { cycleId, cleanup } = createElectionCycleInDb({
+			status: "closed",
+			title: "Scoped Public Cycle",
+		});
+		const session = createUserSession("user");
+		try {
+			await loginAs(page, session.sessionToken);
+
+			// The detail page renders in place, with the chapter scope on <main>.
+			const detail = await page.goto(`${prefix}/elections/${cycleId}`);
+			expect(detail?.status()).toBe(200);
+			await expect(page).toHaveURL(`${prefix}/elections/${cycleId}`);
+			await expect(page.locator("h1")).toHaveText("Scoped Public Cycle");
+			expect(await page.locator("main").getAttribute("data-scope")).toBe(
+				`${prefix}/`,
+			);
+
+			// The list route resolves too: it shows the list, or forwards to the open cycle.
+			const list = await page.goto(`${prefix}/elections`);
+			expect(list?.status()).toBe(200);
+			await expect(page).toHaveURL(/\/elections(\/[0-9a-f-]{36})?$/);
+			await expect(page.locator("h1")).toBeVisible();
+
+			const mine = await page.goto(`${prefix}/elections/mine`);
+			expect(mine?.status()).toBe(200);
+			await expect(page).toHaveURL(`${prefix}/elections/mine`);
+			await expect(page.locator("h1")).toHaveText("My Election Applications");
+		} finally {
+			cleanup();
+			session.cleanup();
+			deleteScopeById(chapterId);
+			deleteScopeById(regionId);
+		}
+	});
+
+	test("election history is on the owner's /users page but not on other users' pages", async ({
+		guestPage: page,
+	}) => {
+		const owner = createUserSession("user");
+		const viewer = createUserSession("user");
+		const { cycleId, cleanup } = createElectionCycleInDb({
+			status: "open",
+			title: "Users Page History E2E",
+		});
+		const { positionId, cleanup: pc } = createElectionPositionInDb(cycleId, {
+			title: "Quartermaster",
+		});
+		const { cleanup: ac } = createElectionApplicationInDb(
+			positionId,
+			cycleId,
+			owner.userId,
+			"pending",
+		);
+		try {
+			await loginAs(page, owner.sessionToken);
+			await page.goto(`/users/${owner.userId}`);
+			await expect(page.locator("text=Users Page History E2E")).toBeVisible({
+				timeout: 10_000,
+			});
+			await expect(page.locator("text=Quartermaster")).toBeVisible({
+				timeout: 5_000,
+			});
+
+			await page.context().clearCookies();
+			await loginAs(page, viewer.sessionToken);
+			await page.goto(`/users/${owner.userId}`);
+			await expect(page.locator("h1")).toBeVisible({ timeout: 10_000 });
+			await expect(page.locator("text=Election History")).toHaveCount(0);
+			expect(await page.content()).not.toContain("Users Page History E2E");
+			expect(await page.content()).not.toContain("Quartermaster");
+		} finally {
+			ac();
+			cleanup();
+			pc();
+			owner.cleanup();
+			viewer.cleanup();
+		}
+	});
+
+	test("the public cycle page does not serialize applicants' private user data", async ({
+		guestPage: page,
+	}) => {
+		const applicant = createUserSession("user");
+		const viewer = createUserSession("user");
+		const { cycleId, cleanup } = createElectionCycleInDb({
+			status: "open",
+			title: "No Leak E2E",
+		});
+		const { positionId, cleanup: pc } = createElectionPositionInDb(cycleId, {
+			title: "Secretary",
+		});
+		const { cleanup: ac } = createElectionApplicationInDb(
+			positionId,
+			cycleId,
+			applicant.userId,
+			"approved",
+		);
+		const loginId = getUserById(applicant.userId)?.login_id as string;
+		try {
+			expect(loginId).toBeTruthy();
+			await loginAs(page, viewer.sessionToken);
+			await page.goto(`/elections/${cycleId}`);
+			await expect(
+				page.locator(`a[href="/users/${applicant.userId}"]`),
+			).toBeVisible({ timeout: 10_000 });
+			const html = await page.content();
+			expect(html).not.toContain(loginId);
+			expect(html).not.toContain("admin_note");
+			expect(html).not.toContain("adminNote");
+		} finally {
+			ac();
+			cleanup();
+			pc();
+			applicant.cleanup();
+			viewer.cleanup();
+		}
+	});
+
+	test("an application cannot target a position of another cycle", async ({
+		guestPage: page,
+	}) => {
+		const { cycleId: openCycle, cleanup: oc } = createElectionCycleInDb({
+			status: "open",
+			title: "Open Target E2E",
+		});
+		const { cycleId: closedCycle, cleanup: cc } = createElectionCycleInDb({
+			status: "closed",
+			title: "Closed Source E2E",
+		});
+		const { positionId: openPos, cleanup: opc } = createElectionPositionInDb(
+			openCycle,
+			{ title: "Chair" },
+		);
+		const { positionId: closedPos, cleanup: cpc } = createElectionPositionInDb(
+			closedCycle,
+			{ title: "Old Chair" },
+		);
+		const session = createUserSession("user");
+		try {
+			await loginAs(page, session.sessionToken);
+			await page.goto(`/elections/${openCycle}/apply?positionId=${openPos}`);
+			await expect(page.locator('textarea[name="motivationWhy"]')).toBeVisible({
+				timeout: 10_000,
+			});
+
+			// Swap the hidden position id for one that belongs to the closed cycle.
+			await page.evaluate((id) => {
+				(
+					document.querySelector('input[name="positionId"]') as HTMLInputElement
+				).value = id;
+			}, closedPos);
+			await page.fill(
+				"textarea[name=motivationWhy]",
+				"I want to contribute to the board actively.",
+			);
+			await page.fill(
+				"textarea[name=motivationExperience]",
+				"I have 5 years of relevant experience.",
+			);
+			await page.fill(
+				"textarea[name=motivationGoals]",
+				"I would like to improve transparency.",
+			);
+			await page.click("button[type=submit]");
+
+			await expect(
+				page.locator("text=Position not found in this election"),
+			).toBeVisible({ timeout: 10_000 });
+			const db = openDb();
+			const count = (
+				db
+					.prepare(
+						"SELECT COUNT(*) AS n FROM election_applications WHERE user_id = ?",
+					)
+					.get(session.userId) as { n: number }
+			).n;
+			db.close();
+			expect(count).toBe(0);
+		} finally {
+			opc();
+			cpc();
+			oc();
+			cc();
 			session.cleanup();
 		}
 	});

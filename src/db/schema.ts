@@ -1,8 +1,5 @@
 import { defineRelations } from "drizzle-orm/relations";
 import { moduleTables, withModuleRelations } from "../core/registry/schemas";
-import { electionApplications } from "./schemas/election-applications";
-import { electionCycles } from "./schemas/election-cycles";
-import { electionPositions } from "./schemas/election-positions";
 import { eventPhotos } from "./schemas/event-photos";
 import { events } from "./schemas/events";
 import { formResults } from "./schemas/form-results";
@@ -29,9 +26,6 @@ import { userTags } from "./schemas/user-tags";
 import { users } from "./schemas/users";
 
 export * from "../core/registry/schemas";
-export * from "./schemas/election-applications";
-export * from "./schemas/election-cycles";
-export * from "./schemas/election-positions";
 export * from "./schemas/event-photos";
 export * from "./schemas/events";
 export * from "./schemas/form-results";
@@ -83,9 +77,6 @@ export const schemaRelations = defineRelations(
 		userMemberships,
 		tagDefinitions,
 		userTags,
-		electionCycles,
-		electionPositions,
-		electionApplications,
 		scopes,
 		scopeRoles,
 		scopeMemberships,
@@ -113,9 +104,6 @@ export const schemaRelations = defineRelations(
 			userMemberships,
 			tagDefinitions,
 			userTags,
-			electionCycles,
-			electionPositions,
-			electionApplications,
 			scopes,
 			scopeRoles,
 			scopeMemberships,
@@ -308,40 +296,6 @@ export const schemaRelations = defineRelations(
 					}),
 					granter: one.users({ from: userTags.grantedBy, to: users.id }),
 				},
-				electionCycles: {
-					positions: many.electionPositions({
-						from: electionCycles.id,
-						to: electionPositions.cycleId,
-					}),
-				},
-				electionPositions: {
-					cycle: one.electionCycles({
-						from: electionPositions.cycleId,
-						to: electionCycles.id,
-						optional: false,
-					}),
-					applications: many.electionApplications({
-						from: electionPositions.id,
-						to: electionApplications.positionId,
-					}),
-				},
-				electionApplications: {
-					position: one.electionPositions({
-						from: electionApplications.positionId,
-						to: electionPositions.id,
-						optional: false,
-					}),
-					cycle: one.electionCycles({
-						from: electionApplications.cycleId,
-						to: electionCycles.id,
-						optional: false,
-					}),
-					user: one.users({
-						from: electionApplications.userId,
-						to: users.id,
-						optional: false,
-					}),
-				},
 				scopes: {
 					parent: one.scopes({ from: scopes.parentId, to: scopes.id }),
 					children: many.scopes({ from: scopes.id, to: scopes.parentId }),
@@ -392,10 +346,6 @@ export const schemaRelations = defineRelations(
 						to: userMemberships.userId,
 					}),
 					tags: many.userTags({ from: users.id, to: userTags.userId }),
-					electionApplications: many.electionApplications({
-						from: users.id,
-						to: electionApplications.userId,
-					}),
 				},
 			},
 			r,

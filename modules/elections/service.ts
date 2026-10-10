@@ -1,26 +1,23 @@
 import crypto from "crypto";
 import { and, eq, or } from "drizzle-orm";
-import { db } from "~/db/connection";
+import { db, membershipsService, type User } from "~/core-api";
 import {
 	type ElectionApplication,
 	electionApplications,
 	insertElectionApplicationSchema,
-} from "~/db/schemas/election-applications";
+} from "./election-applications";
 import {
 	type ElectionCycle,
 	electionCycles,
 	insertElectionCycleSchema,
 	updateElectionCycleSchema,
-} from "~/db/schemas/election-cycles";
+} from "./election-cycles";
 import {
 	type ElectionPosition,
 	electionPositions,
 	insertElectionPositionSchema,
 	updateElectionPositionSchema,
-} from "~/db/schemas/election-positions";
-import type { User } from "~/db/schemas/users";
-import { users } from "~/db/schemas/users";
-import { membershipsService } from "./memberships.service";
+} from "./election-positions";
 
 const CYCLE_STATUS_RANK: Record<string, number> = {
 	draft: 0,
@@ -249,6 +246,15 @@ export const electionsService = {
 		if (!cycle) return { error: "Election cycle not found" };
 		if (cycle.status !== "open")
 			return { error: "This election is not open for applications" };
+
+		// The position id comes from the client: it must belong to the cycle whose status and
+		// tier gate were just checked, otherwise those checks could be sidestepped.
+		const position = await db.query.electionPositions.findFirst({
+			where: { id: data.positionId },
+		});
+		if (!position || position.cycleId !== data.cycleId) {
+			return { error: "Position not found in this election" };
+		}
 
 		if (cycle.requiredMembershipTier) {
 			const hasAccess = await membershipsService.hasTier(

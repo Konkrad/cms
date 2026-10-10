@@ -1,3 +1,4 @@
+import type { ProfileExtras } from "~/contracts/profile";
 import type { PageDefinition } from "~/core/pages";
 
 export interface AdminSection {
@@ -19,6 +20,15 @@ export interface SitemapEntry {
 	lastmod?: string | null;
 }
 
+/** Who is looking at which profile; passed to every module's `profile` hook. */
+export interface ProfileContext {
+	/** The user whose profile is rendered. */
+	userId: string;
+	/** The logged-in viewer, null when anonymous. */
+	viewerId: string | null;
+	isOwnProfile: boolean;
+}
+
 export interface ModuleDefinition {
 	id: string;
 	pages?: PageDefinition<unknown>[];
@@ -32,6 +42,11 @@ export interface ModuleDefinition {
 	blocks?: string[];
 	/** Public URLs for /sitemap.xml. Server-only. Omit for login-gated modules. */
 	sitemap?: () => Promise<SitemapEntry[]>;
+	/**
+	 * Extra sections for the profile pages. Server-only. Return only what `ctx.viewerId` may see
+	 * (e.g. nothing private unless `ctx.isOwnProfile`); the result is serialized to the browser.
+	 */
+	profile?: (ctx: ProfileContext) => Promise<Partial<ProfileExtras>>;
 }
 
 export function defineModule(module: ModuleDefinition): ModuleDefinition {
@@ -79,6 +94,16 @@ export const sitemapEntriesOf = async (
 	modules: readonly ModuleDefinition[],
 ): Promise<SitemapEntry[]> =>
 	(await Promise.all(modules.map((m) => m.sitemap?.() ?? []))).flat();
+
+/** Profile sections contributed by the given modules, merged in module order (later wins per key). */
+export const profileExtrasOf = async (
+	modules: readonly ModuleDefinition[],
+	ctx: ProfileContext,
+): Promise<Partial<ProfileExtras>> =>
+	Object.assign(
+		{},
+		...(await Promise.all(modules.map((m) => m.profile?.(ctx) ?? {}))),
+	);
 
 /**
  * Block types owned by a module that is not active. `moduleBlocks` maps module id to its

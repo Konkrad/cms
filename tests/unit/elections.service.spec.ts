@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { electionsService } from "~/services/elections.service";
+import { electionsService } from "~modules/elections/service";
 import {
 	createTestElectionApplication,
 	createTestElectionCycle,
@@ -178,6 +178,30 @@ describe("electionsService.createApplication", () => {
 		});
 
 		expect(result.error).toMatch(/full member/i);
+	});
+
+	it("rejects a position that belongs to another cycle", async () => {
+		const { userId, cleanup } = createTestUser();
+		cleanups.push(cleanup);
+		const { cleanup: openCleanup, cycleId: openCycle } =
+			createTestElectionCycle({ status: "open" });
+		cleanups.push(openCleanup);
+		const { cleanup: otherCleanup, cycleId: otherCycle } =
+			createTestElectionCycle({ status: "closed" });
+		cleanups.push(otherCleanup);
+		const { positionId, cleanup: pc } = createTestElectionPosition(otherCycle);
+		cleanups.push(pc);
+
+		const result = await electionsService.createApplication({
+			positionId,
+			cycleId: openCycle,
+			userId,
+			motivationWhy: "Why",
+			motivationExperience: "Exp",
+			motivationGoals: "Goals",
+		});
+		expect(result.error).toMatch(/position not found/i);
+		expect(result.application).toBeUndefined();
 	});
 
 	it("succeeds when requiredMembershipTier is null", async () => {

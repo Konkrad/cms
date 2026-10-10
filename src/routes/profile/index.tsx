@@ -4,7 +4,6 @@ import { eq } from "drizzle-orm";
 import { db } from "~/db/connection";
 import { groupMemberships } from "~/db/schemas/group-memberships";
 import { groups } from "~/db/schemas/groups";
-import { electionsService } from "~/services/elections.service";
 import { formResultsService } from "~/services/form-results.service";
 import { userTagsService } from "~/services/user-tags.service";
 import { formatAffiliationResultJson } from "~/utils/affiliation";
@@ -19,6 +18,7 @@ import { useUpdateLocation } from "../../components/profile/useUpdateLocation";
 // alias, so the Rollup build fails to find the module. See useUpdateName.ts.
 import { useUpdateName } from "../../components/profile/useUpdateName";
 import { useUpdatePicture } from "../../components/profile/useUpdatePicture";
+import { activeProfileExtras } from "../../core/registry/manifests";
 
 // Re-export so Qwik City registers the actions for this route.
 export { useUpdateName, useUpdateLocation, useUpdatePicture, useUpdateDetails };
@@ -43,11 +43,15 @@ export const useProfile = routeLoader$(async (event) => {
 		"~/services/participation.service"
 	);
 
-	const [submittedForms, tags, electionApplications, communityRows, events] =
+	const [submittedForms, tags, extras, communityRows, events] =
 		await Promise.all([
 			formResultsService.getByUser(user.id),
 			userTagsService.getByUser(user.id),
-			electionsService.getApplicationsByUser(user.id),
+			activeProfileExtras({
+				userId: user.id,
+				viewerId: user.id,
+				isOwnProfile: true,
+			}),
 			db
 				.select({ name: groups.name, slug: groups.slug })
 				.from(groupMemberships)
@@ -56,22 +60,8 @@ export const useProfile = routeLoader$(async (event) => {
 			participationService.getByUserId(user.id),
 		]);
 
-	const electionsByCycle = new Map<
-		string,
-		{ title: string; year: number; apps: typeof electionApplications }
-	>();
-	for (const app of electionApplications) {
-		if (!electionsByCycle.has(app.cycleId)) {
-			electionsByCycle.set(app.cycleId, {
-				title: app.cycle.title,
-				year: app.cycle.year,
-				apps: [],
-			});
-		}
-		electionsByCycle.get(app.cycleId)!.apps.push(app);
-	}
-
 	return {
+		...extras,
 		name: user.name as string,
 		familyName: user.familyName as string,
 		role: user.role as string,
@@ -86,16 +76,6 @@ export const useProfile = routeLoader$(async (event) => {
 		email: (user.email as string | null) ?? null,
 		yearOfBirth: user.yearOfBirth ?? null,
 		sex: user.sex ?? null,
-		electionGroups: [...electionsByCycle.values()]
-			.sort((a, b) => b.year - a.year)
-			.map((g) => ({
-				...g,
-				apps: g.apps.map((a) => ({
-					id: a.id,
-					status: a.status,
-					position: (a as any).position ?? null,
-				})),
-			})),
 		affiliationEntries: (() => {
 			const onboarding = submittedForms.find(
 				(s) => s.formSlug === "onboarding",

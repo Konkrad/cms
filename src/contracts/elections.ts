@@ -1,13 +1,19 @@
 /**
- * Core → theme data contracts for the public elections routes.
+ * Core → theme data contracts for the public elections pages (modules/elections).
  */
-import type { useElections } from "~/routes/elections";
-import type { useMyApplications } from "~/routes/elections/mine";
-import type { useElectionDetail } from "~/routes/elections/[id]";
-import type { useApplyData, useSubmitApplication } from "~/routes/elections/[id]/apply";
+import type { useSubmitApplication } from "~modules/elections/actions";
+import type {
+	electionApplyPage,
+	electionDetailPage,
+	electionsListPage,
+	myApplicationsPage,
+} from "~modules/elections/pages";
 
-export type ElectionsViewData = ReturnType<typeof useElections>["value"];
-export type MyApplicationsViewData = ReturnType<typeof useMyApplications>["value"];
-export type ElectionDetailViewData = ReturnType<typeof useElectionDetail>["value"];
-export type ApplyViewData = ReturnType<typeof useApplyData>["value"];
+type PageData<P extends { load: (...args: never[]) => Promise<unknown> }> =
+	Awaited<ReturnType<P["load"]>>;
+
+export type ElectionsViewData = PageData<typeof electionsListPage>;
+export type MyApplicationsViewData = PageData<typeof myApplicationsPage>;
+export type ElectionDetailViewData = PageData<typeof electionDetailPage>;
+export type ApplyViewData = PageData<typeof electionApplyPage>;
 export type SubmitApplicationAction = ReturnType<typeof useSubmitApplication>;

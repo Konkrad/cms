@@ -25,7 +25,7 @@ export const AdminNav = component$<AdminNavProps>(
 			isGlobal || !groupSlug ? "/admin/global" : `/admin/${groupSlug}`;
 
 		// Every entry has a fixed sort number so module sections can sit between core entries
-		// (e.g. Deals/Jobs between Groups and Elections). Sections without `order` go last.
+		// (e.g. Deals/Jobs between Groups and Qualifications). Sections without `order` go last.
 		const navItems: NavItem[] = [
 			{ order: 0, href: basePath, label: "Dashboard", exact: true },
 			{ order: 10, href: `${basePath}/users`, label: "Users" },
@@ -39,7 +39,6 @@ export const AdminNav = component$<AdminNavProps>(
 			navItems.push(
 				{ order: 50, href: `${basePath}/pages`, label: "Pages" },
 				{ order: 60, href: "/admin/global/groups", label: "Groups" },
-				{ order: 200, href: "/admin/global/elections", label: "Elections" },
 			);
 			for (const section of sections) {
 				navItems.push({

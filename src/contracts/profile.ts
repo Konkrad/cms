@@ -30,3 +30,25 @@ export type TicketWithRelations = Awaited<
 
 /** Transaction with its event, line items, and attached tickets — shape built by the `/profile/tickets` loader. */
 export type TransactionWithTickets = UserDashboardData["transactions"][number];
+
+/** One application inside an election-history group on a profile. */
+export interface ProfileElectionApplication {
+	id: string;
+	status: string;
+	position: { title: string };
+}
+
+/**
+ * Sections that active modules add to the profile pages (`/profile`, `/users/[userId]`).
+ * One optional field per contributed section, named after what the theme renders; the pages
+ * merge the `profile` hook results of all active modules into their loader output. Contribute
+ * only what the viewer may see: the hook gets `isOwnProfile` and must strip anything private.
+ */
+export interface ProfileExtras {
+	/** Election applications grouped by cycle, newest year first (own profile only). */
+	electionGroups?: {
+		title: string;
+		year: number;
+		apps: ProfileElectionApplication[];
+	}[];
+}

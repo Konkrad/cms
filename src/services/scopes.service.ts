@@ -8,6 +8,7 @@ import {
 	scopes,
 } from "~/db/schemas/scopes";
 import { childPath, SCOPE_SLUG_RE } from "~/utils/scope-path";
+import { invalidateScopePaths } from "~/utils/scope-request";
 
 export type Role = ScopeRole;
 export type Visibility = "public" | "members" | "representatives";
@@ -50,6 +51,7 @@ export const scopesService = {
 				path: "/",
 			})
 			.returning();
+		invalidateScopePaths();
 		return root;
 	},
 
@@ -87,6 +89,7 @@ export const scopesService = {
 				path,
 			})
 			.returning();
+		invalidateScopePaths();
 		return created;
 	},
 
@@ -181,6 +184,7 @@ export const scopesService = {
 				.where(sql`${scopes.path} LIKE ${likePrefix(oldPath)} ESCAPE '\\'`)
 				.run();
 		});
+		invalidateScopePaths();
 
 		return (await this.getById(scopeId)) as Scope;
 	},
@@ -194,6 +198,7 @@ export const scopesService = {
 		if (children.length > 0)
 			throw new ScopeError("Scope still has child scopes");
 		await db.delete(scopes).where(eq(scopes.id, scopeId));
+		invalidateScopePaths();
 	},
 
 	// ── Roles (inherit downward) ───────────────────────────────────────────────

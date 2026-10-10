@@ -616,6 +616,45 @@ export function deleteJobById(id: string): void {
 	db.close();
 }
 
+// ── Scope helpers ─────────────────────────────────────────────────────────────
+
+/**
+ * Insert a scope under `parentPath` (the root scope "/" is created if missing).
+ * Returns the new scope's id and path, e.g. "/e2e-region/".
+ */
+export function createScopeInDb(opts: { parentPath: string; slug: string }): {
+	id: string;
+	path: string;
+} {
+	const db = openDb();
+	let parent = db
+		.prepare("SELECT id FROM scopes WHERE path = ?")
+		.get(opts.parentPath) as { id: string } | undefined;
+	if (!parent && opts.parentPath === "/") {
+		parent = { id: crypto.randomUUID() };
+		db.prepare(
+			`INSERT INTO scopes (id, parent_id, kind, slug, name, path) VALUES (?, NULL, 'root', '', 'Root', '/')`,
+		).run(parent.id);
+	}
+	if (!parent) {
+		db.close();
+		throw new Error(`Parent scope ${opts.parentPath} not found`);
+	}
+	const id = crypto.randomUUID();
+	const path = `${opts.parentPath}${opts.slug}/`;
+	db.prepare(
+		`INSERT INTO scopes (id, parent_id, kind, slug, name, path) VALUES (?, ?, 'region', ?, ?, ?)`,
+	).run(id, parent.id, opts.slug, opts.slug, path);
+	db.close();
+	return { id, path };
+}
+
+export function deleteScopeById(id: string): void {
+	const db = openDb();
+	db.prepare("DELETE FROM scopes WHERE id = ?").run(id);
+	db.close();
+}
+
 // ── Post helpers ──────────────────────────────────────────────────────────────
 
 export function getPostByTitle(

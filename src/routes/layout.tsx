@@ -8,6 +8,7 @@ import { sessions } from "~/db/schema";
 import { env } from "~/env";
 import { menuItemsService } from "~/services/menu-items.service";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
+import { currentScopePath } from "~/utils/scope-request";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { formatUser } from "~/utils/users";
 import { Navigation } from "~theme/chrome/Navigation/Navigation";
@@ -65,6 +66,8 @@ export const useUserSession = routeLoader$(async (event) => {
 
 	return { ...userData, profilePictureSmallUrl };
 });
+
+export const useScopePath = routeLoader$((event) => currentScopePath(event));
 
 export const useMenuItems = routeLoader$(async () => {
 	console.log("[Layout] useMenuItems - starting");
@@ -124,6 +127,7 @@ export default component$(() => {
 	const menu = useMenuItems();
 	const footer = useFooterMenuItems();
 	const logoutAction = useLogoutAction();
+	const scopePath = useScopePath();
 
 	// Secret-stripped snapshot handed to the theme — see ~/contracts/layout#NavUser.
 	// The theme never sees the raw user row (email, tokens, etc.).
@@ -150,7 +154,7 @@ export default component$(() => {
 				menuItems={menu.value}
 				logoutAction={logoutAction}
 			/>
-			<main class="min-h-screen">
+			<main class="min-h-screen" data-scope={scopePath.value}>
 				<Slot />
 			</main>
 			<SiteFooter footerItems={footer.value} />

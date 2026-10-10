@@ -1,27 +1,27 @@
 {
-  "compilerOptions": {
-    "allowJs": true,
-    "allowImportingTsExtensions": true,
-    "target": "ES2022",
-    "module": "ESNext",
-    "lib": ["ESNext", "DOM", "WebWorker"],
-    "verbatimModuleSyntax": true,
-    "jsx": "react-jsx",
-    "jsxImportSource": "@qwik.dev/core",
-    "strict": true,
-    "types": ["node", "vite/client"],
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "moduleResolution": "bundler",
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "incremental": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "paths": {
-      "~/*": ["./src/*"],
-      "~theme/*": ["./theme/*"]
-    }
-  },
-  "exclude": ["dist", "server"]
+	"compilerOptions": {
+		"allowJs": true,
+		"allowImportingTsExtensions": true,
+		"target": "ES2022",
+		"module": "ESNext",
+		"lib": ["ESNext", "DOM", "WebWorker"],
+		"verbatimModuleSyntax": true,
+		"jsx": "react-jsx",
+		"jsxImportSource": "@qwik.dev/core",
+		"strict": true,
+		"types": ["node", "vite/client"],
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"moduleResolution": "bundler",
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"incremental": true,
+		"isolatedModules": true,
+		"noEmit": true,
+		"paths": {
+			"~/*": ["./src/*"],
+			"~theme/*": ["./theme/*"]
+		}
+	},
+	"exclude": ["dist", "server"]
 }

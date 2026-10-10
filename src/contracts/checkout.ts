@@ -1,8 +1,8 @@
 /**
  * Core → theme data contracts for the event checkout flow (`/events/:id/checkout`, modules/events).
  */
-import type { useSaveFoodPreference } from "~/components/setup/FoodPreferenceStep/useSaveFoodPreference";
-import type { useSavePhotoConsent } from "~/components/setup/PhotoConsentStep/useSavePhotoConsent";
+import type { useSaveFoodPreference } from "~/core/users/setup/FoodPreferenceStep/useSaveFoodPreference";
+import type { useSavePhotoConsent } from "~/core/users/setup/PhotoConsentStep/useSavePhotoConsent";
 import type {
 	useCheckPaymentStatus,
 	useCreateCheckoutSession,

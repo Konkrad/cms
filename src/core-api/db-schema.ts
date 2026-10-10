@@ -5,15 +5,15 @@ export { groupMemberships } from "~/core/scopes/schema/group-memberships";
 export { groupRepresentatives } from "~/core/scopes/schema/group-representatives";
 export type { Group } from "~/core/scopes/schema/groups";
 export { groups } from "~/core/scopes/schema/groups";
-export type { User } from "~/db/schemas/users";
-export { users } from "~/db/schemas/users";
+export type { User } from "~/core/users/schema";
+export { users } from "~/core/users/schema";
 
 import type {
 	ExtractTablesFromSchema,
 	RelationsBuilder,
 } from "drizzle-orm/relations";
 import type { groups as groupsTable } from "~/core/scopes/schema/groups";
-import type { users as usersTable } from "~/db/schemas/users";
+import type { users as usersTable } from "~/core/users/schema";
 
 type Tables = Record<string, unknown>;
 

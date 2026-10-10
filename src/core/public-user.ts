@@ -1,4 +1,4 @@
-import type { User } from "~/db/schemas/users";
+import type { User } from "~/core/users/schema";
 
 /** The only user fields that may be serialized to pages or loaders about another user. */
 export type PublicUser = Pick<User, "id" | "name" | "familyName">;

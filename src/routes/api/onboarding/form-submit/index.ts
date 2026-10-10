@@ -1,8 +1,8 @@
 import type { RequestHandler } from "@qwik.dev/router";
 import { requireAuth } from "~/core/auth/server-auth";
+import { markConsentStepComplete } from "~/core/users/onboarding";
 import { formResultsService } from "~/services/form-results.service";
 import { formsService } from "~/services/forms.service";
-import { markConsentStepComplete } from "~/utils/onboarding";
 
 const ONBOARDING_FORM_KEY = "affilation";
 

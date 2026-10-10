@@ -11,7 +11,7 @@ import { Alert } from "~/components/ui/Alert";
 export type PhotoConsentStepProps = {
 	/** true/false if already answered, null if never asked. */
 	initialValue: boolean | null;
-	/** Pass the result of useSavePhotoConsent() (see ../../../src/components/setup/PhotoConsentStep/useSavePhotoConsent) called in the parent route. */
+	/** Pass the result of useSavePhotoConsent() (see ../../../src/core/users/setup/PhotoConsentStep/useSavePhotoConsent) called in the parent route. */
 	updateAction: any;
 	onComplete$?: QRL<() => void>;
 	/** When provided: parent controls saving. When omitted: auto-saves on selection change. */

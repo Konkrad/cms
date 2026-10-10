@@ -42,8 +42,8 @@ export const formResultsRelations = relations(formResults, ({ one }) => ({
 	}),
 }));
 
+import { users } from "../../core/users/schema";
 import { forms } from "./forms";
-import { users } from "./users";
 
 const baseInsertSchema = createInsertSchema(formResults);
 const baseSelectSchema = createSelectSchema(formResults);

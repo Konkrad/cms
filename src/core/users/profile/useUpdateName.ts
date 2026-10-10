@@ -1,6 +1,6 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireAuth } from "~/core/auth/server-auth";
-import { usersService } from "~/services/users.service";
+import { usersService } from "~/core/users/users.service";
 
 /**
  * Co-located server action for the themed `ProfileNameEdit` widget
@@ -9,7 +9,7 @@ import { usersService } from "~/services/users.service";
  * transform for re-exported routeAction$/routeLoader$ does not resolve the
  * tsconfig "~" alias (or "~theme"), so the Rollup build fails to find the
  * module if imported through either alias.
- * e.g. export { useUpdateName } from "../../components/profile/useUpdateName";
+ * e.g. export { useUpdateName } from "../../core/users/profile/useUpdateName";
  */
 export const useUpdateName = routeAction$(
 	async (data, event) => {

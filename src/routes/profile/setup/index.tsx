@@ -1,19 +1,19 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
 import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
-import type { UserConsent } from "~/db/schemas/users";
+import type { UserConsent } from "~/core/users/schema";
 import { formResultsService } from "~/services/form-results.service";
 import { formsService } from "~/services/forms.service";
 import { resolvePrivateImageUrl } from "~/utils/secure-urls";
 import { OnboardingView } from "~theme/routes/onboarding/OnboardingView";
-import { useMarkLocation } from "../../../components/setup/LocationStep/useMarkLocation";
+import { useMarkLocation } from "../../../core/users/setup/LocationStep/useMarkLocation";
 // Import re-exported route actions via a RELATIVE path, not the "~"/"~theme" alias —
 // qwikRouter's production transform for re-exported routeAction$/routeLoader$ does
 // not resolve either tsconfig alias, so the Rollup build fails to find the module.
 // The presentational ProfileStep/LocationStep widgets themselves (no actions) are
 // imported by the theme view via the "~theme" alias, since that transform only
 // affects actions.
-import { useUpdateProfile } from "../../../components/setup/ProfileStep/useUpdateProfile";
+import { useUpdateProfile } from "../../../core/users/setup/ProfileStep/useUpdateProfile";
 
 // Re-export so Qwik City registers the actions for this route.
 export { useUpdateProfile, useMarkLocation };

@@ -1,14 +1,14 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireAuth } from "~/core/auth/server-auth";
-import { usersService } from "~/services/users.service";
-import { markConsentStepComplete } from "~/utils/onboarding";
+import { markConsentStepComplete } from "~/core/users/onboarding";
+import { usersService } from "~/core/users/users.service";
 
 /**
  * Co-located server action for the themed `FoodPreferenceStep` widget
  * (`~theme/shared/FoodPreferenceStep/FoodPreferenceStep`) — re-export this from
  * any route that embeds it, via a RELATIVE import path (see
  * ../ProfileStep/useUpdateProfile.ts for why).
- * e.g. export { useSaveFoodPreference } from "../../../components/setup/FoodPreferenceStep/useSaveFoodPreference";
+ * e.g. export { useSaveFoodPreference } from "../../../core/users/setup/FoodPreferenceStep/useSaveFoodPreference";
  */
 export const useSaveFoodPreference = routeAction$(
 	async (data, event) => {

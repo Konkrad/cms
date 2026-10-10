@@ -3,7 +3,7 @@
 Each step (`ProfileStep`, `LocationStep`, `FoodPreferenceStep`, `PhotoConsentStep`)
 is split across the theme/core boundary:
 
-- **Core** (`src/components/setup/<Step>/use<Step>.ts`, this folder): the
+- **Core** (`src/core/users/setup/<Step>/use<Step>.ts`, this folder): the
   `routeAction$` only — server-side mutation, auth, validation. No JSX.
 - **Theme** (`theme/shared/<Step>/<Step>.tsx`): the presentational component
   only. Takes `updateAction: any` (the result of calling the core hook) as a
@@ -20,7 +20,7 @@ imported via `~theme/shared/...` like any other themed component.
 
 ```tsx
 // routes/profile/setup/index.tsx
-import { useSaveFoodPreference } from "../../../components/setup/FoodPreferenceStep/useSaveFoodPreference"; // relative — required
+import { useSaveFoodPreference } from "../../../core/users/setup/FoodPreferenceStep/useSaveFoodPreference"; // relative — required
 import { FoodPreferenceStep } from "~theme/shared/FoodPreferenceStep/FoodPreferenceStep"; // alias — fine here
 
 export { useSaveFoodPreference }; // re-export so Qwik City registers the action for this route

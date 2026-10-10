@@ -34,7 +34,7 @@ export {
 } from "~/services/pagination";
 export { telegramService } from "~/services/telegram.service";
 export { userTagsService } from "~/services/user-tags.service";
-export { usersService } from "~/services/users.service";
+export { usersService } from "~/core/users/users.service";
 export { requireGroupAdmin } from "~/core/scopes/access-control";
 export { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 export { sanitizeRichHtml } from "~/utils/sanitize-html";
@@ -48,7 +48,7 @@ export {
 	getServerSession,
 	requireAuth,
 } from "~/core/auth/server-auth";
-export { buildProfileUrl } from "~/utils/users";
+export { buildProfileUrl } from "~/core/users/format";
 // Schema references modules need to relate to core tables (also in ./db-schema).
 export * from "./db-schema";
 // Env-derived values (server-only).

@@ -3,8 +3,8 @@
  * (`/profile/setup`).
  */
 
-import type { useMarkLocation } from "~/components/setup/LocationStep/useMarkLocation";
-import type { useUpdateProfile } from "~/components/setup/ProfileStep/useUpdateProfile";
+import type { useMarkLocation } from "~/core/users/setup/LocationStep/useMarkLocation";
+import type { useUpdateProfile } from "~/core/users/setup/ProfileStep/useUpdateProfile";
 import type { useOnboardingLoader } from "~/routes/profile/setup";
 
 export type OnboardingViewData = ReturnType<

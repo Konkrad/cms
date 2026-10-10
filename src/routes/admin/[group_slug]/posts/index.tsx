@@ -11,8 +11,8 @@ import { Button } from "~/components/ui/Button";
 import { db } from "~/core/db/connection";
 import { requireGroupAdmin } from "~/core/scopes/access-control";
 import { groupsService } from "~/core/scopes/groups.service";
+import { users as usersTable } from "~/core/users/schema";
 import { posts } from "~/db/schemas/posts";
-import { users as usersTable } from "~/db/schemas/users";
 import { postsService } from "~/services/posts.service";
 
 export const usePosts = routeLoader$(async ({ params, url }) => {

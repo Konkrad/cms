@@ -20,8 +20,8 @@ import { db } from "~/core/db/connection";
 import { reevaluateUserTagsForUser } from "~/core/registry/manifests";
 import { groupsService } from "~/core/scopes/groups.service";
 import { groupMemberships } from "~/core/scopes/schema/group-memberships";
+import { users } from "~/core/users/schema";
 import { userMemberships } from "~/db/schemas/user-memberships";
-import { users } from "~/db/schemas/users";
 import { membershipsService } from "~/services/memberships.service";
 import { userTagsService } from "~/services/user-tags.service";
 

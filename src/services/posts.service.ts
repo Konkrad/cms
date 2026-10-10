@@ -11,9 +11,9 @@ import {
 } from "drizzle-orm";
 import { db } from "~/core/db/connection";
 import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
+import { users as usersTable } from "~/core/users/schema";
 import type { InsertPost, Post, UpdatePost } from "~/db/schemas/posts";
 import { insertPostSchema, posts, updatePostSchema } from "~/db/schemas/posts";
-import { users as usersTable } from "~/db/schemas/users";
 import {
 	decodeCursor,
 	getNextCursorFromRows,
@@ -26,7 +26,7 @@ export type PostWithUser = Post & {
 	user: User;
 };
 
-import type { User } from "~/db/schemas/users";
+import type { User } from "~/core/users/schema";
 
 export const postsService = {
 	async getAll(

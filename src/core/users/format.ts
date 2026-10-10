@@ -1,4 +1,4 @@
-import type { User } from "~/db/schemas/users";
+import type { User } from "~/core/users/schema";
 
 export type UserWithDisplayName = User & { displayName: string };
 

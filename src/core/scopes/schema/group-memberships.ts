@@ -4,7 +4,7 @@ import { relations } from "drizzle-orm/_relations";
 import { sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { users } from "../../../db/schemas/users";
+import { users } from "../../users/schema";
 import { groups } from "./groups";
 
 export const groupMemberships = sqliteTable(

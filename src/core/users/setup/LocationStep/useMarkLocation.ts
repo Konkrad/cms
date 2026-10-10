@@ -1,13 +1,13 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireAuth } from "~/core/auth/server-auth";
-import { usersService } from "~/services/users.service";
-import { markConsentStepComplete } from "~/utils/onboarding";
+import { markConsentStepComplete } from "~/core/users/onboarding";
+import { usersService } from "~/core/users/users.service";
 
 /**
  * Co-located server action for the themed `LocationStep` widget
  * (`~theme/shared/LocationStep/LocationStep`) — re-export this from any route
  * that embeds it, via a RELATIVE import path (see useUpdateProfile.ts for why).
- * e.g. export { useMarkLocation } from "../../../components/setup/LocationStep/useMarkLocation";
+ * e.g. export { useMarkLocation } from "../../../core/users/setup/LocationStep/useMarkLocation";
  */
 export const useMarkLocation = routeAction$(
 	async (data, event) => {

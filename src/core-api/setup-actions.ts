@@ -4,5 +4,5 @@
  * only want services must not load. The catch-all route re-exports them via a relative path in
  * `src/core/registry/actions.ts`.
  */
-export { useSaveFoodPreference } from "~/components/setup/FoodPreferenceStep/useSaveFoodPreference";
-export { useSavePhotoConsent } from "~/components/setup/PhotoConsentStep/useSavePhotoConsent";
+export { useSaveFoodPreference } from "~/core/users/setup/FoodPreferenceStep/useSaveFoodPreference";
+export { useSavePhotoConsent } from "~/core/users/setup/PhotoConsentStep/useSavePhotoConsent";

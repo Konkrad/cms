@@ -1,5 +1,5 @@
 import { component$, type QRL } from "@qwik.dev/core";
-import { formatUserName } from "~/utils/users";
+import { formatUserName } from "~/core/users/format";
 
 export interface ParticipantData {
 	id: string;

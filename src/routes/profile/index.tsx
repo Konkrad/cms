@@ -5,20 +5,20 @@ import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
 import { db } from "~/core/db/connection";
 import { groupMemberships } from "~/core/scopes/schema/group-memberships";
 import { groups } from "~/core/scopes/schema/groups";
+import { formatAffiliationResultJson } from "~/core/users/affiliation";
 import { formResultsService } from "~/services/form-results.service";
 import { userTagsService } from "~/services/user-tags.service";
-import { formatAffiliationResultJson } from "~/utils/affiliation";
 import { buildFormPath } from "~/utils/forms";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { UserProfile } from "~theme/routes/profile/UserProfile/UserProfile";
-import { useUpdateDetails } from "../../components/profile/useUpdateDetails";
-import { useUpdateLocation } from "../../components/profile/useUpdateLocation";
+import { activeProfileExtras } from "../../core/registry/manifests";
+import { useUpdateDetails } from "../../core/users/profile/useUpdateDetails";
+import { useUpdateLocation } from "../../core/users/profile/useUpdateLocation";
 // Import via a RELATIVE path, not "~" — qwikRouter's production transform
 // for re-exported routeAction$/routeLoader$ does not resolve either tsconfig
 // alias, so the Rollup build fails to find the module. See useUpdateName.ts.
-import { useUpdateName } from "../../components/profile/useUpdateName";
-import { useUpdatePicture } from "../../components/profile/useUpdatePicture";
-import { activeProfileExtras } from "../../core/registry/manifests";
+import { useUpdateName } from "../../core/users/profile/useUpdateName";
+import { useUpdatePicture } from "../../core/users/profile/useUpdatePicture";
 
 // Re-export so Qwik City registers the actions for this route.
 export { useUpdateName, useUpdateLocation, useUpdatePicture, useUpdateDetails };

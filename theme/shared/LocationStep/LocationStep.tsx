@@ -10,7 +10,7 @@ import { Alert } from "~/components/ui/Alert";
 
 export type LocationStepProps = {
 	isComplete?: boolean;
-	/** Pass the result of useMarkLocation() (see ../../../src/components/setup/LocationStep/useMarkLocation) called in the parent route. */
+	/** Pass the result of useMarkLocation() (see ../../../src/core/users/setup/LocationStep/useMarkLocation) called in the parent route. */
 	updateAction: any;
 	onComplete?: () => void;
 	saveTrigger?: Signal<number>;

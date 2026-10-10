@@ -11,7 +11,7 @@ import { Alert } from "~/components/ui/Alert";
 export type FoodPreferenceStepProps = {
 	initialPreference?: string | null;
 	isComplete?: boolean;
-	/** Pass the result of useSaveFoodPreference() (see ../../../src/components/setup/FoodPreferenceStep/useSaveFoodPreference) called in the parent route. */
+	/** Pass the result of useSaveFoodPreference() (see ../../../src/core/users/setup/FoodPreferenceStep/useSaveFoodPreference) called in the parent route. */
 	updateAction: any;
 	onComplete$?: QRL<() => void>;
 	/** When provided: parent controls saving; no save button rendered. When omitted: auto-saves on selection change. */

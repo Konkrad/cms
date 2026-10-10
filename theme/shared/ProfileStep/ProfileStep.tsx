@@ -14,7 +14,7 @@ export type ProfileStepProps = {
 		sex?: string | null;
 		profilePictureUrl?: string | null;
 	};
-	/** Pass the result of useUpdateProfile() (see ../../../src/components/setup/ProfileStep/useUpdateProfile) called in the parent route. */
+	/** Pass the result of useUpdateProfile() (see ../../../src/core/users/setup/ProfileStep/useUpdateProfile) called in the parent route. */
 	updateAction: any;
 	onComplete?: () => void;
 	saveTrigger?: Signal<number>;

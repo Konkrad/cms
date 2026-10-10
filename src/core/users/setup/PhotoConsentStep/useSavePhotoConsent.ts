@@ -1,14 +1,14 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireAuth } from "~/core/auth/server-auth";
-import { usersService } from "~/services/users.service";
-import { markConsentStepComplete } from "~/utils/onboarding";
+import { markConsentStepComplete } from "~/core/users/onboarding";
+import { usersService } from "~/core/users/users.service";
 
 /**
  * Co-located server action for the themed `PhotoConsentStep` widget
  * (`~theme/shared/PhotoConsentStep/PhotoConsentStep`) — re-export this from
  * any route that embeds it, via a RELATIVE import path (see
  * ../ProfileStep/useUpdateProfile.ts for why).
- * e.g. export { useSavePhotoConsent } from "../../../components/setup/PhotoConsentStep/useSavePhotoConsent";
+ * e.g. export { useSavePhotoConsent } from "../../../core/users/setup/PhotoConsentStep/useSavePhotoConsent";
  */
 export const useSavePhotoConsent = routeAction$(
 	async (data, event) => {

@@ -6,9 +6,10 @@
  * import these types (`~/contracts/posts`) instead of deep-importing route files
  * or reaching into services. `import type` only — these carry no runtime code.
  */
+
+import type { UserWithDisplayName } from "~/core/users/format";
 import type { usePost } from "~/routes/posts/[id]";
 import type { PostWithUser } from "~/services/posts.service";
-import type { UserWithDisplayName } from "~/utils/users";
 
 /** Non-null data passed to the themed single-post view. */
 export type PostViewData = NonNullable<ReturnType<typeof usePost>["value"]>;

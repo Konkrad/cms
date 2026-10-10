@@ -5,7 +5,7 @@ import {
 	groupRepresentatives,
 	insertGroupRepresentativeSchema,
 } from "~/core/db/schema";
-import { users } from "~/db/schemas/users";
+import { users } from "~/core/users/schema";
 
 export type RepresentativeWithUser = GroupRepresentative & {
 	user: {

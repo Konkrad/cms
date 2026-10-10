@@ -1,7 +1,7 @@
 import type { RequestEvent } from "@qwik.dev/router";
 import { getServerSession } from "~/core/auth/server-auth";
-import type { ConsentStep, User } from "~/db/schemas/users";
-import { usersService } from "~/services/users.service";
+import type { ConsentStep, User } from "~/core/users/schema";
+import { usersService } from "~/core/users/users.service";
 
 const STEP_TO_ROUTE: Record<ConsentStep, string> = {
 	profile: "",

@@ -2,7 +2,7 @@ import type { RequestHandler } from "@qwik.dev/router";
 import { sql } from "drizzle-orm";
 import { getServerSession } from "~/core/auth/server-auth";
 import { db } from "~/core/db/connection";
-import { users } from "~/db/schemas/users";
+import { users } from "~/core/users/schema";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 
 export const onGet: RequestHandler = async (event) => {

@@ -2,7 +2,7 @@ import { component$, type QRL } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
 import { Avatar } from "~/components/ui/Avatar";
 import { Modal } from "~/components/ui/Modal";
-import { formatUserName } from "~/utils/users";
+import { formatUserName } from "~/core/users/format";
 import type { ParticipantData } from "~theme/blocks/FeatureBlock/ParticipantsTile";
 
 interface ParticipantsModalProps {

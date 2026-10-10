@@ -7,7 +7,6 @@ import { posts } from "../../db/schemas/posts";
 import { tagDefinitions } from "../../db/schemas/tag-definitions";
 import { userMemberships } from "../../db/schemas/user-memberships";
 import { userTags } from "../../db/schemas/user-tags";
-import { users } from "../../db/schemas/users";
 import { logins } from "../auth/schema/logins";
 import { sessions } from "../auth/schema/sessions";
 import { moduleTables, withModuleRelations } from "../registry/schemas";
@@ -15,6 +14,7 @@ import { groupMemberships } from "../scopes/schema/group-memberships";
 import { groupRepresentatives } from "../scopes/schema/group-representatives";
 import { groups } from "../scopes/schema/groups";
 import { scopeMemberships, scopeRoles, scopes } from "../scopes/schema/scopes";
+import { users } from "../users/schema";
 
 export * from "../../db/schemas/form-results";
 export * from "../../db/schemas/forms";
@@ -25,7 +25,6 @@ export * from "../../db/schemas/shared";
 export * from "../../db/schemas/tag-definitions";
 export * from "../../db/schemas/user-memberships";
 export * from "../../db/schemas/user-tags";
-export * from "../../db/schemas/users";
 export * from "../auth/schema/logins";
 export * from "../auth/schema/sessions";
 export * from "../registry/schemas";
@@ -33,6 +32,7 @@ export * from "../scopes/schema/group-memberships";
 export * from "../scopes/schema/group-representatives";
 export * from "../scopes/schema/groups";
 export * from "../scopes/schema/scopes";
+export * from "../users/schema";
 
 export const schemaRelations = defineRelations(
 	{

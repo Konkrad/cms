@@ -1,13 +1,13 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireAuth } from "~/core/auth/server-auth";
-import { usersService } from "~/services/users.service";
+import { usersService } from "~/core/users/users.service";
 
 /**
  * Co-located server action for the themed `ProfileDetailsEdit` widget
  * (`~theme/shared/ProfileDetailsEdit/ProfileDetailsEdit`) — re-export this
  * from any route that embeds it, via a RELATIVE import path (see
  * useUpdateName.ts for why).
- * e.g. export { useUpdateDetails } from "../../components/profile/useUpdateDetails";
+ * e.g. export { useUpdateDetails } from "../../core/users/profile/useUpdateDetails";
  */
 export const useUpdateDetails = routeAction$(
 	async (data, event) => {

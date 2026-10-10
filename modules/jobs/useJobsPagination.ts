@@ -10,7 +10,7 @@ import { jobsService } from "./service";
 const fetchJobsPage = server$(async function (
 	cursor: string | null,
 	direction: "forward" | "backward",
-) {
+): Promise<JobsListData> {
 	await requireAuth(this as RequestEventCommon);
 	const page = await jobsService.getApprovedPaged(
 		JOBS_PAGE_SIZE,

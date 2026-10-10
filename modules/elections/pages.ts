@@ -1,3 +1,4 @@
+import type { ElectionDetailViewData } from "~/contracts/elections";
 import { definePage, membershipsService, requireAuth } from "~/core";
 import { toPublicCandidate } from "./public-election";
 import { electionsService } from "./service";
@@ -44,7 +45,7 @@ export const myApplicationsPage = definePage({
 export const electionDetailPage = definePage({
 	id: "elections.detail",
 	path: "/elections/:id",
-	async load(event, { params }) {
+	async load(event, { params }): Promise<ElectionDetailViewData> {
 		const user = await requireAuth(event);
 		const [cycle, approvedApps] = await Promise.all([
 			electionsService.getCycleById(params.id),

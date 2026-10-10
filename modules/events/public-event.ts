@@ -1,4 +1,5 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
+import type { EventPageData } from "~/contracts/events";
 import {
 	buildProfileUrl,
 	currentScopeRest,
@@ -68,7 +69,7 @@ const shuffle = <T>(arr: T[]): T[] => {
 export async function loadEventPage(
 	requestEvent: RequestEventLoader,
 	eventId: string,
-) {
+): Promise<EventPageData> {
 	// The page shows the visitor's RSVP and login state: never serve it from a shared cache.
 	requestEvent.cacheControl({ noCache: true });
 
@@ -241,4 +242,4 @@ export async function loadEventPage(
 	};
 }
 
-export type EventPageData = Awaited<ReturnType<typeof loadEventPage>>;
+export type { EventPageData };

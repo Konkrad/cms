@@ -1,18 +1,32 @@
 /**
  * Core → theme data contracts for the posts routes.
  *
- * Types here are DERIVED FROM THE ROUTE LOADERS, so any field the loader strips
- * (secrets/PII) is automatically absent from the contract. Theme components
+ * Payload types are DECLARED here (the loaders return exactly these types), so a
+ * new field reaches the page only by adding it to the contract. Theme components
  * import these types (`~/contracts/posts`) instead of deep-importing route files
  * or reaching into services. `import type` only — these carry no runtime code.
  */
 
 import type { PostWithUser } from "~/core/content/posts.service";
+import type { Post } from "~/core/content/schema/posts";
 import type { PublicUser } from "~/core/users/public-user";
-import type { usePost } from "~/routes/posts/[id]";
 
-/** Non-null data passed to the themed single-post view. */
-export type PostViewData = NonNullable<ReturnType<typeof usePost>["value"]>;
+/** Payload of `/posts/[id]` (declared, not derived: it shows the author). */
+export type PostViewData = Post & {
+	featuredImageUrl: string | null;
+	/** The author's public thumbnail URL. */
+	authorAvatarUrl: string | null;
+	relatedPosts: Array<{
+		id: string;
+		title: string;
+		featuredImageUrl: string | null;
+		createdAt: string;
+	}>;
+	user: PublicUser & {
+		profilePictureSmallUrl: string | null;
+		displayName: string;
+	};
+};
 
 /** Post shape returned by the posts-block composables — `featuredImage` resolved to a public URL, `user` formatted for display. */
 export type BlockPost = Omit<PostWithUser, "featuredImage" | "user"> & {

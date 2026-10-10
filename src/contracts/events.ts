@@ -4,8 +4,85 @@
  */
 
 import type { useUpdateParticipation } from "~modules/events/actions";
-import type { EventPageData } from "~modules/events/public-event";
 import type { Event } from "~modules/events/schema/events";
+import type { ParticipationStatus } from "~modules/events/schema/participation-status";
+import type { Product } from "~modules/events/schema/products";
+import type { eventsService } from "~modules/events/services/events";
+
+/** Someone going to an event, as other visitors see them. */
+export type EventParticipant = {
+	id: string;
+	name: string;
+	familyName: string;
+	/** Public thumbnail URL (never the private full-size picture). */
+	profilePictureSmall: string | null;
+	groupLabel: string | null;
+	city: string | null;
+	country: string | null;
+	profileUrl: string;
+};
+
+/** Payload of `/events/:id` (declared, not derived: it shows the organizer and attendees). */
+export type EventPageData =
+	| (Pick<
+			Event,
+			| "id"
+			| "title"
+			| "body"
+			| "startDate"
+			| "endDate"
+			| "locationType"
+			| "address"
+			| "city"
+			| "country"
+			| "latitude"
+			| "longitude"
+			| "onlineUrl"
+	  > & {
+			/** The organizer: first name only for guests, full name for members. */
+			user: { id: string; displayName: string };
+			salesStatus: Awaited<
+				ReturnType<typeof eventsService.validateSalesPeriod>
+			>;
+			/** The viewer's own RSVP. */
+			userParticipation: ParticipationStatus | null | undefined;
+			products: Array<
+				Pick<
+					Product,
+					| "id"
+					| "name"
+					| "price"
+					| "maxQuantity"
+					| "participantCapacity"
+					| "features"
+					| "imageKey"
+					| "soldQuantity"
+				>
+			>;
+			isFreeEvent: boolean;
+			hasSingleProduct: boolean;
+			activeSalesPeriod: boolean;
+			futureSalesPeriod: boolean;
+			pastSalesPeriod: boolean;
+			soldOut: boolean;
+			isEventPast: boolean;
+			isEventFuture: boolean;
+			hasAttended: boolean;
+			hasUserTicket: boolean;
+			isLoggedIn: boolean;
+			participationSummary: {
+				yes: number;
+				no: number;
+				maybe: number;
+				total: number;
+			};
+			mapImageUrl: string | null;
+			locationDisplay: string;
+			participants: EventParticipant[];
+			image1: string | null;
+			image2: string | null;
+	  })
+	| null;
 
 export type EventViewData = EventPageData;
 export type UpdateParticipationAction = ReturnType<

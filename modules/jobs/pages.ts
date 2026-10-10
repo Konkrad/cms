@@ -1,3 +1,4 @@
+import type { JobDetailData, JobsListData } from "~/contracts/jobs";
 import { definePage, requireAuth } from "~/core";
 import { toPublicJob } from "./public-job";
 import { jobsService } from "./service";
@@ -7,7 +8,7 @@ export const JOBS_PAGE_SIZE = 10;
 export const jobsListPage = definePage({
 	id: "jobs.list",
 	path: "/jobs",
-	async load(event) {
+	async load(event): Promise<JobsListData> {
 		await requireAuth(event);
 		const page = await jobsService.getApprovedPaged(JOBS_PAGE_SIZE);
 		return { ...page, items: page.items.map(toPublicJob) };
@@ -49,7 +50,7 @@ export const editMyJobPage = definePage({
 export const jobDetailPage = definePage({
 	id: "jobs.detail",
 	path: "/jobs/:id",
-	async load(event, { params }) {
+	async load(event, { params }): Promise<JobDetailData> {
 		await requireAuth(event);
 		const job = await jobsService.getById(params.id);
 		const now = new Date().toISOString();

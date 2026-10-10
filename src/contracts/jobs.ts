@@ -1,26 +1,37 @@
 /**
  * Core → theme data contracts for the public jobs pages (modules/jobs).
  */
+
+import type { PublicUser } from "~/core/users/public-user";
 import type {
 	useDeleteMyJob,
 	useSubmitJob,
 	useUpdateMyJob,
 } from "~modules/jobs/actions";
-import type {
-	editMyJobPage,
-	jobDetailPage,
-	jobsListPage,
-	myJobsPage,
-} from "~modules/jobs/pages";
+import type { editMyJobPage, myJobsPage } from "~modules/jobs/pages";
+import type { Job } from "~modules/jobs/schema";
 
 type PageData<P extends { load: (...args: never[]) => Promise<unknown> }> =
 	Awaited<ReturnType<P["load"]>>;
 
-export type JobsListData = PageData<typeof jobsListPage>;
+/** The member who posted a job: public identity only. */
+export type JobAuthor = PublicUser;
 
-/** Single job list item — replaces importing `JobWithUser` from the jobs module service in theme. */
-export type JobListItem = JobsListData["items"][number];
-export type JobDetailData = PageData<typeof jobDetailPage>;
+/** A job as shown to other members (list, detail, admin): the author is public only. */
+export type PublicJob = Job & { user: JobAuthor | null };
+
+/** Payload of `/jobs` (declared, not derived: it shows other members' jobs). */
+export type JobsListData = {
+	items: PublicJob[];
+	nextCursor: string | null;
+	prevCursor: string | null;
+};
+
+/** Single job list item. */
+export type JobListItem = PublicJob;
+
+/** Payload of `/jobs/:id`. */
+export type JobDetailData = { job: PublicJob };
 export type MyJobsData = PageData<typeof myJobsPage>;
 export type DeleteMyJobAction = ReturnType<typeof useDeleteMyJob>;
 

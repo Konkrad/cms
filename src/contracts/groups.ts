@@ -4,9 +4,7 @@
  */
 
 import type { Group } from "~/core/db/schema";
-import type { useGroupData, useJoinGroup } from "~/routes/groups/[slug]";
-
-export type GroupViewData = ReturnType<typeof useGroupData>["value"];
+import type { useJoinGroup } from "~/routes/groups/[slug]";
 export type JoinGroupAction = ReturnType<typeof useJoinGroup>;
 
 /** Group list item as returned by `~/core/content/builder/blocks/useGroupsList`. */
@@ -35,3 +33,42 @@ export interface GroupExtras {
 	/** The group's next events (max 3), soonest first. */
 	upcomingEvents?: GroupUpcomingEvent[];
 }
+
+/** A group member as other visitors see them. */
+export interface GroupMemberCard {
+	id: string;
+	name: string;
+	familyName: string;
+	/** Public thumbnail URL (never the private full-size picture). */
+	profilePictureSmall: string | null;
+	profileUrl: string;
+}
+
+/** Payload of `/groups/[slug]` (declared, not derived: it shows members and authors). */
+export type GroupViewData = GroupExtras & {
+	group: Pick<Group, "id" | "name" | "slug">;
+	memberCount: number;
+	pastEventCount: number;
+	upcomingEvents: GroupUpcomingEvent[];
+	recentMembers: GroupMemberCard[];
+	/** The group's (first) representative. */
+	rep: {
+		name: string;
+		subtitle: string;
+		profilePictureUrl: string | null;
+		profileUrl: string;
+	} | null;
+	isMember: boolean;
+	isLoggedIn: boolean;
+	recentPosts: Array<{
+		id: string;
+		title: string;
+		body: string;
+		createdAt: string;
+		featuredImage: string | null;
+		authorName: string;
+	}>;
+	groupImage1: string | null;
+	groupImage2: string | null;
+	groupImage3: string | null;
+};

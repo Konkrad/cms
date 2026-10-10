@@ -5,13 +5,13 @@
 import type { PostWithUser } from "~/services/posts.service";
 
 export type ArchivePostItem = Omit<PostWithUser, "featuredImage"> & {
-  featuredImage: string | null;
+	featuredImage: string | null;
 };
 
 export type ArchivePostsViewData = {
-  page: number;
-  items: ArchivePostItem[];
-  totalPages: number;
-  previousHref: string | null;
-  nextHref: string | null;
+	page: number;
+	items: ArchivePostItem[];
+	totalPages: number;
+	previousHref: string | null;
+	nextHref: string | null;
 } | null;

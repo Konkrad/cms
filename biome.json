@@ -7,7 +7,7 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"includes": ["**", "!drizzle"]
+		"includes": ["**", "!drizzle", "!src/components/editor/koenig-lexical.css"]
 	},
 	"formatter": {
 		"enabled": true,

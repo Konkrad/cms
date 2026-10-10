@@ -4,50 +4,50 @@ import React, { Suspense } from "react";
 
 // Lazy load the React component to avoid SSR import issues
 const LazyBlockNoteEditorReact = React.lazy(
-  () => import("./BlockNoteEditorReact"),
+	() => import("./BlockNoteEditorReact"),
 );
 
 const ReactLoader = (props: any) => {
-  return React.createElement(
-    Suspense,
-    {
-      fallback: React.createElement(
-        "div",
-        { style: { padding: "2rem", textAlign: "center" } },
-        "Loading editor...",
-      ),
-    },
-    React.createElement(LazyBlockNoteEditorReact, props),
-  );
+	return React.createElement(
+		Suspense,
+		{
+			fallback: React.createElement(
+				"div",
+				{ style: { padding: "2rem", textAlign: "center" } },
+				"Loading editor...",
+			),
+		},
+		React.createElement(LazyBlockNoteEditorReact, props),
+	);
 };
 
 const QwikBlockNoteEditor = qwikify$(ReactLoader, {
-  eagerness: "visible",
-  clientOnly: true,
+	eagerness: "visible",
+	clientOnly: true,
 });
 
 interface BlockNoteEditorProps {
-  editorState: string | null;
-  content?: string;
-  onChange$: QRL<(content: string, editorState: string) => void>;
-  uploadUrl?: string;
-  textOnly?: boolean;
+	editorState: string | null;
+	content?: string;
+	onChange$: QRL<(content: string, editorState: string) => void>;
+	uploadUrl?: string;
+	textOnly?: boolean;
 }
 
 export const BlockNoteEditor = component$<BlockNoteEditorProps>(
-  ({ editorState, content, onChange$, uploadUrl, textOnly }) => {
-    return (
-      <div class="blocknote-editor-container">
-        <QwikBlockNoteEditor
-          editorState={editorState || ""}
-          content={content || ""}
-          onChange$={onChange$}
-          uploadUrl={uploadUrl}
-          textOnly={textOnly}
-        />
-      </div>
-    );
-  },
+	({ editorState, content, onChange$, uploadUrl, textOnly }) => {
+		return (
+			<div class="blocknote-editor-container">
+				<QwikBlockNoteEditor
+					editorState={editorState || ""}
+					content={content || ""}
+					onChange$={onChange$}
+					uploadUrl={uploadUrl}
+					textOnly={textOnly}
+				/>
+			</div>
+		);
+	},
 );
 
 export default BlockNoteEditor;

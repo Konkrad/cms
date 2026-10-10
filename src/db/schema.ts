@@ -1,67 +1,67 @@
 import { defineRelations } from "drizzle-orm/relations";
+import { electionApplications } from "./schemas/election-applications";
+import { electionCycles } from "./schemas/election-cycles";
+import { electionPositions } from "./schemas/election-positions";
+import { eventPhotos } from "./schemas/event-photos";
 import { events } from "./schemas/events";
+import { formResults } from "./schemas/form-results";
+import { forms } from "./schemas/forms";
+import { groupMemberships } from "./schemas/group-memberships";
+import { groupRepresentatives } from "./schemas/group-representatives";
+import { groups } from "./schemas/groups";
+import { inventoryGroups } from "./schemas/inventory-groups";
+import { jobs } from "./schemas/jobs";
 import { logins } from "./schemas/logins";
 import { menuItems } from "./schemas/menu-items";
 import { pages } from "./schemas/pages";
-import { sessions } from "./schemas/sessions";
-import { users } from "./schemas/users";
-import { groups } from "./schemas/groups";
-import { groupMemberships } from "./schemas/group-memberships";
-import { groupRepresentatives } from "./schemas/group-representatives";
-import { inventoryGroups } from "./schemas/inventory-groups";
-import { products } from "./schemas/products";
-import { posts } from "./schemas/posts";
-import { transactions } from "./schemas/transactions";
-import { transactionItems } from "./schemas/transaction-items";
-import { tickets } from "./schemas/tickets";
-import { ticketParticipants } from "./schemas/ticket-participants";
 import { participationStatus } from "./schemas/participation-status";
-import { eventPhotos } from "./schemas/event-photos";
-import { forms } from "./schemas/forms";
-import { formResults } from "./schemas/form-results";
-import { jobs } from "./schemas/jobs";
-import { qualificationTypes } from "./schemas/qualification-types";
+import { posts } from "./schemas/posts";
+import { products } from "./schemas/products";
 import { qualificationTokens } from "./schemas/qualification-tokens";
-import { userQualifications } from "./schemas/user-qualifications";
-import { userMemberships } from "./schemas/user-memberships";
+import { qualificationTypes } from "./schemas/qualification-types";
+import { sessions } from "./schemas/sessions";
 import { tagDefinitions } from "./schemas/tag-definitions";
+import { ticketParticipants } from "./schemas/ticket-participants";
+import { tickets } from "./schemas/tickets";
+import { transactionItems } from "./schemas/transaction-items";
+import { transactions } from "./schemas/transactions";
+import { userMemberships } from "./schemas/user-memberships";
+import { userQualifications } from "./schemas/user-qualifications";
 import { userTags } from "./schemas/user-tags";
-import { electionCycles } from "./schemas/election-cycles";
-import { electionPositions } from "./schemas/election-positions";
-import { electionApplications } from "./schemas/election-applications";
+import { users } from "./schemas/users";
 
+export * from "./schemas/deals";
+export * from "./schemas/election-applications";
+export * from "./schemas/election-cycles";
+export * from "./schemas/election-positions";
+export * from "./schemas/event-photos";
 export * from "./schemas/events";
+export * from "./schemas/form-results";
+export * from "./schemas/forms";
+export * from "./schemas/group-memberships";
+export * from "./schemas/group-representatives";
+export * from "./schemas/groups";
+export * from "./schemas/inventory-groups";
+export * from "./schemas/jobs";
 export * from "./schemas/logins";
 export * from "./schemas/menu-items";
 export * from "./schemas/pages";
+export * from "./schemas/participation-status";
 export * from "./schemas/posts";
+export * from "./schemas/products";
+export * from "./schemas/qualification-tokens";
+export * from "./schemas/qualification-types";
 export * from "./schemas/sessions";
 export * from "./schemas/shared";
-export * from "./schemas/users";
-export * from "./schemas/groups";
-export * from "./schemas/group-memberships";
-export * from "./schemas/group-representatives";
-export * from "./schemas/inventory-groups";
-export * from "./schemas/products";
-export * from "./schemas/transactions";
-export * from "./schemas/transaction-items";
-export * from "./schemas/tickets";
-export * from "./schemas/ticket-participants";
-export * from "./schemas/participation-status";
-export * from "./schemas/event-photos";
-export * from "./schemas/forms";
-export * from "./schemas/form-results";
-export * from "./schemas/deals";
-export * from "./schemas/jobs";
-export * from "./schemas/qualification-types";
-export * from "./schemas/qualification-tokens";
-export * from "./schemas/user-qualifications";
-export * from "./schemas/user-memberships";
 export * from "./schemas/tag-definitions";
+export * from "./schemas/ticket-participants";
+export * from "./schemas/tickets";
+export * from "./schemas/transaction-items";
+export * from "./schemas/transactions";
+export * from "./schemas/user-memberships";
+export * from "./schemas/user-qualifications";
 export * from "./schemas/user-tags";
-export * from "./schemas/election-cycles";
-export * from "./schemas/election-positions";
-export * from "./schemas/election-applications";
+export * from "./schemas/users";
 
 export const schemaRelations = defineRelations(
 	{
@@ -131,10 +131,18 @@ export const schemaRelations = defineRelations(
 			page: one.pages({ from: menuItems.pageId, to: pages.id, optional: true }),
 		},
 		pages: {
-			menuItem: one.menuItems({ from: pages.id, to: menuItems.pageId, optional: true }),
+			menuItem: one.menuItems({
+				from: pages.id,
+				to: menuItems.pageId,
+				optional: true,
+			}),
 		},
 		jobs: {
-			user: one.users({ from: jobs.suggestedBy, to: users.id, optional: false }),
+			user: one.users({
+				from: jobs.suggestedBy,
+				to: users.id,
+				optional: false,
+			}),
 		},
 		sessions: {
 			user: one.users({ from: sessions.userId, to: users.id }),
@@ -164,7 +172,11 @@ export const schemaRelations = defineRelations(
 			}),
 		},
 		products: {
-			event: one.events({ from: products.eventId, to: events.id, optional: false }),
+			event: one.events({
+				from: products.eventId,
+				to: events.id,
+				optional: false,
+			}),
 			inventoryGroup: one.inventoryGroups({
 				from: products.inventoryGroupId,
 				to: inventoryGroups.id,
@@ -182,13 +194,24 @@ export const schemaRelations = defineRelations(
 			deletedByUser: one.users({ from: posts.deletedBy, to: users.id }),
 		},
 		transactions: {
-			event: one.events({ from: transactions.eventId, to: events.id, optional: false }),
-			user: one.users({ from: transactions.userId, to: users.id, optional: false }),
+			event: one.events({
+				from: transactions.eventId,
+				to: events.id,
+				optional: false,
+			}),
+			user: one.users({
+				from: transactions.userId,
+				to: users.id,
+				optional: false,
+			}),
 			items: many.transactionItems({
 				from: transactions.id,
 				to: transactionItems.transactionId,
 			}),
-			tickets: many.tickets({ from: transactions.id, to: tickets.transactionId }),
+			tickets: many.tickets({
+				from: transactions.id,
+				to: tickets.transactionId,
+			}),
 		},
 		transactionItems: {
 			transaction: one.transactions({
@@ -208,9 +231,21 @@ export const schemaRelations = defineRelations(
 				to: transactions.id,
 				optional: false,
 			}),
-			product: one.products({ from: tickets.productId, to: products.id, optional: false }),
-			event: one.events({ from: tickets.eventId, to: events.id, optional: false }),
-			buyer: one.users({ from: tickets.buyerId, to: users.id, optional: false }),
+			product: one.products({
+				from: tickets.productId,
+				to: products.id,
+				optional: false,
+			}),
+			event: one.events({
+				from: tickets.eventId,
+				to: events.id,
+				optional: false,
+			}),
+			buyer: one.users({
+				from: tickets.buyerId,
+				to: users.id,
+				optional: false,
+			}),
 			participants: many.ticketParticipants({
 				from: tickets.id,
 				to: ticketParticipants.ticketId,
@@ -236,11 +271,23 @@ export const schemaRelations = defineRelations(
 			}),
 		},
 		eventPhotos: {
-			event: one.events({ from: eventPhotos.eventId, to: events.id, optional: false }),
-			uploader: one.users({ from: eventPhotos.uploadedBy, to: users.id, optional: false }),
+			event: one.events({
+				from: eventPhotos.eventId,
+				to: events.id,
+				optional: false,
+			}),
+			uploader: one.users({
+				from: eventPhotos.uploadedBy,
+				to: users.id,
+				optional: false,
+			}),
 		},
 		formResults: {
-			form: one.forms({ from: formResults.formId, to: forms.id, optional: false }),
+			form: one.forms({
+				from: formResults.formId,
+				to: forms.id,
+				optional: false,
+			}),
 			user: one.users({ from: formResults.userId, to: users.id }),
 		},
 		qualificationTypes: {
@@ -266,8 +313,15 @@ export const schemaRelations = defineRelations(
 			}),
 		},
 		userQualifications: {
-			user: one.users({ from: userQualifications.userId, to: users.id, optional: false }),
-			verifier: one.users({ from: userQualifications.verifiedBy, to: users.id }),
+			user: one.users({
+				from: userQualifications.userId,
+				to: users.id,
+				optional: false,
+			}),
+			verifier: one.users({
+				from: userQualifications.verifiedBy,
+				to: users.id,
+			}),
 			type: one.qualificationTypes({
 				from: userQualifications.typeId,
 				to: qualificationTypes.id,
@@ -275,7 +329,11 @@ export const schemaRelations = defineRelations(
 			}),
 		},
 		userMemberships: {
-			user: one.users({ from: userMemberships.userId, to: users.id, optional: false }),
+			user: one.users({
+				from: userMemberships.userId,
+				to: users.id,
+				optional: false,
+			}),
 			granter: one.users({ from: userMemberships.grantedBy, to: users.id }),
 		},
 		userTags: {
@@ -321,10 +379,19 @@ export const schemaRelations = defineRelations(
 			events: many.events({ from: users.id, to: events.userId }),
 			sessions: many.sessions({ from: users.id, to: sessions.userId }),
 			jobs: many.jobs({ from: users.id, to: jobs.suggestedBy }),
-			qualifications: many.userQualifications({ from: users.id, to: userQualifications.userId }),
-			membership: many.userMemberships({ from: users.id, to: userMemberships.userId }),
+			qualifications: many.userQualifications({
+				from: users.id,
+				to: userQualifications.userId,
+			}),
+			membership: many.userMemberships({
+				from: users.id,
+				to: userMemberships.userId,
+			}),
 			tags: many.userTags({ from: users.id, to: userTags.userId }),
-			electionApplications: many.electionApplications({ from: users.id, to: electionApplications.userId }),
+			electionApplications: many.electionApplications({
+				from: users.id,
+				to: electionApplications.userId,
+			}),
 		},
 	}),
 );

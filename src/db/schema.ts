@@ -19,6 +19,7 @@ import { posts } from "./schemas/posts";
 import { products } from "./schemas/products";
 import { qualificationTokens } from "./schemas/qualification-tokens";
 import { qualificationTypes } from "./schemas/qualification-types";
+import { scopeMemberships, scopeRoles, scopes } from "./schemas/scopes";
 import { sessions } from "./schemas/sessions";
 import { tagDefinitions } from "./schemas/tag-definitions";
 import { ticketParticipants } from "./schemas/ticket-participants";
@@ -51,6 +52,7 @@ export * from "./schemas/posts";
 export * from "./schemas/products";
 export * from "./schemas/qualification-tokens";
 export * from "./schemas/qualification-types";
+export * from "./schemas/scopes";
 export * from "./schemas/sessions";
 export * from "./schemas/shared";
 export * from "./schemas/tag-definitions";
@@ -95,6 +97,9 @@ export const schemaRelations = defineRelations(
 		electionCycles,
 		electionPositions,
 		electionApplications,
+		scopes,
+		scopeRoles,
+		scopeMemberships,
 	},
 	({
 		events,
@@ -124,6 +129,9 @@ export const schemaRelations = defineRelations(
 		electionCycles,
 		electionPositions,
 		electionApplications,
+		scopes,
+		scopeRoles,
+		scopeMemberships,
 		one,
 		many,
 	}) => ({
@@ -374,7 +382,45 @@ export const schemaRelations = defineRelations(
 				optional: false,
 			}),
 		},
+		scopes: {
+			parent: one.scopes({ from: scopes.parentId, to: scopes.id }),
+			children: many.scopes({ from: scopes.id, to: scopes.parentId }),
+			roles: many.scopeRoles({ from: scopes.id, to: scopeRoles.scopeId }),
+			memberships: many.scopeMemberships({
+				from: scopes.id,
+				to: scopeMemberships.scopeId,
+			}),
+		},
+		scopeRoles: {
+			user: one.users({
+				from: scopeRoles.userId,
+				to: users.id,
+				optional: false,
+			}),
+			scope: one.scopes({
+				from: scopeRoles.scopeId,
+				to: scopes.id,
+				optional: false,
+			}),
+		},
+		scopeMemberships: {
+			user: one.users({
+				from: scopeMemberships.userId,
+				to: users.id,
+				optional: false,
+			}),
+			scope: one.scopes({
+				from: scopeMemberships.scopeId,
+				to: scopes.id,
+				optional: false,
+			}),
+		},
 		users: {
+			scopeRoles: many.scopeRoles({ from: users.id, to: scopeRoles.userId }),
+			scopeMemberships: many.scopeMemberships({
+				from: users.id,
+				to: scopeMemberships.userId,
+			}),
 			posts: many.posts({ from: users.id, to: posts.userId }),
 			events: many.events({ from: users.id, to: events.userId }),
 			sessions: many.sessions({ from: users.id, to: sessions.userId }),

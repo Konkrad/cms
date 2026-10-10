@@ -1,6 +1,5 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import {
-	db,
 	getCurrentUserData,
 	getServerSession,
 	requireActiveModule,
@@ -11,11 +10,11 @@ import type {
 	CheckoutItemInput,
 	ParticipantSlotInput,
 } from "~theme/routes/events/checkout/types";
-import { syncFreeRsvpTicketForStatus } from "./free-rsvp";
 import { isValidEmail } from "./participant-validation";
 import { canViewEvent, eventIdOf } from "./public-event";
 import { checkoutService } from "./services/checkout";
 import { eventsService } from "./services/events";
+import { syncFreeRsvpTicketForStatus } from "./services/free-rsvp";
 import { participantsService } from "./services/participants";
 import { participationService } from "./services/participation";
 import { photosService } from "./services/photos";
@@ -56,12 +55,10 @@ export const useUpdateParticipation = routeAction$(
 		);
 
 		if (data.status === "yes" && data.productId) {
-			const ticket = await db.query.tickets.findFirst({
-				where: {
-					productId: data.productId,
-					eventId,
-					buyerId: userData.id,
-				},
+			const ticket = await ticketsService.findByBuyer({
+				productId: data.productId,
+				eventId,
+				buyerId: userData.id,
 			});
 
 			// Send confirmation email for free RSVP ticket creation.

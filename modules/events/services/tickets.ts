@@ -324,41 +324,18 @@ export const ticketsService = {
 		return ticket;
 	},
 
-	async findUnscannedByBuyerEventProduct(data: {
+	/** The visitor's ticket for a product of an event (e.g. right after a free RSVP). */
+	async findByBuyer(data: {
 		productId: string;
 		eventId: string;
 		buyerId: string;
-	}): Promise<Ticket[]> {
-		const results = await db.query.tickets.findMany({
+	}): Promise<Ticket | undefined> {
+		return db.query.tickets.findFirst({
 			where: {
 				productId: data.productId,
 				eventId: data.eventId,
 				buyerId: data.buyerId,
 			},
 		});
-		return results.filter((t) => t.scannedAt === null) as Ticket[];
-	},
-
-	async deleteFreeTicketsByIds(ticketIds: string[]): Promise<void> {
-		if (ticketIds.length === 0) return;
-
-		const rows = await db
-			.select({
-				ticketId: tickets.id,
-				transactionId: transactions.id,
-				stripeSessionId: transactions.stripeSessionId,
-			})
-			.from(tickets)
-			.innerJoin(transactions, eq(tickets.transactionId, transactions.id))
-			.where(inArray(tickets.id, ticketIds));
-
-		for (const row of rows) {
-			await db.delete(tickets).where(eq(tickets.id, row.ticketId));
-			if (row.stripeSessionId.startsWith("free_")) {
-				await db
-					.delete(transactions)
-					.where(eq(transactions.id, row.transactionId));
-			}
-		}
 	},
 };

@@ -1,12 +1,12 @@
 import { and, eq, inArray, isNull, like } from "drizzle-orm";
 import { db } from "~/core";
-import { products as productsTable } from "./schema/products";
-import { tickets } from "./schema/tickets";
-import { transactions } from "./schema/transactions";
-import { productsService } from "./services/products";
-import { ticketsService } from "./services/tickets";
+import { products as productsTable } from "../schema/products";
+import { tickets } from "../schema/tickets";
+import { transactions } from "../schema/transactions";
+import { productsService } from "./products";
+import { ticketsService } from "./tickets";
 
-/** Server-only: import from actions only, never from components. */
+/** Free RSVP tickets: keeps a visitor's free ticket in line with their yes/maybe/no answer. Server-only. */
 
 async function getSingleFreeRsvpProduct(eventId: string) {
 	const rows = await db

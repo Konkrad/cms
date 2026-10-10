@@ -1,21 +1,27 @@
 /**
- * Core → theme data contracts for the public jobs routes.
+ * Core → theme data contracts for the public jobs pages (modules/jobs).
  */
-import type { useJobs } from "~/routes/jobs";
-import type { useJob } from "~/routes/jobs/[id]";
-import type { useDeleteMyJob, useMyJobs } from "~/routes/jobs/mine";
 import type {
-	useJob as useEditMyJob,
+	useDeleteMyJob,
+	useSubmitJob,
 	useUpdateMyJob,
-} from "~/routes/jobs/mine/[id]/edit";
-import type { useSubmitJob } from "~/routes/jobs/new";
+} from "~modules/jobs/actions";
+import type {
+	editMyJobPage,
+	jobDetailPage,
+	jobsListPage,
+	myJobsPage,
+} from "~modules/jobs/pages";
 
-export type JobsListData = ReturnType<typeof useJobs>["value"];
+type PageData<P extends { load: (...args: never[]) => Promise<unknown> }> =
+	Awaited<ReturnType<P["load"]>>;
+
+export type JobsListData = PageData<typeof jobsListPage>;
 
 /** Single job list item — replaces importing `JobWithUser` from `~/services/jobs.service` in theme. */
 export type JobListItem = JobsListData["items"][number];
-export type JobDetailData = ReturnType<typeof useJob>["value"];
-export type MyJobsData = ReturnType<typeof useMyJobs>["value"];
+export type JobDetailData = PageData<typeof jobDetailPage>;
+export type MyJobsData = PageData<typeof myJobsPage>;
 export type DeleteMyJobAction = ReturnType<typeof useDeleteMyJob>;
 
 /** Loose action-store shape shared by the new/edit job forms (different zod$ shapes per action). */
@@ -26,4 +32,4 @@ export type JobFormAction = {
 export type SubmitJobAction = ReturnType<typeof useSubmitJob> & JobFormAction;
 export type UpdateMyJobAction = ReturnType<typeof useUpdateMyJob> &
 	JobFormAction;
-export type EditMyJobData = ReturnType<typeof useEditMyJob>["value"];
+export type EditMyJobData = PageData<typeof editMyJobPage>;

@@ -1,12 +1,8 @@
 /**
- * Hierarchical scope URLs: plugin@scope matches the longest scope prefix and
- * rewrites the remainder into Qwik's normal file routing.
- *
- * Server-rendered pages and no-JS form posts work under a prefix. Client-side
- * flows do NOT: Qwik Router resolves the route for SPA navigations and JS
- * <Form> submissions in the browser against the build-time route trie, so a
- * prefixed URL resolves to the [...slug] catch-all there. Those tests are
- * marked test.fail() as a standing proof of the limitation.
+ * Hierarchical scope URLs: plugin@scope splits off the longest scope prefix and
+ * the catch-all route ([...path]) resolves the module page from the remainder.
+ * Because the browser's route table also resolves every such URL to the
+ * catch-all, SPA navigation and JS <Form> submissions work under a prefix too.
  */
 
 import type { Browser, Page } from "@playwright/test";
@@ -136,9 +132,6 @@ test.describe("Scope routing — form actions", () => {
 	test("JS <Form> submission under the prefix keeps the page", async ({
 		browser,
 	}) => {
-		// Known failure: the action itself runs (job deleted server-side), but the
-		// client then resolves /prefix/jobs/mine to [...slug] and renders PageView.
-		test.fail();
 		const m = await memberContext(browser);
 		const { jobId } = createJobInDb({
 			suggestedBy: m.session.userId,
@@ -161,6 +154,9 @@ test.describe("Scope routing — form actions", () => {
 			await expect(m.page.locator("h1").first()).toHaveText(
 				"My Job Submissions",
 			);
+			await expect(row).toHaveCount(0);
+			await expect(m.page).toHaveURL(`${PREFIX}/jobs/mine`);
+			expect(await scopeOf(m.page)).toBe(SCOPE_PATH);
 		} finally {
 			deleteJobById(jobId);
 			await m.close();
@@ -168,62 +164,72 @@ test.describe("Scope routing — form actions", () => {
 	});
 });
 
+/** Marks the document so a later check can tell SPA navigation from a full load. */
+async function markDocument(page: Page) {
+	await page.evaluate(() => {
+		(window as unknown as { __spa: boolean }).__spa = true;
+	});
+}
+const stillSameDocument = (page: Page) =>
+	page.evaluate(
+		() => (window as unknown as { __spa?: boolean }).__spa === true,
+	);
+
 test.describe("Scope routing — client-side navigation", () => {
-	async function navigateBackToPrefixedJobs(browser: Browser) {
+	test("SPA navigation from /jobs to a job and back at the root", async ({
+		browser,
+	}) => {
+		const m = await memberContext(browser);
+		const job = createJobInDb({
+			suggestedBy: m.session.userId,
+			title: "Root Nav Job",
+			status: "approved",
+		});
+		try {
+			await m.page.goto("/jobs");
+			await m.page.waitForLoadState("networkidle");
+			await markDocument(m.page);
+			await m.page.locator(`a[href="/jobs/${job.jobId}"]`).click();
+			await expect(m.page).toHaveURL(`/jobs/${job.jobId}`);
+			await expect(m.page.locator("h1").first()).toHaveText("Root Nav Job");
+			await m.page.goBack();
+			await expect(m.page.locator("h1").first()).toHaveText("Job Board");
+			expect(await stillSameDocument(m.page)).toBe(true);
+			expect(await scopeOf(m.page)).toBe("/");
+		} finally {
+			job.cleanup();
+			await m.close();
+		}
+	});
+
+	test("SPA Link navigation and back under the prefix", async ({ browser }) => {
 		const m = await memberContext(browser);
 		const job = createJobInDb({
 			suggestedBy: m.session.userId,
 			title: "Scoped Nav Job",
 			status: "approved",
 		});
-		await m.page.goto(`${PREFIX}/jobs`);
-		await m.page.waitForLoadState("networkidle");
-		// Qwik <Link> → SPA navigation to the job detail page.
-		await m.page.locator(`a[href="/jobs/${job.jobId}"]`).click();
-		await expect(m.page.locator("h1").first()).toHaveText("Scoped Nav Job");
-		// Back is a same-document popstate, so Qwik navigates client-side to the
-		// prefixed URL and fetches its loader JSON from under the prefix.
-		const loaderJson = m.page.waitForResponse((r) =>
-			new URL(r.url()).pathname.startsWith(`${PREFIX}/jobs/q-loader-`),
-		);
-		await m.page.goBack();
-		return {
-			page: m.page,
-			loaderJson: await loaderJson,
-			async close() {
-				job.cleanup();
-				await m.close();
-			},
-		};
-	}
-
-	test("loader JSON under the prefix is served through the rewrite", async ({
-		browser,
-	}) => {
-		const nav = await navigateBackToPrefixedJobs(browser);
 		try {
-			expect(nav.loaderJson.status()).toBe(200);
-			await expect(nav.page).toHaveURL(`${PREFIX}/jobs`);
-			// The layout's scope loader is refetched for the prefixed page URL.
-			await expect.poll(() => scopeOf(nav.page)).toBe(SCOPE_PATH);
+			await m.page.goto(`${PREFIX}/jobs`);
+			await m.page.waitForLoadState("networkidle");
+			await markDocument(m.page);
+			// Qwik <Link> → SPA navigation to the job detail page.
+			await m.page.locator(`a[href="/jobs/${job.jobId}"]`).click();
+			await expect(m.page.locator("h1").first()).toHaveText("Scoped Nav Job");
+			// Back is a same-document popstate: Qwik navigates client-side to the
+			// prefixed URL and fetches the catch-all's loader JSON under the prefix.
+			const loaderJson = m.page.waitForResponse((r) =>
+				new URL(r.url()).pathname.startsWith(`${PREFIX}/jobs/q-loader-`),
+			);
+			await m.page.goBack();
+			expect((await loaderJson).status()).toBe(200);
+			await expect(m.page).toHaveURL(`${PREFIX}/jobs`);
+			await expect(m.page.locator("h1").first()).toHaveText("Job Board");
+			await expect.poll(() => scopeOf(m.page)).toBe(SCOPE_PATH);
+			expect(await stillSameDocument(m.page)).toBe(true);
 		} finally {
-			await nav.close();
-		}
-	});
-
-	test("SPA navigation to a prefixed URL renders the rewritten route", async ({
-		browser,
-	}) => {
-		// Known failure: the browser matches /prefix/jobs to [...slug] and renders
-		// PageView (the home page content) instead of the Job Board.
-		test.fail();
-		const nav = await navigateBackToPrefixedJobs(browser);
-		try {
-			await expect(nav.page.locator("h1").first()).toHaveText("Job Board", {
-				timeout: 5_000,
-			});
-		} finally {
-			await nav.close();
+			job.cleanup();
+			await m.close();
 		}
 	});
 });

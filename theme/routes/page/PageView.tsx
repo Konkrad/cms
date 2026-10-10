@@ -3,7 +3,7 @@ import { Link } from "@qwik.dev/router";
 import { BlockRenderer } from "~/components/builder/BlockRenderer";
 import type { PageViewData } from "~/contracts/page";
 
-/** Themed view for the catch-all CMS page route (`/[...slug]`). */
+/** Themed view for the CMS pages (catch-all route `/[...path]`). */
 export const PageView = component$<{ page: PageViewData }>(({ page }) => {
 	if (!page) {
 		return (

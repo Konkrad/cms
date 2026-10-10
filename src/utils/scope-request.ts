@@ -5,6 +5,8 @@ import { scopesService } from "~/services/scopes.service";
 
 /** sharedMap key holding the scope path matched by plugin@scope for this request. */
 export const SCOPE_PATH_KEY = "@scopePath";
+/** sharedMap key holding the pathname after the scope prefix, e.g. "/jobs/42". */
+export const SCOPE_REST_KEY = "@scopeRest";
 
 // Paths that never carry a scope prefix: API endpoints and static/build assets.
 const UNSCOPED_PREFIXES = ["/api/", "/build/", "/assets/", "/@"];
@@ -39,6 +41,16 @@ export async function getScopePaths(): Promise<ReadonlySet<string>> {
 /** Scope path of the current request ("/" when no scope prefix matched). */
 export function currentScopePath(event: Pick<RequestEventBase, "sharedMap">) {
 	return (event.sharedMap.get(SCOPE_PATH_KEY) as string | undefined) ?? "/";
+}
+
+/** Pathname after the scope prefix (the whole pathname when no prefix matched). */
+export function currentScopeRest(
+	event: Pick<RequestEventBase, "sharedMap" | "url">,
+): string {
+	return (
+		(event.sharedMap.get(SCOPE_REST_KEY) as string | undefined) ??
+		event.url.pathname
+	);
 }
 
 /** Scope of the current request; the root scope when no prefix matched. */

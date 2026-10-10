@@ -3,6 +3,8 @@ import type { RequestEventCommon } from "@qwik.dev/router";
 import { server$ } from "@qwik.dev/router";
 import type { JobsListData } from "~/contracts/jobs";
 import { jobsService } from "~/services/jobs.service";
+import { JOBS_PAGE_SIZE } from "./pages";
+import { toPublicJob } from "./public-job";
 
 const fetchJobsPage = server$(async function (
 	cursor: string | null,
@@ -10,7 +12,12 @@ const fetchJobsPage = server$(async function (
 ) {
 	const { requireAuth } = await import("~/utils/server-auth");
 	await requireAuth(this as RequestEventCommon);
-	return jobsService.getApprovedPaged(10, cursor, direction);
+	const page = await jobsService.getApprovedPaged(
+		JOBS_PAGE_SIZE,
+		cursor,
+		direction,
+	);
+	return { ...page, items: page.items.map(toPublicJob) };
 });
 
 /** Headless composable owning cursor pagination for the `/jobs` list view. */

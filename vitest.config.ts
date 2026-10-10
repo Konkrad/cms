@@ -8,6 +8,7 @@ export default defineConfig({
 		alias: {
 			// "~theme" must precede "~" so it isn't shadowed by the shorter prefix.
 			"~theme": path.resolve(__dirname, "theme"),
+			"~modules": path.resolve(__dirname, "modules"),
 			"~": path.resolve(__dirname, "src"),
 		},
 	},

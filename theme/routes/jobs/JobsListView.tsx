@@ -3,7 +3,7 @@ import { Link } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { CursorPager } from "~/components/ui/CursorPager";
 import type { JobsListData } from "~/contracts/jobs";
-import { useJobsPagination } from "~/routes/jobs/useJobsPagination";
+import { useJobsPagination } from "~modules/jobs/useJobsPagination";
 
 function locationLabel(job: {
 	locationType: string;

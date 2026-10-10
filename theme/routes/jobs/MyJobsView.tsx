@@ -109,20 +109,22 @@ export const MyJobsView = component$<{
 														Edit
 													</Link>
 												)}
-												<Form action={deleteAction}>
-													<input type="hidden" name="jobId" value={job.id} />
-													<button
-														type="submit"
-														class="text-error hover:text-error"
-														onClick$={(e) => {
-															if (!confirm("Delete this job posting?")) {
-																e.preventDefault();
-															}
-														}}
-													>
-														Delete
-													</button>
-												</Form>
+												{job.status === "pending" && (
+													<Form action={deleteAction}>
+														<input type="hidden" name="jobId" value={job.id} />
+														<button
+															type="submit"
+															class="text-error hover:text-error"
+															onClick$={(e) => {
+																if (!confirm("Delete this job posting?")) {
+																	e.preventDefault();
+																}
+															}}
+														>
+															Delete
+														</button>
+													</Form>
+												)}
 											</div>
 										</td>
 									</tr>

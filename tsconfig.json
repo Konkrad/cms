@@ -20,7 +20,8 @@
 		"noEmit": true,
 		"paths": {
 			"~/*": ["./src/*"],
-			"~theme/*": ["./theme/*"]
+			"~theme/*": ["./theme/*"],
+			"~modules/*": ["./modules/*"]
 		}
 	},
 	"exclude": ["dist", "server"]

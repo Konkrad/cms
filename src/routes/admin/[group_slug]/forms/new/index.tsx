@@ -1,14 +1,14 @@
 import { component$, useComputed$, useSignal } from "@qwik.dev/core";
 import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
-import { SimpleFormBuilder } from "~/components/forms/SimpleFormBuilder";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { TextArea } from "~/components/ui/TextArea";
-import { formValidationService } from "~/services/form-validation.service";
-import { formsService } from "~/services/forms.service";
-import { buildFormPath } from "~/utils/forms";
+import { formValidationService } from "~/core/forms/form-validation.service";
+import { buildFormPath } from "~/core/forms/forms";
+import { formsService } from "~/core/forms/forms.service";
+import { SimpleFormBuilder } from "~/core/forms/SimpleFormBuilder";
 import { buildFormsAdminBasePath, resolveFormsAdminScope } from "../_utils";
 
 export const useScope = routeLoader$(async (event) => {

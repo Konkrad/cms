@@ -1,6 +1,6 @@
 import type { RequestHandler } from "@qwik.dev/router";
-import { formResultsService } from "~/services/form-results.service";
-import { formsService } from "~/services/forms.service";
+import { formResultsService } from "~/core/forms/form-results.service";
+import { formsService } from "~/core/forms/forms.service";
 import {
 	buildFormsAdminBasePath,
 	resolveFormsAdminScope,

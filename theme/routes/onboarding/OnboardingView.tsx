@@ -1,12 +1,12 @@
 import { $, component$, useSignal, useVisibleTask$ } from "@qwik.dev/core";
 import { useNavigate } from "@qwik.dev/router";
-import { SurveyRuntime } from "~/components/forms/SurveyRuntime";
 import { Button } from "~/components/ui/Button";
 import type {
 	MarkLocationAction,
 	OnboardingViewData,
 	UpdateProfileAction,
 } from "~/contracts/onboarding";
+import { SurveyRuntime } from "~/core/forms/SurveyRuntime";
 import { LocationStep } from "~theme/shared/LocationStep/LocationStep";
 import { ProfileStep } from "~theme/shared/ProfileStep/ProfileStep";
 import { SetupLayout } from "~theme/shared/SetupLayout/SetupLayout";

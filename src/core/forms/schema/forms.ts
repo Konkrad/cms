@@ -61,8 +61,8 @@ export const formsRelations = relations(forms, ({ one, many }) => ({
 	results: many(formResults),
 }));
 
-import { groups } from "../../core/scopes/schema/groups";
-import { users } from "../../core/users/schema";
+import { groups } from "../../scopes/schema/groups";
+import { users } from "../../users/schema";
 import { formResults } from "./form-results";
 
 const baseInsertSchema = createInsertSchema(forms);

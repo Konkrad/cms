@@ -1,6 +1,6 @@
 import { component$, useSignal, useVisibleTask$ } from "@qwik.dev/core";
-import { SurveyRuntime } from "~/components/forms/SurveyRuntime";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { SurveyRuntime } from "~/core/forms/SurveyRuntime";
 
 export const definition: BlockDefinition = {
 	name: "Survey Form",

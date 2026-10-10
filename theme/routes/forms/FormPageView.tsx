@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
-import { SurveyRuntime } from "~/components/forms/SurveyRuntime";
 import type { FormPageViewData } from "~/contracts/forms";
+import { SurveyRuntime } from "~/core/forms/SurveyRuntime";
 
 /** Themed view for the public form submission route (`/forms/[formSlug]`). */
 export const FormPageView = component$<{ data: FormPageViewData }>(

@@ -3,8 +3,8 @@ import { routeLoader$ } from "@qwik.dev/router";
 import { format } from "date-fns";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
-import { formResultsService } from "~/services/form-results.service";
-import { formsService } from "~/services/forms.service";
+import { formResultsService } from "~/core/forms/form-results.service";
+import { formsService } from "~/core/forms/forms.service";
 import { buildFormsAdminBasePath, resolveFormsAdminScope } from "../../_utils";
 import { buildResponseColumns, getAnswerValue } from "./_response-pivot";
 

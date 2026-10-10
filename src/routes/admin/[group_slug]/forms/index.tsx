@@ -3,9 +3,9 @@ import { Link, routeLoader$ } from "@qwik.dev/router";
 import { format } from "date-fns";
 import { AdminTable } from "~/components/ui/AdminTable";
 import { Button } from "~/components/ui/Button";
-import { formResultsService } from "~/services/form-results.service";
-import { formsService } from "~/services/forms.service";
-import { buildFormPath } from "~/utils/forms";
+import { formResultsService } from "~/core/forms/form-results.service";
+import { buildFormPath } from "~/core/forms/forms";
+import { formsService } from "~/core/forms/forms.service";
 import { buildFormsAdminBasePath, resolveFormsAdminScope } from "./_utils";
 
 export const useFormsData = routeLoader$(async (event) => {

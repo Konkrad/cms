@@ -2,8 +2,8 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "~/core/db/connection";
 import type { Form, InsertForm, UpdateForm } from "~/core/db/schema";
 import { forms, insertFormSchema, updateFormSchema } from "~/core/db/schema";
-import { formValidationService } from "~/services/form-validation.service";
-import { buildFormPath } from "~/utils/forms";
+import { formValidationService } from "~/core/forms/form-validation.service";
+import { buildFormPath } from "~/core/forms/forms";
 
 export const formsService = {
 	buildFormPath(form: Pick<Form, "id" | "slug">): string {

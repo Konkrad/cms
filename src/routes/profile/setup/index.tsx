@@ -1,9 +1,9 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
 import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
+import { formResultsService } from "~/core/forms/form-results.service";
+import { formsService } from "~/core/forms/forms.service";
 import type { UserConsent } from "~/core/users/schema";
-import { formResultsService } from "~/services/form-results.service";
-import { formsService } from "~/services/forms.service";
 import { resolvePrivateImageUrl } from "~/utils/secure-urls";
 import { OnboardingView } from "~theme/routes/onboarding/OnboardingView";
 import { useMarkLocation } from "../../../core/users/setup/LocationStep/useMarkLocation";

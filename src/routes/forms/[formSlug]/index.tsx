@@ -1,9 +1,9 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
 import { getServerSession } from "~/core/auth/server-auth";
-import { formAccessService } from "~/services/form-access.service";
-import { formResultsService } from "~/services/form-results.service";
-import { formsService } from "~/services/forms.service";
+import { formAccessService } from "~/core/forms/form-access.service";
+import { formResultsService } from "~/core/forms/form-results.service";
+import { formsService } from "~/core/forms/forms.service";
 import { FormPageView } from "~theme/routes/forms/FormPageView";
 
 export const useFormPage = routeLoader$(async (event) => {

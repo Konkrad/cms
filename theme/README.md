@@ -42,14 +42,14 @@ in the loader** before delegating rendering to a theme `*View` component.
 
 The **props type is the contract**: it is derived from the loader and re-exported
 from `src/contracts/**`. Theme components import `~/contracts/*` and **must not**
-import `db`, `env`, services, or `~/core/auth/server-auth`. Where a component needs
+import `db`, `env`, services, or `~/core/auth/*`. Where a component needs
 live data after SSR (page-builder block data, `/jobs` pagination), it calls a
 core-owned headless composable instead (`src/components/builder/blocks/*.ts`,
 `modules/jobs/useJobsPagination.ts`) — the composable owns the service/db/auth
 calls, the theme component only renders the signals it returns. This is enforced,
 not just documented: `biome.json` has a `noRestrictedImports` override on
 `theme/**` that fails the build on a direct `~/services/*`/`~/db/*`/
-`~/core/auth/server-auth`/`~/env` import.
+`~/core/db/*`/`~/core/*/*.service`/`~/core/*/schema`/`~/core/auth/*`/`~/env` import.
 
 The **admin panel is core and is not themeable.** Its token values are pinned via
 the `.admin-shell` scope in `src/global.css`, so theme brand changes never leak

@@ -22,8 +22,8 @@ import { userMemberships } from "~/core/memberships/schema";
 import { reevaluateUserTagsForUser } from "~/core/registry/manifests";
 import { groupsService } from "~/core/scopes/groups.service";
 import { groupMemberships } from "~/core/scopes/schema/group-memberships";
+import { userTagsService } from "~/core/tags/user-tags.service";
 import { users } from "~/core/users/schema";
-import { userTagsService } from "~/services/user-tags.service";
 
 export const useUsers = routeLoader$(async ({ params, url }) => {
 	const groupSlug = params.group_slug;

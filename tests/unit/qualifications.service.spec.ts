@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { membershipsService } from "~/core/memberships/memberships.service";
-import { userTagsService } from "~/services/user-tags.service";
+import { userTagsService } from "~/core/tags/user-tags.service";
 import { qualificationsService } from "~modules/qualifications/service";
 import { createTestQualificationType, createTestUser, openDb } from "./helpers";
 

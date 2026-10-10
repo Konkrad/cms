@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { userTagsService } from "~/services/user-tags.service";
+import { userTagsService } from "~/core/tags/user-tags.service";
 import { tagRulesService } from "~modules/events/services/tag-rules";
 import {
 	createTestEvent,

@@ -3,7 +3,7 @@ import { type InferSelectModel, sql } from "drizzle-orm";
 import { sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { users } from "../../core/users/schema";
+import { users } from "../../users/schema";
 
 export const userTags = sqliteTable(
 	"user_tags",

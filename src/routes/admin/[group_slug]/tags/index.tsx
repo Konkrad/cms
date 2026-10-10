@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
-import { userTagsService } from "~/services/user-tags.service";
+import { userTagsService } from "~/core/tags/user-tags.service";
 
 export const useTagsData = routeLoader$(async (event) => {
 	if (event.params.group_slug !== "global") {

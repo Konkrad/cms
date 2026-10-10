@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { userTagsService } from "~/services/user-tags.service";
+import { userTagsService } from "~/core/tags/user-tags.service";
 import { createTestUser, openDb } from "./helpers";
 
 const cleanupTagSlugs: Array<{ userId: string; slug: string }> = [];

@@ -33,7 +33,7 @@ export {
 	paginateRows,
 } from "~/services/pagination";
 export { telegramService } from "~/services/telegram.service";
-export { userTagsService } from "~/services/user-tags.service";
+export { userTagsService } from "~/core/tags/user-tags.service";
 export { usersService } from "~/core/users/users.service";
 export { requireGroupAdmin } from "~/core/scopes/access-control";
 export { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";

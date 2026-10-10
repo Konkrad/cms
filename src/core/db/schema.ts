@@ -4,8 +4,6 @@ import { forms } from "../../db/schemas/forms";
 import { menuItems } from "../../db/schemas/menu-items";
 import { pages } from "../../db/schemas/pages";
 import { posts } from "../../db/schemas/posts";
-import { tagDefinitions } from "../../db/schemas/tag-definitions";
-import { userTags } from "../../db/schemas/user-tags";
 import { logins } from "../auth/schema/logins";
 import { sessions } from "../auth/schema/sessions";
 import { userMemberships } from "../memberships/schema";
@@ -14,6 +12,8 @@ import { groupMemberships } from "../scopes/schema/group-memberships";
 import { groupRepresentatives } from "../scopes/schema/group-representatives";
 import { groups } from "../scopes/schema/groups";
 import { scopeMemberships, scopeRoles, scopes } from "../scopes/schema/scopes";
+import { tagDefinitions } from "../tags/schema/tag-definitions";
+import { userTags } from "../tags/schema/user-tags";
 import { users } from "../users/schema";
 
 export * from "../../db/schemas/form-results";
@@ -22,8 +22,6 @@ export * from "../../db/schemas/menu-items";
 export * from "../../db/schemas/pages";
 export * from "../../db/schemas/posts";
 export * from "../../db/schemas/shared";
-export * from "../../db/schemas/tag-definitions";
-export * from "../../db/schemas/user-tags";
 export * from "../auth/schema/logins";
 export * from "../auth/schema/sessions";
 export * from "../memberships/schema";
@@ -32,6 +30,8 @@ export * from "../scopes/schema/group-memberships";
 export * from "../scopes/schema/group-representatives";
 export * from "../scopes/schema/groups";
 export * from "../scopes/schema/scopes";
+export * from "../tags/schema/tag-definitions";
+export * from "../tags/schema/user-tags";
 export * from "../users/schema";
 
 export const schemaRelations = defineRelations(

@@ -40,7 +40,7 @@ export const usePublicProfile = routeLoader$(async (event) => {
 
 	const isAdmin = currentUser?.role === "admin";
 
-	const { userTagsService } = await import("~/services/user-tags.service");
+	const { userTagsService } = await import("~/core/tags/user-tags.service");
 	const [groups, tags, submittedFormRows, extras] = await Promise.all([
 		groupMembershipsService.getUserGroups(user.id),
 		userTagsService.getByUser(user.id),

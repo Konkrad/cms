@@ -6,12 +6,12 @@ import {
 	type TagDefinition,
 	tagDefinitions,
 	updateTagDefinitionSchema,
-} from "~/db/schemas/tag-definitions";
+} from "~/core/tags/schema/tag-definitions";
 import {
 	insertUserTagSchema,
 	type UserTag,
 	userTags,
-} from "~/db/schemas/user-tags";
+} from "~/core/tags/schema/user-tags";
 
 export const userTagsService = {
 	async getByUser(userId: string): Promise<UserTag[]> {

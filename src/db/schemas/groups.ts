@@ -1,132 +1,128 @@
+import crypto from "crypto";
 import { sql } from "drizzle-orm";
 import { relations } from "drizzle-orm/_relations";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import crypto from "crypto";
 import { generateSlug } from "~/utils/group-slug";
 
 export const groups = sqliteTable("groups", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
-  latitude: text("latitude").notNull(),
-  longitude: text("longitude").notNull(),
-  image1: text("image1"),
-  image2: text("image2"),
-  image3: text("image3"),
-  createdAt: text("created_at")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: text("updated_at")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+	id: text("id").primaryKey(),
+	name: text("name").notNull(),
+	slug: text("slug").notNull().unique(),
+	latitude: text("latitude").notNull(),
+	longitude: text("longitude").notNull(),
+	image1: text("image1"),
+	image2: text("image2"),
+	image3: text("image3"),
+	createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+	updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const groupsRelations = relations(groups, ({ many }) => ({
-  memberships: many(groupMemberships),
-  representatives: many(groupRepresentatives),
-  posts: many(posts),
-  events: many(events),
+	memberships: many(groupMemberships),
+	representatives: many(groupRepresentatives),
+	posts: many(posts),
+	events: many(events),
 }));
 
+import { events } from "./events";
 // Import for relations - placed after table definition to avoid circular dependency issues
 import { groupMemberships } from "./group-memberships";
 import { groupRepresentatives } from "./group-representatives";
 import { posts } from "./posts";
-import { events } from "./events";
 
 const baseInsertSchema = createInsertSchema(groups);
 const baseSelectSchema = createSelectSchema(groups);
 
 export const insertGroupSchema = baseInsertSchema
-  .extend({
-    id: z
-      .string()
-      .uuid()
-      .default(() => crypto.randomUUID()),
-    latitude: z.string().refine(
-      (val) => {
-        const num = parseFloat(val);
-        return !isNaN(num) && num >= -90 && num <= 90;
-      },
-      { message: "Latitude must be between -90 and 90" },
-    ),
-    longitude: z.string().refine(
-      (val) => {
-        const num = parseFloat(val);
-        return !isNaN(num) && num >= -180 && num <= 180;
-      },
-      { message: "Longitude must be between -180 and 180" },
-    ),
-    image1: z.string().optional().nullable(),
-    image2: z.string().optional().nullable(),
-    image3: z.string().optional().nullable(),
-    createdAt: z.string().default(() => new Date().toISOString()),
-    updatedAt: z.string().default(() => new Date().toISOString()),
-  })
-  .partial({
-    id: true,
-    slug: true,
-    image1: true,
-    image2: true,
-    image3: true,
-    createdAt: true,
-    updatedAt: true,
-  })
-  .transform((val) => {
-    return {
-      ...val,
-      slug:
-        (val.slug as string | undefined) ??
-        generateSlug((val.name as string) || ""),
-    };
-  });
+	.extend({
+		id: z
+			.string()
+			.uuid()
+			.default(() => crypto.randomUUID()),
+		latitude: z.string().refine(
+			(val) => {
+				const num = parseFloat(val);
+				return !isNaN(num) && num >= -90 && num <= 90;
+			},
+			{ message: "Latitude must be between -90 and 90" },
+		),
+		longitude: z.string().refine(
+			(val) => {
+				const num = parseFloat(val);
+				return !isNaN(num) && num >= -180 && num <= 180;
+			},
+			{ message: "Longitude must be between -180 and 180" },
+		),
+		image1: z.string().optional().nullable(),
+		image2: z.string().optional().nullable(),
+		image3: z.string().optional().nullable(),
+		createdAt: z.string().default(() => new Date().toISOString()),
+		updatedAt: z.string().default(() => new Date().toISOString()),
+	})
+	.partial({
+		id: true,
+		slug: true,
+		image1: true,
+		image2: true,
+		image3: true,
+		createdAt: true,
+		updatedAt: true,
+	})
+	.transform((val) => {
+		return {
+			...val,
+			slug:
+				(val.slug as string | undefined) ??
+				generateSlug((val.name as string) || ""),
+		};
+	});
 
 export const updateGroupSchema = baseInsertSchema
-  .omit({
-    id: true,
-    createdAt: true,
-  })
-  .partial()
-  .extend({
-    latitude: z
-      .string()
-      .refine(
-        (val) => {
-          const num = parseFloat(val);
-          return !isNaN(num) && num >= -90 && num <= 90;
-        },
-        { message: "Latitude must be between -90 and 90" },
-      )
-      .optional(),
-    longitude: z
-      .string()
-      .refine(
-        (val) => {
-          const num = parseFloat(val);
-          return !isNaN(num) && num >= -180 && num <= 180;
-        },
-        { message: "Longitude must be between -180 and 180" },
-      )
-      .optional(),
-    image1: z.string().optional().nullable(),
-    image2: z.string().optional().nullable(),
-    image3: z.string().optional().nullable(),
-    updatedAt: z
-      .string()
-      .default(() => new Date().toISOString())
-      .optional(),
-  })
-  .transform((val) => {
-    if (val.name && !val.slug) {
-      return {
-        ...val,
-        slug: generateSlug(val.name as string),
-      };
-    }
-    return val;
-  });
+	.omit({
+		id: true,
+		createdAt: true,
+	})
+	.partial()
+	.extend({
+		latitude: z
+			.string()
+			.refine(
+				(val) => {
+					const num = parseFloat(val);
+					return !isNaN(num) && num >= -90 && num <= 90;
+				},
+				{ message: "Latitude must be between -90 and 90" },
+			)
+			.optional(),
+		longitude: z
+			.string()
+			.refine(
+				(val) => {
+					const num = parseFloat(val);
+					return !isNaN(num) && num >= -180 && num <= 180;
+				},
+				{ message: "Longitude must be between -180 and 180" },
+			)
+			.optional(),
+		image1: z.string().optional().nullable(),
+		image2: z.string().optional().nullable(),
+		image3: z.string().optional().nullable(),
+		updatedAt: z
+			.string()
+			.default(() => new Date().toISOString())
+			.optional(),
+	})
+	.transform((val) => {
+		if (val.name && !val.slug) {
+			return {
+				...val,
+				slug: generateSlug(val.name as string),
+			};
+		}
+		return val;
+	});
 
 export const selectGroupSchema = baseSelectSchema;
 

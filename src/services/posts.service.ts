@@ -10,10 +10,10 @@ import {
 	sql,
 } from "drizzle-orm";
 import { db } from "~/core/db/connection";
+import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
 import type { InsertPost, Post, UpdatePost } from "~/db/schemas/posts";
 import { insertPostSchema, posts, updatePostSchema } from "~/db/schemas/posts";
 import { users as usersTable } from "~/db/schemas/users";
-import { groupMembershipsService } from "~/services/group-memberships.service";
 import {
 	decodeCursor,
 	getNextCursorFromRows,

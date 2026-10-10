@@ -8,7 +8,7 @@ import {
 	scopeMemberships,
 	scopeRoles,
 	scopes,
-} from "~/db/schemas/scopes";
+} from "~/core/scopes/schema/scopes";
 
 export type Role = ScopeRole;
 export type Visibility = "public" | "members" | "representatives";

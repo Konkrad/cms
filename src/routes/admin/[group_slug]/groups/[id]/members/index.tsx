@@ -4,8 +4,8 @@ import { eq } from "drizzle-orm";
 import { Button } from "~/components/ui/Button";
 import { db } from "~/core/db/connection";
 import { groupMemberships, users } from "~/core/db/schema";
-import { groupRepresentativesService } from "~/services/group-representatives.service";
-import { groupsService } from "~/services/groups.service";
+import { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
+import { groupsService } from "~/core/scopes/groups.service";
 import { getCurrentUserData } from "~/utils/server-auth";
 
 export const useMembers = routeLoader$(async ({ params, redirect }) => {

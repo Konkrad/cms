@@ -8,7 +8,7 @@ import {
 import {
 	type GeocodingResult,
 	geocodingService,
-} from "~/services/geocoding.service";
+} from "~/core/scopes/geocoding.service";
 
 interface AddressAutocompleteProps {
 	name: string;

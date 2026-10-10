@@ -4,8 +4,8 @@ import { AdminNav } from "~/components/admin/AdminNav";
 import { Breadcrumbs } from "~/components/admin/Breadcrumbs";
 import { Button } from "~/components/ui/Button/Button";
 import { activeAdminSections } from "~/core/registry/manifests";
-import { groupsService } from "~/services/groups.service";
-import { canManageGroupContent } from "~/utils/access-control";
+import { canManageGroupContent } from "~/core/scopes/access-control";
+import { groupsService } from "~/core/scopes/groups.service";
 import { getCurrentUserData } from "~/utils/server-auth";
 
 export const useGroupAdminAuth = routeLoader$(async (event) => {

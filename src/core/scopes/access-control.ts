@@ -1,6 +1,6 @@
 import type { Group, User } from "~/core/db/schema";
-import { groupRepresentativesService } from "~/services/group-representatives.service";
-import { groupsService } from "~/services/groups.service";
+import { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
+import { groupsService } from "~/core/scopes/groups.service";
 import type { RequestEvent } from "~/utils/server-auth";
 import { getCurrentUserData } from "~/utils/server-auth";
 

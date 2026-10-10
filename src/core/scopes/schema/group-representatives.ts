@@ -4,8 +4,8 @@ import { relations } from "drizzle-orm/_relations";
 import { sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
+import { users } from "../../../db/schemas/users";
 import { groups } from "./groups";
-import { users } from "./users";
 
 export const groupRepresentatives = sqliteTable(
 	"group_representatives",

@@ -4,7 +4,7 @@ import { relations } from "drizzle-orm/_relations";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { generateSlug } from "~/utils/group-slug";
+import { generateSlug } from "~/core/scopes/group-slug";
 
 export const groups = sqliteTable("groups", {
 	id: text("id").primaryKey(),
@@ -25,10 +25,10 @@ export const groupsRelations = relations(groups, ({ many }) => ({
 	posts: many(posts),
 }));
 
+import { posts } from "../../../db/schemas/posts";
 // Import for relations - placed after table definition to avoid circular dependency issues
 import { groupMemberships } from "./group-memberships";
 import { groupRepresentatives } from "./group-representatives";
-import { posts } from "./posts";
 
 const baseInsertSchema = createInsertSchema(groups);
 const baseSelectSchema = createSelectSchema(groups);

@@ -5,8 +5,8 @@ import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
 import { db } from "~/core/db/connection";
 import { groups } from "~/core/db/schema";
-import { geocodingService } from "~/services/geocoding.service";
-import { groupsService } from "~/services/groups.service";
+import { geocodingService } from "~/core/scopes/geocoding.service";
+import { groupsService } from "~/core/scopes/groups.service";
 import { publicImageUrlFromKey } from "~/utils/images";
 import { getCurrentUserData } from "~/utils/server-auth";
 

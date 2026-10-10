@@ -3,8 +3,8 @@ import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
-import { geocodingService } from "~/services/geocoding.service";
-import { groupsService } from "~/services/groups.service";
+import { geocodingService } from "~/core/scopes/geocoding.service";
+import { groupsService } from "~/core/scopes/groups.service";
 import { getCurrentUserData } from "~/utils/server-auth";
 
 export const useGlobalOnly = routeLoader$(async ({ params, redirect }) => {

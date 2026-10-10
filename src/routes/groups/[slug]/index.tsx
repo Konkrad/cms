@@ -7,9 +7,9 @@ import {
 import { eq } from "drizzle-orm";
 import { db } from "~/core/db/connection";
 import { groupMemberships, users } from "~/core/db/schema";
-import { groupMembershipsService } from "~/services/group-memberships.service";
-import { groupRepresentativesService } from "~/services/group-representatives.service";
-import { groupsService } from "~/services/groups.service";
+import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
+import { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
+import { groupsService } from "~/core/scopes/groups.service";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { canonicalUrl } from "~/utils/seo";
 import { getCurrentUserData } from "~/utils/server-auth";

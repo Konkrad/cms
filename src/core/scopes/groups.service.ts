@@ -7,7 +7,7 @@ import {
 	insertGroupSchema,
 	updateGroupSchema,
 } from "~/core/db/schema";
-import { generateSlug } from "~/utils/group-slug";
+import { generateSlug } from "~/core/scopes/group-slug";
 
 export const groupsService = {
 	async getAll(): Promise<Group[]> {

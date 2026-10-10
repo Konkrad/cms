@@ -20,9 +20,9 @@ export { requireActiveModule } from "~/core/registry/manifests";
 export { currentScopeRest } from "~/core/router/scope-request";
 // Server-only core services for modules (memberships tiers, user tags). Tag *rule evaluation*
 // is not core; it lives in the events module (`modules/events/services/tag-rules.ts`).
-export { groupMembershipsService } from "~/services/group-memberships.service";
-export { groupRepresentativesService } from "~/services/group-representatives.service";
-export { groupsService } from "~/services/groups.service";
+export { groupMembershipsService } from "~/core/scopes/group-memberships.service";
+export { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
+export { groupsService } from "~/core/scopes/groups.service";
 export { deleteS3Objects } from "~/services/image-processing.service";
 export { membershipsService } from "~/services/memberships.service";
 export type { PageDirection } from "~/services/pagination";
@@ -35,7 +35,7 @@ export {
 export { telegramService } from "~/services/telegram.service";
 export { userTagsService } from "~/services/user-tags.service";
 export { usersService } from "~/services/users.service";
-export { requireGroupAdmin } from "~/utils/access-control";
+export { requireGroupAdmin } from "~/core/scopes/access-control";
 export { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 export { sanitizeRichHtml } from "~/utils/sanitize-html";
 export {

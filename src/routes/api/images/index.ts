@@ -86,7 +86,7 @@ async function isUploadAuthorized(
 
 	if (isStaff) return true;
 	const { groupRepresentativesService } = await import(
-		"~/services/group-representatives.service"
+		"~/core/scopes/group-representatives.service"
 	);
 	return groupRepresentativesService.isRepresentativeOfAny(user.id);
 }

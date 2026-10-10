@@ -4,8 +4,8 @@ import { db } from "~/core/db/connection";
 import { menuItems, pages } from "~/core/db/schema";
 import { activeModules } from "~/core/registry/manifests";
 import { sitemapEntriesOf } from "~/core/router/modules";
+import { groupsService } from "~/core/scopes/groups.service";
 import { env } from "~/env";
-import { groupsService } from "~/services/groups.service";
 import { postsService } from "~/services/posts.service";
 
 interface SitemapEntry {

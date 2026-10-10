@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { ScopeError, scopesService } from "~/services/scopes.service";
+import { ScopeError, scopesService } from "~/core/scopes/scopes.service";
 import { createTestUser, openDb } from "./helpers";
 
 const RESERVED = new Set(["events", "posts", "admin", "login", "jobs"]);

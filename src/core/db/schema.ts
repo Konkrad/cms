@@ -1,31 +1,27 @@
 import { defineRelations } from "drizzle-orm/relations";
 import { formResults } from "../../db/schemas/form-results";
 import { forms } from "../../db/schemas/forms";
-import { groupMemberships } from "../../db/schemas/group-memberships";
-import { groupRepresentatives } from "../../db/schemas/group-representatives";
-import { groups } from "../../db/schemas/groups";
 import { logins } from "../../db/schemas/logins";
 import { menuItems } from "../../db/schemas/menu-items";
 import { pages } from "../../db/schemas/pages";
 import { posts } from "../../db/schemas/posts";
-import { scopeMemberships, scopeRoles, scopes } from "../../db/schemas/scopes";
 import { sessions } from "../../db/schemas/sessions";
 import { tagDefinitions } from "../../db/schemas/tag-definitions";
 import { userMemberships } from "../../db/schemas/user-memberships";
 import { userTags } from "../../db/schemas/user-tags";
 import { users } from "../../db/schemas/users";
 import { moduleTables, withModuleRelations } from "../registry/schemas";
+import { groupMemberships } from "../scopes/schema/group-memberships";
+import { groupRepresentatives } from "../scopes/schema/group-representatives";
+import { groups } from "../scopes/schema/groups";
+import { scopeMemberships, scopeRoles, scopes } from "../scopes/schema/scopes";
 
 export * from "../../db/schemas/form-results";
 export * from "../../db/schemas/forms";
-export * from "../../db/schemas/group-memberships";
-export * from "../../db/schemas/group-representatives";
-export * from "../../db/schemas/groups";
 export * from "../../db/schemas/logins";
 export * from "../../db/schemas/menu-items";
 export * from "../../db/schemas/pages";
 export * from "../../db/schemas/posts";
-export * from "../../db/schemas/scopes";
 export * from "../../db/schemas/sessions";
 export * from "../../db/schemas/shared";
 export * from "../../db/schemas/tag-definitions";
@@ -33,6 +29,10 @@ export * from "../../db/schemas/user-memberships";
 export * from "../../db/schemas/user-tags";
 export * from "../../db/schemas/users";
 export * from "../registry/schemas";
+export * from "../scopes/schema/group-memberships";
+export * from "../scopes/schema/group-representatives";
+export * from "../scopes/schema/groups";
+export * from "../scopes/schema/scopes";
 
 export const schemaRelations = defineRelations(
 	{

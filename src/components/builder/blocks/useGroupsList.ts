@@ -1,8 +1,8 @@
 import { useSignal, useTask$ } from "@qwik.dev/core";
 import { server$ } from "@qwik.dev/router";
 import type { GroupListItem } from "~/contracts/groups";
-import { groupMembershipsService } from "~/services/group-memberships.service";
-import { groupsService } from "~/services/groups.service";
+import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
+import { groupsService } from "~/core/scopes/groups.service";
 
 const fetchGroups = server$(async (): Promise<GroupListItem[]> => {
 	const allGroups = await groupsService.getAll();

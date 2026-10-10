@@ -6,7 +6,7 @@ import {
 	isScopeablePath,
 	SCOPE_PATH_KEY,
 } from "~/core/router/scope-request";
-import { scopesService } from "~/services/scopes.service";
+import { scopesService } from "~/core/scopes/scopes.service";
 import { openDb } from "./helpers";
 
 const createdIds: string[] = [];

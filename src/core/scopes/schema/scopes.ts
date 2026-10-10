@@ -7,7 +7,7 @@ import {
 	text,
 	unique,
 } from "drizzle-orm/sqlite-core";
-import { users } from "./users";
+import { users } from "../../../db/schemas/users";
 
 export const SCOPE_ROLES = [
 	"admin",

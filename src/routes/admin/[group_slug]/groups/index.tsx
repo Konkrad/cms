@@ -9,7 +9,7 @@ import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
 import { Button } from "~/components/ui/Button";
 import { db } from "~/core/db/connection";
 import { groupMemberships } from "~/core/db/schema";
-import { groupsService } from "~/services/groups.service";
+import { groupsService } from "~/core/scopes/groups.service";
 
 export const useAdminGroups = routeLoader$(
 	async ({ params, redirect, url }) => {

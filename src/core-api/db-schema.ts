@@ -1,9 +1,9 @@
 /** Core tables/types a module schema may reference. Safe for drizzle-kit (no runtime deps). */
 
-export { groupMemberships } from "~/db/schemas/group-memberships";
-export { groupRepresentatives } from "~/db/schemas/group-representatives";
-export type { Group } from "~/db/schemas/groups";
-export { groups } from "~/db/schemas/groups";
+export { groupMemberships } from "~/core/scopes/schema/group-memberships";
+export { groupRepresentatives } from "~/core/scopes/schema/group-representatives";
+export type { Group } from "~/core/scopes/schema/groups";
+export { groups } from "~/core/scopes/schema/groups";
 export { logins } from "~/db/schemas/logins";
 export type { User } from "~/db/schemas/users";
 export { users } from "~/db/schemas/users";
@@ -12,7 +12,7 @@ import type {
 	ExtractTablesFromSchema,
 	RelationsBuilder,
 } from "drizzle-orm/relations";
-import type { groups as groupsTable } from "~/db/schemas/groups";
+import type { groups as groupsTable } from "~/core/scopes/schema/groups";
 import type { users as usersTable } from "~/db/schemas/users";
 
 type Tables = Record<string, unknown>;

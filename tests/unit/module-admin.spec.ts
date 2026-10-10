@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { requireGroupAdmin } = vi.hoisted(() => ({
 	requireGroupAdmin: vi.fn(),
 }));
-vi.mock("~/utils/access-control", () => ({ requireGroupAdmin }));
+vi.mock("~/core/scopes/access-control", () => ({ requireGroupAdmin }));
 
 import { requireModuleAdmin } from "~/core/module-admin";
 import { toPublicUser } from "~/core/public-user";

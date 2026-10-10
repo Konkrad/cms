@@ -62,7 +62,7 @@ These rules encode mistakes that have actually shipped in this codebase. Treat e
 - Use the shared helpers — do not hand-roll checks:
   - `requireAuth(event)` — any logged-in user (returns the user).
   - `requireAdmin(event)` — platform admin or moderator.
-  - `requireGroupAdmin(event)` (in `~/utils/access-control`) — resolves the `[group_slug]` scope: platform admin for `global`, or a representative of that group. Use this for every action under `admin/[group_slug]/**`.
+  - `requireGroupAdmin(event)` (in `~/core/scopes/access-control`) — resolves the `[group_slug]` scope: platform admin for `global`, or a representative of that group. Use this for every action under `admin/[group_slug]/**`.
 - **Never read auth state from `sharedMap.get("session")`** — nothing populates it; it is always `undefined`. Resolve the user via `getCurrentUserData(event)` / `getServerSession(event)`.
 - After adding any action, grep the file: every `export const useX = routeAction$` must have a matching auth call in its body.
 

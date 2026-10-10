@@ -16,12 +16,12 @@ import {
 import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
 import { db } from "~/core/db/connection";
 import { reevaluateUserTagsForUser } from "~/core/registry/manifests";
-import { groupMemberships } from "~/db/schemas/group-memberships";
+import { groupsService } from "~/core/scopes/groups.service";
+import { groupMemberships } from "~/core/scopes/schema/group-memberships";
 import { logins } from "~/db/schemas/logins";
 import { sessions } from "~/db/schemas/sessions";
 import { userMemberships } from "~/db/schemas/user-memberships";
 import { users } from "~/db/schemas/users";
-import { groupsService } from "~/services/groups.service";
 import { membershipsService } from "~/services/memberships.service";
 import { userTagsService } from "~/services/user-tags.service";
 

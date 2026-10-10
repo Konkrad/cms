@@ -1,5 +1,5 @@
 import type { RequestEventCommon } from "@qwik.dev/router";
-import { requireGroupAdmin } from "~/utils/access-control";
+import { requireGroupAdmin } from "~/core/scopes/access-control";
 import { requireActiveModule } from "./registry/manifests";
 
 export interface ModuleAdminOptions {

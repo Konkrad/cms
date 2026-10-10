@@ -4,8 +4,8 @@ import {
 	type GroupMembership,
 	groupMemberships,
 	insertGroupMembershipSchema,
-} from "~/db/schemas/group-memberships";
-import { type Group, groups } from "~/db/schemas/groups";
+} from "~/core/scopes/schema/group-memberships";
+import { type Group, groups } from "~/core/scopes/schema/groups";
 
 export const groupMembershipsService = {
 	async isMember(userId: string, groupId: string): Promise<boolean> {

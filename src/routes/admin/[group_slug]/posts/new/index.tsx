@@ -5,7 +5,7 @@ import { BlockNoteEditor } from "~/components/editor";
 import { Button } from "~/components/ui/Button";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
-import { groupsService } from "~/services/groups.service";
+import { groupsService } from "~/core/scopes/groups.service";
 import { postsService } from "~/services/posts.service";
 import { getCurrentUserData } from "~/utils/server-auth";
 

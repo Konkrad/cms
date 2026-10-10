@@ -1,7 +1,7 @@
 import type { RequestEventBase } from "@qwik.dev/router";
 import { sqlite } from "~/core/db/connection";
-import type { Scope } from "~/db/schemas/scopes";
-import { scopesService } from "~/services/scopes.service";
+import type { Scope } from "~/core/scopes/schema/scopes";
+import { scopesService } from "~/core/scopes/scopes.service";
 
 /** sharedMap key holding the scope path matched by plugin@scope for this request. */
 export const SCOPE_PATH_KEY = "@scopePath";

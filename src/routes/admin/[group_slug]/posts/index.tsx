@@ -9,11 +9,11 @@ import {
 import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
 import { Button } from "~/components/ui/Button";
 import { db } from "~/core/db/connection";
+import { requireGroupAdmin } from "~/core/scopes/access-control";
+import { groupsService } from "~/core/scopes/groups.service";
 import { posts } from "~/db/schemas/posts";
 import { users as usersTable } from "~/db/schemas/users";
-import { groupsService } from "~/services/groups.service";
 import { postsService } from "~/services/posts.service";
-import { requireGroupAdmin } from "~/utils/access-control";
 
 export const usePosts = routeLoader$(async ({ params, url }) => {
 	const groupSlug = params.group_slug;

@@ -46,11 +46,16 @@
 							"options": {
 								"patterns": [
 									{
-										"group": ["~/services/**"],
+										"group": ["~/services/**", "~/core/*/*.service"],
 										"message": "theme must not import core services directly — add or use a headless composable in ~/components/builder/blocks/* instead."
 									},
 									{
-										"group": ["~/db/**", "~/core/db/**"],
+										"group": [
+											"~/db/**",
+											"~/core/db/**",
+											"~/core/*/schema/**",
+											"~/core/*/schema"
+										],
 										"message": "theme must not import core db/schema directly — use a type from ~/contracts/* instead."
 									},
 									{

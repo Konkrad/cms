@@ -25,13 +25,13 @@ export { groupRepresentativesService } from "~/core/scopes/group-representatives
 export { groupsService } from "~/core/scopes/groups.service";
 export { deleteS3Objects } from "~/core/media/image-processing.service";
 export { membershipsService } from "~/core/memberships/memberships.service";
-export type { PageDirection } from "~/services/pagination";
+export type { PageDirection } from "~/core/shared/pagination";
 export {
 	createCursorFromItem,
 	decodeCursor,
 	getNextCursorFromRows,
 	paginateRows,
-} from "~/services/pagination";
+} from "~/core/shared/pagination";
 export { telegramService } from "~/core/notifications/telegram.service";
 export { userTagsService } from "~/core/tags/user-tags.service";
 export { usersService } from "~/core/users/users.service";

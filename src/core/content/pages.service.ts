@@ -5,7 +5,7 @@ import { menuItems } from "~/core/content/schema/menu-items";
 import type { InsertPage, Page, UpdatePage } from "~/core/content/schema/pages";
 import { pages } from "~/core/content/schema/pages";
 import { db } from "~/core/db/connection";
-import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
+import { decodeCursor, getNextCursorFromRows } from "~/core/shared/pagination";
 
 export type PageWithMenuItem = Page & {
 	menuItem: Pick<MenuItem, "id" | "title" | "url" | "status"> | null;

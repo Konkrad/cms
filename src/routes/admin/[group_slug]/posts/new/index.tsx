@@ -1,9 +1,9 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
-import { VisibilitySelector } from "~/components/admin/VisibilitySelector";
 import { Button } from "~/components/ui/Button";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
+import { VisibilitySelector } from "~/core/admin/VisibilitySelector";
 import { getCurrentUserData } from "~/core/auth/server-auth";
 import { BlockNoteEditor } from "~/core/content/editor";
 import { postsService } from "~/core/content/posts.service";

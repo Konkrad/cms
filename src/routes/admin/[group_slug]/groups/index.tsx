@@ -1,12 +1,9 @@
 import { component$ } from "@qwik.dev/core";
 import { Link, routeLoader$ } from "@qwik.dev/router";
 import { eq, sql } from "drizzle-orm";
-import {
-	PAGE_SIZE,
-	Pagination,
-} from "~/components/admin/Pagination/Pagination";
-import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
 import { Button } from "~/components/ui/Button";
+import { PAGE_SIZE, Pagination } from "~/core/admin/Pagination/Pagination";
+import { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 import { db } from "~/core/db/connection";
 import { groupMemberships } from "~/core/db/schema";
 import { groupsService } from "~/core/scopes/groups.service";

@@ -1,10 +1,5 @@
 /** UI primitives available to feature modules (`modules/**`); modules import UI only from here. */
-export {
-	PAGE_SIZE,
-	Pagination,
-} from "~/components/admin/Pagination/Pagination";
-export { SearchBar } from "~/components/admin/SearchBar/SearchBar";
-export { VisibilitySelector } from "~/components/admin/VisibilitySelector";
+
 export {
 	Alert,
 	Badge,
@@ -19,5 +14,11 @@ export {
 export { AddressAutocomplete } from "~/components/ui/AddressAutocomplete";
 export { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 export { SmartDatePicker } from "~/components/ui/SmartDatePicker";
+export {
+	PAGE_SIZE,
+	Pagination,
+} from "~/core/admin/Pagination/Pagination";
+export { SearchBar } from "~/core/admin/SearchBar/SearchBar";
+export { VisibilitySelector } from "~/core/admin/VisibilitySelector";
 export { BlockNoteEditor } from "~/core/content/editor";
 export { publicImageUrlFromKey } from "~/core/media/images";

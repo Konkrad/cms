@@ -9,11 +9,8 @@ import {
 } from "@qwik.dev/router";
 import { format } from "date-fns";
 import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
-import {
-	PAGE_SIZE,
-	Pagination,
-} from "~/components/admin/Pagination/Pagination";
-import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
+import { PAGE_SIZE, Pagination } from "~/core/admin/Pagination/Pagination";
+import { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 import { logins } from "~/core/auth/schema/logins";
 import { sessions } from "~/core/auth/schema/sessions";
 import { db } from "~/core/db/connection";

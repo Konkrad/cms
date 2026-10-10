@@ -1,8 +1,8 @@
 import { component$, Slot } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
-import { AdminNav } from "~/components/admin/AdminNav";
-import { Breadcrumbs } from "~/components/admin/Breadcrumbs";
 import { Button } from "~/components/ui/Button/Button";
+import { AdminNav } from "~/core/admin/AdminNav";
+import { Breadcrumbs } from "~/core/admin/Breadcrumbs";
 import { getCurrentUserData } from "~/core/auth/server-auth";
 import { activeAdminSections } from "~/core/registry/manifests";
 import { canManageGroupContent } from "~/core/scopes/access-control";

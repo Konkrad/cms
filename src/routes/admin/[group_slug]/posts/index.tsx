@@ -2,12 +2,9 @@ import { component$ } from "@qwik.dev/core";
 import { Form, Link, routeAction$, routeLoader$ } from "@qwik.dev/router";
 import { format } from "date-fns";
 import { and, desc, eq, isNull, like, or, sql } from "drizzle-orm";
-import {
-	PAGE_SIZE,
-	Pagination,
-} from "~/components/admin/Pagination/Pagination";
-import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
 import { Button } from "~/components/ui/Button";
+import { PAGE_SIZE, Pagination } from "~/core/admin/Pagination/Pagination";
+import { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 import { postsService } from "~/core/content/posts.service";
 import { posts } from "~/core/content/schema/posts";
 import { db } from "~/core/db/connection";

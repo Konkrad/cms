@@ -8,7 +8,7 @@ import {
 	updateUserSchema,
 	users,
 } from "~/core/db/schema";
-import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
+import { decodeCursor, getNextCursorFromRows } from "~/core/shared/pagination";
 
 export type UserWithPosts = User & {
 	posts: Post[];

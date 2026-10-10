@@ -18,13 +18,13 @@ import {
 } from "~/core/content/schema/posts";
 import { db } from "~/core/db/connection";
 import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
-import { users as usersTable } from "~/core/users/schema";
 import {
 	decodeCursor,
 	getNextCursorFromRows,
 	type PageDirection,
 	paginateRows,
-} from "~/services/pagination";
+} from "~/core/shared/pagination";
+import { users as usersTable } from "~/core/users/schema";
 
 export type PostWithUser = Post & {
 	user: User;

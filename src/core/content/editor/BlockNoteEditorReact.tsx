@@ -229,7 +229,7 @@ const BlockNoteEditorReact = (
 	}, [editor, onChange]);
 
 	return (
-		<div class="blocknote-editor-wrapper" style={{ padding: "1rem" }}>
+		<div className="blocknote-editor-wrapper" style={{ padding: "1rem" }}>
 			<BlockNoteView
 				editor={editor as any}
 				onChange={handleChange}

@@ -41,6 +41,16 @@
 	},
 	"overrides": [
 		{
+			"includes": ["**/*React.tsx", "theme/emails/**"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noReactSpecificProps": "off"
+					}
+				}
+			}
+		},
+		{
 			"includes": ["theme/**"],
 			"linter": {
 				"rules": {

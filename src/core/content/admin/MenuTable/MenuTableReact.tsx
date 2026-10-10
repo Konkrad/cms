@@ -123,10 +123,10 @@ function SortableRow({
 	}
 
 	return (
-		<tr ref={ref} id={`row-${id}`} style={style} class={className}>
+		<tr ref={ref} id={`row-${id}`} style={style} className={className}>
 			<td
 				ref={handleRef as React.RefCallback<HTMLTableCellElement>}
-				class="px-2 py-3 text-gray-300 cursor-grab select-none text-center"
+				className="px-2 py-3 text-gray-300 cursor-grab select-none text-center"
 			>
 				⠿
 			</td>
@@ -159,13 +159,13 @@ function SeparatorRow() {
 			ref={ref}
 			style={{ background: isDropTarget ? "var(--color-error-bg)" : undefined }}
 		>
-			<td colSpan={4} class="px-4 py-2">
-				<div class="flex items-center gap-3">
-					<div class="flex-1 border-t-2 border-dashed border-gray-300" />
-					<span class="text-xs text-gray-400 whitespace-nowrap">
+			<td colSpan={4} className="px-4 py-2">
+				<div className="flex items-center gap-3">
+					<div className="flex-1 border-t-2 border-dashed border-gray-300" />
+					<span className="text-xs text-gray-400 whitespace-nowrap">
 						hidden below
 					</span>
-					<div class="flex-1 border-t-2 border-dashed border-gray-300" />
+					<div className="flex-1 border-t-2 border-dashed border-gray-300" />
 				</div>
 			</td>
 		</tr>
@@ -188,11 +188,11 @@ export const MenuTable = (props: MenuTableProps) => {
 	const statusBadge = (item: MenuItem) => {
 		if (!item.pageId) return null;
 		return item.status === "visible" ? (
-			<span class="ml-2 text-[10px] font-medium uppercase tracking-wide text-green-700 bg-green-100 rounded px-1 py-0.5">
+			<span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-green-700 bg-green-100 rounded px-1 py-0.5">
 				visible
 			</span>
 		) : (
-			<span class="ml-2 text-[10px] font-medium uppercase tracking-wide text-yellow-700 bg-yellow-100 rounded px-1 py-0.5">
+			<span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-yellow-700 bg-yellow-100 rounded px-1 py-0.5">
 				hidden
 			</span>
 		);
@@ -393,51 +393,51 @@ export const MenuTable = (props: MenuTableProps) => {
 	return (
 		<DragDropProvider onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
 			{moveError && (
-				<div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
+				<div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
 					{moveError}
 				</div>
 			)}
 			{updateError && (
-				<div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
+				<div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
 					{updateError}
 				</div>
 			)}
 			{addError && (
-				<div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
+				<div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
 					{addError}
 				</div>
 			)}
 			{deleteError && (
-				<div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
+				<div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
 					{deleteError}
 				</div>
 			)}
 
 			{/* ── Main Menu ── */}
-			<div class="mt-6">
-				<h3 class="text-xl font-bold mb-1">Main Menu</h3>
-				<p class="text-sm text-gray-500 mb-3">
+			<div className="mt-6">
+				<h3 className="text-xl font-bold mb-1">Main Menu</h3>
+				<p className="text-sm text-gray-500 mb-3">
 					Drag to reorder · drop <em>onto</em> an item to nest it · drag below
 					the dashed line to hide
 				</p>
 
-				<div class="bg-white shadow-sm rounded-lg overflow-hidden">
-					<table class="min-w-full divide-y divide-gray-200">
-						<thead class="bg-gray-50">
+				<div className="bg-white shadow-sm rounded-lg overflow-hidden">
+					<table className="min-w-full divide-y divide-gray-200">
+						<thead className="bg-gray-50">
 							<tr>
-								<th class="px-2 py-3 w-8" />
-								<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th className="px-2 py-3 w-8" />
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 									Label
 								</th>
-								<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 									URL
 								</th>
-								<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 									Actions
 								</th>
 							</tr>
 						</thead>
-						<tbody class="divide-y divide-gray-200 bg-white">
+						<tbody className="divide-y divide-gray-200 bg-white">
 							{visibleItems.map((item) => (
 								<SortableRow
 									key={item.id}
@@ -446,25 +446,27 @@ export const MenuTable = (props: MenuTableProps) => {
 									allowChild
 								>
 									<td
-										class="px-4 py-3 text-sm font-medium text-gray-900"
+										className="px-4 py-3 text-sm font-medium text-gray-900"
 										style={{
 											paddingLeft: 16 + getDepth(mainItems, item.id) * 24,
 										}}
 									>
 										{item.title}
 										{staticUrlSet.has(normalizeUrl(item.url)) && (
-											<span class="ml-2 text-xs text-gray-400">[static]</span>
+											<span className="ml-2 text-xs text-gray-400">
+												[static]
+											</span>
 										)}
 										{statusBadge(item)}
 									</td>
-									<td class="px-4 py-3 text-sm text-gray-600">
+									<td className="px-4 py-3 text-sm text-gray-600">
 										{normalizeUrl(item.url)}
 									</td>
-									<td class="px-4 py-3 text-sm">
+									<td className="px-4 py-3 text-sm">
 										{staticUrlSet.has(normalizeUrl(item.url)) ? (
 											<button
 												type="button"
-												class="text-blue-600 hover:text-blue-900"
+												className="text-blue-600 hover:text-blue-900"
 												onClick={() =>
 													setMainEditingId((prev) =>
 														prev === item.id ? null : item.id,
@@ -474,18 +476,18 @@ export const MenuTable = (props: MenuTableProps) => {
 												Rename
 											</button>
 										) : (
-											<div class="flex items-center gap-3">
+											<div className="flex items-center gap-3">
 												{item.pageId ? (
 													<>
 														<a
 															href={`/admin/global/pages/${item.pageId}/edit`}
-															class="text-blue-600 hover:text-blue-900"
+															className="text-blue-600 hover:text-blue-900"
 														>
 															Edit
 														</a>
 														<a
 															href={`/admin/global/pages/${item.pageId}/builder`}
-															class="text-blue-600 hover:text-blue-900"
+															className="text-blue-600 hover:text-blue-900"
 														>
 															Builder
 														</a>
@@ -493,7 +495,7 @@ export const MenuTable = (props: MenuTableProps) => {
 												) : (
 													<button
 														type="button"
-														class="text-blue-600 hover:text-blue-900"
+														className="text-blue-600 hover:text-blue-900"
 														onClick={() =>
 															setMainEditingId((prev) =>
 																prev === item.id ? null : item.id,
@@ -505,7 +507,7 @@ export const MenuTable = (props: MenuTableProps) => {
 												)}
 												<button
 													type="button"
-													class="text-red-600 hover:text-red-900"
+													className="text-red-600 hover:text-red-900"
 													onClick={() => handleDelete(item)}
 												>
 													Delete
@@ -528,21 +530,23 @@ export const MenuTable = (props: MenuTableProps) => {
 									dropInfo={dropInfo}
 									allowChild={false}
 									baseStyle={{ background: "var(--color-bg)" }}
-									class="text-gray-400"
+									className="text-gray-400"
 								>
-									<td class="px-4 py-3 text-sm">
+									<td className="px-4 py-3 text-sm">
 										{item.title}
 										{staticUrlSet.has(normalizeUrl(item.url)) && (
-											<span class="ml-2 text-xs">[static]</span>
+											<span className="ml-2 text-xs">[static]</span>
 										)}
 										{statusBadge(item)}
 									</td>
-									<td class="px-4 py-3 text-sm">{normalizeUrl(item.url)}</td>
-									<td class="px-4 py-3 text-sm">
+									<td className="px-4 py-3 text-sm">
+										{normalizeUrl(item.url)}
+									</td>
+									<td className="px-4 py-3 text-sm">
 										{staticUrlSet.has(normalizeUrl(item.url)) ? (
 											<button
 												type="button"
-												class="text-blue-500 hover:text-blue-700"
+												className="text-blue-500 hover:text-blue-700"
 												onClick={() =>
 													setMainEditingId((prev) =>
 														prev === item.id ? null : item.id,
@@ -552,18 +556,18 @@ export const MenuTable = (props: MenuTableProps) => {
 												Rename
 											</button>
 										) : (
-											<div class="flex items-center gap-3">
+											<div className="flex items-center gap-3">
 												{item.pageId ? (
 													<>
 														<a
 															href={`/admin/global/pages/${item.pageId}/edit`}
-															class="text-blue-500 hover:text-blue-700"
+															className="text-blue-500 hover:text-blue-700"
 														>
 															Edit
 														</a>
 														<a
 															href={`/admin/global/pages/${item.pageId}/builder`}
-															class="text-blue-500 hover:text-blue-700"
+															className="text-blue-500 hover:text-blue-700"
 														>
 															Builder
 														</a>
@@ -571,7 +575,7 @@ export const MenuTable = (props: MenuTableProps) => {
 												) : (
 													<button
 														type="button"
-														class="text-blue-500 hover:text-blue-700"
+														className="text-blue-500 hover:text-blue-700"
 														onClick={() =>
 															setMainEditingId((prev) =>
 																prev === item.id ? null : item.id,
@@ -583,7 +587,7 @@ export const MenuTable = (props: MenuTableProps) => {
 												)}
 												<button
 													type="button"
-													class="text-red-500 hover:text-red-700"
+													className="text-red-500 hover:text-red-700"
 													onClick={() => handleDelete(item)}
 												>
 													Delete
@@ -602,7 +606,7 @@ export const MenuTable = (props: MenuTableProps) => {
 					.map((item) => (
 						<form
 							key={item.id}
-							class="mt-3 flex flex-wrap gap-2 border rounded-sm p-3 bg-gray-50"
+							className="mt-3 flex flex-wrap gap-2 border rounded-sm p-3 bg-gray-50"
 							onSubmit={(e) => handleUpdateSubmit(e, item)}
 						>
 							<input
@@ -610,7 +614,7 @@ export const MenuTable = (props: MenuTableProps) => {
 								name="title"
 								defaultValue={item.title}
 								placeholder="Title"
-								class="border rounded-sm px-2 py-1 text-sm"
+								className="border rounded-sm px-2 py-1 text-sm"
 								required
 							/>
 							{staticUrlSet.has(normalizeUrl(item.url)) ? (
@@ -625,13 +629,13 @@ export const MenuTable = (props: MenuTableProps) => {
 									name="url"
 									defaultValue={normalizeUrl(item.url)}
 									placeholder="URL"
-									class="border rounded-sm px-2 py-1 text-sm"
+									className="border rounded-sm px-2 py-1 text-sm"
 									required
 								/>
 							)}
 							<button
 								type="submit"
-								class="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700"
+								className="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700"
 							>
 								Save
 							</button>
@@ -640,62 +644,62 @@ export const MenuTable = (props: MenuTableProps) => {
 			</div>
 
 			{/* ── Footer Links ── */}
-			<div class="mt-10">
-				<h3 class="text-xl font-bold mb-3">Footer Links</h3>
+			<div className="mt-10">
+				<h3 className="text-xl font-bold mb-3">Footer Links</h3>
 
 				<form
-					class="flex flex-wrap gap-2 mb-4 border rounded-sm p-3 bg-gray-50"
+					className="flex flex-wrap gap-2 mb-4 border rounded-sm p-3 bg-gray-50"
 					onSubmit={handleAddFooterSubmit}
 				>
 					<input
 						type="text"
 						name="title"
 						placeholder="Label (also used as tooltip when an icon is set)"
-						class="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]"
+						className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]"
 						required
 					/>
 					<input
 						type="text"
 						name="url"
 						placeholder="/imprint or https://..."
-						class="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]"
+						className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]"
 						required
 					/>
-					<label class="flex items-center gap-1 text-xs text-gray-500 cursor-pointer border rounded-sm px-2 py-1">
+					<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer border rounded-sm px-2 py-1">
 						SVG icon (optional):
 						<input
 							type="file"
 							accept=".svg,image/svg+xml"
-							class="text-xs"
+							className="text-xs"
 							onChange={handleSvgUpload}
 						/>
 						<input type="hidden" name="icon" />
 					</label>
 					<button
 						type="submit"
-						class="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700"
+						className="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700"
 					>
 						Add
 					</button>
 				</form>
 
-				<div class="bg-white shadow-sm rounded-lg overflow-hidden">
-					<table class="min-w-full divide-y divide-gray-200">
-						<thead class="bg-gray-50">
+				<div className="bg-white shadow-sm rounded-lg overflow-hidden">
+					<table className="min-w-full divide-y divide-gray-200">
+						<thead className="bg-gray-50">
 							<tr>
-								<th class="px-2 py-3 w-8" />
-								<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th className="px-2 py-3 w-8" />
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 									Label
 								</th>
-								<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 									URL
 								</th>
-								<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 									Actions
 								</th>
 							</tr>
 						</thead>
-						<tbody class="divide-y divide-gray-200 bg-white">
+						<tbody className="divide-y divide-gray-200 bg-white">
 							{sortedFooter.map((item) => (
 								<SortableRow
 									key={item.id}
@@ -703,31 +707,31 @@ export const MenuTable = (props: MenuTableProps) => {
 									dropInfo={dropInfo}
 									allowChild={false}
 								>
-									<td class="px-4 py-3 text-sm font-medium text-gray-900">
+									<td className="px-4 py-3 text-sm font-medium text-gray-900">
 										{item.title}
 									</td>
-									<td class="px-4 py-3 text-sm text-gray-600">
+									<td className="px-4 py-3 text-sm text-gray-600">
 										{normalizeUrl(item.url)}
 									</td>
-									<td class="px-4 py-3 text-sm">
+									<td className="px-4 py-3 text-sm">
 										{(() => {
 											const svg = item.icon ? sanitizeSvg(item.icon) : "";
 											return svg ? (
 												<span
-													class="inline-block w-5 h-5 text-gray-600"
+													className="inline-block w-5 h-5 text-gray-600"
 													title={item.title}
 													dangerouslySetInnerHTML={{ __html: svg }}
 												/>
 											) : (
-												<span class="text-xs text-gray-300">–</span>
+												<span className="text-xs text-gray-300">–</span>
 											);
 										})()}
 									</td>
-									<td class="px-4 py-3 text-sm">
-										<div class="flex items-center gap-3">
+									<td className="px-4 py-3 text-sm">
+										<div className="flex items-center gap-3">
 											<button
 												type="button"
-												class="text-blue-600 hover:text-blue-900"
+												className="text-blue-600 hover:text-blue-900"
 												onClick={() =>
 													setFooterEditingId((prev) =>
 														prev === item.id ? null : item.id,
@@ -738,7 +742,7 @@ export const MenuTable = (props: MenuTableProps) => {
 											</button>
 											<button
 												type="button"
-												class="text-red-600 hover:text-red-900"
+												className="text-red-600 hover:text-red-900"
 												onClick={() => handleDelete(item)}
 											>
 												Delete
@@ -756,7 +760,7 @@ export const MenuTable = (props: MenuTableProps) => {
 					.map((item) => (
 						<form
 							key={item.id}
-							class="mt-3 flex flex-wrap gap-2 border rounded-sm p-3 bg-gray-50"
+							className="mt-3 flex flex-wrap gap-2 border rounded-sm p-3 bg-gray-50"
 							onSubmit={(e) => handleUpdateSubmit(e, item)}
 						>
 							<input
@@ -764,7 +768,7 @@ export const MenuTable = (props: MenuTableProps) => {
 								name="title"
 								defaultValue={item.title}
 								placeholder="Label (also used as tooltip when an icon is set)"
-								class="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]"
+								className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]"
 								required
 							/>
 							<input
@@ -772,13 +776,13 @@ export const MenuTable = (props: MenuTableProps) => {
 								name="url"
 								defaultValue={normalizeUrl(item.url)}
 								placeholder="URL"
-								class="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]"
+								className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]"
 								required
 							/>
-							<div class="w-full flex items-center gap-2">
+							<div className="w-full flex items-center gap-2">
 								<label
-									for={`menu-icon-file-${item.id}`}
-									class="text-xs text-gray-500"
+									htmlFor={`menu-icon-file-${item.id}`}
+									className="text-xs text-gray-500"
 								>
 									SVG icon (replaces label visually, label becomes tooltip):
 								</label>
@@ -786,11 +790,11 @@ export const MenuTable = (props: MenuTableProps) => {
 									id={`menu-icon-file-${item.id}`}
 									type="file"
 									accept=".svg,image/svg+xml"
-									class="text-xs"
+									className="text-xs"
 									onChange={handleSvgUpload}
 								/>
 								{item.icon?.startsWith("<svg") && (
-									<span class="text-xs text-gray-400">
+									<span className="text-xs text-gray-400">
 										current icon set — upload to replace
 									</span>
 								)}
@@ -802,7 +806,7 @@ export const MenuTable = (props: MenuTableProps) => {
 							</div>
 							<button
 								type="submit"
-								class="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700"
+								className="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700"
 							>
 								Save
 							</button>

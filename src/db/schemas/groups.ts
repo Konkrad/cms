@@ -23,10 +23,8 @@ export const groupsRelations = relations(groups, ({ many }) => ({
 	memberships: many(groupMemberships),
 	representatives: many(groupRepresentatives),
 	posts: many(posts),
-	events: many(events),
 }));
 
-import { events } from "./events";
 // Import for relations - placed after table definition to avoid circular dependency issues
 import { groupMemberships } from "./group-memberships";
 import { groupRepresentatives } from "./group-representatives";

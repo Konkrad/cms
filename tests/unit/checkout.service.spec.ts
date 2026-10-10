@@ -1,10 +1,10 @@
 import crypto from "crypto";
 import { afterEach, describe, expect, it } from "vitest";
-import { checkoutService } from "~/services/checkout.service";
-import { eventsService } from "~/services/events.service";
-import { inventoryGroupsService } from "~/services/inventory-groups.service";
-import { productsService } from "~/services/products.service";
-import { stripeService } from "~/services/stripe.service";
+import { checkoutService } from "~modules/events/services/checkout";
+import { eventsService } from "~modules/events/services/events";
+import { inventoryGroupsService } from "~modules/events/services/inventory-groups";
+import { productsService } from "~modules/events/services/products";
+import { stripeService } from "~modules/events/services/stripe";
 import { createTestUser, openDb } from "./helpers";
 
 const cleanupEventIds: string[] = [];

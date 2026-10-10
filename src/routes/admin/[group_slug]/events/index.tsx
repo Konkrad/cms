@@ -9,11 +9,11 @@ import {
 import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
 import { Button } from "~/components/ui/Button";
 import { db } from "~/db/connection";
-import { events } from "~/db/schemas/events";
 import { users as usersTable } from "~/db/schemas/users";
-import { eventsService } from "~/services/events.service";
 import { groupsService } from "~/services/groups.service";
 import { requireGroupAdmin } from "~/utils/access-control";
+import { events } from "~modules/events/schema/events";
+import { eventsService } from "~modules/events/services/events";
 
 export const useEvents = routeLoader$(async ({ params, url }) => {
 	const groupSlug = params.group_slug;
@@ -55,7 +55,7 @@ export const useEvents = routeLoader$(async ({ params, url }) => {
 	const total = Number(countRows[0]?.total ?? 0);
 
 	const { participationService } = await import(
-		"~/services/participation.service"
+		"~modules/events/services/participation"
 	);
 	const eventsWithParticipation = await Promise.all(
 		rawItems.map(async (e) => ({

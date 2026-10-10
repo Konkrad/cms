@@ -1,13 +1,13 @@
 import { $, component$, useSignal, useTask$ } from "@qwik.dev/core";
 import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
-import { InventoryGroupForm } from "~/components/admin/InventoryGroupForm";
-import { ProductForm } from "~/components/admin/ProductForm";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
-import { eventsService } from "~/services/events.service";
-import { inventoryGroupsService } from "~/services/inventory-groups.service";
-import { productsService } from "~/services/products.service";
 import { requireGroupAdmin } from "~/utils/access-control";
+import { InventoryGroupForm } from "~modules/events/components/InventoryGroupForm";
+import { ProductForm } from "~modules/events/components/ProductForm";
+import { eventsService } from "~modules/events/services/events";
+import { inventoryGroupsService } from "~modules/events/services/inventory-groups";
+import { productsService } from "~modules/events/services/products";
 
 export const useInventoryGroupsAndProducts = routeLoader$(async (event) => {
 	const eventId = event.params.id;

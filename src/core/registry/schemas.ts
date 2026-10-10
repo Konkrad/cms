@@ -4,18 +4,21 @@
  */
 import dealsSchema from "../../../modules/deals/schema";
 import electionsSchema from "../../../modules/elections/schema";
+import eventsSchema from "../../../modules/events/schema";
 import jobsSchema from "../../../modules/jobs/schema";
 import qualificationsSchema from "../../../modules/qualifications/schema";
 
 // Module tables, picked up by drizzle-kit as part of `src/db/schema.ts`.
 export * from "../../../modules/deals/schema";
 export * from "../../../modules/elections/schema";
+export * from "../../../modules/events/schema";
 export * from "../../../modules/jobs/schema";
 export * from "../../../modules/qualifications/schema";
 
 export const moduleSchemas = [
 	dealsSchema,
 	electionsSchema,
+	eventsSchema,
 	jobsSchema,
 	qualificationsSchema,
 ] as const;

@@ -1,4 +1,4 @@
 /** Modules enabled for this site; ids must match a manifest in src/core/registry/manifests.ts. */
 export default {
-	active: ["deals", "elections", "jobs", "qualifications"],
+	active: ["deals", "elections", "events", "jobs", "qualifications"],
 };

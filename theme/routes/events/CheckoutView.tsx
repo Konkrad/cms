@@ -13,7 +13,7 @@ import type {
 	SaveFoodPreferenceAction,
 	SavePhotoConsentAction,
 } from "~/contracts/checkout";
-import { validateParticipantSlots } from "~/utils/participant-validation";
+import { validateParticipantSlots } from "~modules/events/participant-validation";
 import { ParticipantAssignmentStep } from "~theme/routes/events/checkout/ParticipantAssignmentStep";
 import { ProductSelectionStep } from "~theme/routes/events/checkout/ProductSelectionStep";
 import { StepIndicator } from "~theme/routes/events/checkout/StepIndicator";

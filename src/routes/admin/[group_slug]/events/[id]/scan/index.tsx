@@ -8,10 +8,10 @@ import {
 	z,
 	zod$,
 } from "@qwik.dev/router";
-import { TicketScanner } from "~/components/events/TicketScanner";
-import { eventsService } from "~/services/events.service";
-import { ticketsService } from "~/services/tickets.service";
 import { requireGroupAdmin } from "~/utils/access-control";
+import { TicketScanner } from "~modules/events/components/EventTicketScanner";
+import { eventsService } from "~modules/events/services/events";
+import { ticketsService } from "~modules/events/services/tickets";
 
 export const useEvent = routeLoader$(async ({ params }) => {
 	const event = await eventsService.getById(params.id);

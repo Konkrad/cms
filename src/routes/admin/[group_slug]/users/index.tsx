@@ -22,8 +22,8 @@ import { userMemberships } from "~/db/schemas/user-memberships";
 import { users } from "~/db/schemas/users";
 import { groupsService } from "~/services/groups.service";
 import { membershipsService } from "~/services/memberships.service";
-import { tagRulesService } from "~/services/tag-rules.service";
 import { userTagsService } from "~/services/user-tags.service";
+import { tagRulesService } from "~modules/events/services/tag-rules";
 
 export const useUsers = routeLoader$(async ({ params, url }) => {
 	const groupSlug = params.group_slug;

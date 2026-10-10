@@ -13,8 +13,8 @@ import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { SmartDatePicker } from "~/components/ui/SmartDatePicker";
 import { TextArea } from "~/components/ui/TextArea";
-import { eventsService } from "~/services/events.service";
 import { requireGroupAdmin } from "~/utils/access-control";
+import { eventsService } from "~modules/events/services/events";
 
 export const useEvent = routeLoader$(async (event) => {
 	const eventId = event.params.id;

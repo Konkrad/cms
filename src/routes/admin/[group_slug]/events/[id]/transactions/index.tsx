@@ -1,7 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
-import TransactionsList from "~/components/admin/TransactionsList";
-import { transactionsService } from "~/services/transactions.service";
+import TransactionsList from "~modules/events/components/TransactionsList";
+import { transactionsService } from "~modules/events/services/transactions";
 
 export const useTransactions = routeLoader$(async (event) => {
 	const eventId = event.params.id;

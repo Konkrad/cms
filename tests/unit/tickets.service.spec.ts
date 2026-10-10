@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { afterEach, describe, expect, it } from "vitest";
-import { ticketsService } from "~/services/tickets.service";
+import { ticketsService } from "~modules/events/services/tickets";
 import { createTestUser, openDb } from "./helpers";
 
 // IDs cleaned up after each test

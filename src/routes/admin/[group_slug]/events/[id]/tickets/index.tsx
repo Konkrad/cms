@@ -1,10 +1,10 @@
 import { component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
-import TicketScanner from "~/components/admin/TicketScanner";
-import TicketsList from "~/components/admin/TicketsList";
-import { eventsService } from "~/services/events.service";
-import { ticketsService } from "~/services/tickets.service";
 import { requireGroupAdmin } from "~/utils/access-control";
+import TicketScanner from "~modules/events/components/AdminTicketScanner";
+import TicketsList from "~modules/events/components/TicketsList";
+import { eventsService } from "~modules/events/services/events";
+import { ticketsService } from "~modules/events/services/tickets";
 
 export const useTickets = routeLoader$(async (event) => {
 	const eventId = event.params.id;

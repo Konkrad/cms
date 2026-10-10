@@ -10,12 +10,12 @@ import {
 } from "@qwik.dev/router";
 import { Button, ImageUploader } from "~/components/ui";
 import { Card } from "~/components/ui/Card";
-import { eventsService } from "~/services/events.service";
 import { deleteS3Objects } from "~/services/image-processing.service";
-import { photosService } from "~/services/photos.service";
 import { deriveThumbnailKey } from "~/utils/images";
 import { generatePresignedGetUrl } from "~/utils/secure-urls";
 import { getCurrentUserData } from "~/utils/server-auth";
+import { eventsService } from "~modules/events/services/events";
+import { photosService } from "~modules/events/services/photos";
 
 export const useEvent = routeLoader$(async ({ params }) => {
 	const event = await eventsService.getById(params.id);

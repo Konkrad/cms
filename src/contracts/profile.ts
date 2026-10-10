@@ -12,7 +12,7 @@ import type {
 	useUpdateParticipants,
 	useUserDashboard,
 } from "~/routes/profile/tickets";
-import type { ticketsService } from "~/services/tickets.service";
+import type { ticketsService } from "~modules/events/services/tickets";
 
 export type UpdateNameAction = ReturnType<typeof useUpdateName>;
 export type UpdateLocationAction = ReturnType<typeof useUpdateLocation>;

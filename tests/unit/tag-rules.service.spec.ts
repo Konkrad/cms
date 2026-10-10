@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { tagRulesService } from "~/services/tag-rules.service";
 import { userTagsService } from "~/services/user-tags.service";
+import { tagRulesService } from "~modules/events/services/tag-rules";
 import {
 	createTestEvent,
 	createTestParticipation,
@@ -26,7 +26,7 @@ afterEach(() => {
 
 describe("tagRulesService.evaluateRulesForUser", () => {
 	beforeEach(() => {
-		vi.mock("~/config/tag-rules", () => ({
+		vi.mock("~modules/events/tag-rules.config", () => ({
 			TAG_RULES: [
 				{
 					slug: "test-total-badge",

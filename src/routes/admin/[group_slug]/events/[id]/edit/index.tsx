@@ -9,9 +9,9 @@ import { SmartDatePicker } from "~/components/ui/SmartDatePicker";
 import { TextArea } from "~/components/ui/TextArea";
 import { db } from "~/db/connection";
 import { groups } from "~/db/schema";
-import { eventsService } from "~/services/events.service";
 import { publicImageUrlFromKey } from "~/utils/images";
 import { getCurrentUserData } from "~/utils/server-auth";
+import { eventsService } from "~modules/events/services/events";
 
 export const useGroupContext = routeLoader$(async (event) => {
 	const groupSlug = event.params.group_slug;

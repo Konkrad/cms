@@ -56,7 +56,9 @@ export async function createEventWithInventory(
 		}
 
 		// Create event using the app service
-		const { eventsService } = await import("../../src/services/events.service");
+		const { eventsService } = await import(
+			"../../modules/events/services/events"
+		);
 
 		const start = daysFromNow(opts.startOffsetDays);
 		const end = new Date(
@@ -88,10 +90,10 @@ export async function createEventWithInventory(
 		}
 
 		const { inventoryGroupsService } = await import(
-			"../../src/services/inventory-groups.service"
+			"../../modules/events/services/inventory-groups"
 		);
 		const { productsService } = await import(
-			"../../src/services/products.service"
+			"../../modules/events/services/products"
 		);
 
 		const createGroup = async (name: string, capacity: number) =>

@@ -44,7 +44,12 @@ export const useGroupAdminAuth = routeLoader$(async (event) => {
 	}
 
 	sharedMap.set("adminContext", { isGlobal: false, group });
-	return { user, isGlobal: false, group, adminSections: [] };
+	return {
+		user,
+		isGlobal: false,
+		group,
+		adminSections: activeAdminSections.filter((s) => s.scopes === "all"),
+	};
 });
 
 export default component$(() => {

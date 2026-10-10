@@ -210,6 +210,7 @@ describe("registry with the checked-in config", () => {
 		);
 		expect(modulePages.some((p) => p.id === "deals.detail")).toBe(true);
 		expect(activeAdminSections.map((s) => s.path)).toEqual([
+			"events",
 			"deals",
 			"jobs",
 			"elections",

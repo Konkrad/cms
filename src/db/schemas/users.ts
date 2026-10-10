@@ -44,11 +44,9 @@ export const users = sqliteTable("users", {
 
 export const usersRelations = relations(users, ({ many }) => ({
 	posts: many(posts),
-	events: many(events),
 	sessions: many(sessions),
 }));
 
-import { events } from "./events";
 // Import for relations - placed after table definition to avoid circular dependency issues
 import { posts } from "./posts";
 import { sessions } from "./sessions";

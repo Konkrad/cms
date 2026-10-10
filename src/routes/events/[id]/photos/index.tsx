@@ -6,9 +6,9 @@ import {
 	z,
 	zod$,
 } from "@qwik.dev/router";
-import { eventsService } from "~/services/events.service";
-import { photosService } from "~/services/photos.service";
 import { getServerSession } from "~/utils/server-auth";
+import { eventsService } from "~modules/events/services/events";
+import { photosService } from "~modules/events/services/photos";
 import { EventPhotosView } from "~theme/routes/events/EventPhotosView";
 
 export const useEvent = routeLoader$(async ({ params }) => {

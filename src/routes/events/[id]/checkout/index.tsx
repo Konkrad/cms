@@ -1,14 +1,14 @@
 import { component$ } from "@qwik.dev/core";
 import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { env } from "~/env";
-import { checkoutService } from "~/services/checkout.service";
-import { inventoryGroupsService } from "~/services/inventory-groups.service";
-import { productsService } from "~/services/products.service";
-import { stripeService } from "~/services/stripe.service";
 import { usersService } from "~/services/users.service";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
-import { isValidEmail } from "~/utils/participant-validation";
 import { getServerSession } from "~/utils/server-auth";
+import { isValidEmail } from "~modules/events/participant-validation";
+import { checkoutService } from "~modules/events/services/checkout";
+import { inventoryGroupsService } from "~modules/events/services/inventory-groups";
+import { productsService } from "~modules/events/services/products";
+import { stripeService } from "~modules/events/services/stripe";
 import { CheckoutView } from "~theme/routes/events/CheckoutView";
 import type {
 	CheckoutItemInput,
@@ -116,7 +116,7 @@ export const useCreateCheckoutSession = routeAction$(
 		}
 
 		// Get event and validate sales period
-		const { eventsService } = await import("~/services/events.service");
+		const { eventsService } = await import("~modules/events/services/events");
 		const eventData = await eventsService.getById(eventId);
 		if (!eventData) {
 			return event.fail(404, { message: "Event not found" });
@@ -272,9 +272,11 @@ export const useCreateCheckoutSession = routeAction$(
 
 		// Handle free tickets - skip payment
 		if (totalAmount === 0) {
-			const { ticketsService } = await import("~/services/tickets.service");
+			const { ticketsService } = await import(
+				"~modules/events/services/tickets"
+			);
 			const { participantsService } = await import(
-				"~/services/participants.service"
+				"~modules/events/services/participants"
 			);
 
 			const createdTickets: any[] = [];
@@ -308,7 +310,7 @@ export const useCreateCheckoutSession = routeAction$(
 			// Auto-upgrade participation status from "maybe" to "yes" for free tickets
 			if (createdTickets.length > 0) {
 				const { participationService } = await import(
-					"~/services/participation.service"
+					"~modules/events/services/participation"
 				);
 				try {
 					await participationService.autoUpgradeToYes(user.id, eventId);

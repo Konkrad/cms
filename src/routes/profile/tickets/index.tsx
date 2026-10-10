@@ -1,9 +1,9 @@
 import { component$, useStore } from "@qwik.dev/core";
 import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
-import { participantsService } from "~/services/participants.service";
-import { ticketsService } from "~/services/tickets.service";
-import { transactionsService } from "~/services/transactions.service";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
+import { participantsService } from "~modules/events/services/participants";
+import { ticketsService } from "~modules/events/services/tickets";
+import { transactionsService } from "~modules/events/services/transactions";
 import PurchaseList from "~theme/routes/profile/PurchaseList";
 import QrTicketWall from "~theme/routes/profile/QrTicketWall";
 

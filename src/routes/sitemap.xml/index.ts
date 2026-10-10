@@ -5,9 +5,9 @@ import { activeModules } from "~/core/registry/manifests";
 import { db } from "~/db/connection";
 import { menuItems, pages } from "~/db/schema";
 import { env } from "~/env";
-import { eventsService } from "~/services/events.service";
 import { groupsService } from "~/services/groups.service";
 import { postsService } from "~/services/posts.service";
+import { eventsService } from "~modules/events/services/events";
 
 interface SitemapEntry {
 	loc: string;

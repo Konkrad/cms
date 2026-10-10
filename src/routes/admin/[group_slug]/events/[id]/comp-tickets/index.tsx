@@ -3,10 +3,10 @@ import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
-import { eventsService } from "~/services/events.service";
-import { productsService } from "~/services/products.service";
-import { ticketsService } from "~/services/tickets.service";
 import { usersService } from "~/services/users.service";
+import { eventsService } from "~modules/events/services/events";
+import { productsService } from "~modules/events/services/products";
+import { ticketsService } from "~modules/events/services/tickets";
 
 export const useEventData = routeLoader$(async (event) => {
 	const { requireAdmin } = await import("~/utils/server-auth");

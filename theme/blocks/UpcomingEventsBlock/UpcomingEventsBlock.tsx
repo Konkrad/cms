@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
-import { useUpcomingEvents } from "~/components/builder/blocks/useUpcomingEvents";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { useUpcomingEvents } from "~modules/events/useUpcomingEvents";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 
 export const definition: BlockDefinition = {

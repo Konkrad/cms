@@ -2,21 +2,21 @@ import type { RequestHandler } from "@qwik.dev/router";
 import { eq } from "drizzle-orm";
 import type Stripe from "stripe";
 import { db } from "~/db/connection";
-import { events } from "~/db/schemas/events";
 import { logins } from "~/db/schemas/logins";
 import { users } from "~/db/schemas/users";
 import { env } from "~/env";
 import { emailNotificationsService } from "~/services/email-notifications.service";
-import { icalService } from "~/services/ical.service";
-import { inventoryGroupsService } from "~/services/inventory-groups.service";
-import { participantsService } from "~/services/participants.service";
-import { productsService } from "~/services/products.service";
-import { qrcodeService } from "~/services/qrcode.service";
-import { stripeService } from "~/services/stripe.service";
 import { telegramService } from "~/services/telegram.service";
-import { ticketsService } from "~/services/tickets.service";
-import { transactionItemsService } from "~/services/transaction-items.service";
-import { transactionsService } from "~/services/transactions.service";
+import { events } from "~modules/events/schema/events";
+import { icalService } from "~modules/events/services/ical";
+import { inventoryGroupsService } from "~modules/events/services/inventory-groups";
+import { participantsService } from "~modules/events/services/participants";
+import { productsService } from "~modules/events/services/products";
+import { qrcodeService } from "~modules/events/services/qrcode";
+import { stripeService } from "~modules/events/services/stripe";
+import { ticketsService } from "~modules/events/services/tickets";
+import { transactionItemsService } from "~modules/events/services/transaction-items";
+import { transactionsService } from "~modules/events/services/transactions";
 
 export const onPost: RequestHandler = async ({
 	request,
@@ -253,7 +253,7 @@ async function processPaymentIntent(paymentIntent: Stripe.PaymentIntent) {
 	// Auto-upgrade participation status from "maybe" to "yes" on ticket purchase
 	if (tickets.length > 0) {
 		const { participationService } = await import(
-			"~/services/participation.service"
+			"~modules/events/services/participation"
 		);
 		try {
 			await participationService.autoUpgradeToYes(userId, eventId);

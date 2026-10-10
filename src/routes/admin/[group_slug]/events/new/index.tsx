@@ -9,8 +9,8 @@ import { Select } from "~/components/ui/Select";
 import { SmartDatePicker } from "~/components/ui/SmartDatePicker";
 import { TextArea } from "~/components/ui/TextArea";
 import { db } from "~/db/connection";
-import { eventsService } from "~/services/events.service";
 import { requireGroupAdmin } from "~/utils/access-control";
+import { eventsService } from "~modules/events/services/events";
 
 export const useGroupContext = routeLoader$(async (event) => {
 	const groupSlug = event.params.group_slug;

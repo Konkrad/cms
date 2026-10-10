@@ -7,7 +7,6 @@ import {
 import { eq } from "drizzle-orm";
 import { db } from "~/db/connection";
 import { groupMemberships, users } from "~/db/schema";
-import { eventsService } from "~/services/events.service";
 import { groupMembershipsService } from "~/services/group-memberships.service";
 import { groupRepresentativesService } from "~/services/group-representatives.service";
 import { groupsService } from "~/services/groups.service";
@@ -15,6 +14,7 @@ import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { canonicalUrl } from "~/utils/seo";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { buildProfileUrl } from "~/utils/users";
+import { eventsService } from "~modules/events/services/events";
 import { GroupView } from "~theme/routes/groups/GroupView";
 
 export const useGroupData = routeLoader$(async (event) => {

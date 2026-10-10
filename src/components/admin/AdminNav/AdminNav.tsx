@@ -11,7 +11,7 @@ interface NavItem {
 interface AdminNavProps {
 	groupSlug?: string;
 	isGlobal?: boolean;
-	/** Admin sections contributed by active modules (global admin only). */
+	/** Admin sections contributed by active modules and visible in this scope. */
 	sections?: { path: string; label: string; order?: number }[];
 }
 
@@ -30,23 +30,23 @@ export const AdminNav = component$<AdminNavProps>(
 			{ order: 0, href: basePath, label: "Dashboard", exact: true },
 			{ order: 10, href: `${basePath}/users`, label: "Users" },
 			{ order: 20, href: `${basePath}/posts`, label: "Posts" },
-			{ order: 30, href: `${basePath}/events`, label: "Events" },
 			{ order: 40, href: `${basePath}/forms`, label: "Forms" },
 		];
 
-		// Global admin only: core entries plus sections contributed by active modules
+		// Global admin only: core entries
 		if (isGlobal) {
 			navItems.push(
 				{ order: 50, href: `${basePath}/pages`, label: "Pages" },
 				{ order: 60, href: "/admin/global/groups", label: "Groups" },
 			);
-			for (const section of sections) {
-				navItems.push({
-					order: section.order ?? 1000,
-					href: `/admin/global/${section.path}`,
-					label: section.label,
-				});
-			}
+		}
+		// Sections contributed by active modules (the layout passes only those visible in this scope)
+		for (const section of sections) {
+			navItems.push({
+				order: section.order ?? 1000,
+				href: `${basePath}/${section.path}`,
+				label: section.label,
+			});
 		}
 		navItems.sort((a, b) => a.order - b.order);
 

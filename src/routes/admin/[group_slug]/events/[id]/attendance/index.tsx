@@ -2,8 +2,8 @@ import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$, useLocation } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
-import { eventsService } from "~/services/events.service";
-import { ticketsService } from "~/services/tickets.service";
+import { eventsService } from "~modules/events/services/events";
+import { ticketsService } from "~modules/events/services/tickets";
 
 export const useEvent = routeLoader$(async ({ params }) => {
 	const event = await eventsService.getById(params.id);

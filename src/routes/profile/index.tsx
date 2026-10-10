@@ -40,7 +40,7 @@ export const useProfile = routeLoader$(async (event) => {
 		: null;
 
 	const { participationService } = await import(
-		"~/services/participation.service"
+		"~modules/events/services/participation"
 	);
 
 	const [submittedForms, tags, extras, communityRows, events] =

@@ -10,6 +10,7 @@ import {
 } from "~/core/modules";
 import { dealsModule } from "../../../modules/deals/module";
 import { electionsModule } from "../../../modules/elections/module";
+import { eventsModule } from "../../../modules/events/module";
 import { jobsModule } from "../../../modules/jobs/module";
 import { qualificationsModule } from "../../../modules/qualifications/module";
 import config from "../../../modules.config";
@@ -18,6 +19,7 @@ import config from "../../../modules.config";
 export const allModules: ModuleDefinition[] = [
 	dealsModule,
 	electionsModule,
+	eventsModule,
 	jobsModule,
 	qualificationsModule,
 ];

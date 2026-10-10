@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	isValidEmail,
 	validateParticipantSlots,
-} from "~/utils/participant-validation";
+} from "~modules/events/participant-validation";
 
 describe("isValidEmail", () => {
 	it("accepts valid emails", () => {

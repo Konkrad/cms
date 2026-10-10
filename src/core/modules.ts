@@ -6,6 +6,11 @@ export interface AdminSection {
 	path: string;
 	label: string;
 	order?: number;
+	/**
+	 * Where the entry shows: only in the global admin ("global", default) or also in every
+	 * group's admin ("all", e.g. events). An "all" section's routes must authorize per group.
+	 */
+	scopes?: "global" | "all";
 }
 
 export interface MenuLink {

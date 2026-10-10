@@ -5,12 +5,12 @@ import { db } from "~/db/connection";
 import { logins } from "~/db/schemas/logins";
 import { formResultsService } from "~/services/form-results.service";
 import { groupMembershipsService } from "~/services/group-memberships.service";
-import { participationService } from "~/services/participation.service";
 import { usersService } from "~/services/users.service";
 import { formatAffiliationResultJson } from "~/utils/affiliation";
 import { buildFormPath } from "~/utils/forms";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
+import { participationService } from "~modules/events/services/participation";
 import { PublicProfileView } from "~theme/routes/users/PublicProfileView";
 import { activeProfileExtras } from "../../../core/registry/manifests";
 

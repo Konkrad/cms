@@ -1,7 +1,7 @@
 import type { RequestHandler } from "@qwik.dev/router";
 import sharp from "sharp";
-import { qrcodeService } from "~/services/qrcode.service";
-import { ticketsService } from "~/services/tickets.service";
+import { qrcodeService } from "~modules/events/services/qrcode";
+import { ticketsService } from "~modules/events/services/tickets";
 
 async function generateInvalidImage(): Promise<Buffer> {
 	const svg = `<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">

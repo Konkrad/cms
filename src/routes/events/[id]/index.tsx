@@ -12,16 +12,16 @@ import { db } from "~/db/connection";
 import { groupMemberships } from "~/db/schemas/group-memberships";
 import { groupRepresentatives } from "~/db/schemas/group-representatives";
 import { groups as groupsTable } from "~/db/schemas/groups";
-import { products as productsTable } from "~/db/schemas/products";
-import { tickets } from "~/db/schemas/tickets";
-import { transactions } from "~/db/schemas/transactions";
-import { eventsService } from "~/services/events.service";
-import { participationService } from "~/services/participation.service";
-import { productsService } from "~/services/products.service";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { canonicalUrl, htmlToDescription } from "~/utils/seo";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { buildProfileUrl, formatUser } from "~/utils/users";
+import { products as productsTable } from "~modules/events/schema/products";
+import { tickets } from "~modules/events/schema/tickets";
+import { transactions } from "~modules/events/schema/transactions";
+import { eventsService } from "~modules/events/services/events";
+import { participationService } from "~modules/events/services/participation";
+import { productsService } from "~modules/events/services/products";
 import { EventView } from "~theme/routes/events/EventView";
 
 export const onGet: RequestHandler = ({ cacheControl }) => {
@@ -61,7 +61,7 @@ async function syncFreeRsvpTicketForStatus(
 
 	if (!freeProduct) return;
 
-	const { ticketsService } = await import("~/services/tickets.service");
+	const { ticketsService } = await import("~modules/events/services/tickets");
 	const existingTickets = await db
 		.select({
 			id: tickets.id,

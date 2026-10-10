@@ -1,9 +1,6 @@
 import { $, component$, type QRL, useSignal } from "@qwik.dev/core";
-import { Button } from "~/components/ui/Button";
-import { Input } from "~/components/ui/Input";
-import { Select } from "~/components/ui/Select";
-import { TextArea } from "~/components/ui/TextArea";
-import type { DealStep } from "~/db/schemas/deals";
+import { Button, Input, Select, TextArea } from "~/ui";
+import type { DealStep } from "../schema";
 
 interface StepsEditorProps {
 	initialSteps?: DealStep[];

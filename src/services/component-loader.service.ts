@@ -1,3 +1,5 @@
+import { withoutDisabledBlocks } from "~/core/modules";
+import { disabledBlocks } from "~/core/registry/blocks";
 import type { BlockDefinition } from "~/db/schema";
 import { blockDefinitions, blockRegistry } from "~theme/blocks";
 
@@ -7,7 +9,10 @@ export const componentLoaderService = {
 	async getComponentDefinitions(): Promise<Map<string, BlockDefinition>> {
 		if (definitionsCache) return definitionsCache;
 		definitionsCache = new Map(
-			blockDefinitions.map((def) => [def.componentType, def]),
+			withoutDisabledBlocks(blockDefinitions, disabledBlocks).map((def) => [
+				def.componentType,
+				def,
+			]),
 		);
 		return definitionsCache;
 	},
@@ -20,7 +25,9 @@ export const componentLoaderService = {
 	},
 
 	async loadComponent(componentType: string): Promise<any> {
-		const component = blockRegistry[componentType];
+		const component = disabledBlocks.has(componentType)
+			? undefined
+			: blockRegistry[componentType];
 		if (!component) {
 			throw new Error(`Component ${componentType} not found`);
 		}
@@ -28,7 +35,9 @@ export const componentLoaderService = {
 	},
 
 	getAvailableComponents(): string[] {
-		return blockDefinitions.map((def) => def.componentType);
+		return withoutDisabledBlocks(blockDefinitions, disabledBlocks).map(
+			(def) => def.componentType,
+		);
 	},
 
 	clearCache(): void {

@@ -2,12 +2,14 @@
  * DB side of module registration. Loaded by drizzle-kit via `src/db/schema.ts`,
  * so it must not import a DB connection or `~/env`.
  */
+import dealsSchema from "../../../modules/deals/schema";
 import jobsSchema from "../../../modules/jobs/schema";
 
 // Module tables, picked up by drizzle-kit as part of `src/db/schema.ts`.
+export * from "../../../modules/deals/schema";
 export * from "../../../modules/jobs/schema";
 
-export const moduleSchemas = [jobsSchema] as const;
+export const moduleSchemas = [dealsSchema, jobsSchema] as const;
 
 type Schemas = typeof moduleSchemas;
 type Intersect<T extends readonly unknown[]> = T extends readonly [

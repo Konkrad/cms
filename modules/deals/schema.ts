@@ -3,6 +3,7 @@ import { type InferSelectModel, sql } from "drizzle-orm";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
+import { defineModuleSchema } from "~/core-api/db-schema";
 
 export interface DealStep {
 	type: "text" | "link" | "promo";
@@ -38,9 +39,9 @@ export const insertDealSchema = baseInsertSchema.extend({
 		.default(() => crypto.randomUUIDv7()),
 	validUntil: z
 		.union([
-			z.coerce.date().transform((d) => d.toISOString()),
 			z.null(),
 			z.undefined(),
+			z.coerce.date().transform((d) => d.toISOString()),
 		])
 		.optional(),
 	steps: z
@@ -62,9 +63,9 @@ export const updateDealSchema = baseInsertSchema
 	.extend({
 		validUntil: z
 			.union([
-				z.coerce.date().transform((d) => d.toISOString()),
 				z.null(),
 				z.undefined(),
+				z.coerce.date().transform((d) => d.toISOString()),
 			])
 			.optional(),
 		steps: z
@@ -83,6 +84,11 @@ export const updateDealSchema = baseInsertSchema
 	})
 	.partial()
 	.omit({ id: true });
+
+export default defineModuleSchema({
+	tables: { deals },
+	relations: () => ({}),
+});
 
 export type Deal = InferSelectModel<typeof deals>;
 export type InsertDeal = z.infer<typeof insertDealSchema>;

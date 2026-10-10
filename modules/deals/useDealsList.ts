@@ -1,10 +1,11 @@
 import { useSignal, useTask$ } from "@qwik.dev/core";
 import { server$ } from "@qwik.dev/router";
 import type { DealListItem } from "~/contracts/deals";
-import { dealsService } from "~/services/deals.service";
+import { toDealListItem } from "./public-deal";
+import { dealsService } from "./service";
 
 const fetchActiveDeals = server$(async (): Promise<DealListItem[]> => {
-	return dealsService.getActive();
+	return (await dealsService.getActive()).map(toDealListItem);
 });
 
 /** Headless composable owning data-fetching for the "Deals" page-builder block. */

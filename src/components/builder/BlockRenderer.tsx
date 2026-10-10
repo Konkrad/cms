@@ -1,4 +1,5 @@
 import { component$ } from "@qwik.dev/core";
+import { disabledBlocks } from "~/core/registry/blocks";
 import type { BlockData } from "~/db/schema";
 import { blockRegistry } from "~theme/blocks";
 
@@ -7,6 +8,9 @@ interface BlockRendererProps {
 }
 
 export const BlockRenderer = component$<BlockRendererProps>((props) => {
+	// Blocks of inactive modules render nothing.
+	if (disabledBlocks.has(props.block.componentType)) return null;
+
 	const BlockComponent = blockRegistry[props.block.componentType];
 
 	if (!BlockComponent) {

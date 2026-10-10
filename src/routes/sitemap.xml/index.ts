@@ -1,9 +1,10 @@
 import type { RequestHandler } from "@qwik.dev/router";
 import { and, eq } from "drizzle-orm";
+import { sitemapEntriesOf } from "~/core/modules";
+import { activeModules } from "~/core/registry/manifests";
 import { db } from "~/db/connection";
 import { menuItems, pages } from "~/db/schema";
 import { env } from "~/env";
-import { dealsService } from "~/services/deals.service";
 import { eventsService } from "~/services/events.service";
 import { groupsService } from "~/services/groups.service";
 import { postsService } from "~/services/posts.service";
@@ -91,11 +92,10 @@ export const onGet: RequestHandler = async ({
 		});
 	}
 
-	const deals = await dealsService.getActive();
-	for (const deal of deals) {
+	for (const entry of await sitemapEntriesOf(activeModules)) {
 		entries.push({
-			loc: new URL(`/deals/${deal.id}`, env.APP_URL).toString(),
-			lastmod: deal.updatedAt,
+			loc: new URL(entry.path, env.APP_URL).toString(),
+			lastmod: entry.lastmod ?? undefined,
 		});
 	}
 

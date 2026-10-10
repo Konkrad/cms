@@ -32,7 +32,6 @@ import { userTags } from "./schemas/user-tags";
 import { users } from "./schemas/users";
 
 export * from "../core/registry/schemas";
-export * from "./schemas/deals";
 export * from "./schemas/election-applications";
 export * from "./schemas/election-cycles";
 export * from "./schemas/election-positions";

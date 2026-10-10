@@ -63,7 +63,7 @@ export const head: DocumentHead = ({ resolveValue, url }) => {
 	// usePathPage being executed for the current request.
 	try {
 		const { pageId, data } = resolveValue(usePathPage);
-		if (pageId !== CMS_PAGE) return moduleViews[pageId].head?.(data) ?? {};
+		if (pageId !== CMS_PAGE) return moduleViews[pageId].head?.(data, url) ?? {};
 
 		const page = data as PageViewData;
 		if (!page) {

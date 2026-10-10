@@ -1,0 +1,135 @@
+import { component$ } from "@qwik.dev/core";
+import { Form, Link, routeAction$, z, zod$ } from "@qwik.dev/router";
+import { format } from "date-fns";
+import { Button, Pagination, SearchBar } from "~/ui";
+import { dealsService } from "../service";
+import { requireDealsAdmin } from "./auth";
+import type { AdminDealsData } from "./list-data";
+
+export const useDeleteDeal = routeAction$(
+	async (data, event) => {
+		await requireDealsAdmin(event);
+		await dealsService.delete(data.dealId);
+		return { success: true };
+	},
+	zod$({ dealId: z.string().uuid() }),
+);
+
+export const AdminDealsList = component$<{ data: AdminDealsData }>(
+	({ data }) => {
+		const deleteAction = useDeleteDeal();
+		const now = new Date();
+		const totalPages = Math.ceil(data.total / data.pageSize);
+
+		return (
+			<div>
+				<div class="flex items-center justify-between mb-6">
+					<h2 class="text-2xl font-bold text-gray-800">Deals</h2>
+					<Button href="/admin/global/deals/new">Add Deal</Button>
+				</div>
+
+				<SearchBar value={data.search} placeholder="Search by name…" />
+
+				<div class="bg-white rounded-lg shadow-sm overflow-x-auto">
+					<table class="min-w-full divide-y divide-gray-200">
+						<thead class="bg-gray-50">
+							<tr>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Name
+								</th>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Steps
+								</th>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Valid Until
+								</th>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Actions
+								</th>
+							</tr>
+						</thead>
+						<tbody class="bg-white divide-y divide-gray-200">
+							{data.deals.map((deal) => {
+								const isExpired =
+									deal.validUntil != null && new Date(deal.validUntil) < now;
+								return (
+									<tr key={deal.id} class="hover:bg-gray-50">
+										<td class="px-6 py-4">
+											<div class="text-sm font-medium text-gray-900">
+												{deal.name}
+											</div>
+											{deal.description && (
+												<div class="text-sm text-gray-500 line-clamp-1">
+													{deal.description}
+												</div>
+											)}
+										</td>
+										<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+											{(deal.steps ?? []).length} step
+											{(deal.steps ?? []).length !== 1 ? "s" : ""}
+										</td>
+										<td class="px-6 py-4 whitespace-nowrap text-sm">
+											{deal.validUntil ? (
+												<span
+													class={
+														isExpired
+															? "text-red-600 font-medium"
+															: "text-gray-700"
+													}
+												>
+													{isExpired ? "Expired · " : ""}
+													{format(new Date(deal.validUntil), "MMM d, yyyy")}
+												</span>
+											) : (
+												<span class="text-gray-400">No expiry</span>
+											)}
+										</td>
+										<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+											<div class="flex items-center gap-4">
+												<Link
+													href={`/admin/global/deals/${deal.id}/edit`}
+													class="text-blue-600 hover:text-blue-900"
+												>
+													Edit
+												</Link>
+												<Form action={deleteAction}>
+													<input type="hidden" name="dealId" value={deal.id} />
+													<button
+														type="submit"
+														preventdefault:click
+														class="text-red-600 hover:text-red-900"
+														onClick$={(e) => {
+															if (!confirm("Delete this deal?")) return;
+															(e.target as HTMLElement)
+																.closest("form")
+																?.requestSubmit();
+														}}
+													>
+														Delete
+													</button>
+												</Form>
+											</div>
+										</td>
+									</tr>
+								);
+							})}
+						</tbody>
+					</table>
+					{data.deals.length === 0 && (
+						<div class="text-center py-12 text-gray-500">
+							{data.search
+								? `No deals matching "${data.search}".`
+								: "No deals yet. Add your first deal!"}
+						</div>
+					)}
+					<Pagination
+						page={data.page}
+						totalPages={totalPages}
+						total={data.total}
+						pageSize={data.pageSize}
+					/>
+				</div>
+			</div>
+		);
+	},
+);

@@ -2,9 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import {
 	adminSectionsOf,
 	defineModule,
+	disabledBlockTypes,
 	menuLinksOf,
 	pagesOf,
 	selectActive,
+	sitemapEntriesOf,
+	withoutDisabledBlocks,
 } from "~/core/modules";
 import { definePage } from "~/core/pages";
 
@@ -65,10 +68,114 @@ describe("contributions come only from active modules", () => {
 	});
 });
 
+describe("sitemapEntriesOf", () => {
+	const withSitemap = defineModule({
+		id: "gamma",
+		sitemap: async () => [
+			{ path: "/gamma/1", lastmod: "2026-01-01" },
+			{ path: "/gamma/2" },
+		],
+	});
+
+	it("concatenates the entries of the given modules, skipping modules without a sitemap", async () => {
+		expect(await sitemapEntriesOf([alpha, withSitemap, beta])).toEqual([
+			{ path: "/gamma/1", lastmod: "2026-01-01" },
+			{ path: "/gamma/2" },
+		]);
+	});
+
+	it("is empty for no modules", async () => {
+		expect(await sitemapEntriesOf([])).toEqual([]);
+	});
+
+	it("leaves out modules that are not active", async () => {
+		const active = selectActive([alpha, withSitemap], ["alpha"]);
+		expect(await sitemapEntriesOf(active)).toEqual([]);
+	});
+});
+
+describe("disabledBlockTypes", () => {
+	const moduleBlocks = {
+		alpha: ["AlphaBlock"],
+		beta: ["BetaBlock", "BetaTwo"],
+	};
+
+	it("excludes the block types of inactive modules only", () => {
+		expect(disabledBlockTypes(moduleBlocks, ["alpha"])).toEqual(
+			new Set(["BetaBlock", "BetaTwo"]),
+		);
+		expect(disabledBlockTypes(moduleBlocks, ["alpha", "beta"]).size).toBe(0);
+		expect(disabledBlockTypes(moduleBlocks, [])).toEqual(
+			new Set(["AlphaBlock", "BetaBlock", "BetaTwo"]),
+		);
+	});
+
+	it("keeps a type that an active module also owns", () => {
+		expect(
+			disabledBlockTypes({ a: ["Shared"], b: ["Shared"] }, ["a"]).size,
+		).toBe(0);
+	});
+});
+
+describe("block gating with the checked-in config", () => {
+	it("client-safe block list matches the manifests", async () => {
+		const { allModules } = await import("~/core/registry/manifests");
+		const { moduleBlocks } = await import("~/core/registry/blocks");
+		for (const m of allModules) {
+			expect(moduleBlocks[m.id] ?? []).toEqual(m.blocks ?? []);
+		}
+	});
+
+	it("DealsListBlock is enabled while deals is active", async () => {
+		const { disabledBlocks } = await import("~/core/registry/blocks");
+		expect(disabledBlocks.has("DealsListBlock")).toBe(false);
+	});
+});
+
+describe("with deals inactive", () => {
+	it("its block is disabled and filtered from the picker definitions", async () => {
+		vi.resetModules();
+		vi.doMock("../../modules.config", () => ({
+			default: { active: ["jobs"] },
+		}));
+		const { disabledBlocks } = await import("~/core/registry/blocks");
+		expect(disabledBlocks.has("DealsListBlock")).toBe(true);
+		const defs = [
+			{ componentType: "TextBlock" },
+			{ componentType: "DealsListBlock" },
+		];
+		expect(
+			withoutDisabledBlocks(defs, disabledBlocks).map((d) => d.componentType),
+		).toEqual(["TextBlock"]);
+		vi.doUnmock("../../modules.config");
+		vi.resetModules();
+	});
+
+	it("and the deals page and sitemap are inactive too", async () => {
+		vi.resetModules();
+		vi.doMock("../../modules.config", () => ({
+			default: { active: ["jobs"] },
+		}));
+		const mod = await import("~/core/registry/manifests");
+		expect(mod.modulePages.some((p) => p.id === "deals.detail")).toBe(false);
+		expect(await sitemapEntriesOf(mod.activeModules)).toEqual([]);
+		vi.doUnmock("../../modules.config");
+		vi.resetModules();
+	});
+});
+
 describe("registry with the checked-in config", () => {
 	it("includes jobs pages in modulePages", async () => {
 		const { modulePages } = await import("~/core/registry/manifests");
 		expect(modulePages.some((p) => p.id === "jobs.list")).toBe(true);
+	});
+
+	it("includes deals pages and admin section between groups and jobs", async () => {
+		const { modulePages, activeAdminSections } = await import(
+			"~/core/registry/manifests"
+		);
+		expect(modulePages.some((p) => p.id === "deals.detail")).toBe(true);
+		expect(activeAdminSections.map((s) => s.path)).toEqual(["deals", "jobs"]);
 	});
 
 	it("requireActiveModule passes for active and 404s for others", async () => {

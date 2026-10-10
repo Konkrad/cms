@@ -616,6 +616,51 @@ export function deleteJobById(id: string): void {
 	db.close();
 }
 
+// ── Deal helpers ──────────────────────────────────────────────────────────────
+
+export function createDealInDb(opts: {
+	name?: string;
+	description?: string;
+	logo?: string | null;
+	validUntil?: string | null;
+	steps?: unknown[];
+}): { dealId: string; cleanup(): void } {
+	const db = openDb();
+	const dealId = crypto.randomUUID();
+	db.prepare(
+		`INSERT INTO deals (id, name, description, logo, valid_until, steps)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+	).run(
+		dealId,
+		opts.name ?? "Test Deal",
+		opts.description ?? "Test deal description",
+		opts.logo ?? null,
+		opts.validUntil ?? null,
+		JSON.stringify(opts.steps ?? []),
+	);
+	db.close();
+	return { dealId, cleanup: () => deleteDealById(dealId) };
+}
+
+export function getDealByName(
+	name: string,
+): { id: string; name: string; valid_until: string | null } | undefined {
+	const db = openDb();
+	const row = db
+		.prepare("SELECT id, name, valid_until FROM deals WHERE name = ? LIMIT 1")
+		.get(name) as
+		| { id: string; name: string; valid_until: string | null }
+		| undefined;
+	db.close();
+	return row;
+}
+
+export function deleteDealById(id: string): void {
+	const db = openDb();
+	db.prepare("DELETE FROM deals WHERE id = ?").run(id);
+	db.close();
+}
+
 // ── Scope helpers ─────────────────────────────────────────────────────────────
 
 /**

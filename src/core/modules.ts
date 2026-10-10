@@ -13,11 +13,25 @@ export interface MenuLink {
 	url: string;
 }
 
+export interface SitemapEntry {
+	/** Path with leading slash, e.g. "/deals/123". The sitemap route resolves it against APP_URL. */
+	path: string;
+	lastmod?: string | null;
+}
+
 export interface ModuleDefinition {
 	id: string;
 	pages?: PageDefinition<unknown>[];
 	admin?: { sections: AdminSection[] };
 	menuLinks?: MenuLink[];
+	/**
+	 * Page-builder block types (componentType ids) this module owns. They are hidden from the
+	 * admin picker and not rendered while the module is inactive. Must match the client-safe
+	 * list in `src/core/registry/blocks.ts` (a unit test checks this).
+	 */
+	blocks?: string[];
+	/** Public URLs for /sitemap.xml. Server-only. Omit for login-gated modules. */
+	sitemap?: () => Promise<SitemapEntry[]>;
 }
 
 export function defineModule(module: ModuleDefinition): ModuleDefinition {
@@ -59,3 +73,33 @@ export const adminSectionsOf = (
 	modules
 		.flatMap((m) => m.admin?.sections ?? [])
 		.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+/** Sitemap entries of the given modules, in module order. */
+export const sitemapEntriesOf = async (
+	modules: readonly ModuleDefinition[],
+): Promise<SitemapEntry[]> =>
+	(await Promise.all(modules.map((m) => m.sitemap?.() ?? []))).flat();
+
+/**
+ * Block types owned by a module that is not active. `moduleBlocks` maps module id to its
+ * block types; a type also owned by an active module stays enabled.
+ */
+export function disabledBlockTypes(
+	moduleBlocks: Readonly<Record<string, readonly string[]>>,
+	activeIds: readonly string[],
+): Set<string> {
+	const active = new Set(activeIds);
+	const enabled = new Set<string>();
+	const disabled = new Set<string>();
+	for (const [id, types] of Object.entries(moduleBlocks)) {
+		for (const type of types) (active.has(id) ? enabled : disabled).add(type);
+	}
+	for (const type of enabled) disabled.delete(type);
+	return disabled;
+}
+
+/** The items whose `componentType` is not in `disabled` (picker/loader view of the block registry). */
+export const withoutDisabledBlocks = <T extends { componentType: string }>(
+	defs: readonly T[],
+	disabled: ReadonlySet<string>,
+): T[] => defs.filter((d) => !disabled.has(d.componentType));

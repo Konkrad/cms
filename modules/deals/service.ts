@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, isNull, or } from "drizzle-orm";
-import { db } from "~/db/connection";
-import type { Deal, InsertDeal, UpdateDeal } from "~/db/schemas/deals";
-import { deals, insertDealSchema, updateDealSchema } from "~/db/schemas/deals";
+import { db } from "~/core-api";
+import type { Deal, InsertDeal, UpdateDeal } from "./schema";
+import { deals, insertDealSchema, updateDealSchema } from "./schema";
 
 export const dealsService = {
 	async getAll(): Promise<Deal[]> {

@@ -6,11 +6,12 @@ import {
 	pagesOf,
 	selectActive,
 } from "~/core/modules";
+import { dealsModule } from "../../../modules/deals/module";
 import { jobsModule } from "../../../modules/jobs/module";
 import config from "../../../modules.config";
 
 /** Every module that exists in the codebase; `modules.config.ts` picks the active ones. */
-export const allModules: ModuleDefinition[] = [jobsModule];
+export const allModules: ModuleDefinition[] = [dealsModule, jobsModule];
 
 export const activeModules = selectActive(allModules, config.active);
 

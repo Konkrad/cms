@@ -5,7 +5,7 @@ import type { DocumentHeadValue } from "@qwik.dev/router";
 export interface PageViewEntry {
 	// biome-ignore lint/suspicious/noExplicitAny: each view narrows its own data type
 	view: Component<{ data: any }>;
-	head?: (data: unknown) => DocumentHeadValue;
+	head?: (data: unknown, url: URL) => DocumentHeadValue;
 }
 
 export type PageViews = Record<string, PageViewEntry>;

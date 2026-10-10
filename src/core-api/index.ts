@@ -18,9 +18,10 @@ export type { PageDirection } from "~/services/pagination";
 export { decodeCursor, paginateRows } from "~/services/pagination";
 export { userTagsService } from "~/services/user-tags.service";
 export { requireGroupAdmin } from "~/utils/access-control";
+export { publicImageUrlFromKey } from "~/utils/images";
 export { sanitizeRichHtml } from "~/utils/sanitize-html";
 export { currentScopeRest } from "~/utils/scope-request";
-export { requireAuth } from "~/utils/server-auth";
+export { getServerSession, requireAuth } from "~/utils/server-auth";
 
 // Schema references modules need to relate to core tables (also in ./db-schema).
 export * from "./db-schema";

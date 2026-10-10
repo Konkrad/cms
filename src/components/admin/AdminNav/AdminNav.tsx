@@ -1,11 +1,18 @@
 import { component$ } from "@qwik.dev/core";
 import { Link, useLocation } from "@qwik.dev/router";
 
+interface NavItem {
+	order: number;
+	href: string;
+	label: string;
+	exact?: boolean;
+}
+
 interface AdminNavProps {
 	groupSlug?: string;
 	isGlobal?: boolean;
 	/** Admin sections contributed by active modules (global admin only). */
-	sections?: { path: string; label: string }[];
+	sections?: { path: string; label: string; order?: number }[];
 }
 
 export const AdminNav = component$<AdminNavProps>(
@@ -17,51 +24,37 @@ export const AdminNav = component$<AdminNavProps>(
 		const basePath =
 			isGlobal || !groupSlug ? "/admin/global" : `/admin/${groupSlug}`;
 
-		const navItems = [
-			{ href: basePath, label: "Dashboard", exact: true },
-			{ href: `${basePath}/users`, label: "Users" },
-			{ href: `${basePath}/posts`, label: "Posts" },
-			{ href: `${basePath}/events`, label: "Events" },
-			{ href: `${basePath}/forms`, label: "Forms" },
+		// Every entry has a fixed sort number so module sections can sit between core entries
+		// (e.g. Deals/Jobs between Groups and Elections). Sections without `order` go last.
+		const navItems: NavItem[] = [
+			{ order: 0, href: basePath, label: "Dashboard", exact: true },
+			{ order: 10, href: `${basePath}/users`, label: "Users" },
+			{ order: 20, href: `${basePath}/posts`, label: "Posts" },
+			{ order: 30, href: `${basePath}/events`, label: "Events" },
+			{ order: 40, href: `${basePath}/forms`, label: "Forms" },
 		];
 
-		// Add Pages link only for global admin
+		// Global admin only: core entries plus sections contributed by active modules
 		if (isGlobal) {
-			navItems.push({ href: `${basePath}/pages`, label: "Pages" });
-		}
-
-		// Add Groups management for global admin
-		if (isGlobal) {
-			navItems.push({ href: `/admin/global/groups`, label: "Groups" });
-		}
-
-		// Add Deals management for global admin
-		if (isGlobal) {
-			navItems.push({ href: `/admin/global/deals`, label: "Deals" });
-		}
-
-		// Sections contributed by active modules (global admin only)
-		if (isGlobal) {
+			navItems.push(
+				{ order: 50, href: `${basePath}/pages`, label: "Pages" },
+				{ order: 60, href: "/admin/global/groups", label: "Groups" },
+				{ order: 200, href: "/admin/global/elections", label: "Elections" },
+				{
+					order: 210,
+					href: "/admin/global/qualifications",
+					label: "Qualifications",
+				},
+			);
 			for (const section of sections) {
 				navItems.push({
+					order: section.order ?? 1000,
 					href: `/admin/global/${section.path}`,
 					label: section.label,
 				});
 			}
 		}
-
-		// Add Elections management for global admin
-		if (isGlobal) {
-			navItems.push({ href: `/admin/global/elections`, label: "Elections" });
-		}
-
-		// Add Qualifications management for global admin
-		if (isGlobal) {
-			navItems.push({
-				href: `/admin/global/qualifications`,
-				label: "Qualifications",
-			});
-		}
+		navItems.sort((a, b) => a.order - b.order);
 
 		return (
 			<nav class="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">

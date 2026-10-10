@@ -40,11 +40,6 @@ export const AdminNav = component$<AdminNavProps>(
 				{ order: 50, href: `${basePath}/pages`, label: "Pages" },
 				{ order: 60, href: "/admin/global/groups", label: "Groups" },
 				{ order: 200, href: "/admin/global/elections", label: "Elections" },
-				{
-					order: 210,
-					href: "/admin/global/qualifications",
-					label: "Qualifications",
-				},
 			);
 			for (const section of sections) {
 				navItems.push({

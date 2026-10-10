@@ -1151,6 +1151,36 @@ export function createQualificationInDb(
 	};
 }
 
+export function createQualificationTokenInDb(
+	typeId: string,
+	createdBy: string,
+): { token: string; cleanup: () => void } {
+	const db = openDb();
+	const token = crypto.randomBytes(16).toString("hex");
+	db.prepare(
+		`INSERT INTO qualification_tokens (id, token, type_id, created_by, expires_at, is_active, created_at)
+     VALUES (?, ?, ?, ?, ?, 1, ?)`,
+	).run(
+		crypto.randomUUID(),
+		token,
+		typeId,
+		createdBy,
+		new Date(Date.now() + 3600_000).toISOString(),
+		new Date().toISOString(),
+	);
+	db.close();
+	return {
+		token,
+		cleanup() {
+			const db2 = openDb();
+			db2
+				.prepare("DELETE FROM qualification_tokens WHERE token = ?")
+				.run(token);
+			db2.close();
+		},
+	};
+}
+
 export function createMembershipInDb(
 	userId: string,
 	tier: "associated" | "full",

@@ -1,7 +1,9 @@
 /**
- * Core → theme data contract for the qualification verification route
- * (`/qualifications/verify/[token]`).
+ * Core → theme data contract for the qualification verification page
+ * (`/qualifications/verify/:token`, modules/qualifications).
  */
-import type { useVerify } from "~/routes/qualifications/verify/[token]";
+import type { qualificationVerifyPage } from "~modules/qualifications/pages";
 
-export type QualificationVerifyViewData = ReturnType<typeof useVerify>["value"];
+export type QualificationVerifyViewData = Awaited<
+	ReturnType<typeof qualificationVerifyPage.load>
+>;

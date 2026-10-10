@@ -3,8 +3,8 @@ import { type InferSelectModel, sql } from "drizzle-orm";
 import { sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { users } from "~/core-api/db-schema";
 import { qualificationTypes } from "./qualification-types";
-import { users } from "./users";
 
 export const userQualifications = sqliteTable(
 	"user_qualifications",

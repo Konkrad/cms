@@ -8,10 +8,15 @@ import {
 } from "~/core/modules";
 import { dealsModule } from "../../../modules/deals/module";
 import { jobsModule } from "../../../modules/jobs/module";
+import { qualificationsModule } from "../../../modules/qualifications/module";
 import config from "../../../modules.config";
 
 /** Every module that exists in the codebase; `modules.config.ts` picks the active ones. */
-export const allModules: ModuleDefinition[] = [dealsModule, jobsModule];
+export const allModules: ModuleDefinition[] = [
+	dealsModule,
+	jobsModule,
+	qualificationsModule,
+];
 
 export const activeModules = selectActive(allModules, config.active);
 

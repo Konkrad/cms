@@ -17,8 +17,6 @@ import { pages } from "./schemas/pages";
 import { participationStatus } from "./schemas/participation-status";
 import { posts } from "./schemas/posts";
 import { products } from "./schemas/products";
-import { qualificationTokens } from "./schemas/qualification-tokens";
-import { qualificationTypes } from "./schemas/qualification-types";
 import { scopeMemberships, scopeRoles, scopes } from "./schemas/scopes";
 import { sessions } from "./schemas/sessions";
 import { tagDefinitions } from "./schemas/tag-definitions";
@@ -27,7 +25,6 @@ import { tickets } from "./schemas/tickets";
 import { transactionItems } from "./schemas/transaction-items";
 import { transactions } from "./schemas/transactions";
 import { userMemberships } from "./schemas/user-memberships";
-import { userQualifications } from "./schemas/user-qualifications";
 import { userTags } from "./schemas/user-tags";
 import { users } from "./schemas/users";
 
@@ -49,8 +46,6 @@ export * from "./schemas/pages";
 export * from "./schemas/participation-status";
 export * from "./schemas/posts";
 export * from "./schemas/products";
-export * from "./schemas/qualification-tokens";
-export * from "./schemas/qualification-types";
 export * from "./schemas/scopes";
 export * from "./schemas/sessions";
 export * from "./schemas/shared";
@@ -60,7 +55,6 @@ export * from "./schemas/tickets";
 export * from "./schemas/transaction-items";
 export * from "./schemas/transactions";
 export * from "./schemas/user-memberships";
-export * from "./schemas/user-qualifications";
 export * from "./schemas/user-tags";
 export * from "./schemas/users";
 
@@ -86,9 +80,6 @@ export const schemaRelations = defineRelations(
 		eventPhotos,
 		forms,
 		formResults,
-		qualificationTypes,
-		qualificationTokens,
-		userQualifications,
 		userMemberships,
 		tagDefinitions,
 		userTags,
@@ -119,9 +110,6 @@ export const schemaRelations = defineRelations(
 			formResults,
 			menuItems,
 			pages,
-			qualificationTypes,
-			qualificationTokens,
-			userQualifications,
 			userMemberships,
 			tagDefinitions,
 			userTags,
@@ -304,44 +292,6 @@ export const schemaRelations = defineRelations(
 					}),
 					user: one.users({ from: formResults.userId, to: users.id }),
 				},
-				qualificationTypes: {
-					qualifications: many.userQualifications({
-						from: qualificationTypes.id,
-						to: userQualifications.typeId,
-					}),
-					tokens: many.qualificationTokens({
-						from: qualificationTypes.id,
-						to: qualificationTokens.typeId,
-					}),
-				},
-				qualificationTokens: {
-					type: one.qualificationTypes({
-						from: qualificationTokens.typeId,
-						to: qualificationTypes.id,
-						optional: false,
-					}),
-					creator: one.users({
-						from: qualificationTokens.createdBy,
-						to: users.id,
-						optional: false,
-					}),
-				},
-				userQualifications: {
-					user: one.users({
-						from: userQualifications.userId,
-						to: users.id,
-						optional: false,
-					}),
-					verifier: one.users({
-						from: userQualifications.verifiedBy,
-						to: users.id,
-					}),
-					type: one.qualificationTypes({
-						from: userQualifications.typeId,
-						to: qualificationTypes.id,
-						optional: false,
-					}),
-				},
 				userMemberships: {
 					user: one.users({
 						from: userMemberships.userId,
@@ -437,10 +387,6 @@ export const schemaRelations = defineRelations(
 					posts: many.posts({ from: users.id, to: posts.userId }),
 					events: many.events({ from: users.id, to: events.userId }),
 					sessions: many.sessions({ from: users.id, to: sessions.userId }),
-					qualifications: many.userQualifications({
-						from: users.id,
-						to: userQualifications.userId,
-					}),
 					membership: many.userMemberships({
 						from: users.id,
 						to: userMemberships.userId,

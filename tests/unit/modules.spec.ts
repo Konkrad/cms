@@ -175,7 +175,11 @@ describe("registry with the checked-in config", () => {
 			"~/core/registry/manifests"
 		);
 		expect(modulePages.some((p) => p.id === "deals.detail")).toBe(true);
-		expect(activeAdminSections.map((s) => s.path)).toEqual(["deals", "jobs"]);
+		expect(activeAdminSections.map((s) => s.path)).toEqual([
+			"deals",
+			"jobs",
+			"qualifications",
+		]);
 	});
 
 	it("requireActiveModule passes for active and 404s for others", async () => {

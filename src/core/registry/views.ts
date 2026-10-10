@@ -1,6 +1,11 @@
 import type { PageViews } from "~/core/page-views";
 import { dealsViews } from "../../../modules/deals/views";
 import { jobsViews } from "../../../modules/jobs/views";
+import { qualificationsViews } from "../../../modules/qualifications/views";
 
 /** Page id → view for the catch-all route (client-safe: no server imports). */
-export const moduleViews: PageViews = { ...dealsViews, ...jobsViews };
+export const moduleViews: PageViews = {
+	...dealsViews,
+	...jobsViews,
+	...qualificationsViews,
+};

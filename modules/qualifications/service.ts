@@ -1,24 +1,22 @@
 import crypto from "crypto";
 import { and, eq, lte } from "drizzle-orm";
-import { db } from "~/db/connection";
+import { db, membershipsService, userTagsService } from "~/core-api";
 import {
 	insertQualificationTokenSchema,
 	type QualificationToken,
 	qualificationTokens,
-} from "~/db/schemas/qualification-tokens";
+} from "./qualification-tokens";
 import {
 	insertQualificationTypeSchema,
 	type QualificationType,
 	qualificationTypes,
 	updateQualificationTypeSchema,
-} from "~/db/schemas/qualification-types";
+} from "./qualification-types";
 import {
 	insertUserQualificationSchema,
 	type UserQualification,
 	userQualifications,
-} from "~/db/schemas/user-qualifications";
-import { membershipsService } from "./memberships.service";
-import { userTagsService } from "./user-tags.service";
+} from "./user-qualifications";
 
 export type UserQualificationWithType = UserQualification & {
 	type: QualificationType;

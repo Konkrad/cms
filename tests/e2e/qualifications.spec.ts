@@ -8,9 +8,16 @@
  */
 
 import {
+	addGroupRepresentative,
+	createGroupInDb,
 	createQualificationInDb,
+	createQualificationTokenInDb,
 	createQualificationTypeInDb,
+	createScopeInDb,
 	createUserSession,
+	deleteGroupInDb,
+	deleteGroupRepresentative,
+	deleteScopeById,
 	expect,
 	openDb,
 	test,
@@ -180,5 +187,78 @@ test("admin rejects qualification → rejection note visible on user profile", a
 		tc();
 		admin.cleanup();
 		applicant.cleanup();
+	}
+});
+
+test("group-scoped admin URL does not render the qualifications admin UI", async ({
+	guestPage: page,
+}) => {
+	const admin = createUserSession("admin");
+	const slug = `qual-scope-${Date.now()}`;
+	const groupId = createGroupInDb({ name: "Qualifications Scope Group", slug });
+	addGroupRepresentative(admin.userId, groupId);
+	const { typeId, cleanup: tc } = createQualificationTypeInDb({
+		label: "Scoped Hidden Type",
+	});
+	try {
+		await loginAs(page, admin.sessionToken);
+		await page.goto(`/admin/${slug}/qualifications`);
+		await expect(page.getByText("Scoped Hidden Type")).toHaveCount(0);
+		await expect(page).toHaveURL(/\/admin\/global\/qualifications$/);
+	} finally {
+		tc();
+		try {
+			deleteGroupRepresentative(admin.userId, groupId);
+			deleteGroupInDb(groupId);
+		} catch {}
+		admin.cleanup();
+	}
+});
+
+test("verify page works at the root and under a scope prefix", async ({
+	guestPage: page,
+}) => {
+	const suffix = Date.now().toString(36);
+	const region = `e2e-qual-region-${suffix}`;
+	const chapter = `e2e-qual-chapter-${suffix}`;
+	const regionId = createScopeInDb({ parentPath: "/", slug: region }).id;
+	const chapterId = createScopeInDb({
+		parentPath: `/${region}/`,
+		slug: chapter,
+	}).id;
+	const admin = createUserSession("admin");
+	const member = createUserSession("user");
+	const { typeId, cleanup: tc } = createQualificationTypeInDb({
+		label: "Scoped Verify Type",
+		slug: `scoped-verify-${suffix}`,
+	});
+	const { token, cleanup: tokc } = createQualificationTokenInDb(
+		typeId,
+		admin.userId,
+	);
+	try {
+		await loginAs(page, member.sessionToken);
+		const res = await page.goto(
+			`/${region}/${chapter}/qualifications/verify/${token}`,
+		);
+		expect(res?.status()).toBe(200);
+		await expect(page.locator("h1")).toHaveText("Qualification Verified!");
+
+		// Redeeming again at the root resolves to the same page, now already verified
+		await page.goto(`/qualifications/verify/${token}`);
+		await expect(page.locator("h1")).toHaveText("Already Verified");
+	} finally {
+		const db = openDb();
+		db.prepare("DELETE FROM user_tags WHERE user_id = ?").run(member.userId);
+		db.prepare("DELETE FROM user_memberships WHERE user_id = ?").run(
+			member.userId,
+		);
+		db.close();
+		tokc();
+		tc();
+		admin.cleanup();
+		member.cleanup();
+		deleteScopeById(chapterId);
+		deleteScopeById(regionId);
 	}
 });

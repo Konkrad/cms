@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 const { requireAuth } = vi.hoisted(() => ({ requireAuth: vi.fn() }));
 vi.mock("~/core/auth/server-auth", () => ({ requireAuth }));
 
-import { requireModuleAuth } from "~/core/module-auth";
+import { requireModuleAuth } from "~/core/registry/module-auth";
 
 const event = {
 	error: (status: number) => ({ error: { status } }),

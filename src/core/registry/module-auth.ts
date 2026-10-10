@@ -1,5 +1,5 @@
 import { requireAuth } from "~/core/auth/server-auth";
-import { requireActiveModule } from "./registry/manifests";
+import { requireActiveModule } from "./manifests";
 
 /**
  * Login check plus module switch for public module loaders/actions: redirects to `/login`

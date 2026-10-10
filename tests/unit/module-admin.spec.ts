@@ -5,8 +5,8 @@ const { requireGroupAdmin } = vi.hoisted(() => ({
 }));
 vi.mock("~/core/scopes/access-control", () => ({ requireGroupAdmin }));
 
-import { requireModuleAdmin } from "~/core/module-admin";
-import { toPublicUser } from "~/core/public-user";
+import { requireModuleAdmin } from "~/core/registry/module-admin";
+import { toPublicUser } from "~/core/users/public-user";
 
 /** Event whose redirect/error helpers throw a tagged object, like Qwik's. */
 const makeEvent = () =>

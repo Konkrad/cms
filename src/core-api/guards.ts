@@ -1,2 +1,2 @@
-export { requireModuleAdmin } from "~/core/module-admin";
-export { requireModuleAuth } from "~/core/module-auth";
+export { requireModuleAdmin } from "~/core/registry/module-admin";
+export { requireModuleAuth } from "~/core/registry/module-auth";

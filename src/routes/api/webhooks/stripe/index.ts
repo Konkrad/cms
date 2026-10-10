@@ -1,6 +1,6 @@
 import type { RequestHandler } from "@qwik.dev/router";
 import Stripe from "stripe";
-import { dispatchPayment, handleStripeWebhook } from "~/core/payments";
+import { dispatchPayment, handleStripeWebhook } from "~/core/payments/payments";
 import { allModules } from "~/core/registry/manifests";
 import { env } from "~/env";
 

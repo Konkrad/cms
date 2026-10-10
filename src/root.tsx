@@ -5,7 +5,7 @@ import {
 	RouterOutlet,
 	ServiceWorkerRegister,
 } from "@qwik.dev/router";
-import { RouterHead } from "./components/router-head/router-head";
+import { RouterHead } from "./core/router/router-head";
 
 import "./global.css";
 import "./styles/forms.css";

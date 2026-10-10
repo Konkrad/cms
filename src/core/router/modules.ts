@@ -1,6 +1,6 @@
 import type { GroupExtras } from "~/contracts/groups";
 import type { ProfileExtras } from "~/contracts/profile";
-import type { PaymentHandlers } from "~/core/payments";
+import type { PaymentHandlers } from "~/core/payments/payments";
 import type { PageDefinition } from "~/core/router/pages";
 
 export interface AdminSection {
@@ -73,7 +73,7 @@ export interface ModuleDefinition {
 	/**
 	 * Stripe payment callbacks by payment kind. Server-only. The core webhook calls
 	 * `payments[metadata.kind]` of the module named by `metadata.moduleId` on the PaymentIntent,
-	 * even while the module is inactive (see `src/core/payments.ts`).
+	 * even while the module is inactive (see `src/core/payments/payments.ts`).
 	 */
 	payments?: Record<string, PaymentHandlers>;
 }

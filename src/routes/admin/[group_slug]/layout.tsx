@@ -3,96 +3,92 @@ import { routeLoader$ } from "@qwik.dev/router";
 import { AdminNav } from "~/components/admin/AdminNav";
 import { Breadcrumbs } from "~/components/admin/Breadcrumbs";
 import { Button } from "~/components/ui/Button/Button";
-import { getCurrentUserData } from "~/utils/server-auth";
 import { groupsService } from "~/services/groups.service";
 import { canManageGroupContent } from "~/utils/access-control";
+import { getCurrentUserData } from "~/utils/server-auth";
 
 export const useGroupAdminAuth = routeLoader$(async (event) => {
-  const { params, sharedMap, redirect } = event;
-  const user = await getCurrentUserData(event as any);
-  const groupSlug = params.group_slug;
+	const { params, sharedMap, redirect } = event;
+	const user = await getCurrentUserData(event as any);
+	const groupSlug = params.group_slug;
 
-  if (!user) {
-    throw redirect(302, "/login");
-  }
+	if (!user) {
+		throw redirect(302, "/login");
+	}
 
-  // Check if global admin context
-  if (groupSlug === "global") {
-    // Must be platform admin
-    if (user.role !== "admin") {
-      throw redirect(302, "/");
-    }
-    sharedMap.set("adminContext", { isGlobal: true });
-    return { user, isGlobal: true, group: null };
-  }
+	// Check if global admin context
+	if (groupSlug === "global") {
+		// Must be platform admin
+		if (user.role !== "admin") {
+			throw redirect(302, "/");
+		}
+		sharedMap.set("adminContext", { isGlobal: true });
+		return { user, isGlobal: true, group: null };
+	}
 
-  // Group-specific context - must be representative for that group
-  const group = await groupsService.getBySlug(groupSlug);
-  if (!group) {
-    throw redirect(302, "/groups");
-  }
+	// Group-specific context - must be representative for that group
+	const group = await groupsService.getBySlug(groupSlug);
+	if (!group) {
+		throw redirect(302, "/groups");
+	}
 
-  const canManage = await canManageGroupContent(user.id, group.id);
-  if (!canManage) {
-    throw redirect(302, `/groups/${groupSlug}`);
-  }
+	const canManage = await canManageGroupContent(user.id, group.id);
+	if (!canManage) {
+		throw redirect(302, `/groups/${groupSlug}`);
+	}
 
-  sharedMap.set("adminContext", { isGlobal: false, group });
-  return { user, isGlobal: false, group };
+	sharedMap.set("adminContext", { isGlobal: false, group });
+	return { user, isGlobal: false, group };
 });
 
 export default component$(() => {
-  const auth = useGroupAdminAuth();
+	const auth = useGroupAdminAuth();
 
-  return (
-    <div class="min-h-screen bg-gray-50">
-      <div class="bg-slate-800 text-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 py-6">
-          <div class="flex items-start justify-between gap-4 mb-4">
-            <div class="min-w-0">
-              <h1 class="text-2xl sm:text-3xl font-bold truncate">
-                {auth.value.isGlobal
-                  ? "Platform Admin"
-                  : `${auth.value.group?.name} Admin`}
-              </h1>
-              {!auth.value.isGlobal && auth.value.group && (
-                <p class="text-slate-300 text-sm mt-1">
-                  Community Representative Dashboard
-                </p>
-              )}
-            </div>
-            <div class="flex gap-2 shrink-0">
-              {!auth.value.isGlobal && auth.value.group && (
-                <Button
-                  href={`/groups/${auth.value.group.slug}`}
-                  variant="secondary"
-                  size="sm"
-                >
-                  View Group
-                </Button>
-              )}
-              <Button
-                href="/"
-                variant="secondary"
-                size="sm"
-              >
-                Back to Site
-              </Button>
-            </div>
-          </div>
-          <AdminNav
-            groupSlug={auth.value.isGlobal ? undefined : auth.value.group?.slug}
-            isGlobal={auth.value.isGlobal}
-          />
-        </div>
-      </div>
-      <div class="max-w-7xl mx-auto px-4 py-8">
-        <Breadcrumbs
-          groupSlug={auth.value.isGlobal ? undefined : auth.value.group?.slug}
-          groupName={auth.value.isGlobal ? undefined : auth.value.group?.name}
-        />
-        <Slot />
-      </div>
-    </div>
-  );
+	return (
+		<div class="min-h-screen bg-gray-50">
+			<div class="bg-slate-800 text-white shadow-lg">
+				<div class="max-w-7xl mx-auto px-4 py-6">
+					<div class="flex items-start justify-between gap-4 mb-4">
+						<div class="min-w-0">
+							<h1 class="text-2xl sm:text-3xl font-bold truncate">
+								{auth.value.isGlobal
+									? "Platform Admin"
+									: `${auth.value.group?.name} Admin`}
+							</h1>
+							{!auth.value.isGlobal && auth.value.group && (
+								<p class="text-slate-300 text-sm mt-1">
+									Community Representative Dashboard
+								</p>
+							)}
+						</div>
+						<div class="flex gap-2 shrink-0">
+							{!auth.value.isGlobal && auth.value.group && (
+								<Button
+									href={`/groups/${auth.value.group.slug}`}
+									variant="secondary"
+									size="sm"
+								>
+									View Group
+								</Button>
+							)}
+							<Button href="/" variant="secondary" size="sm">
+								Back to Site
+							</Button>
+						</div>
+					</div>
+					<AdminNav
+						groupSlug={auth.value.isGlobal ? undefined : auth.value.group?.slug}
+						isGlobal={auth.value.isGlobal}
+					/>
+				</div>
+			</div>
+			<div class="max-w-7xl mx-auto px-4 py-8">
+				<Breadcrumbs
+					groupSlug={auth.value.isGlobal ? undefined : auth.value.group?.slug}
+					groupName={auth.value.isGlobal ? undefined : auth.value.group?.name}
+				/>
+				<Slot />
+			</div>
+		</div>
+	);
 });

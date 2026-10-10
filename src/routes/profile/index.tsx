@@ -39,26 +39,20 @@ export const useProfile = routeLoader$(async (event) => {
 			)
 		: null;
 
-	const { participationService } = await import(
-		"~modules/events/services/participation"
-	);
-
-	const [submittedForms, tags, extras, communityRows, events] =
-		await Promise.all([
-			formResultsService.getByUser(user.id),
-			userTagsService.getByUser(user.id),
-			activeProfileExtras({
-				userId: user.id,
-				viewerId: user.id,
-				isOwnProfile: true,
-			}),
-			db
-				.select({ name: groups.name, slug: groups.slug })
-				.from(groupMemberships)
-				.innerJoin(groups, eq(groupMemberships.groupId, groups.id))
-				.where(eq(groupMemberships.userId, user.id)),
-			participationService.getByUserId(user.id),
-		]);
+	const [submittedForms, tags, extras, communityRows] = await Promise.all([
+		formResultsService.getByUser(user.id),
+		userTagsService.getByUser(user.id),
+		activeProfileExtras({
+			userId: user.id,
+			viewerId: user.id,
+			isOwnProfile: true,
+		}),
+		db
+			.select({ name: groups.name, slug: groups.slug })
+			.from(groupMemberships)
+			.innerJoin(groups, eq(groupMemberships.groupId, groups.id))
+			.where(eq(groupMemberships.userId, user.id)),
+	]);
 
 	return {
 		...extras,
@@ -70,8 +64,9 @@ export const useProfile = routeLoader$(async (event) => {
 		profilePictureUrl,
 		tags: tags.map((t) => ({ id: t.id, label: t.label })),
 		communities: communityRows,
-		upcomingEvents: events.upcoming,
-		pastEvents: events.past,
+		// Sections of modules that are not active fall back to empty.
+		upcomingEvents: extras.upcomingEvents ?? [],
+		pastEvents: extras.pastEvents ?? [],
 		isOwner: true,
 		email: (user.email as string | null) ?? null,
 		yearOfBirth: user.yearOfBirth ?? null,

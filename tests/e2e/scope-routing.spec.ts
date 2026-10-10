@@ -7,6 +7,7 @@
 
 import type { Browser, Page } from "@playwright/test";
 import {
+	createGroupEventInDb,
 	createJobInDb,
 	createScopeInDb,
 	createUserSession,
@@ -16,6 +17,7 @@ import {
 	getJobById,
 	test,
 } from "../fixtures";
+import { createEventWithInventory } from "../utils/test-data";
 
 const suffix = Date.now().toString(36);
 const REGION = `e2e-region-${suffix}`;
@@ -97,6 +99,57 @@ test.describe("Scope routing — server rendering", () => {
 		expect(res?.status()).toBe(404);
 		await expect(page.locator("h1").first()).toHaveText("Page Not Found");
 		expect(await scopeOf(page)).toBe(SCOPE_PATH);
+	});
+});
+
+test.describe("Scope routing — events module pages", () => {
+	test("/<region>/<chapter>/events/<id> renders the event page with the chapter scope", async ({
+		guestPage: page,
+	}) => {
+		const organizer = createUserSession("user");
+		const event = createGroupEventInDb({
+			organizerId: organizer.userId,
+			title: "Scoped Event Page",
+		});
+		try {
+			const res = await page.goto(`${PREFIX}/events/${event.eventId}`);
+			expect(res?.status()).toBe(200);
+			await expect(page).toHaveURL(`${PREFIX}/events/${event.eventId}`);
+			await expect(page.locator("h1").first()).toHaveText("Scoped Event Page");
+			expect(await scopeOf(page)).toBe(SCOPE_PATH);
+		} finally {
+			event.cleanup();
+			organizer.cleanup();
+		}
+	});
+
+	test("the RSVP action works under the prefix", async ({ browser }) => {
+		const m = await memberContext(browser);
+		const ev = await createEventWithInventory(
+			{
+				title: "Scoped RSVP Event (per-test)",
+				startOffsetDays: 14,
+				city: "Berlin",
+				products: [{ name: "Free Entry", price: 0, maxQuantity: 100 }],
+				salesStartOffset: -1,
+				salesEndOffset: 30,
+				needsTicket: false,
+			},
+			true,
+		);
+		try {
+			await m.page.goto(`${PREFIX}/events/${ev.id}`);
+			await m.page.waitForLoadState("networkidle");
+			await m.page.click('button:has-text("✓ Going")');
+			await expect(
+				m.page
+					.locator("text=✓ You're attending!")
+					.or(m.page.locator("text=✓ You're Going!")),
+			).toBeVisible({ timeout: 5_000 });
+			expect(await scopeOf(m.page)).toBe(SCOPE_PATH);
+		} finally {
+			await m.close();
+		}
 	});
 });
 

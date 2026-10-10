@@ -38,6 +38,16 @@ export interface ProfileElectionApplication {
 	position: { title: string };
 }
 
+/** One event a profile owner takes part in. */
+export interface ProfileEventEntry {
+	id: string;
+	title: string;
+	startDate: string;
+	endDate: string;
+	city: string | null;
+	country: string | null;
+}
+
 /**
  * Sections that active modules add to the profile pages (`/profile`, `/users/[userId]`).
  * One optional field per contributed section, named after what the theme renders; the pages
@@ -45,6 +55,10 @@ export interface ProfileElectionApplication {
  * only what the viewer may see: the hook gets `isOwnProfile` and must strip anything private.
  */
 export interface ProfileExtras {
+	/** Events the user said "yes" to that have not ended yet, soonest first. */
+	upcomingEvents?: ProfileEventEntry[];
+	/** Events the user said "yes" to that have ended, latest first. */
+	pastEvents?: ProfileEventEntry[];
 	/** Election applications grouped by cycle, newest year first (own profile only). */
 	electionGroups?: {
 		title: string;

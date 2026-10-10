@@ -14,8 +14,8 @@ import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { canonicalUrl } from "~/utils/seo";
 import { getCurrentUserData } from "~/utils/server-auth";
 import { buildProfileUrl } from "~/utils/users";
-import { eventsService } from "~modules/events/services/events";
 import { GroupView } from "~theme/routes/groups/GroupView";
+import { activeGroupExtras } from "../../../core/registry/manifests";
 
 export const useGroupData = routeLoader$(async (event) => {
 	const { params, redirect } = event;
@@ -23,61 +23,44 @@ export const useGroupData = routeLoader$(async (event) => {
 	if (!group) throw redirect(302, "/groups");
 
 	const user = await getCurrentUserData(event);
-	const now = new Date().toISOString();
 
-	const [
-		memberCount,
-		pastEventCount,
-		rep,
-		isMember,
-		recentMembers,
-		upcomingEvents,
-		recentPosts,
-	] = await Promise.all([
-		groupMembershipsService.countByGroupId(group.id),
-		eventsService.countPastByGroupId(group.id),
-		groupRepresentativesService.getFirstRepresentativeWithUser(group.id),
-		user ? groupMembershipsService.isMember(user.id, group.id) : false,
-		db
-			.select({
-				id: users.id,
-				name: users.name,
-				familyName: users.familyName,
-				profilePicture: users.profilePicture,
-				profilePictureSmall: users.profilePictureSmall,
-			})
-			.from(groupMemberships)
-			.innerJoin(users, eq(groupMemberships.userId, users.id))
-			.where(eq(groupMemberships.groupId, group.id))
-			.limit(6),
-		db.query.events.findMany({
-			where: {
-				groupId: group.id,
-				deletedAt: { isNull: true },
-				endDate: { gte: now },
-			},
-			orderBy: { startDate: "asc" },
-			limit: 3,
-		}),
-		db.query.posts.findMany({
-			with: { user: true },
-			where: {
-				groupId: group.id,
-				deletedAt: { isNull: true },
-			},
-			orderBy: { createdAt: "desc" },
-			limit: 3,
-		}) as unknown as Promise<
-			Array<{
-				id: string;
-				title: string;
-				body: string;
-				createdAt: string;
-				featuredImage: string | null;
-				user: { name: string; familyName: string };
-			}>
-		>,
-	]);
+	const [memberCount, rep, isMember, recentMembers, recentPosts, extras] =
+		await Promise.all([
+			groupMembershipsService.countByGroupId(group.id),
+			groupRepresentativesService.getFirstRepresentativeWithUser(group.id),
+			user ? groupMembershipsService.isMember(user.id, group.id) : false,
+			db
+				.select({
+					id: users.id,
+					name: users.name,
+					familyName: users.familyName,
+					profilePicture: users.profilePicture,
+					profilePictureSmall: users.profilePictureSmall,
+				})
+				.from(groupMemberships)
+				.innerJoin(users, eq(groupMemberships.userId, users.id))
+				.where(eq(groupMemberships.groupId, group.id))
+				.limit(6),
+			db.query.posts.findMany({
+				with: { user: true },
+				where: {
+					groupId: group.id,
+					deletedAt: { isNull: true },
+				},
+				orderBy: { createdAt: "desc" },
+				limit: 3,
+			}) as unknown as Promise<
+				Array<{
+					id: string;
+					title: string;
+					body: string;
+					createdAt: string;
+					featuredImage: string | null;
+					user: { name: string; familyName: string };
+				}>
+			>,
+			activeGroupExtras({ groupId: group.id, viewerId: user?.id ?? null }),
+		]);
 
 	const toPublicUrl = (key: string | null | undefined) =>
 		publicImageUrlFromKey(key);
@@ -102,9 +85,12 @@ export const useGroupData = routeLoader$(async (event) => {
 		: null;
 
 	return {
+		...extras,
 		group,
 		memberCount,
-		pastEventCount,
+		// Sections of modules that are not active fall back to empty.
+		pastEventCount: extras.pastEventCount ?? 0,
+		upcomingEvents: extras.upcomingEvents ?? [],
 		recentMembers: recentMembers.map((m) => ({
 			id: m.id,
 			name: m.name,
@@ -124,16 +110,6 @@ export const useGroupData = routeLoader$(async (event) => {
 		rep: repData,
 		isMember,
 		isLoggedIn: !!user,
-		upcomingEvents: upcomingEvents.map((e) => ({
-			id: e.id,
-			title: e.title,
-			startDate: e.startDate,
-			endDate: e.endDate,
-			image1: toPublicUrl(e.image1),
-			locationType: e.locationType,
-			city: e.city,
-			address: e.address,
-		})),
 		recentPosts: recentPosts.map((p) => ({
 			id: p.id,
 			title: p.title,

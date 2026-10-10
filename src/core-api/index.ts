@@ -15,6 +15,9 @@ export { db } from "~/db/connection";
 // Server-only core services for modules (memberships tiers, user tags). Tag *rule evaluation*
 // is not core; it lives in the events module (`modules/events/services/tag-rules.ts`).
 export { groupMembershipsService } from "~/services/group-memberships.service";
+export { groupRepresentativesService } from "~/services/group-representatives.service";
+export { groupsService } from "~/services/groups.service";
+export { deleteS3Objects } from "~/services/image-processing.service";
 export { membershipsService } from "~/services/memberships.service";
 export type { PageDirection } from "~/services/pagination";
 export {
@@ -25,14 +28,23 @@ export {
 } from "~/services/pagination";
 export { telegramService } from "~/services/telegram.service";
 export { userTagsService } from "~/services/user-tags.service";
+export { usersService } from "~/services/users.service";
 export { requireGroupAdmin } from "~/utils/access-control";
-export { publicImageUrlFromKey } from "~/utils/images";
+export { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 export { sanitizeRichHtml } from "~/utils/sanitize-html";
 export { currentScopeRest } from "~/utils/scope-request";
-export { generateSecurePhotoUrl } from "~/utils/secure-urls";
+export {
+	generatePresignedGetUrl,
+	generateSecurePhotoUrl,
+} from "~/utils/secure-urls";
 export { sendEmail } from "~/utils/send-email";
-export { getServerSession, requireAuth } from "~/utils/server-auth";
+export {
+	getCurrentUserData,
+	getServerSession,
+	requireAuth,
+} from "~/utils/server-auth";
+export { buildProfileUrl } from "~/utils/users";
 // Schema references modules need to relate to core tables (also in ./db-schema).
 export * from "./db-schema";
 // Env-derived values (server-only).
-export { getAppUrl, getStripeEnv } from "./env";
+export { getAppUrl, getStripeEnv, getStripePublishableKey } from "./env";

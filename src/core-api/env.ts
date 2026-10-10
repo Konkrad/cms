@@ -10,3 +10,6 @@ export const getStripeEnv = () => ({
 	apiBaseUrl: env.STRIPE_API_BASE_URL,
 	proxyUrl: env.STRIPE_PROXY_URL,
 });
+
+/** Stripe publishable key handed to the browser for Stripe.js. */
+export const getStripePublishableKey = (): string => env.STRIPE_PUBLISHABLE_KEY;

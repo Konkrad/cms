@@ -2,7 +2,16 @@
 // re-export via RELATIVE paths only (the production Rollup transform mis-resolves aliases).
 export { useSubmitApplication } from "../../../modules/elections/actions";
 export {
+	useCheckPaymentStatus,
+	useCreateCheckoutSession,
+	useGenerateSecureUrl,
+	useUpdateParticipation,
+} from "../../../modules/events/actions";
+export {
 	useDeleteMyJob,
 	useSubmitJob,
 	useUpdateMyJob,
 } from "../../../modules/jobs/actions";
+// Setup-widget actions the events checkout embeds (core user fields, used via ~/core-api).
+export { useSaveFoodPreference } from "../../components/setup/FoodPreferenceStep/useSaveFoodPreference";
+export { useSavePhotoConsent } from "../../components/setup/PhotoConsentStep/useSavePhotoConsent";

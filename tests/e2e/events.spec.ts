@@ -1,4 +1,17 @@
-import { expect, test } from "../fixtures";
+import {
+	addGroupMember,
+	addGroupRepresentative,
+	createGroupEventInDb,
+	createGroupInDb,
+	createUserSession,
+	deleteGroupInDb,
+	deleteGroupMember,
+	deleteGroupRepresentative,
+	expect,
+	getUserEmailById,
+	setParticipationInDb,
+	test,
+} from "../fixtures";
 import { createEventWithInventory } from "../utils/test-data";
 
 // =============================================================================
@@ -216,5 +229,322 @@ test.describe("Events — logged-in interactions", () => {
 		await expect(page.locator("text=✓ You're on the waitlist!")).toBeVisible({
 			timeout: 5_000,
 		});
+	});
+});
+
+// =============================================================================
+// Event page: privacy and visibility
+// =============================================================================
+
+test.describe("Events — public page data and visibility", () => {
+	test("the page does not serialize the organizer email or private user fields", async ({
+		guestPage: page,
+	}) => {
+		const organizer = createUserSession("user", "e2e-organizer");
+		const event = createGroupEventInDb({
+			organizerId: organizer.userId,
+			title: "Privacy Check Event",
+		});
+		try {
+			const email = getUserEmailById(organizer.userId);
+			expect(email).toBeTruthy();
+			const res = await page.goto(`/events/${event.eventId}`);
+			expect(res?.status()).toBe(200);
+			const html = await page.content();
+			expect(html).toContain("Privacy Check Event");
+			expect(html).not.toContain(email as string);
+			expect(html).not.toContain("loginId");
+			expect(html).not.toContain("foodPreference");
+		} finally {
+			event.cleanup();
+			organizer.cleanup();
+		}
+	});
+
+	test("a group-only event is hidden from guests and non-members, visible to members", async ({
+		browser,
+	}) => {
+		const organizer = createUserSession("user");
+		const member = createUserSession("user");
+		const outsider = createUserSession("user");
+		const groupId = createGroupInDb({
+			name: "Visibility Group",
+			slug: `e2e-vis-${Date.now()}`,
+		});
+		addGroupMember(member.userId, groupId);
+		const event = createGroupEventInDb({
+			organizerId: organizer.userId,
+			title: "Members Only Gathering",
+			groupId,
+			visibility: "group-only",
+		});
+		const open = async (
+			userSession: ReturnType<typeof createUserSession> | null,
+		) => {
+			const ctx = await browser.newContext();
+			if (userSession) {
+				await ctx.addCookies([
+					{
+						name: "session",
+						value: userSession.sessionToken,
+						domain: "localhost",
+						path: "/",
+						httpOnly: true,
+						secure: false,
+						sameSite: "Strict",
+					},
+				]);
+			}
+			const page = await ctx.newPage();
+			const res = await page.goto(`/events/${event.eventId}`);
+			const html = await page.content();
+			await ctx.close();
+			return { status: res?.status(), html };
+		};
+		try {
+			for (const viewer of [null, outsider]) {
+				const { status, html } = await open(viewer);
+				expect(status).toBe(404);
+				expect(html).not.toContain("Members Only Gathering");
+			}
+			const asMember = await open(member);
+			expect(asMember.status).toBe(200);
+			expect(asMember.html).toContain("Members Only Gathering");
+		} finally {
+			event.cleanup();
+			deleteGroupMember(member.userId, groupId);
+			deleteGroupInDb(groupId);
+			for (const u of [organizer, member, outsider]) u.cleanup();
+		}
+	});
+});
+
+// =============================================================================
+// Profile shows participation
+// =============================================================================
+
+test.describe("Events — profile participation", () => {
+	test("/profile lists upcoming and past events the user said yes to", async ({
+		browser,
+	}) => {
+		const user = createUserSession("user");
+		const upcoming = createGroupEventInDb({
+			organizerId: user.userId,
+			title: "Profile Upcoming Event",
+		});
+		const past = createGroupEventInDb({
+			organizerId: user.userId,
+			title: "Profile Past Event",
+			past: true,
+		});
+		const declined = createGroupEventInDb({
+			organizerId: user.userId,
+			title: "Profile Declined Event",
+		});
+		setParticipationInDb(user.userId, upcoming.eventId, "yes");
+		setParticipationInDb(user.userId, past.eventId, "yes");
+		setParticipationInDb(user.userId, declined.eventId, "no");
+		const ctx = await browser.newContext();
+		await ctx.addCookies([
+			{
+				name: "session",
+				value: user.sessionToken,
+				domain: "localhost",
+				path: "/",
+				httpOnly: true,
+				secure: false,
+				sameSite: "Strict",
+			},
+		]);
+		const page = await ctx.newPage();
+		try {
+			await page.goto("/profile");
+			await expect(page.locator("text=Profile Upcoming Event")).toBeVisible();
+			await expect(page.locator("text=Profile Past Event")).toBeVisible();
+			await expect(page.locator("text=Profile Declined Event")).toHaveCount(0);
+
+			// Another member sees the same on the public profile.
+			const viewer = createUserSession("user");
+			const vctx = await browser.newContext();
+			await vctx.addCookies([
+				{
+					name: "session",
+					value: viewer.sessionToken,
+					domain: "localhost",
+					path: "/",
+					httpOnly: true,
+					secure: false,
+					sameSite: "Strict",
+				},
+			]);
+			const vpage = await vctx.newPage();
+			await vpage.goto(`/users/${user.userId}`);
+			await expect(vpage.locator("text=Profile Upcoming Event")).toBeVisible();
+			await vctx.close();
+			viewer.cleanup();
+		} finally {
+			await ctx.close();
+			for (const e of [upcoming, past, declined]) e.cleanup();
+			user.cleanup();
+		}
+	});
+});
+
+// =============================================================================
+// Admin scope: a representative manages only their own group's events
+// =============================================================================
+
+test.describe("Events — admin scope", () => {
+	const suffix = Date.now();
+	const slugA = `e2e-scope-a-${suffix}`;
+	const slugB = `e2e-scope-b-${suffix}`;
+	let groupA: string;
+	let groupB: string;
+	let repA: ReturnType<typeof createUserSession>;
+	let repAB: ReturnType<typeof createUserSession>;
+	let eventA: ReturnType<typeof createGroupEventInDb>;
+	let eventB: ReturnType<typeof createGroupEventInDb>;
+
+	test.beforeAll(() => {
+		groupA = createGroupInDb({ name: "Scope Group A", slug: slugA });
+		groupB = createGroupInDb({ name: "Scope Group B", slug: slugB });
+		// src/routes/admin/layout.tsx only lets platform admins into /admin/*, so a group
+		// representative reaches a group's admin only when they are also a platform admin.
+		repA = createUserSession("admin");
+		repAB = createUserSession("admin");
+		for (const [u, g] of [
+			[repA, groupA],
+			[repAB, groupA],
+			[repAB, groupB],
+		] as const) {
+			addGroupMember(u.userId, g);
+			addGroupRepresentative(u.userId, g);
+		}
+		eventA = createGroupEventInDb({
+			organizerId: repA.userId,
+			title: "Scope Event Of A",
+			groupId: groupA,
+		});
+		eventB = createGroupEventInDb({
+			organizerId: repA.userId,
+			title: "Scope Event Of B",
+			groupId: groupB,
+		});
+	});
+
+	test.afterAll(() => {
+		eventA.cleanup();
+		eventB.cleanup();
+		for (const [u, g] of [
+			[repA, groupA],
+			[repAB, groupA],
+			[repAB, groupB],
+		] as const) {
+			deleteGroupRepresentative(u.userId, g);
+			deleteGroupMember(u.userId, g);
+		}
+		deleteGroupInDb(groupA);
+		deleteGroupInDb(groupB);
+		repA.cleanup();
+		repAB.cleanup();
+	});
+
+	async function pageFor(
+		browser: import("@playwright/test").Browser,
+		s: ReturnType<typeof createUserSession>,
+	) {
+		const ctx = await browser.newContext();
+		await ctx.addCookies([
+			{
+				name: "session",
+				value: s.sessionToken,
+				domain: "localhost",
+				path: "/",
+				httpOnly: true,
+				secure: false,
+				sameSite: "Strict",
+			},
+		]);
+		return { ctx, page: await ctx.newPage() };
+	}
+
+	test("a representative can open their own group event admin pages", async ({
+		browser,
+	}) => {
+		const { ctx, page } = await pageFor(browser, repA);
+		try {
+			for (const tab of [
+				"details",
+				"edit",
+				"products",
+				"tickets",
+				"transactions",
+				"participation",
+			]) {
+				const res = await page.goto(
+					`/admin/${slugA}/events/${eventA.eventId}/${tab}`,
+				);
+				expect(res?.status(), tab).toBe(200);
+			}
+			await page.goto(`/admin/${slugA}/events/${eventA.eventId}/details`);
+			await expect(page.locator('input[name="title"]')).toHaveValue(
+				"Scope Event Of A",
+			);
+			await page.goto(`/admin/${slugA}/events`);
+			await expect(page.locator("text=Scope Event Of A")).toBeVisible();
+			await expect(page.locator("text=Scope Event Of B")).toHaveCount(0);
+		} finally {
+			await ctx.close();
+		}
+	});
+
+	test("a representative of A cannot open a group-B event under either slug", async ({
+		browser,
+	}) => {
+		const { ctx, page } = await pageFor(browser, repA);
+		try {
+			// Own slug, foreign event id.
+			for (const tab of [
+				"details",
+				"edit",
+				"products",
+				"tickets",
+				"transactions",
+				"participation",
+				"photos",
+				"attendance",
+				"scan",
+			]) {
+				const res = await page.goto(
+					`/admin/${slugA}/events/${eventB.eventId}/${tab}`,
+				);
+				expect(res?.status(), tab).toBe(403);
+				expect(await page.content()).not.toContain("Scope Event Of B");
+			}
+			// Foreign slug: not a representative of B at all.
+			await page.goto(`/admin/${slugB}/events/${eventB.eventId}/details`);
+			await expect(page).not.toHaveURL(/\/admin\//);
+		} finally {
+			await ctx.close();
+		}
+	});
+
+	test("a representative of both groups cannot reach A's event under B's slug", async ({
+		browser,
+	}) => {
+		const { ctx, page } = await pageFor(browser, repAB);
+		try {
+			const res = await page.goto(
+				`/admin/${slugB}/events/${eventA.eventId}/details`,
+			);
+			expect(res?.status()).toBe(403);
+			expect(await page.content()).not.toContain("Scope Event Of A");
+			const own = await page.goto(
+				`/admin/${slugB}/events/${eventB.eventId}/details`,
+			);
+			expect(own?.status()).toBe(200);
+		} finally {
+			await ctx.close();
+		}
 	});
 });

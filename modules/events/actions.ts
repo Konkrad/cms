@@ -1,28 +1,27 @@
-import { component$ } from "@qwik.dev/core";
-import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
-import { env } from "~/env";
-import { usersService } from "~/services/users.service";
-import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
-import { getServerSession } from "~/utils/server-auth";
-import { isValidEmail } from "~modules/events/participant-validation";
-import { checkoutService } from "~modules/events/services/checkout";
-import { inventoryGroupsService } from "~modules/events/services/inventory-groups";
-import { productsService } from "~modules/events/services/products";
-import { stripeService } from "~modules/events/services/stripe";
-import { CheckoutView } from "~theme/routes/events/CheckoutView";
+import { routeAction$, z, zod$ } from "@qwik.dev/router";
+import {
+	db,
+	getCurrentUserData,
+	getServerSession,
+	requireActiveModule,
+	requireAuth,
+	usersService,
+} from "~/core-api";
 import type {
 	CheckoutItemInput,
 	ParticipantSlotInput,
 } from "~theme/routes/events/checkout/types";
-// Import re-exported route actions via a RELATIVE path, not the "~"/"~theme" alias —
-// qwikRouter's production transform for re-exported routeAction$/routeLoader$ does
-// not resolve either tsconfig alias, so the Rollup build fails to find the module.
-// The presentational FoodPreferenceStep/PhotoConsentStep widgets themselves (no
-// actions) are imported by the theme view via the "~theme" alias.
-import { useSaveFoodPreference } from "../../../../components/setup/FoodPreferenceStep/useSaveFoodPreference";
-import { useSavePhotoConsent } from "../../../../components/setup/PhotoConsentStep/useSavePhotoConsent";
-
-export { useSaveFoodPreference, useSavePhotoConsent };
+import { syncFreeRsvpTicketForStatus } from "./free-rsvp";
+import { isValidEmail } from "./participant-validation";
+import { canViewEvent, eventIdOf } from "./public-event";
+import { checkoutService } from "./services/checkout";
+import { eventsService } from "./services/events";
+import { participantsService } from "./services/participants";
+import { participationService } from "./services/participation";
+import { photosService } from "./services/photos";
+import { productsService } from "./services/products";
+import { stripeService } from "./services/stripe";
+import { ticketsService } from "./services/tickets";
 
 function splitIntoChunks(value: string, maxChunkSize = 450): string[] {
 	if (!value) return [];
@@ -33,92 +32,99 @@ function splitIntoChunks(value: string, maxChunkSize = 450): string[] {
 	return chunks;
 }
 
-export const useProductsData = routeLoader$(async (event) => {
-	const eventId = event.params.id;
+export const useUpdateParticipation = routeAction$(
+	async (data, event) => {
+		const userData = await getCurrentUserData(event);
+		if (!userData) {
+			return event.fail(401, { message: "Please log in to RSVP" });
+		}
+		requireActiveModule(event, "events");
 
-	// Get all inventory groups with products
-	const groups = await inventoryGroupsService.getByEventId(eventId);
+		const eventId = eventIdOf(event, "/events/:id");
+		const target = eventId ? await eventsService.getById(eventId) : undefined;
+		if (!eventId || !target || !(await canViewEvent(target, userData))) {
+			return event.fail(404, { message: "Event not found" });
+		}
 
-	const now = new Date();
+		await participationService.upsert(userData.id, eventId, data.status);
 
-	// Calculate remaining capacity, sales window and available products for each group
-	const groupsWithCapacity = await Promise.all(
-		groups.map(async (group: any) => {
-			const soldQuantity =
-				group.products?.reduce(
-					(sum: number, p: any) => sum + (p.soldQuantity || 0),
-					0,
-				) || 0;
-			const remainingCapacity = group.maxCapacity - soldQuantity;
+		await syncFreeRsvpTicketForStatus(
+			eventId,
+			userData.id,
+			data.status,
+			data.productId,
+		);
 
-			const salesStart = group.salesStartDate
-				? new Date(group.salesStartDate)
-				: null;
-			const salesEnd = group.salesEndDate ? new Date(group.salesEndDate) : null;
-			const isSalesOpen =
-				(!salesStart || salesStart <= now) && (!salesEnd || salesEnd >= now);
-
-			// Determine which products are currently available:
-			// - group sales window must be open
-			// - group must have remaining capacity
-			// - product must have remaining quantity (or unlimited if maxQuantity === 0)
-			const availableProducts = (group.products || []).filter((p: any) => {
-				const productRemaining =
-					p.maxQuantity && p.maxQuantity > 0
-						? p.maxQuantity - (p.soldQuantity || 0)
-						: Infinity;
-				return isSalesOpen && remainingCapacity > 0 && productRemaining > 0;
+		if (data.status === "yes" && data.productId) {
+			const ticket = await db.query.tickets.findFirst({
+				where: {
+					productId: data.productId,
+					eventId,
+					buyerId: userData.id,
+				},
 			});
 
-			return {
-				...group,
-				remainingCapacity,
-				soldQuantity,
-				isSalesOpen,
-				availableProducts,
-			};
-		}),
-	);
+			// Send confirmation email for free RSVP ticket creation.
+			if (ticket)
+				try {
+					const userEmail = userData.email;
+					if (userEmail) {
+						const { sendTicketConfirmation } = await import("./emails");
 
-	const session = await getServerSession(event);
+						const product = await productsService.getById(data.productId);
 
-	return {
-		eventId,
-		groups: groupsWithCapacity,
-		stripePublishableKey: env.STRIPE_PUBLISHABLE_KEY,
-		foodPreference: (session as any)?.foodPreference ?? null,
-		photoConsentGiven: (session as any)?.photoConsentGiven ?? null,
-		buyer: {
-			id: (session as any)?.id ?? "",
-			name: [(session as any)?.name, (session as any)?.familyName]
-				.filter(Boolean)
-				.join(" ")
-				.trim(),
-			email: (session as any)?.email ?? "",
-			avatarUrl: (session as any)?.profilePicture
-				? publicImageUrlFromKey(
-						(session as any).profilePictureSmall ??
-							deriveThumbnailKey((session as any).profilePicture),
-					)
-				: null,
-		},
-	};
-});
+						if (product) {
+							await sendTicketConfirmation({
+								to: userEmail,
+								buyerName: userData.name || userEmail,
+								event: {
+									title: target.title,
+									startDate: target.startDate,
+									address: target.address,
+									onlineUrl: target.onlineUrl,
+								},
+								transactionId: ticket.transactionId || ticket.id,
+								products: [{ name: product.name, quantity: 1, amount: 0 }],
+								totalAmount: 0,
+								tickets: [{ id: ticket.id, qrCodeUuid: ticket.qrCodeUuid }],
+							});
+						}
+					}
+				} catch (error) {
+					console.error("Failed to send RSVP confirmation email:", error);
+					// Don't fail the RSVP if email sending fails
+				}
+		}
+
+		// No redirect: the client only reads a routeAction$'s embedded "redirect"
+		// instruction when the underlying fetch response is an actual HTTP redirect
+		// (response.redirected) — for an SPA action POST resolved with a 303 to the
+		// same page, Qwik's client returns the parsed { redirect } field but never
+		// consumes it, so the UI never updates. Return success and let the
+		// automatic post-action loader invalidation (see vite.config.ts
+		// strictLoaders: false) refresh the page data in place instead.
+		return { success: true };
+	},
+	zod$({
+		status: z.enum(["yes", "no", "maybe"]),
+		productId: z.string().optional(),
+	}),
+);
 
 export const useCreateCheckoutSession = routeAction$(
 	async (data, event) => {
-		const eventId = event.params.id;
-
 		// Check authentication for checkout
 		const user = await getServerSession(event);
 		if (!user) {
 			return event.fail(401, { message: "Please log in to purchase tickets" });
 		}
+		requireActiveModule(event, "events");
 
-		// Get event and validate sales period
-		const { eventsService } = await import("~modules/events/services/events");
-		const eventData = await eventsService.getById(eventId);
-		if (!eventData) {
+		const eventId = eventIdOf(event, "/events/:id/checkout");
+		const eventData = eventId
+			? await eventsService.getById(eventId)
+			: undefined;
+		if (!eventId || !eventData || !(await canViewEvent(eventData, user))) {
 			return event.fail(404, { message: "Event not found" });
 		}
 
@@ -130,7 +136,15 @@ export const useCreateCheckoutSession = routeAction$(
 			});
 		}
 
-		const parsedItems = JSON.parse(data.items as string) as CheckoutItemInput[];
+		let parsedItems: CheckoutItemInput[];
+		try {
+			parsedItems = JSON.parse(data.items as string) as CheckoutItemInput[];
+		} catch {
+			return event.fail(400, { message: "Invalid cart" });
+		}
+		if (!Array.isArray(parsedItems)) {
+			return event.fail(400, { message: "Invalid cart" });
+		}
 		const items = parsedItems
 			.map((item) => ({
 				productId: item.productId,
@@ -272,13 +286,6 @@ export const useCreateCheckoutSession = routeAction$(
 
 		// Handle free tickets - skip payment
 		if (totalAmount === 0) {
-			const { ticketsService } = await import(
-				"~modules/events/services/tickets"
-			);
-			const { participantsService } = await import(
-				"~modules/events/services/participants"
-			);
-
 			const createdTickets: any[] = [];
 			for (const item of normalizedItems) {
 				for (let i = 0; i < item.quantity; i++) {
@@ -309,9 +316,6 @@ export const useCreateCheckoutSession = routeAction$(
 
 			// Auto-upgrade participation status from "maybe" to "yes" for free tickets
 			if (createdTickets.length > 0) {
-				const { participationService } = await import(
-					"~modules/events/services/participation"
-				);
 				try {
 					await participationService.autoUpgradeToYes(user.id, eventId);
 				} catch (error) {
@@ -326,21 +330,6 @@ export const useCreateCheckoutSession = routeAction$(
 		}
 
 		// Build line items for Stripe
-		const lineItems = normalizedItems.map((p) => ({
-			price_data: {
-				currency: "eur",
-				product_data: {
-					name: p.product.name,
-					description: p.product.features?.join(", ") || "",
-					images: p.product.imageKey
-						? [publicImageUrlFromKey(p.product.imageKey)].filter(Boolean)
-						: [],
-				},
-				unit_amount: Math.round(p.product.price * 100), // Convert to cents
-			},
-			quantity: p.quantity,
-		}));
-
 		const participantPayload = JSON.stringify(
 			normalizedItems.map((item) => ({
 				productId: item.productId,
@@ -390,6 +379,9 @@ export const useCreateCheckoutSession = routeAction$(
 
 export const useCheckPaymentStatus = routeAction$(
 	async (data, event) => {
+		await requireAuth(event);
+		requireActiveModule(event, "events");
+
 		console.log("[Server] useCheckPaymentStatus called");
 
 		try {
@@ -413,20 +405,30 @@ export const useCheckPaymentStatus = routeAction$(
 	zod$({ payment_intent_id: z.string() }),
 );
 
-export default component$(() => {
-	const data = useProductsData();
-	const createCheckoutSession = useCreateCheckoutSession();
-	const checkPaymentStatus = useCheckPaymentStatus();
-	const saveFood = useSaveFoodPreference();
-	const savePhoto = useSavePhotoConsent();
+export const useGenerateSecureUrl = routeAction$(
+	async (data, event) => {
+		const user = await getServerSession(event);
+		if (!user) {
+			return event.fail(401, { message: "Not authenticated" });
+		}
+		requireActiveModule(event, "events");
 
-	return (
-		<CheckoutView
-			data={data.value}
-			createCheckoutSession={createCheckoutSession}
-			checkPaymentStatus={checkPaymentStatus}
-			saveFood={saveFood}
-			savePhoto={savePhoto}
-		/>
-	);
-});
+		// Attendance of the photo's event is checked inside the service.
+		const result = await photosService.generateSecureUrl(data.photoId, user.id);
+
+		if (!result) {
+			return event.fail(403, {
+				message: "Cannot access this photo. You must have attended the event.",
+			});
+		}
+
+		return {
+			success: true,
+			url: result.url,
+			expiresAt: result.expiresAt,
+		};
+	},
+	zod$({
+		photoId: z.string().uuid(),
+	}),
+);

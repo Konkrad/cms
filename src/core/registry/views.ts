@@ -1,6 +1,7 @@
 import type { PageViews } from "~/core/page-views";
 import { dealsViews } from "../../../modules/deals/views";
 import { electionsViews } from "../../../modules/elections/views";
+import { eventsViews } from "../../../modules/events/views";
 import { jobsViews } from "../../../modules/jobs/views";
 import { qualificationsViews } from "../../../modules/qualifications/views";
 
@@ -8,6 +9,7 @@ import { qualificationsViews } from "../../../modules/qualifications/views";
 export const moduleViews: PageViews = {
 	...dealsViews,
 	...electionsViews,
+	...eventsViews,
 	...jobsViews,
 	...qualificationsViews,
 };

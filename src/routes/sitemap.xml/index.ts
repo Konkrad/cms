@@ -7,7 +7,6 @@ import { menuItems, pages } from "~/db/schema";
 import { env } from "~/env";
 import { groupsService } from "~/services/groups.service";
 import { postsService } from "~/services/posts.service";
-import { eventsService } from "~modules/events/services/events";
 
 interface SitemapEntry {
 	loc: string;
@@ -70,19 +69,6 @@ export const onGet: RequestHandler = async ({
 		}
 		postsCursor = result.nextCursor;
 	} while (postsCursor);
-
-	let eventsCursor: string | null | undefined = null;
-	do {
-		const result = await eventsService.getAll(100, eventsCursor);
-		for (const evt of result.items) {
-			if (evt.visibility !== "global") continue;
-			entries.push({
-				loc: new URL(`/events/${evt.id}`, env.APP_URL).toString(),
-				lastmod: evt.updatedAt,
-			});
-		}
-		eventsCursor = result.nextCursor;
-	} while (eventsCursor);
 
 	const groups = await groupsService.getAll();
 	for (const group of groups) {

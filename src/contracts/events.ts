@@ -1,13 +1,13 @@
 /**
- * Core → theme data contracts for the public event detail route
- * (`/events/[id]`), and for the core-owned events-block composables
- * (`~modules/events/useUpcomingEvents`, `usePastEvents`).
+ * Core → theme data contracts for the public event detail route (`/events/:id`, modules/events),
+ * and for the events-block composables (`~modules/events/useUpcomingEvents`, `usePastEvents`).
  */
 
-import type { useEvent, useUpdateParticipation } from "~/routes/events/[id]";
+import type { useUpdateParticipation } from "~modules/events/actions";
+import type { EventPageData } from "~modules/events/public-event";
 import type { Event } from "~modules/events/schema/events";
 
-export type EventViewData = ReturnType<typeof useEvent>["value"];
+export type EventViewData = EventPageData;
 export type UpdateParticipationAction = ReturnType<
 	typeof useUpdateParticipation
 >;

@@ -1,5 +1,7 @@
 /** Core tables/types a module schema may reference. Safe for drizzle-kit (no runtime deps). */
 
+export { groupMemberships } from "~/db/schemas/group-memberships";
+export { groupRepresentatives } from "~/db/schemas/group-representatives";
 export type { Group } from "~/db/schemas/groups";
 export { groups } from "~/db/schemas/groups";
 export { logins } from "~/db/schemas/logins";

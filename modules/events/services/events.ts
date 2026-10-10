@@ -408,6 +408,24 @@ export const eventsService = {
 		return result;
 	},
 
+	/** The group's next events, soonest first; group-only ones only when `includeGroupOnly`. */
+	async getUpcomingByGroupId(
+		groupId: string,
+		options: { includeGroupOnly: boolean; limit: number },
+	): Promise<Event[]> {
+		const now = new Date().toISOString();
+		return db.query.events.findMany({
+			where: {
+				groupId,
+				deletedAt: { isNull: true },
+				endDate: { gte: now },
+				...(options.includeGroupOnly ? {} : { visibility: "global" }),
+			},
+			orderBy: { startDate: "asc" },
+			limit: options.limit,
+		});
+	},
+
 	async countPastByGroupId(groupId: string): Promise<number> {
 		const now = new Date().toISOString();
 		const results = await db

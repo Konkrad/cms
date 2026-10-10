@@ -1,6 +1,7 @@
 import {
 	addGroupMember,
 	addGroupRepresentative,
+	createGroupEventInDb,
 	createGroupInDb,
 	createUserSession,
 	deleteGroupInDb,
@@ -46,6 +47,67 @@ test.afterAll(() => {
 		m.cleanup();
 	}
 	deleteGroupInDb(groupId);
+});
+
+test.describe("Groups page — events", () => {
+	test("lists the group's upcoming events, group-only ones for members only", async ({
+		guestPage,
+		browser,
+	}) => {
+		const upcoming = createGroupEventInDb({
+			organizerId: existingRep.userId,
+			title: "Group Page Public Event",
+			groupId,
+		});
+		const secret = createGroupEventInDb({
+			organizerId: existingRep.userId,
+			title: "Group Page Members Event",
+			groupId,
+			visibility: "group-only",
+		});
+		const other = createGroupEventInDb({
+			organizerId: existingRep.userId,
+			title: "Group Page Past Event",
+			groupId,
+			past: true,
+		});
+		try {
+			await guestPage.goto(GROUP_URL);
+			await expect(
+				guestPage.locator("text=Upcoming Community Events"),
+			).toBeVisible();
+			await expect(
+				guestPage.locator("text=Group Page Public Event"),
+			).toBeVisible();
+			await expect(
+				guestPage.locator("text=Group Page Members Event"),
+			).toHaveCount(0);
+			await expect(guestPage.locator("text=Group Page Past Event")).toHaveCount(
+				0,
+			);
+
+			const ctx = await browser.newContext();
+			await ctx.addCookies([
+				{
+					name: "session",
+					value: fillerMembers[0].sessionToken,
+					domain: "localhost",
+					path: "/",
+					httpOnly: true,
+					secure: false,
+					sameSite: "Strict",
+				},
+			]);
+			const memberPage = await ctx.newPage();
+			await memberPage.goto(GROUP_URL);
+			await expect(
+				memberPage.locator("text=Group Page Members Event"),
+			).toBeVisible();
+			await ctx.close();
+		} finally {
+			for (const e of [upcoming, secret, other]) e.cleanup();
+		}
+	});
 });
 
 test.describe("Groups page", () => {

@@ -3,9 +3,11 @@ import {
 	adminSectionsOf,
 	defineModule,
 	disabledBlockTypes,
+	groupExtrasOf,
 	menuLinksOf,
 	pagesOf,
 	profileExtrasOf,
+	reevaluateUserTagsOf,
 	selectActive,
 	sitemapEntriesOf,
 	withoutDisabledBlocks,
@@ -125,6 +127,136 @@ describe("profileExtrasOf", () => {
 		const own = { userId: "u1", viewerId: "u1", isOwnProfile: true };
 		const active = selectActive([alpha, withHistory], ["alpha"]);
 		expect(await profileExtrasOf(active, own)).toEqual({});
+	});
+});
+
+describe("profileExtrasOf with events data", () => {
+	const entry = {
+		id: "e1",
+		title: "Meetup",
+		startDate: "2030-01-01T10:00:00.000Z",
+		endDate: "2030-01-01T12:00:00.000Z",
+		city: "Berlin",
+		country: "DE",
+	};
+	const withEvents = defineModule({
+		id: "ev",
+		profile: async ({ userId }) => ({
+			upcomingEvents: [{ ...entry, id: `up-${userId}` }],
+			pastEvents: [],
+		}),
+	});
+	const ctx = { userId: "u1", viewerId: "u2", isOwnProfile: false };
+
+	it("contributes the event lists to other viewers' view of a profile", async () => {
+		expect(await profileExtrasOf([alpha, withEvents], ctx)).toEqual({
+			upcomingEvents: [{ ...entry, id: "up-u1" }],
+			pastEvents: [],
+		});
+	});
+
+	it("merges with other modules' sections without clobbering them", async () => {
+		const history = defineModule({
+			id: "history2",
+			profile: async () => ({ electionGroups: [] }),
+		});
+		expect(
+			Object.keys(await profileExtrasOf([withEvents, history], ctx)).sort(),
+		).toEqual(["electionGroups", "pastEvents", "upcomingEvents"]);
+	});
+
+	it("contributes nothing while the module is inactive", async () => {
+		const active = selectActive([alpha, withEvents], ["alpha"]);
+		expect(await profileExtrasOf(active, ctx)).toEqual({});
+	});
+});
+
+describe("groupExtrasOf", () => {
+	const ctx = { groupId: "g1", viewerId: "u1" };
+	const withEvents = defineModule({
+		id: "ev",
+		groupPage: async ({ groupId, viewerId }) => ({
+			pastEventCount: 4,
+			upcomingEvents: viewerId
+				? [
+						{
+							id: `next-${groupId}`,
+							title: "Next",
+							startDate: "2030-01-01T10:00:00.000Z",
+							endDate: "2030-01-01T12:00:00.000Z",
+							image1: null,
+							locationType: "online",
+							city: null,
+							address: null,
+						},
+					]
+				: [],
+		}),
+	});
+
+	it("merges the sections of the given modules and passes the context through", async () => {
+		const extras = await groupExtrasOf([alpha, withEvents], ctx);
+		expect(extras.pastEventCount).toBe(4);
+		expect(extras.upcomingEvents?.map((e) => e.id)).toEqual(["next-g1"]);
+	});
+
+	it("passes an anonymous viewer as null", async () => {
+		const extras = await groupExtrasOf([withEvents], {
+			groupId: "g1",
+			viewerId: null,
+		});
+		expect(extras.upcomingEvents).toEqual([]);
+	});
+
+	it("is empty without modules or hooks, and for inactive modules", async () => {
+		expect(await groupExtrasOf([], ctx)).toEqual({});
+		expect(await groupExtrasOf([alpha, beta], ctx)).toEqual({});
+		const active = selectActive([alpha, withEvents], ["alpha"]);
+		expect(await groupExtrasOf(active, ctx)).toEqual({});
+	});
+});
+
+describe("reevaluateUserTagsOf", () => {
+	it("calls the hook of every given module that has one, with the user id", async () => {
+		const seen: string[] = [];
+		const a = defineModule({
+			id: "ra",
+			reevaluateUserTags: async (userId) => {
+				seen.push(`a:${userId}`);
+			},
+		});
+		const b = defineModule({
+			id: "rb",
+			reevaluateUserTags: async (userId) => {
+				seen.push(`b:${userId}`);
+			},
+		});
+		await reevaluateUserTagsOf([a, alpha, b], "u9");
+		expect(seen.sort()).toEqual(["a:u9", "b:u9"]);
+	});
+
+	it("skips modules that are not active", async () => {
+		const hook = vi.fn(async () => {});
+		const withHook = defineModule({ id: "rc", reevaluateUserTags: hook });
+		await reevaluateUserTagsOf(
+			selectActive([alpha, withHook], ["alpha"]),
+			"u1",
+		);
+		expect(hook).not.toHaveBeenCalled();
+	});
+
+	it("propagates a failing hook", async () => {
+		const bad = defineModule({
+			id: "rd",
+			reevaluateUserTags: async () => {
+				throw new Error("boom");
+			},
+		});
+		await expect(reevaluateUserTagsOf([bad], "u1")).rejects.toThrow("boom");
+	});
+
+	it("does nothing for no modules", async () => {
+		await expect(reevaluateUserTagsOf([], "u1")).resolves.toBeUndefined();
 	});
 });
 

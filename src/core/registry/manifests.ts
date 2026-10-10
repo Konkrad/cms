@@ -1,11 +1,14 @@
 import type { RequestEventCommon } from "@qwik.dev/router";
 import {
 	adminSectionsOf,
+	type GroupPageContext,
+	groupExtrasOf,
 	type ModuleDefinition,
 	menuLinksOf,
 	type ProfileContext,
 	pagesOf,
 	profileExtrasOf,
+	reevaluateUserTagsOf,
 	selectActive,
 } from "~/core/modules";
 import { dealsModule } from "../../../modules/deals/module";
@@ -34,6 +37,14 @@ export const activeMenuLinks = menuLinksOf(activeModules);
 /** Profile sections contributed by active modules for this viewer/profile pair. */
 export const activeProfileExtras = (ctx: ProfileContext) =>
 	profileExtrasOf(activeModules, ctx);
+
+/** Group page sections contributed by active modules for this viewer. */
+export const activeGroupExtras = (ctx: GroupPageContext) =>
+	groupExtrasOf(activeModules, ctx);
+
+/** Re-runs the tag rules of every active module for one user. */
+export const reevaluateUserTagsForUser = (userId: string) =>
+	reevaluateUserTagsOf(activeModules, userId);
 
 /** Answers 404 unless the module is active. Call right after the auth check. */
 export function requireActiveModule(

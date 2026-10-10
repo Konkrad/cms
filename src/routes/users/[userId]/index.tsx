@@ -10,7 +10,6 @@ import { formatAffiliationResultJson } from "~/utils/affiliation";
 import { buildFormPath } from "~/utils/forms";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
-import { participationService } from "~modules/events/services/participation";
 import { PublicProfileView } from "~theme/routes/users/PublicProfileView";
 import { activeProfileExtras } from "../../../core/registry/manifests";
 
@@ -42,18 +41,16 @@ export const usePublicProfile = routeLoader$(async (event) => {
 	const isAdmin = currentUser?.role === "admin";
 
 	const { userTagsService } = await import("~/services/user-tags.service");
-	const [groups, participation, tags, submittedFormRows, extras] =
-		await Promise.all([
-			groupMembershipsService.getUserGroups(user.id),
-			participationService.getByUserId(user.id),
-			userTagsService.getByUser(user.id),
-			formResultsService.getByUser(user.id),
-			activeProfileExtras({
-				userId: user.id,
-				viewerId: currentUser?.id ?? null,
-				isOwnProfile: isOwner,
-			}),
-		]);
+	const [groups, tags, submittedFormRows, extras] = await Promise.all([
+		groupMembershipsService.getUserGroups(user.id),
+		userTagsService.getByUser(user.id),
+		formResultsService.getByUser(user.id),
+		activeProfileExtras({
+			userId: user.id,
+			viewerId: currentUser?.id ?? null,
+			isOwnProfile: isOwner,
+		}),
+	]);
 
 	const formatResponseValue = (value: unknown): string => {
 		if (value === null || value === undefined) return "-";
@@ -93,8 +90,9 @@ export const usePublicProfile = routeLoader$(async (event) => {
 		),
 		tags: tags.map((t) => ({ id: t.id, label: t.label })),
 		communities: groups.map((g) => ({ name: g.name, slug: g.slug })),
-		upcomingEvents: participation.upcoming,
-		pastEvents: participation.past,
+		// Sections of modules that are not active fall back to empty.
+		upcomingEvents: extras.upcomingEvents ?? [],
+		pastEvents: extras.pastEvents ?? [],
 		isOwner,
 		email: isOwner ? email : null,
 		yearOfBirth: isOwner ? (user.yearOfBirth ?? null) : null,

@@ -408,6 +408,65 @@ export function createTestEvent(userId: string): {
 	};
 }
 
+/**
+ * Create an event owned by `organizerId`, optionally in a group and/or group-only, with no
+ * products. `past` makes it already finished. `cleanup()` removes it and its participation rows.
+ */
+export function createGroupEventInDb(opts: {
+	organizerId: string;
+	title: string;
+	groupId?: string | null;
+	visibility?: "global" | "group-only";
+	past?: boolean;
+}): { eventId: string; cleanup(): void } {
+	const db = openDb();
+	const eventId = crypto.randomUUID();
+	const offset = (opts.past ? -14 : 14) * 86400000;
+	const start = new Date(Date.now() + offset).toISOString();
+	const end = new Date(Date.now() + offset + 7200000).toISOString();
+
+	db.prepare(
+		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, group_id, visibility)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+	).run(
+		eventId,
+		opts.title,
+		"<p>e2e group event</p>",
+		start,
+		end,
+		"online",
+		opts.organizerId,
+		opts.groupId ?? null,
+		opts.visibility ?? "global",
+	);
+	db.close();
+
+	return {
+		eventId,
+		cleanup() {
+			const db2 = openDb();
+			db2
+				.prepare("DELETE FROM participation_status WHERE event_id = ?")
+				.run(eventId);
+			db2.prepare("DELETE FROM events WHERE id = ?").run(eventId);
+			db2.close();
+		},
+	};
+}
+
+/** Set a user's RSVP for an event directly (status yes/no/maybe). */
+export function setParticipationInDb(
+	userId: string,
+	eventId: string,
+	status: "yes" | "no" | "maybe",
+): void {
+	const db = openDb();
+	db.prepare(
+		"INSERT OR REPLACE INTO participation_status (id, user_id, event_id, status, updated_at) VALUES (?, ?, ?, ?, ?)",
+	).run(crypto.randomUUID(), userId, eventId, status, new Date().toISOString());
+	db.close();
+}
+
 // ── Ticket helpers ────────────────────────────────────────────────────────────
 
 /** Get the login email for a user by their user id. */

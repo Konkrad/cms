@@ -14,6 +14,7 @@ import {
 	Pagination,
 } from "~/components/admin/Pagination/Pagination";
 import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
+import { reevaluateUserTagsForUser } from "~/core/registry/manifests";
 import { db } from "~/db/connection";
 import { groupMemberships } from "~/db/schemas/group-memberships";
 import { logins } from "~/db/schemas/logins";
@@ -23,7 +24,6 @@ import { users } from "~/db/schemas/users";
 import { groupsService } from "~/services/groups.service";
 import { membershipsService } from "~/services/memberships.service";
 import { userTagsService } from "~/services/user-tags.service";
-import { tagRulesService } from "~modules/events/services/tag-rules";
 
 export const useUsers = routeLoader$(async ({ params, url }) => {
 	const groupSlug = params.group_slug;
@@ -284,7 +284,7 @@ export const useReevaluateBadges = routeAction$(async (_data, event) => {
 	await requireAdmin(event);
 	const memberships = await membershipsService.getAll();
 	await Promise.all(
-		memberships.map((m) => tagRulesService.evaluateRulesForUser(m.userId)),
+		memberships.map((m) => reevaluateUserTagsForUser(m.userId)),
 	);
 	return { success: true };
 }, zod$({}));

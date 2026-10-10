@@ -1,3 +1,4 @@
+import type { GroupExtras } from "~/contracts/groups";
 import type { ProfileExtras } from "~/contracts/profile";
 import type { PageDefinition } from "~/core/pages";
 import type { PaymentHandlers } from "~/core/payments";
@@ -35,6 +36,13 @@ export interface ProfileContext {
 	isOwnProfile: boolean;
 }
 
+/** Which group page is rendered and who looks at it; passed to every module's `groupPage` hook. */
+export interface GroupPageContext {
+	groupId: string;
+	/** The logged-in viewer, null when anonymous. */
+	viewerId: string | null;
+}
+
 export interface ModuleDefinition {
 	id: string;
 	pages?: PageDefinition<unknown>[];
@@ -53,6 +61,15 @@ export interface ModuleDefinition {
 	 * (e.g. nothing private unless `ctx.isOwnProfile`); the result is serialized to the browser.
 	 */
 	profile?: (ctx: ProfileContext) => Promise<Partial<ProfileExtras>>;
+	/**
+	 * Extra sections for the public group page (`/groups/[slug]`). Server-only. Return only what
+	 * `ctx.viewerId` may see; the result is serialized to the browser.
+	 */
+	groupPage?: (ctx: GroupPageContext) => Promise<Partial<GroupExtras>>;
+	/**
+	 * Re-run the module's user-tag rules for one user (admin "Re-evaluate badges"). Server-only.
+	 */
+	reevaluateUserTags?: (userId: string) => Promise<void>;
 	/**
 	 * Stripe payment callbacks by payment kind. Server-only. The core webhook calls
 	 * `payments[metadata.kind]` of the module named by `metadata.moduleId` on the PaymentIntent,
@@ -116,6 +133,24 @@ export const profileExtrasOf = async (
 		{},
 		...(await Promise.all(modules.map((m) => m.profile?.(ctx) ?? {}))),
 	);
+
+/** Group page sections contributed by the given modules, merged in module order (later wins per key). */
+export const groupExtrasOf = async (
+	modules: readonly ModuleDefinition[],
+	ctx: GroupPageContext,
+): Promise<Partial<GroupExtras>> =>
+	Object.assign(
+		{},
+		...(await Promise.all(modules.map((m) => m.groupPage?.(ctx) ?? {}))),
+	);
+
+/** Runs the `reevaluateUserTags` hook of every given module for one user. */
+export const reevaluateUserTagsOf = async (
+	modules: readonly ModuleDefinition[],
+	userId: string,
+): Promise<void> => {
+	await Promise.all(modules.map((m) => m.reevaluateUserTags?.(userId)));
+};
 
 /**
  * Block types owned by a module that is not active. `moduleBlocks` maps module id to its

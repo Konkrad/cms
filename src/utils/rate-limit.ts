@@ -11,62 +11,66 @@
  */
 
 export interface RateLimitRule {
-  /** Maximum number of hits allowed within `windowMs`. */
-  limit: number;
-  /** Window length in milliseconds. */
-  windowMs: number;
+	/** Maximum number of hits allowed within `windowMs`. */
+	limit: number;
+	/** Window length in milliseconds. */
+	windowMs: number;
 }
 
 export interface RateLimitResult {
-  allowed: boolean;
-  /** Hits remaining in the current window (0 when blocked). */
-  remaining: number;
-  /** Milliseconds until the next hit would be allowed (0 when allowed). */
-  retryAfterMs: number;
+	allowed: boolean;
+	/** Hits remaining in the current window (0 when blocked). */
+	remaining: number;
+	/** Milliseconds until the next hit would be allowed (0 when allowed). */
+	retryAfterMs: number;
 }
 
 export class RateLimiter {
-  private hits = new Map<string, number[]>();
+	private hits = new Map<string, number[]>();
 
-  /**
-   * Record an attempt for `key` and report whether it is within the rule.
-   * A blocked attempt is NOT recorded, so the window can drain over time.
-   */
-  check(key: string, rule: RateLimitRule, now: number = Date.now()): RateLimitResult {
-    const windowStart = now - rule.windowMs;
-    const recent = (this.hits.get(key) ?? []).filter((ts) => ts > windowStart);
+	/**
+	 * Record an attempt for `key` and report whether it is within the rule.
+	 * A blocked attempt is NOT recorded, so the window can drain over time.
+	 */
+	check(
+		key: string,
+		rule: RateLimitRule,
+		now: number = Date.now(),
+	): RateLimitResult {
+		const windowStart = now - rule.windowMs;
+		const recent = (this.hits.get(key) ?? []).filter((ts) => ts > windowStart);
 
-    if (recent.length >= rule.limit) {
-      const oldest = recent[0];
-      this.hits.set(key, recent);
-      return {
-        allowed: false,
-        remaining: 0,
-        retryAfterMs: Math.max(0, oldest + rule.windowMs - now),
-      };
-    }
+		if (recent.length >= rule.limit) {
+			const oldest = recent[0];
+			this.hits.set(key, recent);
+			return {
+				allowed: false,
+				remaining: 0,
+				retryAfterMs: Math.max(0, oldest + rule.windowMs - now),
+			};
+		}
 
-    recent.push(now);
-    this.hits.set(key, recent);
-    return {
-      allowed: true,
-      remaining: rule.limit - recent.length,
-      retryAfterMs: 0,
-    };
-  }
+		recent.push(now);
+		this.hits.set(key, recent);
+		return {
+			allowed: true,
+			remaining: rule.limit - recent.length,
+			retryAfterMs: 0,
+		};
+	}
 
-  /** Forget all recorded hits for a key (e.g. after a successful login). */
-  reset(key: string): void {
-    this.hits.delete(key);
-  }
+	/** Forget all recorded hits for a key (e.g. after a successful login). */
+	reset(key: string): void {
+		this.hits.delete(key);
+	}
 
-  /** Drop keys whose every hit has aged out, to keep the map from growing. */
-  prune(maxWindowMs: number, now: number = Date.now()): void {
-    const cutoff = now - maxWindowMs;
-    for (const [key, timestamps] of this.hits) {
-      if (timestamps.every((ts) => ts <= cutoff)) {
-        this.hits.delete(key);
-      }
-    }
-  }
+	/** Drop keys whose every hit has aged out, to keep the map from growing. */
+	prune(maxWindowMs: number, now: number = Date.now()): void {
+		const cutoff = now - maxWindowMs;
+		for (const [key, timestamps] of this.hits) {
+			if (timestamps.every((ts) => ts <= cutoff)) {
+				this.hits.delete(key);
+			}
+		}
+	}
 }

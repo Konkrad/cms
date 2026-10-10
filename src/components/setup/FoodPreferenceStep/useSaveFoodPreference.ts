@@ -1,7 +1,7 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { requireAuth } from "~/utils/server-auth";
 import { usersService } from "~/services/users.service";
 import { markConsentStepComplete } from "~/utils/onboarding";
+import { requireAuth } from "~/utils/server-auth";
 
 /**
  * Co-located server action for the themed `FoodPreferenceStep` widget
@@ -11,13 +11,15 @@ import { markConsentStepComplete } from "~/utils/onboarding";
  * e.g. export { useSaveFoodPreference } from "../../../components/setup/FoodPreferenceStep/useSaveFoodPreference";
  */
 export const useSaveFoodPreference = routeAction$(
-  async (data, event) => {
-    const user = await requireAuth(event);
-    await usersService.update(user.id, { foodPreference: data.preference || null });
-    await markConsentStepComplete(user.id, "foodPreference");
-    return { success: true };
-  },
-  zod$({
-    preference: z.string().optional(),
-  }),
+	async (data, event) => {
+		const user = await requireAuth(event);
+		await usersService.update(user.id, {
+			foodPreference: data.preference || null,
+		});
+		await markConsentStepComplete(user.id, "foodPreference");
+		return { success: true };
+	},
+	zod$({
+		preference: z.string().optional(),
+	}),
 );

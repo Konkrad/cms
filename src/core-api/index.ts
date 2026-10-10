@@ -32,7 +32,7 @@ export {
 	getNextCursorFromRows,
 	paginateRows,
 } from "~/services/pagination";
-export { telegramService } from "~/services/telegram.service";
+export { telegramService } from "~/core/notifications/telegram.service";
 export { userTagsService } from "~/core/tags/user-tags.service";
 export { usersService } from "~/core/users/users.service";
 export { requireGroupAdmin } from "~/core/scopes/access-control";
@@ -42,7 +42,7 @@ export {
 	generatePresignedGetUrl,
 	generateSecurePhotoUrl,
 } from "~/core/media/secure-urls";
-export { sendEmail } from "~/utils/send-email";
+export { sendEmail } from "~/core/notifications/send-email";
 export {
 	getCurrentUserData,
 	getServerSession,

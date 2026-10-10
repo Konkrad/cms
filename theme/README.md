@@ -29,7 +29,7 @@ this folder to reskin the public site without touching core logic.
   blocks — these still take real props (tickets, products, amounts) since that
   data is core-owned, but all markup/copy/styling is theme. `static/logo.svg`
   is the brand asset served at `${baseUrl}/static/logo.svg`. Core only computes
-  the props (`src/services/email-notifications.service.ts`, the "loader"
+  the props (`src/core/notifications/email-notifications.service.ts`, the "loader"
   equivalent — date formatting, env access) and calls `render()`/`sendEmail()`
   against `~theme/emails/LoginEmail` / `~theme/emails/TicketConfirmation` —
   the same loader/View split used for routes.

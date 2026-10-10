@@ -1,7 +1,7 @@
 import { render } from "@react-email/render";
 import * as React from "react";
+import { sendEmail } from "~/core/notifications/send-email";
 import { env } from "~/env";
-import { sendEmail } from "~/utils/send-email";
 import LoginEmail from "~theme/emails/LoginEmail";
 
 export const emailNotificationsService = {

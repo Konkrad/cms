@@ -16,8 +16,8 @@ import {
 } from "~/core/auth/email-auth";
 import { db } from "~/core/db/connection";
 import { logins, sessions, users } from "~/core/db/schema";
+import { emailNotificationsService } from "~/core/notifications/email-notifications.service";
 import { env } from "~/env";
-import { emailNotificationsService } from "~/services/email-notifications.service";
 
 /**
  * Email-based authentication service.

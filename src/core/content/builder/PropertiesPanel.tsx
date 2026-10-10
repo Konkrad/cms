@@ -6,7 +6,7 @@ import { TextArea } from "~/components/ui/TextArea";
 import { GridLayoutEditor } from "~/core/content/builder/GridLayoutEditor";
 import { TileEditor } from "~/core/content/builder/TileEditor";
 import type { BlockData, BlockDefinition } from "~/core/db/schema";
-import { publicImageUrlFromKey } from "~/utils/images";
+import { publicImageUrlFromKey } from "~/core/media/images";
 
 interface PropertiesPanelProps {
 	selectedBlock?: BlockData;

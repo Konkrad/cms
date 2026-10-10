@@ -3,7 +3,7 @@ import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import type { ArchivePostsViewData } from "~/contracts/archive-posts";
 import { postsService } from "~/core/content/posts.service";
 import { canonicalUrl } from "~/core/content/seo";
-import { publicImageUrlFromKey } from "~/utils/images";
+import { publicImageUrlFromKey } from "~/core/media/images";
 import { ArchivePostsView } from "~theme/routes/archive-posts/ArchivePostsView";
 
 const POSTS_PER_PAGE = 10;

@@ -2,7 +2,7 @@ import { useSignal, useTask$ } from "@qwik.dev/core";
 import { server$ } from "@qwik.dev/router";
 import type { HeroPost } from "~/contracts/posts";
 import { postsService } from "~/core/content/posts.service";
-import { publicImageUrlFromKey } from "~/utils/images";
+import { publicImageUrlFromKey } from "~/core/media/images";
 
 const fetchLatestGlobalPosts = server$(async (): Promise<HeroPost[]> => {
 	const res = await postsService.getVisiblePosts(null, 3);

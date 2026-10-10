@@ -6,10 +6,10 @@ import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
 import { db } from "~/core/db/connection";
 import { formResultsService } from "~/core/forms/form-results.service";
 import { buildFormPath } from "~/core/forms/forms";
+import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
 import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
 import { formatAffiliationResultJson } from "~/core/users/affiliation";
 import { usersService } from "~/core/users/users.service";
-import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { PublicProfileView } from "~theme/routes/users/PublicProfileView";
 import { activeProfileExtras } from "../../../core/registry/manifests";
 

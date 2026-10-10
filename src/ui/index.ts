@@ -20,4 +20,4 @@ export { AddressAutocomplete } from "~/components/ui/AddressAutocomplete";
 export { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 export { SmartDatePicker } from "~/components/ui/SmartDatePicker";
 export { BlockNoteEditor } from "~/core/content/editor";
-export { publicImageUrlFromKey } from "~/utils/images";
+export { publicImageUrlFromKey } from "~/core/media/images";

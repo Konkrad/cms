@@ -5,7 +5,7 @@ import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
 import { BlockNoteEditor } from "~/core/content/editor";
 import { postsService } from "~/core/content/posts.service";
-import { publicImageUrlFromKey } from "~/utils/images";
+import { publicImageUrlFromKey } from "~/core/media/images";
 
 const updateSchema = z.object({
 	title: z.string().min(1, "Title is required"),

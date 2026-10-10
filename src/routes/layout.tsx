@@ -7,10 +7,10 @@ import { getCurrentUserData } from "~/core/auth/server-auth";
 import { menuItemsService } from "~/core/content/menu-items.service";
 import { db } from "~/core/db/connection";
 import { sessions } from "~/core/db/schema";
+import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
 import { currentScopePath } from "~/core/router/scope-request";
 import { formatUser } from "~/core/users/format";
 import { env } from "~/env";
-import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { Navigation } from "~theme/chrome/Navigation/Navigation";
 import { SiteFooter } from "~theme/chrome/SiteFooter/SiteFooter";
 

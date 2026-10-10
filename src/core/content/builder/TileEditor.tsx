@@ -1,7 +1,7 @@
 import { $, component$, type QRL, useSignal, useTask$ } from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
-import { publicImageUrlFromKey } from "~/utils/images";
+import { publicImageUrlFromKey } from "~/core/media/images";
 import {
 	GRID_AREAS,
 	type TileConfig,

@@ -6,9 +6,9 @@ import { Input } from "~/components/ui/Input";
 import { getCurrentUserData } from "~/core/auth/server-auth";
 import { db } from "~/core/db/connection";
 import { groups } from "~/core/db/schema";
+import { publicImageUrlFromKey } from "~/core/media/images";
 import { geocodingService } from "~/core/scopes/geocoding.service";
 import { groupsService } from "~/core/scopes/groups.service";
-import { publicImageUrlFromKey } from "~/utils/images";
 
 export const useGlobalOnly = routeLoader$(async ({ params, redirect }) => {
 	const groupSlug = params.group_slug;

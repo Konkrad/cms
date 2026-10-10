@@ -1,7 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/contracts/blocks";
 import { useGroupsList } from "~/core/content/builder/blocks/useGroupsList";
-import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
+import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 
 export const definition: BlockDefinition = {

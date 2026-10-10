@@ -2,8 +2,8 @@ import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import { postsService } from "~/core/content/posts.service";
 import { canonicalUrl, htmlToDescription } from "~/core/content/seo";
+import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
 import { formatUser } from "~/core/users/format";
-import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { PostView } from "~theme/routes/posts/PostView";
 
 export const usePost = routeLoader$(async ({ params, status }) => {

@@ -21,15 +21,15 @@ import type { RequestHandler } from "@qwik.dev/router";
 import crypto from "crypto";
 import { requireAuth } from "~/core/auth/server-auth";
 import { sanitizeSvg } from "~/core/content/svg-sanitize";
-import { env } from "~/env";
 import {
 	getPipeline,
 	PROCESSING_PIPELINES,
 	processAndUploadImage,
 	processAndUploadVariants,
 	uploadRawFile,
-} from "~/services/image-processing.service";
-import { generatePresignedGetUrl } from "~/utils/secure-urls";
+} from "~/core/media/image-processing.service";
+import { generatePresignedGetUrl } from "~/core/media/secure-urls";
+import { env } from "~/env";
 
 /**
  * Storage roots an authenticated client is allowed to write to via the

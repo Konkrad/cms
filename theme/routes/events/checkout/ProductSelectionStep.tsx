@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
-import { publicImageUrlFromKey } from "~/utils/images";
+import { publicImageUrlFromKey } from "~/core/media/images";
 import type { ParticipantAssignmentUnit } from "./types";
 
 type ProductSelectionStepProps = {

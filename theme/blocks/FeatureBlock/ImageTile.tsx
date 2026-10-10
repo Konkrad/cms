@@ -1,5 +1,5 @@
 import { component$, Slot } from "@qwik.dev/core";
-import { publicImageUrlFromKey } from "~/utils/images";
+import { publicImageUrlFromKey } from "~/core/media/images";
 
 interface ImageTileProps {
 	image: string;

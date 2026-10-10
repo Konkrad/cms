@@ -2,7 +2,7 @@ import { $, useOnWindow, useSignal, useVisibleTask$ } from "@qwik.dev/core";
 import type { RequestEventCommon } from "@qwik.dev/router";
 import { server$ } from "@qwik.dev/router";
 import type { PostsPage } from "~/contracts/posts";
-import { publicImageUrlFromKey } from "~/utils/images";
+import { publicImageUrlFromKey } from "~/core/media/images";
 
 const fetchPosts = server$(async function (options: {
 	limit: number;

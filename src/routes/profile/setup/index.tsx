@@ -3,8 +3,8 @@ import { routeLoader$ } from "@qwik.dev/router";
 import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
 import { formResultsService } from "~/core/forms/form-results.service";
 import { formsService } from "~/core/forms/forms.service";
+import { resolvePrivateImageUrl } from "~/core/media/secure-urls";
 import type { UserConsent } from "~/core/users/schema";
-import { resolvePrivateImageUrl } from "~/utils/secure-urls";
 import { OnboardingView } from "~theme/routes/onboarding/OnboardingView";
 import { useMarkLocation } from "../../../core/users/setup/LocationStep/useMarkLocation";
 // Import re-exported route actions via a RELATIVE path, not the "~"/"~theme" alias —

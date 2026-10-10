@@ -23,7 +23,7 @@ export { currentScopeRest } from "~/core/router/scope-request";
 export { groupMembershipsService } from "~/core/scopes/group-memberships.service";
 export { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
 export { groupsService } from "~/core/scopes/groups.service";
-export { deleteS3Objects } from "~/services/image-processing.service";
+export { deleteS3Objects } from "~/core/media/image-processing.service";
 export { membershipsService } from "~/core/memberships/memberships.service";
 export type { PageDirection } from "~/services/pagination";
 export {
@@ -36,12 +36,12 @@ export { telegramService } from "~/services/telegram.service";
 export { userTagsService } from "~/core/tags/user-tags.service";
 export { usersService } from "~/core/users/users.service";
 export { requireGroupAdmin } from "~/core/scopes/access-control";
-export { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
+export { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
 export { sanitizeRichHtml } from "~/core/content/sanitize-html";
 export {
 	generatePresignedGetUrl,
 	generateSecurePhotoUrl,
-} from "~/utils/secure-urls";
+} from "~/core/media/secure-urls";
 export { sendEmail } from "~/utils/send-email";
 export {
 	getCurrentUserData,

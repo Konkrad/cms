@@ -42,7 +42,7 @@ export default defineConfig(
 		// Imported dynamically so `vite build` (which lacks the full secret set at
 		// build time — see Dockerfile) never eagerly loads src/env.ts's validation.
 		if (command === "serve" && !isPreview) {
-			const { runMigrations } = await import("./src/db/migrate");
+			const { runMigrations } = await import("./src/core/db/migrate");
 			runMigrations();
 		}
 

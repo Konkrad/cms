@@ -1,5 +1,5 @@
 import { $, component$, type QRL } from "@qwik.dev/core";
-import type { BlockData, BlockDefinition } from "~/db/schema";
+import type { BlockData, BlockDefinition } from "~/core/db/schema";
 import { BlockWrapper } from "./BlockWrapper";
 
 interface CanvasProps {

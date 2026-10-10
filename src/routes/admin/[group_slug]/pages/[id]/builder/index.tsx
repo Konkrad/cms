@@ -4,7 +4,7 @@ import { Canvas } from "~/components/builder/Canvas";
 import { ComponentsSidebar } from "~/components/builder/ComponentsSidebar";
 import { PropertiesPanel } from "~/components/builder/PropertiesPanel";
 import { Button } from "~/components/ui/Button";
-import type { BlockData, BlockDefinition } from "~/db/schema";
+import type { BlockData, BlockDefinition } from "~/core/db/schema";
 import { componentLoaderService } from "~/services/component-loader.service";
 import { pagesService } from "~/services/pages.service";
 import { requireAdmin } from "~/utils/server-auth";

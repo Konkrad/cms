@@ -20,7 +20,7 @@ type Tables = Record<string, unknown>;
 /**
  * A module's DB contribution: its tables plus its relation part. `relations` may
  * also add reverse relations on core tables (e.g. `users.jobs`). The core merges
- * all parts in `src/db/schema.ts`; export it as the file's default export.
+ * all parts in `src/core/db/schema.ts`; export it as the file's default export.
  */
 export function defineModuleSchema<
 	TOwn extends Tables,

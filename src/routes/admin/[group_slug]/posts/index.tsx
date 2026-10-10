@@ -8,7 +8,7 @@ import {
 } from "~/components/admin/Pagination/Pagination";
 import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
 import { Button } from "~/components/ui/Button";
-import { db } from "~/db/connection";
+import { db } from "~/core/db/connection";
 import { posts } from "~/db/schemas/posts";
 import { users as usersTable } from "~/db/schemas/users";
 import { groupsService } from "~/services/groups.service";

@@ -5,7 +5,7 @@ import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { TextArea } from "~/components/ui/TextArea";
-import type { BlockData, BlockDefinition } from "~/db/schema";
+import type { BlockData, BlockDefinition } from "~/core/db/schema";
 import { publicImageUrlFromKey } from "~/utils/images";
 
 interface PropertiesPanelProps {

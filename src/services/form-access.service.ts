@@ -1,4 +1,4 @@
-import type { Form } from "~/db/schema";
+import type { Form } from "~/core/db/schema";
 
 type UserLike = { id: string } | null;
 

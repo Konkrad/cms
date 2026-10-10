@@ -1,7 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
 import { eq } from "drizzle-orm";
-import { db } from "~/db/connection";
+import { db } from "~/core/db/connection";
 import { groupMemberships } from "~/db/schemas/group-memberships";
 import { groups } from "~/db/schemas/groups";
 import { formResultsService } from "~/services/form-results.service";

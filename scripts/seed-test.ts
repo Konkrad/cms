@@ -31,8 +31,8 @@ import dotenv from "dotenv";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import fs from "fs";
-import { runMigrations } from "../src/db/migrate.ts";
-import * as schema from "../src/db/schema.ts";
+import { runMigrations } from "../src/core/db/migrate.ts";
+import * as schema from "../src/core/db/schema.ts";
 
 dotenv.config();
 

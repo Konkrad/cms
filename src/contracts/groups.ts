@@ -3,7 +3,7 @@
  * and for the core-owned `useGroupsList` block composable.
  */
 
-import type { Group } from "~/db/schema";
+import type { Group } from "~/core/db/schema";
 import type { useGroupData, useJoinGroup } from "~/routes/groups/[slug]";
 
 export type GroupViewData = ReturnType<typeof useGroupData>["value"];

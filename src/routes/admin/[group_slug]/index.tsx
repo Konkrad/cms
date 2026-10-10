@@ -2,8 +2,8 @@ import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
 import { and, count, eq, isNull } from "drizzle-orm";
 import { Button } from "~/components/ui/Button/Button";
-import { db } from "~/db/connection";
-import { events, pages, posts, users } from "~/db/schema";
+import { db } from "~/core/db/connection";
+import { events, pages, posts, users } from "~/core/db/schema";
 import { groupMembershipsService } from "~/services/group-memberships.service";
 import { groupsService } from "~/services/groups.service";
 

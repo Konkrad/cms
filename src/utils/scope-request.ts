@@ -1,5 +1,5 @@
 import type { RequestEventBase } from "@qwik.dev/router";
-import { sqlite } from "~/db/connection";
+import { sqlite } from "~/core/db/connection";
 import type { Scope } from "~/db/schemas/scopes";
 import { scopesService } from "~/services/scopes.service";
 

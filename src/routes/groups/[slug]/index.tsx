@@ -5,8 +5,8 @@ import {
 	routeLoader$,
 } from "@qwik.dev/router";
 import { eq } from "drizzle-orm";
-import { db } from "~/db/connection";
-import { groupMemberships, users } from "~/db/schema";
+import { db } from "~/core/db/connection";
+import { groupMemberships, users } from "~/core/db/schema";
 import { groupMembershipsService } from "~/services/group-memberships.service";
 import { groupRepresentativesService } from "~/services/group-representatives.service";
 import { groupsService } from "~/services/groups.service";

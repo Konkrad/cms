@@ -50,7 +50,7 @@
 										"message": "theme must not import core services directly — add or use a headless composable in ~/components/builder/blocks/* instead."
 									},
 									{
-										"group": ["~/db/**"],
+										"group": ["~/db/**", "~/core/db/**"],
 										"message": "theme must not import core db/schema directly — use a type from ~/contracts/* instead."
 									},
 									{

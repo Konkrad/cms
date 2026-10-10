@@ -27,7 +27,7 @@ import {
 import Database from "better-sqlite3";
 import dotenv from "dotenv";
 import sharp from "sharp";
-import { runMigrations } from "../src/db/migrate.ts";
+import { runMigrations } from "../src/core/db/migrate.ts";
 
 dotenv.config();
 

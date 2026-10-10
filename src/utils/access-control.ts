@@ -1,4 +1,4 @@
-import type { Group, User } from "~/db/schema";
+import type { Group, User } from "~/core/db/schema";
 import { groupRepresentativesService } from "~/services/group-representatives.service";
 import { groupsService } from "~/services/groups.service";
 import type { RequestEvent } from "~/utils/server-auth";

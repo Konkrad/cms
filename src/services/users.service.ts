@@ -1,7 +1,12 @@
 import { desc, eq, inArray, lt } from "drizzle-orm";
-import { db } from "~/db/connection";
-import type { InsertUser, UpdateUser, User } from "~/db/schema";
-import { insertUserSchema, logins, updateUserSchema, users } from "~/db/schema";
+import { db } from "~/core/db/connection";
+import type { InsertUser, UpdateUser, User } from "~/core/db/schema";
+import {
+	insertUserSchema,
+	logins,
+	updateUserSchema,
+	users,
+} from "~/core/db/schema";
 import type { Post } from "~/db/schemas/posts";
 import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
 

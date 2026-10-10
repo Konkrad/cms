@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
-import { db } from "~/db/connection";
+import { db } from "~/core/db/connection";
 import {
 	type Scope,
 	type ScopeRole,

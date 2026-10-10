@@ -8,7 +8,7 @@
 6. Do not create ad hoc types if a package already provides them; install the existing package types instead.
 7. Do not wrap everything in `try/catch`. Catch only expected errors and let unexpected failures bubble up.
 8. Do not create README or other documentation unless asked.
-9. Migrations use one mechanism everywhere, local dev included: after changing a schema file, run `npm run db:generate` once to write the migration file, then commit it under `drizzle/`. Applying migrations is fully automatic and built into the app itself, not an external script or npm hook — `runMigrations()` in `src/db/migrate.ts` is called directly from `src/entry.node-server.tsx` before it starts listening (prod) and from `vite.config.ts` on dev-server boot (`command === "serve"`, dynamically imported so `vite build` never eagerly loads `src/env.ts`'s validation). It runs whenever the server process starts, regardless of how it's launched — no manual init/migrate step, no shell wrapper. Never apply schema changes with `drizzle-kit push` — a DB it creates has no `__drizzle_migrations` tracking row, so the migration runner will later try to recreate tables that already exist and fail. If a local `my-database.db` predates this (was built via `push`), delete it (and its `-shm`/`-wal` files) and let `npm start` recreate it from `drizzle/`.
+9. Migrations use one mechanism everywhere, local dev included: after changing a schema file, run `npm run db:generate` once to write the migration file, then commit it under `drizzle/`. Applying migrations is fully automatic and built into the app itself, not an external script or npm hook — `runMigrations()` in `src/core/db/migrate.ts` is called directly from `src/entry.node-server.tsx` before it starts listening (prod) and from `vite.config.ts` on dev-server boot (`command === "serve"`, dynamically imported so `vite build` never eagerly loads `src/env.ts`'s validation). It runs whenever the server process starts, regardless of how it's launched — no manual init/migrate step, no shell wrapper. Never apply schema changes with `drizzle-kit push` — a DB it creates has no `__drizzle_migrations` tracking row, so the migration runner will later try to recreate tables that already exist and fail. If a local `my-database.db` predates this (was built via `push`), delete it (and its `-shm`/`-wal` files) and let `npm start` recreate it from `drizzle/`.
 
 ## Qwik And Data Flow
 
@@ -39,7 +39,7 @@ The presentational layer for public-facing routes lives in `theme/` and is licen
 
 - Feature modules live in `modules/<id>/` (`module.ts` manifest via `defineModule`, `pages.ts`, `views.tsx`, `actions.ts`, `schema.ts`, `service.ts`, `admin/`); `modules/` holds only module folders.
 - Registering a module = its folder + one line each in `src/core/registry/manifests.ts` (manifest), `views.ts` (client-safe view map), `actions.ts` (public `routeAction$` re-exports, RELATIVE paths; the catch-all does `export * from "../../core/registry/actions"`) and `schemas.ts` (`moduleSchemas`) + the id in `modules.config.ts`. Core internals live in `src/core/`; `src/core-api/` and `src/ui/` are the module entry points.
-- Module `schema.ts` exports its tables plus a default `defineModuleSchema({ tables, relations })` (relation part, incl. reverse relations on core tables like `users.jobs`); `src/db/schema.ts` merges the parts via `schemas.ts`. `schemas.ts` must stay free of db connection/`~/env` imports (drizzle-kit loads it).
+- Module `schema.ts` exports its tables plus a default `defineModuleSchema({ tables, relations })` (relation part, incl. reverse relations on core tables like `users.jobs`); `src/core/db/schema.ts` merges the parts via `schemas.ts`. `schemas.ts` must stay free of db connection/`~/env` imports (drizzle-kit loads it).
 - Import boundary (enforced by the `modules/**` override in `biome.json`, check with `npx biome lint modules`; `~/core/**`, which includes the registry, is blocked): modules import only `~/core-api` (server+client core surface, add exports there when needed), `~/ui`, `~/contracts/*`, `~theme/*`, relative files in their own folder, and npm packages. Never `~/services|db|utils|components|env` or another module.
 - Public pages are `definePage` entries served by the catch-all `src/routes/[...path]`; module `routeAction$`s and admin actions are re-exported from the route files via RELATIVE paths. Keep server-only loader logic in `*-data.ts` files imported only inside `routeLoader$`, so it never reaches the client bundle.
 
@@ -227,7 +227,7 @@ The job portal lets authenticated members post job listings that go live only af
 
 - Module: `modules/jobs/` (see Modules) — schema `schema.ts`, service `service.ts`, public pages `pages.ts`/`views.tsx`/`actions.ts`, admin UI+actions `admin/`. Schema fields: `id`, `title`, `body`, `editorState`, `locationType`, `city`, `country`, `link`, `expiresAt`, `status`, `suggestedBy`, `createdAt`, `updatedAt`
 - Service: `modules/jobs/service.ts` — exports `jobsService` and the `JobWithUser` type
-- Relations: `jobs.suggestedBy → users.id` (defined in `src/db/schema.ts`, which imports the table from `modules/jobs/schema.ts`)
+- Relations: `jobs.suggestedBy → users.id` (defined in `src/core/db/schema.ts`, which imports the table from `modules/jobs/schema.ts`)
 
 ### Seed
 

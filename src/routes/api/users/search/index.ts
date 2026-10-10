@@ -1,6 +1,6 @@
 import type { RequestHandler } from "@qwik.dev/router";
 import { sql } from "drizzle-orm";
-import { db } from "~/db/connection";
+import { db } from "~/core/db/connection";
 import { users } from "~/db/schemas/users";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { getServerSession } from "~/utils/server-auth";

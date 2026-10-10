@@ -1,9 +1,9 @@
 import type { RequestHandler } from "@qwik.dev/router";
 import { and, eq } from "drizzle-orm";
+import { db } from "~/core/db/connection";
+import { menuItems, pages } from "~/core/db/schema";
 import { sitemapEntriesOf } from "~/core/modules";
 import { activeModules } from "~/core/registry/manifests";
-import { db } from "~/db/connection";
-import { menuItems, pages } from "~/db/schema";
 import { env } from "~/env";
 import { groupsService } from "~/services/groups.service";
 import { postsService } from "~/services/posts.service";

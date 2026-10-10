@@ -1,10 +1,10 @@
 import { and, eq } from "drizzle-orm";
-import { db } from "~/db/connection";
+import { db } from "~/core/db/connection";
 import {
 	type GroupRepresentative,
 	groupRepresentatives,
 	insertGroupRepresentativeSchema,
-} from "~/db/schema";
+} from "~/core/db/schema";
 import { users } from "~/db/schemas/users";
 
 export type RepresentativeWithUser = GroupRepresentative & {

@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
+import type { BlockData } from "~/core/db/schema";
 import { disabledBlocks } from "~/core/registry/blocks";
-import type { BlockData } from "~/db/schema";
 import { blockRegistry } from "~theme/blocks";
 
 interface BlockRendererProps {

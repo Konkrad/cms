@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { and, eq } from "drizzle-orm";
-import { db } from "~/db/connection";
+import { db } from "~/core/db/connection";
 import {
 	insertTagDefinitionSchema,
 	type TagDefinition,

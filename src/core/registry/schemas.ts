@@ -1,5 +1,5 @@
 /**
- * DB side of module registration. Loaded by drizzle-kit via `src/db/schema.ts`,
+ * DB side of module registration. Loaded by drizzle-kit via `src/core/db/schema.ts`,
  * so it must not import a DB connection or `~/env`.
  */
 import dealsSchema from "../../../modules/deals/schema";
@@ -8,7 +8,7 @@ import eventsSchema from "../../../modules/events/schema";
 import jobsSchema from "../../../modules/jobs/schema";
 import qualificationsSchema from "../../../modules/qualifications/schema";
 
-// Module tables, picked up by drizzle-kit as part of `src/db/schema.ts`.
+// Module tables, picked up by drizzle-kit as part of `src/core/db/schema.ts`.
 export * from "../../../modules/deals/schema";
 export * from "../../../modules/elections/schema";
 export * from "../../../modules/events/schema";

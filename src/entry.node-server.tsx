@@ -15,7 +15,7 @@ import {
 } from "@qwik.dev/router/middleware/node";
 import "dotenv/config";
 import { createServer } from "node:http";
-import { runMigrations } from "./db/migrate";
+import { runMigrations } from "./core/db/migrate";
 import render from "./entry.ssr";
 import { env } from "./env";
 

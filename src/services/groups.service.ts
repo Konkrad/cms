@@ -1,12 +1,12 @@
 import { eq, isNull } from "drizzle-orm";
-import { db } from "~/db/connection";
+import { db } from "~/core/db/connection";
 import {
 	type Group,
 	groups,
 	type InsertGroup,
 	insertGroupSchema,
 	updateGroupSchema,
-} from "~/db/schema";
+} from "~/core/db/schema";
 import { generateSlug } from "~/utils/group-slug";
 
 export const groupsService = {

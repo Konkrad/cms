@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { and, asc, desc, eq } from "drizzle-orm";
-import { db } from "~/db/connection";
+import { db } from "~/core/db/connection";
 import type {
 	InsertMenuItem,
 	MenuItem,

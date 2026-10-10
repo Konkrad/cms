@@ -4,6 +4,8 @@
  * Add an export here only when a module needs it.
  */
 
+// Server-only: do not call from client code (reference only inside loaders/actions/server$).
+export { db } from "~/core/db/connection";
 // Module/page definition (client-safe)
 export { defineModule } from "~/core/modules";
 export type { PageViews } from "~/core/page-views";
@@ -12,8 +14,6 @@ export type { PaymentContext, PaymentHandlers } from "~/core/payments";
 export type { PublicUser } from "~/core/public-user";
 export { toPublicUser } from "~/core/public-user";
 export { requireActiveModule } from "~/core/registry/manifests";
-// Server-only: do not call from client code (reference only inside loaders/actions/server$).
-export { db } from "~/db/connection";
 // Server-only core services for modules (memberships tiers, user tags). Tag *rule evaluation*
 // is not core; it lives in the events module (`modules/events/services/tag-rules.ts`).
 export { groupMembershipsService } from "~/services/group-memberships.service";

@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { desc, eq, lt } from "drizzle-orm";
-import { db } from "~/db/connection";
+import { db } from "~/core/db/connection";
 import type { MenuItem } from "~/db/schemas/menu-items";
 import { menuItems } from "~/db/schemas/menu-items";
 import type { InsertPage, Page, UpdatePage } from "~/db/schemas/pages";

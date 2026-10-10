@@ -1,5 +1,5 @@
 import { component$, type QRL, useSignal } from "@qwik.dev/core";
-import type { BlockDefinition } from "~/db/schema";
+import type { BlockDefinition } from "~/core/db/schema";
 
 interface ComponentsSidebarProps {
 	definitions: BlockDefinition[];

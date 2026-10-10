@@ -14,8 +14,8 @@ import {
 	Pagination,
 } from "~/components/admin/Pagination/Pagination";
 import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
+import { db } from "~/core/db/connection";
 import { reevaluateUserTagsForUser } from "~/core/registry/manifests";
-import { db } from "~/db/connection";
 import { groupMemberships } from "~/db/schemas/group-memberships";
 import { logins } from "~/db/schemas/logins";
 import { sessions } from "~/db/schemas/sessions";

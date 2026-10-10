@@ -5,7 +5,7 @@ import {
 	useSignal,
 	useTask$,
 } from "@qwik.dev/core";
-import type { BlockData, BlockDefinition } from "~/db/schema";
+import type { BlockData, BlockDefinition } from "~/core/db/schema";
 import { componentLoaderService } from "~/services/component-loader.service";
 
 interface BlockWrapperProps {

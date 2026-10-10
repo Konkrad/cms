@@ -9,7 +9,7 @@ import {
 	type SQL,
 	sql,
 } from "drizzle-orm";
-import { db } from "~/db/connection";
+import { db } from "~/core/db/connection";
 import type { InsertPost, Post, UpdatePost } from "~/db/schemas/posts";
 import { insertPostSchema, posts, updatePostSchema } from "~/db/schemas/posts";
 import { users as usersTable } from "~/db/schemas/users";

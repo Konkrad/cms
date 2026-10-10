@@ -24,7 +24,7 @@ const DB_PATH = process.env.DB_PATH ?? path.join(ROOT, "my-database.db");
 
 export function openDb() {
 	const db = new Database(DB_PATH);
-	// Mirror the app's connection (src/db/connection.ts): wait on a held lock
+	// Mirror the app's connection (src/core/db/connection.ts): wait on a held lock
 	// instead of erroring immediately. Tests open many short-lived connections
 	// that contend with the dev server's writer; without this they fail with
 	// "database is locked" / "locking protocol" under load.

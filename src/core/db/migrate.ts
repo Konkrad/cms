@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import { env } from "../env";
+import { env } from "../../env";
 
 // Applies committed migrations from ./drizzle to the SQLite file at env.DB_PATH.
 // Idempotent: tracked in __drizzle_migrations, a no-op when already up to date.

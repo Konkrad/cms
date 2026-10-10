@@ -7,8 +7,8 @@ import {
 } from "~/components/admin/Pagination/Pagination";
 import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
 import { Button } from "~/components/ui/Button";
-import { db } from "~/db/connection";
-import { groupMemberships } from "~/db/schema";
+import { db } from "~/core/db/connection";
+import { groupMemberships } from "~/core/db/schema";
 import { groupsService } from "~/services/groups.service";
 
 export const useAdminGroups = routeLoader$(

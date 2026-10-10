@@ -1,6 +1,6 @@
+import type { BlockDefinition } from "~/core/db/schema";
 import { withoutDisabledBlocks } from "~/core/modules";
 import { disabledBlocks } from "~/core/registry/blocks";
-import type { BlockDefinition } from "~/db/schema";
 import { blockDefinitions, blockRegistry } from "~theme/blocks";
 
 let definitionsCache: Map<string, BlockDefinition> | null = null;

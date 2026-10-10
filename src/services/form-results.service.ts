@@ -1,7 +1,7 @@
 import { and, count, desc, eq, inArray } from "drizzle-orm";
-import { db } from "~/db/connection";
-import type { FormResult, InsertFormResult } from "~/db/schema";
-import { formResults, insertFormResultSchema } from "~/db/schema";
+import { db } from "~/core/db/connection";
+import type { FormResult, InsertFormResult } from "~/core/db/schema";
+import { formResults, insertFormResultSchema } from "~/core/db/schema";
 
 export const formResultsService = {
 	async getCountsByFormIds(formIds: string[]): Promise<Record<string, number>> {

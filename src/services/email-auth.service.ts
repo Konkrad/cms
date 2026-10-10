@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { eq } from "drizzle-orm";
-import { db } from "~/db/connection";
-import { logins, sessions, users } from "~/db/schema";
+import { db } from "~/core/db/connection";
+import { logins, sessions, users } from "~/core/db/schema";
 import { env } from "~/env";
 import { emailNotificationsService } from "~/services/email-notifications.service";
 import {

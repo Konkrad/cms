@@ -1,5 +1,5 @@
 import { and, desc, eq, gte, isNull, or } from "drizzle-orm";
-import { db } from "~/core-api";
+import { db } from "~/core";
 import type { Deal, InsertDeal, UpdateDeal } from "./schema";
 import { deals, insertDealSchema, updateDealSchema } from "./schema";
 

@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { and, eq, or } from "drizzle-orm";
-import { db, membershipsService, type User } from "~/core-api";
+import { db, membershipsService, type User } from "~/core";
 import {
 	type ElectionApplication,
 	electionApplications,

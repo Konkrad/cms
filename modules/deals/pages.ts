@@ -1,8 +1,4 @@
-import {
-	definePage,
-	getServerSession,
-	publicImageUrlFromKey,
-} from "~/core-api";
+import { definePage, getServerSession, publicImageUrlFromKey } from "~/core";
 import { toPublicDeal } from "./public-deal";
 import { dealsService } from "./service";
 

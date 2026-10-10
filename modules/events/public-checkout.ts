@@ -4,7 +4,7 @@ import {
 	getServerSession,
 	getStripePublishableKey,
 	publicImageUrlFromKey,
-} from "~/core-api";
+} from "~/core";
 import { getViewableEvent } from "./public-event";
 import { inventoryGroupsService } from "./services/inventory-groups";
 import { photosService } from "./services/photos";

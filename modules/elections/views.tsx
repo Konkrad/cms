@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { ApplyViewData } from "~/contracts/elections";
-import type { PageViews } from "~/core-api";
+import type { PageViews } from "~/core";
 import { ApplyView } from "~theme/routes/elections/ApplyView";
 import { ElectionDetailView } from "~theme/routes/elections/ElectionDetailView";
 import { ElectionsView } from "~theme/routes/elections/ElectionsView";

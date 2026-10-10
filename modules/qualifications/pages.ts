@@ -1,4 +1,4 @@
-import { definePage, requireAuth } from "~/core-api";
+import { definePage, requireAuth } from "~/core";
 import { qualificationsService } from "./service";
 
 export const qualificationVerifyPage = definePage({

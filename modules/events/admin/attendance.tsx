@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { useLocation } from "@qwik.dev/router";
-import { Button, Card } from "~/ui";
+import { Button, Card } from "~/core/ui";
 import type { AdminAttendanceData } from "./attendance-data";
 
 type Props = { data: AdminAttendanceData };

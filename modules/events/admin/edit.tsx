@@ -8,7 +8,7 @@ import {
 	SmartDatePicker,
 	TextArea,
 	VisibilitySelector,
-} from "~/ui";
+} from "~/core/ui";
 import { eventsService } from "../services/events";
 import type { AdminEventEditData } from "./edit-data";
 import { requireAdminEvent } from "./event-guards";

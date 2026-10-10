@@ -1,5 +1,5 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
-import { requireModuleAdmin } from "~/core-api";
+import { requireModuleAdmin } from "~/core";
 import { toPublicJob } from "../public-job";
 import { jobsService } from "../service";
 

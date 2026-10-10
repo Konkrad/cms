@@ -1,5 +1,5 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
-import { requireModuleAuth } from "~/core-api";
+import { requireModuleAuth } from "~/core";
 import { participantsService } from "./services/participants";
 import { ticketsService } from "./services/tickets";
 import { transactionsService } from "./services/transactions";

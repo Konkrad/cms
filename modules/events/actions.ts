@@ -6,7 +6,7 @@ import {
 	requireActiveModule,
 	requireModuleAuth,
 	usersService,
-} from "~/core-api";
+} from "~/core";
 import type {
 	CheckoutItemInput,
 	ParticipantSlotInput,

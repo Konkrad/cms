@@ -2,7 +2,7 @@ import { $, useSignal } from "@qwik.dev/core";
 import type { RequestEventCommon } from "@qwik.dev/router";
 import { server$ } from "@qwik.dev/router";
 import type { JobsListData } from "~/contracts/jobs";
-import { requireAuth } from "~/core-api";
+import { requireAuth } from "~/core";
 import { JOBS_PAGE_SIZE } from "./pages";
 import { toPublicJob } from "./public-job";
 import { jobsService } from "./service";

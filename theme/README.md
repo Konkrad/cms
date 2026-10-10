@@ -48,7 +48,7 @@ core-owned headless composable instead (`src/core/content/builder/blocks/*.ts`,
 `modules/jobs/useJobsPagination.ts`) — the composable owns the service/db/auth
 calls, the theme component only renders the signals it returns. This is enforced,
 not just documented: `biome.json` has a `noRestrictedImports` override on
-`theme/**` that fails the build on a direct `~/services/*`/`~/db/*`/
+`theme/**` that fails the build on a direct `~/core`/`~/core/schema`/
 `~/core/db/*`/`~/core/*/*.service`/`~/core/*/schema`/`~/core/auth/*`/`~/env` import.
 
 The **admin panel is core and is not themeable.** Its token values are pinned via

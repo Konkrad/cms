@@ -1,8 +1,8 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, Link, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { format } from "date-fns";
-import { requireModuleAdmin } from "~/core-api";
-import { Pagination, SearchBar } from "~/ui";
+import { requireModuleAdmin } from "~/core";
+import { Pagination, SearchBar } from "~/core/ui";
 import { jobsService } from "../service";
 import type { AdminJobsData } from "./list-data";
 

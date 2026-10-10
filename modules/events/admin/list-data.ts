@@ -5,8 +5,8 @@ import {
 	groupsService,
 	requireModuleAdmin,
 	users as usersTable,
-} from "~/core-api";
-import { PAGE_SIZE } from "~/ui";
+} from "~/core";
+import { PAGE_SIZE } from "~/core/ui";
 import { events } from "../schema/events";
 import { participationService } from "../services/participation";
 

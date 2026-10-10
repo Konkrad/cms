@@ -1,5 +1,5 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
-import { deriveThumbnailKey, generatePresignedGetUrl } from "~/core-api";
+import { deriveThumbnailKey, generatePresignedGetUrl } from "~/core";
 import { photosService } from "../services/photos";
 import { requireAdminEvent } from "./event-guards";
 

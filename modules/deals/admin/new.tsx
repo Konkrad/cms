@@ -1,7 +1,7 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { requireModuleAdmin } from "~/core-api";
-import { Button, ImageUploader, Input, TextArea } from "~/ui";
+import { requireModuleAdmin } from "~/core";
+import { Button, ImageUploader, Input, TextArea } from "~/core/ui";
 import { dealsService } from "../service";
 import { StepsEditor } from "./StepsEditor";
 

@@ -12,6 +12,6 @@ export {
 	useSubmitJob,
 	useUpdateMyJob,
 } from "../../../modules/jobs/actions";
-// Setup-widget actions the events checkout embeds (core user fields, used via ~/core-api).
+// Setup-widget actions the events checkout embeds (core user fields, used via ~/core/setup-actions).
 export { useSaveFoodPreference } from "../users/setup/FoodPreferenceStep/useSaveFoodPreference";
 export { useSavePhotoConsent } from "../users/setup/PhotoConsentStep/useSavePhotoConsent";

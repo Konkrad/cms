@@ -4,7 +4,7 @@ import type {
 	JobDetailData,
 	MyJobsData,
 } from "~/contracts/jobs";
-import type { PageViews } from "~/core-api";
+import type { PageViews } from "~/core";
 import { JobDetailView } from "~theme/routes/jobs/JobDetailView";
 import {
 	type JobFormInitialValues,

@@ -3,7 +3,7 @@ import { type InferSelectModel, sql } from "drizzle-orm";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { defineModuleSchema, users } from "~/core-api/db-schema";
+import { defineModuleSchema, users } from "~/core/schema";
 
 export const jobs = sqliteTable("jobs", {
 	id: text("id").primaryKey(),

@@ -1,7 +1,7 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { requireModuleAdmin } from "~/core-api";
-import { BlockNoteEditor, Button, Input, Select } from "~/ui";
+import { requireModuleAdmin } from "~/core";
+import { BlockNoteEditor, Button, Input, Select } from "~/core/ui";
 import type { PublicJob } from "../public-job";
 import { jobsService } from "../service";
 

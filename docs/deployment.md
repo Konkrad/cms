@@ -14,7 +14,7 @@ below are the same regardless of the tool driving them.
 | `docker/entrypoint.sh` | Boot sequence: restore DB if missing → start server (optionally under Litestream) |
 | `litestream.yml` | Optional: continuously replicates the SQLite DB to S3-compatible object storage under the `db-backups/` prefix |
 | `src/routes/up/index.ts` | Health check endpoint (`/up`) — wire it into whatever proxy/load balancer you use |
-| `src/db/migrate.ts` | Programmatic Drizzle migration runner (idempotent), called directly by the server on every start |
+| `src/core/db/migrate.ts` | Programmatic Drizzle migration runner (idempotent), called directly by the server on every start |
 | `src/entry.node-server.tsx` | Production Node server entry, built to `server/entry.node-server.js`; runs migrations before it starts listening |
 
 ## The container's expectations
@@ -22,7 +22,7 @@ below are the same regardless of the tool driving them.
 - **Persistent storage for SQLite.** The DB file lives at `DB_PATH` (e.g.
   `/data/db.sqlite`) — mount a volume there so it survives restarts/redeploys.
 - **Migrations run automatically at boot, built into the app itself.**
-  `entry.node-server.tsx` calls `runMigrations()` (`src/db/migrate.ts`) before it
+  `entry.node-server.tsx` calls `runMigrations()` (`src/core/db/migrate.ts`) before it
   starts listening, so a normal redeploy applies any new committed migration in
   `drizzle/` — there's no separate migrate step or script in `docker/entrypoint.sh`.
   Keep migrations in sync with the schema via `npm run db:generate` (see CLAUDE.md

@@ -1,5 +1,5 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { requireModuleAdmin } from "~/core-api";
+import { requireModuleAdmin } from "~/core";
 import { electionsService } from "../service";
 
 export const useCreateCycle = routeAction$(

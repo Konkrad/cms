@@ -1,6 +1,6 @@
 import { eq, inArray } from "drizzle-orm";
-import { db } from "~/core-api";
-import { logins, users } from "~/core-api/db-schema";
+import { db } from "~/core";
+import { logins, users } from "~/core/schema";
 import type { events } from "../schema/events";
 import type { products } from "../schema/products";
 import {

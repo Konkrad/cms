@@ -1,7 +1,7 @@
 import { component$, useSignal } from "@qwik.dev/core";
 import { Form, routeAction$, z, zod$ } from "@qwik.dev/router";
-import { usersService } from "~/core-api";
-import { Button, Input, Select } from "~/ui";
+import { usersService } from "~/core";
+import { Button, Input, Select } from "~/core/ui";
 import { productsService } from "../services/products";
 import { ticketsService } from "../services/tickets";
 import type { AdminCompTicketsData } from "./comp-tickets-data";

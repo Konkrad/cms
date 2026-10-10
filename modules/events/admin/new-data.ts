@@ -1,5 +1,5 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
-import { requireModuleAdmin } from "~/core-api";
+import { requireModuleAdmin } from "~/core";
 
 /** Server-only: import from route loaders only, never from components. */
 export async function loadNewEventContext(event: RequestEventLoader) {

@@ -1,5 +1,5 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
-import { publicImageUrlFromKey, requireModuleAdmin } from "~/core-api";
+import { publicImageUrlFromKey, requireModuleAdmin } from "~/core";
 import { dealsService } from "../service";
 
 /** Server-only: import from route loaders only, never from components. */

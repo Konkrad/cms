@@ -1,4 +1,4 @@
-import { defineModuleSchema } from "~/core-api/db-schema";
+import { defineModuleSchema } from "~/core/schema";
 import { qualificationTokens } from "./qualification-tokens";
 import { qualificationTypes } from "./qualification-types";
 import { userQualifications } from "./user-qualifications";

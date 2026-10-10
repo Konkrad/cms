@@ -1,5 +1,5 @@
 import { eq, sql } from "drizzle-orm";
-import { db } from "~/core-api";
+import { db } from "~/core";
 import {
 	type InsertInventoryGroup,
 	type InventoryGroup,

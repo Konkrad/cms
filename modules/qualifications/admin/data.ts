@@ -1,6 +1,6 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
 import QRCode from "qrcode";
-import { requireModuleAdmin, toPublicUser } from "~/core-api";
+import { requireModuleAdmin, toPublicUser } from "~/core";
 import {
 	qualificationsService,
 	type UserQualificationWithApplicant,

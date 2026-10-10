@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { QualificationVerifyViewData } from "~/contracts/qualifications";
-import type { PageViews } from "~/core-api";
+import type { PageViews } from "~/core";
 import { QualificationVerifyView } from "~theme/routes/qualifications/QualificationVerifyView";
 
 const QualificationVerifyPage = component$<{

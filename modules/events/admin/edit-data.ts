@@ -1,5 +1,5 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
-import { publicImageUrlFromKey } from "~/core-api";
+import { publicImageUrlFromKey } from "~/core";
 import { requireAdminEvent } from "./event-guards";
 
 /**

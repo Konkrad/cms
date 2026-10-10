@@ -6,7 +6,7 @@ import {
 	Input,
 	Modal,
 	publicImageUrlFromKey,
-} from "~/ui";
+} from "~/core/ui";
 
 interface ProductFormProps {
 	action: any;

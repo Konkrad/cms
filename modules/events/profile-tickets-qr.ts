@@ -1,6 +1,6 @@
 import type { RequestEvent } from "@qwik.dev/router";
 import sharp from "sharp";
-import { requireActiveModule } from "~/core-api";
+import { requireActiveModule } from "~/core";
 import { qrcodeService } from "./services/qrcode";
 import { ticketsService } from "./services/tickets";
 

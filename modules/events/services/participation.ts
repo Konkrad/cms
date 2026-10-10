@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
-import { db } from "~/core-api";
-import { logins } from "~/core-api/db-schema";
+import { db } from "~/core";
+import { logins } from "~/core/schema";
 import { events } from "../schema/events";
 import {
 	type InsertParticipationStatus,

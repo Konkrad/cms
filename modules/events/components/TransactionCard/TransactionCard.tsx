@@ -1,5 +1,5 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
-import type { users } from "~/core-api/db-schema";
+import type { users } from "~/core/schema";
 import type { products, transactionItems } from "../../schema";
 import type { Transaction } from "../../schema/transactions";
 

@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { db, userTagsService } from "~/core-api";
+import { db, userTagsService } from "~/core";
 import { events } from "../schema/events";
 import { participationStatus } from "../schema/participation-status";
 import { TAG_RULES } from "../tag-rules.config";

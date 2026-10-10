@@ -45,7 +45,7 @@ re-exported `routeAction$`/`routeLoader$` does not resolve the `~` or
 specifically. In practice this means: if a themed widget bundles a server
 action together with its JSX (a step in a multi-step flow, say), split it —
 the action stays in **core** (e.g.
-`src/components/some-feature/useDoTheThing.ts`), re-exported *relatively*
+`src/core/<area>/useDoTheThing.ts`), re-exported *relatively*
 from the route file that uses it; the JSX/presentation moves to
 **theme**, imported via the `~theme` alias as normal. Only the action
 re-export needs the relative-path workaround.

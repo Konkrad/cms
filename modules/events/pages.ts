@@ -1,4 +1,4 @@
-import { definePage } from "~/core-api";
+import { definePage } from "~/core";
 import { loadCheckoutPage, loadPhotosPage } from "./public-checkout";
 import { loadEventPage } from "./public-event";
 

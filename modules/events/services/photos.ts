@@ -1,5 +1,5 @@
 import { and, eq, isNotNull } from "drizzle-orm";
-import { db, generateSecurePhotoUrl } from "~/core-api";
+import { db, generateSecurePhotoUrl } from "~/core";
 import {
 	type EventPhoto,
 	eventPhotos,

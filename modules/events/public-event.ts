@@ -14,7 +14,7 @@ import {
 	matchPath,
 	publicImageUrlFromKey,
 	toPublicUser,
-} from "~/core-api";
+} from "~/core";
 import { eventsService } from "./services/events";
 import { participationService } from "./services/participation";
 

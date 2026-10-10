@@ -1,5 +1,5 @@
 import { and, eq, inArray, isNull, like } from "drizzle-orm";
-import { db } from "~/core-api";
+import { db } from "~/core";
 import { products as productsTable } from "./schema/products";
 import { tickets } from "./schema/tickets";
 import { transactions } from "./schema/transactions";

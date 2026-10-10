@@ -1,4 +1,4 @@
-import { definePage, requireAuth } from "~/core-api";
+import { definePage, requireAuth } from "~/core";
 import { toPublicJob } from "./public-job";
 import { jobsService } from "./service";
 

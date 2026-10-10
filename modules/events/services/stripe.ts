@@ -1,6 +1,6 @@
 import { SocksProxyAgent } from "socks-proxy-agent";
 import Stripe from "stripe";
-import { getStripeEnv } from "~/core-api";
+import { getStripeEnv } from "~/core";
 
 const env = getStripeEnv();
 

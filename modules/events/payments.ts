@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import type Stripe from "stripe";
-import type { PaymentContext } from "~/core-api";
-import { db, logins, telegramService, users } from "~/core-api";
+import type { PaymentContext } from "~/core";
+import { db, logins, telegramService, users } from "~/core";
 import { sendTicketConfirmation } from "./emails";
 import { events } from "./schema/events";
 import { icalService } from "./services/ical";

@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
-import { Pagination, SearchBar } from "~/ui";
+import { Pagination, SearchBar } from "~/core/ui";
 import type { AdminElectionsData } from "./data";
 
 const statusBadge = (status: string) => {

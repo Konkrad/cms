@@ -18,7 +18,7 @@ type PageData<P extends { load: (...args: never[]) => Promise<unknown> }> =
 
 export type JobsListData = PageData<typeof jobsListPage>;
 
-/** Single job list item — replaces importing `JobWithUser` from `~/services/jobs.service` in theme. */
+/** Single job list item — replaces importing `JobWithUser` from the jobs module service in theme. */
 export type JobListItem = JobsListData["items"][number];
 export type JobDetailData = PageData<typeof jobDetailPage>;
 export type MyJobsData = PageData<typeof myJobsPage>;

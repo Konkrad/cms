@@ -1,7 +1,7 @@
 import { $, component$, useSignal, useVisibleTask$ } from "@qwik.dev/core";
 import type { ActionStore } from "@qwik.dev/router";
 import { Html5QrcodeScanner } from "html5-qrcode";
-import { Button } from "~/ui";
+import { Button } from "~/core/ui";
 
 interface TicketScannerProps {
 	action: ActionStore<any, any, true>;

@@ -1,4 +1,4 @@
-import { defineModuleSchema } from "~/core-api/db-schema";
+import { defineModuleSchema } from "~/core/schema";
 import { electionApplications } from "./election-applications";
 import { electionCycles } from "./election-cycles";
 import { electionPositions } from "./election-positions";

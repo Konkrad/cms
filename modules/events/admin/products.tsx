@@ -1,6 +1,6 @@
 import { $, component$, useSignal, useTask$ } from "@qwik.dev/core";
 import { Form, routeAction$, z, zod$ } from "@qwik.dev/router";
-import { Button, Input } from "~/ui";
+import { Button, Input } from "~/core/ui";
 import { InventoryGroupForm } from "../components/InventoryGroupForm";
 import { ProductForm } from "../components/ProductForm";
 import { inventoryGroupsService } from "../services/inventory-groups";

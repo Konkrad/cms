@@ -7,7 +7,7 @@ import {
 	Select,
 	SmartDatePicker,
 	TextArea,
-} from "~/ui";
+} from "~/core/ui";
 import { eventsService } from "../services/events";
 import type { AdminEventDetailsData } from "./details-data";
 import { requireAdminEvent } from "./event-guards";

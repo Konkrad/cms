@@ -1,4 +1,4 @@
-import { defineModule } from "~/core-api";
+import { defineModule } from "~/core";
 import { qualificationsPages } from "./pages";
 
 export const qualificationsModule = defineModule({

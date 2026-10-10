@@ -1,6 +1,6 @@
 import { component$, useStore } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { requireModuleAuth } from "~/core-api";
+import { requireModuleAuth } from "~/core";
 import PurchaseList from "~theme/routes/profile/PurchaseList";
 import QrTicketWall from "~theme/routes/profile/QrTicketWall";
 import type { UserDashboardData } from "./profile-tickets-data";

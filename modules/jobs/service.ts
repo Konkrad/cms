@@ -7,7 +7,7 @@ import {
 	sanitizeRichHtml,
 	type User,
 	users as usersTable,
-} from "~/core-api";
+} from "~/core";
 import type { InsertJob, Job, UpdateJob } from "./schema";
 import { insertJobSchema, jobs, updateJobSchema } from "./schema";
 

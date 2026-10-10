@@ -1,5 +1,5 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { requireModuleAuth } from "~/core-api";
+import { requireModuleAuth } from "~/core";
 import { electionsService } from "./service";
 
 export const useSubmitApplication = routeAction$(

@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { and, eq, lte } from "drizzle-orm";
-import { db, membershipsService, type User, userTagsService } from "~/core-api";
+import { db, membershipsService, type User, userTagsService } from "~/core";
 import {
 	insertQualificationTokenSchema,
 	type QualificationToken,

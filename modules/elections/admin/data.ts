@@ -1,6 +1,6 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
-import { requireModuleAdmin, toPublicUser } from "~/core-api";
-import { PAGE_SIZE } from "~/ui";
+import { requireModuleAdmin, toPublicUser } from "~/core";
+import { PAGE_SIZE } from "~/core/ui";
 import { electionsService } from "../service";
 
 /** Server-only: import from route loaders only, never from components. */

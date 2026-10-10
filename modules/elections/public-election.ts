@@ -1,4 +1,4 @@
-import { toPublicUser } from "~/core-api";
+import { toPublicUser } from "~/core";
 import type { ElectionApplicationPublic } from "./service";
 
 /**

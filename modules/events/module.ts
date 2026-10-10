@@ -3,7 +3,7 @@ import {
 	groupMembershipsService,
 	groupRepresentativesService,
 	publicImageUrlFromKey,
-} from "~/core-api";
+} from "~/core";
 import { eventsBlocks } from "./blocks";
 import { eventsPages } from "./pages";
 import { eventsService } from "./services/events";
@@ -69,7 +69,7 @@ export const eventsModule = defineModule({
 	},
 	reevaluateUserTags: (userId) => tagRulesService.evaluateRulesForUser(userId),
 	// Lazy: the fulfilment graph (Stripe client, QR, iCal, email) would otherwise load with the
-	// manifest and form an import cycle through ~/core-api (stripe.ts reads env at load time).
+	// manifest and form an import cycle through ~/core (stripe.ts reads env at load time).
 	payments: {
 		tickets: {
 			onPaid: async (ctx) => (await import("./payments")).onTicketsPaid(ctx),

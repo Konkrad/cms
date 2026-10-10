@@ -1,6 +1,6 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { requireModuleAdmin } from "~/core-api";
+import { requireModuleAdmin } from "~/core";
 import {
 	AddressAutocomplete,
 	Button,
@@ -10,7 +10,7 @@ import {
 	SmartDatePicker,
 	TextArea,
 	VisibilitySelector,
-} from "~/ui";
+} from "~/core/ui";
 import { eventsService } from "../services/events";
 import type { NewEventContext } from "./new-data";
 

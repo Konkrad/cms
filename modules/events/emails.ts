@@ -1,6 +1,6 @@
 import { render } from "@react-email/render";
 import * as React from "react";
-import { getAppUrl, sendEmail } from "~/core-api";
+import { getAppUrl, sendEmail } from "~/core";
 import TicketConfirmationEmail from "~theme/emails/TicketConfirmation";
 
 /** Ticket confirmation (paid purchase or free RSVP). Server-only. */

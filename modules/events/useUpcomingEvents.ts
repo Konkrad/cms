@@ -1,7 +1,7 @@
 import { $, useSignal, useTask$ } from "@qwik.dev/core";
 import { server$ } from "@qwik.dev/router";
 import type { EventsPage } from "~/contracts/events";
-import { publicImageUrlFromKey } from "~/core-api";
+import { publicImageUrlFromKey } from "~/core";
 import { eventsService } from "./services/events";
 
 const fetchUpcomingInitial = server$(async (): Promise<EventsPage> => {

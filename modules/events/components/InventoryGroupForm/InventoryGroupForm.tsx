@@ -1,6 +1,6 @@
 import { component$, type QRL } from "@qwik.dev/core";
 import { type ActionStore, Form } from "@qwik.dev/router";
-import { Button, Input } from "~/ui";
+import { Button, Input } from "~/core/ui";
 
 interface InventoryGroupFormProps {
 	action: any;

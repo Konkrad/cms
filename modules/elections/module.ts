@@ -1,4 +1,4 @@
-import { defineModule } from "~/core-api";
+import { defineModule } from "~/core";
 import { electionsPages } from "./pages";
 import { electionsService } from "./service";
 

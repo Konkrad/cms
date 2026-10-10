@@ -1,4 +1,4 @@
-import { definePage, membershipsService, requireAuth } from "~/core-api";
+import { definePage, membershipsService, requireAuth } from "~/core";
 import { toPublicCandidate } from "./public-election";
 import { electionsService } from "./service";
 

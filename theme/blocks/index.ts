@@ -10,7 +10,7 @@
  * to supply them data, so each delegates its data-fetching/pagination to a
  * core-owned headless composable under `~/core/content/builder/blocks/*`
  * (`useDealsList`, `useGroupsList`, etc.) — the block itself only renders.
- * Never call `~/services/*`/`~/db/*`/`~/utils/server-auth` directly from a
+ * Never call a core service, `~/core/db` or `~/core/auth` module directly from a
  * block; add a new composable in core instead.
  */
 import type { BlockDefinition } from "~/contracts/blocks";

@@ -1,4 +1,4 @@
-import { defineModuleSchema } from "~/core-api/db-schema";
+import { defineModuleSchema } from "~/core/schema";
 import { eventPhotos } from "./schema/event-photos";
 import { events } from "./schema/events";
 import { inventoryGroups } from "./schema/inventory-groups";

@@ -50,17 +50,18 @@
 							"options": {
 								"patterns": [
 									{
-										"group": ["~/services/**", "~/core/*/*.service"],
+										"group": ["~/core/*/*.service"],
 										"message": "theme must not import core services directly — add or use a headless composable in ~/core/content/builder/blocks/* instead."
 									},
 									{
 										"group": [
-											"~/db/**",
+											"~/core",
+											"~/core/schema",
 											"~/core/db/**",
 											"~/core/*/schema/**",
 											"~/core/*/schema"
 										],
-										"message": "theme must not import core db/schema directly — use a type from ~/contracts/* instead."
+										"message": "theme must not import core db/schema (or the module API root ~/core) directly — use a type from ~/contracts/* instead."
 									},
 									{
 										"group": ["~/core/auth/**"],
@@ -87,28 +88,20 @@
 							"options": {
 								"patterns": [
 									{
-										"group": ["~/services/**"],
-										"message": "modules must not import core services — use ~/core-api or the module's own service."
+										"group": ["~/core/*/**"],
+										"message": "modules may only import the root files of src/core (~/core, ~/core/ui, ~/core/schema, ~/core/seo, ~/core/setup-actions), never an area folder (~/core/<area>/**)."
 									},
 									{
-										"group": ["~/db/**"],
-										"message": "modules must not import core db/schema — use ~/core-api."
-									},
-									{
-										"group": ["~/utils/**"],
-										"message": "modules must not import core utils — re-export what is needed from ~/core-api."
+										"group": ["~/core-api", "~/core-api/**", "~/ui", "~/ui/**"],
+										"message": "~/core-api and ~/ui were replaced by ~/core and ~/core/ui."
 									},
 									{
 										"group": ["~/env"],
-										"message": "modules must not import ~/env directly."
+										"message": "modules must not import ~/env directly — add a getter to ~/core instead."
 									},
 									{
 										"group": ["~/components/**"],
-										"message": "modules must not import core components — use ~/ui."
-									},
-									{
-										"group": ["~/core/**"],
-										"message": "modules may only import ~/core-api, ~/ui, ~/contracts/* and ~theme/*."
+										"message": "modules must not import core components — use ~/core/ui."
 									},
 									{
 										"group": ["~modules/**"],

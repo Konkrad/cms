@@ -6,7 +6,7 @@ import {
 	useVisibleTask$,
 } from "@qwik.dev/core";
 import { Html5Qrcode } from "html5-qrcode";
-import { Alert, Button, Card } from "~/ui";
+import { Alert, Button, Card } from "~/core/ui";
 
 type ScanResult = {
 	success: boolean;

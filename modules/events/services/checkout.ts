@@ -1,4 +1,4 @@
-import { getAppUrl, publicImageUrlFromKey } from "~/core-api";
+import { getAppUrl, publicImageUrlFromKey } from "~/core";
 import { inventoryGroupsService } from "./inventory-groups";
 import { productsService } from "./products";
 import { stripeService } from "./stripe";

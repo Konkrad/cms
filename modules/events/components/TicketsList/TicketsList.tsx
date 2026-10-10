@@ -1,8 +1,8 @@
 import { $, component$, type Signal, useSignal } from "@qwik.dev/core";
 import type { ActionStore } from "@qwik.dev/router";
 import Fuse from "fuse.js";
-import type { users } from "~/core-api/db-schema";
-import { Badge, SectionCard } from "~/ui";
+import type { users } from "~/core/schema";
+import { Badge, SectionCard } from "~/core/ui";
 import type { products } from "../../schema";
 import type { Ticket } from "../../schema/tickets";
 

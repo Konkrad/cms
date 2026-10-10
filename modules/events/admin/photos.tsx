@@ -1,7 +1,7 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { Link, routeAction$, useLocation, z, zod$ } from "@qwik.dev/router";
-import { deleteS3Objects, deriveThumbnailKey } from "~/core-api";
-import { Button, Card, ImageUploader } from "~/ui";
+import { deleteS3Objects, deriveThumbnailKey } from "~/core";
+import { Button, Card, ImageUploader } from "~/core/ui";
 import { photosService } from "../services/photos";
 import { requireAdminEvent } from "./event-guards";
 import type { AdminPhotosData } from "./photos-data";

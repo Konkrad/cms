@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { DealDetailData } from "~/contracts/deals";
-import type { PageViews } from "~/core-api";
+import type { PageViews } from "~/core";
 import { DealView } from "~theme/routes/deals/DealView";
 
 const DealDetailPage = component$<{ data: DealDetailData }>(({ data }) => (

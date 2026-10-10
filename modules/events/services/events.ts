@@ -15,8 +15,8 @@ import {
 	decodeCursor,
 	getNextCursorFromRows,
 	groupMembershipsService,
-} from "~/core-api";
-import { logins, users as usersTable } from "~/core-api/db-schema";
+} from "~/core";
+import { logins, users as usersTable } from "~/core/schema";
 import type { Event, InsertEvent, UpdateEvent } from "../schema/events";
 import { events, insertEventSchema, updateEventSchema } from "../schema/events";
 import { inventoryGroups } from "../schema/inventory-groups";
@@ -26,7 +26,7 @@ export type EventWithUser = Event & {
 	user: User & { email?: string };
 };
 
-import type { User } from "~/core-api/db-schema";
+import type { User } from "~/core/schema";
 
 export const eventsService = {
 	async getAll(

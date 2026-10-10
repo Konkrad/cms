@@ -1,4 +1,4 @@
-import { db } from "~/core-api";
+import { db } from "~/core";
 import {
 	type InsertTransactionItem,
 	insertTransactionItemSchema,

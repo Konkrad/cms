@@ -3,7 +3,7 @@ import { type InferSelectModel, sql } from "drizzle-orm";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { defineModuleSchema } from "~/core-api/db-schema";
+import { defineModuleSchema } from "~/core/schema";
 
 export interface DealStep {
 	type: "text" | "link" | "promo";

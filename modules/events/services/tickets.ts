@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
-import { db } from "~/core-api";
-import type { users } from "~/core-api/db-schema";
+import { db } from "~/core";
+import type { users } from "~/core/schema";
 import type { events } from "../schema/events";
 import type { products } from "../schema/products";
 import type { ticketParticipants } from "../schema/ticket-participants";

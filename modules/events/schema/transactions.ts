@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { users } from "~/core-api/db-schema";
+import { users } from "~/core/schema";
 import { events } from "./events";
 
 export const transactions = sqliteTable("transactions", {

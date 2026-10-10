@@ -1,5 +1,5 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { currentScopeRest, matchPath, requireModuleAuth } from "~/core-api";
+import { currentScopeRest, matchPath, requireModuleAuth } from "~/core";
 import { jobsService } from "./service";
 
 const MAX_DAYS = 30;

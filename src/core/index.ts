@@ -1,10 +1,12 @@
 /**
- * The only core surface feature modules (`modules/**`) may import, besides
- * `~/ui` and `~/contracts/*`. Enforced by the `modules/**` override in biome.json.
- * Add an export here only when a module needs it.
+ * Module API: the root files of `src/core` (this file, `schema`, `ui`, `seo`, `setup-actions`)
+ * are the only core surface feature modules (`modules/**`) may import, besides `~/contracts/*`.
+ * Enforced by the `modules/**` override in biome.json. Add an export here only when a module needs it.
  */
 
 // biome-ignore-all assist/source/organizeImports: export order matters. The definePage/defineModule re-exports must come before ~/core/registry/manifests, which imports the modules, which import this file (import cycle).
+
+import { env } from "~/env";
 
 // Module/page definition (client-safe)
 export { defineModule } from "~/core/router/modules";
@@ -49,10 +51,23 @@ export {
 	requireAuth,
 } from "~/core/auth/server-auth";
 export { buildProfileUrl } from "~/core/users/format";
-// Schema references modules need to relate to core tables (also in ./db-schema).
-export * from "./db-schema";
-// Env-derived values (server-only).
-export { getAppUrl, getStripeEnv, getStripePublishableKey } from "./env";
-// Module guards (own file: they load the registry, which imports the modules, which import this
-// file back, so they must be exported after the definitions above).
-export { requireModuleAdmin, requireModuleAuth } from "./guards";
+// Schema references modules need to relate to core tables (also in ./schema).
+export * from "./schema";
+// Module guards. They load the registry, which imports the modules, which import this file
+// back, so they must stay after the definitions above.
+export { requireModuleAdmin } from "~/core/registry/module-admin";
+export { requireModuleAuth } from "~/core/registry/module-auth";
+
+// Env-derived values (server-only). Modules must not import `~/env`; add a getter here instead.
+/** Public base URL of this site (no trailing-slash guarantee). */
+export const getAppUrl = (): string => env.APP_URL;
+
+/** Stripe client settings (secret key plus optional dev/proxy overrides). */
+export const getStripeEnv = () => ({
+	secretKey: env.STRIPE_SECRET_KEY,
+	apiBaseUrl: env.STRIPE_API_BASE_URL,
+	proxyUrl: env.STRIPE_PROXY_URL,
+});
+
+/** Stripe publishable key handed to the browser for Stripe.js. */
+export const getStripePublishableKey = (): string => env.STRIPE_PUBLISHABLE_KEY;

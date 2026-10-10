@@ -1,4 +1,4 @@
-import { type PublicUser, toPublicUser, type User } from "~/core-api";
+import { type PublicUser, toPublicUser, type User } from "~/core";
 import type { Job } from "./schema";
 
 /** Author fields the job views show; never the full users row. */

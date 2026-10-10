@@ -3,12 +3,12 @@ import type { DocumentHeadValue } from "@qwik.dev/router";
 import type { CheckoutData } from "~/contracts/checkout";
 import type { EventPhotosPageData } from "~/contracts/event-photos";
 import type { EventViewData } from "~/contracts/events";
-import type { PageViews } from "~/core-api";
-import { canonicalUrl, htmlToDescription } from "~/core-api/seo";
+import type { PageViews } from "~/core";
+import { canonicalUrl, htmlToDescription } from "~/core/seo";
 import {
 	useSaveFoodPreference,
 	useSavePhotoConsent,
-} from "~/core-api/setup-actions";
+} from "~/core/setup-actions";
 import { CheckoutView } from "~theme/routes/events/CheckoutView";
 import { EventPhotosView } from "~theme/routes/events/EventPhotosView";
 import { EventView } from "~theme/routes/events/EventView";

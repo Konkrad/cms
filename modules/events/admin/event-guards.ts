@@ -1,5 +1,5 @@
 import type { RequestEventCommon } from "@qwik.dev/router";
-import { requireModuleAdmin } from "~/core-api";
+import { requireModuleAdmin } from "~/core";
 import { eventsService } from "../services/events";
 
 /**

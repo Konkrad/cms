@@ -7,6 +7,7 @@ import { getCurrentUserData } from "~/core/auth/server-auth";
 import { activeAdminSections } from "~/core/registry/manifests";
 import { canManageGroupContent } from "~/core/scopes/access-control";
 import { groupsService } from "~/core/scopes/groups.service";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 
 export const useGroupAdminAuth = routeLoader$(async (event) => {
 	const { params, sharedMap, redirect } = event;
@@ -24,12 +25,11 @@ export const useGroupAdminAuth = routeLoader$(async (event) => {
 			throw redirect(302, "/");
 		}
 		sharedMap.set("adminContext", { isGlobal: true });
-		return {
-			user,
+		return assertNoPrivateFields({
 			isGlobal: true,
 			group: null,
 			adminSections: activeAdminSections,
-		};
+		});
 	}
 
 	// Group-specific context - must be representative for that group
@@ -44,12 +44,11 @@ export const useGroupAdminAuth = routeLoader$(async (event) => {
 	}
 
 	sharedMap.set("adminContext", { isGlobal: false, group });
-	return {
-		user,
+	return assertNoPrivateFields({
 		isGlobal: false,
-		group,
+		group: { id: group.id, name: group.name, slug: group.slug },
 		adminSections: activeAdminSections.filter((s) => s.scopes === "all"),
-	};
+	});
 });
 
 export default component$(() => {

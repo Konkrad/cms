@@ -7,7 +7,7 @@ interface TransactionWithDetails extends Transaction {
 	user: { id: string; name: string; familyName: string; email: string | null };
 	items: Array<
 		typeof transactionItems.$inferSelect & {
-			product: typeof products.$inferSelect;
+			product: Omit<typeof products.$inferSelect, "stripeProductId">;
 		}
 	>;
 }

@@ -13,6 +13,41 @@ import {
 } from "../schema/tickets";
 import { transactions } from "../schema/transactions";
 
+/** Event fields shown with a viewer's own tickets and purchases. */
+export const ownTicketEventColumns = {
+	id: true,
+	title: true,
+	startDate: true,
+	endDate: true,
+	city: true,
+	country: true,
+} as const;
+
+/** Relations of a ticket on its holder's tickets page (participants without emails). */
+export const ownTicketRelations = {
+	event: { columns: ownTicketEventColumns },
+	product: { columns: { stripeProductId: false } },
+	participants: {
+		columns: { email: false },
+		orderBy: { participantOrder: "asc" },
+	},
+} as const;
+
+export type OwnTicketParticipant = Omit<
+	typeof ticketParticipants.$inferSelect,
+	"email"
+>;
+
+/** A ticket as its holder sees it (the QR code uuid is theirs to show). */
+export type OwnTicket = Ticket & {
+	event: Pick<
+		typeof events.$inferSelect,
+		"id" | "title" | "startDate" | "endDate" | "city" | "country"
+	>;
+	product: Omit<typeof products.$inferSelect, "stripeProductId">;
+	participants: OwnTicketParticipant[];
+};
+
 /** A ticket buyer's public identity plus their login email (admin-only shapes). */
 export type BuyerWithEmail = PublicUser & { email: string | null };
 
@@ -63,7 +98,7 @@ export const ticketsService = {
 			where: { id },
 			with: {
 				buyer: { columns: publicUserColumns },
-				product: true,
+				product: { columns: { stripeProductId: false } },
 				event: true,
 				participants: {
 					orderBy: { participantOrder: "asc" },
@@ -94,7 +129,7 @@ export const ticketsService = {
 			where: { qrCodeUuid },
 			with: {
 				buyer: { columns: publicUserColumns },
-				product: true,
+				product: { columns: { stripeProductId: false } },
 				event: true,
 			},
 		});
@@ -117,32 +152,23 @@ export const ticketsService = {
 			where: { eventId },
 			with: {
 				buyer: { columns: publicUserColumns },
-				product: true,
+				product: { columns: { stripeProductId: false } },
 			},
 		});
 		return withBuyerEmails(results as any) as any;
 	},
 
-	async getByBuyerId(buyerId: string): Promise<
-		Array<
-			Ticket & {
-				event: typeof events.$inferSelect;
-				product: typeof products.$inferSelect;
-				participants: Array<typeof ticketParticipants.$inferSelect>;
-			}
-		>
-	> {
+	/**
+	 * The buyer's own tickets for their tickets page: event summary, product and
+	 * participants WITHOUT emails (a participant picked from the member directory got
+	 * their email resolved server-side; the buyer must not see it).
+	 */
+	async getByBuyerId(buyerId: string): Promise<OwnTicket[]> {
 		const results = await db.query.tickets.findMany({
 			where: { buyerId },
-			with: {
-				event: true,
-				product: true,
-				participants: {
-					orderBy: { participantOrder: "asc" },
-				},
-			},
+			with: ownTicketRelations,
 		});
-		return results as any;
+		return results as OwnTicket[];
 	},
 
 	async scanTicket(
@@ -225,7 +251,7 @@ export const ticketsService = {
 		const allTickets = await db.query.tickets.findMany({
 			where: { eventId },
 			with: {
-				product: true,
+				product: { columns: { stripeProductId: false } },
 			},
 		});
 
@@ -262,7 +288,7 @@ export const ticketsService = {
 			},
 			with: {
 				buyer: { columns: publicUserColumns },
-				product: true,
+				product: { columns: { stripeProductId: false } },
 				participants: {
 					orderBy: { participantOrder: "asc" },
 				},

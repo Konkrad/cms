@@ -11,10 +11,11 @@ import {
 import { products } from "../schema/products";
 
 export const inventoryGroupsService = {
+	/** An event's inventory groups with their products (without Stripe product ids). */
 	async getByEventId(eventId: string): Promise<InventoryGroup[]> {
 		return db.query.inventoryGroups.findMany({
 			where: { eventId },
-			with: { products: true },
+			with: { products: { columns: { stripeProductId: false } } },
 		}) as any;
 	},
 

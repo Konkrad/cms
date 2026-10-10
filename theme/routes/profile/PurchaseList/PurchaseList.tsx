@@ -20,7 +20,10 @@ function buildInitialSlots(ticket: TicketWithRelations): ParticipantFormSlot[] {
 	const capacity = ticket.product.participantCapacity;
 	return Array.from({ length: capacity }, (_, i) => {
 		const p = ticket.participants[i];
-		return p ? { name: p.name, email: p.email } : { name: "", email: "" };
+		// Participant emails are never sent to the page: an existing participant is kept by id.
+		return p
+			? { name: p.name, email: "", participantId: p.id }
+			: { name: "", email: "" };
 	});
 }
 
@@ -139,6 +142,8 @@ export default component$<PurchaseListProps>(
 												(pendingSlots[ticket.id] ?? []).map((s) => ({
 													name: s.name,
 													email: s.email,
+													participantId: s.participantId ?? null,
+													existingUserId: s.existingUserId ?? null,
 												})),
 											),
 										});

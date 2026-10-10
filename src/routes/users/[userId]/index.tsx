@@ -4,6 +4,7 @@ import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
 import { formResultsService } from "~/core/forms/form-results.service";
 import { buildFormPath } from "~/core/forms/forms";
 import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { formatAffiliationResultJson } from "~/core/users/affiliation";
 import { usersService } from "~/core/users/users.service";
 import { PublicProfileView } from "~theme/routes/users/PublicProfileView";
@@ -63,43 +64,49 @@ export const usePublicProfile = routeLoader$(async (event) => {
 		return JSON.stringify(value);
 	};
 
-	return {
-		...extras,
-		name: user.name,
-		familyName: user.familyName,
-		city: user.city,
-		country: user.country,
-		profilePictureUrl: user.profilePictureSmallUrl,
-		tags: tags.map((t) => ({ id: t.id, label: t.label })),
-		communities: groups.map((g) => ({ name: g.name, slug: g.slug })),
-		// Sections of modules that are not active fall back to empty.
-		upcomingEvents: extras.upcomingEvents ?? [],
-		pastEvents: extras.pastEvents ?? [],
-		isOwner,
-		...(ownDetails ?? {}),
-		affiliationEntries: (() => {
-			const onboarding = submittedFormRows.find(
-				(s) => s.formSlug === "onboarding",
-			);
-			return onboarding
-				? formatAffiliationResultJson(onboarding.resultJson || {})
-				: [];
-		})(),
-		submittedForms: isOwner
-			? submittedFormRows.map((s) => ({
-					id: s.id,
-					title: s.formTitle,
-					submittedAt: s.submittedAt,
-					path: buildFormPath({ id: s.formId, slug: s.formSlug }),
-					responseEntries: Object.entries(s.resultJson || {}).map(
-						([question, value]) => ({
-							question,
-							answer: formatResponseValue(value),
-						}),
-					),
-				}))
-			: undefined,
-	};
+	return assertNoPrivateFields(
+		{
+			...extras,
+			name: user.name,
+			familyName: user.familyName,
+			city: user.city,
+			country: user.country,
+			profilePictureUrl: user.profilePictureSmallUrl,
+			tags: tags.map((t) => ({ id: t.id, label: t.label })),
+			communities: groups.map((g) => ({ name: g.name, slug: g.slug })),
+			// Sections of modules that are not active fall back to empty.
+			upcomingEvents: extras.upcomingEvents ?? [],
+			pastEvents: extras.pastEvents ?? [],
+			isOwner,
+			...(ownDetails ?? {}),
+			affiliationEntries: (() => {
+				const onboarding = submittedFormRows.find(
+					(s) => s.formSlug === "onboarding",
+				);
+				return onboarding
+					? formatAffiliationResultJson(onboarding.resultJson || {})
+					: [];
+			})(),
+			submittedForms: isOwner
+				? submittedFormRows.map((s) => ({
+						id: s.id,
+						title: s.formTitle,
+						submittedAt: s.submittedAt,
+						path: buildFormPath({ id: s.formId, slug: s.formSlug }),
+						responseEntries: Object.entries(s.resultJson || {}).map(
+							([question, value]) => ({
+								question,
+								answer: formatResponseValue(value),
+							}),
+						),
+					}))
+				: undefined,
+		},
+		{
+			// Owner only: the viewer's own email, birth year and gender (never another user's).
+			allow: isOwner ? ["email", "yearOfBirth", "sex"] : [],
+		},
+	);
 });
 
 export default component$(() => {

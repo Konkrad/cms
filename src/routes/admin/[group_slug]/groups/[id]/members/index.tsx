@@ -5,6 +5,7 @@ import { getCurrentUserData } from "~/core/auth/server-auth";
 import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
 import { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
 import { groupsService } from "~/core/scopes/groups.service";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 
 export const useMembers = routeLoader$(async ({ params, redirect }) => {
 	// Only allow access from the global admin context
@@ -31,7 +32,11 @@ export const useMembers = routeLoader$(async ({ params, redirect }) => {
 		isRep: repIds.has(m.id),
 	}));
 
-	return { group, members: enriched };
+	return assertNoPrivateFields(
+		{ group: { id: group.id, name: group.name }, members: enriched },
+		// Global admin members page: shows each member's email and platform role.
+		{ allow: ["email", "role"] },
+	);
 });
 
 const promoteSchema = z.object({

@@ -6,6 +6,7 @@ import { deleteSession, getCurrentUserData } from "~/core/auth/server-auth";
 import { menuItemsService } from "~/core/content/menu-items.service";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
 import { currentScopePath } from "~/core/router/scope-request";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { formatUser } from "~/core/users/format";
 import { env } from "~/env";
 import { Navigation } from "~theme/chrome/Navigation/Navigation";
@@ -56,12 +57,12 @@ export const useUserSession = routeLoader$(async (event): Promise<NavUser> => {
 	const thumbKey = u.profilePicture
 		? (u.profilePictureSmall ?? deriveThumbnailKey(u.profilePicture))
 		: null;
-	return {
+	return assertNoPrivateFields({
 		id: u.id,
 		displayName: u.name ? formatUser(u, true).displayName : "User",
 		isAdmin: u.role === "admin",
 		profilePictureSmallUrl: publicImageUrlFromKey(thumbKey),
-	};
+	});
 });
 
 export const useScopePath = routeLoader$((event) => currentScopePath(event));

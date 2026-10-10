@@ -32,6 +32,7 @@ export { groupRepresentativesService } from "~/core/scopes/group-representatives
 export { groupsService } from "~/core/scopes/groups.service";
 export { deleteS3Objects } from "~/core/media/image-processing.service";
 export { membershipsService } from "~/core/memberships/memberships.service";
+export { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 export type { PageDirection } from "~/core/shared/pagination";
 export {
 	createCursorFromItem,

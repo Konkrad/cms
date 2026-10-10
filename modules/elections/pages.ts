@@ -19,6 +19,8 @@ export const electionsListPage = definePage({
 export const myApplicationsPage = definePage({
 	id: "elections.mine",
 	path: "/elections/mine",
+	// The viewer's OWN applications: the admin's note on a rejection is addressed to them.
+	allowPrivateFields: ["adminNote"],
 	async load(event) {
 		const user = await requireAuth(event);
 		const applications = await electionsService.getApplicationsByUser(user.id);

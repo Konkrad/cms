@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { AdminEventPhotos } from "../../../../../../../modules/events/admin/photos";
 import { loadAdminPhotos } from "../../../../../../../modules/events/admin/photos-data";
 
@@ -8,7 +9,9 @@ export {
 	useDeletePhoto,
 } from "../../../../../../../modules/events/admin/photos";
 
-export const usePhotos = routeLoader$((event) => loadAdminPhotos(event));
+export const usePhotos = routeLoader$(async (event) =>
+	assertNoPrivateFields(await loadAdminPhotos(event)),
+);
 
 export default component$(() => {
 	const data = usePhotos();

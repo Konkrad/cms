@@ -10,6 +10,7 @@ import {
 	ticketParticipants,
 } from "../schema/ticket-participants";
 import type { tickets } from "../schema/tickets";
+import { type OwnTicket, ownTicketRelations } from "./tickets";
 
 export const participantsService = {
 	async create(data: InsertTicketParticipant): Promise<TicketParticipant> {
@@ -138,27 +139,11 @@ export const participantsService = {
 	 * Find all tickets where this email address is listed as participant order=1.
 	 * Used to show "assigned to me" tickets in a user's profile.
 	 */
-	async getAssignedTickets(email: string): Promise<
-		Array<
-			typeof tickets.$inferSelect & {
-				event: typeof events.$inferSelect;
-				product: typeof products.$inferSelect;
-				participants: TicketParticipant[];
-			}
-		>
-	> {
+	async getAssignedTickets(email: string): Promise<OwnTicket[]> {
 		const rows = await db.query.ticketParticipants.findMany({
 			where: { email, participantOrder: 1 },
-			with: {
-				ticket: {
-					with: {
-						event: true,
-						product: true,
-						participants: { orderBy: { participantOrder: "asc" } },
-					},
-				},
-			},
+			with: { ticket: { with: ownTicketRelations } },
 		});
-		return rows.map((r) => r.ticket).filter(Boolean) as any;
+		return rows.map((r) => r.ticket).filter(Boolean) as OwnTicket[];
 	},
 };

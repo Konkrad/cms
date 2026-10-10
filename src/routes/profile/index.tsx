@@ -5,6 +5,7 @@ import { formResultsService } from "~/core/forms/form-results.service";
 import { buildFormPath } from "~/core/forms/forms";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
 import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { userTagsService } from "~/core/tags/user-tags.service";
 import { formatAffiliationResultJson } from "~/core/users/affiliation";
 import { UserProfile } from "~theme/routes/profile/UserProfile/UserProfile";
@@ -47,50 +48,56 @@ export const useProfile = routeLoader$(async (event) => {
 		groupMembershipsService.getUserGroups(user.id),
 	]);
 
-	return {
-		...extras,
-		name: user.name as string,
-		familyName: user.familyName as string,
-		city: user.city ?? null,
-		country: user.country ?? null,
-		profilePictureUrl,
-		tags: tags.map((t) => ({ id: t.id, label: t.label })),
-		communities: userGroups.map((g) => ({ name: g.name, slug: g.slug })),
-		// Sections of modules that are not active fall back to empty.
-		upcomingEvents: extras.upcomingEvents ?? [],
-		pastEvents: extras.pastEvents ?? [],
-		isOwner: true,
-		email: (user.email as string | null) ?? null,
-		yearOfBirth: user.yearOfBirth ?? null,
-		sex: user.sex ?? null,
-		affiliationEntries: (() => {
-			const onboarding = submittedForms.find(
-				(s) => s.formSlug === "onboarding",
-			);
-			return onboarding
-				? formatAffiliationResultJson(onboarding.resultJson || {})
-				: [];
-		})(),
-		affiliationEditPath: (() => {
-			const onboarding = submittedForms.find(
-				(s) => s.formSlug === "onboarding",
-			);
-			return onboarding
-				? buildFormPath({ id: onboarding.formId, slug: onboarding.formSlug })
-				: null;
-		})(),
-		// The onboarding form's academic-path data is already shown, nicely
-		// formatted, as the "Relations / Affiliation" section above (see
-		// affiliationEntries) — don't also list it as a raw generic submission.
-		submittedForms: submittedForms
-			.filter((s) => s.formSlug !== "onboarding")
-			.map((s) => ({
-				id: s.id,
-				title: s.formTitle,
-				submittedAt: s.submittedAt,
-				path: buildFormPath({ id: s.formId, slug: s.formSlug }),
-			})),
-	};
+	return assertNoPrivateFields(
+		{
+			...extras,
+			name: user.name as string,
+			familyName: user.familyName as string,
+			city: user.city ?? null,
+			country: user.country ?? null,
+			profilePictureUrl,
+			tags: tags.map((t) => ({ id: t.id, label: t.label })),
+			communities: userGroups.map((g) => ({ name: g.name, slug: g.slug })),
+			// Sections of modules that are not active fall back to empty.
+			upcomingEvents: extras.upcomingEvents ?? [],
+			pastEvents: extras.pastEvents ?? [],
+			isOwner: true,
+			email: (user.email as string | null) ?? null,
+			yearOfBirth: user.yearOfBirth ?? null,
+			sex: user.sex ?? null,
+			affiliationEntries: (() => {
+				const onboarding = submittedForms.find(
+					(s) => s.formSlug === "onboarding",
+				);
+				return onboarding
+					? formatAffiliationResultJson(onboarding.resultJson || {})
+					: [];
+			})(),
+			affiliationEditPath: (() => {
+				const onboarding = submittedForms.find(
+					(s) => s.formSlug === "onboarding",
+				);
+				return onboarding
+					? buildFormPath({ id: onboarding.formId, slug: onboarding.formSlug })
+					: null;
+			})(),
+			// The onboarding form's academic-path data is already shown, nicely
+			// formatted, as the "Relations / Affiliation" section above (see
+			// affiliationEntries) — don't also list it as a raw generic submission.
+			submittedForms: submittedForms
+				.filter((s) => s.formSlug !== "onboarding")
+				.map((s) => ({
+					id: s.id,
+					title: s.formTitle,
+					submittedAt: s.submittedAt,
+					path: buildFormPath({ id: s.formId, slug: s.formSlug }),
+				})),
+		},
+		{
+			// The viewer's OWN profile: their login email, birth year and gender are theirs to see.
+			allow: ["email", "yearOfBirth", "sex"],
+		},
+	);
 });
 
 export default component$(() => {

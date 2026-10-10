@@ -1,10 +1,14 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { AdminEventParticipation } from "../../../../../../../modules/events/admin/participation";
 import { loadAdminParticipation } from "../../../../../../../modules/events/admin/participation-data";
 
-export const useParticipation = routeLoader$((event) =>
-	loadAdminParticipation(event),
+export const useParticipation = routeLoader$(async (event) =>
+	assertNoPrivateFields(await loadAdminParticipation(event), {
+		// Admin RSVP list shows each participant's email.
+		allow: ["email"],
+	}),
 );
 
 export default component$(() => {

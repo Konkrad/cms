@@ -1,6 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db, type PublicUser, publicUserColumns, usersService } from "~/core";
-import type { events } from "../schema/events";
 import type { products } from "../schema/products";
 import type { transactionItems } from "../schema/transaction-items";
 import {
@@ -9,6 +8,20 @@ import {
 	type Transaction,
 	transactions,
 } from "../schema/transactions";
+import { type OwnTicket, ownTicketEventColumns } from "./tickets";
+
+/** A purchase as its buyer sees it: no Stripe ids. */
+export type OwnTransaction = Omit<
+	Transaction,
+	"stripeSessionId" | "stripePaymentId"
+> & {
+	event: OwnTicket["event"];
+	items: Array<
+		typeof transactionItems.$inferSelect & {
+			product: OwnTicket["product"];
+		}
+	>;
+};
 
 export const transactionsService = {
 	async create(data: InsertTransaction): Promise<Transaction> {
@@ -39,31 +52,20 @@ export const transactionsService = {
 			.orderBy(desc(transactions.paymentDate));
 	},
 
-	async getByUserId(userId: string): Promise<
-		Array<
-			Transaction & {
-				event: typeof events.$inferSelect;
-				items: Array<
-					typeof transactionItems.$inferSelect & {
-						product: typeof products.$inferSelect;
-					}
-				>;
-			}
-		>
-	> {
+	/** The user's own purchases (without Stripe ids) with an event summary and line items. */
+	async getByUserId(userId: string): Promise<OwnTransaction[]> {
 		const results = await db.query.transactions.findMany({
 			where: { userId },
+			columns: { stripeSessionId: false, stripePaymentId: false },
 			with: {
-				event: true,
+				event: { columns: ownTicketEventColumns },
 				items: {
-					with: {
-						product: true,
-					},
+					with: { product: { columns: { stripeProductId: false } } },
 				},
 			},
 			orderBy: { paymentDate: "desc" },
 		});
-		return results as any;
+		return results as OwnTransaction[];
 	},
 
 	/**
@@ -76,7 +78,7 @@ export const transactionsService = {
 				user: PublicUser & { email: string | null };
 				items: Array<
 					typeof transactionItems.$inferSelect & {
-						product: typeof products.$inferSelect;
+						product: OwnTicket["product"];
 					}
 				>;
 			}
@@ -88,7 +90,7 @@ export const transactionsService = {
 				user: { columns: publicUserColumns },
 				items: {
 					with: {
-						product: true,
+						product: { columns: { stripeProductId: false } },
 					},
 				},
 			},

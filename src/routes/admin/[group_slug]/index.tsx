@@ -3,6 +3,7 @@ import { routeLoader$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button/Button";
 import { adminDashboardService } from "~/core/admin/dashboard.service";
 import { groupsService } from "~/core/scopes/groups.service";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 
 export const useAdminStats = routeLoader$(async ({ params }) => {
 	const groupSlug = params.group_slug;
@@ -10,6 +11,7 @@ export const useAdminStats = routeLoader$(async ({ params }) => {
 	if (groupSlug === "global") {
 		return {
 			isGlobal: true,
+			group: null,
 			stats: { members: 0, ...(await adminDashboardService.getGlobalStats()) },
 		};
 	}
@@ -18,19 +20,20 @@ export const useAdminStats = routeLoader$(async ({ params }) => {
 	if (!group) {
 		return {
 			isGlobal: false,
+			group: null,
 			stats: { members: 0, posts: 0, events: 0, users: 0, pages: 0 },
 		};
 	}
 
-	return {
+	return assertNoPrivateFields({
 		isGlobal: false,
-		group,
+		group: { id: group.id, name: group.name, slug: group.slug },
 		stats: {
 			users: 0,
 			pages: 0,
 			...(await adminDashboardService.getGroupStats(group.id)),
 		},
-	};
+	});
 });
 
 export default component$(() => {

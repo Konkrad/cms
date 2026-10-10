@@ -1,10 +1,14 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { AdminEventAttendance } from "../../../../../../../modules/events/admin/attendance";
 import { loadAdminAttendance } from "../../../../../../../modules/events/admin/attendance-data";
 
-export const useAttendance = routeLoader$((event) =>
-	loadAdminAttendance(event),
+export const useAttendance = routeLoader$(async (event) =>
+	assertNoPrivateFields(await loadAdminAttendance(event), {
+		// Admin attendance list: buyer and participant emails, ticket QR code uuids.
+		allow: ["email", "qrCodeUuid"],
+	}),
 );
 
 export default component$(() => {

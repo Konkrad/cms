@@ -13,6 +13,7 @@ import { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 import { membershipsService } from "~/core/memberships/memberships.service";
 import { reevaluateUserTagsForUser } from "~/core/registry/manifests";
 import { groupsService } from "~/core/scopes/groups.service";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { userTagsService } from "~/core/tags/user-tags.service";
 import { adminUsersService } from "~/core/users/admin-users.service";
 
@@ -45,16 +46,22 @@ export const useUsers = routeLoader$(async ({ params, url }) => {
 		offset,
 	});
 
-	return {
-		users,
-		total,
-		page,
-		pageSize: PAGE_SIZE,
-		groupSlug,
-		isGlobal,
-		definitions,
-		search,
-	};
+	return assertNoPrivateFields(
+		{
+			users,
+			total,
+			page,
+			pageSize: PAGE_SIZE,
+			groupSlug,
+			isGlobal,
+			definitions,
+			search,
+		},
+		{
+			// Admin user management: admins search and contact users by email and manage roles.
+			allow: ["email", "role"],
+		},
+	);
 });
 
 export const useSetTier = routeAction$(

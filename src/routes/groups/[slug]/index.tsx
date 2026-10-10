@@ -11,6 +11,7 @@ import { publicImageUrlFromKey } from "~/core/media/images";
 import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
 import { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
 import { groupsService } from "~/core/scopes/groups.service";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { buildProfileUrl } from "~/core/users/format";
 import { GroupView } from "~theme/routes/groups/GroupView";
 import { activeGroupExtras } from "../../../core/registry/manifests";
@@ -53,9 +54,9 @@ export const useGroupData = routeLoader$(async (event) => {
 			}
 		: null;
 
-	return {
+	return assertNoPrivateFields({
 		...extras,
-		group,
+		group: { id: group.id, name: group.name, slug: group.slug },
 		memberCount,
 		// Sections of modules that are not active fall back to empty.
 		pastEventCount: extras.pastEventCount ?? 0,
@@ -81,7 +82,7 @@ export const useGroupData = routeLoader$(async (event) => {
 		groupImage1: toPublicUrl(group.image1),
 		groupImage2: toPublicUrl(group.image2),
 		groupImage3: toPublicUrl(group.image3),
-	};
+	});
 });
 
 export const useJoinGroup = routeAction$(async (_data, event) => {

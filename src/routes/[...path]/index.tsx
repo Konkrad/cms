@@ -9,6 +9,7 @@ import {
 	currentScopePath,
 	currentScopeRest,
 } from "~/core/router/scope-request";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { PageView } from "~theme/routes/page/PageView";
 import { modulePages } from "../../core/registry/manifests";
 import { moduleViews } from "../../core/registry/views";
@@ -46,10 +47,13 @@ export const usePathPage = routeLoader$(async (event) => {
 			params: match.params,
 			scopePath,
 		});
+		assertNoPrivateFields(data, { allow: match.page.allowPrivateFields });
 		return { pageId: match.page.id, key: rest, data: data as unknown };
 	}
 	// No module page: the CMS page at that URL (CMS pages are not scoped yet).
-	const page = await loadCmsPage(event, decodeURIComponent(rest));
+	const page = assertNoPrivateFields(
+		await loadCmsPage(event, decodeURIComponent(rest)),
+	);
 	return { pageId: CMS_PAGE, key: rest, data: page as unknown };
 });
 

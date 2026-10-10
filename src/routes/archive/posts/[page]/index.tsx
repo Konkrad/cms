@@ -5,6 +5,7 @@ import { getCurrentUserData } from "~/core/auth/server-auth";
 import { postsService } from "~/core/content/posts.service";
 import { canonicalUrl } from "~/core/content/seo";
 import { publicImageUrlFromKey } from "~/core/media/images";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { ArchivePostsView } from "~theme/routes/archive-posts/ArchivePostsView";
 
 const POSTS_PER_PAGE = 10;
@@ -35,7 +36,7 @@ export const useArchivePostsPage = routeLoader$(
 			featuredImage: publicImageUrlFromKey(post.featuredImage),
 		}));
 
-		return {
+		return assertNoPrivateFields({
 			page: parsedPage,
 			items,
 			totalPages: result.totalPages,
@@ -47,7 +48,7 @@ export const useArchivePostsPage = routeLoader$(
 				parsedPage + 1 < result.totalPages
 					? `/archive/posts/${parsedPage + 1}`
 					: null,
-		};
+		});
 	},
 );
 

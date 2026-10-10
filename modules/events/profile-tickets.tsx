@@ -1,13 +1,22 @@
 import { component$, useStore } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { requireModuleAuth } from "~/core";
+import { requireModuleAuth, usersService } from "~/core";
 import PurchaseList from "~theme/routes/profile/PurchaseList";
 import QrTicketWall from "~theme/routes/profile/QrTicketWall";
 import type { UserDashboardData } from "./profile-tickets-data";
 import { participantsService } from "./services/participants";
 import { ticketsService } from "./services/tickets";
 
-const slotsSchema = z.array(z.object({ name: z.string(), email: z.string() }));
+const slotsSchema = z.array(
+	z.object({
+		name: z.string(),
+		email: z.string(),
+		/** Keep this existing participant of the ticket (its email never left the server). */
+		participantId: z.string().nullish(),
+		/** A member picked from the directory; their email is resolved server-side. */
+		existingUserId: z.string().nullish(),
+	}),
+);
 
 export const useUpdateParticipants = routeAction$(
 	async (input, event) => {
@@ -29,7 +38,23 @@ export const useUpdateParticipants = routeAction$(
 		if (!result.success) {
 			return { failed: true, message: "Invalid participants" };
 		}
-		const slots = result.data;
+		// Emails are not round-tripped through the page: resolve them here from the
+		// ticket's existing participants or from the picked member's id.
+		const existing = new Map(ticket.participants.map((p) => [p.id, p]));
+		const pickedEmails = await usersService.getEmailsByIds(
+			result.data.flatMap((s) =>
+				!s.email.trim() && s.existingUserId ? [s.existingUserId] : [],
+			),
+		);
+		const slots = result.data.map((s) => {
+			if (s.email.trim()) return { name: s.name, email: s.email };
+			const kept = s.participantId ? existing.get(s.participantId) : undefined;
+			const email =
+				kept?.email ??
+				(s.existingUserId ? pickedEmails.get(s.existingUserId) : undefined) ??
+				"";
+			return { name: s.name, email };
+		});
 
 		await participantsService.replaceForTicket(input.ticketId, slots);
 		// Rotate the QR code UUID so the old QR image is invalidated

@@ -4,6 +4,7 @@ import { getCurrentUserData } from "~/core/auth/server-auth";
 import { postsService } from "~/core/content/posts.service";
 import { canonicalUrl, htmlToDescription } from "~/core/content/seo";
 import { publicImageUrlFromKey } from "~/core/media/images";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { formatUser } from "~/core/users/format";
 import { PostView } from "~theme/routes/posts/PostView";
 
@@ -43,13 +44,13 @@ export const usePost = routeLoader$(async (event) => {
 
 	// `formatUser(..., true)` strips PII before serialization; the theme only ever
 	// sees what this loader returns (see ~/contracts/posts → PostViewData).
-	return {
+	return assertNoPrivateFields({
 		...post,
 		featuredImageUrl,
 		authorAvatarUrl,
 		relatedPosts,
 		user: formatUser(post.user, true),
-	};
+	});
 });
 
 export default component$(() => {

@@ -18,6 +18,11 @@ export interface PageDefinition<T> {
 	/** Path within a scope: static segments and `:param`, e.g. "/jobs/:id". */
 	path: string;
 	load: (event: RequestEventLoader, ctx: PageContext) => Promise<T>;
+	/**
+	 * Private keys this page's payload may legitimately contain (see
+	 * `assertNoPrivateFields`). Every entry needs a comment saying why.
+	 */
+	allowPrivateFields?: readonly string[];
 }
 
 export function definePage<T>(page: PageDefinition<T>): PageDefinition<T> {

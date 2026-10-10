@@ -11,9 +11,13 @@ import {
 import { stripeService } from "./stripe";
 
 export const productsService = {
-	async getByEventId(eventId: string): Promise<Product[]> {
+	/** An event's products (without Stripe product ids) with their inventory group. */
+	async getByEventId(
+		eventId: string,
+	): Promise<Omit<Product, "stripeProductId">[]> {
 		return db.query.products.findMany({
 			where: { eventId },
+			columns: { stripeProductId: false },
 			with: { inventoryGroup: true },
 		});
 	},

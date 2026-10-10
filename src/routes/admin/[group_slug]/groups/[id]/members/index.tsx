@@ -2,11 +2,11 @@ import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { eq } from "drizzle-orm";
 import { Button } from "~/components/ui/Button";
+import { getCurrentUserData } from "~/core/auth/server-auth";
 import { db } from "~/core/db/connection";
 import { groupMemberships, users } from "~/core/db/schema";
 import { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
 import { groupsService } from "~/core/scopes/groups.service";
-import { getCurrentUserData } from "~/utils/server-auth";
 
 export const useMembers = routeLoader$(async ({ params, redirect }) => {
 	// Only allow access from the global admin context

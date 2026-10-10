@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { emailAuthService } from "~/services/email-auth.service";
+import { emailAuthService } from "~/core/auth/email-auth.service";
 import {
 	clearMailpit,
 	type EmailMessage,

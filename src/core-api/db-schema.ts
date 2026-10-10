@@ -1,10 +1,10 @@
 /** Core tables/types a module schema may reference. Safe for drizzle-kit (no runtime deps). */
 
+export { logins } from "~/core/auth/schema/logins";
 export { groupMemberships } from "~/core/scopes/schema/group-memberships";
 export { groupRepresentatives } from "~/core/scopes/schema/group-representatives";
 export type { Group } from "~/core/scopes/schema/groups";
 export { groups } from "~/core/scopes/schema/groups";
-export { logins } from "~/db/schemas/logins";
 export type { User } from "~/db/schemas/users";
 export { users } from "~/db/schemas/users";
 

@@ -6,7 +6,7 @@ export const useTagsData = routeLoader$(async (event) => {
 	if (event.params.group_slug !== "global") {
 		throw event.redirect(302, "/admin/global/tags");
 	}
-	const { requireAdmin } = await import("~/utils/server-auth");
+	const { requireAdmin } = await import("~/core/auth/server-auth");
 	await requireAdmin(event);
 	const definitions = await userTagsService.getDefinitions();
 	return { definitions };
@@ -14,7 +14,7 @@ export const useTagsData = routeLoader$(async (event) => {
 
 export const useCreateDefinition = routeAction$(
 	async (data, event) => {
-		const { requireAdmin } = await import("~/utils/server-auth");
+		const { requireAdmin } = await import("~/core/auth/server-auth");
 		await requireAdmin(event);
 		await userTagsService.createDefinition(data as any);
 		return { success: true };
@@ -35,7 +35,7 @@ export const useCreateDefinition = routeAction$(
 
 export const useDeleteDefinition = routeAction$(
 	async (data, event) => {
-		const { requireAdmin } = await import("~/utils/server-auth");
+		const { requireAdmin } = await import("~/core/auth/server-auth");
 		await requireAdmin(event);
 		await userTagsService.deleteDefinition(data.definitionId);
 		return { success: true };

@@ -1,7 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
+import { emailAuthService } from "~/core/auth/email-auth.service";
 import { env } from "~/env";
-import { emailAuthService } from "~/services/email-auth.service";
 import { AuthVerifyView } from "~theme/routes/auth/AuthVerifyView";
 
 export const useVerify = routeLoader$(async (event: any) => {

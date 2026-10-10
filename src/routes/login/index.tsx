@@ -1,10 +1,10 @@
 import { component$ } from "@qwik.dev/core";
 import { routeAction$, routeLoader$ } from "@qwik.dev/router";
-import { env } from "~/env";
-import { emailAuthService } from "~/services/email-auth.service";
-import { RateLimiter } from "~/utils/rate-limit";
+import { emailAuthService } from "~/core/auth/email-auth.service";
+import { RateLimiter } from "~/core/auth/rate-limit";
 // Using email-based auth (magic link + OTP) instead of the old password-based auth
-import { getServerSession } from "~/utils/server-auth";
+import { getServerSession } from "~/core/auth/server-auth";
+import { env } from "~/env";
 import { LoginView } from "~theme/routes/login/LoginView";
 
 /**

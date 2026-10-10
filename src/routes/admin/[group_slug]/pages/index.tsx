@@ -2,10 +2,10 @@ import { $, component$ } from "@qwik.dev/core";
 import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { MenuTable } from "~/components/admin/MenuTable/MenuTable";
 import { Button } from "~/components/ui/Button";
+import { requireAdmin } from "~/core/auth/server-auth";
 import type { MenuItem } from "~/db/schemas/menu-items";
 import { menuItemsService } from "~/services/menu-items.service";
 import { getStaticMenuLinks } from "~/services/static-menu-links";
-import { requireAdmin } from "~/utils/server-auth";
 import { sanitizeSvg } from "~/utils/svg-sanitize";
 
 // Pages are only accessible in global context

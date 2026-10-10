@@ -1,10 +1,10 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
+import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
 import type { UserConsent } from "~/db/schemas/users";
 import { formResultsService } from "~/services/form-results.service";
 import { formsService } from "~/services/forms.service";
 import { resolvePrivateImageUrl } from "~/utils/secure-urls";
-import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { OnboardingView } from "~theme/routes/onboarding/OnboardingView";
 import { useMarkLocation } from "../../../components/setup/LocationStep/useMarkLocation";
 // Import re-exported route actions via a RELATIVE path, not the "~"/"~theme" alias —

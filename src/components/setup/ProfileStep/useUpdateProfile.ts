@@ -1,7 +1,7 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
+import { requireAuth } from "~/core/auth/server-auth";
 import { usersService } from "~/services/users.service";
 import { markConsentStepComplete } from "~/utils/onboarding";
-import { requireAuth } from "~/utils/server-auth";
 
 /**
  * Co-located server action for the themed `ProfileStep` widget

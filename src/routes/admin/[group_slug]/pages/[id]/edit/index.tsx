@@ -4,9 +4,9 @@ import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
+import { requireAdmin } from "~/core/auth/server-auth";
 import { menuItemsService } from "~/services/menu-items.service";
 import { pagesService } from "~/services/pages.service";
-import { requireAdmin } from "~/utils/server-auth";
 
 // Pages are only accessible in global context
 export const useCheckGlobalContext = routeLoader$(

@@ -4,10 +4,10 @@ import { Canvas } from "~/components/builder/Canvas";
 import { ComponentsSidebar } from "~/components/builder/ComponentsSidebar";
 import { PropertiesPanel } from "~/components/builder/PropertiesPanel";
 import { Button } from "~/components/ui/Button";
+import { requireAdmin } from "~/core/auth/server-auth";
 import type { BlockData, BlockDefinition } from "~/core/db/schema";
 import { componentLoaderService } from "~/services/component-loader.service";
 import { pagesService } from "~/services/pages.service";
-import { requireAdmin } from "~/utils/server-auth";
 
 // Pages are only accessible in global context
 export const useCheckGlobalContext = routeLoader$(

@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 /* Supabase auth removed: using DB-backed sessions only (local DB sessions are now authoritative) */
 import { db } from "~/core/db/connection";
 import { logins, sessions, users } from "~/core/db/schema";
-import type { User } from "../core/db/schema";
+import type { User } from "../db/schema";
 
 /* Supabase configuration and fallback removed */
 

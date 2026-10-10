@@ -47,7 +47,7 @@ export {
 	getCurrentUserData,
 	getServerSession,
 	requireAuth,
-} from "~/utils/server-auth";
+} from "~/core/auth/server-auth";
 export { buildProfileUrl } from "~/utils/users";
 // Schema references modules need to relate to core tables (also in ./db-schema).
 export * from "./db-schema";

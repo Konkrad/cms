@@ -1,7 +1,7 @@
 import type { RequestHandler } from "@qwik.dev/router";
+import { getServerSession } from "~/core/auth/server-auth";
 import { formAccessService } from "~/services/form-access.service";
 import { formsService } from "~/services/forms.service";
-import { getServerSession } from "~/utils/server-auth";
 
 export const onGet: RequestHandler = async (event) => {
 	const { params, json } = event;

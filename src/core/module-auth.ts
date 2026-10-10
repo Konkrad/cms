@@ -1,4 +1,4 @@
-import { requireAuth } from "~/utils/server-auth";
+import { requireAuth } from "~/core/auth/server-auth";
 import { requireActiveModule } from "./registry/manifests";
 
 /**

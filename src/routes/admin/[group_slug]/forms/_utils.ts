@@ -1,6 +1,6 @@
+import { getCurrentUserData } from "~/core/auth/server-auth";
 import { canManageGroupContent } from "~/core/scopes/access-control";
 import { groupsService } from "~/core/scopes/groups.service";
-import { getCurrentUserData } from "~/utils/server-auth";
 
 export type FormsAdminScope = {
 	scopeType: "global" | "group";

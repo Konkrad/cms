@@ -14,12 +14,12 @@ import {
 	Pagination,
 } from "~/components/admin/Pagination/Pagination";
 import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
+import { logins } from "~/core/auth/schema/logins";
+import { sessions } from "~/core/auth/schema/sessions";
 import { db } from "~/core/db/connection";
 import { reevaluateUserTagsForUser } from "~/core/registry/manifests";
 import { groupsService } from "~/core/scopes/groups.service";
 import { groupMemberships } from "~/core/scopes/schema/group-memberships";
-import { logins } from "~/db/schemas/logins";
-import { sessions } from "~/db/schemas/sessions";
 import { userMemberships } from "~/db/schemas/user-memberships";
 import { users } from "~/db/schemas/users";
 import { membershipsService } from "~/services/memberships.service";
@@ -231,7 +231,7 @@ export const useUsers = routeLoader$(async ({ params, url }) => {
 
 export const useSetTier = routeAction$(
 	async (data, event) => {
-		const { requireAdmin } = await import("~/utils/server-auth");
+		const { requireAdmin } = await import("~/core/auth/server-auth");
 		const admin = await requireAdmin(event);
 		await membershipsService.setTier(data.userId, data.tier, admin.id);
 		return { success: true };
@@ -244,7 +244,7 @@ export const useSetTier = routeAction$(
 
 export const useRemoveMembership = routeAction$(
 	async (data, event) => {
-		const { requireAdmin } = await import("~/utils/server-auth");
+		const { requireAdmin } = await import("~/core/auth/server-auth");
 		await requireAdmin(event);
 		await membershipsService.removeMembership(data.userId);
 		return { success: true };
@@ -254,7 +254,7 @@ export const useRemoveMembership = routeAction$(
 
 export const useGrantTag = routeAction$(
 	async (data, event) => {
-		const { requireAdmin } = await import("~/utils/server-auth");
+		const { requireAdmin } = await import("~/core/auth/server-auth");
 		const admin = await requireAdmin(event);
 		await userTagsService.grantFromDefinition(
 			data.userId,
@@ -271,7 +271,7 @@ export const useGrantTag = routeAction$(
 
 export const useRevokeTag = routeAction$(
 	async (data, event) => {
-		const { requireAdmin } = await import("~/utils/server-auth");
+		const { requireAdmin } = await import("~/core/auth/server-auth");
 		await requireAdmin(event);
 		await userTagsService.revoke(data.userId, data.slug);
 		return { success: true };
@@ -280,7 +280,7 @@ export const useRevokeTag = routeAction$(
 );
 
 export const useReevaluateBadges = routeAction$(async (_data, event) => {
-	const { requireAdmin } = await import("~/utils/server-auth");
+	const { requireAdmin } = await import("~/core/auth/server-auth");
 	await requireAdmin(event);
 	const memberships = await membershipsService.getAll();
 	await Promise.all(

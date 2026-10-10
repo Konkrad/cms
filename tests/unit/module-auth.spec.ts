@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 const { requireAuth } = vi.hoisted(() => ({ requireAuth: vi.fn() }));
-vi.mock("~/utils/server-auth", () => ({ requireAuth }));
+vi.mock("~/core/auth/server-auth", () => ({ requireAuth }));
 
 import { requireModuleAuth } from "~/core/module-auth";
 

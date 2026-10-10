@@ -32,7 +32,7 @@ export const usePost = routeLoader$(async (event) => {
 });
 
 export const useUpdatePost = routeAction$(async (data, event) => {
-	const { requireAdmin } = await import("~/utils/server-auth");
+	const { requireAdmin } = await import("~/core/auth/server-auth");
 	await requireAdmin(event);
 
 	const postId = event.params.id;

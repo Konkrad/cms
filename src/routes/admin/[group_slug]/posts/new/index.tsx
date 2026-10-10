@@ -5,9 +5,9 @@ import { BlockNoteEditor } from "~/components/editor";
 import { Button } from "~/components/ui/Button";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
+import { getCurrentUserData } from "~/core/auth/server-auth";
 import { groupsService } from "~/core/scopes/groups.service";
 import { postsService } from "~/services/posts.service";
-import { getCurrentUserData } from "~/utils/server-auth";
 
 export const useGroupContext = routeLoader$(async ({ params }) => {
 	const groupSlug = params.group_slug;

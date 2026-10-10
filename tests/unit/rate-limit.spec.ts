@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RateLimiter } from "~/utils/rate-limit";
+import { RateLimiter } from "~/core/auth/rate-limit";
 
 const rule = { limit: 3, windowMs: 1000 };
 

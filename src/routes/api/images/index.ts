@@ -19,6 +19,7 @@
 
 import type { RequestHandler } from "@qwik.dev/router";
 import crypto from "crypto";
+import { requireAuth } from "~/core/auth/server-auth";
 import { env } from "~/env";
 import {
 	getPipeline,
@@ -28,7 +29,6 @@ import {
 	uploadRawFile,
 } from "~/services/image-processing.service";
 import { generatePresignedGetUrl } from "~/utils/secure-urls";
-import { requireAuth } from "~/utils/server-auth";
 import { sanitizeSvg } from "~/utils/svg-sanitize";
 
 /**

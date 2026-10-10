@@ -4,7 +4,7 @@ import { relations } from "drizzle-orm/_relations";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { users } from "./users";
+import { users } from "../../../db/schemas/users";
 
 /**
  * Sessions stored in DB for server-side session verification.

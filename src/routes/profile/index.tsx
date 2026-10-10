@@ -1,6 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
 import { eq } from "drizzle-orm";
+import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
 import { db } from "~/core/db/connection";
 import { groupMemberships } from "~/core/scopes/schema/group-memberships";
 import { groups } from "~/core/scopes/schema/groups";
@@ -9,7 +10,6 @@ import { userTagsService } from "~/services/user-tags.service";
 import { formatAffiliationResultJson } from "~/utils/affiliation";
 import { buildFormPath } from "~/utils/forms";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
-import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { UserProfile } from "~theme/routes/profile/UserProfile/UserProfile";
 import { useUpdateDetails } from "../../components/profile/useUpdateDetails";
 import { useUpdateLocation } from "../../components/profile/useUpdateLocation";

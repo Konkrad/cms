@@ -1,15 +1,15 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
 import { eq } from "drizzle-orm";
+import { logins } from "~/core/auth/schema/logins";
+import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
 import { db } from "~/core/db/connection";
 import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
-import { logins } from "~/db/schemas/logins";
 import { formResultsService } from "~/services/form-results.service";
 import { usersService } from "~/services/users.service";
 import { formatAffiliationResultJson } from "~/utils/affiliation";
 import { buildFormPath } from "~/utils/forms";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
-import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
 import { PublicProfileView } from "~theme/routes/users/PublicProfileView";
 import { activeProfileExtras } from "../../../core/registry/manifests";
 

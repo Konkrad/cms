@@ -1,8 +1,8 @@
+import type { RequestEvent } from "~/core/auth/server-auth";
+import { getCurrentUserData } from "~/core/auth/server-auth";
 import type { Group, User } from "~/core/db/schema";
 import { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
 import { groupsService } from "~/core/scopes/groups.service";
-import type { RequestEvent } from "~/utils/server-auth";
-import { getCurrentUserData } from "~/utils/server-auth";
 
 export async function canManageGroupContent(
 	userId: string,

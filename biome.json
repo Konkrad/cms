@@ -59,7 +59,7 @@
 										"message": "theme must not import core db/schema directly — use a type from ~/contracts/* instead."
 									},
 									{
-										"group": ["~/utils/server-auth"],
+										"group": ["~/core/auth/**"],
 										"message": "theme must not import server-auth directly — auth checks belong in a core-owned composable or route loader/action."
 									},
 									{

@@ -1,10 +1,10 @@
 import type { RequestHandler } from "@qwik.dev/router";
-import { altchaService } from "~/services/altcha.service";
+import { altchaService } from "~/core/auth/altcha.service";
+import { getServerSession } from "~/core/auth/server-auth";
 import { formAccessService } from "~/services/form-access.service";
 import { formResultsService } from "~/services/form-results.service";
 import { formValidationService } from "~/services/form-validation.service";
 import { formsService } from "~/services/forms.service";
-import { getServerSession } from "~/utils/server-auth";
 
 export const onPost: RequestHandler = async (event) => {
 	const { params, request, json } = event;

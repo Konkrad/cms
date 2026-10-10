@@ -3,7 +3,7 @@
  * Convention: {name}.webp → {name}-thumb.webp
  */
 export function deriveThumbnailKey(mainKey: string): string {
-  return mainKey.replace(/\.webp$/, "-thumb.webp");
+	return mainKey.replace(/\.webp$/, "-thumb.webp");
 }
 
 /**
@@ -17,21 +17,21 @@ export function deriveThumbnailKey(mainKey: string): string {
  * server-side via resolvePrivateImageUrl in secure-urls.ts.
  */
 export function publicImageUrlFromKey(
-  value: string | null | undefined,
+	value: string | null | undefined,
 ): string | null {
-  if (!value) return null;
+	if (!value) return null;
 
-  if (
-    value.startsWith("http://") ||
-    value.startsWith("https://") ||
-    value.startsWith("blob:") ||
-    value.startsWith("data:")
-  ) {
-    return value;
-  }
+	if (
+		value.startsWith("http://") ||
+		value.startsWith("https://") ||
+		value.startsWith("blob:") ||
+		value.startsWith("data:")
+	) {
+		return value;
+	}
 
-  const base: string | undefined = import.meta.env.VITE_S3_BASE_URL;
-  const normalizedKey = value.replace(/^\//, "");
+	const base: string | undefined = import.meta.env.VITE_S3_BASE_URL;
+	const normalizedKey = value.replace(/^\//, "");
 
-  return `${(base ?? "").replace(/\/$/, "")}/${normalizedKey}`;
+	return `${(base ?? "").replace(/\/$/, "")}/${normalizedKey}`;
 }

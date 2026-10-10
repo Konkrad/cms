@@ -16,7 +16,7 @@
  *    `expUnix - now` and uses it as `expiresIn` (in seconds) for the presigned URL.
  */
 
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "~/env";
 
@@ -25,15 +25,15 @@ import { env } from "~/env";
  * We intentionally mirror the client construction used elsewhere so credentials/endpoint are consistent.
  */
 function createS3Client(): S3Client {
-  return new S3Client({
-    region: env.AWS_REGION,
-    endpoint: env.AWS_ENDPOINT,
-    forcePathStyle: !!env.AWS_ENDPOINT,
-    credentials: {
-      accessKeyId: env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-    },
-  });
+	return new S3Client({
+		region: env.AWS_REGION,
+		endpoint: env.AWS_ENDPOINT,
+		forcePathStyle: !!env.AWS_ENDPOINT,
+		credentials: {
+			accessKeyId: env.AWS_ACCESS_KEY_ID,
+			secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+		},
+	});
 }
 
 /**
@@ -42,20 +42,20 @@ function createS3Client(): S3Client {
  * @param expiresInSeconds - TTL in seconds for the presigned URL
  */
 export async function generatePresignedGetUrl(
-  s3Key: string,
-  expiresInSeconds = 60 * 60, // default 1 hour
+	s3Key: string,
+	expiresInSeconds = 60 * 60, // default 1 hour
 ): Promise<string> {
-  if (!s3Key) throw new Error("Missing s3 key");
-  if (expiresInSeconds <= 0) throw new Error("expiresIn must be > 0");
+	if (!s3Key) throw new Error("Missing s3 key");
+	if (expiresInSeconds <= 0) throw new Error("expiresIn must be > 0");
 
-  const client = createS3Client();
-  const cmd = new GetObjectCommand({
-    Bucket: env.S3_BUCKET,
-    Key: s3Key,
-  });
+	const client = createS3Client();
+	const cmd = new GetObjectCommand({
+		Bucket: env.S3_BUCKET,
+		Key: s3Key,
+	});
 
-  const url = await getSignedUrl(client, cmd, { expiresIn: expiresInSeconds });
-  return url;
+	const url = await getSignedUrl(client, cmd, { expiresIn: expiresInSeconds });
+	return url;
 }
 
 /**
@@ -68,22 +68,22 @@ export async function generatePresignedGetUrl(
  * Returns a presigned S3 GET URL valid until `expUnix`.
  */
 export async function generateSecurePhotoUrl(
-  filePath: string,
-  _userId: string,
-  expUnix: number,
+	filePath: string,
+	_userId: string,
+	expUnix: number,
 ): Promise<string> {
-  if (!filePath) {
-    throw new Error("Missing filePath");
-  }
+	if (!filePath) {
+		throw new Error("Missing filePath");
+	}
 
-  const nowUnix = Math.floor(Date.now() / 1000);
-  const expiresIn = expUnix - nowUnix;
+	const nowUnix = Math.floor(Date.now() / 1000);
+	const expiresIn = expUnix - nowUnix;
 
-  if (expiresIn <= 0) {
-    throw new Error("Expiry must be in the future");
-  }
+	if (expiresIn <= 0) {
+		throw new Error("Expiry must be in the future");
+	}
 
-  return generatePresignedGetUrl(filePath, expiresIn);
+	return generatePresignedGetUrl(filePath, expiresIn);
 }
 
 /**
@@ -91,11 +91,11 @@ export async function generateSecurePhotoUrl(
  * Server-side only — requires AWS credentials. Call from loaders or server$ functions.
  */
 export async function resolvePrivateImageUrl(
-  key: string | null | undefined,
-  expiresInSeconds = 3600,
+	key: string | null | undefined,
+	expiresInSeconds = 3600,
 ): Promise<string | null> {
-  if (!key) return null;
-  return generatePresignedGetUrl(key.replace(/^\//, ""), expiresInSeconds);
+	if (!key) return null;
+	return generatePresignedGetUrl(key.replace(/^\//, ""), expiresInSeconds);
 }
 
 /**
@@ -103,6 +103,6 @@ export async function resolvePrivateImageUrl(
  * Example: /private/events/abc123/photos/photo-xyz789.webp -> photo-xyz789
  */
 export function extractPhotoIdFromPath(filePath: string): string | null {
-  const match = filePath.match(/\/photos\/([^/]+)\.\w+$/);
-  return match ? match[1] : null;
+	const match = filePath.match(/\/photos\/([^/]+)\.\w+$/);
+	return match ? match[1] : null;
 }

@@ -1,8 +1,8 @@
 type FormPathInput = {
-  id: string;
-  slug: string;
+	id: string;
+	slug: string;
 };
 
 export function buildFormPath(form: FormPathInput): string {
-  return `/forms/${form.id}-${form.slug}`;
+	return `/forms/${form.id}-${form.slug}`;
 }

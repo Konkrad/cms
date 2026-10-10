@@ -22,6 +22,7 @@ import { userMemberships } from "~/db/schemas/user-memberships";
 import { users } from "~/db/schemas/users";
 import { groupsService } from "~/services/groups.service";
 import { membershipsService } from "~/services/memberships.service";
+import { tagRulesService } from "~/services/tag-rules.service";
 import { userTagsService } from "~/services/user-tags.service";
 
 export const useUsers = routeLoader$(async ({ params, url }) => {
@@ -283,7 +284,7 @@ export const useReevaluateBadges = routeAction$(async (_data, event) => {
 	await requireAdmin(event);
 	const memberships = await membershipsService.getAll();
 	await Promise.all(
-		memberships.map((m) => userTagsService.evaluateRulesForUser(m.userId)),
+		memberships.map((m) => tagRulesService.evaluateRulesForUser(m.userId)),
 	);
 	return { success: true };
 }, zod$({}));

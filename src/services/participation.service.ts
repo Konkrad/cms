@@ -36,8 +36,8 @@ export const participationService = {
 				});
 
 		if (status === "yes") {
-			const { userTagsService } = await import("~/services/user-tags.service");
-			await userTagsService.evaluateRulesForUser(userId);
+			const { tagRulesService } = await import("~/services/tag-rules.service");
+			await tagRulesService.evaluateRulesForUser(userId);
 		}
 
 		return result;

@@ -13,8 +13,8 @@
 ## Qwik And Data Flow
 
 - Use Qwik patterns consistently: `component$()`, `routeLoader$()`, `routeAction$()`, `useSignal()`, and `$()` where serialization requires it.
-- Keep route-specific one-off joins in route loaders when abstraction would not be reused; use services for reusable operations.
-- Strip sensitive data server-side in loaders before Qwik serializes state. Do not rely on client-side hiding for privacy.
+- Loaders never query the db: every query, including one-off joins, lives in the area's (or module's) service. See Security § Services are the privacy boundary.
+- Strip sensitive data server-side before Qwik serializes state. Do not rely on client-side hiding for privacy.
 
 ## Component And UI Rules
 
@@ -72,9 +72,18 @@ These rules encode mistakes that have actually shipped in this codebase. Treat e
 - For owner-scoped resources, re-check ownership in **both** the loader and the action (e.g. jobs check `suggestedBy === user.id && status === "pending"` in each).
 - Validate every action input with `zod$`. Whitelist updatable columns explicitly — never spread raw form data into a DB `update`/`insert`, and never let a client set `role`, `status`, ownership, or other privilege fields.
 
+### Services are the privacy boundary (private by default)
+
+- **Services return public shapes by default.** A list/detail method that returns other users returns them as public shapes: relational queries load users with `with: { user: { columns: publicUserColumns } }` (core selects use `publicUserSelect`; both from `src/core/users/public-user.ts`, exported via `~/core` for modules), or an explicit column list. Never `user: true` — `tests/unit/public-user-columns.spec.ts` fails on any `with:` user relation without a column list. Profile pictures go out as the public thumbnail URL (`publicUserThumbnailUrl`), never the private `profilePicture` key.
+- **Private fields only via explicitly named methods** whose name says what they add (e.g. `usersService.getEmailsByIds`, `usersService.getOwnPrivateDetails`, `ticketsService.getByEventIdWithBuyerEmail`, `transactionsService.getByEventIdWithBuyerEmail`, `participationService.getByEventIdWithEmails`, `groupMembershipsService.getMembersWithEmailAndRole`, `adminUsersService.listWithEmailAndRole`, `usersService.getPrivateById`). Call them from admin loaders (or for the viewer's own data) only.
+- **Loaders and route files never use the db** (`db`, `~/core/db/*` queries): they call services. Same for module `*-data.ts` / `public-*.ts` loader files.
+- **Visibility decisions are made in the loader/service** (login-only, group-only, role, owner-only): load or return only what the viewer may see (e.g. `postsService.canView` / the `viewerId` argument of post lists, `canViewEvent`, owner-only fields added only for the owner). The theme only renders what it gets and never hides data with conditionals.
+- **Page payloads are declared types.** Pages that show another user's data return a payload type declared in `src/contracts/*` (`satisfies` or an explicit return type), not one derived from `ReturnType<typeof useX>`; adding a field to such a page means adding it to the contract.
+- **Leak check (dev/test safety net).** `assertNoPrivateFields(value, { allow })` (`src/core/shared/no-private-fields.ts`, also exported via `~/core`) deep-scans a payload and throws (when `NODE_ENV !== "production"`) on private keys — email, loginId, consent, yearOfBirth, sex, latitude/longitude, foodPreference, photoConsentGiven, profilePicture, role, phone, login/session secrets, qrCodeUuid, adminNote, any `stripe*` key; see `PRIVATE_FIELD_KEYS`. It runs on every catch-all page result, every admin `*-data.ts` loader result (wrapped in the admin route: `routeLoader$(async (event) => assertNoPrivateFields(await loadX(event)))`) and the core loaders with user data. When a page legitimately shows such a field (admin pages listing emails, the viewer's own profile/checkout/tickets, an event venue's coordinates), allow it explicitly next to the check with a comment saying why: `assertNoPrivateFields(data, { allow: ["email"] })`, or `allowPrivateFields: [...]` on a `definePage`. New loaders that return user data must call it too; never widen an allow list to silence an e2e failure without that justification.
+
 ### Strip secrets before serialization
 
-- Qwik serializes loader/action return values into the HTML sent to the browser. Strip private fields (emails, tokens, raw private S3 keys, other users' PII) in the loader **before** returning. Do not rely on client-side hiding.
+- Qwik serializes loader/action return values into the HTML sent to the browser. Private fields (emails, tokens, raw private S3 keys, other users' PII) must never be in them: strip them in the service (see above), not the theme. Do not rely on client-side hiding.
 
 ### Sanitize stored HTML; never render raw user input
 

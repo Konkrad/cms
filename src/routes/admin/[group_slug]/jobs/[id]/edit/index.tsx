@@ -4,11 +4,13 @@ import { BlockNoteEditor } from "~/components/editor";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
+import { requireActiveModule } from "~/modules";
 import { jobsService } from "~/services/jobs.service";
 
 export const useJob = routeLoader$(async (event) => {
 	const { requireAdmin } = await import("~/utils/server-auth");
 	await requireAdmin(event);
+	requireActiveModule(event, "jobs");
 	const job = await jobsService.getById(event.params.id);
 	if (!job) throw event.redirect(302, "/admin/global/jobs");
 	return { job };
@@ -18,6 +20,7 @@ export const useUpdateJob = routeAction$(
 	async (data, event) => {
 		const { requireAdmin } = await import("~/utils/server-auth");
 		await requireAdmin(event);
+		requireActiveModule(event, "jobs");
 
 		await jobsService.update(event.params.id, {
 			title: data.title,

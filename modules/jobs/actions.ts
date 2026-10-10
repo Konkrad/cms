@@ -1,5 +1,6 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { matchPath } from "~/core/pages";
+import { requireActiveModule } from "~/modules";
 import { jobsService } from "~/services/jobs.service";
 import { currentScopeRest } from "~/utils/scope-request";
 
@@ -9,6 +10,7 @@ export const useSubmitJob = routeAction$(
 	async (data, event) => {
 		const { requireAuth } = await import("~/utils/server-auth");
 		const user = await requireAuth(event);
+		requireActiveModule(event, "jobs");
 
 		const expiresAt = new Date(data.expiresAt);
 		const maxExpiry = new Date();
@@ -59,6 +61,7 @@ export const useDeleteMyJob = routeAction$(
 	async (data, event) => {
 		const { requireAuth } = await import("~/utils/server-auth");
 		const user = await requireAuth(event);
+		requireActiveModule(event, "jobs");
 
 		const job = await jobsService.getById(data.jobId);
 		if (!job || job.suggestedBy !== user.id || job.status !== "pending") {
@@ -75,6 +78,7 @@ export const useUpdateMyJob = routeAction$(
 	async (data, event) => {
 		const { requireAuth } = await import("~/utils/server-auth");
 		const user = await requireAuth(event);
+		requireActiveModule(event, "jobs");
 
 		const jobId = matchPath("/jobs/mine/:id/edit", currentScopeRest(event))?.id;
 		const job = jobId ? await jobsService.getById(jobId) : undefined;

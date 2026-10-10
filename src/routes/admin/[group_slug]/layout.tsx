@@ -3,6 +3,7 @@ import { routeLoader$ } from "@qwik.dev/router";
 import { AdminNav } from "~/components/admin/AdminNav";
 import { Breadcrumbs } from "~/components/admin/Breadcrumbs";
 import { Button } from "~/components/ui/Button/Button";
+import { activeAdminSections } from "~/modules";
 import { groupsService } from "~/services/groups.service";
 import { canManageGroupContent } from "~/utils/access-control";
 import { getCurrentUserData } from "~/utils/server-auth";
@@ -23,7 +24,12 @@ export const useGroupAdminAuth = routeLoader$(async (event) => {
 			throw redirect(302, "/");
 		}
 		sharedMap.set("adminContext", { isGlobal: true });
-		return { user, isGlobal: true, group: null };
+		return {
+			user,
+			isGlobal: true,
+			group: null,
+			adminSections: activeAdminSections,
+		};
 	}
 
 	// Group-specific context - must be representative for that group
@@ -38,7 +44,7 @@ export const useGroupAdminAuth = routeLoader$(async (event) => {
 	}
 
 	sharedMap.set("adminContext", { isGlobal: false, group });
-	return { user, isGlobal: false, group };
+	return { user, isGlobal: false, group, adminSections: [] };
 });
 
 export default component$(() => {
@@ -79,6 +85,7 @@ export default component$(() => {
 					<AdminNav
 						groupSlug={auth.value.isGlobal ? undefined : auth.value.group?.slug}
 						isGlobal={auth.value.isGlobal}
+						sections={auth.value.adminSections}
 					/>
 				</div>
 			</div>

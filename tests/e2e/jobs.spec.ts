@@ -394,3 +394,12 @@ test.describe("Jobs — admin", () => {
 		});
 	});
 });
+
+test("admin nav shows the Jobs entry from the active jobs module", async ({
+	adminPage: page,
+}) => {
+	await page.goto("/admin/global");
+	await expect(
+		page.locator("nav").getByRole("link", { name: "Jobs", exact: true }),
+	).toHaveAttribute("href", "/admin/global/jobs");
+});

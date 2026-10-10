@@ -4,10 +4,12 @@ import { Link, useLocation } from "@qwik.dev/router";
 interface AdminNavProps {
 	groupSlug?: string;
 	isGlobal?: boolean;
+	/** Admin sections contributed by active modules (global admin only). */
+	sections?: { path: string; label: string }[];
 }
 
 export const AdminNav = component$<AdminNavProps>(
-	({ groupSlug, isGlobal = true }) => {
+	({ groupSlug, isGlobal = true, sections = [] }) => {
 		const location = useLocation();
 		const currentPath = location.url.pathname;
 
@@ -38,9 +40,14 @@ export const AdminNav = component$<AdminNavProps>(
 			navItems.push({ href: `/admin/global/deals`, label: "Deals" });
 		}
 
-		// Add Jobs management for global admin
+		// Sections contributed by active modules (global admin only)
 		if (isGlobal) {
-			navItems.push({ href: `/admin/global/jobs`, label: "Jobs" });
+			for (const section of sections) {
+				navItems.push({
+					href: `/admin/global/${section.path}`,
+					label: section.label,
+				});
+			}
 		}
 
 		// Add Elections management for global admin

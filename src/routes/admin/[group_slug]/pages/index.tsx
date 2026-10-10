@@ -4,7 +4,7 @@ import { MenuTable } from "~/components/admin/MenuTable/MenuTable";
 import { Button } from "~/components/ui/Button";
 import type { MenuItem } from "~/db/schemas/menu-items";
 import { menuItemsService } from "~/services/menu-items.service";
-import { STATIC_MENU_LINKS } from "~/services/static-menu-links";
+import { getStaticMenuLinks } from "~/services/static-menu-links";
 import { requireAdmin } from "~/utils/server-auth";
 import { sanitizeSvg } from "~/utils/svg-sanitize";
 
@@ -38,7 +38,7 @@ export const useMenuItems = routeLoader$(async () => {
 
 		// Static links (main menu only)
 		if (menuName === "main") {
-			for (const staticLink of STATIC_MENU_LINKS) {
+			for (const staticLink of getStaticMenuLinks()) {
 				const url = normalizeUrl(staticLink.url);
 				if (knownUrls.has(url)) continue;
 				maxPosition += 1;
@@ -447,7 +447,7 @@ export default component$(() => {
 			<MenuTable
 				mainItems={menuItemsData.value.main}
 				footerItems={menuItemsData.value.footer}
-				staticUrls={STATIC_MENU_LINKS.map((l) => normalizeUrl(l.url))}
+				staticUrls={getStaticMenuLinks().map((l) => normalizeUrl(l.url))}
 				onMove$={$(async (params) => {
 					const result = await moveMenuItemAction.submit(params);
 					if (!result.value || "failed" in result.value)

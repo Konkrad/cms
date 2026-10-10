@@ -14,6 +14,7 @@ import {
 } from "~/components/admin/Pagination/Pagination";
 import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
 import { Button } from "~/components/ui/Button";
+import { requireActiveModule } from "~/modules";
 import { type JobWithUser, jobsService } from "~/services/jobs.service";
 
 export const useGlobalOnly = routeLoader$(async ({ params, redirect }) => {
@@ -27,6 +28,7 @@ export const useJobs = routeLoader$(async (event) => {
 	}
 	const { requireAdmin } = await import("~/utils/server-auth");
 	await requireAdmin(event);
+	requireActiveModule(event, "jobs");
 
 	const search = event.url.searchParams.get("search")?.trim() ?? "";
 	const page = Math.max(
@@ -54,6 +56,7 @@ export const useApproveJob = routeAction$(
 	async (data, event) => {
 		const { requireAdmin } = await import("~/utils/server-auth");
 		await requireAdmin(event);
+		requireActiveModule(event, "jobs");
 		await jobsService.update(data.jobId, { status: "approved" } as any);
 		return { success: true };
 	},
@@ -64,6 +67,7 @@ export const useDeleteJob = routeAction$(
 	async (data, event) => {
 		const { requireAdmin } = await import("~/utils/server-auth");
 		await requireAdmin(event);
+		requireActiveModule(event, "jobs");
 		await jobsService.delete(data.jobId);
 		return { success: true };
 	},

@@ -1,5 +1,5 @@
-import type { Job } from "~/db/schemas/jobs";
-import type { User } from "~/db/schemas/users";
+import type { User } from "~/core-api";
+import type { Job } from "./schema";
 
 /** Author fields the job views show; never the full users row. */
 export type PublicJobAuthor = Pick<User, "id" | "name" | "familyName">;

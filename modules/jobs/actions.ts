@@ -1,14 +1,16 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { matchPath } from "~/core/pages";
-import { requireActiveModule } from "~/modules";
-import { jobsService } from "~/services/jobs.service";
-import { currentScopeRest } from "~/utils/scope-request";
+import {
+	currentScopeRest,
+	matchPath,
+	requireActiveModule,
+	requireAuth,
+} from "~/core-api";
+import { jobsService } from "./service";
 
 const MAX_DAYS = 30;
 
 export const useSubmitJob = routeAction$(
 	async (data, event) => {
-		const { requireAuth } = await import("~/utils/server-auth");
 		const user = await requireAuth(event);
 		requireActiveModule(event, "jobs");
 
@@ -59,7 +61,6 @@ export const useSubmitJob = routeAction$(
 
 export const useDeleteMyJob = routeAction$(
 	async (data, event) => {
-		const { requireAuth } = await import("~/utils/server-auth");
 		const user = await requireAuth(event);
 		requireActiveModule(event, "jobs");
 
@@ -76,7 +77,6 @@ export const useDeleteMyJob = routeAction$(
 
 export const useUpdateMyJob = routeAction$(
 	async (data, event) => {
-		const { requireAuth } = await import("~/utils/server-auth");
 		const user = await requireAuth(event);
 		requireActiveModule(event, "jobs");
 

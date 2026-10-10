@@ -1,7 +1,6 @@
-import { definePage } from "~/core/pages";
-import { jobsService } from "~/services/jobs.service";
-import { requireAuth } from "~/utils/server-auth";
+import { definePage, requireAuth } from "~/core-api";
 import { toPublicJob } from "./public-job";
+import { jobsService } from "./service";
 
 export const JOBS_PAGE_SIZE = 10;
 

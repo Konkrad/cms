@@ -9,8 +9,12 @@
  */
 
 import {
+	addGroupRepresentative,
+	createGroupInDb,
 	createJobInDb,
 	createUserSession,
+	deleteGroupInDb,
+	deleteGroupRepresentative,
 	deleteJobById,
 	expect,
 	getJobById,
@@ -382,6 +386,47 @@ test.describe("Jobs — admin", () => {
 				deleteJobById(jobId);
 			} catch {}
 			member.cleanup();
+		}
+	});
+
+	test("group-scoped admin route does not render the job editor", async ({
+		browser,
+	}) => {
+		const admin = createUserSession("admin");
+		const member = createUserSession("user");
+		const slug = `jobs-scope-${Date.now()}`;
+		const groupId = createGroupInDb({ name: "Jobs Scope Group", slug });
+		addGroupRepresentative(admin.userId, groupId);
+		const { jobId, cleanup } = createJobInDb({
+			suggestedBy: member.userId,
+			title: "Scoped Edit Target",
+			status: "pending",
+		});
+		const ctx = await browser.newContext();
+		await ctx.addCookies([
+			{
+				name: "session",
+				value: admin.sessionToken,
+				domain: "localhost",
+				path: "/",
+				httpOnly: true,
+				secure: false,
+				sameSite: "Strict",
+			},
+		]);
+		const page = await ctx.newPage();
+		try {
+			await page.goto(`/admin/${slug}/jobs/${jobId}/edit`);
+			await expect(page.locator("input[name='title']")).toHaveCount(0);
+			await expect(page.getByText("Edit Job", { exact: true })).toHaveCount(0);
+			await expect(page).toHaveURL(/\/admin\/global\/jobs$/);
+		} finally {
+			await ctx.close();
+			cleanup();
+			deleteGroupRepresentative(admin.userId, groupId);
+			deleteGroupInDb(groupId);
+			member.cleanup();
+			admin.cleanup();
 		}
 	});
 

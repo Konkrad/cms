@@ -27,13 +27,19 @@ The presentational layer for public-facing routes lives in `theme/` and is licen
 
 - **Qwik City forces route files to stay in `src/routes/**`.** A route file keeps its `routeLoader$`/`routeAction$`/`onRequest`/`head`/auth, strips secrets in the loader, then delegates rendering to a theme `*View` component, passing loader data as typed props.
 - **The props type is the contract.** Derive it from the loader (`NonNullable<ReturnType<typeof useX>["value"]>`) and re-export it from `src/contracts/*.ts`. Theme components import only from `~/contracts/*` and, where a block/view needs live data after SSR (pagination, "Load More"), a core-owned **headless composable** — never `db`, `env`, services, or `~/utils/server-auth` directly.
-- **Page-builder blocks have no route loader**, so each "dynamic" block delegates its data-fetching/pagination to a composable under `src/components/builder/blocks/*.ts` (e.g. `useUpcomingEvents`, `useDealsList`) — plain functions using `useSignal`/`useTask$`/`server$()`, Qwik's native "custom hook" pattern. The composable owns the service/db/auth calls and any `server$()` RPC boundary; the theme block (`theme/blocks/**`) only calls the composable and renders the returned signals. Same split for the `/jobs` list's pagination (`src/routes/jobs/useJobsPagination.ts`). `BlockDefinition`/`FieldDefinition`/`BlockData` (needed by every block for registration) are re-exported type-only from `src/contracts/blocks.ts` rather than `~/db/schema`, so blocks never import `~/db/*` either.
+- **Page-builder blocks have no route loader**, so each "dynamic" block delegates its data-fetching/pagination to a composable under `src/components/builder/blocks/*.ts` (e.g. `useUpcomingEvents`, `useDealsList`) — plain functions using `useSignal`/`useTask$`/`server$()`, Qwik's native "custom hook" pattern. The composable owns the service/db/auth calls and any `server$()` RPC boundary; the theme block (`theme/blocks/**`) only calls the composable and renders the returned signals. Same split for the `/jobs` list's pagination (`modules/jobs/useJobsPagination.ts`). `BlockDefinition`/`FieldDefinition`/`BlockData` (needed by every block for registration) are re-exported type-only from `src/contracts/blocks.ts` rather than `~/db/schema`, so blocks never import `~/db/*` either.
 - **The boundary is enforced, not just documented**: `biome.json` has a `noRestrictedImports` override scoped to `theme/**` that fails the build on any `~/services/*`, `~/db/*`, `~/utils/server-auth`, or `~/env` import from theme. Run `npx biome lint theme` to check. When adding a new dynamic block or new live data need, add a composable in core first — do not import a service directly from `theme/**` to work around the rule.
 - **Import theme code via the `~theme/*` alias** (`~theme/chrome`, `~theme/blocks`, `~theme/routes/**`, `~theme/shared/**`). Never import theme code from a route file via a relative path.
 - **Qwik production-build footgun:** a re-exported `routeAction$`/`routeLoader$` is only resolved correctly by the production Rollup transform when re-exported via a **relative** import path — never `~` or `~theme`. When a step/widget bundles an action with JSX (see `src/components/setup/README.md`), split it: the action stays in core (`src/components/**/useXxx.ts`, re-exported relatively from the route), the JSX moves to `theme/shared/**` (imported via `~theme` alias — only the action re-export hits the broken transform).
 - **Check usage per exported component, not per file.** A single file can export multiple components where only some are theme-exclusive — grepping the file/folder name as "shared" is not enough; check what each consuming route actually imports before moving or splitting (e.g. `ParticipationToggle` vs `ParticipationSummary`, originally one file, split because only the public route used the toggle and only the admin route used the summary).
 - Admin stays un-themeable via the `.admin-shell` scope in `src/global.css`, which re-pins brand token values; `src/routes/admin/layout.tsx` wraps admin in it. Never let an admin-only component read brand tokens (`--color-primary*`, `--color-accent*`) expecting theme values to apply.
 - Design tokens (colors, fonts, radii, shadows) are defined once in `theme/tokens/theme.css` (Tailwind `@theme {}` block) and `theme/tokens/tokens.ts` (TS constants for emails/inline styles), with a core fallback set in `src/design/tokens.css`. Never hardcode hex colors or font stacks in components or emails — reference a token. See [src/design/DESIGN.md](src/design/DESIGN.md) for the full palette and `theme/emails/brand.ts` for email-specific brand strings.
+
+## Modules
+
+- Feature modules live in `modules/<id>/` (`module.ts` manifest via `defineModule`, `pages.ts`, `views.tsx`, `actions.ts`, `schema.ts`, `service.ts`, `admin/`) and are activated in `modules.config.ts` (registry: `src/modules/index.ts`).
+- Import boundary (enforced by the `modules/**` override in `biome.json`, check with `npx biome lint modules`): modules import only `~/core-api` (server+client core surface, add exports there when needed), `~/ui`, `~/contracts/*`, `~theme/*`, relative files in their own folder, and npm packages. Never `~/services|db|utils|components|env` or another module.
+- Public pages are `definePage` entries served by the catch-all `src/routes/[...path]`; module `routeAction$`s and admin actions are re-exported from the route files via RELATIVE paths. Keep server-only loader logic in `*-data.ts` files imported only inside `routeLoader$`, so it never reaches the client bundle.
 
 ## Database And Auth
 
@@ -209,6 +215,7 @@ The job portal lets authenticated members post job listings that go live only af
 
 ### Key rules
 
+- Admin routes under `src/routes/admin/[group_slug]/jobs/**` are global-only: loaders/actions call `requireJobsAdmin` (`modules/jobs/admin/auth.ts`: `requireGroupAdmin`, reject non-`global` slug, then `requireActiveModule`) as their first statement.
 - All public-facing job routes call `requireAuth` — unauthenticated visitors are redirected to `/login`.
 - `status` is `pending` on creation; admin sets it to `approved` to make it visible.
 - `expiresAt` is capped at 30 days from today, enforced server-side in both the submit and user-edit actions.
@@ -217,9 +224,9 @@ The job portal lets authenticated members post job listings that go live only af
 
 ### Schema & service
 
-- Schema: `src/db/schemas/jobs.ts` — fields: `id`, `title`, `body`, `editorState`, `locationType`, `city`, `country`, `link`, `expiresAt`, `status`, `suggestedBy`, `createdAt`, `updatedAt`
-- Service: `src/services/jobs.service.ts` — exports `jobsService` and the `JobWithUser` type
-- Relations: `jobs.suggestedBy → users.id` (defined in `src/db/schema.ts`)
+- Module: `modules/jobs/` (see Modules) — schema `schema.ts`, service `service.ts`, public pages `pages.ts`/`views.tsx`/`actions.ts`, admin UI+actions `admin/`. Schema fields: `id`, `title`, `body`, `editorState`, `locationType`, `city`, `country`, `link`, `expiresAt`, `status`, `suggestedBy`, `createdAt`, `updatedAt`
+- Service: `modules/jobs/service.ts` — exports `jobsService` and the `JobWithUser` type
+- Relations: `jobs.suggestedBy → users.id` (defined in `src/db/schema.ts`, which imports the table from `modules/jobs/schema.ts`)
 
 ### Seed
 

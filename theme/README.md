@@ -45,7 +45,7 @@ from `src/contracts/**`. Theme components import `~/contracts/*` and **must not*
 import `db`, `env`, services, or `~/utils/server-auth`. Where a component needs
 live data after SSR (page-builder block data, `/jobs` pagination), it calls a
 core-owned headless composable instead (`src/components/builder/blocks/*.ts`,
-`src/routes/jobs/useJobsPagination.ts`) — the composable owns the service/db/auth
+`modules/jobs/useJobsPagination.ts`) — the composable owns the service/db/auth
 calls, the theme component only renders the signals it returns. This is enforced,
 not just documented: `biome.json` has a `noRestrictedImports` override on
 `theme/**` that fails the build on a direct `~/services/*`/`~/db/*`/

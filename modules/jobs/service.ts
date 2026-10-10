@@ -1,15 +1,15 @@
 import { and, asc, desc, eq, gt, gte, lt, or } from "drizzle-orm";
-import { db } from "~/db/connection";
-import type { InsertJob, Job, UpdateJob } from "~/db/schemas/jobs";
-import { insertJobSchema, jobs, updateJobSchema } from "~/db/schemas/jobs";
-import type { User } from "~/db/schemas/users";
-import { users as usersTable } from "~/db/schemas/users";
 import {
+	db,
 	decodeCursor,
 	type PageDirection,
 	paginateRows,
-} from "~/services/pagination";
-import { sanitizeRichHtml } from "~/utils/sanitize-html";
+	sanitizeRichHtml,
+	type User,
+	users as usersTable,
+} from "~/core-api";
+import type { InsertJob, Job, UpdateJob } from "./schema";
+import { insertJobSchema, jobs, updateJobSchema } from "./schema";
 
 export type JobWithUser = Job & { user: User };
 

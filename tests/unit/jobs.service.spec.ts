@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { jobsService } from "~/services/jobs.service";
+import { jobsService } from "~modules/jobs/service";
 import { createTestUser, openDb } from "./helpers";
 
 const cleanupJobIds: string[] = [];

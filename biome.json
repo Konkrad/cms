@@ -69,6 +69,50 @@
 			}
 		},
 		{
+			"includes": ["modules/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": ["~/services/**"],
+										"message": "modules must not import core services — use ~/core-api or the module's own service."
+									},
+									{
+										"group": ["~/db/**"],
+										"message": "modules must not import core db/schema — use ~/core-api."
+									},
+									{
+										"group": ["~/utils/**"],
+										"message": "modules must not import core utils — re-export what is needed from ~/core-api."
+									},
+									{
+										"group": ["~/env"],
+										"message": "modules must not import ~/env directly."
+									},
+									{
+										"group": ["~/components/**"],
+										"message": "modules must not import core components — use ~/ui."
+									},
+									{
+										"group": ["~/core/**", "~/modules", "~/modules/**"],
+										"message": "modules may only import ~/core-api, ~/ui, ~/contracts/* and ~theme/*."
+									},
+									{
+										"group": ["~modules/**"],
+										"message": "modules never import another module; import files of your own folder via relative paths."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
 			"includes": ["theme/routes/profile/QrTicketWall/QrTicketWall.tsx"],
 			"linter": {
 				"rules": {

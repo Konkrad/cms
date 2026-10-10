@@ -2,15 +2,15 @@ import { $, useSignal } from "@qwik.dev/core";
 import type { RequestEventCommon } from "@qwik.dev/router";
 import { server$ } from "@qwik.dev/router";
 import type { JobsListData } from "~/contracts/jobs";
-import { jobsService } from "~/services/jobs.service";
+import { requireAuth } from "~/core-api";
 import { JOBS_PAGE_SIZE } from "./pages";
 import { toPublicJob } from "./public-job";
+import { jobsService } from "./service";
 
 const fetchJobsPage = server$(async function (
 	cursor: string | null,
 	direction: "forward" | "backward",
 ) {
-	const { requireAuth } = await import("~/utils/server-auth");
 	await requireAuth(this as RequestEventCommon);
 	const page = await jobsService.getApprovedPaged(
 		JOBS_PAGE_SIZE,

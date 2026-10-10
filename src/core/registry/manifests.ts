@@ -10,7 +10,7 @@ import {
 	profileExtrasOf,
 	reevaluateUserTagsOf,
 	selectActive,
-} from "~/core/modules";
+} from "~/core/router/modules";
 import { dealsModule } from "../../../modules/deals/module";
 import { electionsModule } from "../../../modules/elections/module";
 import { eventsModule } from "../../../modules/events/module";

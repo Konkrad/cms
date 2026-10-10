@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchPage, matchPath } from "~/core/pages";
+import { matchPage, matchPath } from "~/core/router/pages";
 import { toPublicJob } from "~modules/jobs/public-job";
 
 describe("matchPath", () => {

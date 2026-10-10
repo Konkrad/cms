@@ -1,12 +1,12 @@
 import crypto from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
-import { scopesService } from "~/services/scopes.service";
 import {
 	currentScopePath,
 	getScopePaths,
 	isScopeablePath,
 	SCOPE_PATH_KEY,
-} from "~/utils/scope-request";
+} from "~/core/router/scope-request";
+import { scopesService } from "~/services/scopes.service";
 import { openDb } from "./helpers";
 
 const createdIds: string[] = [];

@@ -1,5 +1,7 @@
 import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
 import { db } from "~/core/db/connection";
+import { childPath, SCOPE_SLUG_RE } from "~/core/router/scope-path";
+import { invalidateScopePaths } from "~/core/router/scope-request";
 import {
 	type Scope,
 	type ScopeRole,
@@ -7,8 +9,6 @@ import {
 	scopeRoles,
 	scopes,
 } from "~/db/schemas/scopes";
-import { childPath, SCOPE_SLUG_RE } from "~/utils/scope-path";
-import { invalidateScopePaths } from "~/utils/scope-request";
 
 export type Role = ScopeRole;
 export type Visibility = "public" | "members" | "representatives";

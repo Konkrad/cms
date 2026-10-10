@@ -1,7 +1,7 @@
 import Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
-import { defineModule } from "~/core/modules";
 import { dispatchPayment, handleStripeWebhook } from "~/core/payments";
+import { defineModule } from "~/core/router/modules";
 
 const stripeEvent = (
 	type: string,

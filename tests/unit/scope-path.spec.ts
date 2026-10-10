@@ -5,7 +5,7 @@ import {
 	SCOPE_SLUG_RE,
 	scopeUrl,
 	splitScopePath,
-} from "~/utils/scope-path";
+} from "~/core/router/scope-path";
 
 const paths = new Set(["/", "/germany/", "/germany/berlin/"]);
 

@@ -1,5 +1,5 @@
 import type Stripe from "stripe";
-import type { ModuleDefinition } from "~/core/modules";
+import type { ModuleDefinition } from "~/core/router/modules";
 
 /**
  * Core payment dispatch. Payments are core: the Stripe webhook verifies the signature, then

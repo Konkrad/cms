@@ -11,8 +11,8 @@ import {
 	selectActive,
 	sitemapEntriesOf,
 	withoutDisabledBlocks,
-} from "~/core/modules";
-import { definePage } from "~/core/pages";
+} from "~/core/router/modules";
+import { definePage } from "~/core/router/pages";
 
 const page = (id: string, path: string) =>
 	definePage({ id, path, load: async () => null });

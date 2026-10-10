@@ -2,9 +2,12 @@ import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import type { PageViewData } from "~/contracts/page";
 import { loadCmsPage } from "~/core/cms-page";
-import { matchPage } from "~/core/pages";
+import { matchPage } from "~/core/router/pages";
+import {
+	currentScopePath,
+	currentScopeRest,
+} from "~/core/router/scope-request";
 import type { BlockData } from "~/db/schemas/shared";
-import { currentScopePath, currentScopeRest } from "~/utils/scope-request";
 import { canonicalUrl, htmlToDescription } from "~/utils/seo";
 import { PageView } from "~theme/routes/page/PageView";
 import { modulePages } from "../../core/registry/manifests";

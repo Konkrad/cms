@@ -1,7 +1,7 @@
 import type { GroupExtras } from "~/contracts/groups";
 import type { ProfileExtras } from "~/contracts/profile";
-import type { PageDefinition } from "~/core/pages";
 import type { PaymentHandlers } from "~/core/payments";
+import type { PageDefinition } from "~/core/router/pages";
 
 export interface AdminSection {
 	/** Path relative to the admin base path, e.g. "jobs" -> /admin/global/jobs. */

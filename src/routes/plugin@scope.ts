@@ -1,11 +1,11 @@
 import type { RequestHandler } from "@qwik.dev/router";
-import { splitScopePath } from "~/utils/scope-path";
+import { splitScopePath } from "~/core/router/scope-path";
 import {
 	getScopePaths,
 	isScopeablePath,
 	SCOPE_PATH_KEY,
 	SCOPE_REST_KEY,
-} from "~/utils/scope-request";
+} from "~/core/router/scope-request";
 
 /**
  * Splits a hierarchical URL into its scope prefix and the remainder:

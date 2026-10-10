@@ -7,16 +7,12 @@ import type { BlockData } from "~/db/schemas/shared";
 import { currentScopePath, currentScopeRest } from "~/utils/scope-request";
 import { canonicalUrl, htmlToDescription } from "~/utils/seo";
 import { PageView } from "~theme/routes/page/PageView";
-import { moduleViews } from "../../../modules/views";
-import { modulePages } from "../../modules";
+import { modulePages } from "../../core/registry/manifests";
+import { moduleViews } from "../../core/registry/views";
 
 // Module actions must be exported by the route that renders them. Re-export via a
 // RELATIVE path: the production Rollup transform mis-resolves aliased re-exports.
-export {
-	useDeleteMyJob,
-	useSubmitJob,
-	useUpdateMyJob,
-} from "../../../modules/jobs/actions";
+export * from "../../core/registry/actions";
 
 const CMS_PAGE = "cms";
 

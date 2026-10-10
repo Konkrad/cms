@@ -1,5 +1,5 @@
 import type { MenuLink } from "~/core/modules";
-import { activeMenuLinks } from "~/modules";
+import { activeMenuLinks } from "~/core/registry/manifests";
 
 export type StaticMenuLink = MenuLink;
 

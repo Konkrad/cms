@@ -6,8 +6,8 @@ import {
 	pagesOf,
 	selectActive,
 } from "~/core/modules";
-import { jobsModule } from "../../modules/jobs/module";
-import config from "../../modules.config";
+import { jobsModule } from "../../../modules/jobs/module";
+import config from "../../../modules.config";
 
 /** Every module that exists in the codebase; `modules.config.ts` picks the active ones. */
 export const allModules: ModuleDefinition[] = [jobsModule];

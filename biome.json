@@ -98,7 +98,7 @@
 										"message": "modules must not import core components — use ~/ui."
 									},
 									{
-										"group": ["~/core/**", "~/modules", "~/modules/**"],
+										"group": ["~/core/**"],
 										"message": "modules may only import ~/core-api, ~/ui, ~/contracts/* and ~theme/*."
 									},
 									{

@@ -8,10 +8,9 @@
 export { defineModule } from "~/core/modules";
 export type { PageViews } from "~/core/page-views";
 export { definePage, matchPath } from "~/core/pages";
-
+export { requireActiveModule } from "~/core/registry/manifests";
 // Server-only: do not call from client code (reference only inside loaders/actions/server$).
 export { db } from "~/db/connection";
-export { requireActiveModule } from "~/modules";
 export type { PageDirection } from "~/services/pagination";
 export { decodeCursor, paginateRows } from "~/services/pagination";
 export { requireGroupAdmin } from "~/utils/access-control";

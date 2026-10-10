@@ -37,8 +37,10 @@ The presentational layer for public-facing routes lives in `theme/` and is licen
 
 ## Modules
 
-- Feature modules live in `modules/<id>/` (`module.ts` manifest via `defineModule`, `pages.ts`, `views.tsx`, `actions.ts`, `schema.ts`, `service.ts`, `admin/`) and are activated in `modules.config.ts` (registry: `src/modules/index.ts`).
-- Import boundary (enforced by the `modules/**` override in `biome.json`, check with `npx biome lint modules`): modules import only `~/core-api` (server+client core surface, add exports there when needed), `~/ui`, `~/contracts/*`, `~theme/*`, relative files in their own folder, and npm packages. Never `~/services|db|utils|components|env` or another module.
+- Feature modules live in `modules/<id>/` (`module.ts` manifest via `defineModule`, `pages.ts`, `views.tsx`, `actions.ts`, `schema.ts`, `service.ts`, `admin/`); `modules/` holds only module folders.
+- Registering a module = its folder + one line each in `src/core/registry/manifests.ts` (manifest), `views.ts` (client-safe view map), `actions.ts` (public `routeAction$` re-exports, RELATIVE paths; the catch-all does `export * from "../../core/registry/actions"`) and `schemas.ts` (`moduleSchemas`) + the id in `modules.config.ts`. Core internals live in `src/core/`; `src/core-api/` and `src/ui/` are the module entry points.
+- Module `schema.ts` exports its tables plus a default `defineModuleSchema({ tables, relations })` (relation part, incl. reverse relations on core tables like `users.jobs`); `src/db/schema.ts` merges the parts via `schemas.ts`. `schemas.ts` must stay free of db connection/`~/env` imports (drizzle-kit loads it).
+- Import boundary (enforced by the `modules/**` override in `biome.json`, check with `npx biome lint modules`; `~/core/**`, which includes the registry, is blocked): modules import only `~/core-api` (server+client core surface, add exports there when needed), `~/ui`, `~/contracts/*`, `~theme/*`, relative files in their own folder, and npm packages. Never `~/services|db|utils|components|env` or another module.
 - Public pages are `definePage` entries served by the catch-all `src/routes/[...path]`; module `routeAction$`s and admin actions are re-exported from the route files via RELATIVE paths. Keep server-only loader logic in `*-data.ts` files imported only inside `routeLoader$`, so it never reaches the client bundle.
 
 ## Database And Auth

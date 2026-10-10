@@ -3,7 +3,7 @@ import { type InferSelectModel, sql } from "drizzle-orm";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { users } from "~/core-api/db-schema";
+import { defineModuleSchema, users } from "~/core-api/db-schema";
 
 export const jobs = sqliteTable("jobs", {
 	id: text("id").primaryKey(),
@@ -54,6 +54,22 @@ export const updateJobSchema = baseInsertSchema
 			.transform((d) => d.toISOString())
 			.optional(),
 	});
+
+export default defineModuleSchema({
+	tables: { jobs },
+	relations: (r) => ({
+		jobs: {
+			user: r.one.users({
+				from: r.jobs.suggestedBy,
+				to: r.users.id,
+				optional: false,
+			}),
+		},
+		users: {
+			jobs: r.many.jobs({ from: r.users.id, to: r.jobs.suggestedBy }),
+		},
+	}),
+});
 
 export type Job = InferSelectModel<typeof jobs>;
 export type InsertJob = z.infer<typeof insertJobSchema>;

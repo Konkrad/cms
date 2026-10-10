@@ -3,7 +3,7 @@ import { routeLoader$ } from "@qwik.dev/router";
 import { AdminNav } from "~/components/admin/AdminNav";
 import { Breadcrumbs } from "~/components/admin/Breadcrumbs";
 import { Button } from "~/components/ui/Button/Button";
-import { activeAdminSections } from "~/modules";
+import { activeAdminSections } from "~/core/registry/manifests";
 import { groupsService } from "~/services/groups.service";
 import { canManageGroupContent } from "~/utils/access-control";
 import { getCurrentUserData } from "~/utils/server-auth";

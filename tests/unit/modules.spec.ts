@@ -67,12 +67,12 @@ describe("contributions come only from active modules", () => {
 
 describe("registry with the checked-in config", () => {
 	it("includes jobs pages in modulePages", async () => {
-		const { modulePages } = await import("~/modules");
+		const { modulePages } = await import("~/core/registry/manifests");
 		expect(modulePages.some((p) => p.id === "jobs.list")).toBe(true);
 	});
 
 	it("requireActiveModule passes for active and 404s for others", async () => {
-		const { requireActiveModule } = await import("~/modules");
+		const { requireActiveModule } = await import("~/core/registry/manifests");
 		const event = {
 			error: (status: number) => ({ status }),
 		} as unknown as Parameters<typeof requireActiveModule>[0];
@@ -85,7 +85,7 @@ describe("with jobs inactive", () => {
 	it("modulePages is empty and requireActiveModule 404s", async () => {
 		vi.resetModules();
 		vi.doMock("../../modules.config", () => ({ default: { active: [] } }));
-		const mod = await import("~/modules");
+		const mod = await import("~/core/registry/manifests");
 		expect(mod.modulePages).toEqual([]);
 		expect(mod.activeAdminSections).toEqual([]);
 		expect(mod.activeMenuLinks).toEqual([]);

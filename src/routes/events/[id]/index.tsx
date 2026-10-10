@@ -410,8 +410,8 @@ export const useUpdateParticipation = routeAction$(
 				try {
 					const userEmail = userData.email;
 					if (userEmail) {
-						const { emailNotificationsService } = await import(
-							"~/services/email-notifications.service"
+						const { sendTicketConfirmation } = await import(
+							"~modules/events/emails"
 						);
 
 						const [ev, product] = await Promise.all([
@@ -420,7 +420,7 @@ export const useUpdateParticipation = routeAction$(
 						]);
 
 						if (ev && product) {
-							await emailNotificationsService.sendTicketConfirmation({
+							await sendTicketConfirmation({
 								to: userEmail,
 								buyerName: userData.name || userEmail,
 								event: {

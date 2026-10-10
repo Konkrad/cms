@@ -1,5 +1,6 @@
 import type { ProfileExtras } from "~/contracts/profile";
 import type { PageDefinition } from "~/core/pages";
+import type { PaymentHandlers } from "~/core/payments";
 
 export interface AdminSection {
 	/** Path relative to the admin base path, e.g. "jobs" -> /admin/global/jobs. */
@@ -52,6 +53,12 @@ export interface ModuleDefinition {
 	 * (e.g. nothing private unless `ctx.isOwnProfile`); the result is serialized to the browser.
 	 */
 	profile?: (ctx: ProfileContext) => Promise<Partial<ProfileExtras>>;
+	/**
+	 * Stripe payment callbacks by payment kind. Server-only. The core webhook calls
+	 * `payments[metadata.kind]` of the module named by `metadata.moduleId` on the PaymentIntent,
+	 * even while the module is inactive (see `src/core/payments.ts`).
+	 */
+	payments?: Record<string, PaymentHandlers>;
 }
 
 export function defineModule(module: ModuleDefinition): ModuleDefinition {

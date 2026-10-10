@@ -324,6 +324,8 @@ test.describe("Tickets", () => {
 		const totalAmountCents = Math.round(chosenProduct.price * 100);
 		(pi as any).amount = totalAmountCents;
 		(pi as any).metadata = {
+			moduleId: "events",
+			kind: "tickets",
 			eventId: ev.id,
 			userId: sharedUserId,
 			items: JSON.stringify([{ productId: chosenProduct.id, quantity: 1 }]),

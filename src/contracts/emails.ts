@@ -1,9 +1,9 @@
 /**
  * Core → theme data contracts for email templates.
  *
- * `email-notifications.service.ts` constructs these shapes and renders them
- * against `~theme/emails/*`. Theme imports the types from here instead of
- * owning them, same boundary as route `*View` contracts.
+ * `email-notifications.service.ts` (login) and `modules/events/emails.ts` (tickets)
+ * construct these shapes and render them against `~theme/emails/*`. Theme imports
+ * the types from here instead of owning them, same boundary as route `*View` contracts.
  */
 
 export interface LoginEmailProps {

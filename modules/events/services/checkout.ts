@@ -159,6 +159,8 @@ export const checkoutService = {
 			successUrl: params.successUrl,
 			cancelUrl: params.cancelUrl,
 			metadata: {
+				moduleId: "events",
+				kind: "tickets",
 				eventId: params.eventId,
 				userId: params.userId,
 				items: JSON.stringify(params.items),

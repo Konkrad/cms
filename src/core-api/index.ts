@@ -8,6 +8,7 @@
 export { defineModule } from "~/core/modules";
 export type { PageViews } from "~/core/page-views";
 export { definePage, matchPath } from "~/core/pages";
+export type { PaymentContext, PaymentHandlers } from "~/core/payments";
 export { requireActiveModule } from "~/core/registry/manifests";
 // Server-only: do not call from client code (reference only inside loaders/actions/server$).
 export { db } from "~/db/connection";
@@ -22,12 +23,14 @@ export {
 	getNextCursorFromRows,
 	paginateRows,
 } from "~/services/pagination";
+export { telegramService } from "~/services/telegram.service";
 export { userTagsService } from "~/services/user-tags.service";
 export { requireGroupAdmin } from "~/utils/access-control";
 export { publicImageUrlFromKey } from "~/utils/images";
 export { sanitizeRichHtml } from "~/utils/sanitize-html";
 export { currentScopeRest } from "~/utils/scope-request";
 export { generateSecurePhotoUrl } from "~/utils/secure-urls";
+export { sendEmail } from "~/utils/send-email";
 export { getServerSession, requireAuth } from "~/utils/server-auth";
 // Schema references modules need to relate to core tables (also in ./db-schema).
 export * from "./db-schema";

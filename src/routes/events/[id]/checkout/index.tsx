@@ -350,6 +350,9 @@ export const useCreateCheckoutSession = routeAction$(
 		const participantChunks = splitIntoChunks(participantPayload);
 
 		const metadata: Record<string, string> = {
+			// Routes the Stripe webhook to the events module's `payments.tickets` handlers.
+			moduleId: "events",
+			kind: "tickets",
 			eventId,
 			userId: user.id,
 			items: JSON.stringify(

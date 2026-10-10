@@ -1,12 +1,9 @@
 import { component$, Slot } from "@qwik.dev/core";
 import type { RequestHandler } from "@qwik.dev/router";
 import { routeAction$, routeLoader$ } from "@qwik.dev/router";
-import { eq } from "drizzle-orm";
 import type { NavUser } from "~/contracts/layout";
-import { getCurrentUserData } from "~/core/auth/server-auth";
+import { deleteSession, getCurrentUserData } from "~/core/auth/server-auth";
 import { menuItemsService } from "~/core/content/menu-items.service";
-import { db } from "~/core/db/connection";
-import { sessions } from "~/core/db/schema";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
 import { currentScopePath } from "~/core/router/scope-request";
 import { formatUser } from "~/core/users/format";
@@ -49,22 +46,22 @@ export const useServerTimeLoader = routeLoader$(() => {
 	};
 });
 
-export const useUserSession = routeLoader$(async (event) => {
-	console.log("[Layout] useUserSession - starting");
-	const userData = await getCurrentUserData(event);
-	console.log("[Layout] useUserSession - completed, has user:", !!userData);
-
-	if (!userData) return userData;
-
-	let profilePictureSmallUrl: string | null = null;
-	const u = userData as any;
-	if (u.profilePicture) {
-		const thumbKey =
-			u.profilePictureSmall ?? deriveThumbnailKey(u.profilePicture);
-		profilePictureSmallUrl = publicImageUrlFromKey(thumbKey);
-	}
-
-	return { ...userData, profilePictureSmallUrl };
+/**
+ * The logged-in user as the nav needs it (see ~/contracts/layout#NavUser). Built here
+ * so the full user row (email, role, consent, location...) never reaches the page.
+ */
+export const useUserSession = routeLoader$(async (event): Promise<NavUser> => {
+	const u = await getCurrentUserData(event);
+	if (!u) return null;
+	const thumbKey = u.profilePicture
+		? (u.profilePictureSmall ?? deriveThumbnailKey(u.profilePicture))
+		: null;
+	return {
+		id: u.id,
+		displayName: u.name ? formatUser(u, true).displayName : "User",
+		isAdmin: u.role === "admin",
+		profilePictureSmallUrl: publicImageUrlFromKey(thumbKey),
+	};
 });
 
 export const useScopePath = routeLoader$((event) => currentScopePath(event));
@@ -99,7 +96,7 @@ export const useLogoutAction = routeAction$(async (_, { cookie, redirect }) => {
 
 	if (token) {
 		try {
-			await db.delete(sessions).where(eq(sessions.token, token));
+			await deleteSession(token);
 		} catch (err) {
 			// Log but continue to clear cookie regardless
 			console.error("[useLogoutAction] failed to delete session row", err);
@@ -129,28 +126,10 @@ export default component$(() => {
 	const logoutAction = useLogoutAction();
 	const scopePath = useScopePath();
 
-	// Secret-stripped snapshot handed to the theme — see ~/contracts/layout#NavUser.
-	// The theme never sees the raw user row (email, tokens, etc.).
-	const navUser: NavUser = (() => {
-		const u = user.value as any;
-		if (!u || typeof u !== "object") return null;
-		const isAdmin = u.role === "admin";
-		const displayName = u.name
-			? formatUser(u, true).displayName
-			: (u.email ?? u.id ?? "User");
-		return {
-			id: u.id,
-			role: u.role ?? null,
-			displayName,
-			isAdmin,
-			profilePictureSmallUrl: u.profilePictureSmallUrl ?? null,
-		};
-	})();
-
 	return (
 		<>
 			<Navigation
-				user={navUser}
+				user={user.value}
 				menuItems={menu.value}
 				logoutAction={logoutAction}
 			/>

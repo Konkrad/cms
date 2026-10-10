@@ -8,7 +8,7 @@
  */
 
 import type { PostWithUser } from "~/core/content/posts.service";
-import type { UserWithDisplayName } from "~/core/users/format";
+import type { PublicUser } from "~/core/users/public-user";
 import type { usePost } from "~/routes/posts/[id]";
 
 /** Non-null data passed to the themed single-post view. */
@@ -17,7 +17,7 @@ export type PostViewData = NonNullable<ReturnType<typeof usePost>["value"]>;
 /** Post shape returned by the posts-block composables — `featuredImage` resolved to a public URL, `user` formatted for display. */
 export type BlockPost = Omit<PostWithUser, "featuredImage" | "user"> & {
 	featuredImage: string | null;
-	user: UserWithDisplayName;
+	user: PublicUser & { displayName: string };
 };
 
 /** Post list page as returned by `~/core/content/builder/blocks/usePostsList`. */

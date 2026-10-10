@@ -8,219 +8,50 @@ import {
 	zod$,
 } from "@qwik.dev/router";
 import { format } from "date-fns";
-import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { PAGE_SIZE, Pagination } from "~/core/admin/Pagination/Pagination";
 import { SearchBar } from "~/core/admin/SearchBar/SearchBar";
-import { logins } from "~/core/auth/schema/logins";
-import { sessions } from "~/core/auth/schema/sessions";
-import { db } from "~/core/db/connection";
 import { membershipsService } from "~/core/memberships/memberships.service";
-import { userMemberships } from "~/core/memberships/schema";
 import { reevaluateUserTagsForUser } from "~/core/registry/manifests";
 import { groupsService } from "~/core/scopes/groups.service";
-import { groupMemberships } from "~/core/scopes/schema/group-memberships";
 import { userTagsService } from "~/core/tags/user-tags.service";
-import { users } from "~/core/users/schema";
+import { adminUsersService } from "~/core/users/admin-users.service";
 
 export const useUsers = routeLoader$(async ({ params, url }) => {
 	const groupSlug = params.group_slug;
 	const search = url.searchParams.get("search")?.trim() ?? "";
 	const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1") || 1);
 	const offset = (page - 1) * PAGE_SIZE;
+	const isGlobal = groupSlug === "global";
 
-	const searchWhere = search
-		? or(
-				like(users.name, `%${search}%`),
-				like(users.familyName, `%${search}%`),
-				like(logins.email, `%${search}%`),
-			)
-		: undefined;
-
-	if (groupSlug === "global") {
-		const [countRows, paginatedRows, definitions] = await Promise.all([
-			db
-				.select({ total: sql<number>`COUNT(DISTINCT ${users.id})` })
-				.from(users)
-				.leftJoin(logins, eq(users.loginId, logins.id))
-				.where(searchWhere),
-			db
-				.select({
-					id: users.id,
-					name: users.name,
-					familyName: users.familyName,
-					loginId: users.loginId,
-					email: logins.email,
-					role: users.role,
-					city: users.city,
-					country: users.country,
-					createdAt: users.createdAt,
-				})
-				.from(users)
-				.leftJoin(logins, eq(users.loginId, logins.id))
-				.where(searchWhere)
-				.orderBy(desc(users.createdAt))
-				.limit(PAGE_SIZE)
-				.offset(offset),
-			userTagsService.getDefinitions(),
-		]);
-
-		const total = Number(countRows[0]?.total ?? 0);
-		const userIds = paginatedRows.map((u) => u.id);
-
-		const [membershipRows, allTags, lastLoginRows] = userIds.length
-			? await Promise.all([
-					db
-						.select()
-						.from(userMemberships)
-						.where(inArray(userMemberships.userId, userIds)),
-					userTagsService.getAll(),
-					db
-						.select({
-							userId: sessions.userId,
-							lastLogin: sql<string>`MAX(${sessions.createdAt})`,
-						})
-						.from(sessions)
-						.where(inArray(sessions.userId, userIds))
-						.groupBy(sessions.userId),
-				])
-			: [[], [], []];
-
-		const membershipMap = new Map(membershipRows.map((m) => [m.userId, m]));
-		const tagsByUser = new Map<string, typeof allTags>();
-		for (const tag of allTags) {
-			if (userIds.includes(tag.userId)) {
-				if (!tagsByUser.has(tag.userId)) tagsByUser.set(tag.userId, []);
-				tagsByUser.get(tag.userId)!.push(tag);
-			}
-		}
-		const lastLoginMap = new Map(
-			lastLoginRows.map((r) => [r.userId, r.lastLogin]),
-		);
-
-		const usersWithDetails = paginatedRows.map((u) => ({
-			...u,
-			joinedAt: u.createdAt,
-			membership: membershipMap.get(u.id) ?? null,
-			tags: tagsByUser.get(u.id) ?? [],
-			lastLogin: lastLoginMap.get(u.id) ?? null,
-		}));
-
-		return {
-			users: usersWithDetails,
-			total,
-			page,
-			pageSize: PAGE_SIZE,
-			groupSlug,
-			isGlobal: true,
-			definitions,
-			search,
-		};
-	}
-
-	// Group-specific view
-	const group = await groupsService.getBySlug(groupSlug);
-	if (!group) {
-		const definitions = await userTagsService.getDefinitions();
+	const group = isGlobal ? null : await groupsService.getBySlug(groupSlug);
+	const definitions = await userTagsService.getDefinitions();
+	if (!isGlobal && !group) {
 		return {
 			users: [],
 			total: 0,
 			page,
 			pageSize: PAGE_SIZE,
 			groupSlug,
-			isGlobal: false,
+			isGlobal,
 			definitions,
 			search,
 		};
 	}
 
-	const baseWhere = eq(groupMemberships.groupId, group.id);
-	const where = search
-		? and(
-				baseWhere,
-				or(
-					like(users.name, `%${search}%`),
-					like(users.familyName, `%${search}%`),
-					like(logins.email, `%${search}%`),
-				),
-			)
-		: baseWhere;
-
-	const [countRows, memberRows, definitions] = await Promise.all([
-		db
-			.select({ total: sql<number>`COUNT(*)` })
-			.from(groupMemberships)
-			.innerJoin(users, eq(groupMemberships.userId, users.id))
-			.leftJoin(logins, eq(users.loginId, logins.id))
-			.where(where),
-		db
-			.select({
-				id: users.id,
-				name: users.name,
-				familyName: users.familyName,
-				email: logins.email,
-				role: users.role,
-				city: users.city,
-				country: users.country,
-				createdAt: users.createdAt,
-				joinedAt: groupMemberships.joinedAt,
-			})
-			.from(groupMemberships)
-			.innerJoin(users, eq(groupMemberships.userId, users.id))
-			.leftJoin(logins, eq(users.loginId, logins.id))
-			.where(where)
-			.orderBy(groupMemberships.joinedAt)
-			.limit(PAGE_SIZE)
-			.offset(offset),
-		userTagsService.getDefinitions(),
-	]);
-
-	const total = Number(countRows[0]?.total ?? 0);
-	const userIds = memberRows.map((m) => m.id);
-
-	const [membershipRows, allTags, lastLoginRows] = userIds.length
-		? await Promise.all([
-				db
-					.select()
-					.from(userMemberships)
-					.where(inArray(userMemberships.userId, userIds)),
-				userTagsService.getAll(),
-				db
-					.select({
-						userId: sessions.userId,
-						lastLogin: sql<string>`MAX(${sessions.createdAt})`,
-					})
-					.from(sessions)
-					.where(inArray(sessions.userId, userIds))
-					.groupBy(sessions.userId),
-			])
-		: [[], [], []];
-
-	const membershipMap = new Map(membershipRows.map((m) => [m.userId, m]));
-	const tagsByUser = new Map<string, typeof allTags>();
-	for (const tag of allTags) {
-		if (userIds.includes(tag.userId)) {
-			if (!tagsByUser.has(tag.userId)) tagsByUser.set(tag.userId, []);
-			tagsByUser.get(tag.userId)!.push(tag);
-		}
-	}
-	const lastLoginMap = new Map(
-		lastLoginRows.map((r) => [r.userId, r.lastLogin]),
-	);
-
-	const membersWithDetails = memberRows.map((m) => ({
-		...m,
-		membership: membershipMap.get(m.id) ?? null,
-		tags: tagsByUser.get(m.id) ?? [],
-		lastLogin: lastLoginMap.get(m.id) ?? null,
-	}));
+	const { users, total } = await adminUsersService.listWithEmailAndRole({
+		groupId: group?.id ?? null,
+		search,
+		limit: PAGE_SIZE,
+		offset,
+	});
 
 	return {
-		users: membersWithDetails,
+		users,
 		total,
 		page,
 		pageSize: PAGE_SIZE,
 		groupSlug,
-		isGlobal: false,
+		isGlobal,
 		definitions,
 		search,
 	};

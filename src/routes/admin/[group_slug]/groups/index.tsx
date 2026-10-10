@@ -1,11 +1,9 @@
 import { component$ } from "@qwik.dev/core";
 import { Link, routeLoader$ } from "@qwik.dev/router";
-import { eq, sql } from "drizzle-orm";
 import { Button } from "~/components/ui/Button";
 import { PAGE_SIZE, Pagination } from "~/core/admin/Pagination/Pagination";
 import { SearchBar } from "~/core/admin/SearchBar/SearchBar";
-import { db } from "~/core/db/connection";
-import { groupMemberships } from "~/core/db/schema";
+import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
 import { groupsService } from "~/core/scopes/groups.service";
 
 export const useAdminGroups = routeLoader$(
@@ -22,14 +20,7 @@ export const useAdminGroups = routeLoader$(
 
 		const items = await groupsService.getAll();
 
-		const memberCounts = await db
-			.select({
-				groupId: groupMemberships.groupId,
-				count: sql<number>`count(*)`.as("count"),
-			})
-			.from(groupMemberships)
-			.groupBy(groupMemberships.groupId);
-		const countMap = new Map(memberCounts.map((r) => [r.groupId, r.count]));
+		const countMap = await groupMembershipsService.countAllByGroup();
 
 		const allWithCounts = items.map((g) => ({
 			...g,

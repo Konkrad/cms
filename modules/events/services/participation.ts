@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
-import { db } from "~/core";
-import { logins } from "~/core/schema";
+import { db, publicUserColumns, publicUserThumbnailUrl } from "~/core";
+import { logins, users } from "~/core/schema";
 import { events } from "../schema/events";
 import {
 	type InsertParticipationStatus,
@@ -100,35 +100,65 @@ export const participationService = {
 		return summary;
 	},
 
-	async getByEventId(eventId: string): Promise<ParticipationStatus[]> {
-		const results = await db.query.participationStatus.findMany({
-			where: { eventId },
+	/**
+	 * PRIVATE: an event's RSVPs with each user's name and login email, for the admin
+	 * participation page only. The public event page uses `getGoingParticipants`.
+	 */
+	async getByEventIdWithEmails(eventId: string) {
+		const rows = await db
+			.select({
+				status: participationStatus,
+				name: users.name,
+				familyName: users.familyName,
+				email: logins.email,
+			})
+			.from(participationStatus)
+			.innerJoin(users, eq(users.id, participationStatus.userId))
+			.leftJoin(logins, eq(logins.id, users.loginId))
+			.where(eq(participationStatus.eventId, eventId));
+		return rows.map((r) => ({
+			...r.status,
+			user: {
+				id: r.status.userId,
+				name: r.name,
+				familyName: r.familyName,
+				email: r.email,
+			},
+		}));
+	},
+
+	/**
+	 * Users who said "yes" or "maybe" to an event, as public cards: name, public
+	 * thumbnail and city/country (never the private full-size picture key).
+	 */
+	async getGoingParticipants(eventId: string) {
+		const rows = await db.query.participationStatus.findMany({
+			where: { eventId, status: { in: ["yes", "maybe"] } },
 			with: {
-				user: true,
+				user: {
+					columns: {
+						...publicUserColumns,
+						city: true,
+						country: true,
+						profilePicture: true,
+						profilePictureSmall: true,
+					},
+				},
 			},
 		});
-
-		// Resolve and attach user email (from the logins table) where available.
-		// We do this here so callers (e.g. admin pages) can display organiser / participant emails
-		// without having to run additional queries.
-		for (const participation of results) {
-			try {
-				if (participation.user?.loginId) {
-					const [loginRow] = await db
-						.select()
-						.from(logins)
-						.where(eq(logins.id, participation.user.loginId));
-					if (loginRow?.email) {
-						(participation.user as any).email = loginRow.email;
-					}
-				}
-			} catch {
-				// If resolving the login/email fails for any reason, don't fail the entire response.
-				// We simply skip attaching the email for that user.
-			}
-		}
-
-		return results as any;
+		return rows.flatMap((r) => {
+			if (!r.user) return [];
+			const { profilePicture, profilePictureSmall, ...user } = r.user;
+			return [
+				{
+					...user,
+					profilePictureSmallUrl: publicUserThumbnailUrl({
+						profilePicture,
+						profilePictureSmall,
+					}),
+				},
+			];
+		});
 	},
 
 	async autoUpgradeToYes(

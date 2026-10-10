@@ -1,13 +1,10 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
-import { eq } from "drizzle-orm";
 import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
-import { db } from "~/core/db/connection";
 import { formResultsService } from "~/core/forms/form-results.service";
 import { buildFormPath } from "~/core/forms/forms";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
-import { groupMemberships } from "~/core/scopes/schema/group-memberships";
-import { groups } from "~/core/scopes/schema/groups";
+import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
 import { userTagsService } from "~/core/tags/user-tags.service";
 import { formatAffiliationResultJson } from "~/core/users/affiliation";
 import { UserProfile } from "~theme/routes/profile/UserProfile/UserProfile";
@@ -39,7 +36,7 @@ export const useProfile = routeLoader$(async (event) => {
 			)
 		: null;
 
-	const [submittedForms, tags, extras, communityRows] = await Promise.all([
+	const [submittedForms, tags, extras, userGroups] = await Promise.all([
 		formResultsService.getByUser(user.id),
 		userTagsService.getByUser(user.id),
 		activeProfileExtras({
@@ -47,23 +44,18 @@ export const useProfile = routeLoader$(async (event) => {
 			viewerId: user.id,
 			isOwnProfile: true,
 		}),
-		db
-			.select({ name: groups.name, slug: groups.slug })
-			.from(groupMemberships)
-			.innerJoin(groups, eq(groupMemberships.groupId, groups.id))
-			.where(eq(groupMemberships.userId, user.id)),
+		groupMembershipsService.getUserGroups(user.id),
 	]);
 
 	return {
 		...extras,
 		name: user.name as string,
 		familyName: user.familyName as string,
-		role: user.role as string,
 		city: user.city ?? null,
 		country: user.country ?? null,
 		profilePictureUrl,
 		tags: tags.map((t) => ({ id: t.id, label: t.label })),
-		communities: communityRows,
+		communities: userGroups.map((g) => ({ name: g.name, slug: g.slug })),
 		// Sections of modules that are not active fall back to empty.
 		upcomingEvents: extras.upcomingEvents ?? [],
 		pastEvents: extras.pastEvents ?? [],

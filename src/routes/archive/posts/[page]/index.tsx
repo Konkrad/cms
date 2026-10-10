@@ -1,6 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import type { ArchivePostsViewData } from "~/contracts/archive-posts";
+import { getCurrentUserData } from "~/core/auth/server-auth";
 import { postsService } from "~/core/content/posts.service";
 import { canonicalUrl } from "~/core/content/seo";
 import { publicImageUrlFromKey } from "~/core/media/images";
@@ -9,7 +10,8 @@ import { ArchivePostsView } from "~theme/routes/archive-posts/ArchivePostsView";
 const POSTS_PER_PAGE = 10;
 
 export const useArchivePostsPage = routeLoader$(
-	async ({ params, status }): Promise<ArchivePostsViewData> => {
+	async (event): Promise<ArchivePostsViewData> => {
+		const { params, status } = event;
 		const parsedPage = Number.parseInt(params.page ?? "", 10);
 
 		if (!Number.isInteger(parsedPage) || parsedPage < 1) {
@@ -17,7 +19,11 @@ export const useArchivePostsPage = routeLoader$(
 			return null;
 		}
 
-		const result = await postsService.getPage(parsedPage, POSTS_PER_PAGE);
+		const result = await postsService.getPage(
+			(await getCurrentUserData(event))?.id ?? null,
+			parsedPage,
+			POSTS_PER_PAGE,
+		);
 
 		if (parsedPage >= result.totalPages) {
 			status(404);

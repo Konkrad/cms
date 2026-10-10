@@ -5,7 +5,7 @@ import { requireAdminEvent } from "./event-guards";
 /** Server-only: import from route loaders only, never from components. */
 export async function loadAdminTickets(event: RequestEventLoader) {
 	const { event: target } = await requireAdminEvent(event);
-	const tickets = await ticketsService.getByEventId(target.id);
+	const tickets = await ticketsService.getByEventIdWithBuyerEmail(target.id);
 	return { eventId: target.id, tickets };
 }
 

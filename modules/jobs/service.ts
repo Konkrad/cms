@@ -3,21 +3,23 @@ import {
 	db,
 	decodeCursor,
 	type PageDirection,
+	type PublicUser,
 	paginateRows,
+	publicUserColumns,
+	publicUserSelect,
 	sanitizeRichHtml,
-	type User,
 	users as usersTable,
 } from "~/core";
 import type { InsertJob, Job, UpdateJob } from "./schema";
 import { insertJobSchema, jobs, updateJobSchema } from "./schema";
 
-export type JobWithUser = Job & { user: User };
+export type JobWithUser = Job & { user: PublicUser };
 
 export const jobsService = {
 	async getAll(): Promise<JobWithUser[]> {
 		const rows = await db.query.jobs.findMany({
 			orderBy: { createdAt: "desc" },
-			with: { user: true },
+			with: { user: { columns: publicUserColumns } },
 		});
 		return rows as JobWithUser[];
 	},
@@ -26,7 +28,7 @@ export const jobsService = {
 		const rows = await db.query.jobs.findMany({
 			where: { status: "pending" },
 			orderBy: { createdAt: "desc" },
-			with: { user: true },
+			with: { user: { columns: publicUserColumns } },
 		});
 		return rows as JobWithUser[];
 	},
@@ -36,7 +38,7 @@ export const jobsService = {
 		const rows = await db.query.jobs.findMany({
 			where: { status: "approved" },
 			orderBy: { createdAt: "desc" },
-			with: { user: true },
+			with: { user: { columns: publicUserColumns } },
 		});
 		// Filter out expired in-memory (expiresAt >= now)
 		return (rows as JobWithUser[]).filter((j) => j.expiresAt >= now);
@@ -78,7 +80,7 @@ export const jobsService = {
 			: undefined;
 
 		const rows = await db
-			.select({ job: jobs, user: usersTable })
+			.select({ job: jobs, user: publicUserSelect })
 			.from(jobs)
 			.leftJoin(usersTable, eq(jobs.suggestedBy, usersTable.id))
 			.where(boundary ? and(baseCondition, boundary) : baseCondition)
@@ -104,7 +106,7 @@ export const jobsService = {
 	async getById(id: string): Promise<JobWithUser | undefined> {
 		const row = await db.query.jobs.findFirst({
 			where: { id },
-			with: { user: true },
+			with: { user: { columns: publicUserColumns } },
 		});
 		return row as JobWithUser | undefined;
 	},

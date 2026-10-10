@@ -1,6 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
-import { db } from "~/core";
-import type { users } from "~/core/schema";
+import { db, type PublicUser, publicUserColumns, usersService } from "~/core";
 import type { events } from "../schema/events";
 import type { products } from "../schema/products";
 import type { transactionItems } from "../schema/transaction-items";
@@ -67,10 +66,14 @@ export const transactionsService = {
 		return results as any;
 	},
 
-	async getByEventIdWithDetails(eventId: string): Promise<
+	/**
+	 * PRIVATE: an event's transactions with line items, Stripe ids and the buyer's login
+	 * email, for the admin transactions page only.
+	 */
+	async getByEventIdWithBuyerEmail(eventId: string): Promise<
 		Array<
 			Transaction & {
-				user: typeof users.$inferSelect;
+				user: PublicUser & { email: string | null };
 				items: Array<
 					typeof transactionItems.$inferSelect & {
 						product: typeof products.$inferSelect;
@@ -82,7 +85,7 @@ export const transactionsService = {
 		const results = await db.query.transactions.findMany({
 			where: { eventId },
 			with: {
-				user: true,
+				user: { columns: publicUserColumns },
 				items: {
 					with: {
 						product: true,
@@ -91,6 +94,12 @@ export const transactionsService = {
 			},
 			orderBy: { paymentDate: "desc" },
 		});
-		return results as any;
+		const emails = await usersService.getEmailsByIds([
+			...new Set(results.map((r) => r.userId)),
+		]);
+		return results.map((r) => ({
+			...r,
+			user: { ...(r.user as PublicUser), email: emails.get(r.userId) ?? null },
+		}));
 	},
 };

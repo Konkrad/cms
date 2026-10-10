@@ -1,7 +1,5 @@
 import type { User } from "~/core/users/schema";
 
-export type UserWithDisplayName = User & { displayName: string };
-
 export function formatUser<T extends Record<string, any>>(
 	user: T,
 	isLoggedIn: boolean = false,

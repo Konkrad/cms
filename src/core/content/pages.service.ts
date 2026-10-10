@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { desc, eq, lt } from "drizzle-orm";
+import { and, desc, eq, lt } from "drizzle-orm";
 import type { MenuItem } from "~/core/content/schema/menu-items";
 import { menuItems } from "~/core/content/schema/menu-items";
 import type { InsertPage, Page, UpdatePage } from "~/core/content/schema/pages";
@@ -12,6 +12,17 @@ export type PageWithMenuItem = Page & {
 };
 
 export const pagesService = {
+	/** URL and last update of every published page with a visible menu item (sitemap). */
+	async getPublishedUrls(): Promise<Array<{ url: string; updatedAt: string }>> {
+		return db
+			.select({ url: menuItems.url, updatedAt: pages.updatedAt })
+			.from(pages)
+			.innerJoin(menuItems, eq(menuItems.pageId, pages.id))
+			.where(
+				and(eq(pages.status, "published"), eq(menuItems.status, "visible")),
+			);
+	},
+
 	async getAll(
 		limit: number = 10,
 		cursor?: string | null,

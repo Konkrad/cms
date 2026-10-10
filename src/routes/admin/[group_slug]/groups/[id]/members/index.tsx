@@ -1,10 +1,8 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
-import { eq } from "drizzle-orm";
 import { Button } from "~/components/ui/Button";
 import { getCurrentUserData } from "~/core/auth/server-auth";
-import { db } from "~/core/db/connection";
-import { groupMemberships, users } from "~/core/db/schema";
+import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
 import { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
 import { groupsService } from "~/core/scopes/groups.service";
 
@@ -19,21 +17,9 @@ export const useMembers = routeLoader$(async ({ params, redirect }) => {
 		throw redirect(302, "/admin/global/groups");
 	}
 
-	const members = await db
-		.select({
-			id: users.id,
-			name: users.name,
-			familyName: users.familyName,
-			loginId: users.loginId,
-			role: users.role,
-			city: users.city,
-			country: users.country,
-			joinedAt: groupMemberships.joinedAt,
-		})
-		.from(groupMemberships)
-		.innerJoin(users, eq(groupMemberships.userId, users.id))
-		.where(eq(groupMemberships.groupId, group.id))
-		.orderBy(groupMemberships.joinedAt);
+	const members = await groupMembershipsService.getMembersWithEmailAndRole(
+		group.id,
+	);
 
 	const reps = await groupRepresentativesService.getRepresentatives(group.id);
 
@@ -122,7 +108,7 @@ export default component$(() => {
 									</div>
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap">
-									<div class="text-sm text-gray-900">{m.loginId ?? ""}</div>
+									<div class="text-sm text-gray-900">{m.email ?? ""}</div>
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap">
 									<span

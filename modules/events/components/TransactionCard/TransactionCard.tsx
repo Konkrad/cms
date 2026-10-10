@@ -1,10 +1,9 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
-import type { users } from "~/core/schema";
 import type { products, transactionItems } from "../../schema";
 import type { Transaction } from "../../schema/transactions";
 
 interface TransactionWithDetails extends Transaction {
-	user: typeof users.$inferSelect;
+	user: { id: string; name: string; familyName: string; email: string | null };
 	items: Array<
 		typeof transactionItems.$inferSelect & {
 			product: typeof products.$inferSelect;
@@ -53,7 +52,7 @@ export default component$<TransactionCardProps>(({ transaction }) => {
 								{transaction.user.name} {transaction.user.familyName}
 							</h4>
 							<span class="text-sm text-gray-500">
-								{transaction.user.loginId}
+								{transaction.user.email}
 							</span>
 						</div>
 						<p class="text-sm text-gray-600">

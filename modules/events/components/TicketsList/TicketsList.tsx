@@ -1,13 +1,12 @@
 import { $, component$, type Signal, useSignal } from "@qwik.dev/core";
 import type { ActionStore } from "@qwik.dev/router";
 import Fuse from "fuse.js";
-import type { users } from "~/core/schema";
 import { Badge, SectionCard } from "~/core/ui";
 import type { products } from "../../schema";
 import type { Ticket } from "../../schema/tickets";
 
 interface TicketWithRelations extends Ticket {
-	buyer: typeof users.$inferSelect;
+	buyer: { id: string; name: string; familyName: string; email: string | null };
 	product: typeof products.$inferSelect;
 }
 
@@ -25,12 +24,7 @@ export default component$<TicketsListProps>(
 		let filteredTickets = tickets;
 		if (searchQuery.value.trim()) {
 			const fuse = new Fuse(tickets, {
-				keys: [
-					"buyer.name",
-					"buyer.familyName",
-					"buyer.loginId",
-					"product.name",
-				],
+				keys: ["buyer.name", "buyer.familyName", "buyer.email", "product.name"],
 				threshold: 0.3,
 			});
 			const results = fuse.search(searchQuery.value);

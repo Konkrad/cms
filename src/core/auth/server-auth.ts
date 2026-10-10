@@ -141,3 +141,8 @@ export async function requireAdmin(event: RequestEvent) {
 
 	return user;
 }
+
+/** Deletes the session row for a session cookie token (logout). */
+export async function deleteSession(token: string): Promise<void> {
+	await db.delete(sessions).where(eq(sessions.token, token));
+}

@@ -1,5 +1,4 @@
-import { desc, eq, inArray, lt } from "drizzle-orm";
-import type { Post } from "~/core/content/schema/posts";
+import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "~/core/db/connection";
 import type { InsertUser, UpdateUser, User } from "~/core/db/schema";
 import {
@@ -8,54 +7,99 @@ import {
 	updateUserSchema,
 	users,
 } from "~/core/db/schema";
-import { decodeCursor, getNextCursorFromRows } from "~/core/shared/pagination";
-
-export type UserWithPosts = User & {
-	posts: Post[];
-};
+import {
+	type PublicUser,
+	publicUserColumns,
+	publicUserThumbnailUrl,
+} from "~/core/users/public-user";
 
 export const usersService = {
-	async getAll(
-		limit: number = 10,
-		cursor?: string | null,
-	): Promise<{ items: User[]; nextCursor?: string | null }> {
-		const cursorObj = decodeCursor(cursor ?? null);
-
-		const results = await db.query.users.findMany({
-			orderBy: { createdAt: "desc", id: "desc" },
-			limit: limit + 1,
-			where: cursorObj?.createdAt
-				? { createdAt: { lt: cursorObj.createdAt } }
-				: undefined,
-		});
-
-		let nextCursor: string | undefined | null;
-		let items = results;
-		if (results.length > limit) {
-			nextCursor = getNextCursorFromRows(results, ["createdAt"], limit);
-			items = results.slice(0, limit);
-		}
-
-		return { items, nextCursor: nextCursor ?? null };
+	/**
+	 * The full users row, private fields included (consent, location, birth year, role,
+	 * private S3 keys). Server-side logic and the user's own data only; never hand it
+	 * to a page about another user — use `getPublicProfile` for that.
+	 */
+	async getPrivateById(id: string): Promise<User | undefined> {
+		return db.query.users.findFirst({ where: { id } });
 	},
 
-	async getById(id: string): Promise<User | undefined> {
-		const result = await db.query.users.findFirst({
+	/** Another user's public profile card: name, public thumbnail and city/country. */
+	async getPublicProfile(id: string): Promise<
+		| (PublicUser & {
+				city: string | null;
+				country: string | null;
+				profilePictureSmallUrl: string | null;
+		  })
+		| undefined
+	> {
+		const row = await db.query.users.findFirst({
 			where: { id },
-		});
-
-		return result;
-	},
-
-	async getByIdWithPosts(id: string): Promise<UserWithPosts | undefined> {
-		const result = await db.query.users.findFirst({
-			where: { id },
-			with: {
-				posts: true,
+			columns: {
+				...publicUserColumns,
+				city: true,
+				country: true,
+				profilePicture: true,
+				profilePictureSmall: true,
 			},
 		});
+		if (!row) return undefined;
+		const { profilePicture, profilePictureSmall, ...rest } = row;
+		return {
+			...rest,
+			profilePictureSmallUrl: publicUserThumbnailUrl({
+				profilePicture,
+				profilePictureSmall,
+			}),
+		};
+	},
 
-		return result as UserWithPosts | undefined;
+	/**
+	 * Name search for pickers (any logged-in member): public identity and thumbnail only,
+	 * never emails, so the directory cannot be harvested.
+	 */
+	async searchPublic(
+		query: string,
+		limit: number,
+	): Promise<Array<PublicUser & { profilePictureSmallUrl: string | null }>> {
+		const likePattern = `%${query.toLowerCase()}%`;
+		const rows = await db
+			.select({
+				id: users.id,
+				name: users.name,
+				familyName: users.familyName,
+				profilePicture: users.profilePicture,
+				profilePictureSmall: users.profilePictureSmall,
+			})
+			.from(users)
+			.where(
+				sql`lower(${users.name} || ' ' || ${users.familyName}) like ${likePattern}`,
+			)
+			.limit(limit);
+		return rows.map(({ profilePicture, profilePictureSmall, ...user }) => ({
+			...user,
+			profilePictureSmallUrl: publicUserThumbnailUrl({
+				profilePicture,
+				profilePictureSmall,
+			}),
+		}));
+	},
+
+	/** The user's OWN private details for their own profile page (login email, birth year, sex). */
+	async getOwnPrivateDetails(id: string): Promise<{
+		email: string | null;
+		yearOfBirth: number | null;
+		sex: string | null;
+	} | null> {
+		const [row] = await db
+			.select({
+				email: logins.email,
+				yearOfBirth: users.yearOfBirth,
+				sex: users.sex,
+			})
+			.from(users)
+			.leftJoin(logins, eq(logins.id, users.loginId))
+			.where(eq(users.id, id));
+		return row ?? null;
 	},
 
 	async create(
@@ -125,7 +169,8 @@ export const usersService = {
 		return result;
 	},
 
-	async getByEmail(email: string): Promise<User | undefined> {
+	/** Resolves a login email to the user's public identity (admin lookups by email). */
+	async getByEmail(email: string): Promise<PublicUser | undefined> {
 		// Find a login row for the email, then resolve the user by loginId
 		const loginRows = await db
 			.select()
@@ -135,6 +180,7 @@ export const usersService = {
 		const login = loginRows[0] as any;
 		const result = await db.query.users.findFirst({
 			where: { loginId: login.id },
+			columns: publicUserColumns,
 		});
 
 		return result;

@@ -63,7 +63,7 @@ export async function markConsentStepComplete(
 	step: ConsentStep,
 	when: string = new Date().toISOString(),
 ) {
-	const user = await usersService.getById(userId);
+	const user = await usersService.getPrivateById(userId);
 	if (!user) return;
 
 	const existingConsent = (user as any).consent as
@@ -85,7 +85,7 @@ export async function requireConsentCompleted(event: RequestEvent) {
 		throw event.redirect(302, "/login");
 	}
 
-	const fullUser = await usersService.getById(user.id);
+	const fullUser = await usersService.getPrivateById(user.id);
 	if (!fullUser) {
 		throw event.redirect(302, "/login");
 	}

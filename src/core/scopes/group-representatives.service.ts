@@ -5,15 +5,14 @@ import {
 	groupRepresentatives,
 	insertGroupRepresentativeSchema,
 } from "~/core/db/schema";
+import {
+	type PublicUser,
+	publicUserThumbnailUrl,
+} from "~/core/users/public-user";
 import { users } from "~/core/users/schema";
 
 export type RepresentativeWithUser = GroupRepresentative & {
-	user: {
-		id: string;
-		name: string;
-		familyName: string;
-		profilePicture: string | null;
-	};
+	user: PublicUser & { profilePictureSmallUrl: string | null };
 };
 
 export const groupRepresentativesService = {
@@ -79,12 +78,25 @@ export const groupRepresentativesService = {
 					name: users.name,
 					familyName: users.familyName,
 					profilePicture: users.profilePicture,
+					profilePictureSmall: users.profilePictureSmall,
 				},
 			})
 			.from(groupRepresentatives)
 			.innerJoin(users, eq(groupRepresentatives.userId, users.id))
 			.where(eq(groupRepresentatives.groupId, groupId))
 			.limit(1);
-		return (results[0] as RepresentativeWithUser) ?? null;
+		const row = results[0];
+		if (!row) return null;
+		const { profilePicture, profilePictureSmall, ...user } = row.user;
+		return {
+			...row,
+			user: {
+				...user,
+				profilePictureSmallUrl: publicUserThumbnailUrl({
+					profilePicture,
+					profilePictureSmall,
+				}),
+			},
+		};
 	},
 };

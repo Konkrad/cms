@@ -1,6 +1,12 @@
 import crypto from "crypto";
 import { and, eq, lte } from "drizzle-orm";
-import { db, membershipsService, type User, userTagsService } from "~/core";
+import {
+	db,
+	membershipsService,
+	type PublicUser,
+	publicUserColumns,
+	userTagsService,
+} from "~/core";
 import {
 	insertQualificationTokenSchema,
 	type QualificationToken,
@@ -24,7 +30,7 @@ export type UserQualificationWithType = UserQualification & {
 
 /** Admin application row: includes the applicant's full users row (strip it before serializing). */
 export type UserQualificationWithApplicant = UserQualificationWithType & {
-	user: User;
+	user: PublicUser;
 };
 
 export const qualificationsService = {
@@ -85,7 +91,7 @@ export const qualificationsService = {
 		const rows = await db.query.userQualifications.findMany({
 			where: { status: "pending" },
 			orderBy: { createdAt: "asc" },
-			with: { type: true, user: true },
+			with: { type: true, user: { columns: publicUserColumns } },
 		});
 		return rows as UserQualificationWithApplicant[];
 	},
@@ -93,7 +99,7 @@ export const qualificationsService = {
 	async getAllApplications(): Promise<UserQualificationWithApplicant[]> {
 		const rows = await db.query.userQualifications.findMany({
 			orderBy: { createdAt: "desc" },
-			with: { type: true, user: true },
+			with: { type: true, user: { columns: publicUserColumns } },
 		});
 		return rows as UserQualificationWithApplicant[];
 	},
@@ -110,7 +116,7 @@ export const qualificationsService = {
 	async getById(id: string): Promise<UserQualificationWithType | undefined> {
 		const row = await db.query.userQualifications.findFirst({
 			where: { id },
-			with: { type: true, user: true },
+			with: { type: true, user: { columns: publicUserColumns } },
 		});
 		return row as UserQualificationWithType | undefined;
 	},

@@ -1,62 +1,34 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
-import { and, count, eq, isNull } from "drizzle-orm";
 import { Button } from "~/components/ui/Button/Button";
-import { db } from "~/core/db/connection";
-import { events, pages, posts, users } from "~/core/db/schema";
-import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
+import { adminDashboardService } from "~/core/admin/dashboard.service";
 import { groupsService } from "~/core/scopes/groups.service";
 
 export const useAdminStats = routeLoader$(async ({ params }) => {
 	const groupSlug = params.group_slug;
 
 	if (groupSlug === "global") {
-		// Global admin stats (migrated dashboard overview)
-		const [totalUsers] = await db.select({ count: count() }).from(users);
-		const [totalPosts] = await db
-			.select({ count: count() })
-			.from(posts)
-			.where(isNull(posts.deletedAt));
-		const [totalEvents] = await db
-			.select({ count: count() })
-			.from(events)
-			.where(isNull(events.deletedAt));
-		const [totalPages] = await db.select({ count: count() }).from(pages);
-
 		return {
 			isGlobal: true,
-			stats: {
-				posts: totalPosts?.count || 0,
-				events: totalEvents?.count || 0,
-				users: totalUsers?.count || 0,
-				pages: totalPages?.count || 0,
-			},
+			stats: { members: 0, ...(await adminDashboardService.getGlobalStats()) },
 		};
 	}
 
-	// Group-specific stats
 	const group = await groupsService.getBySlug(groupSlug);
 	if (!group) {
-		return { isGlobal: false, stats: { members: 0, posts: 0, events: 0 } };
+		return {
+			isGlobal: false,
+			stats: { members: 0, posts: 0, events: 0, users: 0, pages: 0 },
+		};
 	}
-
-	const members = await groupMembershipsService.getGroupMembers(group.id);
-	const [groupPosts] = await db
-		.select({ count: count() })
-		.from(posts)
-		.where(and(eq(posts.groupId, group.id), isNull(posts.deletedAt)));
-	const [groupEvents] = await db
-		.select({ count: count() })
-		.from(events)
-		.where(and(eq(events.groupId, group.id), isNull(events.deletedAt)));
 
 	return {
 		isGlobal: false,
 		group,
 		stats: {
-			members: members.length,
-			posts: groupPosts?.count || 0,
-			events: groupEvents?.count || 0,
+			users: 0,
+			pages: 0,
+			...(await adminDashboardService.getGroupStats(group.id)),
 		},
 	};
 });

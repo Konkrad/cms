@@ -17,7 +17,12 @@ export { definePage, matchPath } from "~/core/router/pages";
 export { db } from "~/core/db/connection";
 export type { PaymentContext, PaymentHandlers } from "~/core/payments/payments";
 export type { PublicUser } from "~/core/users/public-user";
-export { toPublicUser } from "~/core/users/public-user";
+export {
+	publicUserColumns,
+	publicUserSelect,
+	publicUserThumbnailUrl,
+	toPublicUser,
+} from "~/core/users/public-user";
 export { requireActiveModule } from "~/core/registry/manifests";
 export { currentScopeRest } from "~/core/router/scope-request";
 // Server-only core services for modules (memberships tiers, user tags). Tag *rule evaluation*

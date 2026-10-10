@@ -1,9 +1,6 @@
 import type { RequestHandler } from "@qwik.dev/router";
-import { sql } from "drizzle-orm";
 import { getServerSession } from "~/core/auth/server-auth";
-import { db } from "~/core/db/connection";
-import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
-import { users } from "~/core/users/schema";
+import { usersService } from "~/core/users/users.service";
 
 export const onGet: RequestHandler = async (event) => {
 	const { url, json } = event;
@@ -19,42 +16,14 @@ export const onGet: RequestHandler = async (event) => {
 		return;
 	}
 
-	const likePattern = `%${query}%`;
-
-	// NOTE: deliberately does NOT return email. This endpoint is reachable by any
-	// authenticated member (it backs the participant picker), so exposing emails
-	// here would let any member harvest the whole directory. The participant's
-	// real email is resolved server-side from `id` at checkout time.
-	const rows = await db
-		.select({
-			id: users.id,
-			name: users.name,
-			familyName: users.familyName,
-			profilePicture: users.profilePicture,
-			profilePictureSmall: users.profilePictureSmall,
-		})
-		.from(users)
-		.where(
-			sql`lower(${users.name} || ' ' || ${users.familyName}) like ${likePattern}`,
-		)
-		.limit(8);
-
-	const payload = rows.map((row) => {
-		const displayName = [row.name, row.familyName]
-			.filter(Boolean)
-			.join(" ")
-			.trim();
-		const thumbKey =
-			row.profilePictureSmall ??
-			(row.profilePicture ? deriveThumbnailKey(row.profilePicture) : null);
-		const avatarUrl = publicImageUrlFromKey(thumbKey);
-
-		return {
-			id: row.id,
-			displayName,
-			avatarUrl,
-		};
-	});
+	// Public fields only (see usersService.searchPublic): the participant's real email
+	// is resolved server-side from `id` at checkout time.
+	const rows = await usersService.searchPublic(query, 8);
+	const payload = rows.map((row) => ({
+		id: row.id,
+		displayName: [row.name, row.familyName].filter(Boolean).join(" ").trim(),
+		avatarUrl: row.profilePictureSmallUrl,
+	}));
 
 	json(200, { users: payload });
 };

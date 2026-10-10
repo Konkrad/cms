@@ -7,7 +7,7 @@ export async function loadAdminAttendance(event: RequestEventLoader) {
 	const { event: target } = await requireAdminEvent(event);
 	const [stats, attendedTickets] = await Promise.all([
 		ticketsService.getAttendanceStats(target.id),
-		ticketsService.getAttendedTickets(target.id),
+		ticketsService.getAttendedTicketsWithBuyerEmail(target.id),
 	]);
 	return {
 		event: { id: target.id, title: target.title },

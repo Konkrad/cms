@@ -6,20 +6,19 @@
  * directly. `import type` only — these carry no runtime code.
  */
 import type {
-  useFooterMenuItems,
-  useLogoutAction,
-  useMenuItems,
+	useFooterMenuItems,
+	useLogoutAction,
+	useMenuItems,
 } from "~/routes/layout";
 
 export type MainMenuItems = ReturnType<typeof useMenuItems>["value"];
 export type FooterMenuItems = ReturnType<typeof useFooterMenuItems>["value"];
 export type LogoutAction = ReturnType<typeof useLogoutAction>;
 
-/** Secret-stripped snapshot of the logged-in user, computed in the layout. */
+/** The logged-in user as the nav needs it; the layout's `useUserSession` returns exactly this. */
 export type NavUser = {
-  id: string;
-  role: string | null;
-  displayName: string;
-  isAdmin: boolean;
-  profilePictureSmallUrl: string | null;
+	id: string;
+	displayName: string;
+	isAdmin: boolean;
+	profilePictureSmallUrl: string | null;
 } | null;

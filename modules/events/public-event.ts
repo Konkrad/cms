@@ -1,22 +1,19 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
-import { eq, inArray } from "drizzle-orm";
 import {
 	buildProfileUrl,
 	currentScopeRest,
-	db,
-	deriveThumbnailKey,
 	getCurrentUserData,
-	groupMemberships,
 	groupMembershipsService,
-	groupRepresentatives,
 	groupRepresentativesService,
-	groups as groupsTable,
+	groupsService,
 	matchPath,
 	publicImageUrlFromKey,
 	toPublicUser,
 } from "~/core";
 import { eventsService } from "./services/events";
+import { inventoryGroupsService } from "./services/inventory-groups";
 import { participationService } from "./services/participation";
+import { ticketsService } from "./services/tickets";
 
 /** Server-only: import from page loaders and actions only, never from components. */
 
@@ -82,12 +79,9 @@ export async function loadEventPage(
 	}
 	const { event, viewer: userData } = viewable;
 
-	const groups = (await db.query.inventoryGroups.findMany({
-		where: { eventId },
-		with: {
-			products: true,
-		},
-	})) as unknown as Array<{
+	const groups = (await inventoryGroupsService.getByEventId(
+		eventId,
+	)) as unknown as Array<{
 		id: string;
 		name: string;
 		maxCapacity: number;
@@ -116,107 +110,32 @@ export async function loadEventPage(
 			userData.id,
 			eventId,
 		);
-
-		const userTicket = await db.query.tickets.findFirst({
-			where: { eventId, buyerId: userData.id },
-		});
-		hasUserTicket = !!userTicket;
-
-		const scannedTicket = await db.query.tickets.findFirst({
-			where: {
-				eventId,
-				buyerId: userData.id,
-				scannedAt: { isNotNull: true },
-			},
-		});
-		hasAttended = !!scannedTicket;
+		const ticketState = await ticketsService.getViewerTicketState(
+			eventId,
+			userData.id,
+		);
+		hasUserTicket = ticketState.hasTicket;
+		hasAttended = ticketState.hasAttended;
 	}
 
 	const participationSummary = await participationService.getSummary(eventId);
 
-	const participationRows = (await db.query.participationStatus.findMany({
-		where: { eventId },
-		with: { user: true },
-	})) as unknown as Array<{
-		status: "yes" | "no" | "maybe";
-		userId: string;
-		user: {
-			id: string;
-			name: string;
-			familyName: string;
-			profilePicture: string | null;
-			profilePictureSmall: string | null;
-			city: string | null;
-			country: string | null;
-		};
-	}>;
-
-	const goingRows = participationRows.filter(
-		(r) => r.status === "yes" || r.status === "maybe",
-	);
-	const participantUserIds = goingRows.map((r) => r.userId);
-
+	const going = await participationService.getGoingParticipants(eventId);
 	// userId -> group role label (e.g. "Local Rep Berlin")
-	const userGroupLabels: Record<string, string> = {};
+	const userGroupLabels = await groupsService.getGroupLabels(
+		going.map((u) => u.id),
+	);
 
-	if (participantUserIds.length > 0) {
-		const repRows = await db
-			.select({
-				userId: groupRepresentatives.userId,
-				groupId: groupRepresentatives.groupId,
-				groupName: groupsTable.name,
-			})
-			.from(groupRepresentatives)
-			.innerJoin(groupsTable, eq(groupRepresentatives.groupId, groupsTable.id))
-			.where(inArray(groupRepresentatives.userId, participantUserIds));
-
-		for (const rep of repRows) {
-			userGroupLabels[rep.userId] = `Local Rep ${rep.groupName}`;
-		}
-
-		// For users that aren't representatives, fall back to their group membership
-		const missingUsers = participantUserIds.filter(
-			(id) => !userGroupLabels[id],
-		);
-		if (missingUsers.length > 0) {
-			const memberRows = await db
-				.select({
-					userId: groupMemberships.userId,
-					groupName: groupsTable.name,
-				})
-				.from(groupMemberships)
-				.innerJoin(groupsTable, eq(groupMemberships.groupId, groupsTable.id))
-				.where(inArray(groupMemberships.userId, missingUsers));
-
-			for (const mem of memberRows) {
-				if (!userGroupLabels[mem.userId]) {
-					userGroupLabels[mem.userId] = mem.groupName;
-				}
-			}
-		}
-	}
-
-	const participantsUnsorted = goingRows.map((r) => {
-		const u = r.user;
-		return {
-			id: u.id,
-			name: u.name as string,
-			familyName: u.familyName as string,
-			profilePictureSmall: publicImageUrlFromKey(
-				u.profilePicture
-					? (u.profilePictureSmall ?? deriveThumbnailKey(u.profilePicture))
-					: null,
-			),
-			groupLabel: userGroupLabels[u.id] ?? null,
-			city: (u.city ?? null) as string | null,
-			country: (u.country ?? null) as string | null,
-			profileUrl: buildProfileUrl({
-				id: u.id,
-				name: u.name as string,
-				familyName: u.familyName as string,
-			}),
-		};
-	});
+	const participantsUnsorted = going.map((u) => ({
+		id: u.id,
+		name: u.name,
+		familyName: u.familyName,
+		profilePictureSmall: u.profilePictureSmallUrl,
+		groupLabel: userGroupLabels[u.id] ?? null,
+		city: u.city,
+		country: u.country,
+		profileUrl: buildProfileUrl(u),
+	}));
 
 	// Prioritise users who have a profile picture, shuffle within each group
 	const withPic = shuffle(

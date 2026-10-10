@@ -1,12 +1,14 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
+import { getCurrentUserData } from "~/core/auth/server-auth";
 import { postsService } from "~/core/content/posts.service";
 import { canonicalUrl, htmlToDescription } from "~/core/content/seo";
-import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
+import { publicImageUrlFromKey } from "~/core/media/images";
 import { formatUser } from "~/core/users/format";
 import { PostView } from "~theme/routes/posts/PostView";
 
-export const usePost = routeLoader$(async ({ params, status }) => {
+export const usePost = routeLoader$(async (event) => {
+	const { params, status } = event;
 	const { id } = params;
 
 	if (!id) {
@@ -15,8 +17,9 @@ export const usePost = routeLoader$(async ({ params, status }) => {
 	}
 
 	const post = await postsService.getById(id);
+	const viewer = await getCurrentUserData(event);
 
-	if (!post) {
+	if (!post || !(await postsService.canView(post, viewer))) {
 		status(404);
 		return null;
 	}
@@ -24,16 +27,10 @@ export const usePost = routeLoader$(async ({ params, status }) => {
 	// Resolve image URLs server-side
 	const featuredImageUrl = publicImageUrlFromKey(post.featuredImage);
 
-	let authorAvatarUrl: string | null = null;
-	if (post.user?.profilePicture) {
-		const thumbKey =
-			(post.user as { profilePictureSmall?: string | null })
-				.profilePictureSmall ?? deriveThumbnailKey(post.user.profilePicture);
-		authorAvatarUrl = publicImageUrlFromKey(thumbKey);
-	}
+	const authorAvatarUrl = post.user.profilePictureSmallUrl;
 
 	// Fetch related posts (recent, excluding this one)
-	const recentPosts = await postsService.getRecent(4);
+	const recentPosts = await postsService.getRecent(viewer?.id ?? null, 4);
 	const relatedPosts = recentPosts
 		.filter((p) => p.id !== id)
 		.slice(0, 3)

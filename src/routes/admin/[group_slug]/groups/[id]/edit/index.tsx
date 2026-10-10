@@ -4,8 +4,6 @@ import { Button } from "~/components/ui/Button";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
 import { getCurrentUserData } from "~/core/auth/server-auth";
-import { db } from "~/core/db/connection";
-import { groups } from "~/core/db/schema";
 import { publicImageUrlFromKey } from "~/core/media/images";
 import { geocodingService } from "~/core/scopes/geocoding.service";
 import { groupsService } from "~/core/scopes/groups.service";
@@ -20,9 +18,7 @@ export const useGlobalOnly = routeLoader$(async ({ params, redirect }) => {
 
 export const useGroupData = routeLoader$(async (event) => {
 	const { id } = event.params;
-	const group = await db.query.groups.findFirst({
-		where: { id },
-	});
+	const group = await groupsService.getById(id);
 	if (!group) {
 		throw event.error(404, "Group not found");
 	}

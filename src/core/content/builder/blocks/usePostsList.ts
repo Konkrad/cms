@@ -15,6 +15,7 @@ const fetchPosts = server$(async function (options: {
 
 	const session = await getServerSession(this as RequestEventCommon);
 	const res = await postsService.getAll(
+		session?.id ?? null,
 		options.limit,
 		options.cursor ?? null,
 		options.direction ?? "forward",

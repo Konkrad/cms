@@ -4,12 +4,10 @@ import {
 	routeAction$,
 	routeLoader$,
 } from "@qwik.dev/router";
-import { eq } from "drizzle-orm";
 import { getCurrentUserData } from "~/core/auth/server-auth";
+import { postsService } from "~/core/content/posts.service";
 import { canonicalUrl } from "~/core/content/seo";
-import { db } from "~/core/db/connection";
-import { groupMemberships, users } from "~/core/db/schema";
-import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
+import { publicImageUrlFromKey } from "~/core/media/images";
 import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
 import { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
 import { groupsService } from "~/core/scopes/groups.service";
@@ -23,42 +21,23 @@ export const useGroupData = routeLoader$(async (event) => {
 	if (!group) throw redirect(302, "/groups");
 
 	const user = await getCurrentUserData(event);
+	const [isMember, isRep] = user
+		? await Promise.all([
+				groupMembershipsService.isMember(user.id, group.id),
+				groupRepresentativesService.isRepresentative(user.id, group.id),
+			])
+		: [false, false];
+	// Group-only posts are for the group's members and representatives (and admins).
+	const canSeeGroupOnly = isMember || isRep || user?.role === "admin";
 
-	const [memberCount, rep, isMember, recentMembers, recentPosts, extras] =
+	const [memberCount, rep, recentMembers, recentPosts, extras] =
 		await Promise.all([
 			groupMembershipsService.countByGroupId(group.id),
 			groupRepresentativesService.getFirstRepresentativeWithUser(group.id),
-			user ? groupMembershipsService.isMember(user.id, group.id) : false,
-			db
-				.select({
-					id: users.id,
-					name: users.name,
-					familyName: users.familyName,
-					profilePicture: users.profilePicture,
-					profilePictureSmall: users.profilePictureSmall,
-				})
-				.from(groupMemberships)
-				.innerJoin(users, eq(groupMemberships.userId, users.id))
-				.where(eq(groupMemberships.groupId, group.id))
-				.limit(6),
-			db.query.posts.findMany({
-				with: { user: true },
-				where: {
-					groupId: group.id,
-					deletedAt: { isNull: true },
-				},
-				orderBy: { createdAt: "desc" },
-				limit: 3,
-			}) as unknown as Promise<
-				Array<{
-					id: string;
-					title: string;
-					body: string;
-					createdAt: string;
-					featuredImage: string | null;
-					user: { name: string; familyName: string };
-				}>
-			>,
+			groupMembershipsService.getSomeMembers(group.id, 6),
+			postsService.getRecentByGroup(group.id, 3, {
+				includeGroupOnly: canSeeGroupOnly,
+			}),
 			activeGroupExtras({ groupId: group.id, viewerId: user?.id ?? null }),
 		]);
 
@@ -69,18 +48,8 @@ export const useGroupData = routeLoader$(async (event) => {
 		? {
 				name: `${rep.user.name} ${rep.user.familyName}`,
 				subtitle: `Local Rep ${group.name}`,
-				profilePictureUrl: rep.user.profilePicture
-					? toPublicUrl(
-							(rep.user as { profilePictureSmall?: string | null })
-								.profilePictureSmall ??
-								deriveThumbnailKey(rep.user.profilePicture),
-						)
-					: null,
-				profileUrl: buildProfileUrl({
-					id: rep.userId,
-					name: rep.user.name,
-					familyName: rep.user.familyName,
-				}),
+				profilePictureUrl: rep.user.profilePictureSmallUrl,
+				profileUrl: buildProfileUrl(rep.user),
 			}
 		: null;
 
@@ -95,17 +64,8 @@ export const useGroupData = routeLoader$(async (event) => {
 			id: m.id,
 			name: m.name,
 			familyName: m.familyName,
-			profilePictureSmall: m.profilePicture
-				? toPublicUrl(
-						(m as { profilePictureSmall?: string | null })
-							.profilePictureSmall ?? deriveThumbnailKey(m.profilePicture),
-					)
-				: null,
-			profileUrl: buildProfileUrl({
-				id: m.id,
-				name: m.name,
-				familyName: m.familyName,
-			}),
+			profilePictureSmall: m.profilePictureSmallUrl,
+			profileUrl: buildProfileUrl(m),
 		})),
 		rep: repData,
 		isMember,

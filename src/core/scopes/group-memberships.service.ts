@@ -1,4 +1,5 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import { logins } from "~/core/auth/schema/logins";
 import { db } from "~/core/db/connection";
 import {
 	type GroupMembership,
@@ -6,6 +7,11 @@ import {
 	insertGroupMembershipSchema,
 } from "~/core/scopes/schema/group-memberships";
 import { type Group, groups } from "~/core/scopes/schema/groups";
+import {
+	type PublicUser,
+	publicUserThumbnailUrl,
+} from "~/core/users/public-user";
+import { users } from "~/core/users/schema";
 
 export const groupMembershipsService = {
 	async isMember(userId: string, groupId: string): Promise<boolean> {
@@ -54,12 +60,65 @@ export const groupMembershipsService = {
 		return results;
 	},
 
-	async getGroupMembers(groupId: string) {
-		const results = await db
-			.select()
+	/** Some members of a group, as public cards (name and public thumbnail only). */
+	async getSomeMembers(
+		groupId: string,
+		limit: number,
+	): Promise<Array<PublicUser & { profilePictureSmallUrl: string | null }>> {
+		const rows = await db
+			.select({
+				id: users.id,
+				name: users.name,
+				familyName: users.familyName,
+				profilePicture: users.profilePicture,
+				profilePictureSmall: users.profilePictureSmall,
+			})
 			.from(groupMemberships)
-			.where(eq(groupMemberships.groupId, groupId));
-		return results;
+			.innerJoin(users, eq(groupMemberships.userId, users.id))
+			.where(eq(groupMemberships.groupId, groupId))
+			.limit(limit);
+		return rows.map(({ profilePicture, profilePictureSmall, ...user }) => ({
+			...user,
+			profilePictureSmallUrl: publicUserThumbnailUrl({
+				profilePicture,
+				profilePictureSmall,
+			}),
+		}));
+	},
+
+	/**
+	 * PRIVATE: a group's members with their login email and platform role, for the
+	 * global admin members page only. Public pages use `getSomeMembers`.
+	 */
+	async getMembersWithEmailAndRole(groupId: string) {
+		return db
+			.select({
+				id: users.id,
+				name: users.name,
+				familyName: users.familyName,
+				email: logins.email,
+				role: users.role,
+				city: users.city,
+				country: users.country,
+				joinedAt: groupMemberships.joinedAt,
+			})
+			.from(groupMemberships)
+			.innerJoin(users, eq(groupMemberships.userId, users.id))
+			.leftJoin(logins, eq(logins.id, users.loginId))
+			.where(eq(groupMemberships.groupId, groupId))
+			.orderBy(groupMemberships.joinedAt);
+	},
+
+	/** Member count per group id (groups without members are absent). */
+	async countAllByGroup(): Promise<Map<string, number>> {
+		const rows = await db
+			.select({
+				groupId: groupMemberships.groupId,
+				count: sql<number>`count(*)`.as("count"),
+			})
+			.from(groupMemberships)
+			.groupBy(groupMemberships.groupId);
+		return new Map(rows.map((r) => [r.groupId, r.count]));
 	},
 
 	async countByGroupId(groupId: string): Promise<number> {

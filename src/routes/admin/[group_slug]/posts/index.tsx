@@ -1,16 +1,12 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, Link, routeAction$, routeLoader$ } from "@qwik.dev/router";
 import { format } from "date-fns";
-import { and, desc, eq, isNull, like, or, sql } from "drizzle-orm";
 import { Button } from "~/components/ui/Button";
 import { PAGE_SIZE, Pagination } from "~/core/admin/Pagination/Pagination";
 import { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 import { postsService } from "~/core/content/posts.service";
-import { posts } from "~/core/content/schema/posts";
-import { db } from "~/core/db/connection";
 import { requireGroupAdmin } from "~/core/scopes/access-control";
 import { groupsService } from "~/core/scopes/groups.service";
-import { users as usersTable } from "~/core/users/schema";
 
 export const usePosts = routeLoader$(async ({ params, url }) => {
 	const groupSlug = params.group_slug;
@@ -21,39 +17,12 @@ export const usePosts = routeLoader$(async ({ params, url }) => {
 	const group =
 		groupSlug !== "global" ? await groupsService.getBySlug(groupSlug) : null;
 
-	const where = and(
-		isNull(posts.deletedAt),
-		group ? eq(posts.groupId, group.id) : undefined,
-		search ? or(like(posts.title, `%${search}%`)) : undefined,
-	);
-
-	const [countRows, rawItems] = await Promise.all([
-		db.select({ total: sql<number>`COUNT(*)` }).from(posts).where(where),
-		db
-			.select({
-				id: posts.id,
-				title: posts.title,
-				body: posts.body,
-				createdAt: posts.createdAt,
-				userName: usersTable.name,
-				userFamilyName: usersTable.familyName,
-			})
-			.from(posts)
-			.leftJoin(usersTable, eq(posts.userId, usersTable.id))
-			.where(where)
-			.orderBy(desc(posts.createdAt))
-			.limit(PAGE_SIZE)
-			.offset(offset),
-	]);
-
-	const total = Number(countRows[0]?.total ?? 0);
-	const items = rawItems.map((r) => ({
-		id: r.id,
-		title: r.title,
-		body: r.body,
-		createdAt: r.createdAt,
-		user: { name: r.userName ?? "", familyName: r.userFamilyName ?? "" },
-	}));
+	const { total, items } = await postsService.adminList({
+		groupId: group?.id ?? null,
+		search,
+		limit: PAGE_SIZE,
+		offset,
+	});
 
 	return { posts: items, total, page, pageSize: PAGE_SIZE, search, groupSlug };
 });

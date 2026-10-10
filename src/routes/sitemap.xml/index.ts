@@ -1,8 +1,6 @@
 import type { RequestHandler } from "@qwik.dev/router";
-import { and, eq } from "drizzle-orm";
+import { pagesService } from "~/core/content/pages.service";
 import { postsService } from "~/core/content/posts.service";
-import { db } from "~/core/db/connection";
-import { menuItems, pages } from "~/core/db/schema";
 import { activeModules } from "~/core/registry/manifests";
 import { sitemapEntriesOf } from "~/core/router/modules";
 import { groupsService } from "~/core/scopes/groups.service";
@@ -45,11 +43,7 @@ export const onGet: RequestHandler = async ({
 
 	const entries: SitemapEntry[] = [{ loc: env.APP_URL }];
 
-	const publishedPages = await db
-		.select({ url: menuItems.url, updatedAt: pages.updatedAt })
-		.from(pages)
-		.innerJoin(menuItems, eq(menuItems.pageId, pages.id))
-		.where(and(eq(pages.status, "published"), eq(menuItems.status, "visible")));
+	const publishedPages = await pagesService.getPublishedUrls();
 	for (const page of publishedPages) {
 		entries.push({
 			loc: new URL(page.url, env.APP_URL).toString(),
@@ -59,7 +53,7 @@ export const onGet: RequestHandler = async ({
 
 	let postsCursor: string | null | undefined = null;
 	do {
-		const result = await postsService.getAll(100, postsCursor, "forward");
+		const result = await postsService.getAll(null, 100, postsCursor, "forward");
 		for (const post of result.items) {
 			if (post.visibility !== "global") continue;
 			entries.push({

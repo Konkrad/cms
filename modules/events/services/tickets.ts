@@ -1,7 +1,6 @@
 import crypto from "crypto";
 import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
-import { db } from "~/core";
-import type { users } from "~/core/schema";
+import { db, type PublicUser, publicUserColumns, usersService } from "~/core";
 import type { events } from "../schema/events";
 import type { products } from "../schema/products";
 import type { ticketParticipants } from "../schema/ticket-participants";
@@ -13,6 +12,22 @@ import {
 	updateTicketSchema,
 } from "../schema/tickets";
 import { transactions } from "../schema/transactions";
+
+/** A ticket buyer's public identity plus their login email (admin-only shapes). */
+export type BuyerWithEmail = PublicUser & { email: string | null };
+
+/** Attaches each buyer's login email (resolved server-side from the buyer id). */
+async function withBuyerEmails<T extends { buyer: PublicUser }>(
+	rows: T[],
+): Promise<Array<Omit<T, "buyer"> & { buyer: BuyerWithEmail }>> {
+	const emails = await usersService.getEmailsByIds([
+		...new Set(rows.map((r) => r.buyer.id)),
+	]);
+	return rows.map((r) => ({
+		...r,
+		buyer: { ...r.buyer, email: emails.get(r.buyer.id) ?? null },
+	}));
+}
 
 export const ticketsService = {
 	async create(data: InsertTicket): Promise<Ticket> {
@@ -37,7 +52,7 @@ export const ticketsService = {
 
 	async getById(id: string): Promise<
 		| (Ticket & {
-				buyer: typeof users.$inferSelect;
+				buyer: PublicUser;
 				product: typeof products.$inferSelect;
 				event: typeof events.$inferSelect;
 				participants: Array<typeof ticketParticipants.$inferSelect>;
@@ -47,7 +62,7 @@ export const ticketsService = {
 		const result = await db.query.tickets.findFirst({
 			where: { id },
 			with: {
-				buyer: true,
+				buyer: { columns: publicUserColumns },
 				product: true,
 				event: true,
 				participants: {
@@ -69,7 +84,7 @@ export const ticketsService = {
 
 	async getByQrCodeUuid(qrCodeUuid: string): Promise<
 		| (Ticket & {
-				buyer: typeof users.$inferSelect;
+				buyer: PublicUser;
 				product: typeof products.$inferSelect;
 				event: typeof events.$inferSelect;
 		  })
@@ -78,7 +93,7 @@ export const ticketsService = {
 		const result = await db.query.tickets.findFirst({
 			where: { qrCodeUuid },
 			with: {
-				buyer: true,
+				buyer: { columns: publicUserColumns },
 				product: true,
 				event: true,
 			},
@@ -86,10 +101,14 @@ export const ticketsService = {
 		return result as any;
 	},
 
-	async getByEventId(eventId: string): Promise<
+	/**
+	 * PRIVATE: an event's tickets with the buyer's login email, for the admin tickets
+	 * page only (admins search tickets by buyer email).
+	 */
+	async getByEventIdWithBuyerEmail(eventId: string): Promise<
 		Array<
 			Ticket & {
-				buyer: typeof users.$inferSelect;
+				buyer: BuyerWithEmail;
 				product: typeof products.$inferSelect;
 			}
 		>
@@ -97,11 +116,11 @@ export const ticketsService = {
 		const results = await db.query.tickets.findMany({
 			where: { eventId },
 			with: {
-				buyer: true,
+				buyer: { columns: publicUserColumns },
 				product: true,
 			},
 		});
-		return results as any;
+		return withBuyerEmails(results as any) as any;
 	},
 
 	async getByBuyerId(buyerId: string): Promise<
@@ -182,6 +201,20 @@ export const ticketsService = {
 		};
 	},
 
+	/** Whether a user holds a ticket for an event, and whether one of them was scanned. */
+	async getViewerTicketState(
+		eventId: string,
+		userId: string,
+	): Promise<{ hasTicket: boolean; hasAttended: boolean }> {
+		const [ticket, scanned] = await Promise.all([
+			db.query.tickets.findFirst({ where: { eventId, buyerId: userId } }),
+			db.query.tickets.findFirst({
+				where: { eventId, buyerId: userId, scannedAt: { isNotNull: true } },
+			}),
+		]);
+		return { hasTicket: !!ticket, hasAttended: !!scanned };
+	},
+
 	async getAttendanceStats(eventId: string): Promise<{
 		totalTickets: number;
 		scannedTickets: number;
@@ -212,10 +245,11 @@ export const ticketsService = {
 		};
 	},
 
-	async getAttendedTickets(eventId: string): Promise<
+	/** PRIVATE: scanned tickets with the buyer's login email, for the admin attendance page only. */
+	async getAttendedTicketsWithBuyerEmail(eventId: string): Promise<
 		Array<
 			Ticket & {
-				buyer: typeof users.$inferSelect;
+				buyer: BuyerWithEmail;
 				product: typeof products.$inferSelect;
 				participants: Array<typeof ticketParticipants.$inferSelect>;
 			}
@@ -227,14 +261,14 @@ export const ticketsService = {
 				scannedAt: { isNotNull: true },
 			},
 			with: {
-				buyer: true,
+				buyer: { columns: publicUserColumns },
 				product: true,
 				participants: {
 					orderBy: { participantOrder: "asc" },
 				},
 			},
 		});
-		return results as any;
+		return withBuyerEmails(results as any) as any;
 	},
 
 	async createFreeTicket(data: {

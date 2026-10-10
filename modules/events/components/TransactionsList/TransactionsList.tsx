@@ -1,11 +1,10 @@
 import { component$ } from "@qwik.dev/core";
-import type { users } from "~/core/schema";
 import type { products, transactionItems } from "../../schema";
 import type { Transaction } from "../../schema/transactions";
 import TransactionCard from "../TransactionCard/TransactionCard";
 
 interface TransactionWithDetails extends Transaction {
-	user: typeof users.$inferSelect;
+	user: { id: string; name: string; familyName: string; email: string | null };
 	items: Array<
 		typeof transactionItems.$inferSelect & {
 			product: typeof products.$inferSelect;

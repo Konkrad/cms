@@ -1,6 +1,11 @@
 import crypto from "crypto";
 import { and, eq, or } from "drizzle-orm";
-import { db, membershipsService, type User } from "~/core";
+import {
+	db,
+	membershipsService,
+	type PublicUser,
+	publicUserColumns,
+} from "~/core";
 import {
 	type ElectionApplication,
 	electionApplications,
@@ -31,11 +36,11 @@ export type ElectionCycleWithPositions = ElectionCycle & {
 };
 
 export type ElectionApplicationWithUser = ElectionApplication & {
-	user: User;
+	user: PublicUser;
 };
 
 export type ElectionApplicationWithDetails = ElectionApplication & {
-	user: User;
+	user: PublicUser;
 	position: ElectionPosition;
 	cycle: ElectionCycle;
 };
@@ -44,7 +49,7 @@ export type ElectionApplicationPublic = Omit<
 	ElectionApplication,
 	"adminNote"
 > & {
-	user: User;
+	user: PublicUser;
 	position: ElectionPosition;
 };
 
@@ -197,7 +202,7 @@ export const electionsService = {
 		const rows = await db.query.electionApplications.findMany({
 			where: { cycleId },
 			orderBy: { createdAt: "asc" },
-			with: { user: true, position: true },
+			with: { user: { columns: publicUserColumns }, position: true },
 		});
 		return rows as ElectionApplicationWithUser[];
 	},
@@ -208,7 +213,7 @@ export const electionsService = {
 		const rows = await db.query.electionApplications.findMany({
 			where: { cycleId },
 			orderBy: { createdAt: "asc" },
-			with: { user: true, position: true },
+			with: { user: { columns: publicUserColumns }, position: true },
 		});
 		return (rows as any[])
 			.filter((r) => r.status === "approved")

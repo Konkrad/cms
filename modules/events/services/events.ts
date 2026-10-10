@@ -5,9 +5,11 @@ import {
 	gte,
 	inArray,
 	isNull,
+	like,
 	lt,
 	or,
 	type SQL,
+	sql,
 } from "drizzle-orm";
 import {
 	createCursorFromItem,
@@ -15,18 +17,20 @@ import {
 	decodeCursor,
 	getNextCursorFromRows,
 	groupMembershipsService,
+	type PublicUser,
+	publicUserColumns,
+	publicUserSelect,
 } from "~/core";
-import { logins, users as usersTable } from "~/core/schema";
+import { users as usersTable } from "~/core/schema";
 import type { Event, InsertEvent, UpdateEvent } from "../schema/events";
 import { events, insertEventSchema, updateEventSchema } from "../schema/events";
 import { inventoryGroups } from "../schema/inventory-groups";
 import { products } from "../schema/products";
 
+/** An event with its organizer's public identity (never the organizer's email or profile row). */
 export type EventWithUser = Event & {
-	user: User & { email?: string };
+	user: PublicUser;
 };
-
-import type { User } from "~/core/schema";
 
 export const eventsService = {
 	async getAll(
@@ -37,7 +41,7 @@ export const eventsService = {
 
 		const results = await db.query.events.findMany({
 			with: {
-				user: true,
+				user: { columns: publicUserColumns },
 			},
 			orderBy: { createdAt: "desc", id: "desc" },
 			limit: limit + 1,
@@ -197,36 +201,11 @@ export const eventsService = {
 				deletedAt: { isNull: true },
 			},
 			with: {
-				user: true,
+				user: { columns: publicUserColumns },
 			},
 		})) as any;
 
-		if (!result) return undefined;
-
-		// Attempt to resolve organizer email from the logins table (if available)
-		let organizerEmail: string | undefined;
-		try {
-			if (result.user?.loginId) {
-				const [login] = await db
-					.select()
-					.from(logins)
-					.where(eq(logins.id, result.user.loginId));
-				if (login?.email) {
-					organizerEmail = login.email;
-				}
-			}
-		} catch {
-			// If something goes wrong when fetching the login/email, don't fail the whole request.
-			// We simply return the event without an email field populated.
-		}
-
-		return {
-			...result,
-			user: {
-				...result.user,
-				email: organizerEmail,
-			},
-		} as EventWithUser;
+		return result as EventWithUser | undefined;
 	},
 
 	async create(data: InsertEvent): Promise<Event> {
@@ -360,7 +339,7 @@ export const eventsService = {
 		}
 
 		const results = await db
-			.select({ event: events, user: usersTable })
+			.select({ event: events, user: publicUserSelect })
 			.from(events)
 			.innerJoin(usersTable, eq(events.userId, usersTable.id))
 			.where(
@@ -392,6 +371,59 @@ export const eventsService = {
 				user: row.user,
 			})) as EventWithUser[],
 			nextCursor: nextCursor ?? null,
+		};
+	},
+
+	/** Admin event list (title/city search, optional group filter) with the organizer's name. */
+	async adminList({
+		groupId,
+		search,
+		limit,
+		offset,
+	}: {
+		groupId: string | null;
+		search: string;
+		limit: number;
+		offset: number;
+	}) {
+		const where = and(
+			isNull(events.deletedAt),
+			groupId ? eq(events.groupId, groupId) : undefined,
+			search
+				? or(
+						like(events.title, `%${search}%`),
+						like(events.city, `%${search}%`),
+					)
+				: undefined,
+		);
+		const [countRows, rows] = await Promise.all([
+			db.select({ total: sql<number>`COUNT(*)` }).from(events).where(where),
+			db
+				.select({
+					id: events.id,
+					title: events.title,
+					startDate: events.startDate,
+					visibility: events.visibility,
+					groupId: events.groupId,
+					userName: usersTable.name,
+					userFamilyName: usersTable.familyName,
+				})
+				.from(events)
+				.leftJoin(usersTable, eq(events.userId, usersTable.id))
+				.where(where)
+				.orderBy(desc(events.startDate))
+				.limit(limit)
+				.offset(offset),
+		]);
+		return {
+			total: Number(countRows[0]?.total ?? 0),
+			items: rows.map((e) => ({
+				id: e.id,
+				title: e.title,
+				startDate: e.startDate,
+				visibility: e.visibility,
+				organizerName: `${e.userName ?? ""} ${e.userFamilyName ?? ""}`.trim(),
+			})),
 		};
 	},
 

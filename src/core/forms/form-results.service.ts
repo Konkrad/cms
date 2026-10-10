@@ -60,26 +60,6 @@ export const formResultsService = {
 		});
 	},
 
-	async getByFormWithUser(
-		formId: string,
-	): Promise<
-		Array<FormResult & { userLoginId: string | null; userName: string | null }>
-	> {
-		const rows = (await db.query.formResults.findMany({
-			where: { formId },
-			with: {
-				user: true,
-			},
-			orderBy: { submittedAt: "desc" },
-		})) as any[];
-
-		return rows.map((row) => ({
-			...row,
-			userLoginId: row.user?.loginId || null,
-			userName: row.user?.name || null,
-		}));
-	},
-
 	async create(data: InsertFormResult): Promise<FormResult> {
 		const parsed = insertFormResultSchema.parse(data);
 		const [created] = await db

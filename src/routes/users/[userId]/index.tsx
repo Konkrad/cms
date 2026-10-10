@@ -1,12 +1,8 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
-import { eq } from "drizzle-orm";
-import { logins } from "~/core/auth/schema/logins";
 import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
-import { db } from "~/core/db/connection";
 import { formResultsService } from "~/core/forms/form-results.service";
 import { buildFormPath } from "~/core/forms/forms";
-import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
 import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
 import { formatAffiliationResultJson } from "~/core/users/affiliation";
 import { usersService } from "~/core/users/users.service";
@@ -17,7 +13,7 @@ export const usePublicProfile = routeLoader$(async (event) => {
 	await requireAuth(event);
 
 	const uuid = event.params.userId.substring(0, 36);
-	const user = await usersService.getById(uuid);
+	const user = await usersService.getPublicProfile(uuid);
 
 	if (!user) {
 		event.status(404);
@@ -27,18 +23,10 @@ export const usePublicProfile = routeLoader$(async (event) => {
 	const currentUser = await getCurrentUserData(event);
 	const isOwner = currentUser?.id === user.id;
 
-	let email: string | null = null;
-	if (isOwner && user.loginId) {
-		const [row] = await db
-			.select()
-			.from(logins)
-			.where(eq(logins.id, user.loginId));
-		if (row?.email) email = row.email;
-	}
-
-	const buildPicUrl = (key: string | null) => publicImageUrlFromKey(key);
-
-	const isAdmin = currentUser?.role === "admin";
+	// The owner's own private details; never loaded for another viewer.
+	const ownDetails = isOwner
+		? await usersService.getOwnPrivateDetails(user.id)
+		: null;
 
 	const { userTagsService } = await import("~/core/tags/user-tags.service");
 	const [groups, tags, submittedFormRows, extras] = await Promise.all([
@@ -79,24 +67,16 @@ export const usePublicProfile = routeLoader$(async (event) => {
 		...extras,
 		name: user.name,
 		familyName: user.familyName,
-		role: user.role,
-		city: user.city ?? null,
-		country: user.country ?? null,
-		profilePictureUrl: buildPicUrl(
-			user.profilePicture
-				? ((user as any).profilePictureSmall ??
-						deriveThumbnailKey(user.profilePicture))
-				: null,
-		),
+		city: user.city,
+		country: user.country,
+		profilePictureUrl: user.profilePictureSmallUrl,
 		tags: tags.map((t) => ({ id: t.id, label: t.label })),
 		communities: groups.map((g) => ({ name: g.name, slug: g.slug })),
 		// Sections of modules that are not active fall back to empty.
 		upcomingEvents: extras.upcomingEvents ?? [],
 		pastEvents: extras.pastEvents ?? [],
 		isOwner,
-		email: isOwner ? email : null,
-		yearOfBirth: isOwner ? (user.yearOfBirth ?? null) : null,
-		sex: isOwner ? (user.sex ?? null) : null,
+		...(ownDetails ?? {}),
 		affiliationEntries: (() => {
 			const onboarding = submittedFormRows.find(
 				(s) => s.formSlug === "onboarding",

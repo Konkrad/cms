@@ -7,9 +7,9 @@
  * or reaching into services. `import type` only — these carry no runtime code.
  */
 
+import type { PostWithUser } from "~/core/content/posts.service";
 import type { UserWithDisplayName } from "~/core/users/format";
 import type { usePost } from "~/routes/posts/[id]";
-import type { PostWithUser } from "~/services/posts.service";
 
 /** Non-null data passed to the themed single-post view. */
 export type PostViewData = NonNullable<ReturnType<typeof usePost>["value"]>;
@@ -20,14 +20,14 @@ export type BlockPost = Omit<PostWithUser, "featuredImage" | "user"> & {
 	user: UserWithDisplayName;
 };
 
-/** Post list page as returned by `~/components/builder/blocks/usePostsList`. */
+/** Post list page as returned by `~/core/content/builder/blocks/usePostsList`. */
 export type PostsPage = {
 	items: BlockPost[];
 	nextCursor: string | null;
 	prevCursor: string | null;
 };
 
-/** Hero post as returned by `~/components/builder/blocks/useHeroSection`. */
+/** Hero post as returned by `~/core/content/builder/blocks/useHeroSection`. */
 export type HeroPost = Omit<PostWithUser, "featuredImage"> & {
 	featuredImageUrl: string | null;
 };

@@ -6,6 +6,7 @@ import {
 } from "@qwik.dev/router";
 import { eq } from "drizzle-orm";
 import { getCurrentUserData } from "~/core/auth/server-auth";
+import { canonicalUrl } from "~/core/content/seo";
 import { db } from "~/core/db/connection";
 import { groupMemberships, users } from "~/core/db/schema";
 import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
@@ -13,7 +14,6 @@ import { groupRepresentativesService } from "~/core/scopes/group-representatives
 import { groupsService } from "~/core/scopes/groups.service";
 import { buildProfileUrl } from "~/core/users/format";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
-import { canonicalUrl } from "~/utils/seo";
 import { GroupView } from "~theme/routes/groups/GroupView";
 import { activeGroupExtras } from "../../../core/registry/manifests";
 

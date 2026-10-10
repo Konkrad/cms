@@ -1,7 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
 import type { ArchivePostsViewData } from "~/contracts/archive-posts";
-import { formatPostDate, toPlainText } from "~/utils/posts";
+import { formatPostDate, toPlainText } from "~/core/content/posts";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 
 /** Themed view shared by `/archive/posts` and `/archive/posts/[page]`. */

@@ -1,10 +1,10 @@
 import { $, component$, type QRL, useSignal, useTask$ } from "@qwik.dev/core";
-import { GridLayoutEditor } from "~/components/builder/GridLayoutEditor";
-import { TileEditor } from "~/components/builder/TileEditor";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { TextArea } from "~/components/ui/TextArea";
+import { GridLayoutEditor } from "~/core/content/builder/GridLayoutEditor";
+import { TileEditor } from "~/core/content/builder/TileEditor";
 import type { BlockData, BlockDefinition } from "~/core/db/schema";
 import { publicImageUrlFromKey } from "~/utils/images";
 

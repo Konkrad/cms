@@ -1,7 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
-import { BlockRenderer } from "~/components/builder/BlockRenderer";
 import type { PageViewData } from "~/contracts/page";
+import { BlockRenderer } from "~/core/content/builder/BlockRenderer";
 
 /** Themed view for the CMS pages (catch-all route `/[...path]`). */
 export const PageView = component$<{ page: PageViewData }>(({ page }) => {

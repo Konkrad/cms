@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
-import { useGroupsList } from "~/components/builder/blocks/useGroupsList";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { useGroupsList } from "~/core/content/builder/blocks/useGroupsList";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 

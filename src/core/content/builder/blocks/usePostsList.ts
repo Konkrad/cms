@@ -9,7 +9,7 @@ const fetchPosts = server$(async function (options: {
 	cursor?: string | null;
 	direction?: "forward" | "backward";
 }): Promise<PostsPage> {
-	const { postsService } = await import("~/services/posts.service");
+	const { postsService } = await import("~/core/content/posts.service");
 	const { getServerSession } = await import("~/core/auth/server-auth");
 	const { formatUser } = await import("~/core/users/format");
 

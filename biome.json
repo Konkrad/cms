@@ -7,7 +7,11 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"includes": ["**", "!drizzle", "!src/components/editor/koenig-lexical.css"]
+		"includes": [
+			"**",
+			"!drizzle",
+			"!src/core/content/editor/koenig-lexical.css"
+		]
 	},
 	"formatter": {
 		"enabled": true,
@@ -47,7 +51,7 @@
 								"patterns": [
 									{
 										"group": ["~/services/**", "~/core/*/*.service"],
-										"message": "theme must not import core services directly — add or use a headless composable in ~/components/builder/blocks/* instead."
+										"message": "theme must not import core services directly — add or use a headless composable in ~/core/content/builder/blocks/* instead."
 									},
 									{
 										"group": [

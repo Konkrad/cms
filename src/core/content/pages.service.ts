@@ -1,10 +1,10 @@
 import crypto from "crypto";
 import { desc, eq, lt } from "drizzle-orm";
+import type { MenuItem } from "~/core/content/schema/menu-items";
+import { menuItems } from "~/core/content/schema/menu-items";
+import type { InsertPage, Page, UpdatePage } from "~/core/content/schema/pages";
+import { pages } from "~/core/content/schema/pages";
 import { db } from "~/core/db/connection";
-import type { MenuItem } from "~/db/schemas/menu-items";
-import { menuItems } from "~/db/schemas/menu-items";
-import type { InsertPage, Page, UpdatePage } from "~/db/schemas/pages";
-import { pages } from "~/db/schemas/pages";
 import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
 
 export type PageWithMenuItem = Page & {

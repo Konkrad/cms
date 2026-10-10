@@ -1,5 +1,5 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
-import { pagesService } from "~/services/pages.service";
+import { pagesService } from "~/core/content/pages.service";
 
 /** Published CMS page at `url`, or null with a 404 status (server only). */
 export async function loadCmsPage(

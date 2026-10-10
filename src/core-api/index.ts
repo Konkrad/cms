@@ -37,7 +37,7 @@ export { userTagsService } from "~/core/tags/user-tags.service";
 export { usersService } from "~/core/users/users.service";
 export { requireGroupAdmin } from "~/core/scopes/access-control";
 export { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
-export { sanitizeRichHtml } from "~/utils/sanitize-html";
+export { sanitizeRichHtml } from "~/core/content/sanitize-html";
 export {
 	generatePresignedGetUrl,
 	generateSecurePhotoUrl,

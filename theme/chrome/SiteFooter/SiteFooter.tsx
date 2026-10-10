@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { FooterMenuItems } from "~/contracts/layout";
-import { sanitizeSvg } from "~/utils/svg-sanitize";
+import { sanitizeSvg } from "~/core/content/svg-sanitize";
 
 /**
  * Themed site footer. Receives footer menu items as a prop from

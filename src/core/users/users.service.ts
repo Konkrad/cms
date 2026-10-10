@@ -1,4 +1,5 @@
 import { desc, eq, inArray, lt } from "drizzle-orm";
+import type { Post } from "~/core/content/schema/posts";
 import { db } from "~/core/db/connection";
 import type { InsertUser, UpdateUser, User } from "~/core/db/schema";
 import {
@@ -7,7 +8,6 @@ import {
 	updateUserSchema,
 	users,
 } from "~/core/db/schema";
-import type { Post } from "~/db/schemas/posts";
 import { decodeCursor, getNextCursorFromRows } from "~/services/pagination";
 
 export type UserWithPosts = User & {

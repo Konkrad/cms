@@ -8,12 +8,12 @@ import {
 } from "~/components/admin/Pagination/Pagination";
 import { SearchBar } from "~/components/admin/SearchBar/SearchBar";
 import { Button } from "~/components/ui/Button";
+import { postsService } from "~/core/content/posts.service";
+import { posts } from "~/core/content/schema/posts";
 import { db } from "~/core/db/connection";
 import { requireGroupAdmin } from "~/core/scopes/access-control";
 import { groupsService } from "~/core/scopes/groups.service";
 import { users as usersTable } from "~/core/users/schema";
-import { posts } from "~/db/schemas/posts";
-import { postsService } from "~/services/posts.service";
 
 export const usePosts = routeLoader$(async ({ params, url }) => {
 	const groupSlug = params.group_slug;

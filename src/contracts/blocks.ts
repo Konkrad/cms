@@ -8,4 +8,4 @@ export type {
 	BlockData,
 	BlockDefinition,
 	FieldDefinition,
-} from "~/db/schemas/shared";
+} from "~/core/content/schema/shared";

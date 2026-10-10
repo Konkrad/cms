@@ -9,7 +9,7 @@ import type { useGroupData, useJoinGroup } from "~/routes/groups/[slug]";
 export type GroupViewData = ReturnType<typeof useGroupData>["value"];
 export type JoinGroupAction = ReturnType<typeof useJoinGroup>;
 
-/** Group list item as returned by `~/components/builder/blocks/useGroupsList`. */
+/** Group list item as returned by `~/core/content/builder/blocks/useGroupsList`. */
 export type GroupListItem = Group & { memberCount: number };
 
 /** One upcoming event on a group page. */

@@ -1,7 +1,7 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
-import { useHeroSection } from "~/components/builder/blocks/useHeroSection";
 import { Button } from "~/components/ui/Button";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { useHeroSection } from "~/core/content/builder/blocks/useHeroSection";
 import "./HeroSectionBlock.css";
 
 export const definition: BlockDefinition = {

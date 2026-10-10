@@ -1,7 +1,7 @@
 import { component$ } from "@qwik.dev/core";
-import { usePostsList } from "~/components/builder/blocks/usePostsList";
 import { CursorPager } from "~/components/ui/CursorPager";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { usePostsList } from "~/core/content/builder/blocks/usePostsList";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 
 interface PostsListBlockProps {

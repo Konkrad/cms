@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeRichHtml } from "~/utils/sanitize-html";
+import { sanitizeRichHtml } from "~/core/content/sanitize-html";
 
 describe("sanitizeRichHtml", () => {
 	it("removes <script> tags", () => {

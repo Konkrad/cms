@@ -9,18 +9,22 @@ import {
 	type SQL,
 	sql,
 } from "drizzle-orm";
+import { sanitizeRichHtml } from "~/core/content/sanitize-html";
+import type { InsertPost, Post, UpdatePost } from "~/core/content/schema/posts";
+import {
+	insertPostSchema,
+	posts,
+	updatePostSchema,
+} from "~/core/content/schema/posts";
 import { db } from "~/core/db/connection";
 import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
 import { users as usersTable } from "~/core/users/schema";
-import type { InsertPost, Post, UpdatePost } from "~/db/schemas/posts";
-import { insertPostSchema, posts, updatePostSchema } from "~/db/schemas/posts";
 import {
 	decodeCursor,
 	getNextCursorFromRows,
 	type PageDirection,
 	paginateRows,
 } from "~/services/pagination";
-import { sanitizeRichHtml } from "~/utils/sanitize-html";
 
 export type PostWithUser = Post & {
 	user: User;

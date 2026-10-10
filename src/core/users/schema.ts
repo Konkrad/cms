@@ -47,9 +47,9 @@ export const usersRelations = relations(users, ({ many }) => ({
 	sessions: many(sessions),
 }));
 
-// Import for relations - placed after table definition to avoid circular dependency issues
-import { posts } from "../../db/schemas/posts";
 import { sessions } from "../auth/schema/sessions";
+// Import for relations - placed after table definition to avoid circular dependency issues
+import { posts } from "../content/schema/posts";
 
 const baseInsertSchema = createInsertSchema(users);
 const baseSelectSchema = createSelectSchema(users);

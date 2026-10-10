@@ -3,7 +3,7 @@
 import { DragDropProvider, useDraggable, useDroppable } from "@dnd-kit/react";
 import type React from "react";
 import { useCallback, useRef, useState } from "react";
-import { sanitizeSvg } from "~/utils/svg-sanitize";
+import { sanitizeSvg } from "~/core/content/svg-sanitize";
 
 const normalizeUrl = (url: string): string => {
 	const trimmed = url.trim();

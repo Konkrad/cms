@@ -1,12 +1,12 @@
 import { $, component$ } from "@qwik.dev/core";
 import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
-import { MenuTable } from "~/components/admin/MenuTable/MenuTable";
 import { Button } from "~/components/ui/Button";
 import { requireAdmin } from "~/core/auth/server-auth";
-import type { MenuItem } from "~/db/schemas/menu-items";
-import { menuItemsService } from "~/services/menu-items.service";
-import { getStaticMenuLinks } from "~/services/static-menu-links";
-import { sanitizeSvg } from "~/utils/svg-sanitize";
+import { MenuTable } from "~/core/content/admin/MenuTable/MenuTable";
+import { menuItemsService } from "~/core/content/menu-items.service";
+import type { MenuItem } from "~/core/content/schema/menu-items";
+import { getStaticMenuLinks } from "~/core/content/static-menu-links";
+import { sanitizeSvg } from "~/core/content/svg-sanitize";
 
 // Pages are only accessible in global context
 export const useCheckGlobalContext = routeLoader$(

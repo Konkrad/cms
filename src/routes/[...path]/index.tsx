@@ -1,14 +1,14 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import type { PageViewData } from "~/contracts/page";
-import { loadCmsPage } from "~/core/cms-page";
+import { loadCmsPage } from "~/core/content/cms-page";
+import type { BlockData } from "~/core/content/schema/shared";
+import { canonicalUrl, htmlToDescription } from "~/core/content/seo";
 import { matchPage } from "~/core/router/pages";
 import {
 	currentScopePath,
 	currentScopeRest,
 } from "~/core/router/scope-request";
-import type { BlockData } from "~/db/schemas/shared";
-import { canonicalUrl, htmlToDescription } from "~/utils/seo";
 import { PageView } from "~theme/routes/page/PageView";
 import { modulePages } from "../../core/registry/manifests";
 import { moduleViews } from "../../core/registry/views";

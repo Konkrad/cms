@@ -1,13 +1,13 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { VisibilitySelector } from "~/components/admin/VisibilitySelector";
-import { BlockNoteEditor } from "~/components/editor";
 import { Button } from "~/components/ui/Button";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
 import { getCurrentUserData } from "~/core/auth/server-auth";
+import { BlockNoteEditor } from "~/core/content/editor";
+import { postsService } from "~/core/content/posts.service";
 import { groupsService } from "~/core/scopes/groups.service";
-import { postsService } from "~/services/posts.service";
 
 export const useGroupContext = routeLoader$(async ({ params }) => {
 	const groupSlug = params.group_slug;

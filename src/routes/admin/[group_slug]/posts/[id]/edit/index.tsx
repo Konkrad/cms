@@ -1,10 +1,10 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
-import { BlockNoteEditor } from "~/components/editor";
 import { Button } from "~/components/ui/Button";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
-import { postsService } from "~/services/posts.service";
+import { BlockNoteEditor } from "~/core/content/editor";
+import { postsService } from "~/core/content/posts.service";
 import { publicImageUrlFromKey } from "~/utils/images";
 
 const updateSchema = z.object({

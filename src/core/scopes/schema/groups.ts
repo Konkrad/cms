@@ -25,7 +25,7 @@ export const groupsRelations = relations(groups, ({ many }) => ({
 	posts: many(posts),
 }));
 
-import { posts } from "../../../db/schemas/posts";
+import { posts } from "../../content/schema/posts";
 // Import for relations - placed after table definition to avoid circular dependency issues
 import { groupMemberships } from "./group-memberships";
 import { groupRepresentatives } from "./group-representatives";

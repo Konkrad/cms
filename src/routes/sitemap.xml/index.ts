@@ -1,12 +1,12 @@
 import type { RequestHandler } from "@qwik.dev/router";
 import { and, eq } from "drizzle-orm";
+import { postsService } from "~/core/content/posts.service";
 import { db } from "~/core/db/connection";
 import { menuItems, pages } from "~/core/db/schema";
 import { activeModules } from "~/core/registry/manifests";
 import { sitemapEntriesOf } from "~/core/router/modules";
 import { groupsService } from "~/core/scopes/groups.service";
 import { env } from "~/env";
-import { postsService } from "~/services/posts.service";
 
 interface SitemapEntry {
 	loc: string;

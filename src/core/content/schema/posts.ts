@@ -4,8 +4,8 @@ import { relations } from "drizzle-orm/_relations";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { groups } from "../../core/scopes/schema/groups";
-import { users } from "../../core/users/schema";
+import { groups } from "../../scopes/schema/groups";
+import { users } from "../../users/schema";
 
 // Simple BlockNote to HTML converter
 // BlockNote stores content as an array of blocks

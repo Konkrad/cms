@@ -1,9 +1,9 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import type { ArchivePostsViewData } from "~/contracts/archive-posts";
-import { postsService } from "~/services/posts.service";
+import { postsService } from "~/core/content/posts.service";
+import { canonicalUrl } from "~/core/content/seo";
 import { publicImageUrlFromKey } from "~/utils/images";
-import { canonicalUrl } from "~/utils/seo";
 import { ArchivePostsView } from "~theme/routes/archive-posts/ArchivePostsView";
 
 const POSTS_PER_PAGE = 10;

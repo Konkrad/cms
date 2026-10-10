@@ -1,9 +1,9 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
-import { BlockNoteEditor } from "~/components/editor";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import type { JobFormAction } from "~/contracts/jobs";
+import { BlockNoteEditor } from "~/core/content/editor";
 
 export type JobFormInitialValues = {
 	title: string;

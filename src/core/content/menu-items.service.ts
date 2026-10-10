@@ -1,13 +1,13 @@
 import { randomUUID } from "crypto";
 import { and, asc, desc, eq } from "drizzle-orm";
-import { db } from "~/core/db/connection";
 import type {
 	InsertMenuItem,
 	MenuItem,
 	MenuItemTree,
 	UpdateMenuItem,
-} from "~/db/schemas/menu-items";
-import { menuItems } from "~/db/schemas/menu-items";
+} from "~/core/content/schema/menu-items";
+import { menuItems } from "~/core/content/schema/menu-items";
+import { db } from "~/core/db/connection";
 
 function buildMenuTree(items: MenuItem[]): MenuItemTree[] {
 	const itemMap = new Map<string, MenuItemTree>();

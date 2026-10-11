@@ -9,8 +9,9 @@ import {
 } from "~/core/router/scope-request";
 
 /**
- * Runs before every route. First answers 301 for an old public URL that moved (a moved or
- * renamed scope, a renamed page, a legacy /groups/<slug> URL; see the redirects table). Then
+ * Runs before every route. First answers 301 for an old URL that moved (a moved or renamed
+ * scope, its admin URLs, a renamed page, a legacy /groups/<slug> URL; see the redirects
+ * table). Then
  * splits a hierarchical URL into its scope prefix and the remainder:
  * /germany/berlin/jobs/42 → scope /germany/berlin/, rest /jobs/42. The catch-all
  * route ([...path]) resolves the module page from the remainder.
@@ -18,11 +19,7 @@ import {
 export const onRequest: RequestHandler = async (event) => {
 	const { pathname, search } = event.url;
 	const scopeable = isScopeablePath(pathname);
-	if (
-		scopeable &&
-		(event.method === "GET" || event.method === "HEAD") &&
-		!pathname.startsWith("/admin/")
-	) {
+	if (scopeable && (event.method === "GET" || event.method === "HEAD")) {
 		const target = await redirectsService.resolve(pathname);
 		if (target) throw event.redirect(301, `${target}${search}`);
 	}

@@ -108,6 +108,13 @@ describe("moving and renaming scopes, renaming pages", () => {
 		expect(await redirectsService.resolve(`/from-${tag}/x`)).toBe(
 			`/to-${tag}/z`,
 		);
+		// The admin URLs of the subtree move along.
+		expect(
+			await redirectsService.resolve(`/admin/from-${tag}.x.y/events/1/edit`),
+		).toBe(`/admin/to-${tag}.z.y/events/1/edit`);
+		expect(await redirectsService.resolve(`/admin/to-${tag}.x`)).toBe(
+			`/admin/to-${tag}.z`,
+		);
 		expect(await redirectsService.resolve(`/to-${tag}/x/y`)).toBe(
 			`/to-${tag}/z/y`,
 		);
@@ -119,6 +126,7 @@ describe("moving and renaming scopes, renaming pages", () => {
 		);
 		scopeIds.push(again.id);
 		expect(await redirectsService.resolve(`/to-${tag}/x`)).toBeNull();
+		expect(await redirectsService.resolve(`/admin/to-${tag}.x`)).toBeNull();
 	});
 
 	it("rejects a slug change that collides like a new scope would", async () => {

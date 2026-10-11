@@ -14,7 +14,7 @@ import { posts } from "~/core/content/schema/posts";
 import { db } from "~/core/db/connection";
 import { forms } from "~/core/forms/schema/forms";
 import { redirectsService } from "~/core/router/redirects.service";
-import { childPath, SCOPE_SLUG_RE } from "~/core/router/scope-path";
+import { adminUrl, childPath, SCOPE_SLUG_RE } from "~/core/router/scope-path";
 import { invalidateScopePaths } from "~/core/router/scope-request";
 import { ROOT_KIND, SCOPE_IMAGE_PREFIX } from "~/core/scopes/kinds";
 import {
@@ -132,6 +132,7 @@ export const scopesService = {
 		await this.assertNoPageAt(input.parentId, input.slug);
 
 		await redirectsService.release(path);
+		await redirectsService.release(adminUrl(path));
 		const [created] = await db
 			.insert(scopes)
 			.values({
@@ -338,9 +339,12 @@ export const scopesService = {
 		});
 		invalidateScopePaths();
 
-		// Deepest first does not matter: each row maps one old scope path to its new one.
+		// Deepest first does not matter: each row maps one old scope path to its new one. The
+		// admin URLs (`/admin/germany.berlin/…`) of the subtree move along.
 		for (const { path } of subtree) {
-			await redirectsService.add(path, newPath + path.slice(oldPath.length));
+			const moved = newPath + path.slice(oldPath.length);
+			await redirectsService.add(path, moved);
+			await redirectsService.add(adminUrl(path), adminUrl(moved));
 		}
 	},
 

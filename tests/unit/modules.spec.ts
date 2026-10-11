@@ -3,11 +3,11 @@ import {
 	adminSectionsOf,
 	defineModule,
 	disabledBlockTypes,
-	groupExtrasOf,
 	menuLinksOf,
 	pagesOf,
 	profileExtrasOf,
 	reevaluateUserTagsOf,
+	scopeExtrasOf,
 	selectActive,
 	sitemapEntriesOf,
 	withoutDisabledBlocks,
@@ -171,16 +171,16 @@ describe("profileExtrasOf with events data", () => {
 	});
 });
 
-describe("groupExtrasOf", () => {
-	const ctx = { groupId: "g1", viewerId: "u1" };
+describe("scopeExtrasOf", () => {
+	const ctx = { scopeId: "g1", viewerId: "u1" };
 	const withEvents = defineModule({
 		id: "ev",
-		groupPage: async ({ groupId, viewerId }) => ({
+		scopePage: async ({ scopeId, viewerId }) => ({
 			pastEventCount: 4,
 			upcomingEvents: viewerId
 				? [
 						{
-							id: `next-${groupId}`,
+							id: `next-${scopeId}`,
 							title: "Next",
 							startDate: "2030-01-01T10:00:00.000Z",
 							endDate: "2030-01-01T12:00:00.000Z",
@@ -195,24 +195,24 @@ describe("groupExtrasOf", () => {
 	});
 
 	it("merges the sections of the given modules and passes the context through", async () => {
-		const extras = await groupExtrasOf([alpha, withEvents], ctx);
+		const extras = await scopeExtrasOf([alpha, withEvents], ctx);
 		expect(extras.pastEventCount).toBe(4);
 		expect(extras.upcomingEvents?.map((e) => e.id)).toEqual(["next-g1"]);
 	});
 
 	it("passes an anonymous viewer as null", async () => {
-		const extras = await groupExtrasOf([withEvents], {
-			groupId: "g1",
+		const extras = await scopeExtrasOf([withEvents], {
+			scopeId: "g1",
 			viewerId: null,
 		});
 		expect(extras.upcomingEvents).toEqual([]);
 	});
 
 	it("is empty without modules or hooks, and for inactive modules", async () => {
-		expect(await groupExtrasOf([], ctx)).toEqual({});
-		expect(await groupExtrasOf([alpha, beta], ctx)).toEqual({});
+		expect(await scopeExtrasOf([], ctx)).toEqual({});
+		expect(await scopeExtrasOf([alpha, beta], ctx)).toEqual({});
 		const active = selectActive([alpha, withEvents], ["alpha"]);
-		expect(await groupExtrasOf(active, ctx)).toEqual({});
+		expect(await scopeExtrasOf(active, ctx)).toEqual({});
 	});
 });
 

@@ -16,10 +16,11 @@ import {
 	db,
 	decodeCursor,
 	getNextCursorFromRows,
-	groupMembershipsService,
+	isMember,
 	type PublicUser,
 	publicUserColumns,
 	publicUserSelect,
+	viewableMemberScopes,
 } from "~/core";
 import { users as usersTable } from "~/core/schema";
 import type { Event, InsertEvent, UpdateEvent } from "../schema/events";
@@ -319,24 +320,23 @@ export const eventsService = {
 	): Promise<{ items: EventWithUser[]; nextCursor?: string | null }> {
 		const cursorObj = decodeCursor(cursor ?? null);
 
-		let visibilityCondition: SQL | undefined;
-		if (userId) {
-			const userGroups = await groupMembershipsService.getUserGroups(userId);
-			const groupIds = userGroups.map((g) => g.id);
-
-			visibilityCondition =
-				groupIds.length > 0
-					? or(
-							eq(events.visibility, "global"),
-							and(
-								eq(events.visibility, "group-only"),
-								inArray(events.groupId, groupIds),
-							),
-						)
-					: eq(events.visibility, "global");
-		} else {
-			visibilityCondition = eq(events.visibility, "global");
-		}
+		// Group-only events of the scopes whose members-only items the viewer may see.
+		const visible = await viewableMemberScopes(userId ? { id: userId } : null);
+		const visibilityCondition: SQL | undefined =
+			visible.ids.length > 0
+				? or(
+						eq(events.visibility, "global"),
+						and(
+							eq(events.visibility, "group-only"),
+							visible.includesRoot
+								? or(
+										inArray(events.scopeId, visible.ids),
+										isNull(events.scopeId),
+									)
+								: inArray(events.scopeId, visible.ids),
+						),
+					)
+				: eq(events.visibility, "global");
 
 		const results = await db
 			.select({ event: events, user: publicUserSelect })
@@ -374,21 +374,21 @@ export const eventsService = {
 		};
 	},
 
-	/** Admin event list (title/city search, optional group filter) with the organizer's name. */
+	/** Admin event list (title/city search; `scopeIds` limits it to those scopes, null = all). */
 	async adminList({
-		groupId,
+		scopeIds,
 		search,
 		limit,
 		offset,
 	}: {
-		groupId: string | null;
+		scopeIds: string[] | null;
 		search: string;
 		limit: number;
 		offset: number;
 	}) {
 		const where = and(
 			isNull(events.deletedAt),
-			groupId ? eq(events.groupId, groupId) : undefined,
+			scopeIds ? inArray(events.scopeId, scopeIds) : undefined,
 			search
 				? or(
 						like(events.title, `%${search}%`),
@@ -404,7 +404,6 @@ export const eventsService = {
 					title: events.title,
 					startDate: events.startDate,
 					visibility: events.visibility,
-					groupId: events.groupId,
 					userName: usersTable.name,
 					userFamilyName: usersTable.familyName,
 				})
@@ -440,15 +439,15 @@ export const eventsService = {
 		return result;
 	},
 
-	/** The group's next events, soonest first; group-only ones only when `includeGroupOnly`. */
-	async getUpcomingByGroupId(
-		groupId: string,
+	/** The scope's next events, soonest first; group-only ones only when `includeGroupOnly`. */
+	async getUpcomingByScopeId(
+		scopeId: string,
 		options: { includeGroupOnly: boolean; limit: number },
 	): Promise<Event[]> {
 		const now = new Date().toISOString();
 		return db.query.events.findMany({
 			where: {
-				groupId,
+				scopeId,
 				deletedAt: { isNull: true },
 				endDate: { gte: now },
 				...(options.includeGroupOnly ? {} : { visibility: "global" }),
@@ -458,19 +457,28 @@ export const eventsService = {
 		});
 	},
 
-	async countPastByGroupId(groupId: string): Promise<number> {
+	async countPastByScopeId(scopeId: string): Promise<number> {
 		const now = new Date().toISOString();
-		const results = await db
-			.select()
+		const [row] = await db
+			.select({ count: sql<number>`COUNT(*)` })
 			.from(events)
 			.where(
 				and(
-					eq(events.groupId, groupId),
+					eq(events.scopeId, scopeId),
 					isNull(events.deletedAt),
 					lt(events.endDate, now),
 				),
 			);
-		return results.length;
+		return Number(row?.count ?? 0);
+	},
+
+	/** Events (deleted ones included: their rows still reference the scope) owned by a scope. */
+	async countByScopeId(scopeId: string): Promise<number> {
+		const [row] = await db
+			.select({ count: sql<number>`COUNT(*)` })
+			.from(events)
+			.where(eq(events.scopeId, scopeId));
+		return Number(row?.count ?? 0);
 	},
 
 	async joinEvent(
@@ -482,12 +490,9 @@ export const eventsService = {
 			return { success: false, error: "Event not found" };
 		}
 
-		if (event.groupId) {
-			const isMember = await groupMembershipsService.isMember(
-				userId,
-				event.groupId,
-			);
-			if (!isMember) {
+		if (event.scopeId) {
+			const member = await isMember({ id: userId }, event.scopeId);
+			if (!member) {
 				return {
 					success: false,
 					error: "You must be a member of this group to join this event",

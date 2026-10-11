@@ -42,15 +42,12 @@ export const useEditEvent = routeAction$(async (data, event) => {
 			address: data.address,
 			locationType: data.locationType,
 			onlineUrl: data.onlineUrl || null,
-			visibility: groupContext.isGlobal ? data.visibility : "group-only",
+			visibility: groupContext.isRoot ? data.visibility : "group-only",
 			image1: data.image1 || null,
 			image2: data.image2 || null,
 		});
 
-		const redirectUrl = groupContext.isGlobal
-			? "/admin/global/events"
-			: `/admin/${groupContext.group.slug}/events`;
-		throw event.redirect(303, redirectUrl);
+		throw event.redirect(303, `${groupContext.adminBase}/events`);
 	} catch (error: any) {
 		if (error?.status === 303) throw error;
 		return {
@@ -93,10 +90,7 @@ export const AdminEventEdit = component$<Props>(
 			<div>
 				<div class="flex items-center justify-between mb-6">
 					<h2 class="text-2xl font-bold text-gray-800">Edit Event</h2>
-					<Button
-						href={`/admin/${groupContext.isGlobal ? "global" : groupContext.group?.slug}/events`}
-						variant="secondary"
-					>
+					<Button href={`${groupContext.adminBase}/events`} variant="secondary">
 						Back to Events
 					</Button>
 				</div>
@@ -161,7 +155,7 @@ export const AdminEventEdit = component$<Props>(
 							/>
 						)}
 
-						{!groupContext.isGlobal && (
+						{!groupContext.isRoot && (
 							<VisibilitySelector
 								name="visibility"
 								value={eventData.visibility as any}
@@ -212,7 +206,7 @@ export const AdminEventEdit = component$<Props>(
 								{isSubmitting.value ? "Saving Changes..." : "Update Event"}
 							</Button>
 							<Button
-								href={`/admin/${groupContext.isGlobal ? "global" : groupContext.group?.slug}/events`}
+								href={`${groupContext.adminBase}/events`}
 								variant="secondary"
 							>
 								Cancel

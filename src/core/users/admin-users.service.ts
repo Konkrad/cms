@@ -1,38 +1,24 @@
-import {
-	and,
-	desc,
-	eq,
-	inArray,
-	isNull,
-	like,
-	or,
-	type SQL,
-	sql,
-} from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
 import { logins } from "~/core/auth/schema/logins";
 import { sessions } from "~/core/auth/schema/sessions";
 import { db } from "~/core/db/connection";
 import { userMemberships } from "~/core/memberships/schema";
-import { groupMemberships } from "~/core/scopes/schema/group-memberships";
 import { scopeRoles, scopes } from "~/core/scopes/schema/scopes";
 import { userTagsService } from "~/core/tags/user-tags.service";
 import { users } from "~/core/users/schema";
 
-/** Admin user management (`/admin/[group_slug]/users`). */
+/** Admin user management (`/admin/root/users`, root only). */
 export const adminUsersService = {
 	/**
-	 * PRIVATE: users (all, or one group's members) with login email, platform role (their
-	 * admin/moderator role on the root scope),
-	 * membership tier, tags and last login, for the admin users page only. Searches
-	 * name, family name and email.
+	 * PRIVATE: all users with login email, platform role (their admin/moderator role on the
+	 * root scope), membership tier, tags and last login, for the root admin users page only.
+	 * Searches name, family name and email.
 	 */
 	async listWithEmailAndRole({
-		groupId,
 		search,
 		limit,
 		offset,
 	}: {
-		groupId: string | null;
 		search: string;
 		limit: number;
 		offset: number;
@@ -45,72 +31,30 @@ export const adminUsersService = {
 				)
 			: undefined;
 
-		const columns = {
-			id: users.id,
-			name: users.name,
-			familyName: users.familyName,
-			email: logins.email,
-			city: users.city,
-			country: users.country,
-			createdAt: users.createdAt,
-		};
-
-		let total: number;
-		let rows: Array<
-			{
-				id: string;
-				name: string;
-				familyName: string;
-				email: string | null;
-				city: string | null;
-				country: string | null;
-				createdAt: string;
-			} & { joinedAt: string }
-		>;
-
-		if (groupId === null) {
-			const [countRows, userRows] = await Promise.all([
-				db
-					.select({ total: sql<number>`COUNT(DISTINCT ${users.id})` })
-					.from(users)
-					.leftJoin(logins, eq(users.loginId, logins.id))
-					.where(searchWhere),
-				db
-					.select(columns)
-					.from(users)
-					.leftJoin(logins, eq(users.loginId, logins.id))
-					.where(searchWhere)
-					.orderBy(desc(users.createdAt))
-					.limit(limit)
-					.offset(offset),
-			]);
-			total = Number(countRows[0]?.total ?? 0);
-			rows = userRows.map((u) => ({ ...u, joinedAt: u.createdAt }));
-		} else {
-			const where: SQL | undefined = and(
-				eq(groupMemberships.groupId, groupId),
-				searchWhere,
-			);
-			const [countRows, memberRows] = await Promise.all([
-				db
-					.select({ total: sql<number>`COUNT(*)` })
-					.from(groupMemberships)
-					.innerJoin(users, eq(groupMemberships.userId, users.id))
-					.leftJoin(logins, eq(users.loginId, logins.id))
-					.where(where),
-				db
-					.select({ ...columns, joinedAt: groupMemberships.joinedAt })
-					.from(groupMemberships)
-					.innerJoin(users, eq(groupMemberships.userId, users.id))
-					.leftJoin(logins, eq(users.loginId, logins.id))
-					.where(where)
-					.orderBy(groupMemberships.joinedAt)
-					.limit(limit)
-					.offset(offset),
-			]);
-			total = Number(countRows[0]?.total ?? 0);
-			rows = memberRows;
-		}
+		const [countRows, rows] = await Promise.all([
+			db
+				.select({ total: sql<number>`COUNT(DISTINCT ${users.id})` })
+				.from(users)
+				.leftJoin(logins, eq(users.loginId, logins.id))
+				.where(searchWhere),
+			db
+				.select({
+					id: users.id,
+					name: users.name,
+					familyName: users.familyName,
+					email: logins.email,
+					city: users.city,
+					country: users.country,
+					createdAt: users.createdAt,
+				})
+				.from(users)
+				.leftJoin(logins, eq(users.loginId, logins.id))
+				.where(searchWhere)
+				.orderBy(desc(users.createdAt))
+				.limit(limit)
+				.offset(offset),
+		]);
+		const total = Number(countRows[0]?.total ?? 0);
 
 		const userIds = rows.map((u) => u.id);
 		const [membershipRows, allTags, lastLoginRows, rootRoleRows] =

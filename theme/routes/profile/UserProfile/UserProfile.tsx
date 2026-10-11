@@ -24,7 +24,8 @@ interface Tag {
 
 interface Community {
 	name: string;
-	slug: string;
+	/** Home page URL of the group, e.g. "/germany/berlin". */
+	url: string;
 }
 
 interface EventEntry {
@@ -227,9 +228,9 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 				) : (
 					<ul class="flex flex-wrap gap-2">
 						{communities.map((c) => (
-							<li key={c.slug}>
+							<li key={c.url}>
 								<a
-									href={`/groups/${c.slug}`}
+									href={c.url}
 									class="px-4 py-2 rounded-full bg-bg-muted hover:bg-border transition-colors text-sm font-medium text-text"
 								>
 									{c.name}

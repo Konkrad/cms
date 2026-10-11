@@ -1,5 +1,5 @@
-import type { GroupExtras } from "~/contracts/groups";
 import type { ProfileExtras } from "~/contracts/profile";
+import type { ScopeExtras } from "~/contracts/scopes";
 import type { NotificationDefinition } from "~/core/notifications/define";
 import type { PaymentHandlers } from "~/core/payments/payments";
 import type { PageDefinition } from "~/core/router/pages";
@@ -10,8 +10,9 @@ export interface AdminSection {
 	label: string;
 	order?: number;
 	/**
-	 * Where the entry shows: only in the global admin ("global", default) or also in every
-	 * group's admin ("all", e.g. events). An "all" section's routes must authorize per group.
+	 * Where the entry shows: only in the root scope's admin ("global", default) or in the
+	 * admin of every scope ("all", e.g. events). An "all" section's routes must authorize per
+	 * scope (`requireModuleAdmin` / `requireScopeRole`).
 	 */
 	scopes?: "global" | "all";
 }
@@ -37,9 +38,9 @@ export interface ProfileContext {
 	isOwnProfile: boolean;
 }
 
-/** Which group page is rendered and who looks at it; passed to every module's `groupPage` hook. */
-export interface GroupPageContext {
-	groupId: string;
+/** Which scope home page is rendered and who looks at it; passed to every module's `scopePage` hook. */
+export interface ScopePageContext {
+	scopeId: string;
 	/** The logged-in viewer, null when anonymous. */
 	viewerId: string | null;
 }
@@ -63,10 +64,15 @@ export interface ModuleDefinition {
 	 */
 	profile?: (ctx: ProfileContext) => Promise<Partial<ProfileExtras>>;
 	/**
-	 * Extra sections for the public group page (`/groups/[slug]`). Server-only. Return only what
-	 * `ctx.viewerId` may see; the result is serialized to the browser.
+	 * Extra sections for a scope's public home page (`/germany/berlin`). Server-only. Return
+	 * only what `ctx.viewerId` may see; the result is serialized to the browser.
 	 */
-	groupPage?: (ctx: GroupPageContext) => Promise<Partial<GroupExtras>>;
+	scopePage?: (ctx: ScopePageContext) => Promise<Partial<ScopeExtras>>;
+	/**
+	 * Number of this module's items owned by a scope. Server-only. A scope can only be deleted
+	 * while every module (active or not) reports 0 and it has no core content or children.
+	 */
+	scopeContentCount?: (scopeId: string) => Promise<number>;
 	/**
 	 * Re-run the module's user-tag rules for one user (admin "Re-evaluate badges"). Server-only.
 	 */
@@ -141,15 +147,24 @@ export const profileExtrasOf = async (
 		...(await Promise.all(modules.map((m) => m.profile?.(ctx) ?? {}))),
 	);
 
-/** Group page sections contributed by the given modules, merged in module order (later wins per key). */
-export const groupExtrasOf = async (
+/** Scope page sections contributed by the given modules, merged in module order (later wins per key). */
+export const scopeExtrasOf = async (
 	modules: readonly ModuleDefinition[],
-	ctx: GroupPageContext,
-): Promise<Partial<GroupExtras>> =>
+	ctx: ScopePageContext,
+): Promise<Partial<ScopeExtras>> =>
 	Object.assign(
 		{},
-		...(await Promise.all(modules.map((m) => m.groupPage?.(ctx) ?? {}))),
+		...(await Promise.all(modules.map((m) => m.scopePage?.(ctx) ?? {}))),
 	);
+
+/** Items the given modules own in a scope (summed `scopeContentCount`). */
+export const scopeContentCountOf = async (
+	modules: readonly ModuleDefinition[],
+	scopeId: string,
+): Promise<number> =>
+	(
+		await Promise.all(modules.map((m) => m.scopeContentCount?.(scopeId) ?? 0))
+	).reduce((a, b) => a + b, 0);
 
 /** Notification definitions of the given modules, in module order. */
 export const notificationsOf = (

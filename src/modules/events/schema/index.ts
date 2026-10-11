@@ -38,7 +38,7 @@ export default defineModuleSchema({
 				to: r.users.id,
 				optional: false,
 			}),
-			group: r.one.groups({ from: r.events.groupId, to: r.groups.id }),
+			scope: r.one.scopes({ from: r.events.scopeId, to: r.scopes.id }),
 			deletedByUser: r.one.users({
 				from: r.events.deletedBy,
 				to: r.users.id,

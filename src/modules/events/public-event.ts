@@ -2,14 +2,13 @@ import type { RequestEventLoader } from "@qwik.dev/router";
 import type { EventPageData } from "~/contracts/events";
 import {
 	buildProfileUrl,
+	canViewScope,
 	currentScopeRest,
 	getCurrentUserData,
-	groupMembershipsService,
-	groupRepresentativesService,
-	groupsService,
-	isPlatformAdmin,
+	getRootScope,
 	matchPath,
 	publicImageUrlFromKey,
+	scopeLabels,
 	toPublicUser,
 } from "~/core";
 import { eventsService } from "./services/events";
@@ -28,22 +27,18 @@ export const eventIdOf = (
 type Viewer = { id: string } | null;
 
 /**
- * Group-only events are for members (and representatives) of the event's group;
- * platform admins see everything. Global events are public.
+ * Group-only events are for members of the event's scope (or of a scope below it) and role
+ * holders on it (roles inherit downward, so root admins see everything). Global events are
+ * public. Events without a scope belong to the root.
  */
 export async function canViewEvent(
-	event: { visibility: string; groupId: string | null },
+	event: { visibility: string; scopeId: string | null },
 	viewer: Viewer,
 ): Promise<boolean> {
 	if (event.visibility !== "group-only") return true;
-	if (!viewer) return false;
-	if (await isPlatformAdmin(viewer)) return true;
-	if (!event.groupId) return false;
-	const [isMember, isRep] = await Promise.all([
-		groupMembershipsService.isMember(viewer.id, event.groupId),
-		groupRepresentativesService.isRepresentative(viewer.id, event.groupId),
-	]);
-	return isMember || isRep;
+	const scopeId = event.scopeId ?? (await getRootScope())?.id;
+	if (!scopeId) return false;
+	return canViewScope(viewer, scopeId, "members");
 }
 
 /** The event for a public page, or null (404) when missing, deleted or not visible to the viewer. */
@@ -123,10 +118,8 @@ export async function loadEventPage(
 	const participationSummary = await participationService.getSummary(eventId);
 
 	const going = await participationService.getGoingParticipants(eventId);
-	// userId -> group role label (e.g. "Local Rep Berlin")
-	const userGroupLabels = await groupsService.getGroupLabels(
-		going.map((u) => u.id),
-	);
+	// userId -> scope label (e.g. "Local Rep Berlin")
+	const userGroupLabels = await scopeLabels(going.map((u) => u.id));
 
 	const participantsUnsorted = going.map((u) => ({
 		id: u.id,

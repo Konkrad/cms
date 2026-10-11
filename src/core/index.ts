@@ -39,18 +39,23 @@ export {
 	canManageScope,
 	canViewScope,
 	currentUser,
+	getAncestors,
+	getDescendants,
+	getRootScope,
+	getScope,
+	getSubtreeIds,
 	isMember,
 	isPlatformAdmin,
+	isWithinScope,
 	listManagedScopes,
 	listMembers,
 	requireScopeRole,
+	scopeLabels,
+	viewableMemberScopes,
 } from "~/core/scopes/access";
 export type { Scope } from "~/core/scopes/schema/scopes";
 // Server-only core services for modules (memberships tiers, user tags). Tag *rule evaluation*
 // is not core; it lives in the events module (`src/modules/events/services/tag-rules.ts`).
-export { groupMembershipsService } from "~/core/scopes/group-memberships.service";
-export { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
-export { groupsService } from "~/core/scopes/groups.service";
 export { deleteS3Objects } from "~/core/media/image-processing.service";
 export { membershipsService } from "~/core/memberships/memberships.service";
 export { assertNoPrivateFields } from "~/core/shared/no-private-fields";
@@ -65,7 +70,6 @@ export type { NotifyInput, NotifyRecipient } from "~/core/notifications/notify";
 export { notify } from "~/core/notifications/notify";
 export { userTagsService } from "~/core/tags/user-tags.service";
 export { usersService } from "~/core/users/users.service";
-export { requireGroupAdmin } from "~/core/scopes/access-control";
 export { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
 export { sanitizeRichHtml } from "~/core/content/sanitize-html";
 export {

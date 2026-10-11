@@ -35,7 +35,7 @@ async function evaluateRulesForUser(userId: string): Promise<void> {
 				break;
 			case "participation_group":
 				count = pastYes.filter(
-					(row) => row.event?.groupId === rule.conditionFilter,
+					(row) => row.event?.scopeId === rule.conditionFilter,
 				).length;
 				break;
 			case "participation_visibility":

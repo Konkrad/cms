@@ -475,50 +475,62 @@ const groupDefs = [
 	{
 		name: "North Chapter",
 		slug: "berlin",
-		latitude: "59.3293",
-		longitude: "18.0686",
-	}, // Stockholm
+	},
 	{
 		name: "South Chapter",
 		slug: "munich",
-		latitude: "41.3851",
-		longitude: "2.1734",
-	}, // Barcelona
+	},
 	{
 		name: "Coast Chapter",
 		slug: "hamburg",
-		latitude: "51.5074",
-		longitude: "-0.1278",
-	}, // London
+	},
 	{
 		name: "Central Chapter",
 		slug: "frankfurt",
-		latitude: "48.2082",
-		longitude: "16.3738",
-	}, // Vienna
+	},
 	{
 		name: "West Chapter",
 		slug: "cologne",
-		latitude: "48.8566",
-		longitude: "2.3522",
-	}, // Paris
+	},
 ];
 
-const existingGroups = db.select().from(schema.groups).all();
-const groupIds: Record<string, string> = {};
+// Groups are chapters in the scope tree: root → region "Germany" → the chapters below.
+// (Slugs are city names; display names are generic.)
+function ensureScope(
+	parent: { id: string; path: string },
+	def: { name: string; slug: string; kind: string },
+) {
+	const path = `${parent.path}${def.slug}/`;
+	const existing = db
+		.select()
+		.from(schema.scopes)
+		.all()
+		.find((s) => s.path === path);
+	if (existing) return existing;
+	const id = uuid();
+	db.insert(schema.scopes)
+		.values({ id, parentId: parent.id, path, createdAt: now(), ...def })
+		.run();
+	console.log(`  created ${def.kind} '${def.name}' (${path})`);
+	return db
+		.select()
+		.from(schema.scopes)
+		.all()
+		.find((s) => s.id === id)!;
+}
 
+const regionScope = ensureScope(rootScope, {
+	name: "Germany",
+	slug: "germany",
+	kind: "region",
+});
+const groupIds: Record<string, string> = {};
 for (const def of groupDefs) {
-	const existing = existingGroups.find((g) => g.slug === def.slug);
-	if (existing) {
-		groupIds[def.slug] = existing.id;
-	} else {
-		const id = uuid();
-		db.insert(schema.groups)
-			.values({ id, ...def, createdAt: now(), updatedAt: now() })
-			.run();
-		groupIds[def.slug] = id;
-		console.log(`  created group '${def.name}'`);
-	}
+	groupIds[def.slug] = ensureScope(regionScope, {
+		name: def.name,
+		slug: def.slug,
+		kind: "chapter",
+	}).id;
 }
 
 // ─── 6. Memberships ──────────────────────────────────────────────────────────
@@ -555,20 +567,14 @@ const membershipPlan: Array<{ userId: string; groupSlug: string }> = [
 	{ userId: hostUser.id, groupSlug: "frankfurt" },
 ].filter((m) => m.userId);
 
-const existingMemberships = db.select().from(schema.groupMemberships).all();
-
 for (const m of membershipPlan) {
-	const already = existingMemberships.some(
-		(em) => em.userId === m.userId && em.groupId === groupIds[m.groupSlug],
-	);
-	if (already) continue;
-	db.insert(schema.groupMemberships)
+	db.insert(schema.scopeMemberships)
 		.values({
-			id: uuid(),
 			userId: m.userId,
-			groupId: groupIds[m.groupSlug],
-			joinedAt: now(),
+			scopeId: groupIds[m.groupSlug],
+			createdAt: now(),
 		})
+		.onConflictDoNothing()
 		.run();
 }
 console.log("  memberships seeded");
@@ -578,9 +584,9 @@ console.log("  memberships seeded");
 	const assignedSet = new Set(
 		db
 			.select()
-			.from(schema.groupMemberships)
+			.from(schema.scopeMemberships)
 			.all()
-			.map((m) => `${m.userId}::${m.groupId}`),
+			.map((m) => `${m.userId}::${m.scopeId}`),
 	);
 	const groupSlugList = Object.keys(groupIds);
 	const bulkUserIds = db
@@ -603,12 +609,11 @@ console.log("  memberships seeded");
 			const key = `${userId}::${groupId}`;
 			if (assignedSet.has(key)) continue;
 			assignedSet.add(key);
-			db.insert(schema.groupMemberships)
+			db.insert(schema.scopeMemberships)
 				.values({
-					id: uuid(),
 					userId,
-					groupId,
-					joinedAt: faker.date
+					scopeId: groupId,
+					createdAt: faker.date
 						.between({ from: "2020-01-01", to: new Date() })
 						.toISOString(),
 				})
@@ -622,30 +627,34 @@ console.log("  memberships seeded");
 }
 
 // ─── 7. Representatives ──────────────────────────────────────────────────────
-// Ensure every group has at least one rep. Pick one from the group's bulk members.
+// Ensure every chapter has at least one rep (scope role "representative"). Pick one from
+// the chapter's bulk members.
 {
-	const existingReps = db.select().from(schema.groupRepresentatives).all();
-	const groupsWithRep = new Set(existingReps.map((r) => r.groupId));
-	const allMemberships = db.select().from(schema.groupMemberships).all();
+	const existingReps = db
+		.select()
+		.from(schema.scopeRoles)
+		.all()
+		.filter((r) => r.role === "representative");
+	const groupsWithRep = new Set(existingReps.map((r) => r.scopeId));
+	const allMemberships = db.select().from(schema.scopeMemberships).all();
 
 	for (const [, groupId] of Object.entries(groupIds)) {
 		if (groupsWithRep.has(groupId)) continue;
 		// Pick a random member who is not admin/host
 		const candidates = allMemberships.filter(
 			(m) =>
-				m.groupId === groupId &&
+				m.scopeId === groupId &&
 				m.userId !== adminUser.id &&
 				m.userId !== hostUser.id,
 		);
 		if (candidates.length === 0) continue;
 		const pick = candidates[Math.floor(Math.random() * candidates.length)];
-		db.insert(schema.groupRepresentatives)
+		db.insert(schema.scopeRoles)
 			.values({
-				id: uuid(),
 				userId: pick.userId,
-				groupId,
-				promotedBy: adminUser.id,
-				promotedAt: now(),
+				scopeId: groupId,
+				role: "representative",
+				createdAt: now(),
 			})
 			.run();
 		groupsWithRep.add(groupId);
@@ -773,7 +782,7 @@ postDefs.forEach((p, i) => {
 			body: p.body,
 			editorState: null,
 			userId: resolveAuthor(p.authorIdx),
-			groupId: p.groupSlug ? groupIds[p.groupSlug] : null,
+			scopeId: p.groupSlug ? groupIds[p.groupSlug] : null,
 			visibility: p.visibility,
 			createdAt,
 			updatedAt: createdAt,
@@ -811,7 +820,7 @@ console.log(`  posts seeded (${postDefs.length})`);
 
 	for (const [, groupId] of groupSlugsForPosts) {
 		const existingCount = allGroupPosts.filter(
-			(p) => p.groupId === groupId,
+			(p) => p.scopeId === groupId,
 		).length;
 		const toAdd = Math.max(0, 3 - existingCount);
 		for (let i = 0; i < toAdd; i++) {
@@ -826,7 +835,7 @@ console.log(`  posts seeded (${postDefs.length})`);
 					body,
 					editorState: null,
 					userId: adminUser.id,
-					groupId,
+					scopeId: groupId,
 					visibility: "global",
 					createdAt,
 					updatedAt: createdAt,
@@ -1101,7 +1110,7 @@ for (const e of eventDefs) {
 			onlineUrl:
 				e.city === "Online" ? "https://meet.example.com/town-hall" : null,
 			userId: resolveAuthor(e.authorIdx),
-			groupId: e.groupSlug ? groupIds[e.groupSlug] : null,
+			scopeId: e.groupSlug ? groupIds[e.groupSlug] : null,
 			visibility: e.visibility,
 			createdAt: now(),
 			updatedAt: now(),
@@ -1550,7 +1559,7 @@ console.log("  inventory & products seeded");
 				latitude: opts.latitude,
 				onlineUrl: opts.onlineUrl ?? null,
 				userId: adminUser!.id,
-				groupId: opts.groupSlug ? groupIds[opts.groupSlug] : null,
+				scopeId: opts.groupSlug ? groupIds[opts.groupSlug] : null,
 				visibility: "global",
 				createdAt,
 				updatedAt: createdAt,
@@ -3634,9 +3643,9 @@ console.log(`  user tags seeded (${tagCount})`);
 
 const counts = {
 	users: db.select().from(schema.users).all().length,
-	groups: db.select().from(schema.groups).all().length,
-	memberships: db.select().from(schema.groupMemberships).all().length,
-	reps: db.select().from(schema.groupRepresentatives).all().length,
+	scopes: db.select().from(schema.scopes).all().length,
+	memberships: db.select().from(schema.scopeMemberships).all().length,
+	scopeRoles: db.select().from(schema.scopeRoles).all().length,
 	posts: db.select().from(schema.posts).all().length,
 	events: db.select().from(schema.events).all().length,
 	inventoryGroups: db.select().from(schema.inventoryGroups).all().length,

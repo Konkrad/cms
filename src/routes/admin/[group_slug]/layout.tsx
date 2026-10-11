@@ -5,50 +5,25 @@ import { AdminNav } from "~/core/admin/AdminNav";
 import { Breadcrumbs } from "~/core/admin/Breadcrumbs";
 import { getCurrentUserData } from "~/core/auth/server-auth";
 import { activeAdminSections } from "~/core/registry/manifests";
-import { isPlatformAdmin } from "~/core/scopes/access";
-import { canManageGroupContent } from "~/core/scopes/access-control";
-import { groupsService } from "~/core/scopes/groups.service";
+import { adminUrl, scopeUrl } from "~/core/router/scope-path";
+import {
+	ADMIN_ACCESS,
+	isPlatformAdmin,
+	requireScopeRole,
+} from "~/core/scopes/access";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 
 export const useGroupAdminAuth = routeLoader$(async (event) => {
-	const { params, sharedMap, redirect } = event;
-	const user = await getCurrentUserData(event as any);
-	const groupSlug = params.group_slug;
-
-	if (!user) {
-		throw redirect(302, "/login");
-	}
-
-	// Check if global admin context
-	if (groupSlug === "global") {
-		// Must be platform admin
-		if (!(await isPlatformAdmin(user))) {
-			throw redirect(302, "/");
-		}
-		sharedMap.set("adminContext", { isGlobal: true });
-		return assertNoPrivateFields({
-			isGlobal: true,
-			group: null,
-			adminSections: activeAdminSections,
-		});
-	}
-
-	// Group-specific context - must be representative for that group
-	const group = await groupsService.getBySlug(groupSlug);
-	if (!group) {
-		throw redirect(302, "/groups");
-	}
-
-	const canManage = await canManageGroupContent(user.id, group.id);
-	if (!canManage) {
-		throw redirect(302, `/groups/${groupSlug}`);
-	}
-
-	sharedMap.set("adminContext", { isGlobal: false, group });
+	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
+	const isRoot = scope.parentId === null;
 	return assertNoPrivateFields({
-		isGlobal: false,
-		group: { id: group.id, name: group.name, slug: group.slug },
-		adminSections: activeAdminSections.filter((s) => s.scopes === "all"),
+		isRoot,
+		scope: { id: scope.id, name: scope.name, path: scope.path },
+		adminBase: adminUrl(scope.path),
+		// Module sections declared for every scope ("all"); the root shows them all.
+		adminSections: isRoot
+			? activeAdminSections
+			: activeAdminSections.filter((s) => s.scopes === "all"),
 	});
 });
 
@@ -62,20 +37,20 @@ export default component$(() => {
 					<div class="flex items-start justify-between gap-4 mb-4">
 						<div class="min-w-0">
 							<h1 class="text-2xl sm:text-3xl font-bold truncate">
-								{auth.value.isGlobal
+								{auth.value.isRoot
 									? "Platform Admin"
-									: `${auth.value.group?.name} Admin`}
+									: `${auth.value.scope.name} Admin`}
 							</h1>
-							{!auth.value.isGlobal && auth.value.group && (
+							{!auth.value.isRoot && (
 								<p class="text-slate-300 text-sm mt-1">
 									Community Representative Dashboard
 								</p>
 							)}
 						</div>
 						<div class="flex gap-2 shrink-0">
-							{!auth.value.isGlobal && auth.value.group && (
+							{!auth.value.isRoot && (
 								<Button
-									href={`/groups/${auth.value.group.slug}`}
+									href={scopeUrl(auth.value.scope.path)}
 									variant="secondary"
 									size="sm"
 								>
@@ -88,16 +63,16 @@ export default component$(() => {
 						</div>
 					</div>
 					<AdminNav
-						groupSlug={auth.value.isGlobal ? undefined : auth.value.group?.slug}
-						isGlobal={auth.value.isGlobal}
+						basePath={auth.value.adminBase}
+						isRoot={auth.value.isRoot}
 						sections={auth.value.adminSections}
 					/>
 				</div>
 			</div>
 			<div class="max-w-7xl mx-auto px-4 py-8">
 				<Breadcrumbs
-					groupSlug={auth.value.isGlobal ? undefined : auth.value.group?.slug}
-					groupName={auth.value.isGlobal ? undefined : auth.value.group?.name}
+					basePath={auth.value.adminBase}
+					scopeName={auth.value.isRoot ? undefined : auth.value.scope.name}
 				/>
 				<Slot />
 			</div>

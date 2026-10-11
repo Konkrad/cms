@@ -1,9 +1,4 @@
-import {
-	defineModule,
-	groupMembershipsService,
-	groupRepresentativesService,
-	publicImageUrlFromKey,
-} from "~/core";
+import { canViewScope, defineModule, publicImageUrlFromKey } from "~/core";
 import { eventsBlocks } from "./blocks";
 import {
 	saleAlertNotification,
@@ -17,7 +12,7 @@ import { tagRulesService } from "./services/tag-rules";
 export const eventsModule = defineModule({
 	id: "events",
 	pages: eventsPages,
-	// Events are managed in every group's admin as well as the global one.
+	// Events are managed in every scope's admin, the root's included.
 	admin: {
 		sections: [{ path: "events", label: "Events", order: 30, scopes: "all" }],
 	},
@@ -41,19 +36,18 @@ export const eventsModule = defineModule({
 		const { upcoming, past } = await participationService.getByUserId(userId);
 		return { upcomingEvents: upcoming, pastEvents: past };
 	},
-	// The group's next events and its finished-event count. Group-only events are listed only
-	// to the group's members and representatives.
-	async groupPage({ groupId, viewerId }) {
-		const [isMember, isRepresentative] = viewerId
-			? await Promise.all([
-					groupMembershipsService.isMember(viewerId, groupId),
-					groupRepresentativesService.isRepresentative(viewerId, groupId),
-				])
-			: [false, false];
+	// The scope's next events and its finished-event count. Group-only events are listed only
+	// to members of the scope (or of a scope below it) and role holders on it.
+	async scopePage({ scopeId, viewerId }) {
+		const canSeeMembersOnly = await canViewScope(
+			viewerId ? { id: viewerId } : null,
+			scopeId,
+			"members",
+		);
 		const [pastEventCount, upcoming] = await Promise.all([
-			eventsService.countPastByGroupId(groupId),
-			eventsService.getUpcomingByGroupId(groupId, {
-				includeGroupOnly: isMember || isRepresentative,
+			eventsService.countPastByScopeId(scopeId),
+			eventsService.getUpcomingByScopeId(scopeId, {
+				includeGroupOnly: canSeeMembersOnly,
 				limit: 3,
 			}),
 		]);
@@ -71,6 +65,7 @@ export const eventsModule = defineModule({
 			})),
 		};
 	},
+	scopeContentCount: (scopeId) => eventsService.countByScopeId(scopeId),
 	notifications: [ticketConfirmationNotification, saleAlertNotification],
 	reevaluateUserTags: (userId) => tagRulesService.evaluateRulesForUser(userId),
 	// Lazy: the fulfilment graph (Stripe client, services) would otherwise load with the

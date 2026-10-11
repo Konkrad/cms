@@ -5,33 +5,49 @@ import { Button } from "~/components/ui/Button";
 import { PAGE_SIZE, Pagination } from "~/core/admin/Pagination/Pagination";
 import { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 import { postsService } from "~/core/content/posts.service";
-import { requireGroupAdmin } from "~/core/scopes/access-control";
-import { groupsService } from "~/core/scopes/groups.service";
+import { adminUrl } from "~/core/router/scope-path";
+import {
+	ADMIN_ACCESS,
+	isWithinScope,
+	requireScopeRole,
+} from "~/core/scopes/access";
+import { scopesService } from "~/core/scopes/scopes.service";
 
-export const usePosts = routeLoader$(async ({ params, url }) => {
-	const groupSlug = params.group_slug;
+export const usePosts = routeLoader$(async (event) => {
+	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
+	const { url } = event;
+	const isRoot = scope.parentId === null;
 	const search = url.searchParams.get("search")?.trim() ?? "";
-	const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1") || 1);
+	const page = Math.max(
+		1,
+		parseInt(url.searchParams.get("page") ?? "1", 10) || 1,
+	);
 	const offset = (page - 1) * PAGE_SIZE;
 
-	const group =
-		groupSlug !== "global" ? await groupsService.getBySlug(groupSlug) : null;
-
 	const { total, items } = await postsService.adminList({
-		groupId: group?.id ?? null,
+		// The root lists every post; other scopes their own and their subtree's.
+		scopeIds: isRoot ? null : await scopesService.subtreeIds(scope.id),
 		search,
 		limit: PAGE_SIZE,
 		offset,
 	});
 
-	return { posts: items, total, page, pageSize: PAGE_SIZE, search, groupSlug };
+	return {
+		posts: items,
+		total,
+		page,
+		pageSize: PAGE_SIZE,
+		search,
+		isRoot,
+		base: adminUrl(scope.path),
+	};
 });
 
 export const useDeletePost = routeAction$(async (data, event) => {
-	const { isGlobal, group } = await requireGroupAdmin(event);
+	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
 	const target = await postsService.getById(data.postId as string);
 	if (!target) throw event.error(404, "Post not found");
-	if (!isGlobal && target.groupId !== group.id)
+	if (!(await isWithinScope(scope, target.scopeId)))
 		throw event.error(403, "Forbidden");
 	await postsService.delete(data.postId as string);
 	return { success: true };
@@ -46,11 +62,9 @@ export default component$(() => {
 		<div>
 			<div class="flex items-center justify-between mb-6">
 				<h2 class="text-2xl font-bold text-gray-800">
-					{data.value.groupSlug === "global" ? "All Posts" : "Group Posts"}
+					{data.value.isRoot ? "All Posts" : "Group Posts"}
 				</h2>
-				<Button href={`/admin/${data.value.groupSlug}/posts/new`}>
-					Create New Post
-				</Button>
+				<Button href={`${data.value.base}/posts/new`}>Create New Post</Button>
 			</div>
 
 			<SearchBar value={data.value.search} placeholder="Search by title…" />
@@ -95,7 +109,7 @@ export default component$(() => {
 								<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
 									<div class="flex items-center gap-4">
 										<Link
-											href={`/admin/${data.value.groupSlug}/posts/${post.id}/edit`}
+											href={`${data.value.base}/posts/${post.id}/edit`}
 											class="text-blue-600 hover:text-blue-900"
 										>
 											Edit

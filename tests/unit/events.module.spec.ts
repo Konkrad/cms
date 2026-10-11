@@ -6,6 +6,7 @@ import {
 	createTestEvent,
 	createTestParticipation,
 	createTestUser,
+	ensureRootScope,
 	grantRootAdmin,
 	openDb,
 } from "./helpers";
@@ -15,43 +16,39 @@ afterEach(() => {
 	for (const fn of cleanups.splice(0).reverse()) fn();
 });
 
-function createGroup() {
+/** A chapter scope under the root; returns its id. */
+function createScope() {
+	const rootId = ensureRootScope();
 	const db = openDb();
 	const id = crypto.randomUUID();
 	db.prepare(
-		"INSERT INTO groups (id, name, slug, latitude, longitude) VALUES (?, ?, ?, ?, ?)",
-	).run(id, "Unit Group", `unit-group-${id}`, "0", "0");
+		"INSERT INTO scopes (id, parent_id, kind, slug, name, path) VALUES (?, ?, 'chapter', ?, ?, ?)",
+	).run(id, rootId, `unit-${id}`, "Unit Group", `/unit-${id}/`);
 	db.close();
 	cleanups.push(() => {
 		const d = openDb();
-		d.prepare("DELETE FROM groups WHERE id = ?").run(id);
+		d.prepare("DELETE FROM scope_memberships WHERE scope_id = ?").run(id);
+		d.prepare("DELETE FROM scopes WHERE id = ?").run(id);
 		d.close();
 	});
 	return id;
 }
 
-function assignEventToGroup(eventId: string, groupId: string) {
+function assignEventToScope(eventId: string, scopeId: string) {
 	const db = openDb();
-	db.prepare("UPDATE events SET group_id = ? WHERE id = ?").run(
-		groupId,
+	db.prepare("UPDATE events SET scope_id = ? WHERE id = ?").run(
+		scopeId,
 		eventId,
 	);
 	db.close();
 }
 
-function addMember(userId: string, groupId: string) {
+function addMember(userId: string, scopeId: string) {
 	const db = openDb();
 	db.prepare(
-		"INSERT INTO group_memberships (id, user_id, group_id) VALUES (?, ?, ?)",
-	).run(crypto.randomUUID(), userId, groupId);
+		"INSERT INTO scope_memberships (user_id, scope_id) VALUES (?, ?)",
+	).run(userId, scopeId);
 	db.close();
-	cleanups.push(() => {
-		const d = openDb();
-		d.prepare(
-			"DELETE FROM group_memberships WHERE user_id = ? AND group_id = ?",
-		).run(userId, groupId);
-		d.close();
-	});
 }
 
 const future = (days: number) =>
@@ -107,11 +104,11 @@ describe("events profile hook", () => {
 	});
 });
 
-describe("events group page hook", () => {
+describe("events scope page hook", () => {
 	it("lists the group's upcoming events and counts its past ones", async () => {
 		const owner = createTestUser();
 		cleanups.push(owner.cleanup);
-		const groupId = createGroup();
+		const groupId = createScope();
 		const next = createTestEvent(owner.userId, {
 			title: "Group Next",
 			startDate: future(3),
@@ -124,10 +121,13 @@ describe("events group page hook", () => {
 			endDate: future(4),
 		});
 		for (const e of [next, old, elsewhere]) cleanups.push(e.cleanup);
-		assignEventToGroup(next.eventId, groupId);
-		assignEventToGroup(old.eventId, groupId);
+		assignEventToScope(next.eventId, groupId);
+		assignEventToScope(old.eventId, groupId);
 
-		const extras = await eventsModule.groupPage?.({ groupId, viewerId: null });
+		const extras = await eventsModule.scopePage?.({
+			scopeId: groupId,
+			viewerId: null,
+		});
 
 		expect(extras?.pastEventCount).toBe(1);
 		expect(extras?.upcomingEvents?.map((e) => e.title)).toEqual(["Group Next"]);
@@ -142,7 +142,7 @@ describe("events group page hook", () => {
 		const member = createTestUser();
 		const outsider = createTestUser();
 		cleanups.push(owner.cleanup, member.cleanup, outsider.cleanup);
-		const groupId = createGroup();
+		const groupId = createScope();
 		addMember(member.userId, groupId);
 		const secret = createTestEvent(owner.userId, {
 			title: "Members Only",
@@ -151,11 +151,11 @@ describe("events group page hook", () => {
 			endDate: future(4),
 		});
 		cleanups.push(secret.cleanup);
-		assignEventToGroup(secret.eventId, groupId);
+		assignEventToScope(secret.eventId, groupId);
 
 		const titles = async (viewerId: string | null) =>
 			(
-				await eventsModule.groupPage?.({ groupId, viewerId })
+				await eventsModule.scopePage?.({ scopeId: groupId, viewerId })
 			)?.upcomingEvents?.map((e) => e.title);
 
 		expect(await titles(null)).toEqual([]);
@@ -166,7 +166,7 @@ describe("events group page hook", () => {
 
 describe("canViewEvent", () => {
 	it("allows everyone on global events", async () => {
-		const event = { visibility: "global", groupId: null };
+		const event = { visibility: "global", scopeId: null };
 		expect(await canViewEvent(event, null)).toBe(true);
 		expect(await canViewEvent(event, { id: "x" })).toBe(true);
 	});
@@ -175,9 +175,9 @@ describe("canViewEvent", () => {
 		const member = createTestUser();
 		const outsider = createTestUser();
 		cleanups.push(member.cleanup, outsider.cleanup);
-		const groupId = createGroup();
+		const groupId = createScope();
 		addMember(member.userId, groupId);
-		const event = { visibility: "group-only", groupId };
+		const event = { visibility: "group-only", scopeId: groupId };
 
 		expect(await canViewEvent(event, null)).toBe(false);
 		expect(await canViewEvent(event, { id: outsider.userId })).toBe(false);
@@ -189,7 +189,7 @@ describe("canViewEvent", () => {
 	it("hides a group-only event without a group from non-admins", async () => {
 		const user = createTestUser();
 		cleanups.push(user.cleanup);
-		const event = { visibility: "group-only", groupId: null };
+		const event = { visibility: "group-only", scopeId: null };
 		expect(await canViewEvent(event, { id: user.userId })).toBe(false);
 	});
 });

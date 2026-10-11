@@ -27,6 +27,12 @@ export const scopes = sqliteTable(
 		name: text("name").notNull(),
 		// Public URL prefix with leading and trailing slash, e.g. "/germany/berlin/".
 		path: text("path").notNull().unique(),
+		// Profile shown on the scope's home page (all optional).
+		description: text("description"),
+		// Public S3 keys (public/scopes/...) of the home page image tiles.
+		image1: text("image1"),
+		image2: text("image2"),
+		image3: text("image3"),
 		createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 	},
 	(table) => [

@@ -65,7 +65,7 @@ export const AdminEventPhotos = component$<Props>(({ data }) => {
 	const { event, photos } = data;
 	const location = useLocation();
 	const parts = location.url.pathname.split("/");
-	const groupSlug = parts[2] || "global";
+	const groupSlug = parts[2] || "root";
 	const backUrl = `/admin/${groupSlug}/events/${event.id}`;
 	const createPhotoAction = useCreatePhoto();
 	const deletePhotoAction = useDeletePhoto();

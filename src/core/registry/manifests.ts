@@ -1,14 +1,15 @@
 import type { RequestEventCommon } from "@qwik.dev/router";
 import {
 	adminSectionsOf,
-	type GroupPageContext,
-	groupExtrasOf,
 	type ModuleDefinition,
 	menuLinksOf,
 	type ProfileContext,
 	pagesOf,
 	profileExtrasOf,
 	reevaluateUserTagsOf,
+	type ScopePageContext,
+	scopeContentCountOf,
+	scopeExtrasOf,
 	selectActive,
 } from "~/core/router/modules";
 import { reservedScopeSlugs } from "~/core/router/reserved-slugs";
@@ -39,9 +40,13 @@ export const activeMenuLinks = menuLinksOf(activeModules);
 export const activeProfileExtras = (ctx: ProfileContext) =>
 	profileExtrasOf(activeModules, ctx);
 
-/** Group page sections contributed by active modules for this viewer. */
-export const activeGroupExtras = (ctx: GroupPageContext) =>
-	groupExtrasOf(activeModules, ctx);
+/** Scope home page sections contributed by active modules for this viewer. */
+export const activeScopeExtras = (ctx: ScopePageContext) =>
+	scopeExtrasOf(activeModules, ctx);
+
+/** Items every module (active or not: their rows stay) owns in a scope. */
+export const moduleScopeContentCount = (scopeId: string) =>
+	scopeContentCountOf(allModules, scopeId);
 
 /** Re-runs the tag rules of every active module for one user. */
 export const reevaluateUserTagsForUser = (userId: string) =>

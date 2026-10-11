@@ -376,11 +376,11 @@ if (testUsers.length < 10) {
 }
 console.log(`  test users: ${testUsers.length}`);
 
-// ─── Resolve group IDs ────────────────────────────────────────────────────────
+// ─── Resolve group (chapter scope) IDs by slug ───────────────────────────────
 
-const allGroups = db.select().from(schema.groups).all();
+const allScopes = db.select().from(schema.scopes).all();
 const groupIds: Record<string, string> = Object.fromEntries(
-	allGroups.map((g) => [g.slug, g.id]),
+	allScopes.filter((g) => g.parentId !== null).map((g) => [g.slug, g.id]),
 );
 
 // ─── QA Events ───────────────────────────────────────────────────────────────
@@ -461,7 +461,7 @@ for (const e of qaEventDefs) {
 			latitude: e.latitude,
 			onlineUrl: null,
 			userId: resolveAuthor(e.authorIdx),
-			groupId: e.groupSlug ? (groupIds[e.groupSlug] ?? null) : null,
+			scopeId: e.groupSlug ? (groupIds[e.groupSlug] ?? null) : null,
 			visibility: e.visibility,
 			createdAt: now(),
 			updatedAt: now(),

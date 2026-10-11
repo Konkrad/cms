@@ -6,20 +6,11 @@ import { menuItemsService } from "~/core/content/menu-items.service";
 import type { MenuItem } from "~/core/content/schema/menu-items";
 import { getStaticMenuLinks } from "~/core/content/static-menu-links";
 import { sanitizeSvg } from "~/core/content/svg-sanitize";
-import { requireAdmin } from "~/core/scopes/access";
+import { requireSystemAdmin } from "~/core/scopes/access";
 
 // Pages are only accessible in global context
-export const useCheckGlobalContext = routeLoader$(
-	async ({ params, redirect }) => {
-		if (params.group_slug !== "global") {
-			throw redirect(302, `/admin/${params.group_slug}`);
-		}
-		return true;
-	},
-);
-
 export const useAdminAuth = routeLoader$(async (event) => {
-	await requireAdmin(event);
+	await requireSystemAdmin(event);
 	return true;
 });
 
@@ -118,7 +109,7 @@ const getDescendantIds = (items: MenuItem[], itemId: string): string[] => {
 
 export const useDeleteMenuItem = routeAction$(
 	async (data, event) => {
-		await requireAdmin(event);
+		await requireSystemAdmin(event);
 		try {
 			await menuItemsService.delete(data.menuItemId);
 			return { success: true };
@@ -131,7 +122,7 @@ export const useDeleteMenuItem = routeAction$(
 
 export const useAddToMenu = routeAction$(
 	async (data, event) => {
-		await requireAdmin(event);
+		await requireSystemAdmin(event);
 
 		try {
 			const normalizedUrl = normalizeUrl(data.url);
@@ -187,7 +178,7 @@ export const useAddToMenu = routeAction$(
 
 export const useUpdateMenuItem = routeAction$(
 	async (data, event) => {
-		await requireAdmin(event);
+		await requireSystemAdmin(event);
 
 		try {
 			const allItems = await menuItemsService.getAll(data.menuName, {
@@ -280,7 +271,7 @@ export const useUpdateMenuItem = routeAction$(
 
 export const useMoveMenuItem = routeAction$(
 	async (data, event) => {
-		await requireAdmin(event);
+		await requireSystemAdmin(event);
 
 		try {
 			const allItems = await menuItemsService.getAll(data.menuName, {

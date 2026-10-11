@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { groups, users } from "~/core/schema";
+import { scopes, users } from "~/core/schema";
 
 export const events = sqliteTable("events", {
 	id: text("id").primaryKey(),
@@ -22,7 +22,8 @@ export const events = sqliteTable("events", {
 	userId: text("user_id")
 		.notNull()
 		.references(() => users.id),
-	groupId: text("group_id").references(() => groups.id),
+	// Owning scope; null = the root (site-wide).
+	scopeId: text("scope_id").references(() => scopes.id),
 	visibility: text("visibility", { enum: ["group-only", "global"] })
 		.notNull()
 		.default("global"),

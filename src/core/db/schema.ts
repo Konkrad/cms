@@ -12,9 +12,6 @@ import {
 	notificationPreferences,
 } from "../notifications/schema";
 import { moduleTables, withModuleRelations } from "../registry/schemas";
-import { groupMemberships } from "../scopes/schema/group-memberships";
-import { groupRepresentatives } from "../scopes/schema/group-representatives";
-import { groups } from "../scopes/schema/groups";
 import { scopeMemberships, scopeRoles, scopes } from "../scopes/schema/scopes";
 import { tagDefinitions } from "../tags/schema/tag-definitions";
 import { userTags } from "../tags/schema/user-tags";
@@ -31,9 +28,6 @@ export * from "../forms/schema/forms";
 export * from "../memberships/schema";
 export * from "../notifications/schema";
 export * from "../registry/schemas";
-export * from "../scopes/schema/group-memberships";
-export * from "../scopes/schema/group-representatives";
-export * from "../scopes/schema/groups";
 export * from "../scopes/schema/scopes";
 export * from "../tags/schema/tag-definitions";
 export * from "../tags/schema/user-tags";
@@ -46,9 +40,6 @@ export const schemaRelations = defineRelations(
 		pages,
 		sessions,
 		users,
-		groups,
-		groupMemberships,
-		groupRepresentatives,
 		posts,
 		forms,
 		formResults,
@@ -66,7 +57,6 @@ export const schemaRelations = defineRelations(
 		const {
 			sessions,
 			users,
-			groups,
 			posts,
 			forms,
 			formResults,
@@ -106,7 +96,7 @@ export const schemaRelations = defineRelations(
 						to: users.id,
 						optional: false,
 					}),
-					group: one.groups({ from: posts.groupId, to: groups.id }),
+					scope: one.scopes({ from: posts.scopeId, to: scopes.id }),
 					deletedByUser: one.users({ from: posts.deletedBy, to: users.id }),
 				},
 				formResults: {

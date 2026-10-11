@@ -14,7 +14,7 @@ export type PublicProfileViewData =
 			/** Public thumbnail URL (never the private full-size picture). */
 			profilePictureUrl: string | null;
 			tags: { id: string; label: string }[];
-			communities: { name: string; slug: string }[];
+			communities: { name: string; url: string }[];
 			upcomingEvents: ProfileEventEntry[];
 			pastEvents: ProfileEventEntry[];
 			isOwner: boolean;

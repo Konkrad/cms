@@ -18,9 +18,8 @@ import {
 	updatePostSchema,
 } from "~/core/content/schema/posts";
 import { db } from "~/core/db/connection";
-import { isPlatformAdmin } from "~/core/scopes/access";
-import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
-import { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
+import { canViewScope, viewableMemberScopes } from "~/core/scopes/access";
+import { scopesService } from "~/core/scopes/scopes.service";
 import {
 	decodeCursor,
 	getNextCursorFromRows,
@@ -35,60 +34,56 @@ import {
 } from "~/core/users/public-user";
 import { users as usersTable } from "~/core/users/schema";
 
+type MemberScopes = Awaited<ReturnType<typeof viewableMemberScopes>>;
+
 export type PostWithUser = Post & {
 	user: PublicUser;
 };
 
-/** Group ids whose group-only posts the viewer may see (their groups); none for guests. */
-async function viewerGroupIds(viewerId: string | null): Promise<string[]> {
-	if (!viewerId) return [];
-	const groups = await groupMembershipsService.getUserGroups(viewerId);
-	return groups.map((g) => g.id);
-}
-
-/** RQB `where` part: global posts, plus group-only posts of the given groups. */
-function visibleWhere(groupIds: string[]) {
-	return groupIds.length > 0
-		? {
-				OR: [
-					{ visibility: "global" as const },
-					{ visibility: "group-only" as const, groupId: { in: groupIds } },
-				],
-			}
-		: { visibility: "global" as const };
+/** RQB `where` part: global posts, plus group-only posts of the given scopes. */
+function visibleWhere({ ids, includesRoot: root }: MemberScopes) {
+	if (ids.length === 0) return { visibility: "global" as const };
+	const scopeId = root
+		? { OR: [{ scopeId: { in: ids } }, { scopeId: { isNull: true as const } }] }
+		: { scopeId: { in: ids } };
+	return {
+		OR: [
+			{ visibility: "global" as const },
+			{ visibility: "group-only" as const, ...scopeId },
+		],
+	};
 }
 
 /** SQL counterpart of `visibleWhere` for core select queries. */
-function visibleSql(groupIds: string[]): SQL | undefined {
-	return groupIds.length > 0
-		? or(
-				eq(posts.visibility, "global"),
-				and(
-					eq(posts.visibility, "group-only"),
-					inArray(posts.groupId, groupIds),
-				),
-			)
-		: eq(posts.visibility, "global");
+function visibleSql({
+	ids,
+	includesRoot: root,
+}: MemberScopes): SQL | undefined {
+	if (ids.length === 0) return eq(posts.visibility, "global");
+	return or(
+		eq(posts.visibility, "global"),
+		and(
+			eq(posts.visibility, "group-only"),
+			root
+				? or(inArray(posts.scopeId, ids), isNull(posts.scopeId))
+				: inArray(posts.scopeId, ids),
+		),
+	);
 }
 
 export const postsService = {
 	/**
 	 * Whether a viewer may see a post: global posts are public; group-only posts are for
-	 * members and representatives of the post's group, and platform admins.
+	 * members of the post's scope (or of a scope below it) and role holders on it.
 	 */
 	async canView(
-		post: { visibility: string; groupId: string | null },
+		post: { visibility: string; scopeId: string | null },
 		viewer: { id: string } | null,
 	): Promise<boolean> {
 		if (post.visibility !== "group-only") return true;
-		if (!viewer) return false;
-		if (await isPlatformAdmin(viewer)) return true;
-		if (!post.groupId) return false;
-		const [isMember, isRep] = await Promise.all([
-			groupMembershipsService.isMember(viewer.id, post.groupId),
-			groupRepresentativesService.isRepresentative(viewer.id, post.groupId),
-		]);
-		return isMember || isRep;
+		const scopeId = post.scopeId ?? (await scopesService.getRoot())?.id;
+		if (!scopeId) return false;
+		return canViewScope(viewer, scopeId, "members");
 	},
 
 	/** Posts visible to `viewerId` (null = guest: global posts only), newest first. */
@@ -103,7 +98,9 @@ export const postsService = {
 		prevCursor: string | null;
 	}> {
 		const cursorObj = decodeCursor(cursor ?? null);
-		const groupIds = await viewerGroupIds(viewerId);
+		const visible = await viewableMemberScopes(
+			viewerId ? { id: viewerId } : null,
+		);
 
 		const results = await db.query.posts.findMany({
 			with: {
@@ -116,7 +113,7 @@ export const postsService = {
 			limit: limit + 1,
 			where: {
 				deletedAt: { isNull: true },
-				...visibleWhere(groupIds),
+				...visibleWhere(visible),
 				...(cursorObj?.createdAt
 					? direction === "forward"
 						? { createdAt: { lt: cursorObj.createdAt } }
@@ -134,21 +131,21 @@ export const postsService = {
 		);
 	},
 
-	/** Admin post list (title search, optional group filter) with the author's name. */
+	/** Admin post list (title search; `scopeIds` limits it to those scopes, null = all). */
 	async adminList({
-		groupId,
+		scopeIds,
 		search,
 		limit,
 		offset,
 	}: {
-		groupId: string | null;
+		scopeIds: string[] | null;
 		search: string;
 		limit: number;
 		offset: number;
 	}) {
 		const where = and(
 			isNull(posts.deletedAt),
-			groupId ? eq(posts.groupId, groupId) : undefined,
+			scopeIds ? inArray(posts.scopeId, scopeIds) : undefined,
 			search ? like(posts.title, `%${search}%`) : undefined,
 		);
 		const [countRows, rows] = await Promise.all([
@@ -197,12 +194,14 @@ export const postsService = {
 	): Promise<{ items: PostWithUser[]; totalPages: number }> {
 		const pageIndex = Math.max(0, page);
 		const safePerPage = Math.max(1, perPage);
-		const groupIds = await viewerGroupIds(viewerId);
+		const visible = await viewableMemberScopes(
+			viewerId ? { id: viewerId } : null,
+		);
 
 		const totalResult = await db
 			.select({ total: sql<number>`count(*)` })
 			.from(posts)
-			.where(and(isNull(posts.deletedAt), visibleSql(groupIds)));
+			.where(and(isNull(posts.deletedAt), visibleSql(visible)));
 
 		const total = Number(totalResult[0]?.total ?? 0);
 		const totalPages = Math.ceil(total / safePerPage);
@@ -213,7 +212,7 @@ export const postsService = {
 			},
 			where: {
 				deletedAt: { isNull: true },
-				...visibleWhere(groupIds),
+				...visibleWhere(visible),
 			},
 			orderBy: { createdAt: "desc", id: "desc" },
 			limit: safePerPage,
@@ -266,18 +265,18 @@ export const postsService = {
 	},
 
 	/**
-	 * Latest posts of a group. Group-only posts are included only when the caller has
+	 * Latest posts of a scope. Group-only posts are included only when the caller has
 	 * decided the viewer may see them (member, representative or admin).
 	 */
-	async getRecentByGroup(
-		groupId: string,
+	async getRecentByScope(
+		scopeId: string,
 		limit: number,
 		{ includeGroupOnly }: { includeGroupOnly: boolean },
 	): Promise<PostWithUser[]> {
 		const rows = await db.query.posts.findMany({
 			with: { user: { columns: publicUserColumns } },
 			where: {
-				groupId,
+				scopeId,
 				deletedAt: { isNull: true },
 				...(includeGroupOnly ? {} : { visibility: "global" }),
 			},
@@ -294,7 +293,9 @@ export const postsService = {
 	): Promise<{ items: PostWithUser[]; nextCursor?: string | null }> {
 		const cursorObj = decodeCursor(cursor ?? null);
 
-		const visibilityCondition = visibleSql(await viewerGroupIds(userId));
+		const visibilityCondition = visibleSql(
+			await viewableMemberScopes(userId ? { id: userId } : null),
+		);
 
 		const results = await db
 			.select({ post: posts, user: publicUserSelect })

@@ -4,7 +4,7 @@ import { relations } from "drizzle-orm/_relations";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { groups } from "../../scopes/schema/groups";
+import { scopes } from "../../scopes/schema/scopes";
 import { users } from "../../users/schema";
 
 // Simple BlockNote to HTML converter
@@ -83,7 +83,8 @@ export const posts = sqliteTable("posts", {
 	userId: text("user_id")
 		.notNull()
 		.references(() => users.id),
-	groupId: text("group_id").references(() => groups.id),
+	// Owning scope; null = the root (site-wide).
+	scopeId: text("scope_id").references(() => scopes.id),
 	visibility: text("visibility", { enum: ["group-only", "global"] })
 		.notNull()
 		.default("global"),
@@ -102,9 +103,9 @@ export const postsRelations = relations(posts, ({ one }) => ({
 		fields: [posts.userId],
 		references: [users.id],
 	}),
-	group: one(groups, {
-		fields: [posts.groupId],
-		references: [groups.id],
+	scope: one(scopes, {
+		fields: [posts.scopeId],
+		references: [scopes.id],
 	}),
 	deletedByUser: one(users, {
 		fields: [posts.deletedBy],

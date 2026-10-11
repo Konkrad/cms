@@ -4,7 +4,8 @@ import type { PublicProfileViewData } from "~/contracts/users";
 import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
 import { formResultsService } from "~/core/forms/form-results.service";
 import { buildFormPath } from "~/core/forms/forms";
-import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
+import { scopeUrl } from "~/core/router/scope-path";
+import { scopesService } from "~/core/scopes/scopes.service";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { formatAffiliationResultJson } from "~/core/users/affiliation";
 import { usersService } from "~/core/users/users.service";
@@ -33,7 +34,7 @@ export const usePublicProfile = routeLoader$(
 
 		const { userTagsService } = await import("~/core/tags/user-tags.service");
 		const [groups, tags, submittedFormRows, extras] = await Promise.all([
-			groupMembershipsService.getUserGroups(user.id),
+			scopesService.listUserScopes(user.id),
 			userTagsService.getByUser(user.id),
 			formResultsService.getByUser(user.id),
 			activeProfileExtras({
@@ -75,7 +76,10 @@ export const usePublicProfile = routeLoader$(
 				country: user.country,
 				profilePictureUrl: user.profilePictureSmallUrl,
 				tags: tags.map((t) => ({ id: t.id, label: t.label })),
-				communities: groups.map((g) => ({ name: g.name, slug: g.slug })),
+				communities: groups.map((g) => ({
+					name: g.name,
+					url: scopeUrl(g.path),
+				})),
 				// Sections of modules that are not active fall back to empty.
 				upcomingEvents: extras.upcomingEvents ?? [],
 				pastEvents: extras.pastEvents ?? [],

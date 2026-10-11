@@ -1,43 +1,23 @@
-import { getCurrentUserData } from "~/core/auth/server-auth";
-import { isPlatformAdmin } from "~/core/scopes/access";
-import { canManageGroupContent } from "~/core/scopes/access-control";
-import { groupsService } from "~/core/scopes/groups.service";
+import type { RequestEvent } from "~/core/auth/server-auth";
+import { ADMIN_ACCESS, requireScopeRole } from "~/core/scopes/access";
 
 export type FormsAdminScope = {
 	scopeType: "global" | "group";
+	/** The URL's scope; null on the root (site-wide forms). */
 	scopeId: string | null;
 	userId: string;
 };
 
+/** Authorize a forms admin request against the URL's scope (any managing role). */
 export async function resolveFormsAdminScope(
-	event: any,
+	event: RequestEvent,
 ): Promise<FormsAdminScope> {
-	const user = await getCurrentUserData(event);
-	if (!user) {
-		throw event.redirect(302, "/login");
-	}
-
-	const groupSlug = event.params.group_slug;
-	if (groupSlug === "global") {
-		if (!(await isPlatformAdmin(user))) {
-			throw event.redirect(302, "/");
-		}
-		return { scopeType: "global", scopeId: null, userId: user.id };
-	}
-
-	const group = await groupsService.getBySlug(groupSlug);
-	if (!group) {
-		throw event.redirect(302, "/groups");
-	}
-
-	const canManage = await canManageGroupContent(user.id, group.id);
-	if (!canManage) {
-		throw event.redirect(302, `/groups/${group.slug}`);
-	}
-
-	return { scopeType: "group", scopeId: group.id, userId: user.id };
+	const { user, scope } = await requireScopeRole(event, ADMIN_ACCESS);
+	return scope.parentId === null
+		? { scopeType: "global", scopeId: null, userId: user.id }
+		: { scopeType: "group", scopeId: scope.id, userId: user.id };
 }
 
-export function buildFormsAdminBasePath(groupSlug: string): string {
-	return `/admin/${groupSlug}/forms`;
+export function buildFormsAdminBasePath(scopeSegment: string): string {
+	return `/admin/${scopeSegment}/forms`;
 }

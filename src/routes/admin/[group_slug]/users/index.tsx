@@ -12,35 +12,25 @@ import { PAGE_SIZE, Pagination } from "~/core/admin/Pagination/Pagination";
 import { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 import { membershipsService } from "~/core/memberships/memberships.service";
 import { reevaluateUserTagsForUser } from "~/core/registry/manifests";
-import { groupsService } from "~/core/scopes/groups.service";
+import { adminUrl } from "~/core/router/scope-path";
+import { requireSystemAdmin } from "~/core/scopes/access";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { userTagsService } from "~/core/tags/user-tags.service";
 import { adminUsersService } from "~/core/users/admin-users.service";
 
-export const useUsers = routeLoader$(async ({ params, url }) => {
-	const groupSlug = params.group_slug;
+/** All users (root only; scopes below show their members on the members page). */
+export const useUsers = routeLoader$(async (event) => {
+	const { scope } = await requireSystemAdmin(event);
+	const { url } = event;
 	const search = url.searchParams.get("search")?.trim() ?? "";
-	const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1") || 1);
+	const page = Math.max(
+		1,
+		parseInt(url.searchParams.get("page") ?? "1", 10) || 1,
+	);
 	const offset = (page - 1) * PAGE_SIZE;
-	const isGlobal = groupSlug === "global";
-
-	const group = isGlobal ? null : await groupsService.getBySlug(groupSlug);
 	const definitions = await userTagsService.getDefinitions();
-	if (!isGlobal && !group) {
-		return {
-			users: [],
-			total: 0,
-			page,
-			pageSize: PAGE_SIZE,
-			groupSlug,
-			isGlobal,
-			definitions,
-			search,
-		};
-	}
 
 	const { users, total } = await adminUsersService.listWithEmailAndRole({
-		groupId: group?.id ?? null,
 		search,
 		limit: PAGE_SIZE,
 		offset,
@@ -52,8 +42,7 @@ export const useUsers = routeLoader$(async ({ params, url }) => {
 			total,
 			page,
 			pageSize: PAGE_SIZE,
-			groupSlug,
-			isGlobal,
+			base: adminUrl(scope.path),
 			definitions,
 			search,
 		},
@@ -66,8 +55,7 @@ export const useUsers = routeLoader$(async ({ params, url }) => {
 
 export const useSetTier = routeAction$(
 	async (data, event) => {
-		const { requireAdmin } = await import("~/core/scopes/access");
-		const admin = await requireAdmin(event);
+		const { user: admin } = await requireSystemAdmin(event);
 		await membershipsService.setTier(data.userId, data.tier, admin.id);
 		return { success: true };
 	},
@@ -79,8 +67,7 @@ export const useSetTier = routeAction$(
 
 export const useRemoveMembership = routeAction$(
 	async (data, event) => {
-		const { requireAdmin } = await import("~/core/scopes/access");
-		await requireAdmin(event);
+		await requireSystemAdmin(event);
 		await membershipsService.removeMembership(data.userId);
 		return { success: true };
 	},
@@ -89,8 +76,7 @@ export const useRemoveMembership = routeAction$(
 
 export const useGrantTag = routeAction$(
 	async (data, event) => {
-		const { requireAdmin } = await import("~/core/scopes/access");
-		const admin = await requireAdmin(event);
+		const { user: admin } = await requireSystemAdmin(event);
 		await userTagsService.grantFromDefinition(
 			data.userId,
 			data.definitionId,
@@ -106,8 +92,7 @@ export const useGrantTag = routeAction$(
 
 export const useRevokeTag = routeAction$(
 	async (data, event) => {
-		const { requireAdmin } = await import("~/core/scopes/access");
-		await requireAdmin(event);
+		await requireSystemAdmin(event);
 		await userTagsService.revoke(data.userId, data.slug);
 		return { success: true };
 	},
@@ -115,8 +100,7 @@ export const useRevokeTag = routeAction$(
 );
 
 export const useReevaluateBadges = routeAction$(async (_data, event) => {
-	const { requireAdmin } = await import("~/core/scopes/access");
-	await requireAdmin(event);
+	await requireSystemAdmin(event);
 	const memberships = await membershipsService.getAll();
 	await Promise.all(
 		memberships.map((m) => reevaluateUserTagsForUser(m.userId)),
@@ -138,27 +122,23 @@ export default component$(() => {
 	return (
 		<div>
 			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-2xl font-bold text-gray-800">
-					{data.value.isGlobal ? "All Users" : "Group Members"}
-				</h2>
-				{data.value.isGlobal && (
-					<div class="flex items-center gap-3">
-						<Link
-							href="/admin/global/tags"
-							class="text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded px-3 py-1.5"
+				<h2 class="text-2xl font-bold text-gray-800">All Users</h2>
+				<div class="flex items-center gap-3">
+					<Link
+						href={`${data.value.base}/tags`}
+						class="text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded px-3 py-1.5"
+					>
+						Manage tags →
+					</Link>
+					<Form action={reevalAction}>
+						<button
+							type="submit"
+							class="text-sm text-blue-600 hover:text-blue-800 border border-blue-300 rounded px-3 py-1.5"
 						>
-							Manage tags →
-						</Link>
-						<Form action={reevalAction}>
-							<button
-								type="submit"
-								class="text-sm text-blue-600 hover:text-blue-800 border border-blue-300 rounded px-3 py-1.5"
-							>
-								Re-evaluate badge rules
-							</button>
-						</Form>
-					</div>
-				)}
+							Re-evaluate badge rules
+						</button>
+					</Form>
+				</div>
 			</div>
 
 			<SearchBar
@@ -166,10 +146,10 @@ export default component$(() => {
 				placeholder="Search by name or email…"
 			/>
 
-			{data.value.isGlobal && data.value.definitions.length === 0 && (
+			{data.value.definitions.length === 0 && (
 				<div class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded text-amber-800 text-sm">
 					No tag definitions yet.{" "}
-					<a href="/admin/global/tags" class="underline font-medium">
+					<a href={`${data.value.base}/tags`} class="underline font-medium">
 						Add some tags
 					</a>{" "}
 					before you can assign them to members.
@@ -199,7 +179,7 @@ export default component$(() => {
 								Location
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								{data.value.isGlobal ? "Joined" : "Member Since"}
+								Joined
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 								Last Login
@@ -230,14 +210,7 @@ export default component$(() => {
 									{[user.city, user.country].filter(Boolean).join(", ") || "—"}
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-									{format(
-										new Date(
-											data.value.isGlobal
-												? user.createdAt
-												: (user as any).joinedAt,
-										),
-										"MMM d, yyyy",
-									)}
+									{format(new Date(user.createdAt), "MMM d, yyyy")}
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
 									{user.lastLogin
@@ -363,9 +336,7 @@ export default component$(() => {
 					<div class="text-center py-12 text-gray-500">
 						{data.value.search
 							? `No users found for "${data.value.search}".`
-							: data.value.isGlobal
-								? "No users found."
-								: "No members in this group yet."}
+							: "No users found."}
 					</div>
 				)}
 				<Pagination

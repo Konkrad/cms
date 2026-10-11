@@ -1,7 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/contracts/blocks";
-import { useGroupsList } from "~/core/content/builder/blocks/useGroupsList";
-import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
+import { useScopesList } from "~/core/content/builder/blocks/useScopesList";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 
 export const definition: BlockDefinition = {
@@ -14,7 +13,8 @@ export const definition: BlockDefinition = {
 };
 
 export default component$(() => {
-	const { groups, isLoading, error } = useGroupsList();
+	// The groups below the scope this page belongs to (the top-level groups on the site root).
+	const { scopes: groups, isLoading, error } = useScopesList();
 
 	return (
 		<div class="max-w-6xl mx-auto px-4 py-12">
@@ -34,13 +34,9 @@ export default component$(() => {
 						<ContentCard
 							key={group.id}
 							title={group.name}
-							image={
-								group.image1
-									? publicImageUrlFromKey(deriveThumbnailKey(group.image1))
-									: null
-							}
+							image={group.imageUrl}
 							meta={`${group.memberCount} ${group.memberCount === 1 ? "member" : "members"}`}
-							href={`/groups/${group.slug}`}
+							href={group.url}
 							label="View Group"
 						/>
 					))}

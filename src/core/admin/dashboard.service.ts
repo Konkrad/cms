@@ -1,9 +1,9 @@
-import { and, count, eq, isNull } from "drizzle-orm";
+import { and, count, inArray, isNull } from "drizzle-orm";
 import { db } from "~/core/db/connection";
 import { events, pages, posts, users } from "~/core/db/schema";
-import { groupMemberships } from "~/core/scopes/schema/group-memberships";
+import { scopesService } from "~/core/scopes/scopes.service";
 
-/** Counts for the admin dashboard (`/admin/[group_slug]`). */
+/** Counts for the admin dashboard (`/admin/[scope]`). */
 export const adminDashboardService = {
 	async getGlobalStats() {
 		const [[totalUsers], [totalPosts], [totalEvents], [totalPages]] =
@@ -27,23 +27,22 @@ export const adminDashboardService = {
 		};
 	},
 
-	async getGroupStats(groupId: string) {
-		const [[members], [groupPosts], [groupEvents]] = await Promise.all([
-			db
-				.select({ count: count() })
-				.from(groupMemberships)
-				.where(eq(groupMemberships.groupId, groupId)),
+	/** Counts for a scope and every scope below it. */
+	async getScopeStats(scopeId: string) {
+		const ids = await scopesService.subtreeIds(scopeId);
+		const [members, [groupPosts], [groupEvents]] = await Promise.all([
+			scopesService.countMembers(scopeId, { includeDescendants: true }),
 			db
 				.select({ count: count() })
 				.from(posts)
-				.where(and(eq(posts.groupId, groupId), isNull(posts.deletedAt))),
+				.where(and(inArray(posts.scopeId, ids), isNull(posts.deletedAt))),
 			db
 				.select({ count: count() })
 				.from(events)
-				.where(and(eq(events.groupId, groupId), isNull(events.deletedAt))),
+				.where(and(inArray(events.scopeId, ids), isNull(events.deletedAt))),
 		]);
 		return {
-			members: members?.count || 0,
+			members,
 			posts: groupPosts?.count || 0,
 			events: groupEvents?.count || 0,
 		};

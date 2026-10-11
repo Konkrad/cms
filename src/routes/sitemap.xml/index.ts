@@ -3,7 +3,8 @@ import { pagesService } from "~/core/content/pages.service";
 import { postsService } from "~/core/content/posts.service";
 import { activeModules } from "~/core/registry/manifests";
 import { sitemapEntriesOf } from "~/core/router/modules";
-import { groupsService } from "~/core/scopes/groups.service";
+import { scopeUrl } from "~/core/router/scope-path";
+import { scopesService } from "~/core/scopes/scopes.service";
 import { env } from "~/env";
 
 interface SitemapEntry {
@@ -64,11 +65,12 @@ export const onGet: RequestHandler = async ({
 		postsCursor = result.nextCursor;
 	} while (postsCursor);
 
-	const groups = await groupsService.getAll();
-	for (const group of groups) {
+	// Scope home pages (groups, regions, chapters); the root is the home page above.
+	const root = await scopesService.getRoot();
+	for (const scope of root ? await scopesService.getDescendants(root.id) : []) {
 		entries.push({
-			loc: new URL(`/groups/${group.slug}`, env.APP_URL).toString(),
-			lastmod: group.updatedAt,
+			loc: new URL(scopeUrl(scope.path), env.APP_URL).toString(),
+			lastmod: scope.createdAt,
 		});
 	}
 

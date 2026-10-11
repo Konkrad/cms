@@ -9,38 +9,35 @@ interface NavItem {
 }
 
 interface AdminNavProps {
-	groupSlug?: string;
-	isGlobal?: boolean;
+	/** Admin base URL of the current scope, e.g. "/admin/root". */
+	basePath: string;
+	/** The current scope is the root: show the system sections. */
+	isRoot: boolean;
 	/** Admin sections contributed by active modules and visible in this scope. */
 	sections?: { path: string; label: string; order?: number }[];
 }
 
 export const AdminNav = component$<AdminNavProps>(
-	({ groupSlug, isGlobal = true, sections = [] }) => {
+	({ basePath, isRoot, sections = [] }) => {
 		const location = useLocation();
 		const currentPath = location.url.pathname;
-
-		// Determine base path for navigation
-		const basePath =
-			isGlobal || !groupSlug ? "/admin/global" : `/admin/${groupSlug}`;
 
 		// Every entry has a fixed sort number so module sections can sit between core entries
 		// (e.g. Deals/Jobs between Groups and Qualifications). Sections without `order` go last.
 		const navItems: NavItem[] = [
 			{ order: 0, href: basePath, label: "Dashboard", exact: true },
-			{ order: 10, href: `${basePath}/users`, label: "Users" },
 			{ order: 20, href: `${basePath}/posts`, label: "Posts" },
 			{ order: 40, href: `${basePath}/forms`, label: "Forms" },
 		];
 
-		// Global admin only: core entries
-		if (isGlobal) {
+		// System sections: root only
+		if (isRoot) {
 			navItems.push(
+				{ order: 10, href: `${basePath}/users`, label: "Users" },
 				{ order: 50, href: `${basePath}/pages`, label: "Pages" },
-				{ order: 60, href: "/admin/global/groups", label: "Groups" },
 				{
 					order: 900,
-					href: "/admin/global/notifications",
+					href: `${basePath}/notifications`,
 					label: "Notifications",
 				},
 			);

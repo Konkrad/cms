@@ -1,7 +1,7 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { Form } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
-import type { GroupViewData, JoinGroupAction } from "~/contracts/groups";
+import type { JoinScopeAction, ScopeViewData } from "~/contracts/scopes";
 import { FeatureGrid } from "~theme/blocks/FeatureBlock/FeatureGrid";
 import { ImageTile } from "~theme/blocks/FeatureBlock/ImageTile";
 import { LocalRepTile } from "~theme/blocks/FeatureBlock/LocalRepTile";
@@ -40,14 +40,16 @@ function formatEventDate(startDate: string, endDate?: string): string {
 	return `${day} ${month} · ${startTime} - ${endTime}`;
 }
 
-/** Themed view for the public group page (`/groups/[slug]`). */
-export const GroupView = component$<{
-	data: GroupViewData;
-	joinAction: JoinGroupAction;
+/** Themed view for a scope's public home page (`/germany/berlin`): a group, region or chapter. */
+export const ScopeView = component$<{
+	data: ScopeViewData;
+	joinAction: JoinScopeAction;
 }>(({ data, joinAction }) => {
 	const showMembersModal = useSignal(false);
 	const {
-		group,
+		scope,
+		parents,
+		childScopes,
 		memberCount,
 		pastEventCount,
 		recentMembers,
@@ -56,18 +58,35 @@ export const GroupView = component$<{
 		isLoggedIn,
 		upcomingEvents,
 		recentPosts,
-		groupImage1,
-		groupImage2,
-		groupImage3,
+		image1,
+		image2,
+		image3,
 	} = data;
 
 	return (
 		<div>
 			{/* Heading */}
 			<div class="max-w-[1290px] mx-auto px-4 pt-12 pb-4 text-center">
+				{parents.length > 0 && (
+					<nav aria-label="Breadcrumb" class="text-sm text-text-muted mb-2">
+						{parents.map((p, i) => (
+							<span key={p.url}>
+								{i > 0 && " / "}
+								<a href={p.url} class="hover:underline">
+									{p.name}
+								</a>
+							</span>
+						))}
+					</nav>
+				)}
 				<h1 class="font-semibold text-[40px] md:text-[52px] leading-[1.1] text-text-heading">
-					{group.name}
+					{scope.name}
 				</h1>
+				{scope.description && (
+					<p class="mt-4 text-text-secondary max-w-2xl mx-auto">
+						{scope.description}
+					</p>
+				)}
 			</div>
 
 			{/* Feature Grid */}
@@ -89,21 +108,21 @@ export const GroupView = component$<{
 
 					<ImageTile
 						area="left-bottom"
-						image={groupImage1 ?? FALLBACK}
-						alt={group.name}
+						image={image1 ?? FALLBACK}
+						alt={scope.name}
 					/>
 
 					<ImageTile
 						area="middle"
-						image={groupImage2 ?? FALLBACK}
-						alt={group.name}
+						image={image2 ?? FALLBACK}
+						alt={scope.name}
 						overlayText={`${pastEventCount} local meet-up${pastEventCount === 1 ? "" : "s"} and counting`}
 					/>
 
 					<ImageTile
 						area="right-top"
-						image={groupImage3 ?? FALLBACK}
-						alt={group.name}
+						image={image3 ?? FALLBACK}
+						alt={scope.name}
 					/>
 
 					{rep ? (
@@ -157,6 +176,27 @@ export const GroupView = component$<{
 					{joinAction.value?.error && (
 						<p class="text-error text-sm">{joinAction.value.error}</p>
 					)}
+				</div>
+			)}
+
+			{/* Child scopes (e.g. the chapters of a region) */}
+			{childScopes.length > 0 && (
+				<div class="max-w-[1290px] mx-auto px-4 py-8">
+					<h2 class="font-semibold text-[32px] text-text-heading mb-6">
+						Local Groups
+					</h2>
+					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+						{childScopes.map((child) => (
+							<ContentCard
+								key={child.id}
+								title={child.name}
+								image={child.imageUrl}
+								meta={`${child.memberCount} ${child.memberCount === 1 ? "member" : "members"}`}
+								href={child.url}
+								label="View Group"
+							/>
+						))}
+					</div>
 				</div>
 			)}
 
@@ -216,7 +256,7 @@ export const GroupView = component$<{
 			{showMembersModal.value && (
 				<ParticipantsModal
 					participants={recentMembers}
-					eventName={`${group.name} Community`}
+					eventName={`${scope.name} Community`}
 					onClose$={$(() => {
 						showMembersModal.value = false;
 					})}

@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { requireGroupAdmin } = vi.hoisted(() => ({
-	requireGroupAdmin: vi.fn(),
+const { requireScopeRole } = vi.hoisted(() => ({
+	requireScopeRole: vi.fn(),
 }));
-vi.mock("~/core/scopes/access-control", () => ({ requireGroupAdmin }));
+vi.mock("~/core/scopes/access", () => ({
+	ADMIN_ACCESS: "representative",
+	requireScopeRole,
+}));
 
 import { requireModuleAdmin } from "~/core/registry/module-admin";
 import { toPublicUser } from "~/core/users/public-user";
@@ -17,44 +20,63 @@ const makeEvent = () =>
 		}),
 	}) as unknown as Parameters<typeof requireModuleAdmin>[0];
 
-const globalCtx = { user: { id: "u1" }, isGlobal: true, group: null };
-const groupCtx = { user: { id: "u2" }, isGlobal: false, group: { id: "g1" } };
+const rootAccess = {
+	user: { id: "u1" },
+	scope: { id: "root", parentId: null, path: "/" },
+	ancestors: [],
+};
+const chapterAccess = {
+	user: { id: "u2" },
+	scope: { id: "c1", parentId: "r1", path: "/region/chapter/" },
+	ancestors: [],
+};
 
 describe("requireModuleAdmin", () => {
-	beforeEach(() => requireGroupAdmin.mockReset());
+	beforeEach(() => requireScopeRole.mockReset());
 
-	it("scope any: returns the context for global and group scopes", async () => {
-		requireGroupAdmin.mockResolvedValueOnce(globalCtx);
-		expect(
-			await requireModuleAdmin(makeEvent(), { module: "events", scope: "any" }),
-		).toBe(globalCtx);
-		requireGroupAdmin.mockResolvedValueOnce(groupCtx);
-		expect(
-			await requireModuleAdmin(makeEvent(), { module: "events", scope: "any" }),
-		).toBe(groupCtx);
+	it("asks for a managing role on the URL's scope", async () => {
+		requireScopeRole.mockResolvedValueOnce(rootAccess);
+		await requireModuleAdmin(makeEvent(), { module: "events", scope: "any" });
+		expect(requireScopeRole).toHaveBeenCalledWith(
+			expect.anything(),
+			"representative",
+		);
 	});
 
-	it("scope global: returns the context for the global scope", async () => {
-		requireGroupAdmin.mockResolvedValueOnce(globalCtx);
+	it("scope any: returns the access for the root and for other scopes", async () => {
+		requireScopeRole.mockResolvedValueOnce(rootAccess);
+		expect(
+			await requireModuleAdmin(makeEvent(), { module: "events", scope: "any" }),
+		).toEqual({ ...rootAccess, isRoot: true, adminBase: "/admin/root" });
+		requireScopeRole.mockResolvedValueOnce(chapterAccess);
+		expect(
+			await requireModuleAdmin(makeEvent(), { module: "events", scope: "any" }),
+		).toEqual({
+			...chapterAccess,
+			isRoot: false,
+			adminBase: "/admin/region.chapter",
+		});
+	});
+
+	it("scope global: returns the access on the root", async () => {
+		requireScopeRole.mockResolvedValueOnce(rootAccess);
 		expect(
 			await requireModuleAdmin(makeEvent(), {
 				module: "jobs",
 				scope: "global",
 			}),
-		).toBe(globalCtx);
+		).toMatchObject({ isRoot: true });
 	});
 
-	it("scope global: redirects a non-global slug to /admin/global/<module>", async () => {
-		requireGroupAdmin.mockResolvedValueOnce(groupCtx);
+	it("scope global: 404s on any other scope", async () => {
+		requireScopeRole.mockResolvedValueOnce(chapterAccess);
 		await expect(
 			requireModuleAdmin(makeEvent(), { module: "deals", scope: "global" }),
-		).rejects.toEqual({
-			redirect: { status: 302, url: "/admin/global/deals" },
-		});
+		).rejects.toMatchObject({ error: { status: 404 } });
 	});
 
 	it("404s for an inactive module in either scope", async () => {
-		requireGroupAdmin.mockResolvedValue(globalCtx);
+		requireScopeRole.mockResolvedValue(rootAccess);
 		for (const scope of ["global", "any"] as const) {
 			await expect(
 				requireModuleAdmin(makeEvent(), { module: "nope", scope }),
@@ -63,7 +85,7 @@ describe("requireModuleAdmin", () => {
 	});
 
 	it("propagates the auth helper's redirect and checks auth before the module", async () => {
-		requireGroupAdmin.mockRejectedValueOnce({
+		requireScopeRole.mockRejectedValueOnce({
 			redirect: { status: 302, url: "/login" },
 		});
 		await expect(

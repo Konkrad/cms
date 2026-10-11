@@ -32,7 +32,7 @@ const eventSchema = z.object({
 });
 
 export const useCreateEvent = routeAction$(async (data, event) => {
-	const { user, isGlobal, group } = await requireModuleAdmin(event, {
+	const { user, isRoot, scope, adminBase } = await requireModuleAdmin(event, {
 		module: "events",
 		scope: "any",
 	});
@@ -56,17 +56,15 @@ export const useCreateEvent = routeAction$(async (data, event) => {
 		longitude: data.longitude || null,
 		locationType: data.locationType,
 		onlineUrl: data.onlineUrl || null,
-		visibility: isGlobal ? data.visibility : "group-only",
-		groupId: isGlobal ? null : group.id,
+		visibility: isRoot ? data.visibility : "group-only",
+		// Root events are site-wide (no scope).
+		scopeId: isRoot ? null : scope.id,
 		userId: user.id,
 		image1: data.image1 || null,
 		image2: data.image2 || null,
 	});
 
-	const redirectUrl = isGlobal
-		? "/admin/global/events"
-		: `/admin/${group.slug}/events`;
-	throw event.redirect(303, redirectUrl);
+	throw event.redirect(303, `${adminBase}/events`);
 }, zod$(eventSchema));
 
 type Props = { groupContext: NewEventContext };
@@ -108,10 +106,7 @@ export const AdminEventNew = component$<Props>(({ groupContext }) => {
 		<div>
 			<div class="flex items-center justify-between mb-6">
 				<h2 class="text-2xl font-bold text-gray-800">Create New Event</h2>
-				<Button
-					href={`/admin/${groupContext.isGlobal ? "global" : groupContext.group?.slug}/events`}
-					variant="secondary"
-				>
+				<Button href={`${groupContext.adminBase}/events`} variant="secondary">
 					Back to Events
 				</Button>
 			</div>
@@ -176,7 +171,7 @@ export const AdminEventNew = component$<Props>(({ groupContext }) => {
 						/>
 					)}
 
-					{!groupContext.isGlobal && (
+					{!groupContext.isRoot && (
 						<VisibilitySelector
 							name="visibility"
 							value="global"
@@ -223,7 +218,7 @@ export const AdminEventNew = component$<Props>(({ groupContext }) => {
 							{isSubmitting.value ? "Creating..." : "Create Event"}
 						</Button>
 						<Button
-							href={`/admin/${groupContext.isGlobal ? "global" : groupContext.group?.slug}/events`}
+							href={`${groupContext.adminBase}/events`}
 							variant="secondary"
 						>
 							Cancel

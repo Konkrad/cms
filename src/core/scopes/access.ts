@@ -10,7 +10,7 @@
  */
 import type { RequestEventBase } from "@qwik.dev/router";
 import { getCurrentUserData, type RequestEvent } from "~/core/auth/server-auth";
-import { pathFromAdminSegment } from "~/core/router/scope-path";
+import { isAncestorPath, pathFromAdminSegment } from "~/core/router/scope-path";
 import { currentScope } from "~/core/router/scope-request";
 import type { Scope } from "~/core/scopes/schema/scopes";
 import {
@@ -121,8 +121,10 @@ export async function isPlatformAdmin(user: AccessUser): Promise<boolean> {
 export async function requestScope(
 	event: Pick<RequestEventBase, "sharedMap" | "params">,
 ): Promise<Scope | undefined> {
-	const segment = event.params?.scope;
-	if (segment === undefined) return currentScope(event);
+	// TEMPORARY: admin routes still live under [group_slug] with "global" for the root.
+	const raw = event.params?.scope ?? event.params?.group_slug;
+	if (raw === undefined) return currentScope(event);
+	const segment = raw === "global" ? "root" : raw;
 	const path = pathFromAdminSegment(segment);
 	return path ? scopesService.getByPath(path) : undefined;
 }
@@ -165,4 +167,64 @@ export async function requireAdmin(event: RequestEvent) {
 	if (!user) throw event.redirect(302, "/login");
 	if (!(await isPlatformAdmin(user))) throw event.error(403, "Forbidden");
 	return user;
+}
+
+/**
+ * Scopes whose members-only items the user may see: those they joined and every ancestor
+ * (membership counts upward), plus everything at or below a scope where they hold a role.
+ * `includesRoot` is set when that covers the root, which also owns items without a scope.
+ * Empty for guests. For listing queries; single items use `canViewScope`.
+ */
+export async function viewableMemberScopes(
+	user: AccessUser,
+): Promise<{ ids: string[]; includesRoot: boolean }> {
+	const ids = await scopesService.memberVisibleScopeIds(user?.id ?? null);
+	if (ids.length === 0) return { ids, includesRoot: false };
+	const root = await scopesService.getRoot();
+	return { ids, includesRoot: !!root && ids.includes(root.id) };
+}
+
+/** userId -> public label ("Local Rep Berlin", or the name of a scope they joined). */
+export async function scopeLabels(
+	userIds: string[],
+): Promise<Record<string, string>> {
+	return scopesService.getScopeLabels(userIds);
+}
+
+/** Read the tree. */
+export const getScope = (id: string) => scopesService.getById(id);
+export const getRootScope = () => scopesService.getRoot();
+export const getAncestors = (scopeId: string) =>
+	scopesService.getAncestors(scopeId);
+export const getDescendants = (scopeId: string) =>
+	scopesService.getDescendants(scopeId);
+/** Ids of the scope and every scope below it. */
+export const getSubtreeIds = (scopeId: string) =>
+	scopesService.subtreeIds(scopeId);
+
+/**
+ * Whether an item owned by `itemScopeId` (null = the root) lies in `scope`'s subtree, i.e. may
+ * be managed from that scope's admin. Use it in admin actions after `requireScopeRole`.
+ */
+export async function isWithinScope(
+	scope: Scope,
+	itemScopeId: string | null,
+): Promise<boolean> {
+	if (scope.parentId === null) return true;
+	if (!itemScopeId) return false;
+	const item = await scopesService.getById(itemScopeId);
+	return !!item && isAncestorPath(scope.path, item.path);
+}
+
+/**
+ * Guard for the system sections (users, pages, tags, notifications, …), which exist on the
+ * root only: an admin (or moderator) of the root, on the root's admin URL. 404 on any other
+ * scope. First statement of every loader and action of those sections.
+ */
+export async function requireSystemAdmin(
+	event: RequestEvent,
+): Promise<ScopeAccess> {
+	const access = await requireScopeRole(event, "admin");
+	if (access.scope.parentId !== null) throw event.error(404, "Not found");
+	return access;
 }

@@ -9,7 +9,7 @@ export const AdminEventAttendance = component$<Props>(({ data }) => {
 	const { event, stats, attendedTickets } = data;
 	const location = useLocation();
 	const pathParts = location.url.pathname.split("/");
-	const groupSlug = pathParts[2] || "global";
+	const groupSlug = pathParts[2] || "root";
 	const scanPath = `/admin/${groupSlug}/events/${event.id}/scan`;
 
 	return (

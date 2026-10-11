@@ -4,20 +4,14 @@ import { Button } from "~/components/ui/Button";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
 import { VisibilitySelector } from "~/core/admin/VisibilitySelector";
-import { getCurrentUserData } from "~/core/auth/server-auth";
 import { BlockNoteEditor } from "~/core/content/editor";
 import { postsService } from "~/core/content/posts.service";
-import { groupsService } from "~/core/scopes/groups.service";
+import { adminUrl } from "~/core/router/scope-path";
+import { ADMIN_ACCESS, requireScopeRole } from "~/core/scopes/access";
 
-export const useGroupContext = routeLoader$(async ({ params }) => {
-	const groupSlug = params.group_slug;
-
-	if (groupSlug === "global") {
-		return { isGlobal: true, group: null };
-	}
-
-	const group = await groupsService.getBySlug(groupSlug);
-	return { isGlobal: false, group };
+export const useGroupContext = routeLoader$(async (event) => {
+	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
+	return { isGlobal: scope.parentId === null, base: adminUrl(scope.path) };
 });
 
 const postSchema = z.object({
@@ -29,22 +23,8 @@ const postSchema = z.object({
 });
 
 export const useCreatePost = routeAction$(async (data, event) => {
-	const user = await getCurrentUserData(event as any);
-	if (!user) {
-		return { success: false, error: "Unauthorized" };
-	}
-
-	const groupSlug = event.params.group_slug;
-	let groupId: string | null = null;
-
-	// Get group ID if not in global context
-	if (groupSlug !== "global") {
-		const group = await groupsService.getBySlug(groupSlug);
-		if (!group) {
-			return { success: false, error: "Group not found" };
-		}
-		groupId = group.id;
-	}
+	const { user, scope } = await requireScopeRole(event, ADMIN_ACCESS);
+	const isRoot = scope.parentId === null;
 
 	try {
 		await postsService.create({
@@ -52,11 +32,12 @@ export const useCreatePost = routeAction$(async (data, event) => {
 			editorState: data.editorState || null,
 			featuredImage: data.featuredImage || null,
 			userId: user.id,
-			groupId: groupId,
+			// Root posts are site-wide (no scope).
+			scopeId: isRoot ? null : scope.id,
 			visibility: data.visibility || "global",
 		} as any);
 
-		throw event.redirect(303, `/admin/${groupSlug}/posts`);
+		throw event.redirect(303, adminUrl(scope.path, "/posts"));
 	} catch (error: any) {
 		if (error.status === 303) throw error;
 		return {
@@ -93,10 +74,7 @@ export default component$(() => {
 		<div>
 			<div class="flex items-center justify-between mb-6">
 				<h2 class="text-2xl font-bold text-gray-800">Create New Post</h2>
-				<Button
-					href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/posts`}
-					variant="secondary"
-				>
+				<Button href={`${groupContext.value.base}/posts`} variant="secondary">
 					Back to Posts
 				</Button>
 			</div>
@@ -160,7 +138,7 @@ export default component$(() => {
 							{isSubmitting.value ? "Creating..." : "Create Post"}
 						</Button>
 						<Button
-							href={`/admin/${groupContext.value.isGlobal ? "global" : groupContext.value.group?.slug}/posts`}
+							href={`${groupContext.value.base}/posts`}
 							variant="secondary"
 						>
 							Cancel

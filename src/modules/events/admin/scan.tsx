@@ -39,7 +39,7 @@ export const AdminEventScan = component$<Props>(({ event }) => {
 	const scanAction = useScanEventTicket();
 	const location = useLocation();
 	const parts = location.url.pathname.split("/");
-	const groupSlug = parts[2] || "global";
+	const groupSlug = parts[2] || "root";
 	const attendanceUrl = `/admin/${groupSlug}/events/${event.id}/attendance`;
 
 	return (

@@ -6,6 +6,12 @@ import { Input } from "~/components/ui/Input";
 import { BlockNoteEditor } from "~/core/content/editor";
 import { postsService } from "~/core/content/posts.service";
 import { publicImageUrlFromKey } from "~/core/media/images";
+import { adminUrl } from "~/core/router/scope-path";
+import {
+	ADMIN_ACCESS,
+	isWithinScope,
+	requireScopeRole,
+} from "~/core/scopes/access";
 
 const updateSchema = z.object({
 	title: z.string().min(1, "Title is required"),
@@ -16,26 +22,32 @@ const updateSchema = z.object({
 });
 
 export const usePost = routeLoader$(async (event) => {
+	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
 	const postId = event.params.id;
-	const groupSlug = event.params.group_slug;
 	const post = await postsService.getById(postId);
 
 	if (!post) {
-		throw event.redirect(303, `/admin/${groupSlug}/posts`);
+		throw event.redirect(303, adminUrl(scope.path, "/posts"));
+	}
+	if (!(await isWithinScope(scope, post.scopeId))) {
+		throw event.error(403, "Forbidden");
 	}
 
 	return {
 		post,
-		groupSlug,
+		base: adminUrl(scope.path),
 		featuredImageUrl: publicImageUrlFromKey(post.featuredImage),
 	};
 });
 
 export const useUpdatePost = routeAction$(async (data, event) => {
-	const { requireAdmin } = await import("~/core/scopes/access");
-	await requireAdmin(event);
-
+	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
 	const postId = event.params.id;
+	const target = await postsService.getById(postId);
+	if (!target) return { success: false, error: "Post not found" };
+	if (!(await isWithinScope(scope, target.scopeId))) {
+		throw event.error(403, "Forbidden");
+	}
 
 	try {
 		const updated = await postsService.update(postId, {
@@ -91,10 +103,7 @@ export default component$(() => {
 		<div>
 			<div class="flex items-center justify-between mb-6">
 				<h2 class="text-2xl font-bold text-gray-800">Edit Post</h2>
-				<Button
-					href={`/admin/${data.value.groupSlug}/posts`}
-					variant="secondary"
-				>
+				<Button href={`${data.value.base}/posts`} variant="secondary">
 					Back to Posts
 				</Button>
 			</div>
@@ -196,10 +205,7 @@ export default component$(() => {
 						<Button type="submit" disabled={isSubmitting.value}>
 							{isSubmitting.value ? "Saving..." : "Save Changes"}
 						</Button>
-						<Button
-							href={`/admin/${data.value.groupSlug}/posts`}
-							variant="secondary"
-						>
+						<Button href={`${data.value.base}/posts`} variant="secondary">
 							Cancel
 						</Button>
 					</div>

@@ -2,12 +2,14 @@ import { component$ } from "@qwik.dev/core";
 import { Link, useLocation } from "@qwik.dev/router";
 
 interface BreadcrumbsProps {
-	groupSlug?: string;
-	groupName?: string;
+	/** Admin base URL of the current scope, e.g. "/admin/germany.berlin". */
+	basePath: string;
+	/** Name of the current scope; omitted on the root. */
+	scopeName?: string;
 }
 
 export const Breadcrumbs = component$<BreadcrumbsProps>(
-	({ groupSlug, groupName }) => {
+	({ basePath, scopeName }) => {
 		const location = useLocation();
 		const currentPath = location.url.pathname;
 
@@ -18,26 +20,15 @@ export const Breadcrumbs = component$<BreadcrumbsProps>(
 		const breadcrumbs: Array<{ label: string; href?: string }> = [];
 
 		// Always start with Admin
-		breadcrumbs.push({ label: "Admin", href: "/admin/global" });
-
-		// Handle global vs group context
-		if (segments.includes("global")) {
-			breadcrumbs.push({ label: "Platform Admin" });
-		} else if (groupSlug && groupName) {
-			breadcrumbs.push({ label: groupName, href: `/admin/${groupSlug}` });
-		}
+		breadcrumbs.push({ label: "Admin", href: "/admin" });
+		breadcrumbs.push(
+			scopeName
+				? { label: scopeName, href: basePath }
+				: { label: "Platform Admin", href: basePath },
+		);
 
 		// Add specific section breadcrumbs
-		if (segments.includes("groups")) {
-			breadcrumbs.push({ label: "Groups", href: "/admin/global/groups" });
-			if (segments.includes("new")) {
-				breadcrumbs.push({ label: "New Group" });
-			} else if (segments.includes("edit")) {
-				breadcrumbs.push({ label: "Edit Group" });
-			} else if (segments.includes("users")) {
-				breadcrumbs.push({ label: "Users" });
-			}
-		} else if (segments.includes("events")) {
+		if (segments.includes("events")) {
 			breadcrumbs.push({ label: "Events" });
 			if (segments.includes("new")) {
 				breadcrumbs.push({ label: "New Event" });

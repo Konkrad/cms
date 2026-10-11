@@ -83,7 +83,7 @@ export const AdminEventDetails = component$<Props>(({ event }) => {
 	// Compute the current admin context (global or group) so links can be context-aware
 	const location = useLocation();
 	const pathParts = location.url.pathname.split("/");
-	const groupSlug = pathParts[2] || "global";
+	const groupSlug = pathParts[2] || "root";
 	const eventsBase = `/admin/${groupSlug}/events`;
 
 	const isSubmitting = useSignal(false);

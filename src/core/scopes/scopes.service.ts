@@ -1,5 +1,7 @@
-import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
+import { posts } from "~/core/content/schema/posts";
 import { db } from "~/core/db/connection";
+import { forms } from "~/core/forms/schema/forms";
 import { childPath, SCOPE_SLUG_RE } from "~/core/router/scope-path";
 import { invalidateScopePaths } from "~/core/router/scope-request";
 import {
@@ -24,6 +26,12 @@ export type ScopeMember = PublicUser & {
 	joinedAt: string;
 };
 
+/** A role holder on a scope, as a public card. */
+export type ScopeRoleHolder = PublicUser & {
+	role: Role;
+	profilePictureSmallUrl: string | null;
+};
+
 export interface ListMembersOptions {
 	includeDescendants?: boolean;
 	limit?: number;
@@ -44,6 +52,18 @@ const VIEW_ALL_ROLES: Role[] = [
 	"coordinator",
 	"representative",
 ];
+
+/** A scope path and all its ancestors' paths: "/a/b/" -> ["/", "/a/", "/a/b/"]. */
+function pathPrefixes(path: string): string[] {
+	const segments = path.split("/").filter(Boolean);
+	return segments.reduce(
+		(acc, segment) => {
+			acc.push(`${acc[acc.length - 1]}${segment}/`);
+			return acc;
+		},
+		["/"],
+	);
+}
 
 // LIKE treats % and _ as wildcards; slugs never contain them, but escape for safety.
 const likePrefix = (path: string) => `${path.replace(/[\\%_]/g, "\\$&")}%`;
@@ -217,6 +237,73 @@ export const scopesService = {
 		invalidateScopePaths();
 	},
 
+	/** Update the editable fields of a scope (name and home page profile). */
+	async updateProfile(
+		scopeId: string,
+		input: {
+			name: string;
+			description: string | null;
+			image1: string | null;
+			image2: string | null;
+			image3: string | null;
+		},
+	): Promise<Scope> {
+		if (!input.name.trim()) throw new ScopeError("Scope name is required");
+		const [updated] = await db
+			.update(scopes)
+			.set({ ...input, name: input.name.trim() })
+			.where(eq(scopes.id, scopeId))
+			.returning();
+		if (!updated) throw new ScopeError("Scope not found");
+		return updated;
+	},
+
+	/** Scopes with this slug, anywhere in the tree (slugs are unique among siblings only). */
+	async findBySlug(slug: string): Promise<Scope[]> {
+		return db.select().from(scopes).where(eq(scopes.slug, slug));
+	},
+
+	/** Ids of a scope and every scope below it. */
+	async subtreeIds(scopeId: string): Promise<string[]> {
+		const scope = await this.getById(scopeId);
+		if (!scope) return [];
+		const rows = await db
+			.select({ id: scopes.id })
+			.from(scopes)
+			.where(sql`${scopes.path} LIKE ${likePrefix(scope.path)} ESCAPE '\\'`);
+		return rows.map((r) => r.id);
+	},
+
+	/** Children of a scope with their member counts (members of the child or below). */
+	async getChildrenWithMemberCounts(
+		scopeId: string,
+	): Promise<Array<Scope & { memberCount: number }>> {
+		const children = await this.getChildren(scopeId);
+		return Promise.all(
+			children.map(async (child) => ({
+				...child,
+				memberCount: await this.countMembers(child.id, {
+					includeDescendants: true,
+				}),
+			})),
+		);
+	},
+
+	/** Number of posts and forms owned by the scope (core content; modules report their own). */
+	async countCoreContent(scopeId: string): Promise<number> {
+		const [[postRows], [formRows]] = await Promise.all([
+			db
+				.select({ count: sql<number>`COUNT(*)` })
+				.from(posts)
+				.where(eq(posts.scopeId, scopeId)),
+			db
+				.select({ count: sql<number>`COUNT(*)` })
+				.from(forms)
+				.where(eq(forms.scopeId, scopeId)),
+		]);
+		return Number(postRows?.count ?? 0) + Number(formRows?.count ?? 0);
+	},
+
 	// ── Roles (inherit downward) ───────────────────────────────────────────────
 
 	async grantRole(userId: string, scopeId: string, role: Role): Promise<void> {
@@ -286,16 +373,26 @@ export const scopesService = {
 			.orderBy(asc(scopes.path));
 	},
 
-	/** Roles held directly on one scope, per user (for the scope's admin members page). */
-	async listRoleHolders(
-		scopeId: string,
-	): Promise<Array<PublicUser & { role: Role }>> {
-		return db
-			.select({ ...publicUserSelect, role: scopeRoles.role })
+	/** Roles held directly on one scope, one row per user and role, as public cards. */
+	async listRoleHolders(scopeId: string): Promise<Array<ScopeRoleHolder>> {
+		const rows = await db
+			.select({
+				...publicUserSelect,
+				profilePicture: users.profilePicture,
+				profilePictureSmall: users.profilePictureSmall,
+				role: scopeRoles.role,
+			})
 			.from(scopeRoles)
 			.innerJoin(users, eq(users.id, scopeRoles.userId))
 			.where(eq(scopeRoles.scopeId, scopeId))
-			.orderBy(asc(users.name), asc(users.familyName));
+			.orderBy(asc(scopeRoles.createdAt), asc(users.name));
+		return rows.map(({ profilePicture, profilePictureSmall, ...holder }) => ({
+			...holder,
+			profilePictureSmallUrl: publicUserThumbnailUrl({
+				profilePicture,
+				profilePictureSmall,
+			}),
+		}));
 	},
 
 	// ── Membership (counts upward) ─────────────────────────────────────────────
@@ -395,6 +492,93 @@ export const scopesService = {
 					: eq(scopeMemberships.scopeId, scopeId),
 			);
 		return Number(row?.count ?? 0);
+	},
+
+	/** The scopes a user explicitly joined, ordered by path. */
+	async listUserScopes(userId: string): Promise<Scope[]> {
+		const rows = await db
+			.select({ scope: scopes })
+			.from(scopeMemberships)
+			.innerJoin(scopes, eq(scopes.id, scopeMemberships.scopeId))
+			.where(eq(scopeMemberships.userId, userId))
+			.orderBy(asc(scopes.path));
+		return rows.map((r) => r.scope);
+	},
+
+	/**
+	 * userId -> public label: "Local Rep <scope>" for representatives, otherwise the name of
+	 * a scope the user joined (the deepest one). Users with neither are absent.
+	 */
+	async getScopeLabels(userIds: string[]): Promise<Record<string, string>> {
+		const labels: Record<string, string> = {};
+		if (userIds.length === 0) return labels;
+		const repRows = await db
+			.select({ userId: scopeRoles.userId, name: scopes.name })
+			.from(scopeRoles)
+			.innerJoin(scopes, eq(scopes.id, scopeRoles.scopeId))
+			.where(
+				and(
+					inArray(scopeRoles.userId, userIds),
+					eq(scopeRoles.role, "representative"),
+				),
+			);
+		for (const rep of repRows) labels[rep.userId] = `Local Rep ${rep.name}`;
+
+		const missing = userIds.filter((id) => !labels[id]);
+		if (missing.length > 0) {
+			const memberRows = await db
+				.select({ userId: scopeMemberships.userId, name: scopes.name })
+				.from(scopeMemberships)
+				.innerJoin(scopes, eq(scopes.id, scopeMemberships.scopeId))
+				.where(
+					and(
+						inArray(scopeMemberships.userId, missing),
+						isNotNull(scopes.parentId),
+					),
+				)
+				.orderBy(desc(sql`length(${scopes.path})`));
+			for (const mem of memberRows) labels[mem.userId] ??= mem.name;
+		}
+		return labels;
+	},
+
+	/**
+	 * Ids of the scopes whose members-only content the user may see: the scopes they joined
+	 * and every ancestor of those (membership counts upward), plus every scope at or below
+	 * one where they hold a role (roles inherit downward). Empty for guests.
+	 */
+	async memberVisibleScopeIds(userId: string | null): Promise<string[]> {
+		if (!userId) return [];
+		const [memberRows, roleRows] = await Promise.all([
+			db
+				.select({ path: scopes.path })
+				.from(scopeMemberships)
+				.innerJoin(scopes, eq(scopes.id, scopeMemberships.scopeId))
+				.where(eq(scopeMemberships.userId, userId)),
+			db
+				.select({ path: scopes.path })
+				.from(scopeRoles)
+				.innerJoin(scopes, eq(scopes.id, scopeRoles.scopeId))
+				.where(eq(scopeRoles.userId, userId)),
+		]);
+		if (memberRows.length === 0 && roleRows.length === 0) return [];
+		const ancestorPaths = new Set(
+			memberRows.flatMap((r) => pathPrefixes(r.path)),
+		);
+		const rows = await db
+			.select({ id: scopes.id })
+			.from(scopes)
+			.where(
+				or(
+					ancestorPaths.size
+						? inArray(scopes.path, [...ancestorPaths])
+						: undefined,
+					...roleRows.map(
+						(r) => sql`${scopes.path} LIKE ${likePrefix(r.path)} ESCAPE '\\'`,
+					),
+				),
+			);
+		return rows.map((r) => r.id);
 	},
 
 	// ── Visibility ─────────────────────────────────────────────────────────────

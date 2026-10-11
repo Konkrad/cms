@@ -7,9 +7,7 @@ export async function loadNewEventContext(event: RequestEventLoader) {
 		module: "events",
 		scope: "any",
 	});
-	return ctx.isGlobal
-		? ({ isGlobal: true, group: undefined } as const)
-		: ({ isGlobal: false, group: { slug: ctx.group.slug } } as const);
+	return { isRoot: ctx.isRoot, adminBase: ctx.adminBase };
 }
 
 export type NewEventContext = Awaited<ReturnType<typeof loadNewEventContext>>;

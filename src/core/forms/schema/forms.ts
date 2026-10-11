@@ -29,7 +29,7 @@ export const forms = sqliteTable(
 		scopeType: text("scope_type", { enum: ["global", "group"] })
 			.notNull()
 			.default("global"),
-		scopeId: text("scope_id").references(() => groups.id),
+		scopeId: text("scope_id").references(() => scopes.id),
 		isSystemForm: integer("is_system_form", { mode: "boolean" })
 			.notNull()
 			.default(false),
@@ -50,9 +50,9 @@ export const forms = sqliteTable(
 );
 
 export const formsRelations = relations(forms, ({ one, many }) => ({
-	group: one(groups, {
+	scope: one(scopes, {
 		fields: [forms.scopeId],
-		references: [groups.id],
+		references: [scopes.id],
 	}),
 	creator: one(users, {
 		fields: [forms.createdBy],
@@ -61,7 +61,7 @@ export const formsRelations = relations(forms, ({ one, many }) => ({
 	results: many(formResults),
 }));
 
-import { groups } from "../../scopes/schema/groups";
+import { scopes } from "../../scopes/schema/scopes";
 import { users } from "../../users/schema";
 import { formResults } from "./form-results";
 

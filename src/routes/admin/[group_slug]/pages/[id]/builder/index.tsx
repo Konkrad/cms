@@ -7,20 +7,11 @@ import { PropertiesPanel } from "~/core/content/builder/PropertiesPanel";
 import { componentLoaderService } from "~/core/content/component-loader.service";
 import { pagesService } from "~/core/content/pages.service";
 import type { BlockData, BlockDefinition } from "~/core/db/schema";
-import { requireAdmin } from "~/core/scopes/access";
+import { requireSystemAdmin } from "~/core/scopes/access";
 
 // Pages are only accessible in global context
-export const useCheckGlobalContext = routeLoader$(
-	async ({ params, redirect }) => {
-		if (params.group_slug !== "global") {
-			throw redirect(302, `/admin/${params.group_slug}`);
-		}
-		return true;
-	},
-);
-
 export const useAdminAuth = routeLoader$(async (event) => {
-	await requireAdmin(event);
+	await requireSystemAdmin(event);
 	return true;
 });
 
@@ -39,7 +30,7 @@ export const useComponentDefinitions = routeLoader$(async () => {
 
 export const useSavePage = routeAction$(
 	async (data, event) => {
-		await requireAdmin(event);
+		await requireSystemAdmin(event);
 
 		const accessToken = event.cookie.get("sb-access-token")?.value;
 		const refreshToken = event.cookie.get("sb-refresh-token")?.value;

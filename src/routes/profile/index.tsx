@@ -5,7 +5,8 @@ import { formResultsService } from "~/core/forms/form-results.service";
 import { buildFormPath } from "~/core/forms/forms";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
 import { listNotificationSettings } from "~/core/notifications/preferences";
-import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
+import { scopeUrl } from "~/core/router/scope-path";
+import { scopesService } from "~/core/scopes/scopes.service";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { userTagsService } from "~/core/tags/user-tags.service";
 import { formatAffiliationResultJson } from "~/core/users/affiliation";
@@ -54,7 +55,7 @@ export const useProfile = routeLoader$(async (event) => {
 				viewerId: user.id,
 				isOwnProfile: true,
 			}),
-			groupMembershipsService.getUserGroups(user.id),
+			scopesService.listUserScopes(user.id),
 			listNotificationSettings(user.id),
 		]);
 
@@ -67,7 +68,10 @@ export const useProfile = routeLoader$(async (event) => {
 			country: user.country ?? null,
 			profilePictureUrl,
 			tags: tags.map((t) => ({ id: t.id, label: t.label })),
-			communities: userGroups.map((g) => ({ name: g.name, slug: g.slug })),
+			communities: userGroups.map((g) => ({
+				name: g.name,
+				url: scopeUrl(g.path),
+			})),
 			// Sections of modules that are not active fall back to empty.
 			upcomingEvents: extras.upcomingEvents ?? [],
 			pastEvents: extras.pastEvents ?? [],

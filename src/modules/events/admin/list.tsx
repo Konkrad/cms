@@ -25,11 +25,9 @@ export const AdminEventsList = component$<Props>(({ data }) => {
 		<div>
 			<div class="flex items-center justify-between mb-6">
 				<h2 class="text-2xl font-bold text-gray-800">
-					{data.groupSlug === "global" ? "All Events" : "Group Events"}
+					{data.isRoot ? "All Events" : "Group Events"}
 				</h2>
-				<Button href={`/admin/${data.groupSlug}/events/new`}>
-					Create New Event
-				</Button>
+				<Button href={`${data.adminBase}/events/new`}>Create New Event</Button>
 			</div>
 
 			<SearchBar value={data.search} placeholder="Search by title or city…" />
@@ -85,13 +83,13 @@ export const AdminEventsList = component$<Props>(({ data }) => {
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
 									<Link
-										href={`/admin/${data.groupSlug}/events/${event.id}/details`}
+										href={`${data.adminBase}/events/${event.id}/details`}
 										class="text-blue-600 hover:text-blue-900"
 									>
 										View
 									</Link>
 									<Link
-										href={`/admin/${data.groupSlug}/events/${event.id}/edit`}
+										href={`${data.adminBase}/events/${event.id}/edit`}
 										class="text-indigo-600 hover:text-indigo-900"
 									>
 										Edit

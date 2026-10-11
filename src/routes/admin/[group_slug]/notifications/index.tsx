@@ -1,13 +1,12 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { notificationOutboxService } from "~/core/notifications/outbox.service";
-import { requireGroupAdmin } from "~/core/scopes/access-control";
+import { requireSystemAdmin } from "~/core/scopes/access";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 
 /** Failed and pending notification outbox rows (platform admin only, global admin). */
 export const useUndeliveredNotifications = routeLoader$(async (event) => {
-	const { isGlobal } = await requireGroupAdmin(event);
-	if (!isGlobal) throw event.error(404, "Not found");
+	await requireSystemAdmin(event);
 	const rows = await notificationOutboxService.listUndeliveredWithAddress();
 	return assertNoPrivateFields(
 		{ rows },
@@ -22,8 +21,7 @@ export const useUndeliveredNotifications = routeLoader$(async (event) => {
 /** Re-queues a failed (or waiting) row for an immediate send with a fresh attempt budget. */
 export const useRetryNotification = routeAction$(
 	async (data, event) => {
-		const { isGlobal } = await requireGroupAdmin(event);
-		if (!isGlobal) throw event.error(404, "Not found");
+		await requireSystemAdmin(event);
 		const requeued = await notificationOutboxService.requeue(
 			data.id,
 			new Date(),

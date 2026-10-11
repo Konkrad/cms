@@ -66,7 +66,7 @@ function sanitizeUploadPrefix(raw: string): string | null {
  *
  *  - profile-pictures → any authenticated user (their own avatar)
  *  - private/events/  → admin only (mirrors the event-photo create action)
- *  - public/* content → admin or a group representative
+ *  - public/* content → admin or anyone with a managing role on a scope
  */
 async function isUploadAuthorized(
 	prefix: string,
@@ -86,10 +86,9 @@ async function isUploadAuthorized(
 	}
 
 	if (isStaff) return true;
-	const { groupRepresentativesService } = await import(
-		"~/core/scopes/group-representatives.service"
-	);
-	return groupRepresentativesService.isRepresentativeOfAny(user.id);
+	// Any managing role on any scope (admin, moderator, representative).
+	const { listManagedScopes } = await import("~/core/scopes/access");
+	return (await listManagedScopes(user)).length > 0;
 }
 
 export const onPost: RequestHandler = async ({

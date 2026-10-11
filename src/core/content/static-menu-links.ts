@@ -7,7 +7,7 @@ export type StaticMenuLink = MenuLink;
 const CORE_MENU_LINKS: StaticMenuLink[] = [
 	{ key: "events", label: "Events", url: "/events" },
 	{ key: "communities", label: "Communities", url: "/communities" },
-	{ key: "archive-posts", label: "Archive", url: "/archive/posts" },
+	{ key: "archive", label: "Archive", url: "/archive/all" },
 	{ key: "login", label: "Login", url: "/login" },
 ];
 

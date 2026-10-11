@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { postsService } from "~/core/content/posts.service";
+import { notesService } from "~/core/content/notes.service";
+import { stream } from "~/core/content/stream.service";
 import { scopeContentFilter } from "~/core/scopes/content-filter";
 import type { Scope } from "~/core/scopes/schema/scopes";
 import { scopesService } from "~/core/scopes/scopes.service";
@@ -15,7 +16,7 @@ let sibling: Scope;
 let author: string;
 let chapterMember: string;
 let siblingMember: string;
-let regionPostId: string;
+let regionNoteId: string;
 
 function user() {
 	const t = createTestUser();
@@ -23,15 +24,14 @@ function user() {
 	return t.userId;
 }
 
-function insertPost(scopeId: string, visibility: string) {
+function insertNote(scopeId: string, visibility: string) {
 	const id = crypto.randomUUID();
 	const db = openDb();
 	db.prepare(
-		"INSERT INTO posts (id, title, body, author_id, scope_id, visibility, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO notes (id, body, author_id, scope_id, visibility, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
 	).run(
 		id,
-		`Scope post ${tag} ${id}`,
-		"<p>x</p>",
+		`<p>Scope note ${tag} ${id}</p>`,
 		author,
 		scopeId,
 		visibility,
@@ -41,7 +41,7 @@ function insertPost(scopeId: string, visibility: string) {
 	db.close();
 	cleanups.unshift(() => {
 		const d = openDb();
-		d.prepare("DELETE FROM posts WHERE id = ?").run(id);
+		d.prepare("DELETE FROM notes WHERE id = ?").run(id);
 		d.close();
 	});
 	return id;
@@ -67,7 +67,7 @@ beforeAll(async () => {
 	siblingMember = user();
 	await scopesService.join(chapterMember, chapter.id);
 	await scopesService.join(siblingMember, sibling.id);
-	regionPostId = insertPost(region.id, "members");
+	regionNoteId = insertNote(region.id, "members");
 });
 
 afterAll(() => {
@@ -81,50 +81,49 @@ afterAll(() => {
 });
 
 describe("members-only content flows to members of the scopes below", () => {
-	it("canView: a chapter member sees the region's members-only post", async () => {
-		const post = {
+	it("canView: a chapter member sees the region's members-only note", async () => {
+		const note = {
 			visibility: "members",
 			scopeId: region.id,
 			publishedAt: new Date().toISOString(),
 		};
-		expect(await postsService.canView(post, { id: chapterMember })).toBe(true);
-		expect(await postsService.canView(post, { id: siblingMember })).toBe(false);
-		expect(await postsService.canView(post, null)).toBe(false);
+		expect(await notesService.canView(note, { id: chapterMember })).toBe(true);
+		expect(await notesService.canView(note, { id: siblingMember })).toBe(false);
+		expect(await notesService.canView(note, null)).toBe(false);
 	});
 
 	it("the chapter's listing includes it for the chapter member only", async () => {
 		const ids = async (viewer: string | null) =>
 			(
-				await postsService.getAll(
+				await stream.list(
 					await scopeContentFilter(viewer ? { id: viewer } : null, chapter.id),
-					100,
+					{ limit: 100 },
 				)
 			).items.map((p) => p.id);
-		expect(await ids(chapterMember)).toContain(regionPostId);
-		expect(await ids(siblingMember)).not.toContain(regionPostId);
-		expect(await ids(null)).not.toContain(regionPostId);
+		expect(await ids(chapterMember)).toContain(regionNoteId);
+		expect(await ids(siblingMember)).not.toContain(regionNoteId);
+		expect(await ids(null)).not.toContain(regionNoteId);
 	});
 
 	it("never flows up: the root listing does not show it, even to the member", async () => {
 		const rootIds = (
-			await postsService.getAll(
-				await scopeContentFilter({ id: chapterMember }),
-				100,
-			)
+			await stream.list(await scopeContentFilter({ id: chapterMember }), {
+				limit: 100,
+			})
 		).items.map((p) => p.id);
-		expect(rootIds).not.toContain(regionPostId);
+		expect(rootIds).not.toContain(regionNoteId);
 	});
 
-	it("a region member does not see a chapter's members-only post", async () => {
+	it("a region member does not see a chapter's members-only note", async () => {
 		const regionMember = user();
 		await scopesService.join(regionMember, region.id);
-		const post = {
+		const note = {
 			visibility: "members",
 			scopeId: chapter.id,
 			publishedAt: new Date().toISOString(),
 		};
-		expect(await postsService.canView(post, { id: regionMember })).toBe(false);
-		expect(await postsService.canView(post, { id: chapterMember })).toBe(true);
+		expect(await notesService.canView(note, { id: regionMember })).toBe(false);
+		expect(await notesService.canView(note, { id: chapterMember })).toBe(true);
 	});
 });
 

@@ -36,7 +36,7 @@ async function deleteBlocker(
 	if ((await scopesService.getChildren(scope.id)).length > 0)
 		return "Delete or move its groups first.";
 	if (await scopeHasContent(scope.id))
-		return "It still has posts, events or forms.";
+		return "It still has notes, articles, events or forms.";
 	return null;
 }
 

@@ -3,7 +3,7 @@
  * and for the events-block composables (`~/modules/events/useUpcomingEvents`, `usePastEvents`).
  */
 
-import type { PostCardData } from "~/contracts/posts";
+import type { StreamItemData } from "~/contracts/stream";
 import type { useUpdateParticipation } from "~/modules/events/actions";
 import type { Event } from "~/modules/events/schema/events";
 import type { ParticipationStatus } from "~/modules/events/schema/participation-status";
@@ -86,8 +86,8 @@ export type EventPageData =
 			participants: EventParticipant[];
 			image1: string | null;
 			image2: string | null;
-			/** Posts about the event (announcement, updates, recap) the viewer may see, newest first. */
-			posts: PostCardData[];
+			/** Notes and articles about the event (announcement, updates, recap) the viewer may see, newest first. */
+			updates: StreamItemData[];
 	  })
 	| null;
 

@@ -10,7 +10,7 @@ export interface LinkSearchResult {
 }
 
 /**
- * Scopes, listings, pages, posts and module items matching `query`, as references. Managers
+ * Scopes, listings, pages, notes, articles and module items matching `query`, as references. Managers
  * only (anyone with a managing role on some scope): the picker lives in admin editors.
  */
 const searchLinks = server$(async function (

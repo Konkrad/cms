@@ -6,7 +6,7 @@
  * | Reference                  | Points to                       |
  * | `scope:<scopeId>`          | a scope's home page             |
  * | `scope:<scopeId>/<module>` | a module's listing in a scope   |
- * | `<module>:<type>:<id>`     | one item (`core:post:<id>`, `events:event:<id>`) |
+ * | `<module>:<type>:<id>`     | one item (`core:note:<id>`, `events:event:<id>`) |
  *
  * Where a field holds either a link or a reference (menu items, page-builder link fields,
  * `href`s in rich text, notification links), the reference is written as `ref:<reference>`.
@@ -20,7 +20,7 @@ export type Ref =
 /** Prefix of a reference stored in a link field or an `href`. */
 export const REF_SCHEME = "ref:";
 
-/** The module id core uses for its own item types (`core:post:<id>`, `core:page:<id>`). */
+/** The module id core uses for its own item types (`core:note:<id>`, `core:article:<id>`, `core:page:<id>`). */
 export const CORE_REF_MODULE = "core";
 
 // Ids are uuids or similar opaque tokens; module ids and types are lowercase words.

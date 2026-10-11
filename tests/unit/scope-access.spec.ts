@@ -311,21 +311,27 @@ describe("granting roles", () => {
 });
 
 describe("scope content and images", () => {
-	it("reports content owned by a scope (core posts and module events)", async () => {
+	it("reports content owned by a scope (core notes and articles)", async () => {
 		const { scopeHasContent } = await import("~/core/registry/manifests");
 		expect(await scopeHasContent(chapterB.id)).toBe(false);
-		const db = openDb();
-		const postId = crypto.randomUUID();
-		db.prepare(
-			"INSERT INTO posts (id, title, body, author_id, scope_id, updated_at) VALUES (?, 't', 'b', ?, ?, ?)",
-		).run(postId, u.repA, chapterB.id, new Date().toISOString());
-		db.close();
-		try {
-			expect(await scopeHasContent(chapterB.id)).toBe(true);
-		} finally {
-			const d = openDb();
-			d.prepare("DELETE FROM posts WHERE id = ?").run(postId);
-			d.close();
+		const now = new Date().toISOString();
+		for (const insert of [
+			"INSERT INTO notes (id, body, author_id, scope_id, updated_at) VALUES (?, 'b', ?, ?, ?)",
+			"INSERT INTO articles (id, title, body, author_id, scope_id, updated_at) VALUES (?, 't', 'b', ?, ?, ?)",
+		]) {
+			const table = insert.split(" ")[2];
+			const id = crypto.randomUUID();
+			const db = openDb();
+			db.prepare(insert).run(id, u.repA, chapterB.id, now);
+			db.close();
+			try {
+				expect(await scopeHasContent(chapterB.id)).toBe(true);
+			} finally {
+				const d = openDb();
+				d.prepare(`DELETE FROM ${table} WHERE id = ?`).run(id);
+				d.close();
+			}
+			expect(await scopeHasContent(chapterB.id)).toBe(false);
 		}
 	}, 30_000);
 
@@ -444,7 +450,8 @@ describe("reserved scope slugs", () => {
 			"admin",
 			"api",
 			"login",
-			"posts",
+			"notes",
+			"articles",
 			"groups",
 			"root",
 			"events",

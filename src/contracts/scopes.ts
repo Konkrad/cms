@@ -4,7 +4,7 @@
  * The UI calls scopes groups, regions and chapters.
  */
 
-import type { PostCardData } from "~/contracts/posts";
+import type { StreamItemData } from "~/contracts/stream";
 import type { useJoinScope } from "~/core/scopes/scope-actions";
 export type JoinScopeAction = ReturnType<typeof useJoinScope>;
 
@@ -81,8 +81,8 @@ export type ScopeViewData = ScopeExtras & {
 	/** Explicit member of this scope or of one below it. */
 	isMember: boolean;
 	isLoggedIn: boolean;
-	/** Latest posts (notes and articles), labelled with their source scope when it is not this one. */
-	recentPosts: PostCardData[];
+	/** Latest notes and articles, labelled with their source scope when it is not this one. */
+	recentNews: StreamItemData[];
 	image1: string | null;
 	image2: string | null;
 	image3: string | null;

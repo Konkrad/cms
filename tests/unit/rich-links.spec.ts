@@ -21,20 +21,20 @@ import { createTestUser, openDb } from "./helpers";
 
 describe("rewriteRefLinks (pure)", () => {
 	const urls = new Map<string, string | null>([
-		["ref:core:post:a", "/germany/posts/a"],
-		["ref:core:post:gone", null],
+		["ref:core:article:a", "/germany/articles/a"],
+		["ref:core:article:gone", null],
 	]);
 
 	it("rewrites resolvable references and drops the others, keeping their text", () => {
 		const html =
-			'<p>Read <a href="ref:core:post:a">this</a>, <a href="ref:core:post:gone">that <strong>one</strong></a> and <a href="ref:core:post:unknown">x</a>.</p>';
+			'<p>Read <a href="ref:core:article:a">this</a>, <a href="ref:core:article:gone">that <strong>one</strong></a> and <a href="ref:core:article:unknown">x</a>.</p>';
 		expect(collectRefHrefs(html)).toEqual([
-			"ref:core:post:a",
-			"ref:core:post:gone",
-			"ref:core:post:unknown",
+			"ref:core:article:a",
+			"ref:core:article:gone",
+			"ref:core:article:unknown",
 		]);
 		expect(rewriteRefLinks(html, urls)).toBe(
-			'<p>Read <a href="/germany/posts/a">this</a>, that <strong>one</strong> and x.</p>',
+			'<p>Read <a href="/germany/articles/a">this</a>, that <strong>one</strong> and x.</p>',
 		);
 	});
 
@@ -46,19 +46,19 @@ describe("rewriteRefLinks (pure)", () => {
 
 	it("rewrites link fields and HTML fields in block data", () => {
 		const blocks = [
-			{ data: { href: "ref:core:post:a", text: "Go" } },
-			{ data: { href: "ref:core:post:gone" } },
-			{ data: { content: '<p><a href="ref:core:post:a">x</a></p>' } },
+			{ data: { href: "ref:core:article:a", text: "Go" } },
+			{ data: { href: "ref:core:article:gone" } },
+			{ data: { content: '<p><a href="ref:core:article:a">x</a></p>' } },
 			{ data: { href: "https://example.com", tiles: [{ link: "/login" }] } },
 		];
 		expect(collectBlockRefs(blocks).sort()).toEqual([
-			"ref:core:post:a",
-			"ref:core:post:gone",
+			"ref:core:article:a",
+			"ref:core:article:gone",
 		]);
 		expect(rewriteBlockRefs(blocks, urls)).toEqual([
-			{ data: { href: "/germany/posts/a", text: "Go" } },
+			{ data: { href: "/germany/articles/a", text: "Go" } },
 			{ data: { href: "" } },
-			{ data: { content: '<p><a href="/germany/posts/a">x</a></p>' } },
+			{ data: { content: '<p><a href="/germany/articles/a">x</a></p>' } },
 			{ data: { href: "https://example.com", tiles: [{ link: "/login" }] } },
 		]);
 	});
@@ -67,7 +67,7 @@ describe("rewriteRefLinks (pure)", () => {
 describe("stored references (db)", () => {
 	const tag = Date.now().toString(36);
 	let scope: Scope;
-	let postId: string;
+	let articleId: string;
 	let cleanupUser: () => void;
 
 	beforeAll(async () => {
@@ -78,12 +78,12 @@ describe("stored references (db)", () => {
 		);
 		const user = createTestUser();
 		cleanupUser = user.cleanup;
-		postId = crypto.randomUUID();
+		articleId = crypto.randomUUID();
 		const db = openDb();
 		db.prepare(
-			"INSERT INTO posts (id, title, body, author_id, scope_id, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+			"INSERT INTO articles (id, title, body, author_id, scope_id, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		).run(
-			postId,
+			articleId,
 			"Linked",
 			"<p>x</p>",
 			user.userId,
@@ -96,27 +96,27 @@ describe("stored references (db)", () => {
 
 	afterAll(async () => {
 		const db = openDb();
-		db.prepare("DELETE FROM posts WHERE id = ?").run(postId);
+		db.prepare("DELETE FROM articles WHERE id = ?").run(articleId);
 		db.close();
 		cleanupUser();
 		await scopesService.delete(scope.id);
 	});
 
 	it("turns links to site pages into references on write, then sanitizes", async () => {
-		const html = `<p><a href="/rl-${tag}/posts/${postId}">post</a> <a href="http://localhost:5173/rl-${tag}">group</a> <a href="/nowhere">gone</a> <a href="https://example.com">ext</a></p>`;
+		const html = `<p><a href="/rl-${tag}/articles/${articleId}">post</a> <a href="http://localhost:5173/rl-${tag}">group</a> <a href="/nowhere">gone</a> <a href="https://example.com">ext</a></p>`;
 		const stored = sanitizeRichHtml(await internalLinksToRefs(html));
 		expect(stored).toBe(
-			`<p><a href="ref:core:post:${postId}">post</a> <a href="ref:scope:${scope.id}">group</a> <span>gone</span> <a href="https://example.com" rel="noopener noreferrer nofollow" target="_blank">ext</a></p>`,
+			`<p><a href="ref:core:article:${articleId}">post</a> <a href="ref:scope:${scope.id}">group</a> <span>gone</span> <a href="https://example.com" rel="noopener noreferrer nofollow" target="_blank">ext</a></p>`,
 		);
 		// Rendering gives the current URLs, and follows a rename.
 		expect(await renderRichHtml(stored)).toContain(
-			`<a href="/rl-${tag}/posts/${postId}">post</a>`,
+			`<a href="/rl-${tag}/articles/${articleId}">post</a>`,
 		);
 		await scopesService.changeSlug(scope.id, `rl2-${tag}`, new Set());
 		try {
 			const rendered = await renderRichHtml(stored);
 			expect(rendered).toContain(
-				`<a href="/rl2-${tag}/posts/${postId}">post</a>`,
+				`<a href="/rl2-${tag}/articles/${articleId}">post</a>`,
 			);
 			expect(rendered).toContain(`<a href="/rl2-${tag}">group</a>`);
 		} finally {
@@ -124,23 +124,31 @@ describe("stored references (db)", () => {
 		}
 	});
 
-	it("keeps editor links in a post's body (the editor's HTML is stored)", async () => {
-		const { postsService } = await import("~/core/content/posts.service");
+	it("keeps editor links in an article's and a note's body (the editor's HTML is stored)", async () => {
+		const { articlesService } = await import("~/core/content/articles.service");
+		const { notesService } = await import("~/core/content/notes.service");
 		const user = createTestUser();
-		const post = await postsService.create({
+		const body = `<p>See <a href="ref:scope:${scope.id}"><strong>the group</strong></a> &lt;now&gt;</p>`;
+		const article = await articlesService.create({
 			title: "Editor links",
-			body: `<p>See <a href="ref:scope:${scope.id}"><strong>the group</strong></a> &lt;now&gt;</p>`,
+			body,
+			authorId: user.userId,
+			scopeId: scope.id,
+			visibility: "members",
+		});
+		const note = await notesService.create({
+			body,
 			authorId: user.userId,
 			scopeId: scope.id,
 			visibility: "members",
 		});
 		try {
-			expect(post.body).toBe(
-				`<p>See <a href="ref:scope:${scope.id}"><strong>the group</strong></a> &lt;now&gt;</p>`,
-			);
+			expect(article.body).toBe(body);
+			expect(note.body).toBe(body);
 		} finally {
 			const db = openDb();
-			db.prepare("DELETE FROM posts WHERE id = ?").run(post.id);
+			db.prepare("DELETE FROM articles WHERE id = ?").run(article.id);
+			db.prepare("DELETE FROM notes WHERE id = ?").run(note.id);
 			db.close();
 			user.cleanup();
 		}
@@ -170,7 +178,7 @@ describe("stored references (db)", () => {
 			({ id, url, children }) as unknown as MenuItemTree;
 		const menu = await resolveMenuUrls([
 			item("a", `ref:scope:${scope.id}`, [
-				item("a1", `ref:core:post:${crypto.randomUUID()}`),
+				item("a1", `ref:core:article:${crypto.randomUUID()}`),
 				item("a2", "/login"),
 			]),
 			item("b", `ref:core:page:${crypto.randomUUID()}`, [item("b1", "/x")]),

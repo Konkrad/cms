@@ -19,7 +19,8 @@ describe("parseRef / formatRef", () => {
 		`scope:${ID}`,
 		`scope:${ID}/events`,
 		`events:event:${ID}`,
-		`core:post:${ID}`,
+		`core:note:${ID}`,
+		`core:article:${ID}`,
 		`core:page:${ID}`,
 	])("round trips %s", (ref) => {
 		const parsed = parseRef(ref);
@@ -64,8 +65,8 @@ describe("parseRef / formatRef", () => {
 		expect(itemRef("jobs", "job", ID)).toBe(`jobs:job:${ID}`);
 		expect(scopeRef(ID)).toBe(`scope:${ID}`);
 		expect(scopeRef(ID, "events")).toBe(`scope:${ID}/events`);
-		expect(refHref(`core:post:${ID}`)).toBe(`ref:core:post:${ID}`);
-		expect(refHref(`ref:core:post:${ID}`)).toBe(`ref:core:post:${ID}`);
+		expect(refHref(`core:note:${ID}`)).toBe(`ref:core:note:${ID}`);
+		expect(refHref(`ref:core:note:${ID}`)).toBe(`ref:core:note:${ID}`);
 		expect(isRefHref(` ref:scope:${ID}`)).toBe(true);
 		expect(isRefHref("/scope")).toBe(false);
 		expect(isRefHref(null)).toBe(false);

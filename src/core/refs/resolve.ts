@@ -21,7 +21,7 @@ import {
 
 /**
  * Server-side reference resolution (spec 4.3). Every function takes the modules whose
- * references are available (the active ones plus core's own `post`/`page` types); the bound
+ * references are available (the active ones plus core's own `note`/`article`/`page` types); the bound
  * versions without that argument live in `~/core/registry/refs`.
  */
 
@@ -181,7 +181,7 @@ export class LinkError extends Error {
  * the value stored: a `ref:` reference (from a reference, the human form
  * `root/germany/berlin:events`, or a site URL that resolves to a scope, listing or item), an
  * external `http(s):`/`mailto:`/`tel:` URL, or a fixed site path that is no scope or item
- * (`/login`, `/archive/posts`). `appUrl` makes absolute URLs of this site count as paths.
+ * (`/login`, `/archive/all`). `appUrl` makes absolute URLs of this site count as paths.
  * Throws `LinkError` for anything else (`javascript:`, a reference that does not resolve).
  */
 export async function toStoredLinkWith(

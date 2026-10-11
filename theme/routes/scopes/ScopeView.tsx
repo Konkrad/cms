@@ -8,7 +8,7 @@ import { LocalRepTile } from "~theme/blocks/FeatureBlock/LocalRepTile";
 import { ParticipantsTile } from "~theme/blocks/FeatureBlock/ParticipantsTile";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 import { ParticipantsModal } from "~theme/shared/ParticipantsModal";
-import { PostCardList } from "~theme/shared/PostCard/PostCard";
+import { StreamList } from "~theme/shared/StreamList/StreamList";
 
 const GRID_LAYOUT = `"left-top middle right-top" "left-bottom middle right-top" "left-bottom middle right-bottom"`;
 const FALLBACK =
@@ -58,7 +58,7 @@ export const ScopeView = component$<{
 		isMember,
 		isLoggedIn,
 		upcomingEvents,
-		recentPosts,
+		recentNews,
 		image1,
 		image2,
 		image3,
@@ -230,13 +230,13 @@ export const ScopeView = component$<{
 				</div>
 			)}
 
-			{/* Recent Posts */}
-			{recentPosts.length > 0 && (
+			{/* Latest notes and articles */}
+			{recentNews.length > 0 && (
 				<div class="max-w-[1290px] mx-auto px-4 py-8">
 					<h2 class="font-semibold text-[32px] text-text-heading mb-6">
 						Latest from the Community
 					</h2>
-					<PostCardList posts={recentPosts} />
+					<StreamList items={recentNews} />
 				</div>
 			)}
 			{/* Members modal */}

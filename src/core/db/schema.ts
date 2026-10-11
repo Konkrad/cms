@@ -1,9 +1,10 @@
 import { defineRelations } from "drizzle-orm/relations";
 import { logins } from "../auth/schema/logins";
 import { sessions } from "../auth/schema/sessions";
+import { articles } from "../content/schema/articles";
 import { menuItems } from "../content/schema/menu-items";
+import { notes } from "../content/schema/notes";
 import { pages } from "../content/schema/pages";
-import { posts } from "../content/schema/posts";
 import { formResults } from "../forms/schema/form-results";
 import { forms } from "../forms/schema/forms";
 import { userMemberships } from "../memberships/schema";
@@ -20,9 +21,10 @@ import { users } from "../users/schema";
 
 export * from "../auth/schema/logins";
 export * from "../auth/schema/sessions";
+export * from "../content/schema/articles";
 export * from "../content/schema/menu-items";
+export * from "../content/schema/notes";
 export * from "../content/schema/pages";
-export * from "../content/schema/posts";
 export * from "../content/schema/shared";
 export * from "../forms/schema/form-results";
 export * from "../forms/schema/forms";
@@ -42,7 +44,8 @@ export const schemaRelations = defineRelations(
 		pages,
 		sessions,
 		users,
-		posts,
+		notes,
+		articles,
 		forms,
 		formResults,
 		userMemberships,
@@ -60,7 +63,8 @@ export const schemaRelations = defineRelations(
 		const {
 			sessions,
 			users,
-			posts,
+			notes,
+			articles,
 			forms,
 			formResults,
 			menuItems,
@@ -93,13 +97,21 @@ export const schemaRelations = defineRelations(
 				sessions: {
 					user: one.users({ from: sessions.userId, to: users.id }),
 				},
-				posts: {
+				notes: {
 					author: one.users({
-						from: posts.authorId,
+						from: notes.authorId,
 						to: users.id,
 						optional: false,
 					}),
-					scope: one.scopes({ from: posts.scopeId, to: scopes.id }),
+					scope: one.scopes({ from: notes.scopeId, to: scopes.id }),
+				},
+				articles: {
+					author: one.users({
+						from: articles.authorId,
+						to: users.id,
+						optional: false,
+					}),
+					scope: one.scopes({ from: articles.scopeId, to: scopes.id }),
 				},
 				formResults: {
 					form: one.forms({
@@ -167,7 +179,8 @@ export const schemaRelations = defineRelations(
 						from: users.id,
 						to: scopeMemberships.userId,
 					}),
-					posts: many.posts({ from: users.id, to: posts.authorId }),
+					notes: many.notes({ from: users.id, to: notes.authorId }),
+					articles: many.articles({ from: users.id, to: articles.authorId }),
 					sessions: many.sessions({ from: users.id, to: sessions.userId }),
 					membership: many.userMemberships({
 						from: users.id,

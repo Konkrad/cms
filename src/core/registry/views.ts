@@ -1,4 +1,4 @@
-import { coreViews } from "~/core/content/post-view";
+import { coreViews } from "~/core/content/stream-views";
 import type { PageViews } from "~/core/router/page-views";
 import { dealsViews } from "../../modules/deals/views";
 import { electionsViews } from "../../modules/elections/views";

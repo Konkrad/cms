@@ -149,7 +149,10 @@ async function ensureBucketAndPublicReadPolicy(s3: S3Client): Promise<void> {
 	);
 }
 
-async function downloadAndUploadSeedImages(): Promise<string[]> {
+async function downloadAndUploadSeedImages(): Promise<{
+	keys: string[];
+	articleKeys: string[];
+}> {
 	const s3 = new S3Client({
 		region: seedStorageConfig.region,
 		endpoint: seedStorageConfig.endpoint,
@@ -163,6 +166,8 @@ async function downloadAndUploadSeedImages(): Promise<string[]> {
 	await ensureBucketAndPublicReadPolicy(s3);
 
 	const uploadedKeys: string[] = [];
+	// Article images live under their own public prefix (validated by the articles service).
+	const articleKeys: string[] = [];
 
 	for (let i = 0; i < seedImageSources.length; i++) {
 		const sourceUrl = seedImageSources[i];
@@ -217,10 +222,22 @@ async function downloadAndUploadSeedImages(): Promise<string[]> {
 			}),
 		);
 
+		const articleKey = `public/articles/seed-${i + 1}.webp`;
+		await s3.send(
+			new PutObjectCommand({
+				Bucket: seedStorageConfig.bucket,
+				Key: articleKey,
+				Body: mainBuffer,
+				ContentType: "image/webp",
+				CacheControl: "public, max-age=86400",
+			}),
+		);
+
 		uploadedKeys.push(objectKey);
+		articleKeys.push(articleKey);
 	}
 
-	return uploadedKeys;
+	return { keys: uploadedKeys, articleKeys };
 }
 
 // ─── 4. Base users ───────────────────────────────────────────────────────────
@@ -686,9 +703,9 @@ console.log("  memberships seeded");
 	console.log("  representatives seeded");
 }
 
-// ─── 8. Posts ────────────────────────────────────────────────────────────────
+// ─── 8. Notes and articles ───────────────────────────────────────────────────
 
-// A post without a title is a note, one with a title an article (spec 4.4).
+// Two core types (spec 4.4): entries with a title are seeded as articles, without as notes.
 const postDefs: Array<{
 	title: string | null;
 	body: string;
@@ -810,29 +827,31 @@ function resolveAuthor(idx: number) {
 }
 
 postDefs.forEach((p, i) => {
-	// Stagger publishedAt by one minute per post so timestamps are strictly
+	// Stagger publishedAt by one minute per item so timestamps are strictly
 	// distinct and descending. Cursor pagination keys on publishedAt, so a batch
 	// sharing the same millisecond would break page boundaries at the ties.
 	const publishedAt = new Date(Date.now() - i * 60_000).toISOString();
-	db.insert(schema.posts)
-		.values({
-			id: uuid(),
-			title: p.title,
-			body: p.body,
-			authorId: resolveAuthor(p.authorIdx),
-			scopeId: p.groupSlug ? groupIds[p.groupSlug] : rootScope!.id,
-			visibility: p.visibility,
-			publishedAt,
-			updatedAt: publishedAt,
-		})
-		.run();
+	const common = {
+		id: uuid(),
+		body: p.body,
+		authorId: resolveAuthor(p.authorIdx),
+		scopeId: p.groupSlug ? groupIds[p.groupSlug] : rootScope!.id,
+		visibility: p.visibility,
+		publishedAt,
+		updatedAt: publishedAt,
+	};
+	if (p.title)
+		db.insert(schema.articles)
+			.values({ ...common, title: p.title })
+			.run();
+	else db.insert(schema.notes).values(common).run();
 });
-console.log(`  posts seeded (${postDefs.length})`);
+console.log(`  notes and articles seeded (${postDefs.length})`);
 
-// Add faker-generated posts for each group (3 per group)
+// Add faker-generated articles for each group (3 per group)
 {
 	const groupSlugsForPosts = Object.entries(groupIds); // [slug, id][]
-	const allGroupPosts = db.select().from(schema.posts).all();
+	const allGroupPosts = db.select().from(schema.articles).all();
 	const fakerPostTopics = [
 		() => ({
 			title: faker.company.catchPhrase(),
@@ -866,7 +885,7 @@ console.log(`  posts seeded (${postDefs.length})`);
 			const publishedAt = faker.date
 				.between({ from: "2023-01-01", to: new Date() })
 				.toISOString();
-			db.insert(schema.posts)
+			db.insert(schema.articles)
 				.values({
 					id: uuid(),
 					title,
@@ -880,7 +899,7 @@ console.log(`  posts seeded (${postDefs.length})`);
 				.run();
 		}
 	}
-	console.log(`  faker posts added per group`);
+	console.log(`  faker articles added per group`);
 }
 
 // ─── 9. Events ───────────────────────────────────────────────────────────────
@@ -1160,8 +1179,8 @@ for (const e of eventDefs) {
 }
 console.log(`  events seeded (${eventDefs.length})`);
 
-// Posts about events (spec 5.2): an announcement (article) and a short update (note) under the
-// first upcoming events of each kind; they show on the event pages and in post listings.
+// Updates about events (spec 5.2): an announcement (article) and a short update (note) under the
+// first upcoming events; they show on the event pages and in the news.
 {
 	const seededEvents = db
 		.select()
@@ -1172,7 +1191,7 @@ console.log(`  events seeded (${eventDefs.length})`);
 	for (const [i, evt] of seededEvents.entries()) {
 		const at = (minutesAgo: number) =>
 			new Date(Date.now() - (i * 10 + minutesAgo) * 60_000).toISOString();
-		db.insert(schema.posts)
+		db.insert(schema.articles)
 			.values({
 				id: uuid(),
 				scopeId: evt.scopeId,
@@ -1186,13 +1205,12 @@ console.log(`  events seeded (${eventDefs.length})`);
 				updatedAt: at(5),
 			})
 			.run();
-		db.insert(schema.posts)
+		db.insert(schema.notes)
 			.values({
 				id: uuid(),
 				scopeId: evt.scopeId,
 				subjectType: "events:event",
 				subjectId: evt.id,
-				title: null,
 				body: "<p>Doors open 30 minutes before the start. See you there!</p>",
 				visibility: evt.visibility,
 				authorId: evt.userId,
@@ -1201,7 +1219,7 @@ console.log(`  events seeded (${eventDefs.length})`);
 			})
 			.run();
 	}
-	console.log(`  event posts seeded (${seededEvents.length * 2})`);
+	console.log(`  event updates seeded (${seededEvents.length * 2})`);
 }
 
 // ─── 10. Participation statuses ──────────────────────────────────────────────
@@ -2057,7 +2075,7 @@ console.log("  inventory & products seeded");
 
 // ─── 12. Placeholder images ──────────────────────────────────────────────────
 
-const imageKeys = await downloadAndUploadSeedImages();
+const { keys: imageKeys, articleKeys } = await downloadAndUploadSeedImages();
 
 const usersWithoutProfile = db
 	.select()
@@ -2108,8 +2126,18 @@ for (let i = 0; i < groupsNoImg.length; i++) {
 	);
 }
 
+// Every other article gets a featured image (spec 4.4: optional, articles only).
+const seededArticles = db.select().from(schema.articles).all();
+for (const [i, a] of seededArticles.entries()) {
+	if (i % 2 === 1 || a.featuredImage) continue;
+	db.update(schema.articles)
+		.set({ featuredImage: articleKeys[i % articleKeys.length] })
+		.where(eq(schema.articles.id, a.id))
+		.run();
+}
+
 console.log(
-	`  images downloaded/uploaded and linked (${eventsNoImg.length} events, ${groupsNoImg.length} groups)`,
+	`  images downloaded/uploaded and linked (${eventsNoImg.length} events, ${groupsNoImg.length} groups, ${Math.ceil(seededArticles.length / 2)} articles)`,
 );
 console.log(
 	`  user profile pictures assigned (${usersWithoutProfile.length} users)`,
@@ -2557,13 +2585,13 @@ const pageDefs: Array<{
 				id: uuid(),
 				componentType: "TitleBlock",
 				order: 8,
-				data: { text: "Latest Posts", level: "2", align: "center" },
+				data: { text: "Latest News", level: "2", align: "center" },
 			},
 			{
 				id: uuid(),
-				componentType: "PostsListBlock",
+				componentType: "StreamBlock",
 				order: 9,
-				data: { limit: 6 },
+				data: { show: "all", limit: 6 },
 			},
 		],
 	},
@@ -2845,7 +2873,7 @@ const pageDefs: Array<{
 				data: {
 					type: "info",
 					title: "Self-fetching blocks",
-					body: "The blocks below (Upcoming Events, Groups List, Posts List) fetch their own data from the database. Drop them on any page and they update automatically.",
+					body: "The blocks below (Upcoming Events, Groups List, Stream) fetch their own data from the database. Drop them on any page and they update automatically.",
 				},
 			},
 			{
@@ -2985,9 +3013,9 @@ const pageDefs: Array<{
 			},
 			{
 				id: uuid(),
-				componentType: "PostsListBlock",
+				componentType: "StreamBlock",
 				order: 2,
-				data: { limit: 10 },
+				data: { show: "all", limit: 10 },
 			},
 		],
 	},
@@ -3731,7 +3759,8 @@ const counts = {
 	scopes: db.select().from(schema.scopes).all().length,
 	memberships: db.select().from(schema.scopeMemberships).all().length,
 	scopeRoles: db.select().from(schema.scopeRoles).all().length,
-	posts: db.select().from(schema.posts).all().length,
+	notes: db.select().from(schema.notes).all().length,
+	articles: db.select().from(schema.articles).all().length,
 	events: db.select().from(schema.events).all().length,
 	inventoryGroups: db.select().from(schema.inventoryGroups).all().length,
 	products: db.select().from(schema.products).all().length,

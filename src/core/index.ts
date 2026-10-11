@@ -108,13 +108,27 @@ export {
 	resolveRefs,
 	withItemUrls,
 } from "~/core/registry/refs";
-// Posts (spec 4.4): attach posts to your items with a subject instead of an updates table.
+// Notes and articles (spec 4.4): attach them to your items with a subject instead of an
+// updates table; `updatesFor` lists both, merged.
 export {
-	PostInputError,
-	type PostInput,
-	posts,
-} from "~/core/content/posts-api";
-export { postFormSchema, subjectFromField } from "~/core/content/post-form";
+	type AdminUpdate,
+	type ArticleInput,
+	adminUpdatesFor,
+	articles,
+	ContentInputError,
+	type NoteInput,
+	notes,
+	updatesFor,
+} from "~/core/content/content-api";
+export {
+	articleFormSchema,
+	noteFormSchema,
+	subjectFromField,
+} from "~/core/content/content-form";
+export {
+	ARTICLE_IMAGE_PATH,
+	NOTE_MAX_LENGTH,
+} from "~/core/content/content-items";
 export type { RefLocation, RefTypeDefinition } from "~/core/router/modules";
 export { requireCanonicalUrl } from "~/core/refs/canonical";
 export {

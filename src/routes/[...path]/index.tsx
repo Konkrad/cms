@@ -3,9 +3,9 @@ import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import type { PageViewData } from "~/contracts/page";
 import type { ScopeViewData } from "~/contracts/scopes";
 import { loadCmsPage } from "~/core/content/cms-page";
-import { corePages } from "~/core/content/post-page";
 import type { BlockData } from "~/core/content/schema/shared";
 import { canonicalUrl, htmlToDescription } from "~/core/content/seo";
+import { corePages } from "~/core/content/stream-pages";
 import { matchPage } from "~/core/router/pages";
 import {
 	currentScope,
@@ -66,7 +66,7 @@ function descriptionFromBlocks(blocks: BlockData[] | null): string {
 export const usePathPage = routeLoader$(async (event) => {
 	const rest = currentScopeRest(event);
 	const scopePath = currentScopePath(event);
-	// Core pages (posts) first, then the active modules' pages, in declared order. Referenced
+	// Core pages (notes, articles) first, then the active modules' pages, in declared order. Referenced
 	// only inside the loader: a top-level constant would pull the server graph into the
 	// client's route module.
 	const match = matchPage([...corePages, ...modulePages], rest);

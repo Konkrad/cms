@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { postsService } from "~/core/content/posts.service";
+import { stream } from "~/core/content/stream.service";
 import {
 	listsItem,
 	localFirst,
@@ -21,7 +21,12 @@ const tag = Date.now().toString(36);
 const cleanups: Array<() => void> = [];
 const scopeIds: string[] = [];
 const S: Record<string, Scope> = {};
-const posts: Array<{ id: string; scope: string; visibility: Visibility }> = [];
+const items: Array<{
+	id: string;
+	table: "notes" | "articles";
+	scope: string;
+	visibility: Visibility;
+}> = [];
 
 type Viewer = {
 	name: string;
@@ -77,11 +82,25 @@ beforeAll(async () => {
 	const db = openDb();
 	for (const scope of SCOPES) {
 		for (const visibility of VIS) {
-			const id = crypto.randomUUID();
+			// One note and one article per scope and visibility: the stream lists both.
+			const noteId = crypto.randomUUID();
 			db.prepare(
-				"INSERT INTO posts (id, title, body, author_id, scope_id, visibility, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+				"INSERT INTO notes (id, body, author_id, scope_id, visibility, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
 			).run(
-				id,
+				noteId,
+				`<p>filter ${tag} ${scope} ${visibility}</p>`,
+				author.userId,
+				S[scope].id,
+				visibility,
+				new Date().toISOString(),
+				new Date().toISOString(),
+			);
+			items.push({ id: noteId, table: "notes", scope, visibility });
+			const articleId = crypto.randomUUID();
+			db.prepare(
+				"INSERT INTO articles (id, title, body, author_id, scope_id, visibility, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+			).run(
+				articleId,
 				`filter ${tag} ${scope} ${visibility}`,
 				"<p>x</p>",
 				author.userId,
@@ -90,7 +109,7 @@ beforeAll(async () => {
 				new Date().toISOString(),
 				new Date().toISOString(),
 			);
-			posts.push({ id, scope, visibility });
+			items.push({ id: articleId, table: "articles", scope, visibility });
 		}
 	}
 	db.close();
@@ -130,7 +149,8 @@ beforeAll(async () => {
 
 afterAll(() => {
 	const db = openDb();
-	for (const p of posts) db.prepare("DELETE FROM posts WHERE id = ?").run(p.id);
+	for (const i of items)
+		db.prepare(`DELETE FROM ${i.table} WHERE id = ?`).run(i.id);
 	for (const id of scopeIds) {
 		db.prepare("DELETE FROM scope_memberships WHERE scope_id = ?").run(id);
 		db.prepare("DELETE FROM scope_roles WHERE scope_id = ?").run(id);
@@ -154,17 +174,17 @@ describe("scopeContentFilter", () => {
 					S[listing].id,
 				);
 				const listed = new Set(
-					(await postsService.getAll(filter, 1000)).items.map((p) => p.id),
+					(await stream.list(filter, { limit: 1000 })).items.map((i) => i.id),
 				);
-				for (const post of posts) {
-					const want = expected(viewer, listing, post.scope, post.visibility);
+				for (const item of items) {
+					const want = expected(viewer, listing, item.scope, item.visibility);
 					const inMemory = filter.matches({
-						scopeId: S[post.scope].id,
-						visibility: post.visibility,
+						scopeId: S[item.scope].id,
+						visibility: item.visibility,
 					});
-					if (inMemory !== want || listed.has(post.id) !== want) {
+					if (inMemory !== want || listed.has(item.id) !== want) {
 						mismatches.push(
-							`${viewer.name} @${listing}: ${post.scope}/${post.visibility} want ${want}, matches ${inMemory}, sql ${listed.has(post.id)}`,
+							`${viewer.name} @${listing}: ${item.table} ${item.scope}/${item.visibility} want ${want}, matches ${inMemory}, sql ${listed.has(item.id)}`,
 						);
 					}
 				}

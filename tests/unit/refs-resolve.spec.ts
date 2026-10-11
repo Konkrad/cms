@@ -22,8 +22,9 @@ let rootId: string;
 let region: Scope;
 let chapter: Scope;
 let userId: string;
-let postId: string;
-let deletedPostId: string;
+let articleId: string;
+let deletedArticleId: string;
+let noteId: string;
 let pageId: string;
 let eventId: string;
 let eventSlug: string;
@@ -50,19 +51,29 @@ beforeAll(async () => {
 	const user = createTestUser();
 	userId = user.userId;
 
-	postId = crypto.randomUUID();
-	deletedPostId = crypto.randomUUID();
+	articleId = crypto.randomUUID();
+	deletedArticleId = crypto.randomUUID();
 	run(
-		"INSERT INTO posts (id, title, body, author_id, scope_id, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		postId,
-		`Refs post ${tag}`,
+		"INSERT INTO articles (id, title, body, author_id, scope_id, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		articleId,
+		`Refs article ${tag}`,
 		"<p>x</p>",
 		userId,
 		chapter.id,
 		new Date().toISOString(),
 		new Date().toISOString(),
 	);
-	// A deleted post: its row is gone.
+	noteId = crypto.randomUUID();
+	run(
+		"INSERT INTO notes (id, body, author_id, scope_id, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+		noteId,
+		"<p>Doors open at 18:00</p>",
+		userId,
+		region.id,
+		new Date().toISOString(),
+		new Date().toISOString(),
+	);
+	// A deleted article: its row is gone.
 	pageId = crypto.randomUUID();
 	run(
 		"INSERT INTO pages (id, scope_id, slug, title, status) VALUES (?, ?, ?, ?, ?)",
@@ -109,7 +120,8 @@ beforeAll(async () => {
 		run("DELETE FROM deals WHERE id = ?", dealId);
 		run("DELETE FROM events WHERE id = ?", eventId);
 		run("DELETE FROM pages WHERE id = ?", pageId);
-		run("DELETE FROM posts WHERE id IN (?, ?)", postId, deletedPostId);
+		run("DELETE FROM articles WHERE id IN (?, ?)", articleId, deletedArticleId);
+		run("DELETE FROM notes WHERE id = ?", noteId);
 	});
 	cleanups.push(user.cleanup);
 });
@@ -135,8 +147,11 @@ describe("resolveRef", () => {
 	});
 
 	it("resolves every item type under its owning scope", async () => {
-		expect(await resolveRef(`core:post:${postId}`)).toBe(
-			`/refs-${tag}/city/posts/${postId}`,
+		expect(await resolveRef(`core:article:${articleId}`)).toBe(
+			`/refs-${tag}/city/articles/${articleId}`,
+		);
+		expect(await resolveRef(`core:note:${noteId}`)).toBe(
+			`/refs-${tag}/notes/${noteId}`,
 		);
 		expect(await resolveRef(`core:page:${pageId}`)).toBe(`/refs-${tag}/about`);
 		expect(eventSlug).toBe(`summer-bbq-${tag}`);
@@ -153,8 +168,13 @@ describe("resolveRef", () => {
 	});
 
 	it("is unavailable for deleted items, unknown types and malformed refs", async () => {
-		expect(await resolveRef(`core:post:${deletedPostId}`)).toBeNull();
-		expect(await resolveRef(`core:post:${crypto.randomUUID()}`)).toBeNull();
+		expect(await resolveRef(`core:article:${deletedArticleId}`)).toBeNull();
+		expect(await resolveRef(`core:article:${crypto.randomUUID()}`)).toBeNull();
+		// Posts are gone: their old references no longer resolve.
+		expect(await resolveRef(`core:post:${articleId}`)).toBeNull();
+		// A note id is not an article and vice versa.
+		expect(await resolveRef(`core:article:${noteId}`)).toBeNull();
+		expect(await resolveRef(`core:note:${articleId}`)).toBeNull();
 		expect(await resolveRef(`events:nope:${eventId}`)).toBeNull();
 		expect(await resolveRef("javascript:alert(1)")).toBeNull();
 	});
@@ -192,13 +212,13 @@ describe("resolveRef", () => {
 
 	it("resolves a batch, one entry per input", async () => {
 		const refs = [
-			`core:post:${postId}`,
-			`core:post:${deletedPostId}`,
+			`core:article:${articleId}`,
+			`core:article:${deletedArticleId}`,
 			`ref:core:page:${pageId}`,
 		];
 		const urls = await resolveRefs(refs);
 		expect([...urls.keys()]).toEqual(refs);
-		expect(urls.get(`core:post:${deletedPostId}`)).toBeNull();
+		expect(urls.get(`core:article:${deletedArticleId}`)).toBeNull();
 		expect(urls.get(`ref:core:page:${pageId}`)).toBe(`/refs-${tag}/about`);
 	});
 });
@@ -241,8 +261,11 @@ describe("refFromPath / toStoredLink", () => {
 		expect(await refFromPath(`/events/${eventId}`)).toBe(
 			`events:event:${eventId}`,
 		);
-		expect(await refFromPath(`/refs-${tag}/city/posts/${postId}`)).toBe(
-			`core:post:${postId}`,
+		expect(await refFromPath(`/refs-${tag}/city/articles/${articleId}`)).toBe(
+			`core:article:${articleId}`,
+		);
+		expect(await refFromPath(`/refs-${tag}/notes/${noteId}`)).toBe(
+			`core:note:${noteId}`,
 		);
 		expect(await refFromPath("/login")).toBeNull();
 		expect(await refFromPath(`/refs-${tag}/missing-page`)).toBeNull();
@@ -255,8 +278,8 @@ describe("refFromPath / toStoredLink", () => {
 		expect(await toStoredLink(`/refs-${tag}/about`)).toBe(
 			`ref:core:page:${pageId}`,
 		);
-		expect(await toStoredLink(`ref:core:post:${postId}`)).toBe(
-			`ref:core:post:${postId}`,
+		expect(await toStoredLink(`ref:core:article:${articleId}`)).toBe(
+			`ref:core:article:${articleId}`,
 		);
 		expect(await toStoredLink("https://example.com/x")).toBe(
 			"https://example.com/x",
@@ -268,7 +291,7 @@ describe("refFromPath / toStoredLink", () => {
 			LinkError,
 		);
 		await expect(
-			toStoredLink(`ref:core:post:${deletedPostId}`),
+			toStoredLink(`ref:core:article:${deletedArticleId}`),
 		).rejects.toThrow(LinkError);
 		await expect(toStoredLink("root/no-such-scope")).rejects.toThrow(LinkError);
 	});

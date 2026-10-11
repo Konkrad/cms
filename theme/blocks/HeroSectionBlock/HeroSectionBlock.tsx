@@ -20,7 +20,7 @@ const SLIDE_GRADIENTS = [
 ];
 
 export default component$(() => {
-	const { posts, isLoading } = useHeroSection();
+	const { articles, isLoading } = useHeroSection();
 	const currentSlide = useSignal(0);
 
 	const goToSlide = $((index: number) => {
@@ -35,7 +35,7 @@ export default component$(() => {
 		);
 	}
 
-	if (posts.value.length === 0) {
+	if (articles.value.length === 0) {
 		return (
 			<div class="hero-section-empty">
 				<div class="hero-section-empty-text">No articles yet.</div>
@@ -43,7 +43,7 @@ export default component$(() => {
 		);
 	}
 
-	const slide = posts.value[currentSlide.value];
+	const slide = articles.value[currentSlide.value];
 	const slideGradient =
 		SLIDE_GRADIENTS[currentSlide.value % SLIDE_GRADIENTS.length];
 	const excerpt = slide.excerpt;
@@ -52,21 +52,33 @@ export default component$(() => {
 		<div class="hero-section-container">
 			{/* ── Mobile: horizontal scroll-snap carousel ── */}
 			<div class="hero-carousel-outer">
-				{posts.value.map((post, index) => {
+				{articles.value.map((article, index) => {
 					const gradient = SLIDE_GRADIENTS[index % SLIDE_GRADIENTS.length];
 					return (
-						<div key={post.id} class="hero-carousel-slide">
-							<a href={post.url} class="hero-carousel-card">
+						<div key={article.id} class="hero-carousel-slide">
+							<a href={article.url} class="hero-carousel-card">
 								<div class="hero-carousel-image-wrap">
-									<div
-										class="hero-carousel-gradient"
-										style={{ background: gradient }}
-									>
-										<span class="hero-carousel-slide-number">{index + 1}</span>
-									</div>
+									{article.imageUrl ? (
+										<img
+											src={article.imageUrl}
+											alt={article.title}
+											class="hero-carousel-image"
+											width={400}
+											height={400}
+										/>
+									) : (
+										<div
+											class="hero-carousel-gradient"
+											style={{ background: gradient }}
+										>
+											<span class="hero-carousel-slide-number">
+												{index + 1}
+											</span>
+										</div>
+									)}
 								</div>
 								<div class="hero-carousel-content">
-									<h2 class="hero-carousel-title">{post.title}</h2>
+									<h2 class="hero-carousel-title">{article.title}</h2>
 									<span class="hero-carousel-cta">Read more →</span>
 								</div>
 							</a>
@@ -79,14 +91,24 @@ export default component$(() => {
 			<div class="hero-section-desktop">
 				<div class="hero-section-desktop-image-wrapper">
 					<div class="hero-section-desktop-image-frame">
-						<div
-							class="hero-section-desktop-gradient"
-							style={{ background: slideGradient }}
-						>
-							<span class="hero-section-desktop-slide-number">
-								{currentSlide.value + 1}
-							</span>
-						</div>
+						{slide.imageUrl ? (
+							<img
+								src={slide.imageUrl}
+								alt={slide.title}
+								class="hero-section-desktop-image"
+								width={400}
+								height={400}
+							/>
+						) : (
+							<div
+								class="hero-section-desktop-gradient"
+								style={{ background: slideGradient }}
+							>
+								<span class="hero-section-desktop-slide-number">
+									{currentSlide.value + 1}
+								</span>
+							</div>
+						)}
 					</div>
 				</div>
 
@@ -102,9 +124,9 @@ export default component$(() => {
 			</div>
 
 			{/* ── Pagination Dots (desktop only) ── */}
-			{posts.value.length > 1 && (
+			{articles.value.length > 1 && (
 				<div class="hero-section-pagination">
-					{posts.value.map((_, index) => (
+					{articles.value.map((_, index) => (
 						<button
 							key={index}
 							type="button"

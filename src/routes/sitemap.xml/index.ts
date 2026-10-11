@@ -1,6 +1,6 @@
 import type { RequestHandler } from "@qwik.dev/router";
 import { pagesService } from "~/core/content/pages.service";
-import { postsService } from "~/core/content/posts.service";
+import { stream } from "~/core/content/stream.service";
 import { activeModules } from "~/core/registry/manifests";
 import { withItemUrls } from "~/core/registry/refs";
 import { sitemapEntriesOf } from "~/core/router/modules";
@@ -54,24 +54,32 @@ export const onGet: RequestHandler = async ({
 		});
 	}
 
-	let postsCursor: string | null | undefined = null;
+	let cursor: string | null = null;
 	do {
-		// The root listing for a guest: every public post.
-		const result = await postsService.getAll(
-			await scopeContentFilter(null),
-			100,
-			postsCursor,
-			"forward",
-		);
-		const visible = result.items.filter((p) => p.visibility === "public");
-		for (const post of await withItemUrls("core:post", visible)) {
+		// The root listing for a guest: every public note and article.
+		const result = await stream.list(await scopeContentFilter(null), {
+			limit: 100,
+			cursor,
+		});
+		const visible = result.items.filter((i) => i.visibility === "public");
+		const urls = await Promise.all([
+			withItemUrls(
+				"core:note",
+				visible.filter((i) => i.type === "note"),
+			),
+			withItemUrls(
+				"core:article",
+				visible.filter((i) => i.type === "article"),
+			),
+		]);
+		for (const item of urls.flat()) {
 			entries.push({
-				loc: new URL(post.url, env.APP_URL).toString(),
-				lastmod: post.updatedAt,
+				loc: new URL(item.url, env.APP_URL).toString(),
+				lastmod: item.updatedAt,
 			});
 		}
-		postsCursor = result.nextCursor;
-	} while (postsCursor);
+		cursor = result.nextCursor;
+	} while (cursor);
 
 	// Scope home pages (groups, regions, chapters); the root is the home page above.
 	const root = await scopesService.getRoot();

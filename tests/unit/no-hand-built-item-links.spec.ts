@@ -8,8 +8,15 @@ import { describe, expect, it } from "vitest";
 // references) and contracts carry `url` fields; the theme only renders them.
 const root = join(__dirname, "..", "..");
 
-/** Path segments of public item pages (core posts and every module with detail pages). */
-const ITEM_SEGMENTS = ["events", "posts", "jobs", "deals", "elections"];
+/** Path segments of public item pages (core notes and articles, and every module with detail pages). */
+const ITEM_SEGMENTS = [
+	"events",
+	"notes",
+	"articles",
+	"jobs",
+	"deals",
+	"elections",
+];
 
 const segments = ITEM_SEGMENTS.join("|");
 /** `/events/${…}` in a template literal (not `private/events/${…}` S3 keys). */
@@ -64,13 +71,14 @@ describe("hand-built item links", () => {
 		const hits = (code: string) => handBuiltLinks("x.tsx", code).length;
 		expect(hits("<a href={`/events/${event.id}`}>")).toBe(1);
 		expect(hits("const url = `${ctx.appUrl}/jobs/${data.jobId}`;")).toBe(1);
-		expect(hits('href={"/posts/" + post.id}')).toBe(1);
+		expect(hits('href={"/notes/" + note.id}')).toBe(1);
+		expect(hits("<a href={`/articles/${article.id}`}>")).toBe(1);
 		expect(hits("throw event.redirect(302, `/elections/${id}/apply`);")).toBe(
 			1,
 		);
 		expect(hits("href={`${data.adminBase}/jobs/${job.id}/edit`}")).toBe(0);
 		expect(hits("const key = `private/events/${id}/photos`;")).toBe(0);
-		expect(hits("href={`/archive/posts/${page + 1}`}")).toBe(0);
+		expect(hits("href={`/archive/articles/${page + 1}`}")).toBe(0);
 		expect(hits("href={event.url}")).toBe(0);
 	});
 });

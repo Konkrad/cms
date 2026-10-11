@@ -18,10 +18,6 @@ export {
 	PAGE_SIZE,
 	Pagination,
 } from "~/core/admin/Pagination/Pagination";
-export {
-	PostForm,
-	type PostFormResult,
-} from "~/core/admin/PostForm/PostForm";
 export { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 export { VisibilitySelector } from "~/core/admin/VisibilitySelector";
 export { BlockNoteEditor } from "~/core/content/editor";

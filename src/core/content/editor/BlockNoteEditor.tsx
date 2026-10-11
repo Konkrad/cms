@@ -35,7 +35,7 @@ interface BlockNoteEditorProps {
 	uploadUrl?: string;
 	textOnly?: boolean;
 	/**
-	 * Show the internal link picker (admin editors only): it searches scopes, pages, posts and
+	 * Show the internal link picker (admin editors only): it searches scopes, pages, notes, articles and
 	 * module items and links the selected text with a `ref:` reference.
 	 */
 	linkPicker?: boolean;

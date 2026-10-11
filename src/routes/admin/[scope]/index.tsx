@@ -47,9 +47,9 @@ export default component$(() => {
 							</div>
 						</div>
 						<div class="bg-white rounded-lg shadow-sm p-6">
-							<div class="text-sm text-gray-600 mb-1">Total Posts</div>
+							<div class="text-sm text-gray-600 mb-1">Notes · Articles</div>
 							<div class="text-3xl font-bold text-blue-600">
-								{stats.value.stats.posts}
+								{stats.value.stats.notes} · {stats.value.stats.articles}
 							</div>
 						</div>
 						<div class="bg-white rounded-lg shadow-sm p-6">
@@ -74,9 +74,9 @@ export default component$(() => {
 							</div>
 						</div>
 						<div class="bg-white rounded-lg shadow-sm p-6">
-							<div class="text-sm text-gray-600 mb-1">Group Posts</div>
+							<div class="text-sm text-gray-600 mb-1">Notes · Articles</div>
 							<div class="text-3xl font-bold text-blue-600">
-								{stats.value.stats.posts}
+								{stats.value.stats.notes} · {stats.value.stats.articles}
 							</div>
 						</div>
 						<div class="bg-white rounded-lg shadow-sm p-6">
@@ -94,9 +94,6 @@ export default component$(() => {
 				<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
 					<Button href={`${stats.value.base}/events/new`} variant="secondary">
 						+ New Event
-					</Button>
-					<Button href={`${stats.value.base}/posts/new`} variant="secondary">
-						+ New Post
 					</Button>
 					{stats.value.isRoot && (
 						<Button href={`${stats.value.base}/pages/new`} variant="secondary">

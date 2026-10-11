@@ -49,7 +49,7 @@ export const activeScopeExtras = (ctx: ScopePageContext) =>
 export const moduleScopeContentCount = (scopeId: string) =>
 	scopeContentCountOf(allModules, scopeId);
 
-/** Whether a scope owns any content (core posts/forms or any module's items). */
+/** Whether a scope owns any content (core notes, articles, pages, forms or any module's items). */
 export async function scopeHasContent(scopeId: string): Promise<boolean> {
 	const [core, modules] = await Promise.all([
 		scopesService.countCoreContent(scopeId),

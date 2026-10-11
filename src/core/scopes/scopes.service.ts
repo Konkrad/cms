@@ -9,8 +9,9 @@ import {
 	or,
 	sql,
 } from "drizzle-orm";
+import { articles } from "~/core/content/schema/articles";
+import { notes } from "~/core/content/schema/notes";
 import { pages } from "~/core/content/schema/pages";
-import { posts } from "~/core/content/schema/posts";
 import { db } from "~/core/db/connection";
 import { forms } from "~/core/forms/schema/forms";
 import { redirectsService } from "~/core/router/redirects.service";
@@ -429,10 +430,10 @@ export const scopesService = {
 		);
 	},
 
-	/** Number of posts, pages and forms owned by the scope (core content; modules report their own). */
+	/** Number of notes, articles, pages and forms owned by the scope (core content; modules report their own). */
 	async countCoreContent(scopeId: string): Promise<number> {
 		const counts = await Promise.all(
-			[posts, pages, forms].map((table) =>
+			[notes, articles, pages, forms].map((table) =>
 				db
 					.select({ count: sql<number>`COUNT(*)` })
 					.from(table)

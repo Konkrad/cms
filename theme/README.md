@@ -24,15 +24,17 @@ this folder to reskin the public site without touching core logic.
 - `emails/` — the full email layer, including the templates themselves.
   `EmailLayout`/`Header`/`Footer` are pure chrome (no branding props, a theme
   just hardcodes its own logo/copy/colors). `brand.ts` holds site name / logo
-  alt / footer copyright. `LoginEmail`/`TicketConfirmation` are the templates,
+  alt / footer copyright. `LoginEmail`/`TicketConfirmation`/`JobApproved` are the templates,
   and `TicketLinksSection`/`TransactionProductsSummary` are their data-bound
   blocks — these still take real props (tickets, products, amounts) since that
   data is core-owned, but all markup/copy/styling is theme. `static/logo.svg`
   is the brand asset served at `${baseUrl}/static/logo.svg`. Core only computes
-  the props (`src/core/notifications/email-notifications.service.ts`, the "loader"
-  equivalent — date formatting, env access) and calls `render()`/`sendEmail()`
-  against `~theme/emails/LoginEmail` / `~theme/emails/TicketConfirmation` —
-  the same loader/View split used for routes.
+  the props (the "loader" equivalent — date formatting, env access): the login
+  email in `src/core/notifications/email-notifications.service.ts`, everything
+  else in notification renderers (`modules/events/emails.ts`,
+  `modules/jobs/notifications.ts`) that the outbox worker renders and sends.
+  `EmailLayout` takes an optional `unsubscribeUrl` (footer link for optional
+  notifications) — the same loader/View split used for routes.
 
 ## The boundary
 

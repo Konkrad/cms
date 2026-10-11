@@ -9,7 +9,7 @@ Jobs (`modules/jobs/`) is the worked example throughout. Modules: deals, electio
 
 ## Layout
 
-`modules/<id>/` holds only module folders. Typical files: `module.ts` (manifest via `defineModule`), `pages.ts` (`definePage` entries), `views.tsx` (client-safe view map), `actions.ts` (public `routeAction$`s), `schema.ts`, `service.ts`, `public-<x>.ts` (public payload mapping, e.g. `toPublicJob`), `admin/` (`list.tsx` + `list-data.ts`, `edit.tsx` + `edit-data.ts`), optional `blocks.ts`, `use*.ts` composables, `emails.ts`, `payments.ts`.
+`modules/<id>/` holds only module folders. Typical files: `module.ts` (manifest via `defineModule`), `pages.ts` (`definePage` entries), `views.tsx` (client-safe view map), `actions.ts` (public `routeAction$`s), `schema.ts`, `service.ts`, `public-<x>.ts` (public payload mapping, e.g. `toPublicJob`), `admin/` (`list.tsx` + `list-data.ts`, `edit.tsx` + `edit-data.ts`), optional `blocks.ts`, `use*.ts` composables, `notifications.ts` / `emails.ts` (notification definitions), `payments.ts`.
 
 ## Registration (one line each)
 
@@ -32,6 +32,7 @@ Jobs (`modules/jobs/`) is the worked example throughout. Modules: deals, electio
 - `profile(ctx)` / `groupPage(ctx)`: extra sections for profile pages (`ProfileExtras` in `src/contracts/profile.ts`) and the public group page (`src/contracts/groups.ts`). Server-only; return only what `ctx.viewerId` may see (nothing private unless `ctx.isOwnProfile`), the result is serialized to the browser.
 - `reevaluateUserTags(userId)`: re-runs the module's user-tag rules (admin "Re-evaluate badges").
 - `payments: Record<kind, PaymentHandlers>`: Stripe callbacks, called by the core webhook by `metadata.moduleId` / `metadata.kind` even while the module is inactive.
+- `notifications: NotificationDefinition[]`: what the module sends (see Notifications below). Resolved from every registered module, so rows queued before a module was deactivated are still sent.
 
 ## Pages and actions
 
@@ -39,6 +40,35 @@ Jobs (`modules/jobs/`) is the worked example throughout. Modules: deals, electio
 - Module `routeAction$`s and admin actions are re-exported from the route files via RELATIVE paths only (`../../../modules/jobs/actions`). Qwik production-build footgun: the Rollup transform mis-resolves `~`/`~theme` aliased re-exports.
 - Authorize as the first statement (before any `try`): `requireModuleAuth(event, "<id>")` for public actions/loaders (login + module active), `requireModuleAdmin(event, { module, scope: "global" | "any" })` for admin ones (both from `~/core`). Details and the rest of the auth rules: CLAUDE.md Security. After adding an action, grep that every `routeAction$` has its auth call.
 - Validate with `zod$`, whitelist updatable columns, re-check ownership in both loader and action.
+
+## Notifications
+
+Modules never pick a transport: no `sendEmail`, no Telegram client (neither is in `~/core`). Declare, then queue. Worked examples: `modules/jobs/notifications.ts` (optional), `modules/events/emails.ts` (required email + ops Telegram alert).
+
+```ts
+// modules/<id>/notifications.ts — listed in the manifest: notifications: [jobApprovedNotification]
+export const jobApprovedNotification = defineNotification<{ jobId: string; jobTitle: string }>({
+	id: "jobs.approved",            // "<module>.<name>", unique
+	label: "Job approved",          // shown in the profile settings when optional
+	channels: ["email"],            // "email" | "telegram"; one renderer per channel
+	optional: true,                 // optional = users can mute it (profile toggle + unsubscribe link)
+	render: {
+		email: (data, ctx) => ({ subject: "…", react: createElement(JobApprovedEmail, { …, unsubscribeUrl: ctx.unsubscribeUrl }) }),
+		// telegram: (data, ctx) => "plain text",
+	},
+});
+
+// in an action / payment handler, after the change succeeded:
+await notify("jobs.approved", { to: job.suggestedBy, data: { jobId: job.id, jobTitle: job.title } });
+await notify("events.sale", { to: { channel: "telegram", target: "ops" }, data: { … } });
+```
+
+- `to`: user id(s), or an ops target `{ channel, target }` (`telegram`/`ops` = TELEGRAM_CHANNEL_ID). Never an address: emails are looked up server-side from the user id.
+- `data` must be JSON-serializable and is stored in `notification_outbox`; prefer ids and let the (async, server-side) renderer load the rest at send time. Attachments (`attachments` in the email result) are built in the renderer, never stored.
+- Renderers get `ctx.recipient` (`userId`, `name`, `address`), `ctx.appUrl` and `ctx.unsubscribeUrl` (set for optional notifications to a user; pass it to the template so `EmailLayout` shows the footer link; the List-Unsubscribe headers are added by the email channel).
+- Email templates live in `theme/emails/*` (props contract in `src/contracts/emails.ts`), imported via `~theme/emails/...`.
+- `notify` only inserts rows (never sends inline) and throws on an unknown id or non-serializable data. Delivery, retries (exponential backoff, `NOTIFICATIONS_MAX_ATTEMPTS`) and failures are the worker's job; failed rows show up at `/admin/global/notifications`.
+- Unit tests: `enqueueNotification(def, input)` and `processOutboxOnce({ resolve, channels })` with fake channels (see `tests/unit/notifications*.spec.ts`).
 
 ## Server/client split
 

@@ -10,10 +10,12 @@
 8. Do not create README or other documentation unless asked.
 9. Migrations: after changing a schema file run `npm run db:generate` and commit the file under `drizzle/`; never `drizzle-kit push`. Details in the `database` skill.
 10. Use Qwik patterns consistently: `component$()`, `routeLoader$()`, `routeAction$()`, `useSignal()`, and `$()` where serialization requires it.
+11. Notifications (email, Telegram) go only through `notify(id, { to, data })` with a `defineNotification` declaration (module manifest or `src/core/notifications/core-notifications.ts`); the outbox worker sends them. Never call `sendEmail`/Telegram directly; the login OTP/magic-link email (`sendLoginEmail`) is the only synchronous exception. Details in the `add-module` skill.
 
 ## Architecture map
 
 - `src/core/<area>/` — core internals: `admin`, `auth`, `content`, `db`, `forms`, `media`, `memberships`, `notifications`, `payments`, `registry`, `router`, `scopes`, `shared`, `tags`, `users`. Each area owns its services, schema (`schema.ts` or `schema/`) and helpers. `src/core/db/schema.ts` merges all schemas.
+- `src/core/notifications/` — `notify()` writes `notification_outbox` rows; `worker.ts` (started in `entry.node-server.tsx` and by a dev-server plugin in `vite.config.ts`) sends them through channel adapters (`channels/`); preferences, signed unsubscribe (`/api/notifications/unsubscribe`), admin failure view at `/admin/global/notifications`.
 - Root files of `src/core` are the only core surface modules may import: `~/core` (`index.ts`, server+client API), `~/core/ui` (UI primitives), `~/core/schema` (core table references), `~/core/seo` (client-safe SEO helpers), `~/core/setup-actions` (onboarding step actions).
 - `modules/<id>/` — feature modules (deals, elections, events, jobs, qualifications); `modules.config.ts` lists the active ones; `src/core/registry/*` registers them.
 - `src/routes/**` — Qwik City routes (loaders, actions, auth). Public module pages are `definePage` entries served by the catch-all `src/routes/[...path]`. Admin lives in `src/routes/admin/[group_slug]/**` and is core, not themeable.

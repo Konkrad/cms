@@ -124,4 +124,5 @@ Projects: `setup` (shared session), `auth-flows` (`auth.spec.ts`, `profile-setup
 
 - e2e needs the Docker services from `docker-compose.yml`: Mailpit (email, `:8025`), MinIO (S3), stripe-mock. Start them with `docker compose up -d` before running; without them login, upload and checkout tests fail for environmental reasons.
 - In sandboxed environments without Docker or outbound network, Stripe.js (loaded from the Stripe CDN) and S3 uploads can fail; those failures (checkout/payment-element, image upload specs) are environmental, not regressions. Run the unaffected specs and say which were skipped.
+- Emails and Telegram alerts (except the login email) are queued in `notification_outbox` and sent by the worker inside the e2e dev server (`NOTIFICATIONS_POLL_INTERVAL_MS=500` in `playwright.config.ts`), so poll Mailpit / the outbox (`getOutboxRows`) instead of expecting them right after an action. Unit tests never start the worker; call `processOutboxOnce()`.
 - Stale servers: never point e2e at an ambient dev server or the dev DB; use `E2E_PORT`/`DB_PATH` isolation. A leftover `my-database.test.db-shm/-wal` from a crashed run can be deleted along with the DB.

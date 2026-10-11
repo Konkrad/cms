@@ -33,6 +33,8 @@ export const PRIVATE_FIELD_KEYS: readonly string[] = [
 	"qrCodeUuid",
 	// elections: internal admin note on an application
 	"adminNote",
+	// notification outbox: the resolved email address / chat id of a recipient
+	"recipientAddress",
 ];
 
 const FORBIDDEN = new Set(PRIVATE_FIELD_KEYS);

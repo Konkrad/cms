@@ -38,6 +38,11 @@ export const AdminNav = component$<AdminNavProps>(
 			navItems.push(
 				{ order: 50, href: `${basePath}/pages`, label: "Pages" },
 				{ order: 60, href: "/admin/global/groups", label: "Groups" },
+				{
+					order: 900,
+					href: "/admin/global/notifications",
+					label: "Notifications",
+				},
 			);
 		}
 		// Sections contributed by active modules (the layout passes only those visible in this scope)

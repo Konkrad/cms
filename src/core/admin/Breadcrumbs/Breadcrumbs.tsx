@@ -55,6 +55,8 @@ export const Breadcrumbs = component$<BreadcrumbsProps>(
 			breadcrumbs.push({ label: "Users" });
 		} else if (segments.includes("pages")) {
 			breadcrumbs.push({ label: "Pages" });
+		} else if (segments.includes("notifications")) {
+			breadcrumbs.push({ label: "Notifications" });
 		}
 
 		return (

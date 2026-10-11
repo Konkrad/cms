@@ -1,4 +1,4 @@
-import { and, asc, eq, lte } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lte } from "drizzle-orm";
 import { db } from "~/core/db/connection";
 import {
 	type NewNotificationOutboxRow,
@@ -87,5 +87,51 @@ export const notificationOutboxService = {
 			.update(notificationOutbox)
 			.set({ status: "failed", attempts, lastError: error })
 			.where(eq(notificationOutbox.id, id));
+	},
+
+	/**
+	 * Failed and pending rows for the admin failure view, newest first, WITH the recipient
+	 * address. Admin only. `data` is left out (it is the module's payload, not for display).
+	 */
+	async listUndeliveredWithAddress(limit = 200) {
+		return db
+			.select({
+				id: notificationOutbox.id,
+				notificationId: notificationOutbox.notificationId,
+				channel: notificationOutbox.channel,
+				recipientUserId: notificationOutbox.recipientUserId,
+				recipientAddress: notificationOutbox.recipientAddress,
+				status: notificationOutbox.status,
+				attempts: notificationOutbox.attempts,
+				lastError: notificationOutbox.lastError,
+				nextAttemptAt: notificationOutbox.nextAttemptAt,
+				createdAt: notificationOutbox.createdAt,
+			})
+			.from(notificationOutbox)
+			.where(inArray(notificationOutbox.status, ["failed", "pending"]))
+			.orderBy(
+				asc(notificationOutbox.status),
+				desc(notificationOutbox.createdAt),
+			)
+			.limit(limit);
+	},
+
+	/** Re-queues a failed or pending row for an immediate send with a fresh attempt budget. */
+	async requeue(id: string, now: Date): Promise<boolean> {
+		const updated = await db
+			.update(notificationOutbox)
+			.set({
+				status: "pending",
+				attempts: 0,
+				nextAttemptAt: now.toISOString(),
+			})
+			.where(
+				and(
+					eq(notificationOutbox.id, id),
+					inArray(notificationOutbox.status, ["failed", "pending"]),
+				),
+			)
+			.returning({ id: notificationOutbox.id });
+		return updated.length === 1;
 	},
 };

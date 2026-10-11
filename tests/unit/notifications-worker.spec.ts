@@ -12,6 +12,7 @@ import {
 	type RenderContext,
 } from "~/core/notifications/define";
 import { enqueueNotification } from "~/core/notifications/notify";
+import { notificationOutboxService } from "~/core/notifications/outbox.service";
 import { notificationOutbox } from "~/core/notifications/schema";
 import {
 	backoffMs,
@@ -260,6 +261,46 @@ describe("processOutboxOnce", () => {
 		expect((await run()).sent).toBe(1);
 		// Oldest first.
 		expect(emails.map((m) => m.content.subject)).toHaveLength(3);
+	});
+});
+
+describe("admin failure view service", () => {
+	it("lists failed and pending rows (not sent ones) and re-queues a failed row", async () => {
+		const u = user();
+		const [failedId] = await enqueueNotification(
+			greeting,
+			{ to: u.userId, data: { text: "f" } },
+			T0,
+		);
+		const [pendingId, sentId] = await Promise.all([
+			enqueueNotification(greeting, { to: u.userId, data: { text: "p" } }, T0),
+			enqueueNotification(greeting, { to: u.userId, data: { text: "s" } }, T0),
+		]).then((ids) => ids.flat());
+		await notificationOutboxService.markFailed(failedId, 5, "boom");
+		await notificationOutboxService.markSent(sentId, 1, T0);
+
+		const listed = await notificationOutboxService.listUndeliveredWithAddress();
+		expect(listed.map((r) => r.id).sort()).toEqual(
+			[failedId, pendingId].sort(),
+		);
+		expect(listed.find((r) => r.id === failedId)).toMatchObject({
+			status: "failed",
+			attempts: 5,
+			lastError: "boom",
+			recipientAddress: u.email,
+		});
+		expect(listed[0]).not.toHaveProperty("data");
+
+		expect(await notificationOutboxService.requeue(failedId, at(5))).toBe(true);
+		expect(await getRow(failedId)).toMatchObject({
+			status: "pending",
+			attempts: 0,
+			nextAttemptAt: at(5).toISOString(),
+		});
+		expect(await notificationOutboxService.requeue(sentId, at(5))).toBe(false);
+		expect(await notificationOutboxService.requeue("missing", at(5))).toBe(
+			false,
+		);
 	});
 });
 

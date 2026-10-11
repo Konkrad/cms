@@ -4,9 +4,11 @@
  */
 import {
 	createJobInDb,
+	createOutboxRowInDb,
 	createUserSession,
 	expect,
 	getNotificationPreference,
+	getOutboxRowById,
 	getOutboxRows,
 	getUserEmailById,
 	test,
@@ -143,5 +145,48 @@ test.describe("Notifications — optional notifications and preferences", () => 
 			await context.close();
 			session.cleanup();
 		}
+	});
+});
+
+test.describe("Notifications — admin failure view", () => {
+	test("lists a failed row, and retry re-queues it for the worker", async ({
+		adminPage: page,
+	}) => {
+		const recipient = createUserSession("user", "notify-admin");
+		const row = createOutboxRowInDb({
+			notificationId: "jobs.approved",
+			channel: "email",
+			recipientUserId: recipient.userId,
+			recipientAddress: getUserEmailById(recipient.userId),
+			data: { jobId: "e2e-job", jobTitle: "Retry Me" },
+			status: "failed",
+			attempts: 5,
+			lastError: "550 mailbox unavailable (e2e)",
+		});
+		try {
+			await page.goto("/admin/global/notifications");
+			await expect(
+				page.locator("nav a", { hasText: "Notifications" }),
+			).toBeVisible();
+			const tr = page.locator(`tr[data-outbox-id="${row.id}"]`);
+			await expect(tr).toContainText("failed");
+			await expect(tr).toContainText("550 mailbox unavailable (e2e)");
+			await expect(tr).toContainText("jobs.approved");
+
+			await tr.locator("button:has-text('Retry')").click();
+			// Re-queued with a fresh attempt budget, then delivered by the worker.
+			await expect
+				.poll(() => getOutboxRowById(row.id)?.status, { timeout: 15_000 })
+				.toBe("sent");
+			expect(getOutboxRowById(row.id)?.attempts).toBe(1);
+		} finally {
+			row.cleanup();
+			recipient.cleanup();
+		}
+	});
+
+	test("is not reachable for members", async ({ memberPage: page }) => {
+		await page.goto("/admin/global/notifications");
+		await expect(page).not.toHaveURL(/\/admin\/global\/notifications/);
 	});
 });

@@ -8,6 +8,7 @@ import {
 	getCurrentUserData,
 	itemUrl,
 	matchPath,
+	posts,
 	publicImageUrlFromKey,
 	requireCanonicalUrl,
 	scopeLabels,
@@ -259,6 +260,8 @@ export async function loadEventPage(
 		participants,
 		image1: publicImageUrlFromKey(event.image1),
 		image2: publicImageUrlFromKey(event.image2),
+		// The event page is the hub: posts about the event underneath (spec 5.2).
+		posts: await posts.forSubject("events:event", event.id, userData),
 	};
 }
 

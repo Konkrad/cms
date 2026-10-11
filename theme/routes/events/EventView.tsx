@@ -12,6 +12,7 @@ import { LocationTile } from "~theme/blocks/FeatureBlock/LocationTile";
 import { ParticipantsTile } from "~theme/blocks/FeatureBlock/ParticipantsTile";
 import { ParticipantsModal } from "~theme/shared/ParticipantsModal";
 import { ParticipationToggle } from "~theme/shared/ParticipationToggle/ParticipationToggle";
+import { PostCard } from "~theme/shared/PostCard/PostCard";
 
 /** Themed view for the public event detail route (`/events/[id]`). */
 export const EventView = component$<{
@@ -342,6 +343,20 @@ export const EventView = component$<{
 							View Photo Gallery
 						</Link>
 					</div>
+				)}
+
+				{/* ── Posts about the event: announcement, updates, recap (newest first) ── */}
+				{event.posts.length > 0 && (
+					<section class="max-w-4xl mx-auto mt-16" data-testid="event-posts">
+						<h2 class="font-['Rubik',sans-serif] font-bold text-[24px] leading-[1.3] text-black mb-4">
+							Updates
+						</h2>
+						<div class="space-y-4">
+							{event.posts.map((post) => (
+								<PostCard key={post.id} post={post} />
+							))}
+						</div>
+					</section>
 				)}
 
 				{/* ── Organizer ── */}

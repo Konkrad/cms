@@ -12,10 +12,13 @@ below it**: an admin of a region is an admin of all its chapters.
 
 - **Admin** and **Moderator** — the same rights: the group's admin area and
   everything below it. An admin or moderator of the top of the tree is a
-  **platform admin**: they also get the system sections (users, pages, tags,
-  notifications, deals, jobs, elections, qualifications) and can move groups.
+  **platform admin**: they also get the system sections (users, site menus,
+  tags, notifications, qualifications) and can move groups or change their
+  URL (old URLs keep working through redirects).
 - **Representative** ("local rep") — manages their group and the groups below
-  it: events, posts, forms, sub-groups and members. Representatives have no
+  it: events, posts, pages, jobs, deals, elections, forms, sub-groups and
+  members. Their public content needs a coordinator or admin (until reviews
+  exist they can publish to members or representatives only). Representatives have no
   users directory: they see the members of their own groups only, and they
   can only appoint other representatives.
 - **Coordinator** — reviews public content from the groups below theirs; no

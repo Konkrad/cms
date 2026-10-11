@@ -70,7 +70,7 @@ Helpers named `create*InDb` / `create*` that return `cleanup()` should be cleane
 | `getUserById(id)` / `getUserIdByEmail(email)` / `getUserEmailById(id)` | Look up user rows, ids, login emails |
 | `deleteUserByEmail(email)` | Delete user + login by email (Mailpit test cleanup) |
 | `setUserConsentByEmail(email, consent)` | Update consent JSON for a user |
-| `createScopeInDb({ parentPath, slug, name?, kind? })` / `deleteScopeById(id)` | Create a scope (a group: region, chapter…; returns `{ id, path, segment }`, e.g. `/e2e-region/`, `e2e-region`) / delete it with its subtree, roles and memberships |
+| `createScopeInDb({ parentPath, slug, name?, kind? })` / `deleteScopeById(id)` | Create a scope (a group: region, chapter…; returns `{ id, path, segment }`, e.g. `/e2e-region/`, `e2e-region`) / delete it with its subtree, roles, memberships, redirects, pages, jobs and deals (other content goes to the root: `scope_id` is NOT NULL) |
 | `getScopeByPath(path)` / `adminSegmentOf(path)` | Look up a scope / its `/admin/[scope]` segment (`/a/b/` → `a.b`, `/` → `root`) |
 | `addScopeMember(userId, scopeId)` / `removeScopeMember(...)` / `isScopeMember(...)` | Scope membership |
 | `grantScopeRole(userId, scopeId, role)` / `revokeScopeRole(...)` / `getScopeRoles(userId, scopeId)` | Scope roles (`admin`, `moderator`, `coordinator`, `representative`) |
@@ -83,14 +83,14 @@ Helpers named `create*InDb` / `create*` that return `cleanup()` should be cleane
 | `addParticipantToTicket(...)` | Add a participant row to an existing ticket |
 | `createPostInDb(opts)` / `getPostByTitle(title)` / `deletePostByTitle(title)` | Post fixtures |
 | `ensureNewsPage()` | Make sure the news page exists; returns `{ pageId }` |
-| `createPageInDb(opts)` / `getPageBySlug(slug)` / `deletePageBySlug(slug)` | Page (with menu item) fixtures |
+| `createPageInDb(opts)` / `getPageBySlug(slug)` / `deletePageBySlug(slug)` | Page fixtures: a root page with a menu item, or with `scopeId` a scope's page (no menu item) |
 | `getPageContent(pageId)` | Parsed content blocks of a page |
 | `deletePageAndMenuItems(pageId)` | Delete a page and its linked menu items |
 | `createMenuItemInDb(opts)` / `deleteMenuItemById(id)` | Standalone menu item |
 | `getMenuItemByUrl(url)` / `getMenuItemPosition(id)` | Read menu item rows / position |
-| `createJobInDb({ suggestedBy, title?, status?, expiresAt? })` | Job row; returns `{ jobId, cleanup }` |
+| `createJobInDb({ suggestedBy, title?, status?, expiresAt?, scopeId? })` | Job row (owned by the root unless `scopeId`); returns `{ jobId, cleanup }` |
 | `getJobById(id)` / `deleteJobById(id)` | Fetch id/title/status/suggested_by / delete |
-| `createDealInDb(opts)` | Deal (name, description, logo, validUntil, steps?); returns `{ dealId, cleanup }` |
+| `createDealInDb(opts)` | Deal (name, description, logo, validUntil, steps?, scopeId?); returns `{ dealId, cleanup }` |
 | `getDealByName(name)` / `deleteDealById(id)` | Fetch / delete a deal |
 | `createQualificationTypeInDb(overrides?)` | Qualification type; returns `{ typeId, cleanup }` |
 | `createQualificationInDb(userId, typeId, status?)` | User qualification (`pending` / `approved` / `rejected`) |
@@ -102,6 +102,7 @@ Helpers named `create*InDb` / `create*` that return `cleanup()` should be cleane
 | `getOutboxRows({ notificationId?, recipientUserId?, channel? })` / `getOutboxRowById(id)` | Read `notification_outbox` rows |
 | `createOutboxRowInDb(opts)` | Outbox row (e.g. a `failed` one for the admin view); returns `{ id, cleanup }` |
 | `getNotificationPreference(userId, notificationId, channel)` | Stored preference (`null` = never toggled, i.e. enabled) |
+| `createRedirectInDb(from, to)` / `getRedirectTarget(from)` / `deleteRedirectsLike(prefix)` | `redirects` rows (old public path → new path) |
 
 `SHARED_E2E_EMAIL` is the shared login used by the auth setup project.
 

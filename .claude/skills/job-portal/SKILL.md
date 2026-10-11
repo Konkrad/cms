@@ -21,7 +21,7 @@ Members post job listings that go live only after admin approval. Worked example
 
 ## Key rules
 
-- Admin routes under `src/routes/admin/[scope]/jobs/**` are root-only: loaders (`src/modules/jobs/admin/list-data.ts`, `edit-data.ts`) and admin actions call `requireModuleAdmin(event, { module: "jobs", scope: "global" })` (from `~/core`) as their first statement. It runs `requireScopeRole` (managing role on the URL's scope), answers 404 on any scope but the root, then `requireActiveModule`.
+- Jobs are owned by a scope (`scope_id`; a submission from `/<scope path>/jobs/new` belongs to that scope, the root by default). The admin section exists in every scope's admin (`scopes: "all"`): loaders (`src/modules/jobs/admin/list-data.ts`, `edit-data.ts`) and admin actions call `requireModuleAdmin(event, { module: "jobs" })` (from `~/core`) as their first statement, list only the URL scope's subtree and re-check every job id with `requireWithinScope`. `/jobs` lists jobs through `requestContentFilter` (the scope's own, its ancestors' and its descendants' jobs).
 - All public-facing job pages and actions call `requireAuth` (pages) or `requireModuleAuth(event, "jobs")` (actions) first; unauthenticated visitors are redirected to `/login`.
 - `status` is `pending` on creation; admin sets it to `approved` to make it visible.
 - `expiresAt` is capped at 30 days from today, enforced server-side in both the submit and user-edit actions (`src/modules/jobs/actions.ts`).

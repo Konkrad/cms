@@ -18,7 +18,12 @@ and Group settings, limited to that chapter and the groups below it.*
 
 ## Content
 
-- **Posts** — blog-style news posts. Create, edit, and publish.
+- **Posts** — news of the site or a group. A post without a title is shown as a
+  short note ("Doors open at 18:00"); give it a title and it becomes an article. Both
+  appear together in post listings. A post can be *about* an item (pick it under
+  "About"), such as an event: it then also shows under that event.
+- **Event posts** — on an event's admin page, the **Posts** tab writes posts about the
+  event (announcement, updates, recap). They show under the event on its page.
 - **Pages** — full pages (like the homepage, "About Us," or a community's
   landing page) built with a visual, drag-and-drop page builder out of
   reusable content blocks (a hero banner, an events list, a text section,

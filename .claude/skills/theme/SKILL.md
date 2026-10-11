@@ -15,6 +15,12 @@ The presentational layer for public-facing routes lives in `theme/` and is licen
 - Visibility is decided in the loader/service; the theme only renders what it gets and never hides data with conditionals (CLAUDE.md Security).
 - Links to items come from the payload (`event.url`, `job.url`, `post.url`, `checkoutUrl`, …): the theme never builds item URLs (`/events/${id}`), because an item lives under its owning scope's path (spec 4.3). A missing URL means a contract field to add in core (`itemUrl` / `withItemUrls` in the loader or composable). `tests/unit/no-hand-built-item-links.spec.ts` enforces it. Stored links (menus, block link fields, rich text) reach the theme already resolved.
 
+## Posts: note or article
+
+- A post is one type with an optional title (spec 4.4). Payloads carry `kind`: `"note"` (untitled: show the whole `body` with its author, like a status update) or `"article"` (title, `excerpt`, link to `url`). Pick the layout from `kind` only; never test `title`.
+- Lists (`PostsPage`, `ArchivePostsViewData`, scope home `recentPosts`, an event's `posts`) are `PostCardData[]` with both kinds mixed: render them with `PostCard` / `PostCardList` (`theme/shared/PostCard`). The post page (`PostViewData`) has `data-post-layout="note" | "article"` layouts in `theme/routes/posts/PostView.tsx`.
+- Posts have no featured image; `HeroPost` lists articles only (titled posts).
+
 ## Headless composables and blocks
 
 - **Page-builder blocks have no route loader**, so each "dynamic" block delegates data-fetching/pagination to a composable: core ones under `src/core/content/builder/blocks/use*.ts` (`useScopesList` — the child scopes of the page's scope —, `useHeroSection`, `usePostsList`); module blocks live in the module (`src/modules/events/useUpcomingEvents.ts`, `useUpcomingEvents`/`usePastEvents`, `src/modules/deals/useDealsList.ts`). Plain functions using `useSignal`/`useTask$`/`server$()`, Qwik's native "custom hook" pattern.

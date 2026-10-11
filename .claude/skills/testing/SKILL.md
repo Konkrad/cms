@@ -82,7 +82,8 @@ Helpers named `create*InDb` / `create*` that return `cleanup()` should be cleane
 | `setParticipationInDb(...)` | Set a user's RSVP for an event (yes/no/maybe) |
 | `createTicketInDb({ buyerId, eventId, productId })` | Ticket (with transaction); returns the ticket id |
 | `addParticipantToTicket(...)` | Add a participant row to an existing ticket |
-| `createPostInDb(opts)` / `getPostByTitle(title)` / `deletePostByTitle(title)` | Post fixtures |
+| `createPostInDb({ title, body, userId, scopeId?, visibility?, subject?, publishedAt? })` | Post fixture: `title: null` = a note; `subject: { type: "events:event", id }` attaches it to an item; returns the id |
+| `getPostByTitle(title)` / `getPostsByBodyText(text)` / `deletePostById(id)` / `deletePostByTitle(title)` | Read posts (notes have no title: find them by body text) / delete |
 | `ensureNewsPage()` | Make sure the news page exists; returns `{ pageId }` |
 | `createPageInDb(opts)` / `getPageBySlug(slug)` / `deletePageBySlug(slug)` | Page fixtures: a root page with a menu item, or with `scopeId` a scope's page (no menu item) |
 | `getPageContent(pageId)` | Parsed content blocks of a page |

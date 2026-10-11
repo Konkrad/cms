@@ -146,10 +146,31 @@ describe("events notifications after a paid ticket", () => {
 		).json()) as { messages: Array<{ ID: string }> };
 		const message = (await (
 			await fetch(`${mailpit}/api/v1/message/${search.messages[0].ID}`)
-		).json()) as { Subject: string; HTML: string; Text: string };
+		).json()) as {
+			Subject: string;
+			HTML: string;
+			Text: string;
+			Attachments: Array<{
+				FileName: string;
+				ContentType: string;
+				PartID: string;
+			}>;
+		};
 		expect(message.Subject).toBe(`Your tickets for ${title}`);
 		expect(message.Text).toContain("Hello Ada!");
 		expect(message.Text).toContain("Purchase Confirmed");
+
+		// The calendar entry is attached, built at send time from the event.
+		expect(message.Attachments.map((a) => a.FileName)).toEqual(["event.ics"]);
+		expect(message.Attachments[0].ContentType).toContain("text/calendar");
+		const ics = await (
+			await fetch(
+				`${mailpit}/api/v1/message/${search.messages[0].ID}/part/${message.Attachments[0].PartID}`,
+			)
+		).text();
+		expect(ics).toContain("BEGIN:VEVENT");
+		expect(ics).toContain(`SUMMARY:${title}`);
+		expect(ics).toContain(`UID:event-${eventId}@`);
 		const sqlite = openDb();
 		const qr = sqlite
 			.prepare("SELECT id, qr_code_uuid FROM tickets WHERE event_id = ?")

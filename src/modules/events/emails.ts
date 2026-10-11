@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { defineNotification } from "~/core";
 import TicketConfirmationEmail from "~theme/emails/TicketConfirmation";
 import { eventsService } from "./services/events";
+import { icalService } from "./services/ical";
 import { ticketsService } from "./services/tickets";
 
 /**
@@ -49,6 +50,17 @@ export const ticketConfirmationNotification =
 						hasTickets: tickets.length > 0,
 						tickets,
 					}),
+					// Built at send time from the event id, so the outbox stores no binary data.
+					attachments: [
+						{
+							filename: "event.ics",
+							content: icalService.generateEventIcs(
+								event,
+								new URL(`/events/${event.id}`, ctx.appUrl).toString(),
+							),
+							contentType: "text/calendar; charset=utf-8; method=PUBLISH",
+						},
+					],
 				};
 			},
 		},

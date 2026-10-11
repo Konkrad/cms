@@ -688,8 +688,9 @@ console.log("  memberships seeded");
 
 // ─── 8. Posts ────────────────────────────────────────────────────────────────
 
+// A post without a title is a note, one with a title an article (spec 4.4).
 const postDefs: Array<{
-	title: string;
+	title: string | null;
 	body: string;
 	groupSlug: string | null;
 	visibility: "public" | "members";
@@ -773,6 +774,20 @@ const postDefs: Array<{
 		authorIdx: 3,
 	},
 	{
+		title: null,
+		body: "<p>Reminder: the North Chapter board meets on Thursday at 19:00. Agenda items welcome until Wednesday.</p>",
+		groupSlug: "berlin",
+		visibility: "public",
+		authorIdx: 0,
+	},
+	{
+		title: null,
+		body: "<p>Thanks to everyone who helped set up the new chapter pages this week!</p>",
+		groupSlug: null,
+		visibility: "public",
+		authorIdx: -1,
+	},
+	{
 		title: "New Features Live on the Platform",
 		body: "<p>We've just rolled out a set of improvements including updated group pages, better event management, and a cleaner profile experience. Let us know what you think.</p>",
 		groupSlug: null,
@@ -795,21 +810,20 @@ function resolveAuthor(idx: number) {
 }
 
 postDefs.forEach((p, i) => {
-	// Stagger createdAt by one minute per post so timestamps are strictly
-	// distinct and descending. Cursor pagination keys on createdAt, so a batch
+	// Stagger publishedAt by one minute per post so timestamps are strictly
+	// distinct and descending. Cursor pagination keys on publishedAt, so a batch
 	// sharing the same millisecond would break page boundaries at the ties.
-	const createdAt = new Date(Date.now() - i * 60_000).toISOString();
+	const publishedAt = new Date(Date.now() - i * 60_000).toISOString();
 	db.insert(schema.posts)
 		.values({
 			id: uuid(),
 			title: p.title,
 			body: p.body,
-			editorState: null,
-			userId: resolveAuthor(p.authorIdx),
+			authorId: resolveAuthor(p.authorIdx),
 			scopeId: p.groupSlug ? groupIds[p.groupSlug] : rootScope!.id,
 			visibility: p.visibility,
-			createdAt,
-			updatedAt: createdAt,
+			publishedAt,
+			updatedAt: publishedAt,
 		})
 		.run();
 });
@@ -849,7 +863,7 @@ console.log(`  posts seeded (${postDefs.length})`);
 		const toAdd = Math.max(0, 3 - existingCount);
 		for (let i = 0; i < toAdd; i++) {
 			const { title, body } = fakerPostTopics[i % fakerPostTopics.length]();
-			const createdAt = faker.date
+			const publishedAt = faker.date
 				.between({ from: "2023-01-01", to: new Date() })
 				.toISOString();
 			db.insert(schema.posts)
@@ -857,12 +871,11 @@ console.log(`  posts seeded (${postDefs.length})`);
 					id: uuid(),
 					title,
 					body,
-					editorState: null,
-					userId: adminUser.id,
+					authorId: adminUser.id,
 					scopeId: groupId,
 					visibility: "public",
-					createdAt,
-					updatedAt: createdAt,
+					publishedAt,
+					updatedAt: publishedAt,
 				})
 				.run();
 		}
@@ -1146,6 +1159,50 @@ for (const e of eventDefs) {
 		.run();
 }
 console.log(`  events seeded (${eventDefs.length})`);
+
+// Posts about events (spec 5.2): an announcement (article) and a short update (note) under the
+// first upcoming events of each kind; they show on the event pages and in post listings.
+{
+	const seededEvents = db
+		.select()
+		.from(schema.events)
+		.all()
+		.filter((e) => new Date(e.startDate) > new Date())
+		.slice(0, 3);
+	for (const [i, evt] of seededEvents.entries()) {
+		const at = (minutesAgo: number) =>
+			new Date(Date.now() - (i * 10 + minutesAgo) * 60_000).toISOString();
+		db.insert(schema.posts)
+			.values({
+				id: uuid(),
+				scopeId: evt.scopeId,
+				subjectType: "events:event",
+				subjectId: evt.id,
+				title: `Announcing: ${evt.title}`,
+				body: `<p>${evt.title} is on! Save the date and bring a friend.</p>`,
+				visibility: evt.visibility,
+				authorId: evt.userId,
+				publishedAt: at(5),
+				updatedAt: at(5),
+			})
+			.run();
+		db.insert(schema.posts)
+			.values({
+				id: uuid(),
+				scopeId: evt.scopeId,
+				subjectType: "events:event",
+				subjectId: evt.id,
+				title: null,
+				body: "<p>Doors open 30 minutes before the start. See you there!</p>",
+				visibility: evt.visibility,
+				authorId: evt.userId,
+				publishedAt: at(2),
+				updatedAt: at(2),
+			})
+			.run();
+	}
+	console.log(`  event posts seeded (${seededEvents.length * 2})`);
+}
 
 // ─── 10. Participation statuses ──────────────────────────────────────────────
 
@@ -2034,18 +2091,6 @@ for (let i = 0; i < eventsNoImg.length; i++) {
 	);
 }
 
-const postsNoImg = sqlite
-	.prepare(
-		"SELECT id FROM posts WHERE deleted_at IS NULL AND (featured_image IS NULL OR featured_image LIKE '%picsum.photos%')",
-	)
-	.all() as Array<{ id: string }>;
-const updatePost = sqlite.prepare(
-	"UPDATE posts SET featured_image = ? WHERE id = ?",
-);
-for (let i = 0; i < postsNoImg.length; i++) {
-	updatePost.run(imageKeys[i % imageKeys.length], postsNoImg[i].id);
-}
-
 const groupsNoImg = sqlite
 	.prepare(
 		"SELECT id FROM groups WHERE (image1 IS NULL OR image1 LIKE '%picsum.photos%' OR image2 IS NULL OR image2 LIKE '%picsum.photos%' OR image3 IS NULL OR image3 LIKE '%picsum.photos%')",
@@ -2064,7 +2109,7 @@ for (let i = 0; i < groupsNoImg.length; i++) {
 }
 
 console.log(
-	`  images downloaded/uploaded and linked (${eventsNoImg.length} events, ${postsNoImg.length} posts, ${groupsNoImg.length} groups)`,
+	`  images downloaded/uploaded and linked (${eventsNoImg.length} events, ${groupsNoImg.length} groups)`,
 );
 console.log(
 	`  user profile pictures assigned (${usersWithoutProfile.length} users)`,

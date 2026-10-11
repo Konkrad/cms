@@ -132,7 +132,7 @@ function deleteUserCascade(
 	// Misc user-linked data
 	db.prepare("DELETE FROM form_results WHERE user_id = ?").run(userId);
 	db.prepare("DELETE FROM participation_status WHERE user_id = ?").run(userId);
-	db.prepare("DELETE FROM posts WHERE user_id = ?").run(userId);
+	db.prepare("DELETE FROM posts WHERE author_id = ?").run(userId);
 	db.prepare("DELETE FROM jobs WHERE suggested_by = ?").run(userId);
 	// New feature tables
 	db.prepare("DELETE FROM election_applications WHERE user_id = ?").run(userId);
@@ -990,35 +990,59 @@ export function deleteScopeById(id: string): void {
 
 // ── Post helpers ──────────────────────────────────────────────────────────────
 
-export function getPostByTitle(
-	title: string,
-): { id: string; title: string; featured_image: string | null } | null {
+export function getPostByTitle(title: string): {
+	id: string;
+	title: string | null;
+	subject_type: string | null;
+	subject_id: string | null;
+	visibility: string;
+} | null {
 	const db = openDb();
 	const row = db
 		.prepare(
-			"SELECT id, title, featured_image FROM posts WHERE title = ? ORDER BY created_at DESC LIMIT 1",
+			"SELECT id, title, subject_type, subject_id, visibility FROM posts WHERE title = ? ORDER BY published_at DESC LIMIT 1",
 		)
-		.get(title) as
-		| { id: string; title: string; featured_image: string | null }
-		| undefined;
+		.get(title) as ReturnType<typeof getPostByTitle> | undefined;
 	db.close();
 	return row ?? null;
 }
 
-/** Create a minimal post fixture. Returns the new post's id. */
+/** Posts whose body contains `text` (notes have no title), newest first. */
+export function getPostsByBodyText(text: string): Array<{
+	id: string;
+	title: string | null;
+	subject_type: string | null;
+	subject_id: string | null;
+	visibility: string;
+}> {
+	const db = openDb();
+	const rows = db
+		.prepare(
+			"SELECT id, title, subject_type, subject_id, visibility FROM posts WHERE body LIKE ? ORDER BY published_at DESC",
+		)
+		.all(`%${text}%`) as ReturnType<typeof getPostsByBodyText>;
+	db.close();
+	return rows;
+}
+
+/**
+ * Create a post fixture (spec 4.4): `title: null` makes a note, a title an article; `subject`
+ * attaches it to an item (`{ type: "events:event", id }`). Returns the new post's id.
+ */
 export function createPostInDb(opts: {
-	title: string;
+	title: string | null;
 	body: string;
 	userId: string;
 	scopeId?: string;
 	visibility?: "public" | "members" | "representatives";
-	createdAt?: string;
+	subject?: { type: string; id: string };
+	publishedAt?: string;
 }): string {
 	const db = openDb();
 	const id = crypto.randomUUID();
-	const now = opts.createdAt ?? new Date().toISOString();
+	const now = opts.publishedAt ?? new Date().toISOString();
 	db.prepare(
-		"INSERT INTO posts (id, title, body, user_id, scope_id, visibility, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO posts (id, title, body, author_id, scope_id, visibility, subject_type, subject_id, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 	).run(
 		id,
 		opts.title,
@@ -1026,11 +1050,19 @@ export function createPostInDb(opts: {
 		opts.userId,
 		opts.scopeId ?? rootScopeId(db),
 		opts.visibility ?? "public",
+		opts.subject?.type ?? null,
+		opts.subject?.id ?? null,
 		now,
 		now,
 	);
 	db.close();
 	return id;
+}
+
+export function deletePostById(id: string): void {
+	const db = openDb();
+	db.prepare("DELETE FROM posts WHERE id = ?").run(id);
+	db.close();
 }
 
 export function deletePostByTitle(title: string): void {

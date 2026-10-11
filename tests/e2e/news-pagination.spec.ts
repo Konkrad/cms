@@ -33,10 +33,10 @@ test.beforeAll(() => {
 			title,
 			body: `<p>Fixture post ${i + 1} for news pagination e2e.</p>`,
 			userId: author.userId,
-			// Stagger createdAt by one minute per post so timestamps are strictly
-			// distinct and descending — cursor pagination keys on createdAt, so a
+			// Stagger publishedAt by one minute per post so timestamps are strictly
+			// distinct and descending — cursor pagination keys on publishedAt, so a
 			// batch sharing the same millisecond would break page boundaries at ties.
-			createdAt: new Date(Date.now() - i * 60_000).toISOString(),
+			publishedAt: new Date(Date.now() - i * 60_000).toISOString(),
 		});
 	}
 });

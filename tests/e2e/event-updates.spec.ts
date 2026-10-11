@@ -83,6 +83,18 @@ async function pageAs(
 
 const eventUrl = () => `/${CHAPTER}/events/bbq-${suffix}`;
 
+/** Opens a form with its button; retried, as a click can get lost while the page still loads. */
+async function openForm(
+	page: import("@playwright/test").Page,
+	button: string,
+	form: string,
+) {
+	await expect(async () => {
+		await page.getByRole("button", { name: button }).click();
+		await expect(page.getByTestId(form)).toBeVisible({ timeout: 3_000 });
+	}).toPass({ timeout: 20_000 });
+}
+
 async function typeBody(page: import("@playwright/test").Page, text: string) {
 	const editor = page.locator('[contenteditable="true"]').first();
 	await expect(editor).toBeVisible({ timeout: 15_000 });
@@ -104,7 +116,7 @@ test("an organiser writes a note and an article about the event; both show under
 	const { ctx, page } = await pageAs(browser, organiser);
 	try {
 		await page.goto(`/admin/${CHAPTER}/events/${event.eventId}/updates`);
-		await page.getByRole("button", { name: "Write note" }).click();
+		await openForm(page, "Write note", "note-form");
 		await typeBody(page, text);
 		// The event is public, so the organiser's default is public too.
 		await expect(
@@ -115,7 +127,7 @@ test("an organiser writes a note and an article about the event; both show under
 			timeout: 10_000,
 		});
 
-		await page.getByRole("button", { name: "Write article" }).click();
+		await openForm(page, "Write article", "article-form");
 		await page.locator('input[name="title"]').fill(title);
 		await typeBody(page, `The recap of ${title}`);
 		await page.getByRole("button", { name: "Publish article" }).click();

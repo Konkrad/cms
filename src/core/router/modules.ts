@@ -1,5 +1,6 @@
 import type { GroupExtras } from "~/contracts/groups";
 import type { ProfileExtras } from "~/contracts/profile";
+import type { NotificationDefinition } from "~/core/notifications/define";
 import type { PaymentHandlers } from "~/core/payments/payments";
 import type { PageDefinition } from "~/core/router/pages";
 
@@ -76,6 +77,12 @@ export interface ModuleDefinition {
 	 * even while the module is inactive (see `src/core/payments/payments.ts`).
 	 */
 	payments?: Record<string, PaymentHandlers>;
+	/**
+	 * Notifications this module sends (`defineNotification` from `~/core`), triggered only via
+	 * `notify(id, { to, data })`. The outbox worker resolves them from every registered module,
+	 * so rows queued by a module that is later deactivated are still sent.
+	 */
+	notifications?: NotificationDefinition[];
 }
 
 export function defineModule(module: ModuleDefinition): ModuleDefinition {
@@ -143,6 +150,11 @@ export const groupExtrasOf = async (
 		{},
 		...(await Promise.all(modules.map((m) => m.groupPage?.(ctx) ?? {}))),
 	);
+
+/** Notification definitions of the given modules, in module order. */
+export const notificationsOf = (
+	modules: readonly ModuleDefinition[],
+): NotificationDefinition[] => modules.flatMap((m) => m.notifications ?? []);
 
 /** Runs the `reevaluateUserTags` hook of every given module for one user. */
 export const reevaluateUserTagsOf = async (

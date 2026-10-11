@@ -79,14 +79,23 @@ const envSchema = z.object({
 	// Optional: SOCKS5 proxy for reaching Stripe from IPv4-less hosts (e.g. socks5h://172.19.0.1:40000)
 	STRIPE_PROXY_URL: z.url().optional(),
 
-	// Telegram
-	TELEGRAM_BOT_TOKEN: z.string(),
-	TELEGRAM_CHANNEL_ID: z.string(),
+	// Telegram (optional: without them the telegram notification channel is unconfigured and
+	// its outbox rows are marked failed with a clear error, see src/core/notifications)
+	TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
+	TELEGRAM_CHANNEL_ID: z.string().min(1).optional(),
 	// Optional: point to a local mock server (e.g. http://localhost:8099) in tests
 	TELEGRAM_API_URL: z.url().optional(),
 
 	// ALTCHA
 	ALTCHA_HMAC_KEY: z.string().default("change-this-altcha-key"),
+
+	// Notification outbox worker
+	NOTIFICATIONS_POLL_INTERVAL_MS: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(5000),
+	NOTIFICATIONS_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
 
 	// Login throttling (sending magic-link / OTP emails)
 	LOGIN_EMAIL_MAX_PER_WINDOW: z.coerce.number().int().positive().default(3),
@@ -144,6 +153,8 @@ export const env = {
 	TELEGRAM_CHANNEL_ID: _env.TELEGRAM_CHANNEL_ID,
 	TELEGRAM_API_URL: _env.TELEGRAM_API_URL,
 	ALTCHA_HMAC_KEY: _env.ALTCHA_HMAC_KEY,
+	NOTIFICATIONS_POLL_INTERVAL_MS: _env.NOTIFICATIONS_POLL_INTERVAL_MS,
+	NOTIFICATIONS_MAX_ATTEMPTS: _env.NOTIFICATIONS_MAX_ATTEMPTS,
 	LOGIN_EMAIL_MAX_PER_WINDOW: _env.LOGIN_EMAIL_MAX_PER_WINDOW,
 	LOGIN_EMAIL_WINDOW_MINUTES: _env.LOGIN_EMAIL_WINDOW_MINUTES,
 	LOGIN_IP_MAX_PER_WINDOW: _env.LOGIN_IP_MAX_PER_WINDOW,

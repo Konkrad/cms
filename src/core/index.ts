@@ -12,6 +12,13 @@ import { env } from "~/env";
 export { defineModule } from "~/core/router/modules";
 export type { PageViews } from "~/core/router/page-views";
 export { definePage, matchPath } from "~/core/router/pages";
+export type {
+	ChannelId,
+	EmailContent,
+	NotificationDefinition,
+	RenderContext,
+} from "~/core/notifications/define";
+export { defineNotification } from "~/core/notifications/define";
 
 // Server-only: do not call from client code (reference only inside loaders/actions/server$).
 export { db } from "~/core/db/connection";
@@ -41,6 +48,8 @@ export {
 	paginateRows,
 } from "~/core/shared/pagination";
 export { telegramService } from "~/core/notifications/telegram.service";
+export type { NotifyInput, NotifyRecipient } from "~/core/notifications/notify";
+export { notify } from "~/core/notifications/notify";
 export { userTagsService } from "~/core/tags/user-tags.service";
 export { usersService } from "~/core/users/users.service";
 export { requireGroupAdmin } from "~/core/scopes/access-control";

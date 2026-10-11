@@ -4,7 +4,7 @@ import { env } from "~/env";
 /** Create a bot instance, reading baseApiUrl from env each time so tests can
  *  override TELEGRAM_API_URL without restarting the server. */
 function getBot() {
-	return new TelegramBot(env.TELEGRAM_BOT_TOKEN, {
+	return new TelegramBot(env.TELEGRAM_BOT_TOKEN ?? "", {
 		polling: false,
 		...(env.TELEGRAM_API_URL ? { baseApiUrl: env.TELEGRAM_API_URL } : {}),
 	});
@@ -12,6 +12,7 @@ function getBot() {
 
 export const telegramService = {
 	async sendNotification(message: string) {
+		if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHANNEL_ID) return;
 		try {
 			await getBot().sendMessage(env.TELEGRAM_CHANNEL_ID, message);
 		} catch (error) {

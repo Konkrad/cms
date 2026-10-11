@@ -453,6 +453,8 @@ describe("reserved scope slugs", () => {
 			"notes",
 			"articles",
 			"groups",
+			// Old post URLs still answer 301 (legacyPostPage).
+			"posts",
 			"root",
 			"events",
 			"jobs",

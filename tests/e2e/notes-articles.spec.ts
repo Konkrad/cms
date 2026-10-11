@@ -143,6 +143,38 @@ test.describe("Note and article pages", () => {
 	});
 });
 
+test.describe("Old post URLs", () => {
+	test("/posts/<id> answers 301 to the note or the article", async ({
+		guestPage: page,
+	}) => {
+		for (const [from, to] of [
+			[`/posts/${noteId}`, `/notes/${noteId}`],
+			[`/posts/${articleId}`, `/articles/${articleId}`],
+		]) {
+			const r = await page.request.get(from, { maxRedirects: 0 });
+			expect(r.status(), from).toBe(301);
+			expect(new URL(r.headers().location, "http://x").pathname).toBe(to);
+		}
+		// Following it lands on the article.
+		await page.goto(`/posts/${articleId}`);
+		await expect(page).toHaveURL(new RegExp(`/articles/${articleId}$`));
+		await expect(page.locator("h1")).toHaveText(ARTICLE_TITLE);
+	});
+
+	test("an old URL of something the viewer may not see or that is gone is a 404", async ({
+		guestPage: page,
+	}) => {
+		const hidden = await page.request.get(`/posts/${membersNoteId}`, {
+			maxRedirects: 0,
+		});
+		expect(hidden.status()).toBe(404);
+		const gone = await page.request.get(`/posts/${crypto.randomUUID()}`, {
+			maxRedirects: 0,
+		});
+		expect(gone.status()).toBe(404);
+	});
+});
+
 test.describe("Stream blocks", () => {
 	test("the news stream shows notes and articles together", async ({
 		memberPage: page,

@@ -107,5 +107,27 @@ export const articlePage = definePage({
 	},
 });
 
+/**
+ * Old post URLs (`<scope>/posts/<id>`, before notes and articles): the migration kept the ids,
+ * so a post the viewer may see answers 301 to its note or article URL; anything else is a 404
+ * (a members-only item's scope path is not revealed). External links and bookmarks keep
+ * working; internal links are references and never need this.
+ */
+export const legacyPostPage = definePage({
+	id: "core.legacy-post",
+	path: "/posts/:id",
+	async load(event, { params }): Promise<null> {
+		const user = await viewer(event);
+		const note = await notesService.getById(params.id);
+		if (note && (await notesService.canView(note, user)))
+			throw event.redirect(301, await itemUrl("core:note", note));
+		const article = note ? undefined : await articlesService.getById(params.id);
+		if (article && (await articlesService.canView(article, user)))
+			throw event.redirect(301, await itemUrl("core:article", article));
+		event.status(404);
+		return null;
+	},
+});
+
 /** Core pages the catch-all serves at the root and under every scope prefix. */
-export const corePages = [notePage, articlePage];
+export const corePages = [notePage, articlePage, legacyPostPage];

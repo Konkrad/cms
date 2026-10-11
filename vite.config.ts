@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { qwikVite } from "@qwik.dev/core/optimizer";
 import { qwikRouter } from "@qwik.dev/router/vite";
 import tailwindcss from "@tailwindcss/vite";
-import { defineConfig, type UserConfig } from "vite";
+import { defineConfig, type Plugin, type UserConfig } from "vite";
 import pkg from "./package.json";
 
 // Absolute path to ./src for the "~" alias below.
@@ -41,7 +41,8 @@ export default defineConfig(
 		// since Vite doesn't re-invoke this config function for app-source changes.
 		// Imported dynamically so `vite build` (which lacks the full secret set at
 		// build time — see Dockerfile) never eagerly loads src/env.ts's validation.
-		if (command === "serve" && !isPreview) {
+		const devServer = command === "serve" && !isPreview;
+		if (devServer) {
 			const { runMigrations } = await import("./src/core/db/migrate");
 			runMigrations();
 		}
@@ -49,6 +50,9 @@ export default defineConfig(
 		return {
 			publicDir,
 			plugins: [
+				// Dev server only, after the migrations above (never in builds or vitest, which
+				// uses vitest.config.ts). The production server starts it in entry.node-server.tsx.
+				...(devServer ? [notificationOutboxWorker()] : []),
 				tailwindcss(),
 				// strictLoaders defaults to true as of @qwik.dev/router beta.37, which makes every
 				// routeAction$ send an empty loaderHashes list unless it explicitly opts specific
@@ -115,6 +119,25 @@ export default defineConfig(
 );
 
 // *** utils ***
+
+/**
+ * Starts the notification outbox worker in the dev server process once it listens. Loaded
+ * through Vite's SSR module graph (not a plain import) so the app's "~" aliases resolve;
+ * `startOutboxWorker` guards against a second start on dev-server restarts.
+ */
+function notificationOutboxWorker(): Plugin {
+	return {
+		name: "cms:notification-outbox-worker",
+		configureServer(server) {
+			server.httpServer?.once("listening", async () => {
+				const { startOutboxWorker } = await server.ssrLoadModule(
+					"/src/core/notifications/worker.ts",
+				);
+				startOutboxWorker();
+			});
+		},
+	};
+}
 
 /**
  * Function to identify duplicate dependencies and throw an error

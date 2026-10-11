@@ -219,7 +219,7 @@ describe("roles", () => {
 		expect(await scopesService.hasRole(u, be.id, ["admin"])).toBe(false);
 	});
 
-	it("listManagedScopes returns direct admin/moderator/representative only", async () => {
+	it("listScopesWithRole expands the held roles to the scopes below", async () => {
 		const root = await scopesService.ensureRoot();
 		const de = await mk(root.id);
 		const be = await mk(de.id);
@@ -230,8 +230,14 @@ describe("roles", () => {
 		await scopesService.grantRole(u, fr.id, "coordinator");
 		await scopesService.grantRole(u, be.id, "representative");
 
-		const managed = await scopesService.listManagedScopes(u);
-		expect(managed.map((s) => s.id).sort()).toEqual([de.id, be.id].sort());
+		const managed = await scopesService.listScopesWithRole(u, [
+			"admin",
+			"moderator",
+			"representative",
+		]);
+		expect(managed.map((s) => s.id)).toEqual([de.id, be.id]);
+		const reviewed = await scopesService.listScopesWithRole(u, ["coordinator"]);
+		expect(reviewed.map((s) => s.id)).toEqual([fr.id]);
 	});
 });
 

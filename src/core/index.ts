@@ -31,7 +31,20 @@ export {
 	toPublicUser,
 } from "~/core/users/public-user";
 export { requireActiveModule } from "~/core/registry/manifests";
-export { currentScopeRest } from "~/core/router/scope-request";
+export { currentScope, currentScopeRest } from "~/core/router/scope-request";
+export { adminUrl, scopeUrl } from "~/core/router/scope-path";
+// Access layer: scope roles (inherited downward) and memberships (counting upward).
+export type { MinRole, ScopeAccess, ScopeMember } from "~/core/scopes/access";
+export {
+	canManageScope,
+	canViewScope,
+	currentUser,
+	isMember,
+	listManagedScopes,
+	listMembers,
+	requireScopeRole,
+} from "~/core/scopes/access";
+export type { Scope } from "~/core/scopes/schema/scopes";
 // Server-only core services for modules (memberships tiers, user tags). Tag *rule evaluation*
 // is not core; it lives in the events module (`src/modules/events/services/tag-rules.ts`).
 export { groupMembershipsService } from "~/core/scopes/group-memberships.service";

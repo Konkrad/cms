@@ -11,6 +11,7 @@ import {
 	reevaluateUserTagsOf,
 	selectActive,
 } from "~/core/router/modules";
+import { reservedScopeSlugs } from "~/core/router/reserved-slugs";
 import config from "../../../modules.config";
 import { dealsModule } from "../../modules/deals/module";
 import { electionsModule } from "../../modules/elections/module";
@@ -55,3 +56,6 @@ export function requireActiveModule(
 		throw event.error(404, "Not found");
 	}
 }
+
+/** Slugs no scope may take (route segments and every module's routes); see reservedScopeSlugs. */
+export const reservedSlugs = reservedScopeSlugs(allModules);

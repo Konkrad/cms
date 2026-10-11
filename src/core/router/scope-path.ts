@@ -42,3 +42,29 @@ export function scopeUrl(scopePath: string, subPath = "/"): string {
 export function isAncestorPath(a: string, b: string): boolean {
 	return b.startsWith(a);
 }
+
+/** Admin URL segment of the root scope: `/admin/root/...`. */
+export const ROOT_ADMIN_SEGMENT = "root";
+
+/**
+ * The single `[scope]` segment of an admin URL: the dotted slug path of the scope,
+ * "root" for the root. adminSegment("/germany/berlin/") = "germany.berlin". Slugs never
+ * contain dots (SCOPE_SLUG_RE), and "root" is a reserved slug, so the mapping is one to one.
+ */
+export function adminSegment(scopePath: string): string {
+	const segments = scopePath.split("/").filter(Boolean);
+	return segments.length ? segments.join(".") : ROOT_ADMIN_SEGMENT;
+}
+
+/** Inverse of `adminSegment`: "germany.berlin" = "/germany/berlin/"; null when malformed. */
+export function pathFromAdminSegment(segment: string): string | null {
+	if (segment === ROOT_ADMIN_SEGMENT) return "/";
+	const slugs = segment.split(".");
+	if (!slugs.every((s) => SCOPE_SLUG_RE.test(s))) return null;
+	return `/${slugs.join("/")}/`;
+}
+
+/** Admin URL of a scope: adminUrl("/germany/", "/events") = "/admin/germany/events". */
+export function adminUrl(scopePath: string, subPath = "/"): string {
+	return scopeUrl(`/admin/${adminSegment(scopePath)}/`, subPath);
+}

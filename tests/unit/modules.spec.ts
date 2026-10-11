@@ -284,13 +284,18 @@ describe("disabledBlockTypes", () => {
 });
 
 describe("block gating with the checked-in config", () => {
-	it("client-safe block list matches the manifests", async () => {
-		const { allModules } = await import("~/core/registry/manifests");
-		const { moduleBlocks } = await import("~/core/registry/blocks");
-		for (const m of allModules) {
-			expect(moduleBlocks[m.id] ?? []).toEqual(m.blocks ?? []);
-		}
-	});
+	// Cold-importing every module manifest can take more than the default 5 s.
+	it(
+		"client-safe block list matches the manifests",
+		{ timeout: 30_000 },
+		async () => {
+			const { allModules } = await import("~/core/registry/manifests");
+			const { moduleBlocks } = await import("~/core/registry/blocks");
+			for (const m of allModules) {
+				expect(moduleBlocks[m.id] ?? []).toEqual(m.blocks ?? []);
+			}
+		},
+	);
 
 	it("DealsListBlock is enabled while deals is active", async () => {
 		const { disabledBlocks } = await import("~/core/registry/blocks");

@@ -9,8 +9,25 @@ import {
 	scopeRoles,
 	scopes,
 } from "~/core/scopes/schema/scopes";
+import {
+	type PublicUser,
+	publicUserSelect,
+	publicUserThumbnailUrl,
+} from "~/core/users/public-user";
+import { users } from "~/core/users/schema";
 
 export type Role = ScopeRole;
+
+/** A scope member as other users may see them: public fields and the public thumbnail. */
+export type ScopeMember = PublicUser & {
+	profilePictureSmallUrl: string | null;
+	joinedAt: string;
+};
+
+export interface ListMembersOptions {
+	includeDescendants?: boolean;
+	limit?: number;
+}
 export type Visibility = "public" | "members" | "representatives";
 
 export class ScopeError extends Error {
@@ -20,7 +37,6 @@ export class ScopeError extends Error {
 	}
 }
 
-const MANAGING_ROLES: Role[] = ["admin", "moderator", "representative"];
 // Coordinators review content below them, so they view like representatives.
 const VIEW_ALL_ROLES: Role[] = [
 	"admin",
@@ -244,20 +260,42 @@ export const scopesService = {
 		return roles.some((r) => effective.has(r));
 	},
 
-	/** Scopes where the user directly holds admin/moderator/representative (not expanded). */
-	async listManagedScopes(userId: string): Promise<Scope[]> {
-		const rows = await db
-			.selectDistinct({ scope: scopes })
+	/**
+	 * Scopes where the user holds one of `roles`, directly or inherited from an ancestor
+	 * (so a region admin gets the region and every scope below it), ordered by path.
+	 */
+	async listScopesWithRole(userId: string, roles: Role[]): Promise<Scope[]> {
+		const direct = await db
+			.selectDistinct({ path: scopes.path })
 			.from(scopeRoles)
 			.innerJoin(scopes, eq(scopes.id, scopeRoles.scopeId))
 			.where(
-				and(
-					eq(scopeRoles.userId, userId),
-					inArray(scopeRoles.role, MANAGING_ROLES),
+				and(eq(scopeRoles.userId, userId), inArray(scopeRoles.role, roles)),
+			);
+		if (direct.length === 0) return [];
+		return db
+			.select()
+			.from(scopes)
+			.where(
+				or(
+					...direct.map(
+						(d) => sql`${scopes.path} LIKE ${likePrefix(d.path)} ESCAPE '\\'`,
+					),
 				),
 			)
 			.orderBy(asc(scopes.path));
-		return rows.map((r) => r.scope);
+	},
+
+	/** Roles held directly on one scope, per user (for the scope's admin members page). */
+	async listRoleHolders(
+		scopeId: string,
+	): Promise<Array<PublicUser & { role: Role }>> {
+		return db
+			.select({ ...publicUserSelect, role: scopeRoles.role })
+			.from(scopeRoles)
+			.innerJoin(users, eq(users.id, scopeRoles.userId))
+			.where(eq(scopeRoles.scopeId, scopeId))
+			.orderBy(asc(users.name), asc(users.familyName));
 	},
 
 	// ── Membership (counts upward) ─────────────────────────────────────────────
@@ -299,6 +337,64 @@ export const scopesService = {
 			)
 			.limit(1);
 		return row.length > 0;
+	},
+
+	/**
+	 * Members of a scope as public cards (name and public thumbnail only), with the date they
+	 * joined. `includeDescendants` adds the members of every scope below (a member is listed
+	 * once, with their earliest membership).
+	 */
+	async listMembers(
+		scopeId: string,
+		{ includeDescendants = false, limit }: ListMembersOptions = {},
+	): Promise<ScopeMember[]> {
+		const scope = await this.getById(scopeId);
+		if (!scope) return [];
+		const where = includeDescendants
+			? sql`${scopes.path} LIKE ${likePrefix(scope.path)} ESCAPE '\\'`
+			: eq(scopeMemberships.scopeId, scopeId);
+		const query = db
+			.select({
+				...publicUserSelect,
+				profilePicture: users.profilePicture,
+				profilePictureSmall: users.profilePictureSmall,
+				joinedAt: sql<string>`MIN(${scopeMemberships.createdAt})`,
+			})
+			.from(scopeMemberships)
+			.innerJoin(users, eq(users.id, scopeMemberships.userId))
+			.innerJoin(scopes, eq(scopes.id, scopeMemberships.scopeId))
+			.where(where)
+			.groupBy(users.id)
+			.orderBy(asc(sql`MIN(${scopeMemberships.createdAt})`));
+		const rows = limit ? await query.limit(limit) : await query;
+		return rows.map(({ profilePicture, profilePictureSmall, ...member }) => ({
+			...member,
+			profilePictureSmallUrl: publicUserThumbnailUrl({
+				profilePicture,
+				profilePictureSmall,
+			}),
+		}));
+	},
+
+	/** Number of distinct members of a scope (optionally including the scopes below). */
+	async countMembers(
+		scopeId: string,
+		{ includeDescendants = false }: { includeDescendants?: boolean } = {},
+	): Promise<number> {
+		const scope = await this.getById(scopeId);
+		if (!scope) return 0;
+		const [row] = await db
+			.select({
+				count: sql<number>`COUNT(DISTINCT ${scopeMemberships.userId})`,
+			})
+			.from(scopeMemberships)
+			.innerJoin(scopes, eq(scopes.id, scopeMemberships.scopeId))
+			.where(
+				includeDescendants
+					? sql`${scopes.path} LIKE ${likePrefix(scope.path)} ESCAPE '\\'`
+					: eq(scopeMemberships.scopeId, scopeId),
+			);
+		return Number(row?.count ?? 0);
 	},
 
 	// ── Visibility ─────────────────────────────────────────────────────────────

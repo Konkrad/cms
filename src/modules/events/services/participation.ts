@@ -194,6 +194,8 @@ export const participationService = {
 	async getByUserId(userId: string): Promise<{
 		past: Array<{
 			id: string;
+			scopeId: string;
+			slug: string;
 			title: string;
 			startDate: string;
 			endDate: string;
@@ -202,6 +204,8 @@ export const participationService = {
 		}>;
 		upcoming: Array<{
 			id: string;
+			scopeId: string;
+			slug: string;
 			title: string;
 			startDate: string;
 			endDate: string;
@@ -225,6 +229,8 @@ export const participationService = {
 			const e = row.event;
 			const entry = {
 				id: e.id,
+				scopeId: e.scopeId,
+				slug: e.slug,
 				title: e.title,
 				startDate: e.startDate,
 				endDate: e.endDate,

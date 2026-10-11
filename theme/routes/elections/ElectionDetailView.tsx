@@ -91,7 +91,7 @@ export const ElectionDetailView = component$<{ data: ElectionDetailViewData }>(
 											</span>
 										) : userCanApply ? (
 											<Link
-												href={`/elections/${cycle.id}/apply?positionId=${position.id}`}
+												href={`${data.applyUrl}?positionId=${position.id}`}
 												class="text-sm bg-primary text-white px-4 py-1.5 rounded-full hover:bg-primary shrink-0"
 											>
 												Apply

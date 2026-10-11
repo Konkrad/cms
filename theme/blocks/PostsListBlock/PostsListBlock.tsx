@@ -58,7 +58,7 @@ export default component$<PostsListBlockProps>((props) => {
 								description={post.body
 									.replace(/<[^>]+>/g, "")
 									.substring(0, 160)}
-								href={`/posts/${post.id}`}
+								href={post.url}
 								label="Read More"
 							/>
 						))}

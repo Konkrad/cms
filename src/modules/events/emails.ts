@@ -1,5 +1,5 @@
 import { createElement } from "react";
-import { defineNotification } from "~/core";
+import { defineNotification, itemUrl } from "~/core";
 import TicketConfirmationEmail from "~theme/emails/TicketConfirmation";
 import { eventsService } from "./services/events";
 import { icalService } from "./services/ical";
@@ -56,7 +56,10 @@ export const ticketConfirmationNotification =
 							filename: "event.ics",
 							content: icalService.generateEventIcs(
 								event,
-								new URL(`/events/${event.id}`, ctx.appUrl).toString(),
+								new URL(
+									await itemUrl("events:event", event),
+									ctx.appUrl,
+								).toString(),
 							),
 							contentType: "text/calendar; charset=utf-8; method=PUBLISH",
 						},

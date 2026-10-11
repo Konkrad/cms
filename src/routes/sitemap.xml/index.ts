@@ -2,6 +2,7 @@ import type { RequestHandler } from "@qwik.dev/router";
 import { pagesService } from "~/core/content/pages.service";
 import { postsService } from "~/core/content/posts.service";
 import { activeModules } from "~/core/registry/manifests";
+import { withItemUrls } from "~/core/registry/refs";
 import { sitemapEntriesOf } from "~/core/router/modules";
 import { scopeUrl } from "~/core/router/scope-path";
 import { scopeContentFilter } from "~/core/scopes/content-filter";
@@ -62,10 +63,10 @@ export const onGet: RequestHandler = async ({
 			postsCursor,
 			"forward",
 		);
-		for (const post of result.items) {
-			if (post.visibility !== "public") continue;
+		const visible = result.items.filter((p) => p.visibility === "public");
+		for (const post of await withItemUrls("core:post", visible)) {
 			entries.push({
-				loc: new URL(`/posts/${post.id}`, env.APP_URL).toString(),
+				loc: new URL(post.url, env.APP_URL).toString(),
 				lastmod: post.updatedAt,
 			});
 		}

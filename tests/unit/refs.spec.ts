@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { canonicalRedirect } from "~/core/refs/canonical";
 import {
 	fillRefPath,
 	formatHumanRef,
@@ -122,5 +123,24 @@ describe("fillRefPath", () => {
 			`/events/${ID}`,
 		);
 		expect(fillRefPath("/:slug", { id: ID, slug: "" })).toBe("/");
+	});
+});
+
+describe("canonicalRedirect", () => {
+	it("redirects only when the path differs from the canonical URL", () => {
+		expect(canonicalRedirect("/events/bbq", "/germany/events/bbq")).toBe(
+			"/germany/events/bbq",
+		);
+		expect(
+			canonicalRedirect("/germany/events/bbq", "/germany/events/bbq"),
+		).toBe(null);
+		// A trailing slash or percent-encoding is the same URL.
+		expect(
+			canonicalRedirect("/germany/events/bbq/", "/germany/events/bbq"),
+		).toBe(null);
+		expect(canonicalRedirect("/events/b%C3%BC", "/events/bü")).toBeNull();
+		expect(
+			canonicalRedirect("/a/events/x/checkout", "/events/x/checkout"),
+		).toBe("/events/x/checkout");
 	});
 });

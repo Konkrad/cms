@@ -3,6 +3,7 @@ import { server$ } from "@qwik.dev/router";
 import type { HeroPost } from "~/contracts/posts";
 import { postsService } from "~/core/content/posts.service";
 import { publicImageUrlFromKey } from "~/core/media/images";
+import { withItemUrls } from "~/core/registry/refs";
 import { currentScope } from "~/core/router/scope-request";
 import { scopeContentFilter } from "~/core/scopes/content-filter";
 
@@ -12,7 +13,7 @@ const fetchLatestGlobalPosts = server$(async function (): Promise<HeroPost[]> {
 		await scopeContentFilter(null, await currentScope(this)),
 		3,
 	);
-	return res.items.map((post) => ({
+	return (await withItemUrls("core:post", res.items)).map((post) => ({
 		...post,
 		featuredImageUrl: publicImageUrlFromKey(post.featuredImage),
 	}));

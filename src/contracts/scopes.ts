@@ -23,6 +23,8 @@ export interface ScopeListItem {
 /** One upcoming event on a scope home page. */
 export interface ScopeUpcomingEvent {
 	id: string;
+	/** Canonical URL under the owning scope. */
+	url: string;
 	title: string;
 	startDate: string;
 	endDate: string;
@@ -80,6 +82,8 @@ export type ScopeViewData = ScopeExtras & {
 	isLoggedIn: boolean;
 	recentPosts: Array<{
 		id: string;
+		/** Canonical URL under the owning scope. */
+		url: string;
 		title: string;
 		body: string;
 		createdAt: string;

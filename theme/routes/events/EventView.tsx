@@ -116,7 +116,7 @@ export const EventView = component$<{
 							</a>
 						) : showBuyTickets ? (
 							<Link
-								href={`/events/${event.id}/checkout`}
+								href={event.checkoutUrl}
 								class="inline-block px-10 py-3 bg-[#0e1148] hover:bg-[#1a1d5e] text-white font-['Lato',sans-serif] font-bold text-sm rounded-full transition-colors"
 							>
 								Buy Your Tickets
@@ -206,6 +206,7 @@ export const EventView = component$<{
 						title={event.title}
 						location={event.locationDisplay}
 						description={event.body || undefined}
+						url={event.url}
 						isPast={event.isEventPast}
 					/>
 
@@ -335,7 +336,7 @@ export const EventView = component$<{
 							memories.
 						</p>
 						<Link
-							href={`/events/${event.id}/photos`}
+							href={event.photosUrl}
 							class="inline-block bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-3 rounded-full transition-colors"
 						>
 							View Photo Gallery

@@ -9,6 +9,8 @@ interface EventDateTileProps {
 	title?: string;
 	location?: string;
 	description?: string;
+	/** The event's canonical page (a path from the loader), added to the calendar entry. */
+	url?: string;
 	isPast?: boolean;
 }
 
@@ -110,6 +112,11 @@ export const EventDateTile = component$<EventDateTileProps>((props) => {
 		}
 		if (description) {
 			lines.push(`DESCRIPTION:${description}`);
+		}
+		if (props.url) {
+			lines.push(
+				`URL:${new URL(props.url, window.location.origin).toString()}`,
+			);
 		}
 
 		lines.push("END:VEVENT", "END:VCALENDAR");

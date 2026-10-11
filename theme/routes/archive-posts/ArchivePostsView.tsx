@@ -47,7 +47,7 @@ export const ArchivePostsView = component$<{ data: ArchivePostsViewData }>(
 								image={post.featuredImage ?? undefined}
 								date={formatPostDate(post.createdAt)}
 								description={toPlainText(post.body).substring(0, 180)}
-								href={`/posts/${post.id}`}
+								href={post.url}
 								label="Read More"
 							/>
 						))}

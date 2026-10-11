@@ -30,6 +30,7 @@ interface Community {
 
 interface EventEntry {
 	id: string;
+	url: string;
 	title: string;
 	startDate: string;
 	city?: string | null;
@@ -251,7 +252,7 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 						{upcomingEvents.map((e) => (
 							<li key={e.id}>
 								<a
-									href={`/events/${e.id}`}
+									href={e.url}
 									class="block p-4 rounded-xl border border-border hover:border-border-strong hover:bg-bg transition-colors"
 								>
 									<p class="font-medium text-text-heading">{e.title}</p>
@@ -278,7 +279,7 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 						{pastEvents.map((e) => (
 							<li key={e.id}>
 								<a
-									href={`/events/${e.id}`}
+									href={e.url}
 									class="block p-4 rounded-xl border border-border hover:border-border-strong hover:bg-bg transition-colors"
 								>
 									<p class="font-medium text-text-heading">{e.title}</p>

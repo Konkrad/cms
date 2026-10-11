@@ -109,6 +109,7 @@ export {
 	withItemUrls,
 } from "~/core/registry/refs";
 export type { RefLocation, RefTypeDefinition } from "~/core/router/modules";
+export { requireCanonicalUrl } from "~/core/refs/canonical";
 export {
 	formatRef,
 	itemRef,

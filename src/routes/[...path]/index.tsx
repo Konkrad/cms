@@ -3,6 +3,7 @@ import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import type { PageViewData } from "~/contracts/page";
 import type { ScopeViewData } from "~/contracts/scopes";
 import { loadCmsPage } from "~/core/content/cms-page";
+import { corePages } from "~/core/content/post-page";
 import type { BlockData } from "~/core/content/schema/shared";
 import { canonicalUrl, htmlToDescription } from "~/core/content/seo";
 import { matchPage } from "~/core/router/pages";
@@ -25,6 +26,8 @@ export * from "../../core/registry/actions";
 export { useJoinScope } from "../../core/scopes/scope-actions";
 
 const CMS_PAGE = "cms";
+/** Core pages (posts) first, then the active modules' pages, in declared order. */
+const publicPages = [...corePages, ...modulePages];
 const SCOPE_HOME = "scope";
 
 function scopeHomeHead(data: ScopeViewData, url: URL) {
@@ -65,7 +68,7 @@ function descriptionFromBlocks(blocks: BlockData[] | null): string {
 export const usePathPage = routeLoader$(async (event) => {
 	const rest = currentScopeRest(event);
 	const scopePath = currentScopePath(event);
-	const match = matchPage(modulePages, rest);
+	const match = matchPage(publicPages, rest);
 	if (match) {
 		const data = await match.page.load(event, {
 			params: match.params,

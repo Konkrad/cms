@@ -13,6 +13,7 @@ export const CORE_ROUTE_SEGMENTS: readonly string[] = [
 	"forms",
 	"login",
 	"onboarding",
+	// Core pages served by the catch-all at every level (`/<scope>/posts/<id>`).
 	"posts",
 	"profile",
 	"sitemap.xml",

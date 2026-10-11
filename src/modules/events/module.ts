@@ -4,6 +4,7 @@ import {
 	publicImageUrlFromKey,
 	scopeContentFilter,
 	scopeSourceLabels,
+	withItemUrls,
 } from "~/core";
 import { eventsBlocks } from "./blocks";
 import {
@@ -29,9 +30,9 @@ export const eventsModule = defineModule({
 		let cursor: string | null | undefined = null;
 		do {
 			const result = await eventsService.getAll(100, cursor);
-			for (const evt of result.items) {
-				if (evt.visibility !== "public") continue;
-				entries.push({ path: `/events/${evt.id}`, lastmod: evt.updatedAt });
+			const visible = result.items.filter((e) => e.visibility === "public");
+			for (const evt of await withItemUrls("events:event", visible)) {
+				entries.push({ path: evt.url, lastmod: evt.updatedAt });
 			}
 			cursor = result.nextCursor;
 		} while (cursor);
@@ -40,7 +41,10 @@ export const eventsModule = defineModule({
 	// Events a user said "yes" to. Shown on every profile, as before the module port.
 	async profile({ userId }) {
 		const { upcoming, past } = await participationService.getByUserId(userId);
-		return { upcomingEvents: upcoming, pastEvents: past };
+		return {
+			upcomingEvents: await withItemUrls("events:event", upcoming),
+			pastEvents: await withItemUrls("events:event", past),
+		};
 	},
 	// The scope's next events (its listing: own and ancestors' events as far as the viewer may
 	// see them, public events from below, labelled with their source) and its finished-event count.
@@ -63,17 +67,20 @@ export const eventsModule = defineModule({
 		);
 		return {
 			pastEventCount,
-			upcomingEvents: upcoming.map((e) => ({
-				id: e.id,
-				title: e.title,
-				startDate: e.startDate,
-				endDate: e.endDate,
-				image1: publicImageUrlFromKey(e.image1),
-				locationType: e.locationType,
-				city: e.city,
-				address: e.address,
-				source: sources[e.scopeId] ?? null,
-			})),
+			upcomingEvents: (await withItemUrls("events:event", upcoming)).map(
+				(e) => ({
+					id: e.id,
+					url: e.url,
+					title: e.title,
+					startDate: e.startDate,
+					endDate: e.endDate,
+					image1: publicImageUrlFromKey(e.image1),
+					locationType: e.locationType,
+					city: e.city,
+					address: e.address,
+					source: sources[e.scopeId] ?? null,
+				}),
+			),
 		};
 	},
 	scopeContentCount: (scopeId) => eventsService.countByScopeId(scopeId),

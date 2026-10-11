@@ -68,7 +68,7 @@ export const JobsListView = component$<{ data: JobsListData }>(({ data }) => {
 						<div class="flex items-start justify-between gap-4">
 							<div class="flex-1 min-w-0">
 								<Link
-									href={`/jobs/${job.id}`}
+									href={job.url}
 									class="text-lg font-semibold text-text-heading hover:text-primary"
 								>
 									{job.title}

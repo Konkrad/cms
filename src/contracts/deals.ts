@@ -12,4 +12,7 @@ export type DealDetailData = Awaited<ReturnType<typeof dealDetailPage.load>>;
 export type DealViewData = Pick<DealDetailData, "deal" | "isLoggedIn">;
 
 /** Deal list item as returned by `~/modules/deals/useDealsList`. */
-export type DealListItem = ReturnType<typeof toDealListItem>;
+export type DealListItem = ReturnType<typeof toDealListItem> & {
+	/** Canonical URL under the owning scope. */
+	url: string;
+};

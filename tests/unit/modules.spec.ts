@@ -133,6 +133,7 @@ describe("profileExtrasOf", () => {
 describe("profileExtrasOf with events data", () => {
 	const entry = {
 		id: "e1",
+		url: "/events/meetup",
 		title: "Meetup",
 		startDate: "2030-01-01T10:00:00.000Z",
 		endDate: "2030-01-01T12:00:00.000Z",
@@ -181,6 +182,7 @@ describe("scopeExtrasOf", () => {
 				? [
 						{
 							id: `next-${scopeId}`,
+							url: "/events/next",
 							title: "Next",
 							startDate: "2030-01-01T10:00:00.000Z",
 							endDate: "2030-01-01T12:00:00.000Z",

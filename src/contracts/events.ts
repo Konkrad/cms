@@ -39,6 +39,10 @@ export type EventPageData =
 			| "longitude"
 			| "onlineUrl"
 	  > & {
+			/** Canonical URL under the owning scope, and its checkout and photos pages. */
+			url: string;
+			checkoutUrl: string;
+			photosUrl: string;
 			/** The organizer: first name only for guests, full name for members. */
 			user: { id: string; displayName: string };
 			salesStatus: Awaited<
@@ -90,6 +94,10 @@ export type UpdateParticipationAction = ReturnType<
 >;
 
 /** Event shape returned by the events-block composables — `image1` resolved to a public URL. */
-export type BlockEvent = Omit<Event, "image1"> & { image1: string | null };
+export type BlockEvent = Omit<Event, "image1"> & {
+	image1: string | null;
+	/** Canonical URL under the owning scope. */
+	url: string;
+};
 
 export type EventsPage = { events: BlockEvent[]; nextCursor: string | null };

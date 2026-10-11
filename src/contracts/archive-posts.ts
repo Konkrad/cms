@@ -6,6 +6,8 @@ import type { PostWithUser } from "~/core/content/posts.service";
 
 export type ArchivePostItem = Omit<PostWithUser, "featuredImage"> & {
 	featuredImage: string | null;
+	/** Canonical URL under the owning scope. */
+	url: string;
 };
 
 export type ArchivePostsViewData = {

@@ -2,7 +2,7 @@ import { $, useSignal } from "@qwik.dev/core";
 import type { RequestEventCommon } from "@qwik.dev/router";
 import { server$ } from "@qwik.dev/router";
 import type { JobsListData } from "~/contracts/jobs";
-import { requestContentFilter, requireAuth } from "~/core";
+import { requestContentFilter, requireAuth, withItemUrls } from "~/core";
 import { JOBS_PAGE_SIZE } from "./pages";
 import { toPublicJob } from "./public-job";
 import { jobsService } from "./service";
@@ -18,7 +18,10 @@ const fetchJobsPage = server$(async function (
 		cursor,
 		direction,
 	);
-	return { ...page, items: page.items.map(toPublicJob) };
+	return {
+		...page,
+		items: await withItemUrls("jobs:job", page.items.map(toPublicJob)),
+	};
 });
 
 /** Headless composable owning cursor pagination for the `/jobs` list view. */

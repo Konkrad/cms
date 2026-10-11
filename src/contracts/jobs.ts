@@ -22,13 +22,13 @@ export type PublicJob = Job & { user: JobAuthor | null };
 
 /** Payload of `/jobs` (declared, not derived: it shows other members' jobs). */
 export type JobsListData = {
-	items: PublicJob[];
+	items: JobListItem[];
 	nextCursor: string | null;
 	prevCursor: string | null;
 };
 
-/** Single job list item. */
-export type JobListItem = PublicJob;
+/** Single job list item, with its canonical URL. */
+export type JobListItem = PublicJob & { url: string };
 
 /** Payload of `/jobs/:id`. */
 export type JobDetailData = { job: PublicJob };

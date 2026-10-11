@@ -1,5 +1,12 @@
 import type { JobDetailData, JobsListData } from "~/contracts/jobs";
-import { definePage, requestContentFilter, requireAuth } from "~/core";
+import {
+	definePage,
+	itemUrl,
+	requestContentFilter,
+	requireAuth,
+	requireCanonicalUrl,
+	withItemUrls,
+} from "~/core";
 import { toPublicJob } from "./public-job";
 import { jobsService } from "./service";
 
@@ -14,7 +21,10 @@ export const jobsListPage = definePage({
 			await requestContentFilter(event),
 			JOBS_PAGE_SIZE,
 		);
-		return { ...page, items: page.items.map(toPublicJob) };
+		return {
+			...page,
+			items: await withItemUrls("jobs:job", page.items.map(toPublicJob)),
+		};
 	},
 });
 
@@ -60,6 +70,7 @@ export const jobDetailPage = definePage({
 		if (!job || job.status !== "approved" || job.expiresAt < now) {
 			throw event.error(404, "Job not found");
 		}
+		requireCanonicalUrl(event, await itemUrl("jobs:job", job));
 		return { job: toPublicJob(job) };
 	},
 });

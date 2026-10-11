@@ -1,4 +1,10 @@
-import { definePage, getServerSession, publicImageUrlFromKey } from "~/core";
+import {
+	definePage,
+	getServerSession,
+	itemUrl,
+	publicImageUrlFromKey,
+	requireCanonicalUrl,
+} from "~/core";
 import { toPublicDeal } from "./public-deal";
 import { dealsService } from "./service";
 
@@ -14,6 +20,7 @@ export const dealDetailPage = definePage({
 		if (deal.validUntil && deal.validUntil < now) {
 			throw event.error(404, "This deal is no longer available");
 		}
+		requireCanonicalUrl(event, await itemUrl("deals:deal", deal));
 
 		const isLoggedIn = !!(await getServerSession(event));
 		return {

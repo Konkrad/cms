@@ -42,6 +42,8 @@ export interface ProfileElectionApplication {
 /** One event a profile owner takes part in. */
 export interface ProfileEventEntry {
 	id: string;
+	/** Canonical URL under the owning scope. */
+	url: string;
 	title: string;
 	startDate: string;
 	endDate: string;

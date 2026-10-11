@@ -37,7 +37,7 @@ export default component$(() => {
 							image={publicImageUrlFromKey(deal.logo)}
 							imageAlt={deal.name}
 							description={deal.description ?? undefined}
-							href={`/deals/${deal.id}`}
+							href={deal.url}
 							label="View deal"
 						/>
 					))}

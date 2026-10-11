@@ -14,6 +14,7 @@ const fetchPosts = server$(async function (options: {
 	const { scopeContentFilter } = await import("~/core/scopes/content-filter");
 	const { currentScope } = await import("~/core/router/scope-request");
 	const { formatUser } = await import("~/core/users/format");
+	const { withItemUrls } = await import("~/core/registry/refs");
 
 	const session = await getServerSession(this as RequestEventCommon);
 	// The listing of the page's scope (the URL's scope prefix), as this viewer sees it.
@@ -24,7 +25,7 @@ const fetchPosts = server$(async function (options: {
 		options.direction ?? "forward",
 	);
 
-	const items = res.items.map((post) => ({
+	const items = (await withItemUrls("core:post", res.items)).map((post) => ({
 		...post,
 		featuredImage: publicImageUrlFromKey(post.featuredImage),
 		user: formatUser(post.user, !!session),

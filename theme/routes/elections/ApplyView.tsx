@@ -15,7 +15,7 @@ export const ApplyView = component$<{
 	return (
 		<div class="max-w-2xl mx-auto px-4 py-8">
 			<a
-				href={`/elections/${cycle.id}`}
+				href={data.cycleUrl}
 				class="text-sm text-text-muted hover:text-text-secondary"
 			>
 				← {cycle.title}
@@ -105,7 +105,7 @@ export const ApplyView = component$<{
 						Submit Application
 					</button>
 					<a
-						href={`/elections/${cycle.id}`}
+						href={data.cycleUrl}
 						class="text-sm text-text-muted hover:text-text-secondary py-2"
 					>
 						Cancel

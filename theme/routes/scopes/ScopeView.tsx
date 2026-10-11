@@ -220,7 +220,7 @@ export const ScopeView = component$<{
 									image={e.image1 ?? undefined}
 									date={formatEventDate(e.startDate, e.endDate)}
 									meta={location}
-									href={`/events/${e.id}`}
+									href={e.url}
 									label="Open Tickets"
 								/>
 							);
@@ -248,7 +248,7 @@ export const ScopeView = component$<{
 								title={p.title}
 								image={p.featuredImage ?? undefined}
 								description={p.body.replace(/<[^>]+>/g, "").substring(0, 150)}
-								href={`/posts/${p.id}`}
+								href={p.url}
 							/>
 						))}
 					</div>

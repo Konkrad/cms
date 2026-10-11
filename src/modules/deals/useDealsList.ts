@@ -1,15 +1,17 @@
 import { useSignal, useTask$ } from "@qwik.dev/core";
 import { server$ } from "@qwik.dev/router";
 import type { DealListItem } from "~/contracts/deals";
-import { requestContentFilter } from "~/core";
+import { requestContentFilter, withItemUrls } from "~/core";
 import { toDealListItem } from "./public-deal";
 import { dealsService } from "./service";
 
 // The listing of the page's scope (the URL's scope prefix).
 const fetchActiveDeals = server$(async function (): Promise<DealListItem[]> {
-	return (await dealsService.getActive(await requestContentFilter(this))).map(
-		toDealListItem,
+	const deals = await withItemUrls(
+		"deals:deal",
+		await dealsService.getActive(await requestContentFilter(this)),
 	);
+	return deals.map((deal) => ({ ...toDealListItem(deal), url: deal.url }));
 });
 
 /** Headless composable owning data-fetching for the "Deals" page-builder block. */

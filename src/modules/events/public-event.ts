@@ -3,10 +3,13 @@ import type { EventPageData } from "~/contracts/events";
 import {
 	buildProfileUrl,
 	canViewScope,
+	currentScope,
 	currentScopeRest,
 	getCurrentUserData,
+	itemUrl,
 	matchPath,
 	publicImageUrlFromKey,
+	requireCanonicalUrl,
 	scopeLabels,
 	toPublicUser,
 	type Visibility,
@@ -18,11 +21,19 @@ import { ticketsService } from "./services/tickets";
 
 /** Server-only: import from page loaders and actions only, never from components. */
 
-/** The `:id` of the event page the action was posted from (the catch-all route has no `id` param). */
-export const eventIdOf = (
+/**
+ * The id of the event whose page the action was posted from (the catch-all route has no
+ * params): the `:slug` of `pattern` in the URL, looked up in the URL's scope.
+ */
+export async function eventIdOf(
 	event: Parameters<typeof currentScopeRest>[0],
 	pattern: string,
-) => matchPath(pattern, currentScopeRest(event))?.id;
+): Promise<string | undefined> {
+	const param = matchPath(pattern, currentScopeRest(event))?.slug;
+	const scope = param ? await currentScope(event) : undefined;
+	if (!param || !scope) return undefined;
+	return (await eventsService.findByParam(scope.id, param)) ?? undefined;
+}
 
 type Viewer = { id: string } | null;
 
@@ -40,15 +51,27 @@ export async function canViewEvent(
 	return canViewScope(viewer, event.scopeId, event.visibility as Visibility);
 }
 
-/** The event for a public page, or null (404) when missing, deleted or not visible to the viewer. */
+/**
+ * The event a public page's `:slug` names (a slug in the URL's scope, or an id), or null (404)
+ * when missing, deleted or not visible to the viewer. Reached at another URL than its
+ * canonical one (`url` + `suffix`, e.g. "/checkout"), it answers 301 there.
+ */
 export async function getViewableEvent(
 	requestEvent: RequestEventLoader,
-	eventId: string,
+	param: string,
+	suffix = "",
 ) {
-	const event = await eventsService.getById(eventId);
+	const scope = await currentScope(requestEvent);
+	const eventId = scope
+		? await eventsService.findByParam(scope.id, param)
+		: null;
+	const event = eventId ? await eventsService.getById(eventId) : undefined;
 	if (!event) return null;
 	const viewer = (await getCurrentUserData(requestEvent)) as Viewer;
-	return (await canViewEvent(event, viewer)) ? { event, viewer } : null;
+	if (!(await canViewEvent(event, viewer))) return null;
+	const url = await itemUrl("events:event", event);
+	requireCanonicalUrl(requestEvent, `${url}${suffix}`);
+	return { event, viewer, url };
 }
 
 const shuffle = <T>(arr: T[]): T[] => {
@@ -63,17 +86,18 @@ const shuffle = <T>(arr: T[]): T[] => {
 /** Public event detail page data. Only fields the page renders are returned. */
 export async function loadEventPage(
 	requestEvent: RequestEventLoader,
-	eventId: string,
+	param: string,
 ): Promise<EventPageData> {
 	// The page shows the visitor's RSVP and login state: never serve it from a shared cache.
 	requestEvent.cacheControl({ noCache: true });
 
-	const viewable = await getViewableEvent(requestEvent, eventId);
+	const viewable = await getViewableEvent(requestEvent, param);
 	if (!viewable) {
 		requestEvent.status(404);
 		return null;
 	}
-	const { event, viewer: userData } = viewable;
+	const { event, viewer: userData, url } = viewable;
+	const eventId = event.id;
 
 	const groups = (await inventoryGroupsService.getByEventId(
 		eventId,
@@ -194,6 +218,9 @@ export async function loadEventPage(
 	// organizer's full user row and email, which must never reach an anonymous visitor.
 	return {
 		id: event.id,
+		url,
+		checkoutUrl: `${url}/checkout`,
+		photosUrl: `${url}/photos`,
 		title: event.title,
 		body: event.body,
 		startDate: event.startDate,

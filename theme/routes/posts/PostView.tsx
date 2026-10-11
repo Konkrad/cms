@@ -132,7 +132,7 @@ export const PostView = component$<{ post: PostViewData | null }>(
 											day: "numeric",
 										},
 									)}
-									href={`/posts/${related.id}`}
+									href={related.url}
 								/>
 							))}
 						</div>

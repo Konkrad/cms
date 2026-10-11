@@ -1,5 +1,5 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { requireModuleAuth } from "~/core";
+import { itemUrl, requireModuleAuth } from "~/core";
 import { electionsService } from "./service";
 
 export const useSubmitApplication = routeAction$(
@@ -14,7 +14,11 @@ export const useSubmitApplication = routeAction$(
 			motivationGoals: data.motivationGoals,
 		});
 		if (result.error) return { failed: true, error: result.error };
-		throw event.redirect(302, `/elections/${data.cycleId}`);
+		const cycle = await electionsService.getCycleById(data.cycleId);
+		throw event.redirect(
+			302,
+			cycle ? await itemUrl("elections:cycle", cycle) : "/elections",
+		);
 	},
 	zod$({
 		positionId: z.string().uuid(),

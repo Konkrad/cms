@@ -29,6 +29,9 @@ export type ElectionCandidate = {
 /** Payload of `/elections/:id` (declared, not derived: it shows other members' applications). */
 export type ElectionDetailViewData = {
 	cycle: ElectionCycleWithPositions;
+	/** Canonical URL of the cycle, and of its application form (add `?positionId=`). */
+	url: string;
+	applyUrl: string;
 	approvedApps: ElectionCandidate[];
 	userCanApply: boolean;
 	userAppPositionIds: string[];

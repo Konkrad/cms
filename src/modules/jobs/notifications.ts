@@ -1,5 +1,11 @@
 import { createElement } from "react";
-import { defineNotification, notify } from "~/core";
+import {
+	defineNotification,
+	itemRef,
+	notify,
+	refHref,
+	resolveRef,
+} from "~/core";
 import JobApprovedEmail from "~theme/emails/JobApproved";
 
 /**
@@ -9,6 +15,8 @@ import JobApprovedEmail from "~theme/emails/JobApproved";
 export const jobApprovedNotification = defineNotification<{
 	jobId: string;
 	jobTitle: string;
+	/** The job's page as a reference (`ref:jobs:job:<id>`), resolved at send time. */
+	link: string;
 }>({
 	id: "jobs.approved",
 	label: "Job approved",
@@ -16,13 +24,17 @@ export const jobApprovedNotification = defineNotification<{
 	channels: ["email"],
 	optional: true,
 	render: {
-		email: (data, ctx) => ({
+		email: async (data, ctx) => ({
 			subject: `Your job "${data.jobTitle}" is live`,
 			react: createElement(JobApprovedEmail, {
 				baseUrl: ctx.appUrl,
 				recipientName: ctx.recipient.name ?? "there",
 				jobTitle: data.jobTitle,
-				jobUrl: `${ctx.appUrl}/jobs/${data.jobId}`,
+				// The current URL (the scope may have moved since); the job board if it is gone.
+				jobUrl: new URL(
+					(data.link && (await resolveRef(data.link))) || "/jobs",
+					ctx.appUrl,
+				).toString(),
 				unsubscribeUrl: ctx.unsubscribeUrl,
 			}),
 		}),
@@ -37,6 +49,10 @@ export async function notifyIfApproved(
 	if (before?.status !== "pending" || after.status !== "approved") return;
 	await notify(jobApprovedNotification.id, {
 		to: after.suggestedBy,
-		data: { jobId: after.id, jobTitle: after.title },
+		data: {
+			jobId: after.id,
+			jobTitle: after.title,
+			link: refHref(itemRef("jobs", "job", after.id)),
+		},
 	});
 }

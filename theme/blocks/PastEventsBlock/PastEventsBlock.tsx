@@ -63,7 +63,7 @@ export default component$(() => {
 									description={event.body
 										?.replace(/<[^>]+>/g, "")
 										.substring(0, 180)}
-									href={`/events/${event.id}`}
+									href={event.url}
 									label="View Details"
 								/>
 							);

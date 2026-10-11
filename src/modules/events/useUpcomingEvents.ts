@@ -1,7 +1,11 @@
 import { $, useSignal, useTask$ } from "@qwik.dev/core";
 import { server$ } from "@qwik.dev/router";
 import type { EventsPage } from "~/contracts/events";
-import { publicImageUrlFromKey, requestContentFilter } from "~/core";
+import {
+	publicImageUrlFromKey,
+	requestContentFilter,
+	withItemUrls,
+} from "~/core";
 import { eventsService } from "./services/events";
 
 // The listing of the page's scope (the URL's scope prefix), as the viewer sees it.
@@ -11,7 +15,7 @@ const fetchUpcomingInitial = server$(async function (): Promise<EventsPage> {
 		3,
 	);
 	return {
-		events: items.map((e) => ({
+		events: (await withItemUrls("events:event", items)).map((e) => ({
 			...e,
 			image1: publicImageUrlFromKey(e.image1),
 		})),
@@ -28,7 +32,7 @@ const fetchUpcomingMore = server$(async function (
 		10,
 	);
 	return {
-		events: items.map((e) => ({
+		events: (await withItemUrls("events:event", items)).map((e) => ({
 			...e,
 			image1: publicImageUrlFromKey(e.image1),
 		})),

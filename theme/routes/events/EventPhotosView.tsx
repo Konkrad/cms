@@ -72,10 +72,7 @@ export const EventPhotosView = component$<{
 			)}
 
 			<div class="mt-6">
-				<a
-					href={`/events/${event.id}`}
-					class="text-primary hover:text-primary font-medium"
-				>
+				<a href={event.url} class="text-primary hover:text-primary font-medium">
 					← Back to Event Details
 				</a>
 			</div>

@@ -29,7 +29,7 @@ export const ElectionsView = component$<{ data: ElectionsViewData }>(
 						{data.cycles.map((cycle) => (
 							<Link
 								key={cycle.id}
-								href={`/elections/${cycle.id}`}
+								href={cycle.url}
 								class="block bg-white rounded-lg border border-border p-5 hover:border-primary hover:shadow-sm transition-all"
 							>
 								<div class="flex items-start justify-between">

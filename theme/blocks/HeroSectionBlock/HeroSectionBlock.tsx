@@ -69,7 +69,7 @@ export default component$(() => {
 					const gradient = SLIDE_GRADIENTS[index % SLIDE_GRADIENTS.length];
 					return (
 						<div key={post.id} class="hero-carousel-slide">
-							<a href={`/posts/${post.id}`} class="hero-carousel-card">
+							<a href={post.url} class="hero-carousel-card">
 								<div class="hero-carousel-image-wrap">
 									{post.featuredImageUrl ? (
 										<img
@@ -130,7 +130,7 @@ export default component$(() => {
 
 					{excerpt && <p class="hero-section-desktop-description">{excerpt}</p>}
 
-					<Button href={`/posts/${slide.id}`} size="xl">
+					<Button href={slide.url} size="xl">
 						Read the Article
 					</Button>
 				</div>

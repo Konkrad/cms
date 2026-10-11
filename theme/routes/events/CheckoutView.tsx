@@ -260,7 +260,7 @@ export const CheckoutView = component$<{
 				const { error } = await stripe.confirmPayment({
 					elements,
 					confirmParams: {
-						return_url: `${window.location.origin}/events/${data.eventId}/checkout/success`,
+						return_url: `${window.location.origin}${data.returnPath}`,
 					},
 					redirect: "if_required",
 				});
@@ -494,7 +494,7 @@ export const CheckoutView = component$<{
 									View My Tickets
 								</a>
 								<a
-									href={`/events/${data.eventId}`}
+									href={data.eventUrl}
 									class="px-6 py-3 border border-border-strong rounded-sm hover:bg-bg"
 								>
 									Back to Event

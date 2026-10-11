@@ -34,7 +34,7 @@ export const MyApplicationsView = component$<{ data: MyApplicationsViewData }>(
 					</div>
 				) : (
 					<div class="space-y-6">
-						{data.groups.map(({ cycle, apps }) => (
+						{data.groups.map(({ cycle, cycleUrl, apps }) => (
 							<div
 								key={cycle.id}
 								class="bg-white rounded-lg border border-border overflow-hidden"
@@ -42,7 +42,7 @@ export const MyApplicationsView = component$<{ data: MyApplicationsViewData }>(
 								<div class="px-5 py-3 bg-bg border-b flex items-center justify-between">
 									<h2 class="font-semibold text-text-heading">{cycle.title}</h2>
 									<Link
-										href={`/elections/${cycle.id}`}
+										href={cycleUrl}
 										class="text-xs text-primary hover:text-primary"
 									>
 										View election →

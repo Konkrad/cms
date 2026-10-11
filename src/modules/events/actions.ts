@@ -30,7 +30,7 @@ export const useUpdateParticipation = routeAction$(
 	async (data, event) => {
 		const userData = await requireModuleAuth(event, "events");
 
-		const eventId = eventIdOf(event, "/events/:id");
+		const eventId = await eventIdOf(event, "/events/:slug");
 		const target = eventId ? await eventsService.getById(eventId) : undefined;
 		if (!eventId || !target || !(await canViewEvent(target, userData))) {
 			return event.fail(404, { message: "Event not found" });
@@ -89,7 +89,7 @@ export const useCreateCheckoutSession = routeAction$(
 	async (data, event) => {
 		const user = await requireModuleAuth(event, "events");
 
-		const eventId = eventIdOf(event, "/events/:id/checkout");
+		const eventId = await eventIdOf(event, "/events/:slug/checkout");
 		const eventData = eventId
 			? await eventsService.getById(eventId)
 			: undefined;

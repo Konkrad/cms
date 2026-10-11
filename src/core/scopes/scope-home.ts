@@ -3,6 +3,7 @@ import type { ScopeViewData } from "~/contracts/scopes";
 import { postsService } from "~/core/content/posts.service";
 import { publicImageUrlFromKey } from "~/core/media/images";
 import { activeScopeExtras } from "~/core/registry/manifests";
+import { withItemUrls } from "~/core/registry/refs";
 import { scopeUrl } from "~/core/router/scope-path";
 import { currentUser, isMember } from "~/core/scopes/access";
 import {
@@ -90,8 +91,9 @@ export async function loadScopeHome(
 			: null,
 		isMember: member,
 		isLoggedIn: !!user,
-		recentPosts: recentPosts.map((p) => ({
+		recentPosts: (await withItemUrls("core:post", recentPosts)).map((p) => ({
 			id: p.id,
+			url: p.url,
 			title: p.title,
 			body: p.body,
 			createdAt: p.createdAt,

@@ -14,11 +14,11 @@ import { photosService } from "./services/photos";
 /** Data of the ticket purchase page; 404s for missing, deleted or not visible events. */
 export async function loadCheckoutPage(
 	requestEvent: RequestEventLoader,
-	eventId: string,
+	param: string,
 ) {
-	if (!(await getViewableEvent(requestEvent, eventId))) {
-		throw requestEvent.error(404, "Event not found");
-	}
+	const viewable = await getViewableEvent(requestEvent, param, "/checkout");
+	if (!viewable) throw requestEvent.error(404, "Event not found");
+	const eventId = viewable.event.id;
 
 	const groups = await inventoryGroupsService.getByEventId(eventId);
 
@@ -65,6 +65,9 @@ export async function loadCheckoutPage(
 
 	return {
 		eventId,
+		eventUrl: viewable.url,
+		/** Where Stripe sends the buyer back after an off-site payment step. */
+		returnPath: `${viewable.url}/checkout/success`,
 		groups: groupsWithCapacity,
 		stripePublishableKey: getStripePublishableKey(),
 		foodPreference: (session as any)?.foodPreference ?? null,
@@ -91,16 +94,16 @@ export type CheckoutPageData = Awaited<ReturnType<typeof loadCheckoutPage>>;
 /** Data of the attendee-only photo gallery: the event title plus the visible photos (or a failure). */
 export async function loadPhotosPage(
 	requestEvent: RequestEventLoader,
-	eventId: string,
+	param: string,
 ) {
-	const viewable = await getViewableEvent(requestEvent, eventId);
+	const viewable = await getViewableEvent(requestEvent, param, "/photos");
 	if (!viewable) throw requestEvent.error(404, "Event not found");
-	const { event } = viewable;
+	const { event, url } = viewable;
 
 	const user = await getServerSession(requestEvent);
-	const photos = await loadAttendeePhotos(requestEvent, eventId, user?.id);
+	const photos = await loadAttendeePhotos(requestEvent, event.id, user?.id);
 
-	return { event: { id: event.id, title: event.title }, photos };
+	return { event: { id: event.id, title: event.title, url }, photos };
 }
 
 type PhotoEntry = { id: string; uploadedAt: string };

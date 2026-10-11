@@ -9,20 +9,16 @@ import {
 } from "~/core";
 import {
 	insertQualificationTokenSchema,
-	type QualificationToken,
-	qualificationTokens,
-} from "./qualification-tokens";
-import {
 	insertQualificationTypeSchema,
-	type QualificationType,
-	qualificationTypes,
-	updateQualificationTypeSchema,
-} from "./qualification-types";
-import {
 	insertUserQualificationSchema,
+	type QualificationToken,
+	type QualificationType,
+	qualificationTokens,
+	qualificationTypes,
 	type UserQualification,
+	updateQualificationTypeSchema,
 	userQualifications,
-} from "./user-qualifications";
+} from "./schema";
 
 export type UserQualificationWithType = UserQualification & {
 	type: QualificationType;

@@ -8,21 +8,17 @@ import {
 } from "~/core";
 import {
 	type ElectionApplication,
-	electionApplications,
-	insertElectionApplicationSchema,
-} from "./election-applications";
-import {
 	type ElectionCycle,
-	electionCycles,
-	insertElectionCycleSchema,
-	updateElectionCycleSchema,
-} from "./election-cycles";
-import {
 	type ElectionPosition,
+	electionApplications,
+	electionCycles,
 	electionPositions,
+	insertElectionApplicationSchema,
+	insertElectionCycleSchema,
 	insertElectionPositionSchema,
+	updateElectionCycleSchema,
 	updateElectionPositionSchema,
-} from "./election-positions";
+} from "./schema";
 
 const CYCLE_STATUS_RANK: Record<string, number> = {
 	draft: 0,

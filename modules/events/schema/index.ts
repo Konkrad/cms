@@ -1,23 +1,23 @@
 import { defineModuleSchema } from "~/core/schema";
-import { eventPhotos } from "./schema/event-photos";
-import { events } from "./schema/events";
-import { inventoryGroups } from "./schema/inventory-groups";
-import { participationStatus } from "./schema/participation-status";
-import { products } from "./schema/products";
-import { ticketParticipants } from "./schema/ticket-participants";
-import { tickets } from "./schema/tickets";
-import { transactionItems } from "./schema/transaction-items";
-import { transactions } from "./schema/transactions";
+import { eventPhotos } from "./event-photos";
+import { events } from "./events";
+import { inventoryGroups } from "./inventory-groups";
+import { participationStatus } from "./participation-status";
+import { products } from "./products";
+import { ticketParticipants } from "./ticket-participants";
+import { tickets } from "./tickets";
+import { transactionItems } from "./transaction-items";
+import { transactions } from "./transactions";
 
-export * from "./schema/event-photos";
-export * from "./schema/events";
-export * from "./schema/inventory-groups";
-export * from "./schema/participation-status";
-export * from "./schema/products";
-export * from "./schema/ticket-participants";
-export * from "./schema/tickets";
-export * from "./schema/transaction-items";
-export * from "./schema/transactions";
+export * from "./event-photos";
+export * from "./events";
+export * from "./inventory-groups";
+export * from "./participation-status";
+export * from "./products";
+export * from "./ticket-participants";
+export * from "./tickets";
+export * from "./transaction-items";
+export * from "./transactions";
 
 export default defineModuleSchema({
 	tables: {

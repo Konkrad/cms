@@ -9,7 +9,7 @@ Jobs (`modules/jobs/`) is the worked example throughout. Modules: deals, electio
 
 ## Layout
 
-`modules/<id>/` holds only module folders. Typical files: `module.ts` (manifest via `defineModule`), `pages.ts` (`definePage` entries), `views.tsx` (client-safe view map), `actions.ts` (public `routeAction$`s), `schema.ts`, `service.ts`, `public-<x>.ts` (public payload mapping, e.g. `toPublicJob`), `admin/` (`list.tsx` + `list-data.ts`, `edit.tsx` + `edit-data.ts`), optional `blocks.ts`, `use*.ts` composables, `notifications.ts` / `emails.ts` (notification definitions), `payments.ts`.
+`modules/<id>/` holds only module folders. Typical files: `module.ts` (manifest via `defineModule`), `pages.ts` (`definePage` entries), `views.tsx` (client-safe view map), `actions.ts` (public `routeAction$`s), `schema.ts` (or `schema/` for many tables), `service.ts`, `public-<x>.ts` (public payload mapping, e.g. `toPublicJob`), `admin/` (`list.tsx` + `list-data.ts`, `edit.tsx` + `edit-data.ts`), optional `blocks.ts`, `use*.ts` composables, `notifications.ts` / `emails.ts` (notification definitions), `payments.ts`.
 
 ## Registration (one line each)
 
@@ -84,6 +84,8 @@ await notify("events.sale", { to: { channel: "telegram", target: "ops" }, data: 
 ## Schema
 
 `schema.ts` exports its tables plus a default `defineModuleSchema({ tables, relations })` (from `~/core/schema`). `relations` is the module's relation part, including reverse relations on core tables (like `users.jobs`). `src/core/db/schema.ts` merges the parts through `src/core/registry/schemas.ts`, which must stay free of db connection/`~/env` imports because drizzle-kit loads it.
+
+Layout rule, the same for every module: ONE `schema.ts` holding the tables, their types/insert schemas and the `defineModuleSchema` default export. Only a module with many tables (today: events) uses a `schema/` folder instead, with one file per table plus `schema/index.ts` (re-exports and the `defineModuleSchema` default export) and NO `schema.ts` beside it. `./schema` resolves to either form, so importers do not change when a module grows.
 
 ## Import boundary
 

@@ -1,14 +1,17 @@
 import { eq } from "drizzle-orm";
 import type Stripe from "stripe";
 import type { PaymentContext } from "~/core";
-import { db, logins, telegramService, users } from "~/core";
-import { sendTicketConfirmation } from "./emails";
+import { db, notify, users } from "~/core";
+import {
+	type SaleAlertData,
+	saleAlertNotification,
+	type TicketConfirmationData,
+	ticketConfirmationNotification,
+} from "./emails";
 import { events } from "./schema/events";
-import { icalService } from "./services/ical";
 import { inventoryGroupsService } from "./services/inventory-groups";
 import { participantsService } from "./services/participants";
 import { productsService } from "./services/products";
-import { qrcodeService } from "./services/qrcode";
 import { ticketsService } from "./services/tickets";
 import { transactionItemsService } from "./services/transaction-items";
 import { transactionsService } from "./services/transactions";
@@ -56,17 +59,9 @@ async function fulfilTickets(paymentIntent: Stripe.PaymentIntent) {
 		.from(users)
 		.where(eq(users.id, userId))
 		.limit(1);
-	const [login] = await db
-		.select()
-		.from(logins)
-		.where(eq(logins.id, user?.loginId || ""))
-		.limit(1);
-
 	if (!event || !user) {
 		throw new Error("Event or user not found");
 	}
-
-	const userEmail = login?.email || "";
 
 	// Parse items
 	const purchasedItems: Array<{ productId: string; quantity: number }> =
@@ -226,80 +221,40 @@ async function fulfilTickets(paymentIntent: Stripe.PaymentIntent) {
 		}
 	}
 
-	// Generate QR codes for tickets
-	const qrCodes = await Promise.all(
-		tickets.map(async (ticket) => {
-			const qrCodePng = await qrcodeService.generatePNG(ticket.qrCodeUuid);
-			return {
-				ticketId: ticket.id,
-				qrCodeUuid: ticket.qrCodeUuid,
-				qrCodePng,
-			};
-		}),
-	);
-
-	// Prepare email data
-	const ticketsForEmail = tickets.map((ticket) => {
-		const product = products.find((p) => p.productId === ticket.productId);
-		return {
-			id: ticket.id,
-			qrCodeUuid: ticket.qrCodeUuid,
-			productName: product?.product?.name || "Ticket",
-		};
+	// Confirmation email to the buyer (address looked up from the user id by notify()).
+	await notify(ticketConfirmationNotification.id, {
+		to: userId,
+		data: {
+			eventId,
+			transactionId: transaction.id,
+			products: products.flatMap((p) =>
+				p.product
+					? [
+							{
+								name: p.product.name,
+								quantity: p.quantity,
+								amount: p.product.price,
+							},
+						]
+					: [],
+			),
+			totalAmount: calculatedAmount,
+			ticketIds: tickets.map((t) => t.id),
+		} satisfies TicketConfirmationData,
 	});
 
-	const productsForEmail = products
-		.filter((p) => p.product)
-		.map((p) => ({
-			name: p.product!.name,
-			quantity: p.quantity,
-			amount: p.product!.price,
-		}));
-
-	// Generate iCal attachment
-	const icsContent = icalService.generateEventIcs(event);
-
-	// Send confirmation email
-	try {
-		await sendTicketConfirmation({
-			to: userEmail,
-			buyerName: user.name || userEmail,
-			event: {
-				title: event.title,
-				startDate: event.startDate,
-				address: event.address,
-				onlineUrl: event.onlineUrl,
-			},
-			transactionId: transaction.id,
-			products: productsForEmail,
-			totalAmount: calculatedAmount,
-			tickets: ticketsForEmail.map((t) => ({
-				id: t.id,
-				qrCodeUuid: t.qrCodeUuid,
-			})),
-		});
-		console.log("Confirmation email sent to:", userEmail);
-	} catch (error) {
-		console.error("Failed to send confirmation email:", error);
-		// Don't throw - continue with notifications
-	}
-
-	// Send Telegram notifications
+	// "New sale" alert to the ops Telegram channel, one per product.
 	for (const item of products) {
-		if (item.product) {
-			try {
-				const remainingInventory = await getRemainingInventory(
-					item.product.inventoryGroupId,
-				);
-				await telegramService.sendNotification(
-					`🎫 New sale: ${item.quantity}x ${item.product.name} (€${(item.product.price * item.quantity).toFixed(2)})\n` +
-						`📊 Remaining: ${remainingInventory} spots`,
-				);
-			} catch (error) {
-				console.error("Failed to send Telegram notification:", error);
-				// Continue with other notifications
-			}
-		}
+		if (!item.product) continue;
+		await notify(saleAlertNotification.id, {
+			to: { channel: "telegram", target: "ops" },
+			data: {
+				productName: item.product.name,
+				quantity: item.quantity,
+				amount: item.product.price * item.quantity,
+				remaining: await getRemainingInventory(item.product.inventoryGroupId),
+			} satisfies SaleAlertData,
+		});
 	}
 
 	console.log("Payment intent processed successfully:", {

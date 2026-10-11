@@ -22,15 +22,3 @@ export async function sendTelegramMessage(
 	});
 	await bot.sendMessage(chatId, text);
 }
-
-/** @deprecated Kept until the events module sends its sales alert through `notify()`. */
-export const telegramService = {
-	async sendNotification(message: string) {
-		if (!env.TELEGRAM_CHANNEL_ID || telegramUnavailableReason()) return;
-		try {
-			await sendTelegramMessage(env.TELEGRAM_CHANNEL_ID, message);
-		} catch (error) {
-			console.error("Telegram notification failed:", error);
-		}
-	},
-};

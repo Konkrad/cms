@@ -85,6 +85,22 @@ export const ticketsService = {
 		return result;
 	},
 
+	/**
+	 * Ticket ids with their QR code uuid, in the order given. Private (the uuid admits whoever
+	 * presents it): only for the buyer's own confirmation email.
+	 */
+	async getQrCodeRefsByIds(
+		ids: string[],
+	): Promise<Array<{ id: string; qrCodeUuid: string }>> {
+		if (ids.length === 0) return [];
+		const rows = await db
+			.select({ id: tickets.id, qrCodeUuid: tickets.qrCodeUuid })
+			.from(tickets)
+			.where(inArray(tickets.id, ids));
+		const byId = new Map(rows.map((r) => [r.id, r]));
+		return ids.flatMap((id) => byId.get(id) ?? []);
+	},
+
 	async getById(id: string): Promise<
 		| (Ticket & {
 				buyer: PublicUser;

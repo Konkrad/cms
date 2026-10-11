@@ -47,7 +47,6 @@ export {
 	getNextCursorFromRows,
 	paginateRows,
 } from "~/core/shared/pagination";
-export { telegramService } from "~/core/notifications/telegram.service";
 export type { NotifyInput, NotifyRecipient } from "~/core/notifications/notify";
 export { notify } from "~/core/notifications/notify";
 export { userTagsService } from "~/core/tags/user-tags.service";
@@ -59,7 +58,6 @@ export {
 	generatePresignedGetUrl,
 	generateSecurePhotoUrl,
 } from "~/core/media/secure-urls";
-export { sendEmail } from "~/core/notifications/send-email";
 export {
 	getCurrentUserData,
 	getServerSession,

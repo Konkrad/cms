@@ -2,6 +2,9 @@
  * Notification system end to end: outbox -> worker (running in the dev server, polling every
  * NOTIFICATIONS_POLL_INTERVAL_MS) -> Mailpit / Telegram mock.
  */
+import crypto from "node:crypto";
+import dotenv from "dotenv";
+import Stripe from "stripe";
 import {
 	createJobInDb,
 	createOutboxRowInDb,
@@ -14,6 +17,15 @@ import {
 	test,
 } from "../fixtures";
 import { extractAllLinks, waitForEmailHtml } from "../utils/mailpit-client";
+import {
+	getTelegramMessages,
+	startTelegramMock,
+	stopTelegramMock,
+} from "../utils/telegram-mock";
+import { createEventWithInventory } from "../utils/test-data";
+
+// STRIPE_WEBHOOK_SECRET for signing the test webhook (the dev server reads the same .env).
+dotenv.config();
 
 async function loggedInPage(
 	browser: import("@playwright/test").Browser,
@@ -188,5 +200,157 @@ test.describe("Notifications — admin failure view", () => {
 	test("is not reachable for members", async ({ memberPage: page }) => {
 		await page.goto("/admin/global/notifications");
 		await expect(page).not.toHaveURL(/\/admin\/global\/notifications/);
+	});
+});
+
+test.describe("Notifications — events", () => {
+	let ownsTelegramMock = false;
+	test.beforeAll(async () => {
+		// tickets.spec.ts may hold port 8099 in another worker; then its mock receives the alert.
+		ownsTelegramMock = await startTelegramMock().then(
+			() => true,
+			() => false,
+		);
+	});
+	test.afterAll(async () => {
+		if (ownsTelegramMock) await stopTelegramMock();
+	});
+
+	test("a free RSVP sends the ticket confirmation through the outbox", async ({
+		browser,
+		db,
+	}) => {
+		const session = createUserSession("user", "notify-rsvp");
+		const email = getUserEmailById(session.userId) as string;
+		const ev = await createEventWithInventory(
+			{
+				title: `Outbox RSVP Event ${Date.now()}`,
+				startOffsetDays: 7,
+				city: "Berlin",
+				products: [{ name: "Free Pass", price: 0, maxQuantity: 10 }],
+				salesStartOffset: -1,
+				salesEndOffset: 10,
+			},
+			true,
+		);
+		const { context, page } = await loggedInPage(browser, session.sessionToken);
+		try {
+			await page.goto(`/events/${ev.id}`);
+			const since = new Date();
+			await page.locator('button:has-text("✓ Going")').first().click();
+			await expect(
+				page.locator(
+					"text=✓ You're attending! Your free ticket has been created.",
+				),
+			).toBeVisible({ timeout: 10_000 });
+
+			const rows = getOutboxRows({
+				notificationId: "events.ticket-confirmation",
+				recipientUserId: session.userId,
+			});
+			expect(rows).toHaveLength(1);
+			expect(rows[0].recipient_address).toBe(email);
+
+			const html = await waitForEmailHtml(email, 30_000, since);
+			expect(html).toContain("Purchase Confirmed");
+			expect(html).toMatch(/\/profile\/tickets\/[0-9a-f-]+_[0-9a-f-]+/);
+			expect(getOutboxRowById(rows[0].id)?.status).toBe("sent");
+			expect(db.getTicketCountByEventIdAndUserId(ev.id, session.userId)).toBe(
+				1,
+			);
+		} finally {
+			await context.close();
+			session.cleanup();
+		}
+	});
+
+	test("a paid ticket (signed Stripe webhook) queues the Telegram sales alert", async ({
+		request,
+		db,
+	}) => {
+		const buyer = createUserSession("user", "notify-paid");
+		const productName = `Outbox Paid Pass ${Date.now()}`;
+		const ev = await createEventWithInventory(
+			{
+				title: `Outbox Paid Event ${Date.now()}`,
+				startOffsetDays: 7,
+				city: "Berlin",
+				products: [{ name: productName, price: 15, maxQuantity: 10 }],
+				salesStartOffset: -1,
+				salesEndOffset: 10,
+			},
+			true,
+		);
+		const product = (
+			db.getProductsByEventId(ev.id) as Array<{ id: string; name: string }>
+		).find((p) => p.name === productName);
+		try {
+			const paymentIntent = {
+				id: `pi_e2e_${crypto.randomUUID().replaceAll("-", "")}`,
+				object: "payment_intent",
+				amount: 1500,
+				metadata: {
+					moduleId: "events",
+					kind: "tickets",
+					eventId: ev.id,
+					userId: buyer.userId,
+					items: JSON.stringify([{ productId: product?.id, quantity: 1 }]),
+				},
+			};
+			const payload = JSON.stringify({
+				id: `evt_e2e_${Date.now()}`,
+				type: "payment_intent.succeeded",
+				data: { object: paymentIntent },
+			});
+			const signature = Stripe.webhooks.generateTestHeaderString({
+				payload,
+				secret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
+			});
+			const res = await request.post("/api/webhooks/stripe", {
+				data: payload,
+				headers: {
+					"Content-Type": "application/json",
+					"Stripe-Signature": signature,
+				},
+			});
+			expect(res.status()).toBe(200);
+
+			const [alert] = getOutboxRows({ notificationId: "events.sale" }).filter(
+				(r) => JSON.parse(r.data).productName === productName,
+			);
+			expect(alert).toMatchObject({
+				channel: "telegram",
+				recipient_user_id: null,
+			});
+			expect(JSON.parse(alert.data)).toMatchObject({
+				productName,
+				quantity: 1,
+				amount: 15,
+			});
+			expect(
+				getOutboxRows({
+					notificationId: "events.ticket-confirmation",
+					recipientUserId: buyer.userId,
+				}),
+			).toHaveLength(1);
+
+			if (ownsTelegramMock) {
+				await expect
+					.poll(
+						() =>
+							getTelegramMessages().find((m) => m.text.includes(productName))
+								?.text,
+						{ timeout: 15_000 },
+					)
+					.toBe(
+						`🎫 New sale: 1x ${productName} (€15.00)\n📊 Remaining: ${JSON.parse(alert.data).remaining} spots`,
+					);
+				await expect
+					.poll(() => getOutboxRowById(alert.id)?.status, { timeout: 15_000 })
+					.toBe("sent");
+			}
+		} finally {
+			buyer.cleanup();
+		}
 	});
 });

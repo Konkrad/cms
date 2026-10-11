@@ -2,6 +2,7 @@ import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import {
 	getCurrentUserData,
 	getServerSession,
+	notify,
 	requireActiveModule,
 	requireModuleAuth,
 	usersService,
@@ -10,6 +11,7 @@ import type {
 	CheckoutItemInput,
 	ParticipantSlotInput,
 } from "~theme/routes/events/checkout/types";
+import type { TicketConfirmationData } from "./emails";
 import { isValidEmail } from "./participant-validation";
 import { canViewEvent, eventIdOf } from "./public-event";
 import { checkoutService } from "./services/checkout";
@@ -61,36 +63,22 @@ export const useUpdateParticipation = routeAction$(
 				buyerId: userData.id,
 			});
 
-			// Send confirmation email for free RSVP ticket creation.
-			if (ticket)
-				try {
-					const userEmail = userData.email;
-					if (userEmail) {
-						const { sendTicketConfirmation } = await import("./emails");
-
-						const product = await productsService.getById(data.productId);
-
-						if (product) {
-							await sendTicketConfirmation({
-								to: userEmail,
-								buyerName: userData.name || userEmail,
-								event: {
-									title: target.title,
-									startDate: target.startDate,
-									address: target.address,
-									onlineUrl: target.onlineUrl,
-								},
-								transactionId: ticket.transactionId || ticket.id,
-								products: [{ name: product.name, quantity: 1, amount: 0 }],
-								totalAmount: 0,
-								tickets: [{ id: ticket.id, qrCodeUuid: ticket.qrCodeUuid }],
-							});
-						}
-					}
-				} catch (error) {
-					console.error("Failed to send RSVP confirmation email:", error);
-					// Don't fail the RSVP if email sending fails
-				}
+			// Confirmation email for the free RSVP ticket (queued; the worker sends it).
+			const product = ticket
+				? await productsService.getById(data.productId)
+				: undefined;
+			if (ticket && product) {
+				await notify("events.ticket-confirmation", {
+					to: userData.id,
+					data: {
+						eventId,
+						transactionId: ticket.transactionId || ticket.id,
+						products: [{ name: product.name, quantity: 1, amount: 0 }],
+						totalAmount: 0,
+						ticketIds: [ticket.id],
+					} satisfies TicketConfirmationData,
+				});
+			}
 		}
 
 		// No redirect: the client only reads a routeAction$'s embedded "redirect"

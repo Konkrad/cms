@@ -5,6 +5,10 @@ import {
 	publicImageUrlFromKey,
 } from "~/core";
 import { eventsBlocks } from "./blocks";
+import {
+	saleAlertNotification,
+	ticketConfirmationNotification,
+} from "./emails";
 import { eventsPages } from "./pages";
 import { eventsService } from "./services/events";
 import { participationService } from "./services/participation";
@@ -67,8 +71,9 @@ export const eventsModule = defineModule({
 			})),
 		};
 	},
+	notifications: [ticketConfirmationNotification, saleAlertNotification],
 	reevaluateUserTags: (userId) => tagRulesService.evaluateRulesForUser(userId),
-	// Lazy: the fulfilment graph (Stripe client, QR, iCal, email) would otherwise load with the
+	// Lazy: the fulfilment graph (Stripe client, services) would otherwise load with the
 	// manifest and form an import cycle through ~/core (stripe.ts reads env at load time).
 	payments: {
 		tickets: {

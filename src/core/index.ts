@@ -108,6 +108,13 @@ export {
 	resolveRefs,
 	withItemUrls,
 } from "~/core/registry/refs";
+// Posts (spec 4.4): attach posts to your items with a subject instead of an updates table.
+export {
+	PostInputError,
+	type PostInput,
+	posts,
+} from "~/core/content/posts-api";
+export { postFormSchema, subjectFromField } from "~/core/content/post-form";
 export type { RefLocation, RefTypeDefinition } from "~/core/router/modules";
 export { requireCanonicalUrl } from "~/core/refs/canonical";
 export {

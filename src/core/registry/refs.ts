@@ -1,5 +1,5 @@
 import { coreRefModule } from "~/core/refs/core-refs";
-import { formatHumanRef, refHref, scopeRef } from "~/core/refs/refs";
+import { formatHumanRef, parseRef, refHref, scopeRef } from "~/core/refs/refs";
 import {
 	itemUrlsWith,
 	refFromPathWith,
@@ -46,6 +46,24 @@ export const resolveRefs = (refs: readonly string[]) =>
  */
 export async function resolveRef(ref: string): Promise<string | null> {
 	return (await resolveRefs([ref])).get(ref) ?? null;
+}
+
+/**
+ * Current URL and label (the item's title, when its type gives one) of an item reference,
+ * or null when it is unavailable. For links that show what they point to (a post's subject).
+ */
+export async function describeRef(
+	ref: string,
+): Promise<{ url: string; title: string | null } | null> {
+	const parsed = parseRef(ref);
+	if (!parsed || parsed.kind !== "item") return null;
+	const url = await resolveRef(ref);
+	if (!url) return null;
+	const def = available().find((m) => m.id === parsed.module)?.refs?.[
+		parsed.type
+	];
+	const [located] = def ? await def.locate([parsed.id]) : [];
+	return { url, title: located?.title ?? null };
 }
 
 type Locatable = { id: string; scopeId: string; slug?: string | null };

@@ -28,6 +28,10 @@ A theme is a `theme/` directory with this shape:
   `EventView`, `CheckoutView`), each receiving typed, already
   secrets-stripped props from the matching core `src/routes/**` loader. A
   theme route component never imports `db`, `env`, or a service directly.
+  Links to events, posts, jobs and other items come in the props as `url`
+  fields (an item lives under the address of the group that owns it, e.g.
+  `/germany/berlin/events/summer-bbq`): a theme never builds those URLs
+  itself, and a unit test fails on `/events/${id}`-style links.
 - **`shared/`** — smaller presentational widgets reused across routes
   (e.g. a location-picker step, a participation toggle).
 - **`emails/`** — the entire email layer: layout chrome, brand strings, and

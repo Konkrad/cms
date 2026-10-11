@@ -13,12 +13,14 @@ The presentational layer for public-facing routes lives in `theme/` and is licen
 - **The props type is the contract.** Contracts live in `src/contracts/*.ts`. Pages that show another user's data declare their payload type there and the loader returns it (`satisfies` / explicit return type); for other pages it may be derived from the loader (`NonNullable<ReturnType<typeof useX>["value"]>`) and re-exported from `src/contracts/*.ts`. Module page types (`JobsListData`, ...) are declared the same way.
 - Theme components import only from `~/contracts/*` and, where a block/view needs live data after SSR (pagination, "Load More"), a core-owned **headless composable**. Never `db`, `env`, services, `~/core` or `~/core/auth/*` directly.
 - Visibility is decided in the loader/service; the theme only renders what it gets and never hides data with conditionals (CLAUDE.md Security).
+- Links to items come from the payload (`event.url`, `job.url`, `post.url`, `checkoutUrl`, …): the theme never builds item URLs (`/events/${id}`), because an item lives under its owning scope's path (spec 4.3). A missing URL means a contract field to add in core (`itemUrl` / `withItemUrls` in the loader or composable). `tests/unit/no-hand-built-item-links.spec.ts` enforces it. Stored links (menus, block link fields, rich text) reach the theme already resolved.
 
 ## Headless composables and blocks
 
 - **Page-builder blocks have no route loader**, so each "dynamic" block delegates data-fetching/pagination to a composable: core ones under `src/core/content/builder/blocks/use*.ts` (`useScopesList` — the child scopes of the page's scope —, `useHeroSection`, `usePostsList`); module blocks live in the module (`src/modules/events/useUpcomingEvents.ts`, `useUpcomingEvents`/`usePastEvents`, `src/modules/deals/useDealsList.ts`). Plain functions using `useSignal`/`useTask$`/`server$()`, Qwik's native "custom hook" pattern.
 - The composable owns the service/db/auth calls and any `server$()` RPC boundary; the theme block (`theme/blocks/**`) only calls the composable and renders the returned signals. Same split for the `/jobs` list pagination (`src/modules/jobs/useJobsPagination.ts`). Mark the block `category: "dynamic"`. See `src/core/content/builder/README.md`.
 - `BlockDefinition`/`FieldDefinition`/`BlockData` (needed by every block for registration) are re-exported type-only from `src/contracts/blocks.ts`, so blocks never import `~/core/*/schema` either.
+- A block field that links somewhere uses `type: "link"` (not `"url"`): the builder offers a search over scopes, pages, posts and module items and stores the pick as a `ref:` reference; the CMS page loader hands the block the current URL (an unavailable reference becomes `""`). `"url"` stays for external embeds (video, iframe).
 - Module-owned block types are also listed in the module's `blocks.ts` and `src/core/registry/blocks.ts` (see `add-module`).
 
 ## Enforced boundary

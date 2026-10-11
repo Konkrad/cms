@@ -71,12 +71,13 @@ Helpers named `create*InDb` / `create*` that return `cleanup()` should be cleane
 | `deleteUserByEmail(email)` | Delete user + login by email (Mailpit test cleanup) |
 | `setUserConsentByEmail(email, consent)` | Update consent JSON for a user |
 | `createScopeInDb({ parentPath, slug, name?, kind? })` / `deleteScopeById(id)` | Create a scope (a group: region, chapter…; returns `{ id, path, segment }`, e.g. `/e2e-region/`, `e2e-region`) / delete it with its subtree, roles, memberships, redirects, pages, jobs and deals (other content goes to the root: `scope_id` is NOT NULL) |
+| `renameScopeInDb(id, slug)` | New slug for a scope, rewriting its subtree's paths (no redirect rows); references follow |
 | `getScopeByPath(path)` / `adminSegmentOf(path)` | Look up a scope / its `/admin/[scope]` segment (`/a/b/` → `a.b`, `/` → `root`) |
 | `addScopeMember(userId, scopeId)` / `removeScopeMember(...)` / `isScopeMember(...)` | Scope membership |
 | `grantScopeRole(userId, scopeId, role)` / `revokeScopeRole(...)` / `getScopeRoles(userId, scopeId)` | Scope roles (`admin`, `moderator`, `coordinator`, `representative`) |
 | `rootScopeId(db)` | Id of the root scope (created if missing) |
 | `createTestEvent(userId)` | Minimal event with one product |
-| `createScopeEventInDb({ organizerId, title, scopeId?, visibility?, past? })` | Event owned by a scope (`public` / `members` / `representatives`), optionally past |
+| `createScopeEventInDb({ organizerId, title, slug?, scopeId?, visibility?, past? })` | Event owned by a scope (`public` / `members` / `representatives`), optionally past; served at `<scope path>events/<slug>` (slug = id by default) |
 | `createTestEventWithProduct({ ownerId, isFuture?, participantCapacity?, title? })` | Event + product; returns `{ eventId, productId, cleanup }` |
 | `setParticipationInDb(...)` | Set a user's RSVP for an event (yes/no/maybe) |
 | `createTicketInDb({ buyerId, eventId, productId })` | Ticket (with transaction); returns the ticket id |
@@ -87,7 +88,7 @@ Helpers named `create*InDb` / `create*` that return `cleanup()` should be cleane
 | `getPageContent(pageId)` | Parsed content blocks of a page |
 | `deletePageAndMenuItems(pageId)` | Delete a page and its linked menu items |
 | `createMenuItemInDb(opts)` / `deleteMenuItemById(id)` | Standalone menu item |
-| `getMenuItemByUrl(url)` / `getMenuItemPosition(id)` | Read menu item rows / position |
+| `getMenuItemByUrl(url)` / `getMenuItemById(id)` / `getMenuItemPosition(id)` | Read menu item rows (page items store `ref:core:page:<id>`) / position |
 | `createJobInDb({ suggestedBy, title?, status?, expiresAt?, scopeId? })` | Job row (owned by the root unless `scopeId`); returns `{ jobId, cleanup }` |
 | `getJobById(id)` / `deleteJobById(id)` | Fetch id/title/status/suggested_by / delete |
 | `createDealInDb(opts)` | Deal (name, description, logo, validUntil, steps?, scopeId?); returns `{ dealId, cleanup }` |

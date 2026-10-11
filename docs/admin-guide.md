@@ -25,6 +25,15 @@ and Group settings, limited to that chapter and the groups below it.*
   and so on). Every group has its own pages, served under its address
   (`/germany/berlin/about`); listing blocks on them show that group's
   content. The site menus are managed on the top level only.
+- **Links and addresses** — every event, post, job, deal and election has one
+  address under the group that owns it (`/germany/berlin/events/summer-bbq`);
+  the same item opened under another address is forwarded there. Links you
+  pick in a menu, a page block's link field or the "Link the selected text"
+  search above the post editor point at the item itself, not at its address:
+  renaming or moving a group, or renaming a page, never breaks them, and a
+  link to something that was deleted simply disappears (its text stays). In a
+  menu's URL field you can also type a group as `root/germany/berlin` or its
+  listing as `root/germany/berlin:events`.
 - **Visibility** — posts and events are *Public* (everyone; also listed on
   every group above), *Members* (members of the group and the groups below
   it) or *Representatives*. A group's pages list its own items, those of the

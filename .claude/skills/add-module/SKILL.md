@@ -34,6 +34,14 @@ Jobs (`src/modules/jobs/`) is the worked example throughout. Modules: deals, ele
 - `reevaluateUserTags(userId)`: re-runs the module's user-tag rules (admin "Re-evaluate badges").
 - `payments: Record<kind, PaymentHandlers>`: Stripe callbacks, called by the core webhook by `metadata.moduleId` / `metadata.kind` even while the module is inactive.
 - `notifications: NotificationDefinition[]`: what the module sends (see Notifications below). Resolved from every registered module, so rows queued before a module was deactivated are still sent.
+- `refs: { [type]: { label, path, locate, find?, search? } }`: item types other content may reference as `<module>:<type>:<id>` (spec 4.3). `path` is the item page within its scope (`"/events/:slug"`, `"/jobs/:id"`); `locate(ids)` returns `{ id, scopeId, slug?, title? }` for the items that still exist (left out = unavailable); `find(scopeId, param)` maps a URL parameter to an id (default: the param is the id); `search(query, limit)` feeds the admin link picker (public items only). Core builds every URL from the owning scope's path; references to an inactive module resolve to null.
+
+## URLs and references
+
+- Every item has one canonical URL under its owning scope: `<scope path><refs.path>`. A detail page `load` authorizes, checks visibility, then calls `requireCanonicalUrl(event, await itemUrl("<module>:<type>", item))` (plus a suffix for sub pages like `/checkout`), so the same page under another scope prefix (or the root, e.g. old `/events/<id>` links) answers 301.
+- Never build item URLs by hand (`/events/${id}`): use `itemUrl(kind, item)`, `withItemUrls(kind, rows)` (adds `url`) and `scopeUrl(scope, "/jobs")` in loaders, composables, sitemaps and notification renderers; contracts carry `url` fields and the theme only renders them. `tests/unit/no-hand-built-item-links.spec.ts` fails otherwise (admin URLs from `adminBase` are fine).
+- Never store internal URLs: store references (`refHref(itemRef("jobs", "job", id))` = `ref:jobs:job:<id>`) and resolve them when rendering (`resolveRef`, `resolveRefs`, `renderRichHtml` for stored rich text). Notification `data` keeps the reference and the renderer resolves it at send time (`src/modules/jobs/notifications.ts`). Rich text: run `internalLinksToRefs(html)` before `sanitizeRichHtml` on write (see `src/modules/jobs/service.ts`) and `renderRichHtml(body)` in the loader.
+- Slugs: when a type's URL uses `:slug` (events), generate it on create with `slugify` + `uniqueSlug` (unique per scope) and give `find` a lookup by slug in the URL scope.
 
 ## Pages and actions
 

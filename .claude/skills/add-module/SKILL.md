@@ -1,6 +1,6 @@
 ---
 name: add-module
-description: Use when creating a new feature module under src/modules/, or changing an existing module's manifest, pages, admin sections, actions, schema, blocks, sitemap, profile/group-page hooks, payments, or its registration in src/core/registry and modules.config.ts. Also when a module needs something from core or hits the modules import boundary.
+description: Use when creating a new feature module under src/modules/, or changing an existing module's manifest, pages, admin sections, actions, schema, blocks, sitemap, profile/scope-page hooks, payments, or its registration in src/core/registry and modules.config.ts. Also when a module needs something from core or hits the modules import boundary.
 ---
 
 # Feature modules
@@ -19,17 +19,18 @@ Jobs (`src/modules/jobs/`) is the worked example throughout. Modules: deals, ele
 - `src/core/registry/schemas.ts`: `export *` its tables and add its default schema to `moduleSchemas`.
 - `src/core/registry/blocks.ts`: only if it owns page-builder blocks (`moduleBlocks[id] = <module>Blocks` from a side-effect-free `blocks.ts`).
 - `modules.config.ts`: add the id to `active`. An id in `allModules` but not in `active` is inactive (pages 404 via `requireActiveModule`, its blocks are hidden, admin/menu entries disappear). `selectActive` throws on unknown or duplicate ids.
-- Admin routes: add `src/routes/admin/[group_slug]/<id>/**` files that import the module's admin component + loader via RELATIVE paths and re-export its actions.
+- Admin routes: add `src/routes/admin/[scope]/<id>/**` files that import the module's admin component + loader via RELATIVE paths and re-export its actions.
 - New tables: follow the `database` skill (`npm run db:generate`, commit the migration). Add the id to the seeds if useful.
 
 ## Manifest hooks (`ModuleDefinition` in `src/core/router/modules.ts`)
 
 - `pages`: `definePage` entries, matched in order by the catch-all. Declare static paths before parameterised ones (`/jobs/new` before `/jobs/:id`).
-- `admin: { sections: [{ path, label, order?, scopes? }] }`: admin nav entries, sorted by `order`. `scopes: "global"` (default) shows only in the global admin; `"all"` also shows in every group's admin (e.g. events), and then the routes must authorize per group.
+- `admin: { sections: [{ path, label, order?, scopes? }] }`: admin nav entries, sorted by `order`. `scopes: "global"` (default) exists on the root scope's admin only (`/admin/root/<path>`; the `[scope]` layout and `requireModuleAdmin` answer 404 elsewhere); `"all"` shows in every scope's admin (e.g. events), and then the routes must limit data to the URL's scope subtree (`isWithinScope`, `getSubtreeIds`).
 - `menuLinks: [{ key, label, url }]`: links offered for the site menus.
 - `blocks`: page-builder block types the module owns (hidden while inactive); must match `src/core/registry/blocks.ts` (a unit test checks it).
 - `sitemap: () => SitemapEntry[]`: public URLs for `/sitemap.xml`; omit for login-gated modules. Server-only.
-- `profile(ctx)` / `groupPage(ctx)`: extra sections for profile pages (`ProfileExtras` in `src/contracts/profile.ts`) and the public group page (`src/contracts/groups.ts`). Server-only; return only what `ctx.viewerId` may see (nothing private unless `ctx.isOwnProfile`), the result is serialized to the browser.
+- `profile(ctx)` / `scopePage(ctx)`: extra sections for profile pages (`ProfileExtras` in `src/contracts/profile.ts`) and a scope's public home page (`ScopeExtras` in `src/contracts/scopes.ts`; `ctx.scopeId`). Server-only; return only what `ctx.viewerId` may see (nothing private unless `ctx.isOwnProfile`), the result is serialized to the browser.
+- `scopeContentCount(scopeId)`: how many of the module's rows a scope owns; a scope can only be deleted while every module reports 0.
 - `reevaluateUserTags(userId)`: re-runs the module's user-tag rules (admin "Re-evaluate badges").
 - `payments: Record<kind, PaymentHandlers>`: Stripe callbacks, called by the core webhook by `metadata.moduleId` / `metadata.kind` even while the module is inactive.
 - `notifications: NotificationDefinition[]`: what the module sends (see Notifications below). Resolved from every registered module, so rows queued before a module was deactivated are still sent.
@@ -38,7 +39,8 @@ Jobs (`src/modules/jobs/`) is the worked example throughout. Modules: deals, ele
 
 - Public pages are `definePage({ id, path, load(event, { params }) })` entries served by the catch-all `src/routes/[...path]`; the view for each page id comes from `views.tsx`. Page data is declared in `src/contracts/<module>.ts` (e.g. `JobsListData`) and the catch-all runs the leak check on it (`allowPrivateFields` on `definePage` to allow a field with a reason).
 - Module `routeAction$`s and admin actions are re-exported from the route files via RELATIVE paths only (e.g. `../../modules/jobs/actions` from `src/routes/x/`). Qwik production-build footgun: the Rollup transform mis-resolves `~`/`~theme` aliased re-exports.
-- Authorize as the first statement (before any `try`): `requireModuleAuth(event, "<id>")` for public actions/loaders (login + module active), `requireModuleAdmin(event, { module, scope: "global" | "any" })` for admin ones (both from `~/core`). Details and the rest of the auth rules: CLAUDE.md Security. After adding an action, grep that every `routeAction$` has its auth call.
+- Authorize as the first statement (before any `try`): `requireModuleAuth(event, "<id>")` for public actions/loaders (login + module active), `requireModuleAdmin(event, { module, scope: "global" | "any" })` for admin ones (both from `~/core`). `requireModuleAdmin` is `requireScopeRole(event, ADMIN_ACCESS)` plus the scope rule and returns `{ user, scope, ancestors, isRoot, adminBase }`; build admin links from `adminBase` (or `adminUrl(scope.path, sub)`), never by hand.
+- Scopes and access (all from `~/core`): `canViewScope(user, scopeId, "public" | "members" | "representatives")` for single items, `viewableMemberScopes(user)` for listing queries (`includesRoot` covers rows with a null `scope_id`), `isMember`, `listMembers`, `canManageScope`, `listManagedScopes`, `scopeLabels`, `getScope`/`getAncestors`/`getDescendants`/`getSubtreeIds`. Never read the scope tables or compute inheritance yourself. Content rows reference the owning scope with `scopeId` (`scopes` from `~/core/schema`; null = the root). Details and the rest of the auth rules: CLAUDE.md Security. After adding an action, grep that every `routeAction$` has its auth call.
 - Validate with `zod$`, whitelist updatable columns, re-check ownership in both loader and action.
 
 ## Notifications

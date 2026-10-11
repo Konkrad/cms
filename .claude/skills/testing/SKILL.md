@@ -22,10 +22,10 @@ All e2e tests import `{ test, expect }` from `"../fixtures"` (relative to `tests
 | Fixture | Auth state |
 |---|---|
 | `guestPage` | No session cookie (unauthenticated) |
-| `memberPage` | Logged in as role `"user"` |
-| `adminPage` | Logged in as role `"admin"` |
+| `memberPage` | Logged in, no scope role, no membership |
+| `adminPage` | Logged in as a root admin (admin role on the root scope = platform admin) |
 
-Roles are only `"user"` and `"admin"` (`UserRole`). Also provided: `dbSeed` (runs the seed script before the test; requires `E2E_ALLOW_DB_WRITE=true`) and `db` (`DbHelper` for events/products). Auth flow tests (login itself) use `guestPage` plus the Mailpit helpers, in the `auth-flows` project (no stored session).
+`UserRole` is `"user"` or `"admin"` (= admin of the root scope); there is no `users.role`. Scope roles (admin, moderator, coordinator, representative) and memberships are granted with the scope helpers below. Also provided: `dbSeed` (runs the seed script before the test; requires `E2E_ALLOW_DB_WRITE=true`) and `db` (`DbHelper` for events/products). Auth flow tests (login itself) use `guestPage` plus the Mailpit helpers, in the `auth-flows` project (no stored session).
 
 ```typescript
 import { test, expect } from "../fixtures";
@@ -63,19 +63,20 @@ Helpers named `create*InDb` / `create*` that return `cleanup()` should be cleane
 
 | Helper | Purpose |
 |---|---|
-| `createUserSession(role, prefix?)` | Temp user + login + session; returns `{ userId, sessionToken, cleanup }` |
+| `createUserSession(role, prefix?, { name, familyName }?)` | Temp user + login + session (+ root admin role for `"admin"`); returns `{ userId, sessionToken, cleanup }` |
 | `createUserSessionWithMembership(tier)` | Like `createUserSession("user")` plus a membership (`"associated"` / `"full"`) |
 | `createDbSession(userId)` / `deleteDbSession(id)` | Insert / delete a session row for an existing user |
 | `createTestUser(opts)` | User with preset consent/food/photo fields |
 | `getUserById(id)` / `getUserIdByEmail(email)` / `getUserEmailById(id)` | Look up user rows, ids, login emails |
 | `deleteUserByEmail(email)` | Delete user + login by email (Mailpit test cleanup) |
 | `setUserConsentByEmail(email, consent)` | Update consent JSON for a user |
-| `getGroupBySlug(slug)` / `createGroupInDb(opts)` / `deleteGroupInDb(id)` | Look up, create, delete a group |
-| `addGroupMember(userId, groupId)` / `deleteGroupMember(...)` | Add / remove a group member |
-| `addGroupRepresentative(userId, groupId)` / `deleteGroupRepresentative(...)` | Add / remove a group representative |
-| `createScopeInDb({ parentPath, slug })` / `deleteScopeById(id)` | Create a scope (returns `{ id, path }`, e.g. `/e2e-region/`) / delete it |
+| `createScopeInDb({ parentPath, slug, name?, kind? })` / `deleteScopeById(id)` | Create a scope (a group: region, chapter…; returns `{ id, path, segment }`, e.g. `/e2e-region/`, `e2e-region`) / delete it with its subtree, roles and memberships |
+| `getScopeByPath(path)` / `adminSegmentOf(path)` | Look up a scope / its `/admin/[scope]` segment (`/a/b/` → `a.b`, `/` → `root`) |
+| `addScopeMember(userId, scopeId)` / `removeScopeMember(...)` / `isScopeMember(...)` | Scope membership |
+| `grantScopeRole(userId, scopeId, role)` / `revokeScopeRole(...)` / `getScopeRoles(userId, scopeId)` | Scope roles (`admin`, `moderator`, `coordinator`, `representative`) |
+| `rootScopeId(db)` | Id of the root scope (created if missing) |
 | `createTestEvent(userId)` | Minimal event with one product |
-| `createGroupEventInDb({ organizerId, title, groupId?, visibility?, past? })` | Event owned by a group (`global` / `group-only`), optionally past |
+| `createScopeEventInDb({ organizerId, title, scopeId?, visibility?, past? })` | Event owned by a scope (`global` / `group-only`), optionally past |
 | `createTestEventWithProduct({ ownerId, isFuture?, participantCapacity?, title? })` | Event + product; returns `{ eventId, productId, cleanup }` |
 | `setParticipationInDb(...)` | Set a user's RSVP for an event (yes/no/maybe) |
 | `createTicketInDb({ buyerId, eventId, productId })` | Ticket (with transaction); returns the ticket id |

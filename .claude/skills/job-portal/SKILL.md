@@ -1,6 +1,6 @@
 ---
 name: job-portal
-description: Use when working on the job portal, the jobs module (src/modules/jobs), the /jobs, /jobs/mine, /jobs/new routes, /admin/global/jobs, job approval or expiry rules, or the job seed data.
+description: Use when working on the job portal, the jobs module (src/modules/jobs), the /jobs, /jobs/mine, /jobs/new routes, /admin/root/jobs, job approval or expiry rules, or the job seed data.
 ---
 
 # Job portal
@@ -16,12 +16,12 @@ Members post job listings that go live only after admin approval. Worked example
 | `/jobs/new` | authenticated users | submission form |
 | `/jobs/mine` | authenticated users | own submissions with status |
 | `/jobs/mine/[id]/edit` | owner, pending only | edit a pending submission |
-| `/admin/global/jobs` | platform admin | list all jobs, approve, delete |
-| `/admin/global/jobs/[id]/edit` | platform admin | full edit + status toggle |
+| `/admin/root/jobs` | root admin (or representative of the root) | list all jobs, approve, delete |
+| `/admin/root/jobs/[id]/edit` | root admin (or representative of the root) | full edit + status toggle |
 
 ## Key rules
 
-- Admin routes under `src/routes/admin/[group_slug]/jobs/**` are global-only: loaders (`src/modules/jobs/admin/list-data.ts`, `edit-data.ts`) and admin actions call `requireModuleAdmin(event, { module: "jobs", scope: "global" })` (from `~/core`) as their first statement. It runs `requireGroupAdmin`, redirects non-`global` slugs to `/admin/global/jobs`, then `requireActiveModule`.
+- Admin routes under `src/routes/admin/[scope]/jobs/**` are root-only: loaders (`src/modules/jobs/admin/list-data.ts`, `edit-data.ts`) and admin actions call `requireModuleAdmin(event, { module: "jobs", scope: "global" })` (from `~/core`) as their first statement. It runs `requireScopeRole` (managing role on the URL's scope), answers 404 on any scope but the root, then `requireActiveModule`.
 - All public-facing job pages and actions call `requireAuth` (pages) or `requireModuleAuth(event, "jobs")` (actions) first; unauthenticated visitors are redirected to `/login`.
 - `status` is `pending` on creation; admin sets it to `approved` to make it visible.
 - `expiresAt` is capped at 30 days from today, enforced server-side in both the submit and user-edit actions (`src/modules/jobs/actions.ts`).

@@ -1,18 +1,19 @@
 # Admin guide
 
 A tour of everything manageable in the admin area. See [Roles &
-Permissions](./roles-and-permissions.md) for who can see what — a community
-representative sees the same style of menu as a platform admin, just scoped
-to their one community.
+Permissions](./roles-and-permissions.md) for who can see what. Every group
+has its own admin area (`/admin/<group>`, e.g. `/admin/germany.berlin`;
+`/admin/root` for the whole site); `/admin` opens the highest group you
+manage, and the "Switch group" menu jumps between the groups you manage.
 
 The admin area deliberately looks the same on every deployment of this
 platform, regardless of the public site's branding, so this guide applies
 no matter which community or organization you're managing.
 
 ![Admin dashboard nav](./images/admin-event-create.png)
-*The admin menu: Dashboard, Users, Posts, Events, Forms, Pages, Groups,
-Deals, Jobs, Elections, Qualifications. A community representative sees the
-same menu, scoped to their one community.*
+*The admin menu of the whole site: Dashboard, Users, Posts, Events, Forms,
+Pages, Groups, Deals, Jobs, Elections, Qualifications. A chapter's admin
+shows Dashboard, Members, Posts, Events, Forms and Group settings.*
 
 ## Content
 
@@ -28,9 +29,12 @@ same menu, scoped to their one community.*
 ## People
 
 - **Users** — the member directory.
-- **Groups** — manage communities: their details, and their member list —
-  which is also where you promote a member to be a representative of that
-  community (see [Roles & Permissions](./roles-and-permissions.md)).
+- **Groups / Group settings** — the group's name, description and page
+  images, its sub-groups (create a region or chapter with a URL slug),
+  deleting an empty group and, for platform admins, moving a group.
+- **Members** (below the top) — the group's members, adding and removing
+  them, and granting or revoking roles (see [Roles &
+  Permissions](./roles-and-permissions.md)).
 - **Tags** — freeform labels applied to members or content, which can also
   be assigned automatically (e.g. approving a qualification can assign a
   tag — see [Qualifications](./qualifications.md)).

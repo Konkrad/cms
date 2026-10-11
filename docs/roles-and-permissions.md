@@ -1,43 +1,41 @@
 # Roles & permissions
 
-There are two separate things that decide what someone can manage: their
-**account type** (a platform-wide setting), and whether they've been made a
-**representative** of one specific community.
+The organisation is one tree of **groups**: the whole site at the top, then
+regions, then local chapters (the kinds are a deployment setting). What
+someone can manage depends on the **roles** they hold on groups in that tree;
+there is no separate "account type".
 
-## Account types
+## Roles
 
-Every account is one of two types:
+A role is granted on one group and applies to that group **and every group
+below it**: an admin of a region is an admin of all its chapters.
 
-- **Member** — a regular user. Can browse the site, join communities, RSVP
-  and buy tickets for events, and manage their own profile. No access to
-  any admin area.
-- **Admin** — full access to the Global Admin area, which covers everything
-  platform-wide: all events, all communities, all members, job listings,
-  elections, forms, and qualification reviews.
+- **Admin** and **Moderator** — the same rights: the group's admin area and
+  everything below it. An admin or moderator of the top of the tree is a
+  **platform admin**: they also get the system sections (users, pages, tags,
+  notifications, deals, jobs, elections, qualifications) and can move groups.
+- **Representative** ("local rep") — manages their group and the groups below
+  it: events, posts, forms, sub-groups and members. Representatives have no
+  users directory: they see the members of their own groups only, and they
+  can only appoint other representatives.
+- **Coordinator** — reviews public content from the groups below theirs; no
+  admin access.
 
-Being an admin does **not** automatically give someone management access to
-every community — see below.
+Admins and moderators of a group can grant every role on it; representatives
+can grant only the representative role. Nobody can revoke their own role.
 
-## Community representatives ("local reps")
+## Membership
 
-Each community (local group) can have one or more **representatives** —
-members who've been given management rights over that one community
-specifically, without being a full platform admin. An admin assigns
-representatives from a community's member list in the admin area.
-
-A representative can manage everything scoped to their own community —
-its events, its page content, its member list — but has no access to any
-other community's admin area, and no access to the Global Admin area.
-
-An admin who wants to manage a specific community's admin area directly
-(rather than through the Global Admin area) needs to also be added as a
-representative of that community — being a platform admin doesn't grant
-that automatically.
+Members join chapters themselves (or are added by a manager). Membership
+counts **upward**: a member of Berlin counts as a member of Germany, so
+members-only posts and events of Germany are visible to Berlin's members.
+New users belong to the whole site only.
 
 ## Summary
 
 | Who | Can manage | Cannot manage |
 |---|---|---|
 | Member | Their own profile, RSVPs, tickets | Anything in an admin area |
-| Community representative | Their one community's events, content, and members | Other communities, the Global Admin area |
-| Admin | Everything platform-wide (Global Admin), plus any community they've also been added as a representative of | A specific community's admin area, unless also made a representative of it |
+| Representative of a group | That group and the groups below: events, posts, forms, sub-groups, members, other representatives | Sibling or parent groups, the users directory, system sections |
+| Admin / moderator of a group | The same, plus granting every role | Groups outside their branch |
+| Platform admin (admin of the top) | Everything, including the system sections and moving groups | — |

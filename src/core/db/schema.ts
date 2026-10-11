@@ -94,13 +94,12 @@ export const schemaRelations = defineRelations(
 					user: one.users({ from: sessions.userId, to: users.id }),
 				},
 				posts: {
-					user: one.users({
-						from: posts.userId,
+					author: one.users({
+						from: posts.authorId,
 						to: users.id,
 						optional: false,
 					}),
 					scope: one.scopes({ from: posts.scopeId, to: scopes.id }),
-					deletedByUser: one.users({ from: posts.deletedBy, to: users.id }),
 				},
 				formResults: {
 					form: one.forms({
@@ -168,7 +167,7 @@ export const schemaRelations = defineRelations(
 						from: users.id,
 						to: scopeMemberships.userId,
 					}),
-					posts: many.posts({ from: users.id, to: posts.userId }),
+					posts: many.posts({ from: users.id, to: posts.authorId }),
 					sessions: many.sessions({ from: users.id, to: sessions.userId }),
 					membership: many.userMemberships({
 						from: users.id,

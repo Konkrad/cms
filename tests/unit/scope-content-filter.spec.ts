@@ -79,7 +79,7 @@ beforeAll(async () => {
 		for (const visibility of VIS) {
 			const id = crypto.randomUUID();
 			db.prepare(
-				"INSERT INTO posts (id, title, body, user_id, scope_id, visibility) VALUES (?, ?, ?, ?, ?, ?)",
+				"INSERT INTO posts (id, title, body, author_id, scope_id, visibility, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
 			).run(
 				id,
 				`filter ${tag} ${scope} ${visibility}`,
@@ -87,6 +87,8 @@ beforeAll(async () => {
 				author.userId,
 				S[scope].id,
 				visibility,
+				new Date().toISOString(),
+				new Date().toISOString(),
 			);
 			posts.push({ id, scope, visibility });
 		}

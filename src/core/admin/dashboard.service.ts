@@ -9,10 +9,7 @@ export const adminDashboardService = {
 		const [[totalUsers], [totalPosts], [totalEvents], [totalPages]] =
 			await Promise.all([
 				db.select({ count: count() }).from(users),
-				db
-					.select({ count: count() })
-					.from(posts)
-					.where(isNull(posts.deletedAt)),
+				db.select({ count: count() }).from(posts),
 				db
 					.select({ count: count() })
 					.from(events)
@@ -35,7 +32,7 @@ export const adminDashboardService = {
 			db
 				.select({ count: count() })
 				.from(posts)
-				.where(and(inArray(posts.scopeId, ids), isNull(posts.deletedAt))),
+				.where(inArray(posts.scopeId, ids)),
 			db
 				.select({ count: count() })
 				.from(events)

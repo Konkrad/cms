@@ -53,22 +53,16 @@ beforeAll(async () => {
 	postId = crypto.randomUUID();
 	deletedPostId = crypto.randomUUID();
 	run(
-		"INSERT INTO posts (id, title, body, user_id, scope_id) VALUES (?, ?, ?, ?, ?)",
+		"INSERT INTO posts (id, title, body, author_id, scope_id, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		postId,
 		`Refs post ${tag}`,
 		"<p>x</p>",
 		userId,
 		chapter.id,
-	);
-	run(
-		"INSERT INTO posts (id, title, body, user_id, scope_id, deleted_at) VALUES (?, ?, ?, ?, ?, ?)",
-		deletedPostId,
-		"Deleted",
-		"<p>x</p>",
-		userId,
-		chapter.id,
+		new Date().toISOString(),
 		new Date().toISOString(),
 	);
+	// A deleted post: its row is gone.
 	pageId = crypto.randomUUID();
 	run(
 		"INSERT INTO pages (id, scope_id, slug, title, status) VALUES (?, ?, ?, ?, ?)",

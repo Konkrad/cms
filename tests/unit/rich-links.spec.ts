@@ -81,8 +81,16 @@ describe("stored references (db)", () => {
 		postId = crypto.randomUUID();
 		const db = openDb();
 		db.prepare(
-			"INSERT INTO posts (id, title, body, user_id, scope_id) VALUES (?, ?, ?, ?, ?)",
-		).run(postId, "Linked", "<p>x</p>", user.userId, scope.id);
+			"INSERT INTO posts (id, title, body, author_id, scope_id, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		).run(
+			postId,
+			"Linked",
+			"<p>x</p>",
+			user.userId,
+			scope.id,
+			new Date().toISOString(),
+			new Date().toISOString(),
+		);
 		db.close();
 	});
 
@@ -116,31 +124,16 @@ describe("stored references (db)", () => {
 		}
 	});
 
-	it("keeps editor links when a post's body is rendered from its editor state", async () => {
+	it("keeps editor links in a post's body (the editor's HTML is stored)", async () => {
 		const { postsService } = await import("~/core/content/posts.service");
 		const user = createTestUser();
-		const editorState = JSON.stringify([
-			{
-				type: "paragraph",
-				content: [
-					{ type: "text", text: "See ", styles: {} },
-					{
-						type: "link",
-						href: `ref:scope:${scope.id}`,
-						content: [
-							{ type: "text", text: "the group", styles: { bold: true } },
-						],
-					},
-					{ type: "text", text: " <now>", styles: {} },
-				],
-			},
-		]);
 		const post = await postsService.create({
 			title: "Editor links",
-			editorState,
-			userId: user.userId,
+			body: `<p>See <a href="ref:scope:${scope.id}"><strong>the group</strong></a> &lt;now&gt;</p>`,
+			authorId: user.userId,
 			scopeId: scope.id,
-		} as never);
+			visibility: "members",
+		});
 		try {
 			expect(post.body).toBe(
 				`<p>See <a href="ref:scope:${scope.id}"><strong>the group</strong></a> &lt;now&gt;</p>`,

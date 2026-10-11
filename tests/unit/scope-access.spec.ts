@@ -317,8 +317,8 @@ describe("scope content and images", () => {
 		const db = openDb();
 		const postId = crypto.randomUUID();
 		db.prepare(
-			"INSERT INTO posts (id, title, body, user_id, scope_id) VALUES (?, 't', 'b', ?, ?)",
-		).run(postId, u.repA, chapterB.id);
+			"INSERT INTO posts (id, title, body, author_id, scope_id, updated_at) VALUES (?, 't', 'b', ?, ?, ?)",
+		).run(postId, u.repA, chapterB.id, new Date().toISOString());
 		db.close();
 		try {
 			expect(await scopeHasContent(chapterB.id)).toBe(true);

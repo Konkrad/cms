@@ -27,8 +27,17 @@ function insertPost(scopeId: string, visibility: string) {
 	const id = crypto.randomUUID();
 	const db = openDb();
 	db.prepare(
-		"INSERT INTO posts (id, title, body, user_id, scope_id, visibility) VALUES (?, ?, ?, ?, ?, ?)",
-	).run(id, `Scope post ${tag} ${id}`, "<p>x</p>", author, scopeId, visibility);
+		"INSERT INTO posts (id, title, body, author_id, scope_id, visibility, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+	).run(
+		id,
+		`Scope post ${tag} ${id}`,
+		"<p>x</p>",
+		author,
+		scopeId,
+		visibility,
+		new Date().toISOString(),
+		new Date().toISOString(),
+	);
 	db.close();
 	cleanups.unshift(() => {
 		const d = openDb();
@@ -73,7 +82,11 @@ afterAll(() => {
 
 describe("members-only content flows to members of the scopes below", () => {
 	it("canView: a chapter member sees the region's members-only post", async () => {
-		const post = { visibility: "members", scopeId: region.id };
+		const post = {
+			visibility: "members",
+			scopeId: region.id,
+			publishedAt: new Date().toISOString(),
+		};
 		expect(await postsService.canView(post, { id: chapterMember })).toBe(true);
 		expect(await postsService.canView(post, { id: siblingMember })).toBe(false);
 		expect(await postsService.canView(post, null)).toBe(false);
@@ -105,7 +118,11 @@ describe("members-only content flows to members of the scopes below", () => {
 	it("a region member does not see a chapter's members-only post", async () => {
 		const regionMember = user();
 		await scopesService.join(regionMember, region.id);
-		const post = { visibility: "members", scopeId: chapter.id };
+		const post = {
+			visibility: "members",
+			scopeId: chapter.id,
+			publishedAt: new Date().toISOString(),
+		};
 		expect(await postsService.canView(post, { id: regionMember })).toBe(false);
 		expect(await postsService.canView(post, { id: chapterMember })).toBe(true);
 	});

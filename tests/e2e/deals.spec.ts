@@ -7,17 +7,14 @@
  */
 
 import {
-	addGroupRepresentative,
 	createDealInDb,
-	createGroupInDb,
 	createScopeInDb,
 	createUserSession,
 	deleteDealById,
-	deleteGroupInDb,
-	deleteGroupRepresentative,
 	deleteScopeById,
 	expect,
 	getDealByName,
+	grantScopeRole,
 	test,
 } from "../fixtures";
 
@@ -49,7 +46,7 @@ test.describe("Deals — admin", () => {
 		const name = `E2E Created Deal ${suffix}`;
 		let dealId: string | undefined;
 		try {
-			await page.goto("/admin/global/deals/new");
+			await page.goto("/admin/root/deals/new");
 			// The logo uploader (Uppy) must initialise, or the form can never settle.
 			if (
 				!(await page
@@ -62,7 +59,7 @@ test.describe("Deals — admin", () => {
 			await page.locator("input[name='name']").fill(name);
 			await page.locator("textarea[name='description']").fill("Created in e2e");
 			await page.getByRole("button", { name: "Create Deal" }).click();
-			await expect(page).toHaveURL(/\/admin\/global\/deals$/, {
+			await expect(page).toHaveURL(/\/admin\/root\/deals$/, {
 				timeout: 15_000,
 			});
 
@@ -94,10 +91,10 @@ test.describe("Deals — admin", () => {
 		});
 		const name = `E2E Edited Deal ${suffix}`;
 		try {
-			await page.goto(`/admin/global/deals/${dealId}/edit`);
+			await page.goto(`/admin/root/deals/${dealId}/edit`);
 			await page.locator("input[name='name']").fill(name);
 			await page.getByRole("button", { name: "Save Changes" }).click();
-			await expect(page).toHaveURL(/\/admin\/global\/deals$/, {
+			await expect(page).toHaveURL(/\/admin\/root\/deals$/, {
 				timeout: 15_000,
 			});
 			await expect(page.getByText(name)).toBeVisible();
@@ -115,7 +112,7 @@ test.describe("Deals — admin", () => {
 	test("admin nav lists Deals between Groups and Jobs", async ({
 		adminPage: page,
 	}) => {
-		await page.goto("/admin/global");
+		await page.goto("/admin/root");
 		const labels = await page
 			.locator("nav.overflow-x-auto a")
 			.allTextContents();
@@ -135,8 +132,12 @@ test.describe("Deals — admin", () => {
 	}) => {
 		const admin = createUserSession("admin");
 		const slug = `deals-scope-${Date.now()}`;
-		const groupId = createGroupInDb({ name: "Deals Scope Group", slug });
-		addGroupRepresentative(admin.userId, groupId);
+		const groupId = createScopeInDb({
+			parentPath: "/",
+			slug,
+			name: "Deals Scope Group",
+		}).id;
+		grantScopeRole(admin.userId, groupId, "representative");
 		const { dealId, cleanup } = createDealInDb({ name: "Scoped Edit Target" });
 		const ctx = await browser.newContext();
 		await ctx.addCookies([
@@ -153,19 +154,19 @@ test.describe("Deals — admin", () => {
 		const page = await ctx.newPage();
 		try {
 			for (const path of ["new", `${dealId}/edit`]) {
-				await page.goto(`/admin/${slug}/deals/${path}`);
+				const res = await page.goto(`/admin/${slug}/deals/${path}`);
+				// Deals is a root-only section: 404 on any other scope.
+				expect(res?.status()).toBe(404);
 				await expect(page.locator("input[name='name']")).toHaveCount(0);
 				await expect(page.getByText("Edit Deal", { exact: true })).toHaveCount(
 					0,
 				);
-				await expect(page).toHaveURL(/\/admin\/global\/deals$/);
 			}
 		} finally {
 			await ctx.close();
 			cleanup();
 			try {
-				deleteGroupRepresentative(admin.userId, groupId);
-				deleteGroupInDb(groupId);
+				deleteScopeById(groupId);
 			} catch {}
 			admin.cleanup();
 		}

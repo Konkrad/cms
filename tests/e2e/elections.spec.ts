@@ -36,19 +36,16 @@
  */
 
 import {
-	addGroupRepresentative,
 	createElectionApplicationInDb,
 	createElectionCycleInDb,
 	createElectionPositionInDb,
-	createGroupInDb,
 	createScopeInDb,
 	createUserSession,
 	createUserSessionWithMembership,
-	deleteGroupInDb,
-	deleteGroupRepresentative,
 	deleteScopeById,
 	expect,
 	getUserById,
+	grantScopeRole,
 	openDb,
 	test,
 } from "../fixtures";
@@ -84,7 +81,7 @@ test.describe("Elections — admin: create cycle", () => {
 	}) => {
 		const title = `E2E Admin Cycle ${Date.now()}`;
 		try {
-			await page.goto("/admin/global/elections/new");
+			await page.goto("/admin/root/elections/new");
 			await expect(page.locator('input[name="title"]')).toBeVisible({
 				timeout: 10_000,
 			});
@@ -98,10 +95,9 @@ test.describe("Elections — admin: create cycle", () => {
 			await page.click('button[type="submit"]');
 
 			// Should redirect to the new cycle's admin page
-			await expect(page).toHaveURL(
-				/\/admin\/global\/elections\/[0-9a-f-]{36}/,
-				{ timeout: 10_000 },
-			);
+			await expect(page).toHaveURL(/\/admin\/root\/elections\/[0-9a-f-]{36}/, {
+				timeout: 10_000,
+			});
 			await expect(page.locator(`text=${title}`)).toBeVisible({
 				timeout: 5_000,
 			});
@@ -139,7 +135,7 @@ test.describe("Elections — admin: status lifecycle", () => {
 			title: "Status Lifecycle E2E",
 		});
 		try {
-			await page.goto(`/admin/global/elections/${cycleId}`);
+			await page.goto(`/admin/root/elections/${cycleId}`);
 			await expect(page.locator("text=Status Lifecycle E2E")).toBeVisible({
 				timeout: 10_000,
 			});
@@ -206,7 +202,7 @@ test.describe("Elections — admin: status lifecycle", () => {
 			title: "Position Add E2E",
 		});
 		try {
-			await page.goto(`/admin/global/elections/${cycleId}/positions/new`);
+			await page.goto(`/admin/root/elections/${cycleId}/positions/new`);
 			await expect(page.locator('input[name="title"]')).toBeVisible({
 				timeout: 10_000,
 			});
@@ -217,7 +213,7 @@ test.describe("Elections — admin: status lifecycle", () => {
 
 			// Redirected back to cycle page (URL ends at cycleId, not /positions/new)
 			await expect(page).toHaveURL(
-				new RegExp(`/admin/global/elections/${cycleId}$`),
+				new RegExp(`/admin/root/elections/${cycleId}$`),
 				{ timeout: 10_000 },
 			);
 
@@ -244,9 +240,9 @@ test.describe("Elections — admin: status lifecycle", () => {
 			title: "Open No New Pos E2E",
 		});
 		try {
-			await page.goto(`/admin/global/elections/${cycleId}/positions/new`);
+			await page.goto(`/admin/root/elections/${cycleId}/positions/new`);
 			await expect(page).toHaveURL(
-				new RegExp(`/admin/global/elections/${cycleId}$`),
+				new RegExp(`/admin/root/elections/${cycleId}$`),
 				{ timeout: 10_000 },
 			);
 		} finally {
@@ -263,7 +259,7 @@ test.describe("Elections — admin: status lifecycle", () => {
 		});
 		const votingUrl = "https://forms.example.com/vote-e2e";
 		try {
-			await page.goto(`/admin/global/elections/${cycleId}`);
+			await page.goto(`/admin/root/elections/${cycleId}`);
 			await expect(page.locator('input[name="votingUrl"]')).toBeVisible({
 				timeout: 10_000,
 			});
@@ -698,8 +694,12 @@ test.describe("Elections — module wiring", () => {
 	}) => {
 		const admin = createUserSession("admin");
 		const slug = `elec-scope-${Date.now()}`;
-		const groupId = createGroupInDb({ name: "Elections Scope Group", slug });
-		addGroupRepresentative(admin.userId, groupId);
+		const groupId = createScopeInDb({
+			parentPath: "/",
+			slug,
+			name: "Elections Scope Group",
+		}).id;
+		grantScopeRole(admin.userId, groupId, "representative");
 		const { cycleId, cleanup } = createElectionCycleInDb({
 			status: "draft",
 			title: "Scoped Hidden Cycle",
@@ -707,32 +707,29 @@ test.describe("Elections — module wiring", () => {
 		try {
 			await loginAs(page, admin.sessionToken);
 
-			await page.goto(`/admin/${slug}/elections/${cycleId}`);
-			// The global list names every cycle, so check for the manage view's own controls instead.
-			await expect(page).toHaveURL(/\/admin\/global\/elections$/, {
-				timeout: 10_000,
-			});
+			// Elections is a root-only section: 404 on any other scope.
+			const res = await page.goto(`/admin/${slug}/elections/${cycleId}`);
+			expect(res?.status()).toBe(404);
 			await expect(page.locator('input[name="cycleId"]')).toHaveCount(0);
 			await expect(
 				page.getByRole("button", { name: /^Applications \(/ }),
 			).toHaveCount(0);
 
-			await page.goto(`/admin/${slug}/elections/new`);
+			expect((await page.goto(`/admin/${slug}/elections/new`))?.status()).toBe(
+				404,
+			);
 			await expect(page.locator('input[name="title"]')).toHaveCount(0);
-			await expect(page).toHaveURL(/\/admin\/global\/elections$/, {
-				timeout: 10_000,
-			});
 
-			await page.goto(`/admin/${slug}/elections/${cycleId}/positions/new`);
+			expect(
+				(
+					await page.goto(`/admin/${slug}/elections/${cycleId}/positions/new`)
+				)?.status(),
+			).toBe(404);
 			await expect(page.locator('input[name="title"]')).toHaveCount(0);
-			await expect(page).toHaveURL(/\/admin\/global\/elections$/, {
-				timeout: 10_000,
-			});
 		} finally {
 			cleanup();
 			try {
-				deleteGroupRepresentative(admin.userId, groupId);
-				deleteGroupInDb(groupId);
+				deleteScopeById(groupId);
 			} catch {}
 			admin.cleanup();
 		}

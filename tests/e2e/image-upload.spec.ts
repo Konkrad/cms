@@ -17,7 +17,7 @@ test.describe("ImageUpload — deferred upload (uploadRegistry)", () => {
 	}) => {
 		const postTitle = `Deferred Upload Test ${Date.now()}`;
 		try {
-			await page.goto("/admin/global/posts/new");
+			await page.goto("/admin/root/posts/new");
 			await expect(page.locator('input[name="title"]')).toBeVisible({
 				timeout: 10_000,
 			});
@@ -51,7 +51,7 @@ test.describe("ImageUpload — deferred upload (uploadRegistry)", () => {
 			await page.locator('button:has-text("Create Post")').click();
 
 			// Must redirect to the post LIST, not stay on /new
-			await expect(page).toHaveURL(/\/admin\/global\/posts\/?$/, {
+			await expect(page).toHaveURL(/\/admin\/root\/posts\/?$/, {
 				timeout: 15_000,
 			});
 

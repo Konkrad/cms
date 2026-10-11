@@ -7,8 +7,8 @@
 
 import type { Browser, Page } from "@playwright/test";
 import {
-	createGroupEventInDb,
 	createJobInDb,
+	createScopeEventInDb,
 	createScopeInDb,
 	createUserSession,
 	deleteJobById,
@@ -80,15 +80,12 @@ test.describe("Scope routing — server rendering", () => {
 		expect(await scopeOf(page)).toBe(SCOPE_PATH);
 	});
 
-	test("bare scope prefix renders the home page", async ({
+	test("bare scope prefix renders the scope's home page", async ({
 		guestPage: page,
 	}) => {
-		await page.goto("/");
-		const homeHeading = await page.locator("h1").first().textContent();
-
 		const res = await page.goto(PREFIX);
 		expect(res?.status()).toBe(200);
-		await expect(page.locator("h1").first()).toHaveText(homeHeading ?? "");
+		await expect(page.locator("h1").first()).toHaveText(CHAPTER);
 		expect(await scopeOf(page)).toBe(SCOPE_PATH);
 	});
 
@@ -107,7 +104,7 @@ test.describe("Scope routing — events module pages", () => {
 		guestPage: page,
 	}) => {
 		const organizer = createUserSession("user");
-		const event = createGroupEventInDb({
+		const event = createScopeEventInDb({
 			organizerId: organizer.userId,
 			title: "Scoped Event Page",
 		});

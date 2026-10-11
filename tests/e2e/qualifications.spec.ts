@@ -8,17 +8,14 @@
  */
 
 import {
-	addGroupRepresentative,
-	createGroupInDb,
 	createQualificationInDb,
 	createQualificationTokenInDb,
 	createQualificationTypeInDb,
 	createScopeInDb,
 	createUserSession,
-	deleteGroupInDb,
-	deleteGroupRepresentative,
 	deleteScopeById,
 	expect,
+	grantScopeRole,
 	openDb,
 	test,
 } from "../fixtures";
@@ -37,23 +34,21 @@ async function loginAs(page: import("@playwright/test").Page, token: string) {
 	]);
 }
 
-test("redirects /admin/global/qualifications to /login for guests", async ({
+test("redirects /admin/root/qualifications to /login for guests", async ({
 	guestPage: page,
 }) => {
-	await page.goto("/admin/global/qualifications");
+	await page.goto("/admin/root/qualifications");
 	await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
 });
 
-test("non-admin is redirected away from admin qualifications page", async ({
+test("non-admin gets 403 on the admin qualifications page", async ({
 	guestPage: page,
 }) => {
 	const session = createUserSession("user");
 	try {
 		await loginAs(page, session.sessionToken);
-		await page.goto("/admin/global/qualifications");
-		await expect(page).not.toHaveURL(/\/admin\/global\/qualifications/, {
-			timeout: 10_000,
-		});
+		const res = await page.goto("/admin/root/qualifications");
+		expect(res?.status()).toBe(403);
 	} finally {
 		session.cleanup();
 	}
@@ -74,7 +69,7 @@ test("admin sees a pending qualification in the queue", async ({
 	);
 	try {
 		await loginAs(page, admin.sessionToken);
-		await page.goto("/admin/global/qualifications");
+		await page.goto("/admin/root/qualifications");
 		await expect(page.locator("text=Test PhD Qualification")).toBeVisible({
 			timeout: 10_000,
 		});
@@ -104,7 +99,7 @@ test("admin approves qualification → tag appears on user profile", async ({
 	);
 	try {
 		await loginAs(page, admin.sessionToken);
-		await page.goto("/admin/global/qualifications");
+		await page.goto("/admin/root/qualifications");
 
 		// Click Approve for this qualification
 		const row = page
@@ -149,7 +144,7 @@ test("admin rejects qualification → rejection note visible on user profile", a
 	);
 	try {
 		await loginAs(page, admin.sessionToken);
-		await page.goto("/admin/global/qualifications");
+		await page.goto("/admin/root/qualifications");
 
 		const row = page
 			.locator("tr", { has: page.locator("text=E2E Reject Test") })
@@ -195,21 +190,25 @@ test("group-scoped admin URL does not render the qualifications admin UI", async
 }) => {
 	const admin = createUserSession("admin");
 	const slug = `qual-scope-${Date.now()}`;
-	const groupId = createGroupInDb({ name: "Qualifications Scope Group", slug });
-	addGroupRepresentative(admin.userId, groupId);
+	const groupId = createScopeInDb({
+		parentPath: "/",
+		slug,
+		name: "Qualifications Scope Group",
+	}).id;
+	grantScopeRole(admin.userId, groupId, "representative");
 	const { typeId, cleanup: tc } = createQualificationTypeInDb({
 		label: "Scoped Hidden Type",
 	});
 	try {
 		await loginAs(page, admin.sessionToken);
-		await page.goto(`/admin/${slug}/qualifications`);
+		// Qualifications is a root-only section: 404 on any other scope.
+		const res = await page.goto(`/admin/${slug}/qualifications`);
+		expect(res?.status()).toBe(404);
 		await expect(page.getByText("Scoped Hidden Type")).toHaveCount(0);
-		await expect(page).toHaveURL(/\/admin\/global\/qualifications$/);
 	} finally {
 		tc();
 		try {
-			deleteGroupRepresentative(admin.userId, groupId);
-			deleteGroupInDb(groupId);
+			deleteScopeById(groupId);
 		} catch {}
 		admin.cleanup();
 	}

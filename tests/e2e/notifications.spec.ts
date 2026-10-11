@@ -52,7 +52,7 @@ async function approveJob(
 	page: import("@playwright/test").Page,
 	title: string,
 ) {
-	await page.goto("/admin/global/jobs");
+	await page.goto("/admin/root/jobs");
 	const row = page.locator("tr", { hasText: title });
 	await expect(row).toBeVisible({ timeout: 10_000 });
 	await row.locator("button:has-text('Approve')").click();
@@ -176,7 +176,7 @@ test.describe("Notifications — admin failure view", () => {
 			lastError: "550 mailbox unavailable (e2e)",
 		});
 		try {
-			await page.goto("/admin/global/notifications");
+			await page.goto("/admin/root/notifications");
 			await expect(
 				page.locator("nav a", { hasText: "Notifications" }),
 			).toBeVisible();
@@ -198,8 +198,9 @@ test.describe("Notifications — admin failure view", () => {
 	});
 
 	test("is not reachable for members", async ({ memberPage: page }) => {
-		await page.goto("/admin/global/notifications");
-		await expect(page).not.toHaveURL(/\/admin\/global\/notifications/);
+		const res = await page.goto("/admin/root/notifications");
+		expect(res?.status()).toBe(403);
+		await expect(page.locator("table")).toHaveCount(0);
 	});
 });
 

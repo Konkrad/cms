@@ -129,9 +129,6 @@ function deleteUserCascade(
 	// Scope roles and memberships
 	db.prepare("DELETE FROM scope_roles WHERE user_id = ?").run(userId);
 	db.prepare("DELETE FROM scope_memberships WHERE user_id = ?").run(userId);
-	// Group membership and representatives
-	db.prepare("DELETE FROM group_representatives WHERE user_id = ?").run(userId);
-	db.prepare("DELETE FROM group_memberships WHERE user_id = ?").run(userId);
 	// Misc user-linked data
 	db.prepare("DELETE FROM form_results WHERE user_id = ?").run(userId);
 	db.prepare("DELETE FROM participation_status WHERE user_id = ?").run(userId);
@@ -161,6 +158,10 @@ function deleteUserCascade(
 export function createUserSession(
 	role: UserRole,
 	prefix = "e2e",
+	name: { name: string; familyName: string } = {
+		name: "Test",
+		familyName: "User",
+	},
 ): CreatedSession {
 	const db = openDb();
 	const userId = crypto.randomUUID();
@@ -185,7 +186,7 @@ export function createUserSession(
 	);
 	db.prepare(
 		"INSERT INTO users (id, name, family_name, login_id, consent, food_preference, photo_consent_given) VALUES (?, ?, ?, ?, ?, ?, ?)",
-	).run(userId, "Test", "User", loginId, consent, "none", 1);
+	).run(userId, name.name, name.familyName, loginId, consent, "none", 1);
 	// A platform admin is an admin of the root scope.
 	if (role === "admin") {
 		db.prepare(
@@ -302,88 +303,96 @@ export function createTestUser(opts: {
 	return session;
 }
 
-// ── Group helpers ─────────────────────────────────────────────────────────────
+// ── Scope helpers (groups are scopes: regions, chapters) ──────────────────────
 
-export function getGroupBySlug(
-	slug: string,
-): { id: string; name: string; slug: string } | undefined {
+export type ScopeRole =
+	| "admin"
+	| "moderator"
+	| "coordinator"
+	| "representative";
+
+/** The `[scope]` segment of an admin URL: "/" -> "root", "/a/b/" -> "a.b". */
+export function adminSegmentOf(path: string): string {
+	const slugs = path.split("/").filter(Boolean);
+	return slugs.length ? slugs.join(".") : "root";
+}
+
+export function getScopeByPath(
+	path: string,
+): { id: string; name: string; slug: string; path: string } | undefined {
 	const db = openDb();
 	const row = db
-		.prepare("SELECT id, name, slug FROM groups WHERE slug = ? LIMIT 1")
-		.get(slug) as { id: string; name: string; slug: string } | undefined;
+		.prepare("SELECT id, name, slug, path FROM scopes WHERE path = ? LIMIT 1")
+		.get(path) as
+		| { id: string; name: string; slug: string; path: string }
+		| undefined;
 	db.close();
 	return row;
 }
 
-/** Create a minimal group fixture. Returns the new group's id. */
-export function createGroupInDb(opts: {
-	name: string;
-	slug: string;
-	latitude?: string;
-	longitude?: string;
-}): string {
-	const db = openDb();
-	const id = crypto.randomUUID();
-	const now = new Date().toISOString();
-	db.prepare(
-		"INSERT INTO groups (id, name, slug, latitude, longitude, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-	).run(
-		id,
-		opts.name,
-		opts.slug,
-		opts.latitude ?? "0",
-		opts.longitude ?? "0",
-		now,
-		now,
-	);
-	db.close();
-	return id;
-}
-
-/** Delete a group fixture (memberships/representatives must be removed separately). */
-export function deleteGroupInDb(groupId: string): void {
-	const db = openDb();
-	db.prepare("DELETE FROM groups WHERE id = ?").run(groupId);
-	db.close();
-}
-
-/** Add a user to a group. Returns the new membership id. */
-export function addGroupMember(userId: string, groupId: string): string {
-	const db = openDb();
-	const id = crypto.randomUUID();
-	db.prepare(
-		"INSERT OR IGNORE INTO group_memberships (id, user_id, group_id) VALUES (?, ?, ?)",
-	).run(id, userId, groupId);
-	db.close();
-	return id;
-}
-
-export function deleteGroupMember(userId: string, groupId: string): void {
+/** Add a user to a scope (explicit membership). */
+export function addScopeMember(userId: string, scopeId: string): void {
 	const db = openDb();
 	db.prepare(
-		"DELETE FROM group_memberships WHERE user_id = ? AND group_id = ?",
-	).run(userId, groupId);
+		"INSERT OR IGNORE INTO scope_memberships (user_id, scope_id) VALUES (?, ?)",
+	).run(userId, scopeId);
 	db.close();
 }
 
-/** Insert a group representative row directly (bypasses the promote action). */
-export function addGroupRepresentative(userId: string, groupId: string): void {
+export function removeScopeMember(userId: string, scopeId: string): void {
 	const db = openDb();
 	db.prepare(
-		"INSERT OR IGNORE INTO group_representatives (id, user_id, group_id, promoted_by, promoted_at) VALUES (?, ?, ?, ?, ?)",
-	).run(crypto.randomUUID(), userId, groupId, userId, new Date().toISOString());
+		"DELETE FROM scope_memberships WHERE user_id = ? AND scope_id = ?",
+	).run(userId, scopeId);
 	db.close();
 }
 
-export function deleteGroupRepresentative(
+/** Grant a scope role directly (bypasses the members page). */
+export function grantScopeRole(
 	userId: string,
-	groupId: string,
+	scopeId: string,
+	role: ScopeRole,
 ): void {
 	const db = openDb();
 	db.prepare(
-		"DELETE FROM group_representatives WHERE user_id = ? AND group_id = ?",
-	).run(userId, groupId);
+		"INSERT OR IGNORE INTO scope_roles (user_id, scope_id, role) VALUES (?, ?, ?)",
+	).run(userId, scopeId, role);
 	db.close();
+}
+
+export function revokeScopeRole(
+	userId: string,
+	scopeId: string,
+	role: ScopeRole,
+): void {
+	const db = openDb();
+	db.prepare(
+		"DELETE FROM scope_roles WHERE user_id = ? AND scope_id = ? AND role = ?",
+	).run(userId, scopeId, role);
+	db.close();
+}
+
+export function isScopeMember(userId: string, scopeId: string): boolean {
+	const db = openDb();
+	const row = db
+		.prepare(
+			"SELECT 1 FROM scope_memberships WHERE user_id = ? AND scope_id = ?",
+		)
+		.get(userId, scopeId);
+	db.close();
+	return !!row;
+}
+
+/** Role rows a user holds on a scope (e.g. to verify a grant made through the UI). */
+export function getScopeRoles(userId: string, scopeId: string): string[] {
+	const db = openDb();
+	const rows = db
+		.prepare(
+			"SELECT role FROM scope_roles WHERE user_id = ? AND scope_id = ? ORDER BY role",
+		)
+		.all(userId, scopeId) as { role: string }[];
+	db.close();
+	return rows.map((r) => r.role);
 }
 
 // ── Event helpers ─────────────────────────────────────────────────────────────
@@ -438,13 +447,13 @@ export function createTestEvent(userId: string): {
 }
 
 /**
- * Create an event owned by `organizerId`, optionally in a group and/or group-only, with no
+ * Create an event owned by `organizerId`, optionally owned by a scope and/or group-only, with no
  * products. `past` makes it already finished. `cleanup()` removes it and its participation rows.
  */
-export function createGroupEventInDb(opts: {
+export function createScopeEventInDb(opts: {
 	organizerId: string;
 	title: string;
-	groupId?: string | null;
+	scopeId?: string | null;
 	visibility?: "global" | "group-only";
 	past?: boolean;
 }): { eventId: string; cleanup(): void } {
@@ -455,7 +464,7 @@ export function createGroupEventInDb(opts: {
 	const end = new Date(Date.now() + offset + 7200000).toISOString();
 
 	db.prepare(
-		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, group_id, visibility)
+		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, scope_id, visibility)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		eventId,
@@ -465,7 +474,7 @@ export function createGroupEventInDb(opts: {
 		end,
 		"online",
 		opts.organizerId,
-		opts.groupId ?? null,
+		opts.scopeId ?? null,
 		opts.visibility ?? "global",
 	);
 	db.close();
@@ -864,21 +873,20 @@ export function deleteDealById(id: string): void {
 
 /**
  * Insert a scope under `parentPath` (the root scope "/" is created if missing).
- * Returns the new scope's id and path, e.g. "/e2e-region/".
+ * Returns the new scope's id, path (e.g. "/e2e-region/") and admin URL segment.
  */
-export function createScopeInDb(opts: { parentPath: string; slug: string }): {
-	id: string;
-	path: string;
-} {
+export function createScopeInDb(opts: {
+	parentPath: string;
+	slug: string;
+	name?: string;
+	kind?: string;
+}): { id: string; path: string; segment: string } {
 	const db = openDb();
 	let parent = db
 		.prepare("SELECT id FROM scopes WHERE path = ?")
 		.get(opts.parentPath) as { id: string } | undefined;
 	if (!parent && opts.parentPath === "/") {
-		parent = { id: crypto.randomUUID() };
-		db.prepare(
-			`INSERT INTO scopes (id, parent_id, kind, slug, name, path) VALUES (?, NULL, 'root', '', 'Root', '/')`,
-		).run(parent.id);
+		parent = { id: rootScopeId(db) };
 	}
 	if (!parent) {
 		db.close();
@@ -887,15 +895,49 @@ export function createScopeInDb(opts: { parentPath: string; slug: string }): {
 	const id = crypto.randomUUID();
 	const path = `${opts.parentPath}${opts.slug}/`;
 	db.prepare(
-		`INSERT INTO scopes (id, parent_id, kind, slug, name, path) VALUES (?, ?, 'region', ?, ?, ?)`,
-	).run(id, parent.id, opts.slug, opts.slug, path);
+		"INSERT INTO scopes (id, parent_id, kind, slug, name, path) VALUES (?, ?, ?, ?, ?, ?)",
+	).run(
+		id,
+		parent.id,
+		opts.kind ?? "region",
+		opts.slug,
+		opts.name ?? opts.slug,
+		path,
+	);
 	db.close();
-	return { id, path };
+	return { id, path, segment: adminSegmentOf(path) };
 }
 
+/**
+ * Delete a scope and everything below it, with their roles and memberships; content rows owned
+ * by them (posts, events, forms) are detached (scope_id = NULL) rather than deleted.
+ */
 export function deleteScopeById(id: string): void {
 	const db = openDb();
-	db.prepare("DELETE FROM scopes WHERE id = ?").run(id);
+	const scope = db.prepare("SELECT path FROM scopes WHERE id = ?").get(id) as
+		| { path: string }
+		| undefined;
+	if (scope) {
+		const ids = (
+			db
+				.prepare(
+					"SELECT id FROM scopes WHERE path LIKE ? ORDER BY length(path) DESC",
+				)
+				.all(`${scope.path}%`) as { id: string }[]
+		).map((r) => r.id);
+		for (const scopeId of ids) {
+			db.prepare("DELETE FROM scope_roles WHERE scope_id = ?").run(scopeId);
+			db.prepare("DELETE FROM scope_memberships WHERE scope_id = ?").run(
+				scopeId,
+			);
+			for (const table of ["posts", "events", "forms"]) {
+				db.prepare(
+					`UPDATE ${table} SET scope_id = NULL WHERE scope_id = ?`,
+				).run(scopeId);
+			}
+			db.prepare("DELETE FROM scopes WHERE id = ?").run(scopeId);
+		}
+	}
 	db.close();
 }
 
@@ -921,7 +963,7 @@ export function createPostInDb(opts: {
 	title: string;
 	body: string;
 	userId: string;
-	groupId?: string | null;
+	scopeId?: string | null;
 	visibility?: "global" | "group-only";
 	createdAt?: string;
 }): string {
@@ -929,13 +971,13 @@ export function createPostInDb(opts: {
 	const id = crypto.randomUUID();
 	const now = opts.createdAt ?? new Date().toISOString();
 	db.prepare(
-		"INSERT INTO posts (id, title, body, user_id, group_id, visibility, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO posts (id, title, body, user_id, scope_id, visibility, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
 	).run(
 		id,
 		opts.title,
 		opts.body,
 		opts.userId,
-		opts.groupId ?? null,
+		opts.scopeId ?? null,
 		opts.visibility ?? "global",
 		now,
 		now,

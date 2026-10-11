@@ -47,10 +47,10 @@ setup("create shared test session", async ({ page }) => {
 			db.prepare("DELETE FROM transactions WHERE user_id = ?").run(
 				existingUser.id,
 			);
-			db.prepare("DELETE FROM group_representatives WHERE user_id = ?").run(
+			db.prepare("DELETE FROM scope_roles WHERE user_id = ?").run(
 				existingUser.id,
 			);
-			db.prepare("DELETE FROM group_memberships WHERE user_id = ?").run(
+			db.prepare("DELETE FROM scope_memberships WHERE user_id = ?").run(
 				existingUser.id,
 			);
 			db.prepare("DELETE FROM form_results WHERE user_id = ?").run(

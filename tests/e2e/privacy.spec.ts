@@ -63,9 +63,7 @@ test.describe("Privacy — page payloads", () => {
 				"comp-tickets",
 				"scan",
 			]) {
-				const res = await page.goto(
-					`/admin/global/events/${ev.eventId}/${sub}`,
-				);
+				const res = await page.goto(`/admin/root/events/${ev.eventId}/${sub}`);
 				expect(res?.status(), sub).toBeLessThan(400);
 			}
 		} finally {
@@ -151,7 +149,7 @@ test.describe("Privacy — page payloads", () => {
 		);
 		try {
 			await loginAs(page, admin.sessionToken);
-			const res = await page.goto(`/admin/global/elections/${cycle.cycleId}`);
+			const res = await page.goto(`/admin/root/elections/${cycle.cycleId}`);
 			expect(res?.status()).toBeLessThan(400);
 			await expect(page.getByText("Internal note")).toBeVisible();
 		} finally {

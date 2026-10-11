@@ -34,7 +34,7 @@ test("admin can set a user membership tier to associated", async ({
 	const member = createUserSession("user");
 	try {
 		await loginAs(page, admin.sessionToken);
-		await page.goto("/admin/global/users");
+		await page.goto("/admin/root/users");
 
 		// Find the member's row by their profile link (unique per user ID)
 		const row = page.locator("tr", {
@@ -74,7 +74,7 @@ test("admin can upgrade a user from associated to full", async ({
 	const { cleanup: mc } = createMembershipInDb(member.userId, "associated");
 	try {
 		await loginAs(page, admin.sessionToken);
-		await page.goto("/admin/global/users");
+		await page.goto("/admin/root/users");
 
 		const row = page.locator("tr", {
 			has: page.locator(`a[href="/users/${member.userId}"]`),

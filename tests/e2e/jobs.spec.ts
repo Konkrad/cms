@@ -9,15 +9,14 @@
  */
 
 import {
-	addGroupRepresentative,
-	createGroupInDb,
 	createJobInDb,
+	createScopeInDb,
 	createUserSession,
-	deleteGroupInDb,
-	deleteGroupRepresentative,
 	deleteJobById,
+	deleteScopeById,
 	expect,
 	getJobById,
+	grantScopeRole,
 	openDb,
 	test,
 } from "../fixtures";
@@ -331,7 +330,7 @@ test.describe("Jobs — public list", () => {
 // ── Admin management ───────────────────────────────────────────────────────────
 
 test.describe("Jobs — admin", () => {
-	test("admin sees pending job in /admin/global/jobs and can approve it", async ({
+	test("admin sees pending job in /admin/root/jobs and can approve it", async ({
 		adminPage: page,
 	}) => {
 		const member = createUserSession("user");
@@ -342,7 +341,7 @@ test.describe("Jobs — admin", () => {
 		});
 
 		try {
-			await page.goto("/admin/global/jobs");
+			await page.goto("/admin/root/jobs");
 			const row = page.locator("tr", { hasText: "Needs Admin Approval" });
 			await expect(row).toBeVisible({ timeout: 10_000 });
 			await expect(row.locator("text=Pending")).toBeVisible();
@@ -370,7 +369,7 @@ test.describe("Jobs — admin", () => {
 		});
 
 		try {
-			await page.goto("/admin/global/jobs");
+			await page.goto("/admin/root/jobs");
 			const row = page.locator("tr", { hasText: "Admin Delete Job" });
 			await expect(row).toBeVisible({ timeout: 10_000 });
 
@@ -395,8 +394,12 @@ test.describe("Jobs — admin", () => {
 		const admin = createUserSession("admin");
 		const member = createUserSession("user");
 		const slug = `jobs-scope-${Date.now()}`;
-		const groupId = createGroupInDb({ name: "Jobs Scope Group", slug });
-		addGroupRepresentative(admin.userId, groupId);
+		const groupId = createScopeInDb({
+			parentPath: "/",
+			slug,
+			name: "Jobs Scope Group",
+		}).id;
+		grantScopeRole(admin.userId, groupId, "representative");
 		const { jobId, cleanup } = createJobInDb({
 			suggestedBy: member.userId,
 			title: "Scoped Edit Target",
@@ -416,15 +419,15 @@ test.describe("Jobs — admin", () => {
 		]);
 		const page = await ctx.newPage();
 		try {
-			await page.goto(`/admin/${slug}/jobs/${jobId}/edit`);
+			// Jobs is a root-only section: 404 on any other scope.
+			const res = await page.goto(`/admin/${slug}/jobs/${jobId}/edit`);
+			expect(res?.status()).toBe(404);
 			await expect(page.locator("input[name='title']")).toHaveCount(0);
 			await expect(page.getByText("Edit Job", { exact: true })).toHaveCount(0);
-			await expect(page).toHaveURL(/\/admin\/global\/jobs$/);
 		} finally {
 			await ctx.close();
 			cleanup();
-			deleteGroupRepresentative(admin.userId, groupId);
-			deleteGroupInDb(groupId);
+			deleteScopeById(groupId);
 			member.cleanup();
 			admin.cleanup();
 		}
@@ -433,8 +436,8 @@ test.describe("Jobs — admin", () => {
 	test("Jobs nav item is visible in global admin nav", async ({
 		adminPage: page,
 	}) => {
-		await page.goto("/admin/global");
-		await expect(page.locator("a[href='/admin/global/jobs']")).toBeVisible({
+		await page.goto("/admin/root");
+		await expect(page.locator("a[href='/admin/root/jobs']")).toBeVisible({
 			timeout: 10_000,
 		});
 	});
@@ -443,8 +446,8 @@ test.describe("Jobs — admin", () => {
 test("admin nav shows the Jobs entry from the active jobs module", async ({
 	adminPage: page,
 }) => {
-	await page.goto("/admin/global");
+	await page.goto("/admin/root");
 	await expect(
 		page.locator("nav").getByRole("link", { name: "Jobs", exact: true }),
-	).toHaveAttribute("href", "/admin/global/jobs");
+	).toHaveAttribute("href", "/admin/root/jobs");
 });

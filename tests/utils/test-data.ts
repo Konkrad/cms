@@ -48,13 +48,15 @@ export async function createEventWithInventory(
 			)
 			.get() as { image1: string; image2: string } | undefined;
 
-		// Find group id if provided
-		let groupId: string | null = null;
+		// Find the owning scope (a group) by slug if provided
+		let scopeId: string | null = null;
 		if (opts.groupSlug) {
 			const g = db
-				.prepare("SELECT id FROM groups WHERE slug = ? LIMIT 1")
+				.prepare(
+					"SELECT id FROM scopes WHERE slug = ? AND parent_id IS NOT NULL LIMIT 1",
+				)
 				.get(opts.groupSlug) as { id: string } | undefined;
-			if (g) groupId = g.id;
+			if (g) scopeId = g.id;
 		}
 
 		// Create event using the app service
@@ -80,7 +82,7 @@ export async function createEventWithInventory(
 			latitude: opts.city ? "0" : null,
 			onlineUrl: opts.city === "Online" ? "https://meet.example.com" : null,
 			userId: adminId,
-			groupId,
+			scopeId,
 			visibility: "global",
 			image1: seedImgRow?.image1 ?? null,
 			image2: seedImgRow?.image2 ?? null,

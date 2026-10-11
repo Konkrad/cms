@@ -1,14 +1,12 @@
 import {
-	addGroupMember,
-	addGroupRepresentative,
-	createGroupEventInDb,
-	createGroupInDb,
+	addScopeMember,
+	createScopeEventInDb,
+	createScopeInDb,
 	createUserSession,
-	deleteGroupInDb,
-	deleteGroupMember,
-	deleteGroupRepresentative,
+	deleteScopeById,
 	expect,
 	getUserEmailById,
+	grantScopeRole,
 	setParticipationInDb,
 	test,
 } from "../fixtures";
@@ -241,7 +239,7 @@ test.describe("Events — public page data and visibility", () => {
 		guestPage: page,
 	}) => {
 		const organizer = createUserSession("user", "e2e-organizer");
-		const event = createGroupEventInDb({
+		const event = createScopeEventInDb({
 			organizerId: organizer.userId,
 			title: "Privacy Check Event",
 		});
@@ -267,15 +265,16 @@ test.describe("Events — public page data and visibility", () => {
 		const organizer = createUserSession("user");
 		const member = createUserSession("user");
 		const outsider = createUserSession("user");
-		const groupId = createGroupInDb({
-			name: "Visibility Group",
+		const groupId = createScopeInDb({
+			parentPath: "/",
 			slug: `e2e-vis-${Date.now()}`,
-		});
-		addGroupMember(member.userId, groupId);
-		const event = createGroupEventInDb({
+			name: "Visibility Group",
+		}).id;
+		addScopeMember(member.userId, groupId);
+		const event = createScopeEventInDb({
 			organizerId: organizer.userId,
 			title: "Members Only Gathering",
-			groupId,
+			scopeId: groupId,
 			visibility: "group-only",
 		});
 		const open = async (
@@ -312,8 +311,7 @@ test.describe("Events — public page data and visibility", () => {
 			expect(asMember.html).toContain("Members Only Gathering");
 		} finally {
 			event.cleanup();
-			deleteGroupMember(member.userId, groupId);
-			deleteGroupInDb(groupId);
+			deleteScopeById(groupId);
 			for (const u of [organizer, member, outsider]) u.cleanup();
 		}
 	});
@@ -328,16 +326,16 @@ test.describe("Events — profile participation", () => {
 		browser,
 	}) => {
 		const user = createUserSession("user");
-		const upcoming = createGroupEventInDb({
+		const upcoming = createScopeEventInDb({
 			organizerId: user.userId,
 			title: "Profile Upcoming Event",
 		});
-		const past = createGroupEventInDb({
+		const past = createScopeEventInDb({
 			organizerId: user.userId,
 			title: "Profile Past Event",
 			past: true,
 		});
-		const declined = createGroupEventInDb({
+		const declined = createScopeEventInDb({
 			organizerId: user.userId,
 			title: "Profile Declined Event",
 		});
@@ -402,49 +400,48 @@ test.describe("Events — admin scope", () => {
 	let groupB: string;
 	let repA: ReturnType<typeof createUserSession>;
 	let repAB: ReturnType<typeof createUserSession>;
-	let eventA: ReturnType<typeof createGroupEventInDb>;
-	let eventB: ReturnType<typeof createGroupEventInDb>;
+	let eventA: ReturnType<typeof createScopeEventInDb>;
+	let eventB: ReturnType<typeof createScopeEventInDb>;
 
 	test.beforeAll(() => {
-		groupA = createGroupInDb({ name: "Scope Group A", slug: slugA });
-		groupB = createGroupInDb({ name: "Scope Group B", slug: slugB });
-		// src/routes/admin/layout.tsx only lets platform admins into /admin/*, so a group
-		// representative reaches a group's admin only when they are also a platform admin.
-		repA = createUserSession("admin");
-		repAB = createUserSession("admin");
+		// Two sibling chapters; plain users who are representatives (no platform role).
+		groupA = createScopeInDb({
+			parentPath: "/",
+			slug: slugA,
+			kind: "chapter",
+		}).id;
+		groupB = createScopeInDb({
+			parentPath: "/",
+			slug: slugB,
+			kind: "chapter",
+		}).id;
+		repA = createUserSession("user");
+		repAB = createUserSession("user");
 		for (const [u, g] of [
 			[repA, groupA],
 			[repAB, groupA],
 			[repAB, groupB],
 		] as const) {
-			addGroupMember(u.userId, g);
-			addGroupRepresentative(u.userId, g);
+			addScopeMember(u.userId, g);
+			grantScopeRole(u.userId, g, "representative");
 		}
-		eventA = createGroupEventInDb({
+		eventA = createScopeEventInDb({
 			organizerId: repA.userId,
 			title: "Scope Event Of A",
-			groupId: groupA,
+			scopeId: groupA,
 		});
-		eventB = createGroupEventInDb({
+		eventB = createScopeEventInDb({
 			organizerId: repA.userId,
 			title: "Scope Event Of B",
-			groupId: groupB,
+			scopeId: groupB,
 		});
 	});
 
 	test.afterAll(() => {
 		eventA.cleanup();
 		eventB.cleanup();
-		for (const [u, g] of [
-			[repA, groupA],
-			[repAB, groupA],
-			[repAB, groupB],
-		] as const) {
-			deleteGroupRepresentative(u.userId, g);
-			deleteGroupMember(u.userId, g);
-		}
-		deleteGroupInDb(groupA);
-		deleteGroupInDb(groupB);
+		deleteScopeById(groupA);
+		deleteScopeById(groupB);
 		repA.cleanup();
 		repAB.cleanup();
 	});
@@ -521,9 +518,16 @@ test.describe("Events — admin scope", () => {
 				expect(res?.status(), tab).toBe(403);
 				expect(await page.content()).not.toContain("Scope Event Of B");
 			}
-			// Foreign slug: not a representative of B at all.
-			await page.goto(`/admin/${slugB}/events/${eventB.eventId}/details`);
-			await expect(page).not.toHaveURL(/\/admin\//);
+			// Sibling chapter: not a representative of B at all.
+			for (const url of [
+				`/admin/${slugB}`,
+				`/admin/${slugB}/events`,
+				`/admin/${slugB}/events/${eventB.eventId}/details`,
+			]) {
+				const res = await page.goto(url);
+				expect(res?.status(), url).toBe(403);
+			}
+			expect(await page.content()).not.toContain("Scope Event Of B");
 		} finally {
 			await ctx.close();
 		}

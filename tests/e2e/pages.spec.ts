@@ -30,7 +30,7 @@ const TEST_PNG_BASE64 =
 
 /** Navigate to a builder page and wait for the canvas to be ready. */
 async function goToBuilder(page: Page, pageId: string) {
-	await page.goto(`/admin/global/pages/${pageId}/builder`);
+	await page.goto(`/admin/root/pages/${pageId}/builder`);
 	// Wait for the sidebar to confirm the builder has loaded
 	await expect(page.locator("text=← Back to Pages")).toBeVisible({
 		timeout: 15_000,
@@ -62,7 +62,7 @@ test.describe("Pages — create & edit", () => {
 		let createdPageId: string | null = null;
 
 		try {
-			await page.goto("/admin/global/pages/new");
+			await page.goto("/admin/root/pages/new");
 			await expect(page.locator('input[name="title"]')).toBeVisible({
 				timeout: 10_000,
 			});
@@ -72,7 +72,7 @@ test.describe("Pages — create & edit", () => {
 			// menu defaults to "main"; status defaults to "draft"
 
 			await page.locator('button:has-text("Create Page")').click();
-			await page.waitForURL(/\/admin\/global\/pages\/.+\/builder/, {
+			await page.waitForURL(/\/admin\/root\/pages\/.+\/builder/, {
 				timeout: 15_000,
 			});
 
@@ -99,7 +99,7 @@ test.describe("Pages — create & edit", () => {
 		});
 
 		try {
-			await page.goto(`/admin/global/pages/${pageId}/edit`);
+			await page.goto(`/admin/root/pages/${pageId}/edit`);
 			await expect(page.locator('input[name="title"]')).toBeVisible({
 				timeout: 10_000,
 			});
@@ -109,7 +109,7 @@ test.describe("Pages — create & edit", () => {
 			await page.locator('select[name="visibility"]').selectOption("visible");
 
 			await page.locator('button:has-text("Update Page")').click();
-			await expect(page).toHaveURL(/\/admin\/global\/pages\/?$/, {
+			await expect(page).toHaveURL(/\/admin\/root\/pages\/?$/, {
 				timeout: 15_000,
 			});
 		} finally {
@@ -128,7 +128,7 @@ test.describe("Pages — menu management", () => {
 		const title = `E2E Footer ${ts}`;
 		const url = `/e2e-footer-${ts}`;
 
-		await page.goto("/admin/global/pages");
+		await page.goto("/admin/root/pages");
 		// React MenuTable loads with eagerness: "load"
 		await expect(page.locator("h3:has-text('Footer Links')")).toBeVisible({
 			timeout: 15_000,
@@ -165,7 +165,7 @@ test.describe("Pages — menu management", () => {
 		});
 
 		try {
-			await page.goto("/admin/global/pages");
+			await page.goto("/admin/root/pages");
 			await expect(page.locator("h3:has-text('Main Menu')")).toBeVisible({
 				timeout: 15_000,
 			});
@@ -206,7 +206,7 @@ test.describe("Pages — menu management", () => {
 		});
 
 		try {
-			await page.goto("/admin/global/pages");
+			await page.goto("/admin/root/pages");
 			await expect(page.locator("h3:has-text('Footer Links')")).toBeVisible({
 				timeout: 15_000,
 			});

@@ -15,6 +15,8 @@
  * command uses instead of scripts/seed.ts to get a clean e2e DB each run.
  *
  * Adds:
+ *  - Root scope with Admin and Host as root admins (platform admins), and a sample
+ *    tree: region "germany" with the chapters "berlin" and "hamburg"
  *  - Admin and Host base users (if not already present)
  *  - QA checkout users (qa.marta, qa.jonas, qa.leonie, qa.tariq)
  *  - user1–user10 test fixture users
@@ -375,6 +377,42 @@ if (testUsers.length < 10) {
 		.filter((u) => testLoginIds.has(u.loginId ?? ""));
 }
 console.log(`  test users: ${testUsers.length}`);
+
+// ─── Sample scope tree: root → region "Germany" → chapters Berlin, Hamburg ────
+
+function ensureScope(
+	parent: { id: string; path: string },
+	def: { name: string; slug: string; kind: string },
+) {
+	const path = `${parent.path}${def.slug}/`;
+	const existing = db
+		.select()
+		.from(schema.scopes)
+		.all()
+		.find((s) => s.path === path);
+	if (existing) return existing;
+	const id = uuid();
+	db.insert(schema.scopes)
+		.values({ id, parentId: parent.id, path, ...def })
+		.run();
+	return db
+		.select()
+		.from(schema.scopes)
+		.all()
+		.find((s) => s.id === id)!;
+}
+const sampleRegion = ensureScope(rootScope, {
+	name: "Germany",
+	slug: "germany",
+	kind: "region",
+});
+for (const chapter of [
+	{ name: "Berlin", slug: "berlin" },
+	{ name: "Hamburg", slug: "hamburg" },
+]) {
+	ensureScope(sampleRegion, { ...chapter, kind: "chapter" });
+}
+console.log("  scope tree: root → germany → berlin, hamburg");
 
 // ─── Resolve group (chapter scope) IDs by slug ───────────────────────────────
 

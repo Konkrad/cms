@@ -6,6 +6,7 @@ import { activeScopeExtras } from "~/core/registry/manifests";
 import { scopeUrl } from "~/core/router/scope-path";
 import { currentUser, isMember } from "~/core/scopes/access";
 import {
+	localFirst,
 	scopeContentFilter,
 	scopeSourceLabels,
 } from "~/core/scopes/content-filter";
@@ -32,7 +33,7 @@ export async function loadScopeHome(
 		scopeContentFilter(user, scope),
 	]);
 
-	const [memberCount, reps, recentMembers, recentPosts, children, extras] =
+	const [memberCount, reps, recentMembers, postCandidates, children, extras] =
 		await Promise.all([
 			scopesService.countMembers(scope.id, { includeDescendants: true }),
 			scopesService.listRoleHolders(scope.id),
@@ -40,12 +41,16 @@ export async function loadScopeHome(
 				includeDescendants: true,
 				limit: 6,
 			}),
-			postsService.getRecent(filter, 3),
+			postsService.getRecent(filter, 30),
 			scopesService.getChildrenWithMemberCounts(scope.id),
 			activeScopeExtras({ scopeId: scope.id, viewerId: user?.id ?? null }),
 		]);
 
 	const rep = reps.find((r) => r.role === "representative");
+	// The scope's own (and its subtree's) posts first, then the ancestors', newest first.
+	const recentPosts = localFirst(postCandidates, filter, 3).sort((a, b) =>
+		b.createdAt.localeCompare(a.createdAt),
+	);
 	// Posts of other scopes are labelled with their source.
 	const sources = await scopeSourceLabels(
 		scope.id,

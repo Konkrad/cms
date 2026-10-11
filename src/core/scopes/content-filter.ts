@@ -51,6 +51,24 @@ export interface ContentFilter {
 	where(columns: { scopeId: Column; visibility?: Column }): SQL;
 	/** The same rule for one item in memory. */
 	matches(item: ScopedItem): boolean;
+	/** Whether an item of `scopeId` comes from above the listing scope (flows down). */
+	isInherited(scopeId: string): boolean;
+}
+
+/**
+ * The first `limit` items of a listing (already in display order), the listing scope's own
+ * and its subtree's items before the ones inherited from ancestors, so a short teaser (a scope
+ * home page) is not filled by the ancestors' content alone. Display order is kept within each
+ * group; the caller re-sorts the result if it needs one order.
+ */
+export function localFirst<T extends { scopeId: string }>(
+	items: readonly T[],
+	filter: Pick<ContentFilter, "isInherited">,
+	limit: number,
+): T[] {
+	const local = items.filter((i) => !filter.isInherited(i.scopeId));
+	const inherited = items.filter((i) => filter.isInherited(i.scopeId));
+	return [...local, ...inherited].slice(0, limit);
 }
 
 /** The rule of `ContentFilter.matches`, on precomputed scope sets (pure). */
@@ -126,6 +144,8 @@ export async function scopeContentFilter(
 		scope,
 		where: (columns) => contentScopesSql(scopes, columns),
 		matches: (item) => listsItem(scopes, item),
+		isInherited: (scopeId) =>
+			scopeId !== scope.id && scopes.ownAndAncestorIds.includes(scopeId),
 	};
 }
 

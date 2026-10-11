@@ -57,6 +57,7 @@ export {
 // Listings of scoped content (spec 4.3): own + ancestors by visibility, public items from below.
 export {
 	type ContentFilter,
+	localFirst,
 	requestContentFilter,
 	scopeContentFilter,
 	scopeSourceLabels,

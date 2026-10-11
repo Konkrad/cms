@@ -1,5 +1,6 @@
 import {
 	defineModule,
+	localFirst,
 	publicImageUrlFromKey,
 	scopeContentFilter,
 	scopeSourceLabels,
@@ -48,10 +49,14 @@ export const eventsModule = defineModule({
 			viewerId ? { id: viewerId } : null,
 			scopeId,
 		);
-		const [pastEventCount, upcoming] = await Promise.all([
+		const [pastEventCount, candidates] = await Promise.all([
 			eventsService.countPastByScopeId(scopeId),
-			eventsService.getUpcoming(filter, 3),
+			eventsService.getUpcoming(filter, 30),
 		]);
+		// The scope's own (and its subtree's) events first, then the ancestors', soonest first.
+		const upcoming = localFirst(candidates, filter, 3).sort((a, b) =>
+			a.startDate.localeCompare(b.startDate),
+		);
 		const sources = await scopeSourceLabels(
 			scopeId,
 			upcoming.map((e) => e.scopeId),

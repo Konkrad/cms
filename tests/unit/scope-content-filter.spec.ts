@@ -1,7 +1,11 @@
 import crypto from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { postsService } from "~/core/content/posts.service";
-import { listsItem, scopeContentFilter } from "~/core/scopes/content-filter";
+import {
+	listsItem,
+	localFirst,
+	scopeContentFilter,
+} from "~/core/scopes/content-filter";
 import type { Scope } from "~/core/scopes/schema/scopes";
 import { scopesService } from "~/core/scopes/scopes.service";
 import type { Visibility } from "~/core/scopes/visibility";
@@ -185,5 +189,19 @@ describe("scopeContentFilter", () => {
 		expect(listsItem(scopes, { scopeId: "d", visibility: "members" })).toBe(
 			false,
 		);
+	});
+
+	it("localFirst puts the listing scope's own and lower items before inherited ones", async () => {
+		const filter = await scopeContentFilter(null, S.chapter.id);
+		expect(filter.isInherited(S.region.id)).toBe(true);
+		expect(filter.isInherited(S.root.id)).toBe(true);
+		expect(filter.isInherited(S.chapter.id)).toBe(false);
+		const items = [
+			{ id: 1, scopeId: S.root.id },
+			{ id: 2, scopeId: S.region.id },
+			{ id: 3, scopeId: S.chapter.id },
+			{ id: 4, scopeId: S.root.id },
+		];
+		expect(localFirst(items, filter, 2).map((i) => i.id)).toEqual([3, 1]);
 	});
 });

@@ -157,6 +157,9 @@ test.describe("Content flows between levels", () => {
 
 		await guestPage.goto(URL_A);
 		await expect(guestPage.locator("a", { hasText: title })).toHaveCount(0);
+		// The event teaser (three soonest events) is checked on the region's own page, where
+		// earlier public events of the root cannot crowd it out.
+		await guestPage.goto(URL_REGION);
 		await expect(
 			guestPage.locator("a", { hasText: `Region members event ${suffix}` }),
 		).toHaveCount(0);
@@ -177,6 +180,7 @@ test.describe("Content flows between levels", () => {
 		try {
 			await m.page.goto(URL_A);
 			await expect(m.page.locator("a", { hasText: title })).toBeVisible();
+			await m.page.goto(URL_REGION);
 			await expect(
 				m.page.locator("a", { hasText: `Region members event ${suffix}` }),
 			).toBeVisible();

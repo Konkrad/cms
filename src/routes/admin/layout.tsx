@@ -1,16 +1,16 @@
 import { component$, Slot } from "@qwik.dev/core";
 import type { RequestHandler } from "@qwik.dev/router";
 import { routeLoader$ } from "@qwik.dev/router";
-import { requireAdmin } from "~/core/scopes/access";
+import { requireAuth } from "~/core/auth/server-auth";
 
 export const onGet: RequestHandler = ({ cacheControl }) => {
 	cacheControl({ noCache: true });
 };
 
+/** Any admin page needs a login; the `[scope]` layout and every handler check the scope role. */
 export const useAdminAuth = routeLoader$(async (event) => {
-	await requireAdmin(event);
-	const user = event.sharedMap.get("session");
-	return { user };
+	await requireAuth(event);
+	return { ok: true };
 });
 
 export default component$(() => {

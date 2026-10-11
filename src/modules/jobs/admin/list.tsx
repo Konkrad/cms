@@ -131,7 +131,7 @@ export const AdminJobsList = component$<{ data: AdminJobsData }>(({ data }) => {
 												</Form>
 											)}
 											<Link
-												href={`/admin/global/jobs/${job.id}/edit`}
+												href={`/admin/root/jobs/${job.id}/edit`}
 												class="text-blue-600 hover:text-blue-900"
 											>
 												Edit

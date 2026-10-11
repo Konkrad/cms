@@ -480,13 +480,13 @@ export const MenuTable = (props: MenuTableProps) => {
 												{item.pageId ? (
 													<>
 														<a
-															href={`/admin/global/pages/${item.pageId}/edit`}
+															href={`/admin/root/pages/${item.pageId}/edit`}
 															className="text-blue-600 hover:text-blue-900"
 														>
 															Edit
 														</a>
 														<a
-															href={`/admin/global/pages/${item.pageId}/builder`}
+															href={`/admin/root/pages/${item.pageId}/builder`}
 															className="text-blue-600 hover:text-blue-900"
 														>
 															Builder
@@ -560,13 +560,13 @@ export const MenuTable = (props: MenuTableProps) => {
 												{item.pageId ? (
 													<>
 														<a
-															href={`/admin/global/pages/${item.pageId}/edit`}
+															href={`/admin/root/pages/${item.pageId}/edit`}
 															className="text-blue-500 hover:text-blue-700"
 														>
 															Edit
 														</a>
 														<a
-															href={`/admin/global/pages/${item.pageId}/builder`}
+															href={`/admin/root/pages/${item.pageId}/builder`}
 															className="text-blue-500 hover:text-blue-700"
 														>
 															Builder

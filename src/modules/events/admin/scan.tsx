@@ -39,8 +39,8 @@ export const AdminEventScan = component$<Props>(({ event }) => {
 	const scanAction = useScanEventTicket();
 	const location = useLocation();
 	const parts = location.url.pathname.split("/");
-	const groupSlug = parts[2] || "root";
-	const attendanceUrl = `/admin/${groupSlug}/events/${event.id}/attendance`;
+	const scopeSegment = parts[2] || "root";
+	const attendanceUrl = `/admin/${scopeSegment}/events/${event.id}/attendance`;
 
 	return (
 		<div class="container mx-auto px-4 py-8 max-w-4xl">

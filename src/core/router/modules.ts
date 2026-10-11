@@ -5,7 +5,7 @@ import type { PaymentHandlers } from "~/core/payments/payments";
 import type { PageDefinition } from "~/core/router/pages";
 
 export interface AdminSection {
-	/** Path relative to the admin base path, e.g. "jobs" -> /admin/global/jobs. */
+	/** Path relative to the admin base path, e.g. "jobs" -> /admin/root/jobs. */
 	path: string;
 	label: string;
 	order?: number;

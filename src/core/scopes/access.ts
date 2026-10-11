@@ -121,10 +121,8 @@ export async function isPlatformAdmin(user: AccessUser): Promise<boolean> {
 export async function requestScope(
 	event: Pick<RequestEventBase, "sharedMap" | "params">,
 ): Promise<Scope | undefined> {
-	// TEMPORARY: admin routes still live under [group_slug] with "global" for the root.
-	const raw = event.params?.scope ?? event.params?.group_slug;
-	if (raw === undefined) return currentScope(event);
-	const segment = raw === "global" ? "root" : raw;
+	const segment = event.params?.scope;
+	if (segment === undefined) return currentScope(event);
 	const path = pathFromAdminSegment(segment);
 	return path ? scopesService.getByPath(path) : undefined;
 }

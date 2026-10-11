@@ -13,7 +13,7 @@ export const useCreateCycle = routeAction$(
 			requiredMembershipTier: data.requiredMembershipTier || null,
 		});
 
-		throw event.redirect(303, `/admin/global/elections/${cycle.id}`);
+		throw event.redirect(303, `/admin/root/elections/${cycle.id}`);
 	},
 	zod$({
 		title: z.string().min(1, "Title is required"),
@@ -40,7 +40,7 @@ export const useCreatePosition = routeAction$(
 			description: data.description || undefined,
 			maxCandidates: data.maxCandidates || undefined,
 		});
-		throw event.redirect(302, `/admin/global/elections/${data.cycleId}`);
+		throw event.redirect(302, `/admin/root/elections/${data.cycleId}`);
 	},
 	zod$({
 		cycleId: z.string().uuid(),

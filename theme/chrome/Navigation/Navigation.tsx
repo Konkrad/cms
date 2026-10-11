@@ -165,7 +165,7 @@ export const Navigation = component$<{
 											</Link>
 											{user.isAdmin && (
 												<Link
-													href="/admin/global"
+													href="/admin"
 													class="block px-4 py-2 text-text-secondary hover:bg-bg-muted"
 												>
 													Admin Area
@@ -283,7 +283,7 @@ export const Navigation = component$<{
 									</a>
 									{user.isAdmin && (
 										<a
-											href="/admin/global"
+											href="/admin"
 											class="block px-4 py-3 text-text-secondary hover:bg-bg-muted"
 										>
 											Admin Area

@@ -29,7 +29,7 @@ export const useUpdateJob = routeAction$(
 		} as any);
 		await notifyIfApproved(before, after);
 
-		throw event.redirect(303, "/admin/global/jobs");
+		throw event.redirect(303, "/admin/root/jobs");
 	},
 	zod$({
 		title: z.string().min(1, "Title is required"),
@@ -63,7 +63,7 @@ export const AdminJobEdit = component$<{ job: PublicJob }>(({ job }) => {
 		<div>
 			<div class="flex items-center justify-between mb-6">
 				<h2 class="text-2xl font-bold text-gray-800">Edit Job</h2>
-				<Button href="/admin/global/jobs" variant="secondary">
+				<Button href="/admin/root/jobs" variant="secondary">
 					Back to Jobs
 				</Button>
 			</div>
@@ -159,7 +159,7 @@ export const AdminJobEdit = component$<{ job: PublicJob }>(({ job }) => {
 
 					<div class="flex gap-4">
 						<Button type="submit">Save Changes</Button>
-						<Button href="/admin/global/jobs" variant="secondary">
+						<Button href="/admin/root/jobs" variant="secondary">
 							Cancel
 						</Button>
 					</div>

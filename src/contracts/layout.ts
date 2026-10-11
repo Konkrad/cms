@@ -19,6 +19,7 @@ export type LogoutAction = ReturnType<typeof useLogoutAction>;
 export type NavUser = {
 	id: string;
 	displayName: string;
+	/** May open the admin: holds a managing role (admin, moderator, representative) on a scope. */
 	isAdmin: boolean;
 	profilePictureSmallUrl: string | null;
 } | null;

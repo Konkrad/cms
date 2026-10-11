@@ -21,7 +21,7 @@ export const useCreateDeal = routeAction$(
 			steps,
 		} as any);
 
-		throw event.redirect(303, "/admin/global/deals");
+		throw event.redirect(303, "/admin/root/deals");
 	},
 	zod$({
 		name: z.string().min(1, "Name is required"),
@@ -51,7 +51,7 @@ export const AdminDealNew = component$(() => {
 		<div>
 			<div class="flex items-center justify-between mb-6">
 				<h2 class="text-2xl font-bold text-gray-800">Add Deal</h2>
-				<Button href="/admin/global/deals" variant="secondary">
+				<Button href="/admin/root/deals" variant="secondary">
 					Back to Deals
 				</Button>
 			</div>

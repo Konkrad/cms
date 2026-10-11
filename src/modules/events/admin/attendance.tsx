@@ -9,8 +9,8 @@ export const AdminEventAttendance = component$<Props>(({ data }) => {
 	const { event, stats, attendedTickets } = data;
 	const location = useLocation();
 	const pathParts = location.url.pathname.split("/");
-	const groupSlug = pathParts[2] || "root";
-	const scanPath = `/admin/${groupSlug}/events/${event.id}/scan`;
+	const scopeSegment = pathParts[2] || "root";
+	const scanPath = `/admin/${scopeSegment}/events/${event.id}/scan`;
 
 	return (
 		<div class="container mx-auto px-4 py-8 max-w-7xl">

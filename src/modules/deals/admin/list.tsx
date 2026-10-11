@@ -25,7 +25,7 @@ export const AdminDealsList = component$<{ data: AdminDealsData }>(
 			<div>
 				<div class="flex items-center justify-between mb-6">
 					<h2 class="text-2xl font-bold text-gray-800">Deals</h2>
-					<Button href="/admin/global/deals/new">Add Deal</Button>
+					<Button href="/admin/root/deals/new">Add Deal</Button>
 				</div>
 
 				<SearchBar value={data.search} placeholder="Search by name…" />
@@ -87,7 +87,7 @@ export const AdminDealsList = component$<{ data: AdminDealsData }>(
 										<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
 											<div class="flex items-center gap-4">
 												<Link
-													href={`/admin/global/deals/${deal.id}/edit`}
+													href={`/admin/root/deals/${deal.id}/edit`}
 													class="text-blue-600 hover:text-blue-900"
 												>
 													Edit

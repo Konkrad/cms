@@ -34,7 +34,7 @@ export async function guardNewElection(event: RequestEventLoader) {
 export async function loadAdminCycle(event: RequestEventLoader) {
 	await requireModuleAdmin(event, { module: "elections", scope: "global" });
 	const cycle = await electionsService.getCycleById(event.params.id);
-	if (!cycle) throw event.redirect(302, "/admin/global/elections");
+	if (!cycle) throw event.redirect(302, "/admin/root/elections");
 	const applications = await electionsService.getApplicationsByCycle(cycle.id);
 	return {
 		cycle,
@@ -49,9 +49,9 @@ export async function loadAdminCycle(event: RequestEventLoader) {
 export async function loadAdminNewPosition(event: RequestEventLoader) {
 	await requireModuleAdmin(event, { module: "elections", scope: "global" });
 	const cycle = await electionsService.getCycleById(event.params.id);
-	if (!cycle) throw event.redirect(302, "/admin/global/elections");
+	if (!cycle) throw event.redirect(302, "/admin/root/elections");
 	if (cycle.status !== "draft") {
-		throw event.redirect(302, `/admin/global/elections/${event.params.id}`);
+		throw event.redirect(302, `/admin/root/elections/${event.params.id}`);
 	}
 	return { cycle };
 }

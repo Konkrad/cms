@@ -6,7 +6,7 @@ import { deleteSession, getCurrentUserData } from "~/core/auth/server-auth";
 import { menuItemsService } from "~/core/content/menu-items.service";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
 import { currentScopePath } from "~/core/router/scope-request";
-import { isPlatformAdmin } from "~/core/scopes/access";
+import { listManagedScopes } from "~/core/scopes/access";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { formatUser } from "~/core/users/format";
 import { env } from "~/env";
@@ -61,7 +61,7 @@ export const useUserSession = routeLoader$(async (event): Promise<NavUser> => {
 	return assertNoPrivateFields({
 		id: u.id,
 		displayName: u.name ? formatUser(u, true).displayName : "User",
-		isAdmin: await isPlatformAdmin(u),
+		isAdmin: (await listManagedScopes(u)).length > 0,
 		profilePictureSmallUrl: publicImageUrlFromKey(thumbKey),
 	});
 });

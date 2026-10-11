@@ -58,7 +58,7 @@ export const AdminElectionCycle = component$<{ data: AdminCycleData }>(
 				<div class="flex items-center justify-between mb-2">
 					<div>
 						<Link
-							href="/admin/global/elections"
+							href="/admin/root/elections"
 							class="text-sm text-gray-500 hover:text-gray-700"
 						>
 							← Elections
@@ -331,7 +331,7 @@ export const AdminElectionCycle = component$<{ data: AdminCycleData }>(
 
 						{cycle.status === "draft" && (
 							<Link
-								href={`/admin/global/elections/${cycle.id}/positions/new`}
+								href={`/admin/root/elections/${cycle.id}/positions/new`}
 								class="inline-block bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
 							>
 								Add Position

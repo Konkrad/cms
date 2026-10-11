@@ -24,10 +24,11 @@ export const definition: BlockDefinition = {
 		{
 			name: "href",
 			label: "Link Target",
-			type: "url",
+			// A page, group or item picked as a reference (follows renames), or an external URL.
+			type: "link",
 			defaultValue: "/",
 			required: true,
-			placeholder: "/your-target",
+			placeholder: "https://… or pick a page below",
 		},
 		{
 			name: "align",

@@ -120,6 +120,7 @@ export default component$(() => {
 								editorState={null}
 								onChange$={handleEditorChange$}
 								uploadUrl="/api/images"
+								linkPicker
 							/>
 						</div>
 					</div>

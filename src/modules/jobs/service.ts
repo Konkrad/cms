@@ -14,6 +14,7 @@ import {
 	type ContentFilter,
 	db,
 	decodeCursor,
+	internalLinksToRefs,
 	type PageDirection,
 	type PublicUser,
 	paginateRows,
@@ -170,7 +171,9 @@ export const jobsService = {
 		// body is BlockNote HTML submitted via a hidden input — sanitize before storing
 		// since it is later rendered with dangerouslySetInnerHTML.
 		if (typeof validated.body === "string") {
-			validated.body = sanitizeRichHtml(validated.body);
+			validated.body = sanitizeRichHtml(
+				await internalLinksToRefs(validated.body),
+			);
 		}
 		const rows = await db
 			.insert(jobs)
@@ -182,7 +185,9 @@ export const jobsService = {
 	async update(id: string, data: UpdateJob): Promise<Job> {
 		const validated = updateJobSchema.parse(data);
 		if (typeof validated.body === "string") {
-			validated.body = sanitizeRichHtml(validated.body);
+			validated.body = sanitizeRichHtml(
+				await internalLinksToRefs(validated.body),
+			);
 		}
 		const rows = await db
 			.update(jobs)

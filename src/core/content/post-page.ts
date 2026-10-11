@@ -3,7 +3,7 @@ import { getCurrentUserData } from "~/core/auth/server-auth";
 import { postsService } from "~/core/content/posts.service";
 import { publicImageUrlFromKey } from "~/core/media/images";
 import { requireCanonicalUrl } from "~/core/refs/canonical";
-import { itemUrl, withItemUrls } from "~/core/registry/refs";
+import { itemUrl, renderRichHtml, withItemUrls } from "~/core/registry/refs";
 import { definePage } from "~/core/router/pages";
 import { scopeContentFilter } from "~/core/scopes/content-filter";
 import { formatUser } from "~/core/users/format";
@@ -40,6 +40,8 @@ export const postDetailPage = definePage({
 		// PostViewData (see ~/contracts/posts).
 		return {
 			...post,
+			// Stored `ref:` links get their current URL; links to items that are gone are dropped.
+			body: await renderRichHtml(post.body),
 			url,
 			featuredImageUrl: publicImageUrlFromKey(post.featuredImage),
 			authorAvatarUrl: post.user.profilePictureSmallUrl,

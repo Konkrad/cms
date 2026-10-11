@@ -5,13 +5,18 @@ import type React from "react";
 import { useCallback, useRef, useState } from "react";
 import { sanitizeSvg } from "~/core/content/svg-sanitize";
 
+// References (`ref:…`), their human form (`root/germany:events`) and external links are
+// kept as typed; the server turns them into what is stored (`toStoredLink`).
 const normalizeUrl = (url: string): string => {
 	const trimmed = url.trim();
 	if (!trimmed) return "/";
-	if (trimmed.startsWith("http://") || trimmed.startsWith("https://"))
+	if (/^(https?:\/\/|mailto:|tel:|ref:|root(\/|:|$))/i.test(trimmed))
 		return trimmed;
 	return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
 };
+
+/** Datalist the URL inputs share: scopes, listings and pages as references (link picker). */
+const LINK_TARGETS_ID = "menu-link-targets";
 
 const getDepth = (items: MenuItem[], id: string): number => {
 	const byId = new Map(items.map((i) => [i.id, i]));
@@ -41,6 +46,14 @@ export interface MenuItem {
 	menuName: string;
 	icon: string | null;
 	target: string;
+	/** Where the item currently links to (its reference resolved), shown instead of `url`. */
+	urlLabel?: string;
+}
+
+/** One link picker entry: the value to store and what it points to. */
+export interface LinkTargetOption {
+	value: string;
+	label: string;
 }
 
 interface ActionResult {
@@ -52,6 +65,8 @@ export interface MenuTableProps {
 	mainItems: MenuItem[];
 	footerItems: MenuItem[];
 	staticUrls: string[];
+	/** Internal link targets offered in the URL inputs (scopes, listings, pages). */
+	linkTargets?: LinkTargetOption[];
 	onMove: (params: {
 		movedItemId: string;
 		targetItemId?: string;
@@ -179,6 +194,7 @@ export const MenuTable = (props: MenuTableProps) => {
 		mainItems,
 		footerItems,
 		staticUrls,
+		linkTargets = [],
 		onMove,
 		onUpdate,
 		onAdd,
@@ -392,6 +408,13 @@ export const MenuTable = (props: MenuTableProps) => {
 
 	return (
 		<DragDropProvider onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
+			<datalist id={LINK_TARGETS_ID}>
+				{linkTargets.map((t) => (
+					<option key={t.value} value={t.value}>
+						{t.label}
+					</option>
+				))}
+			</datalist>
 			{moveError && (
 				<div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
 					{moveError}
@@ -460,7 +483,7 @@ export const MenuTable = (props: MenuTableProps) => {
 										{statusBadge(item)}
 									</td>
 									<td className="px-4 py-3 text-sm text-gray-600">
-										{normalizeUrl(item.url)}
+										{item.urlLabel ?? normalizeUrl(item.url)}
 									</td>
 									<td className="px-4 py-3 text-sm">
 										{staticUrlSet.has(normalizeUrl(item.url)) ? (
@@ -540,7 +563,7 @@ export const MenuTable = (props: MenuTableProps) => {
 										{statusBadge(item)}
 									</td>
 									<td className="px-4 py-3 text-sm">
-										{normalizeUrl(item.url)}
+										{item.urlLabel ?? normalizeUrl(item.url)}
 									</td>
 									<td className="px-4 py-3 text-sm">
 										{staticUrlSet.has(normalizeUrl(item.url)) ? (
@@ -627,6 +650,7 @@ export const MenuTable = (props: MenuTableProps) => {
 								<input
 									type="text"
 									name="url"
+									list={LINK_TARGETS_ID}
 									defaultValue={normalizeUrl(item.url)}
 									placeholder="URL"
 									className="border rounded-sm px-2 py-1 text-sm"
@@ -661,7 +685,8 @@ export const MenuTable = (props: MenuTableProps) => {
 					<input
 						type="text"
 						name="url"
-						placeholder="/imprint or https://..."
+						list={LINK_TARGETS_ID}
+						placeholder="/imprint, root/germany:events or https://..."
 						className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]"
 						required
 					/>
@@ -711,7 +736,7 @@ export const MenuTable = (props: MenuTableProps) => {
 										{item.title}
 									</td>
 									<td className="px-4 py-3 text-sm text-gray-600">
-										{normalizeUrl(item.url)}
+										{item.urlLabel ?? normalizeUrl(item.url)}
 									</td>
 									<td className="px-4 py-3 text-sm">
 										{(() => {
@@ -774,6 +799,7 @@ export const MenuTable = (props: MenuTableProps) => {
 							<input
 								type="text"
 								name="url"
+								list={LINK_TARGETS_ID}
 								defaultValue={normalizeUrl(item.url)}
 								placeholder="URL"
 								className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]"

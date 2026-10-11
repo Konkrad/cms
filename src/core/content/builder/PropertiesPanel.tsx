@@ -4,6 +4,7 @@ import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { TextArea } from "~/components/ui/TextArea";
 import { GridLayoutEditor } from "~/core/content/builder/GridLayoutEditor";
+import { LinkField } from "~/core/content/builder/LinkField";
 import { TileEditor } from "~/core/content/builder/TileEditor";
 import type { BlockData, BlockDefinition } from "~/core/db/schema";
 import { publicImageUrlFromKey } from "~/core/media/images";
@@ -79,6 +80,20 @@ export const PropertiesPanel = component$<PropertiesPanelProps>((props) => {
 			<div class="flex-1 overflow-y-auto p-4 space-y-4">
 				{props.definition.configSchema.map((field) => {
 					const value = localData.value[field.name];
+
+					if (field.type === "link") {
+						return (
+							<LinkField
+								key={field.name}
+								name={field.name}
+								label={field.label}
+								value={value || ""}
+								placeholder={field.placeholder}
+								required={field.required}
+								onChange$={(next: string) => handleChange(field.name, next)}
+							/>
+						);
+					}
 
 					if (field.type === "text" || field.type === "url") {
 						return (

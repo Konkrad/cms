@@ -8,6 +8,24 @@ import { scopes } from "../../scopes/schema/scopes";
 import { VISIBILITIES } from "../../scopes/visibility";
 import { users } from "../../users/schema";
 
+const escapeHtml = (text: string) =>
+	text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/** One BlockNote inline item: styled text, or a link around styled text. */
+function renderInline(c: any): string {
+	if (c?.type === "link") {
+		const inner = (c.content ?? []).map(renderInline).join("");
+		return `<a href="${escapeHtml(String(c.href ?? "")).replace(/"/g, "&quot;")}">${inner}</a>`;
+	}
+	let text = escapeHtml(c?.text || "");
+	if (c?.styles?.bold) text = `<strong>${text}</strong>`;
+	if (c?.styles?.italic) text = `<em>${text}</em>`;
+	if (c?.styles?.underline) text = `<u>${text}</u>`;
+	if (c?.styles?.strike) text = `<s>${text}</s>`;
+	if (c?.styles?.code) text = `<code>${text}</code>`;
+	return text;
+}
+
 // Simple BlockNote to HTML converter
 // BlockNote stores content as an array of blocks
 async function renderEditorState(editorState: string | null): Promise<string> {
@@ -24,21 +42,7 @@ async function renderEditorState(editorState: string | null): Promise<string> {
 
 		return blocks
 			.map((block: any) => {
-				const content =
-					block.content
-						?.map((c: any) => {
-							let text = c.text || "";
-
-							// Apply inline styles
-							if (c.styles?.bold) text = `<strong>${text}</strong>`;
-							if (c.styles?.italic) text = `<em>${text}</em>`;
-							if (c.styles?.underline) text = `<u>${text}</u>`;
-							if (c.styles?.strike) text = `<s>${text}</s>`;
-							if (c.styles?.code) text = `<code>${text}</code>`;
-
-							return text;
-						})
-						.join("") || "";
+				const content = block.content?.map(renderInline).join("") || "";
 
 				// Convert block type to HTML
 				switch (block.type) {

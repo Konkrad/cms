@@ -3051,13 +3051,15 @@ const menuDefs: Array<{
 ];
 
 for (const m of menuDefs) {
+	const pageId = m.hasPage ? (pageIdByUrl.get(m.url) ?? null) : null;
 	db.insert(schema.menuItems)
 		.values({
 			id: uuid(),
 			menuName: m.menuName,
 			title: m.title,
-			url: m.url,
-			pageId: m.hasPage ? (pageIdByUrl.get(m.url) ?? null) : null,
+			// Internal links are stored as references (spec 4.3); the rest are fixed paths.
+			url: pageId ? `ref:core:page:${pageId}` : m.url,
+			pageId,
 			position: m.position,
 			status: "visible",
 			target: "_self",

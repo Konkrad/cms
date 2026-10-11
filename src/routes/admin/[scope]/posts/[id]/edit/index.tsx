@@ -178,6 +178,7 @@ export default component$(() => {
 								content={data.value.post.body || ""}
 								onChange$={handleEditorChange$}
 								uploadUrl="/api/images"
+								linkPicker
 							/>
 						</div>
 					</div>

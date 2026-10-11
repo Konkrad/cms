@@ -10,6 +10,7 @@ import {
 	pagesService,
 	slugFromPath,
 } from "~/core/content/pages.service";
+import { itemRef, refHref } from "~/core/refs/refs";
 import { allModules } from "~/core/registry/manifests";
 import { adminUrl, scopeUrl } from "~/core/router/scope-path";
 import { ADMIN_ACCESS, requireScopeRole } from "~/core/scopes/access";
@@ -28,22 +29,8 @@ export const useCreatePage = routeAction$(
 		const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
 		const isRoot = scope.parentId === null;
 		const slug = slugFromPath(data.url);
-		const url = scopeUrl(scope.path, slug);
 
 		try {
-			// Root pages are linked from the (global) site menus.
-			if (isRoot) {
-				const allItems = await menuItemsService.getAll(undefined, {
-					includeHidden: true,
-				});
-				if (allItems.some((item) => item.url === url)) {
-					return {
-						success: false,
-						error: `The URL "${url}" is already in use by another menu item.`,
-					};
-				}
-			}
-
 			const page = await pagesService.create(
 				{
 					scopeId: scope.id,
@@ -63,10 +50,11 @@ export const useCreatePage = routeAction$(
 					(max, item) => Math.max(max, item.position),
 					-1,
 				);
+				// The menu links to the page by reference: renaming it or moving it changes nothing.
 				await menuItemsService.create({
 					menuName,
 					title: data.title,
-					url,
+					url: refHref(itemRef("core", "page", page.id)),
 					pageId: page.id,
 					parentId: null,
 					position: maxPosition + 1,

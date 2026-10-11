@@ -11,10 +11,9 @@ import {
 	slugFromPath,
 } from "~/core/content/pages.service";
 import { allModules } from "~/core/registry/manifests";
-import { adminUrl, scopeUrl } from "~/core/router/scope-path";
+import { adminUrl } from "~/core/router/scope-path";
 import {
 	ADMIN_ACCESS,
-	getScope,
 	requireScopeRole,
 	requireWithinScope,
 } from "~/core/scopes/access";
@@ -36,9 +35,7 @@ export const useUpdatePage = routeAction$(
 		const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
 		const page = await pagesService.getById(event.params.id);
 		await requireWithinScope(event, scope, page);
-		const owner = await getScope(page!.scopeId);
 		const slug = slugFromPath(data.url);
-		const url = scopeUrl(owner!.path, slug);
 
 		try {
 			await pagesService.update(
@@ -52,11 +49,11 @@ export const useUpdatePage = routeAction$(
 			throw err;
 		}
 
-		// Root pages: keep the linked menu item's title, URL and visibility in step.
+		// Root pages: keep the linked menu item's title and visibility in step (it links to the
+		// page by reference, so a new slug needs no change).
 		if (page!.menuItem) {
 			await menuItemsService.update(page!.menuItem.id, {
 				title: data.title,
-				url,
 				status: data.visibility,
 			});
 		}

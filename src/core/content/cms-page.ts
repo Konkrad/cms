@@ -1,5 +1,6 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
 import { pagesService } from "~/core/content/pages.service";
+import { renderBlockRefs } from "~/core/registry/refs";
 import type { Scope } from "~/core/scopes/schema/scopes";
 
 /**
@@ -24,7 +25,8 @@ export async function loadCmsPage(
 	return {
 		id: page.id,
 		title: page.title,
-		content: page.content,
+		// Link fields and rich text: stored references become current URLs.
+		content: await renderBlockRefs(page.content),
 		updatedAt: page.updatedAt,
 	};
 }

@@ -1,7 +1,7 @@
 import type { QRL } from "@qwik.dev/core";
 import { component$ } from "@qwik.dev/core";
 import { qwikify$ } from "@qwik.dev/react";
-import type { MenuItem } from "./MenuTableReact";
+import type { LinkTargetOption, MenuItem } from "./MenuTableReact";
 import { MenuTable as MenuTableReact } from "./MenuTableReact";
 
 const QwikMenuTable = qwikify$(MenuTableReact, {
@@ -18,6 +18,7 @@ interface MenuTableProps {
 	mainItems: MenuItem[];
 	footerItems: MenuItem[];
 	staticUrls: string[];
+	linkTargets?: LinkTargetOption[];
 	onMove$: QRL<
 		(params: {
 			movedItemId: string;
@@ -56,6 +57,7 @@ export const MenuTable = component$<MenuTableProps>((props) => {
 			mainItems={props.mainItems}
 			footerItems={props.footerItems}
 			staticUrls={props.staticUrls}
+			linkTargets={props.linkTargets}
 			onMove$={props.onMove$}
 			onUpdate$={props.onUpdate$}
 			onAdd$={props.onAdd$}

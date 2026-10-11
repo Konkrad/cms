@@ -93,6 +93,7 @@ export const AdminJobEdit = component$<{ data: AdminJobData }>(({ data }) => {
 								content={job.body}
 								onChange$={handleEditorChange$}
 								textOnly
+								linkPicker
 							/>
 						</div>
 					</div>

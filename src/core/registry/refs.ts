@@ -98,6 +98,41 @@ export async function internalLinksToRefs(html: string): Promise<string> {
 	return replacements.size ? replaceHrefs(html, replacements) : html;
 }
 
+/** Block fields that hold a link (page-builder `link` fields, e.g. the action button's). */
+const LINK_FIELD_NAMES = new Set(["href", "link"]);
+
+/**
+ * Page-builder content on write: HTML fields get `internalLinksToRefs`, and link fields
+ * (`href`, `link`) holding a path of this site that resolves become `ref:` references.
+ */
+export async function blocksLinksToRefs<
+	T extends { data?: Record<string, unknown> },
+>(blocks: readonly T[]): Promise<T[]> {
+	const walk = async (value: unknown, key?: string): Promise<unknown> => {
+		if (typeof value === "string") {
+			if (key && LINK_FIELD_NAMES.has(key) && /^\/(?!\/)/.test(value.trim())) {
+				const ref = await refFromPath(value.trim());
+				return ref ? refHref(ref) : value;
+			}
+			return value.includes("<a ") ? internalLinksToRefs(value) : value;
+		}
+		if (Array.isArray(value)) return Promise.all(value.map((v) => walk(v)));
+		if (value && typeof value === "object") {
+			const entries = await Promise.all(
+				Object.entries(value).map(async ([k, v]) => [k, await walk(v, k)]),
+			);
+			return Object.fromEntries(entries);
+		}
+		return value;
+	};
+	return Promise.all(
+		blocks.map(async (block) => ({
+			...block,
+			data: (await walk(block.data ?? {})) as Record<string, unknown>,
+		})),
+	);
+}
+
 /**
  * Stored rich text for rendering: `ref:` links get their current URL; links whose reference
  * no longer resolves are dropped and their text kept.

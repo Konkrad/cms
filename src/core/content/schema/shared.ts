@@ -16,6 +16,8 @@ export interface FieldDefinition {
 		| "select"
 		| "color"
 		| "url"
+		// An internal reference (`ref:…`, picked from a search) or an external URL.
+		| "link"
 		| "image-upload"
 		| "tiles"
 		| "grid-layout";

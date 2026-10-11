@@ -7,6 +7,7 @@ import type { Page } from "~/core/content/schema/pages";
 import { pages } from "~/core/content/schema/pages";
 import type { BlockData } from "~/core/content/schema/shared";
 import { db } from "~/core/db/connection";
+import { blocksLinksToRefs } from "~/core/registry/refs";
 import type { ModuleDefinition } from "~/core/router/modules";
 import { redirectsService } from "~/core/router/redirects.service";
 import { pageSlugProblem } from "~/core/router/reserved-slugs";
@@ -225,7 +226,7 @@ export const pagesService = {
 				scopeId: input.scopeId,
 				slug: input.slug,
 				title: input.title,
-				content: sanitizeBlocks(input.content ?? []),
+				content: sanitizeBlocks(await blocksLinksToRefs(input.content ?? [])),
 				status: input.status ?? "draft",
 			})
 			.returning();
@@ -264,7 +265,9 @@ export const pagesService = {
 			.update(pages)
 			.set({
 				...data,
-				...(data.content ? { content: sanitizeBlocks(data.content) } : {}),
+				...(data.content
+					? { content: sanitizeBlocks(await blocksLinksToRefs(data.content)) }
+					: {}),
 				updatedAt: new Date().toISOString(),
 			})
 			.where(eq(pages.id, id))

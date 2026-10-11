@@ -7,6 +7,9 @@ import { pagesService } from "~/core/content/pages.service";
 import type { MenuItem } from "~/core/content/schema/menu-items";
 import { getStaticMenuLinks } from "~/core/content/static-menu-links";
 import { sanitizeSvg } from "~/core/content/svg-sanitize";
+import { formatHumanRef, isRefHref, refHref } from "~/core/refs/refs";
+import { activeModules } from "~/core/registry/manifests";
+import { resolveRefs, toStoredLink } from "~/core/registry/refs";
 import { adminUrl, scopeUrl } from "~/core/router/scope-path";
 import {
 	ADMIN_ACCESS,
@@ -14,6 +17,7 @@ import {
 	requireSystemAdmin,
 	requireWithinScope,
 } from "~/core/scopes/access";
+import { scopesService } from "~/core/scopes/scopes.service";
 
 /**
  * The pages of the URL's scope (managers of the scope). The site menus are global, so the
@@ -49,14 +53,24 @@ export const useDeletePage = routeAction$(
 export const useMenuItems = routeLoader$(async (event) => {
 	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
 	if (scope.parentId !== null)
-		return { main: [], footer: [], staticUrls: [] as string[] };
+		return {
+			main: [],
+			footer: [],
+			staticUrls: [] as string[],
+			linkTargets: [] as Array<{ value: string; label: string }>,
+		};
+
+	// Static links in their stored form (a root listing like /events becomes a reference).
+	const staticUrls = await Promise.all(
+		getStaticMenuLinks().map((l) => toStoredLink(normalizeUrl(l.url))),
+	);
 
 	// Auto-sync: ensure every static link appears in the main menu (draft by default).
 	async function syncMenu(menuName: "main" | "footer") {
 		let items = await menuItemsService.getAll(menuName, {
 			includeHidden: true,
 		});
-		const knownUrls = new Set(items.map((item) => normalizeUrl(item.url)));
+		const knownUrls = new Set(items.map((item) => item.url.trim()));
 		let maxPosition = items.reduce(
 			(max, item) => Math.max(max, item.position),
 			0,
@@ -65,9 +79,10 @@ export const useMenuItems = routeLoader$(async (event) => {
 
 		// Static links (main menu only)
 		if (menuName === "main") {
-			for (const staticLink of getStaticMenuLinks()) {
-				const url = normalizeUrl(staticLink.url);
-				if (knownUrls.has(url)) continue;
+			for (const [i, staticLink] of getStaticMenuLinks().entries()) {
+				const url = staticUrls[i];
+				if (knownUrls.has(url) || knownUrls.has(normalizeUrl(staticLink.url)))
+					continue;
 				maxPosition += 1;
 				await menuItemsService.create({
 					menuName,
@@ -94,17 +109,59 @@ export const useMenuItems = routeLoader$(async (event) => {
 		syncMenu("footer"),
 	]);
 
-	// Computed here: the static links come from the module registry (server-only).
-	const staticUrls = getStaticMenuLinks().map((l) => normalizeUrl(l.url));
-	return { main, footer, staticUrls };
+	// Items stored with a reference show where they currently lead.
+	const urls = await resolveRefs(
+		[...main, ...footer].map((i) => i.url).filter(isRefHref),
+	);
+	const withLabel = (item: (typeof main)[number]) => ({
+		...item,
+		urlLabel: isRefHref(item.url)
+			? (urls.get(item.url) ?? "(unavailable: the page or group is gone)")
+			: item.url,
+	});
+
+	return {
+		main: main.map(withLabel),
+		footer: footer.map(withLabel),
+		staticUrls,
+		linkTargets: await menuLinkTargets(),
+	};
 });
 
+/**
+ * The menu's link picker: every scope (in the human form `root/germany/berlin`, parsed to a
+ * reference on save), the root listings of the active modules and every published page.
+ */
+async function menuLinkTargets(): Promise<
+	Array<{ value: string; label: string }>
+> {
+	const [scopes, pages] = await Promise.all([
+		scopesService.search("", 500),
+		pagesService.searchPublished("", 500),
+	]);
+	const pageUrls = await resolveRefs(pages.map((p) => `core:page:${p.id}`));
+	return [
+		...scopes.map((s) => ({
+			value: formatHumanRef(s.path),
+			label: `Group: ${s.name}`,
+		})),
+		...activeModules.map((m) => ({
+			value: formatHumanRef("/", m.id),
+			label: `Listing: ${m.id}`,
+		})),
+		...pages.map((p) => ({
+			value: refHref(`core:page:${p.id}`),
+			label: `Page: ${p.title} (${pageUrls.get(`core:page:${p.id}`) ?? ""})`,
+		})),
+	];
+}
+
+/** Paths get a leading slash; references, their human form and external links stay. */
 const normalizeUrl = (url: string) => {
 	const trimmed = url.trim();
 	if (!trimmed) return "/";
-	if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+	if (/^(https?:\/\/|mailto:|tel:|ref:|root(\/|:|$))/i.test(trimmed))
 		return trimmed;
-	}
 	return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
 };
 
@@ -163,14 +220,15 @@ export const useAddToMenu = routeAction$(
 		await requireSystemAdmin(event);
 
 		try {
-			const normalizedUrl = normalizeUrl(data.url);
+			// A reference, an external URL or a fixed path (throws LinkError otherwise).
+			const normalizedUrl = await toStoredLink(normalizeUrl(data.url));
 
 			const menuItems = await menuItemsService.getAll(data.menuName, {
 				includeHidden: true,
 			});
 
 			const duplicate = menuItems.find(
-				(item) => normalizeUrl(item.url) === normalizedUrl,
+				(item) => item.url.trim() === normalizedUrl,
 			);
 			if (duplicate) {
 				return {
@@ -227,11 +285,10 @@ export const useUpdateMenuItem = routeAction$(
 				return { success: false, error: "Menu item not found" };
 			}
 
-			const normalizedUrl = normalizeUrl(data.url);
+			const normalizedUrl = await toStoredLink(normalizeUrl(data.url));
 			const duplicate = allItems.find(
 				(item) =>
-					item.id !== data.menuItemId &&
-					normalizeUrl(item.url) === normalizedUrl,
+					item.id !== data.menuItemId && item.url.trim() === normalizedUrl,
 			);
 			if (duplicate) {
 				return {
@@ -546,6 +603,7 @@ export default component$(() => {
 					mainItems={menuItemsData.value.main}
 					footerItems={menuItemsData.value.footer}
 					staticUrls={menuItemsData.value.staticUrls}
+					linkTargets={menuItemsData.value.linkTargets}
 					onMove$={$(async (params) => {
 						const result = await moveMenuItemAction.submit(params);
 						if (!result.value || "failed" in result.value)

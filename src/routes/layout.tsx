@@ -4,6 +4,7 @@ import { routeAction$, routeLoader$ } from "@qwik.dev/router";
 import type { NavUser } from "~/contracts/layout";
 import { deleteSession, getCurrentUserData } from "~/core/auth/server-auth";
 import { menuItemsService } from "~/core/content/menu-items.service";
+import { resolveMenuUrls } from "~/core/content/menu-links";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
 import { currentScopePath } from "~/core/router/scope-request";
 import { listManagedScopes } from "~/core/scopes/access";
@@ -71,7 +72,9 @@ export const useScopePath = routeLoader$((event) => currentScopePath(event));
 export const useMenuItems = routeLoader$(async () => {
 	console.log("[Layout] useMenuItems - starting");
 	try {
-		const menuTree = await menuItemsService.getMenuTree("main");
+		const menuTree = await resolveMenuUrls(
+			await menuItemsService.getMenuTree("main"),
+		);
 		console.log(
 			"[Layout] useMenuItems - completed, items count:",
 			menuTree.length,
@@ -85,8 +88,7 @@ export const useMenuItems = routeLoader$(async () => {
 
 export const useFooterMenuItems = routeLoader$(async () => {
 	try {
-		const items = await menuItemsService.getAll("footer");
-		return items;
+		return await resolveMenuUrls(await menuItemsService.getAll("footer"));
 	} catch (error) {
 		console.error("[Layout] Failed to load footer items:", error);
 		return [];

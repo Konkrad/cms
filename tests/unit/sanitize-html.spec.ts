@@ -41,4 +41,38 @@ describe("sanitizeRichHtml", () => {
 		expect(out).toContain('rel="noopener noreferrer nofollow"');
 		expect(out).toContain('target="_blank"');
 	});
+
+	it("keeps tel: links", () => {
+		expect(sanitizeRichHtml('<a href="tel:+4930123">call</a>')).toContain(
+			'href="tel:+4930123"',
+		);
+	});
+
+	it("keeps ref: links in the tab, without target or rel", () => {
+		const out = sanitizeRichHtml(
+			'<p><a href="ref:events:event:abc-123" target="_blank" onclick="x()">BBQ</a></p>',
+		);
+		expect(out).toBe('<p><a href="ref:events:event:abc-123">BBQ</a></p>');
+		expect(
+			sanitizeRichHtml('<a href="ref:scope:abc/events">here</a>'),
+		).toContain('href="ref:scope:abc/events"');
+	});
+
+	it("drops links it cannot keep track of, keeping the text", () => {
+		for (const href of [
+			"javascript:alert(1)",
+			"/germany/berlin/events/bbq",
+			"events/bbq",
+			"//evil.example/x",
+			"ref:not a ref",
+			"data:text/html,x",
+			"",
+		]) {
+			const out = sanitizeRichHtml(`<p>see <a href="${href}">this</a></p>`);
+			expect(out).toBe("<p>see <span>this</span></p>");
+		}
+		expect(sanitizeRichHtml("<p><a>no href</a></p>")).toBe(
+			"<p><span>no href</span></p>",
+		);
+	});
 });

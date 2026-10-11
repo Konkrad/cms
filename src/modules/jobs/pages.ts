@@ -2,6 +2,7 @@ import type { JobDetailData, JobsListData } from "~/contracts/jobs";
 import {
 	definePage,
 	itemUrl,
+	renderRichHtml,
 	requestContentFilter,
 	requireAuth,
 	requireCanonicalUrl,
@@ -71,7 +72,9 @@ export const jobDetailPage = definePage({
 			throw event.error(404, "Job not found");
 		}
 		requireCanonicalUrl(event, await itemUrl("jobs:job", job));
-		return { job: toPublicJob(job) };
+		return {
+			job: { ...toPublicJob(job), body: await renderRichHtml(job.body) },
+		};
 	},
 });
 

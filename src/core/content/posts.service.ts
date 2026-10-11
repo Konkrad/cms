@@ -7,6 +7,7 @@ import {
 	updatePostSchema,
 } from "~/core/content/schema/posts";
 import { db } from "~/core/db/connection";
+import { internalLinksToRefs } from "~/core/registry/refs";
 import { canViewScope } from "~/core/scopes/access";
 import type { ContentFilter } from "~/core/scopes/content-filter";
 import type { Visibility } from "~/core/scopes/visibility";
@@ -292,7 +293,7 @@ export const postsService = {
 
 		// body is BlockNote HTML rendered later with dangerouslySetInnerHTML — sanitize on write.
 		if (typeof parsed.body === "string") {
-			parsed.body = sanitizeRichHtml(parsed.body);
+			parsed.body = sanitizeRichHtml(await internalLinksToRefs(parsed.body));
 		}
 
 		const [result] = await db
@@ -307,7 +308,7 @@ export const postsService = {
 		const parsed = await updatePostSchema.parseAsync(data);
 
 		if (typeof parsed.body === "string") {
-			parsed.body = sanitizeRichHtml(parsed.body);
+			parsed.body = sanitizeRichHtml(await internalLinksToRefs(parsed.body));
 		}
 
 		const [result] = await db

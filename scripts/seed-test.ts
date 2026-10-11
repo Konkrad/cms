@@ -193,12 +193,12 @@ for (const admin of [adminUser!, hostUser!]) {
 // server 404s at "/", which breaks Playwright's webServer readiness probe
 // (it polls this exact URL) and auth.setup.ts's post-login navigation.
 
-const homeMenuItem = db
+const homePage = db
 	.select()
-	.from(schema.menuItems)
+	.from(schema.pages)
 	.all()
-	.find((m) => m.url === "/");
-if (!homeMenuItem) {
+	.find((p) => p.slug === "" && p.scopeId === rootScope!.id);
+if (!homePage) {
 	const pageId = uuid();
 	db.insert(schema.pages)
 		.values({
@@ -217,7 +217,7 @@ if (!homeMenuItem) {
 			id: uuid(),
 			menuName: "main",
 			title: "Home",
-			url: "/",
+			url: `ref:core:page:${pageId}`,
 			pageId,
 			position: 0,
 			status: "visible",

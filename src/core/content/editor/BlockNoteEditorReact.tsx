@@ -26,13 +26,28 @@ import "@uppy/core/css/style.min.css";
 const { image, file, audio, video, ...textBlockSpecs } = defaultBlockSpecs;
 const textOnlySchema = BlockNoteSchema.create({ blockSpecs: textBlockSpecs });
 
+/** A link the surrounding link picker asks to insert (a new `nonce` per request). */
+export interface InsertLinkRequest {
+	href: string;
+	label: string;
+	nonce: number;
+}
+
 interface BlockNoteEditorProps {
 	content: string;
 	editorState: string;
 	onChange: (content: string, editorState: string) => void;
 	uploadUrl?: string;
 	textOnly?: boolean;
+	insertLink?: InsertLinkRequest | null;
 }
+
+// BlockNote's default link check plus internal references (`ref:…`, spec 4.3), which the
+// link picker inserts and the server resolves to the current URL when rendering.
+const DEFAULT_LINK_RE =
+	/^(?:(?:https?|mailto|tel):|[^a-z]|[a-z0-9+.-]+(?:[^a-z+.\-:]|$))/i;
+const isValidLink = (href: string) =>
+	!href || href.startsWith("ref:") || DEFAULT_LINK_RE.test(href);
 
 export interface BlockNoteEditorRef {
 	getEditorState: () => string;
@@ -45,6 +60,7 @@ const BlockNoteEditorReact = (
 		onChange,
 		uploadUrl = "/api/images",
 		textOnly = false,
+		insertLink = null,
 	}: BlockNoteEditorProps,
 	ref: React.ForwardedRef<BlockNoteEditorRef>,
 ): ReactElement => {
@@ -186,9 +202,21 @@ const BlockNoteEditorReact = (
 	// Create BlockNote editor
 	const editor = useCreateBlockNote(
 		textOnly
-			? { schema: textOnlySchema, initialContent: initialContent as any }
-			: { initialContent, uploadFile },
+			? {
+					schema: textOnlySchema,
+					initialContent: initialContent as any,
+					links: { isValidLink },
+				}
+			: { initialContent, uploadFile, links: { isValidLink } },
 	);
+
+	// The link picker: link the selected text, or insert the target's label as linked text.
+	useEffect(() => {
+		if (!insertLink) return;
+		const selected = editor.getSelectedText();
+		editor.focus();
+		editor.createLink(insertLink.href, selected ? undefined : insertLink.label);
+	}, [editor, insertLink?.nonce]);
 
 	// When there's no editorState but HTML content exists, parse it into blocks
 	const [htmlLoaded, setHtmlLoaded] = useState(false);

@@ -1,0 +1,193 @@
+import crypto from "node:crypto";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { resolveMenuUrls } from "~/core/content/menu-links";
+import { sanitizeRichHtml } from "~/core/content/sanitize-html";
+import type { MenuItemTree } from "~/core/content/schema/menu-items";
+import {
+	collectBlockRefs,
+	collectRefHrefs,
+	rewriteBlockRefs,
+	rewriteRefLinks,
+} from "~/core/refs/rich-links";
+import {
+	blocksLinksToRefs,
+	internalLinksToRefs,
+	renderBlockRefs,
+	renderRichHtml,
+} from "~/core/registry/refs";
+import type { Scope } from "~/core/scopes/schema/scopes";
+import { scopesService } from "~/core/scopes/scopes.service";
+import { createTestUser, openDb } from "./helpers";
+
+describe("rewriteRefLinks (pure)", () => {
+	const urls = new Map<string, string | null>([
+		["ref:core:post:a", "/germany/posts/a"],
+		["ref:core:post:gone", null],
+	]);
+
+	it("rewrites resolvable references and drops the others, keeping their text", () => {
+		const html =
+			'<p>Read <a href="ref:core:post:a">this</a>, <a href="ref:core:post:gone">that <strong>one</strong></a> and <a href="ref:core:post:unknown">x</a>.</p>';
+		expect(collectRefHrefs(html)).toEqual([
+			"ref:core:post:a",
+			"ref:core:post:gone",
+			"ref:core:post:unknown",
+		]);
+		expect(rewriteRefLinks(html, urls)).toBe(
+			'<p>Read <a href="/germany/posts/a">this</a>, that <strong>one</strong> and x.</p>',
+		);
+	});
+
+	it("leaves external links alone", () => {
+		const html =
+			'<a href="https://example.com" rel="noopener noreferrer nofollow" target="_blank">ext</a>';
+		expect(rewriteRefLinks(html, urls)).toBe(html);
+	});
+
+	it("rewrites link fields and HTML fields in block data", () => {
+		const blocks = [
+			{ data: { href: "ref:core:post:a", text: "Go" } },
+			{ data: { href: "ref:core:post:gone" } },
+			{ data: { content: '<p><a href="ref:core:post:a">x</a></p>' } },
+			{ data: { href: "https://example.com", tiles: [{ link: "/login" }] } },
+		];
+		expect(collectBlockRefs(blocks).sort()).toEqual([
+			"ref:core:post:a",
+			"ref:core:post:gone",
+		]);
+		expect(rewriteBlockRefs(blocks, urls)).toEqual([
+			{ data: { href: "/germany/posts/a", text: "Go" } },
+			{ data: { href: "" } },
+			{ data: { content: '<p><a href="/germany/posts/a">x</a></p>' } },
+			{ data: { href: "https://example.com", tiles: [{ link: "/login" }] } },
+		]);
+	});
+});
+
+describe("stored references (db)", () => {
+	const tag = Date.now().toString(36);
+	let scope: Scope;
+	let postId: string;
+	let cleanupUser: () => void;
+
+	beforeAll(async () => {
+		const root = await scopesService.ensureRoot();
+		scope = await scopesService.create(
+			{ parentId: root.id, kind: "region", slug: `rl-${tag}`, name: "RL" },
+			new Set(),
+		);
+		const user = createTestUser();
+		cleanupUser = user.cleanup;
+		postId = crypto.randomUUID();
+		const db = openDb();
+		db.prepare(
+			"INSERT INTO posts (id, title, body, user_id, scope_id) VALUES (?, ?, ?, ?, ?)",
+		).run(postId, "Linked", "<p>x</p>", user.userId, scope.id);
+		db.close();
+	});
+
+	afterAll(async () => {
+		const db = openDb();
+		db.prepare("DELETE FROM posts WHERE id = ?").run(postId);
+		db.close();
+		cleanupUser();
+		await scopesService.delete(scope.id);
+	});
+
+	it("turns links to site pages into references on write, then sanitizes", async () => {
+		const html = `<p><a href="/rl-${tag}/posts/${postId}">post</a> <a href="http://localhost:5173/rl-${tag}">group</a> <a href="/nowhere">gone</a> <a href="https://example.com">ext</a></p>`;
+		const stored = sanitizeRichHtml(await internalLinksToRefs(html));
+		expect(stored).toBe(
+			`<p><a href="ref:core:post:${postId}">post</a> <a href="ref:scope:${scope.id}">group</a> <span>gone</span> <a href="https://example.com" rel="noopener noreferrer nofollow" target="_blank">ext</a></p>`,
+		);
+		// Rendering gives the current URLs, and follows a rename.
+		expect(await renderRichHtml(stored)).toContain(
+			`<a href="/rl-${tag}/posts/${postId}">post</a>`,
+		);
+		await scopesService.changeSlug(scope.id, `rl2-${tag}`, new Set());
+		try {
+			const rendered = await renderRichHtml(stored);
+			expect(rendered).toContain(
+				`<a href="/rl2-${tag}/posts/${postId}">post</a>`,
+			);
+			expect(rendered).toContain(`<a href="/rl2-${tag}">group</a>`);
+		} finally {
+			await scopesService.changeSlug(scope.id, `rl-${tag}`, new Set());
+		}
+	});
+
+	it("keeps editor links when a post's body is rendered from its editor state", async () => {
+		const { postsService } = await import("~/core/content/posts.service");
+		const user = createTestUser();
+		const editorState = JSON.stringify([
+			{
+				type: "paragraph",
+				content: [
+					{ type: "text", text: "See ", styles: {} },
+					{
+						type: "link",
+						href: `ref:scope:${scope.id}`,
+						content: [
+							{ type: "text", text: "the group", styles: { bold: true } },
+						],
+					},
+					{ type: "text", text: " <now>", styles: {} },
+				],
+			},
+		]);
+		const post = await postsService.create({
+			title: "Editor links",
+			editorState,
+			userId: user.userId,
+			scopeId: scope.id,
+		} as never);
+		try {
+			expect(post.body).toBe(
+				`<p>See <a href="ref:scope:${scope.id}"><strong>the group</strong></a> &lt;now&gt;</p>`,
+			);
+		} finally {
+			const db = openDb();
+			db.prepare("DELETE FROM posts WHERE id = ?").run(post.id);
+			db.close();
+			user.cleanup();
+		}
+	});
+
+	it("turns link fields of blocks into references and renders them", async () => {
+		const [block] = await blocksLinksToRefs([
+			{
+				id: "b",
+				componentType: "ActionButtonBlock",
+				order: 0,
+				data: { href: `/rl-${tag}`, text: `/rl-${tag}` },
+			},
+		]);
+		// Only link fields (href, link) are converted, never plain text.
+		expect(block.data).toEqual({
+			href: `ref:scope:${scope.id}`,
+			text: `/rl-${tag}`,
+		});
+		expect(await renderBlockRefs([block])).toEqual([
+			{ ...block, data: { href: `/rl-${tag}`, text: `/rl-${tag}` } },
+		]);
+	});
+
+	it("resolves menu items and leaves out those whose target is gone", async () => {
+		const item = (id: string, url: string, children: MenuItemTree[] = []) =>
+			({ id, url, children }) as unknown as MenuItemTree;
+		const menu = await resolveMenuUrls([
+			item("a", `ref:scope:${scope.id}`, [
+				item("a1", `ref:core:post:${crypto.randomUUID()}`),
+				item("a2", "/login"),
+			]),
+			item("b", `ref:core:page:${crypto.randomUUID()}`, [item("b1", "/x")]),
+			item("c", "https://example.com"),
+		]);
+		expect(
+			menu.map((m) => [m.id, m.url, (m.children ?? []).map((c) => c.url)]),
+		).toEqual([
+			["a", `/rl-${tag}`, ["/login"]],
+			["c", "https://example.com", []],
+		]);
+	});
+});

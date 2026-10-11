@@ -1,12 +1,5 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import {
-	getCurrentUserData,
-	getServerSession,
-	notify,
-	requireActiveModule,
-	requireModuleAuth,
-	usersService,
-} from "~/core";
+import { notify, requireModuleAuth, usersService } from "~/core";
 import type {
 	CheckoutItemInput,
 	ParticipantSlotInput,
@@ -35,11 +28,7 @@ function splitIntoChunks(value: string, maxChunkSize = 450): string[] {
 
 export const useUpdateParticipation = routeAction$(
 	async (data, event) => {
-		const userData = await getCurrentUserData(event);
-		if (!userData) {
-			return event.fail(401, { message: "Please log in to RSVP" });
-		}
-		requireActiveModule(event, "events");
+		const userData = await requireModuleAuth(event, "events");
 
 		const eventId = eventIdOf(event, "/events/:id");
 		const target = eventId ? await eventsService.getById(eventId) : undefined;
@@ -98,12 +87,7 @@ export const useUpdateParticipation = routeAction$(
 
 export const useCreateCheckoutSession = routeAction$(
 	async (data, event) => {
-		// Check authentication for checkout
-		const user = await getServerSession(event);
-		if (!user) {
-			return event.fail(401, { message: "Please log in to purchase tickets" });
-		}
-		requireActiveModule(event, "events");
+		const user = await requireModuleAuth(event, "events");
 
 		const eventId = eventIdOf(event, "/events/:id/checkout");
 		const eventData = eventId
@@ -391,11 +375,7 @@ export const useCheckPaymentStatus = routeAction$(
 
 export const useGenerateSecureUrl = routeAction$(
 	async (data, event) => {
-		const user = await getServerSession(event);
-		if (!user) {
-			return event.fail(401, { message: "Not authenticated" });
-		}
-		requireActiveModule(event, "events");
+		const user = await requireModuleAuth(event, "events");
 
 		// Attendance of the photo's event is checked inside the service.
 		const result = await photosService.generateSecureUrl(data.photoId, user.id);

@@ -1,9 +1,9 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
+import { requireSystemAdmin } from "~/core/scopes/access";
 import { userTagsService } from "~/core/tags/user-tags.service";
 
 export const useTagsData = routeLoader$(async (event) => {
-	const { requireSystemAdmin } = await import("~/core/scopes/access");
 	await requireSystemAdmin(event);
 	const definitions = await userTagsService.getDefinitions();
 	return { definitions };
@@ -11,7 +11,6 @@ export const useTagsData = routeLoader$(async (event) => {
 
 export const useCreateDefinition = routeAction$(
 	async (data, event) => {
-		const { requireSystemAdmin } = await import("~/core/scopes/access");
 		await requireSystemAdmin(event);
 		await userTagsService.createDefinition(data as any);
 		return { success: true };
@@ -32,7 +31,6 @@ export const useCreateDefinition = routeAction$(
 
 export const useDeleteDefinition = routeAction$(
 	async (data, event) => {
-		const { requireSystemAdmin } = await import("~/core/scopes/access");
 		await requireSystemAdmin(event);
 		await userTagsService.deleteDefinition(data.definitionId);
 		return { success: true };

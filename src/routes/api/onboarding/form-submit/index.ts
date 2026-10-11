@@ -7,8 +7,8 @@ import { markConsentStepComplete } from "~/core/users/onboarding";
 const ONBOARDING_FORM_KEY = "affilation";
 
 export const onPost: RequestHandler = async (event) => {
-	const { json, error: qwikError } = event;
 	const user = await requireAuth(event);
+	const { json, error: qwikError } = event;
 	const body = await event.request.json().catch(() => null);
 
 	if (!body || typeof body !== "object") {

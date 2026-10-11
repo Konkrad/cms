@@ -91,18 +91,10 @@ async function isUploadAuthorized(
 	return (await listManagedScopes(user)).length > 0;
 }
 
-export const onPost: RequestHandler = async ({
-	request,
-	query,
-	json,
-	error,
-	cookie,
-	sharedMap,
-	redirect,
-}) => {
+export const onPost: RequestHandler = async (event) => {
 	// All image uploads require authentication
-	const authEvent = { cookie, sharedMap, redirect } as any;
-	const user = await requireAuth(authEvent);
+	const user = await requireAuth(event);
+	const { request, query, json, error } = event;
 
 	try {
 		// Streaming-only uploads (no multipart): expect the raw file body to be the request body

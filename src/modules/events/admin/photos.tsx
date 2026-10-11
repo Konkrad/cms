@@ -8,8 +8,8 @@ import type { AdminPhotosData } from "./photos-data";
 
 export const useCreatePhoto = routeAction$(
 	async (data, requestEvent) => {
-		const { params, fail } = requestEvent;
 		const { user } = await requireAdminEvent(requestEvent);
+		const { params, fail } = requestEvent;
 
 		// The file must live under this event's own gallery prefix, never another event's.
 		if (
@@ -38,8 +38,8 @@ export const useCreatePhoto = routeAction$(
 
 export const useDeletePhoto = routeAction$(
 	async (data, requestEvent) => {
-		const { params, fail } = requestEvent;
 		await requireAdminEvent(requestEvent);
+		const { params, fail } = requestEvent;
 
 		const photo = await photosService.getById(data.photoId);
 		if (!photo || photo.eventId !== params.id) {

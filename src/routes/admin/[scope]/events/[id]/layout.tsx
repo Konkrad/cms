@@ -13,6 +13,7 @@ export default component$(() => {
 		{ path: "transactions", label: "Transactions" },
 		{ path: "tickets", label: "Tickets" },
 		{ path: "photos", label: "Photos" },
+		{ path: "updates", label: "Updates" },
 	];
 
 	return (

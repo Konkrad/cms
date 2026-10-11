@@ -1,6 +1,6 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { requireModuleAdmin } from "~/core";
+import { allowedVisibilities, requireModuleAdmin } from "~/core";
 import {
 	AddressAutocomplete,
 	Button,
@@ -9,6 +9,7 @@ import {
 	Select,
 	SmartDatePicker,
 	TextArea,
+	VISIBILITIES,
 	VisibilitySelector,
 } from "~/core/ui";
 import { eventsService } from "../services/events";
@@ -26,7 +27,7 @@ const eventSchema = z.object({
 	longitude: z.string().optional(),
 	locationType: z.enum(["in_person", "online", "hybrid"]),
 	onlineUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
-	visibility: z.enum(["global", "group-only"]).default("global"),
+	visibility: z.enum(VISIBILITIES),
 	image1: z.string().optional(),
 	image2: z.string().optional(),
 });
@@ -36,6 +37,10 @@ export const useCreateEvent = routeAction$(async (data, event) => {
 		module: "events",
 		scope: "any",
 	});
+
+	if (!(await allowedVisibilities(user, scope.id)).includes(data.visibility)) {
+		return { success: false, error: "You cannot publish with this visibility" };
+	}
 
 	if (data.locationType !== "online" && !data.address) {
 		return {
@@ -56,7 +61,7 @@ export const useCreateEvent = routeAction$(async (data, event) => {
 		longitude: data.longitude || null,
 		locationType: data.locationType,
 		onlineUrl: data.onlineUrl || null,
-		visibility: isRoot ? data.visibility : "group-only",
+		visibility: data.visibility,
 		// Root events are site-wide (no scope).
 		scopeId: isRoot ? null : scope.id,
 		userId: user.id,
@@ -171,13 +176,11 @@ export const AdminEventNew = component$<Props>(({ groupContext }) => {
 						/>
 					)}
 
-					{!groupContext.isRoot && (
-						<VisibilitySelector
-							name="visibility"
-							value="global"
-							isGroupContext={true}
-						/>
-					)}
+					<VisibilitySelector
+						name="visibility"
+						value={groupContext.visibilities[0]}
+						options={groupContext.visibilities}
+					/>
 
 					<hr class="border-gray-200" />
 					<p class="text-sm font-semibold text-gray-700">Event Page Images</p>

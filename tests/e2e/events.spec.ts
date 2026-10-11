@@ -259,7 +259,7 @@ test.describe("Events — public page data and visibility", () => {
 		}
 	});
 
-	test("a group-only event is hidden from guests and non-members, visible to members", async ({
+	test("a members-only event is hidden from guests and non-members, visible to members", async ({
 		browser,
 	}) => {
 		const organizer = createUserSession("user");
@@ -275,7 +275,7 @@ test.describe("Events — public page data and visibility", () => {
 			organizerId: organizer.userId,
 			title: "Members Only Gathering",
 			scopeId: groupId,
-			visibility: "group-only",
+			visibility: "members",
 		});
 		const open = async (
 			userSession: ReturnType<typeof createUserSession> | null,

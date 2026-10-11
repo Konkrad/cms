@@ -115,7 +115,7 @@ test.describe("Scope home page", () => {
 		).toBeVisible();
 	});
 
-	test("lists the chapter's upcoming events, group-only ones for members only", async ({
+	test("lists the chapter's upcoming events, members-only ones for members only", async ({
 		guestPage,
 		browser,
 	}) => {
@@ -128,7 +128,7 @@ test.describe("Scope home page", () => {
 			organizerId: rep.userId,
 			title: "Scope Page Members Event",
 			scopeId: chapterA.id,
-			visibility: "group-only",
+			visibility: "members",
 		});
 		const past = createScopeEventInDb({
 			organizerId: rep.userId,
@@ -191,7 +191,7 @@ test.describe("Members-only content flows down", () => {
 			body: "<p>For the whole region</p>",
 			userId: author.userId,
 			scopeId: region.id,
-			visibility: "group-only",
+			visibility: "members",
 		});
 		try {
 			// fillerMembers[0] joined chapter A only; membership counts upward to the region.

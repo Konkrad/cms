@@ -56,7 +56,7 @@ export const onGet: RequestHandler = async ({
 	do {
 		const result = await postsService.getAll(null, 100, postsCursor, "forward");
 		for (const post of result.items) {
-			if (post.visibility !== "global") continue;
+			if (post.visibility !== "public") continue;
 			entries.push({
 				loc: new URL(`/posts/${post.id}`, env.APP_URL).toString(),
 				lastmod: post.updatedAt,

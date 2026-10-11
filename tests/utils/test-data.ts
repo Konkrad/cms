@@ -83,7 +83,7 @@ export async function createEventWithInventory(
 			onlineUrl: opts.city === "Online" ? "https://meet.example.com" : null,
 			userId: adminId,
 			scopeId,
-			visibility: "global",
+			visibility: "public",
 			image1: seedImgRow?.image1 ?? null,
 			image2: seedImgRow?.image2 ?? null,
 		} as any);

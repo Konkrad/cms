@@ -7,11 +7,19 @@ import { VisibilitySelector } from "~/core/admin/VisibilitySelector";
 import { BlockNoteEditor } from "~/core/content/editor";
 import { postsService } from "~/core/content/posts.service";
 import { adminUrl } from "~/core/router/scope-path";
-import { ADMIN_ACCESS, requireScopeRole } from "~/core/scopes/access";
+import {
+	ADMIN_ACCESS,
+	allowedVisibilities,
+	requireScopeRole,
+} from "~/core/scopes/access";
+import { VISIBILITIES } from "~/core/scopes/visibility";
 
 export const useGroupContext = routeLoader$(async (event) => {
-	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
-	return { isGlobal: scope.parentId === null, base: adminUrl(scope.path) };
+	const { user, scope } = await requireScopeRole(event, ADMIN_ACCESS);
+	return {
+		base: adminUrl(scope.path),
+		visibilities: await allowedVisibilities(user, scope.id),
+	};
 });
 
 const postSchema = z.object({
@@ -19,12 +27,18 @@ const postSchema = z.object({
 	content: z.string(),
 	editorState: z.string().optional(),
 	featuredImage: z.string().optional(),
-	visibility: z.enum(["global", "group-only"]).optional(),
+	visibility: z.enum(VISIBILITIES),
 });
 
 export const useCreatePost = routeAction$(async (data, event) => {
 	const { user, scope } = await requireScopeRole(event, ADMIN_ACCESS);
 	const isRoot = scope.parentId === null;
+	if (!(await allowedVisibilities(user, scope.id)).includes(data.visibility)) {
+		return {
+			success: false,
+			error: "You cannot publish with this visibility",
+		};
+	}
 
 	try {
 		await postsService.create({
@@ -34,7 +48,7 @@ export const useCreatePost = routeAction$(async (data, event) => {
 			userId: user.id,
 			// Root posts are site-wide (no scope).
 			scopeId: isRoot ? null : scope.id,
-			visibility: data.visibility || "global",
+			visibility: data.visibility,
 		} as any);
 
 		throw event.redirect(303, adminUrl(scope.path, "/posts"));
@@ -119,13 +133,11 @@ export default component$(() => {
 						value={editorState.value || ""}
 					/>
 
-					{!groupContext.value.isGlobal && (
-						<VisibilitySelector
-							name="visibility"
-							value="global"
-							isGroupContext={true}
-						/>
-					)}
+					<VisibilitySelector
+						name="visibility"
+						value={groupContext.value.visibilities[0]}
+						options={groupContext.value.visibilities}
+					/>
 
 					{createPostAction.value?.error && (
 						<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm">

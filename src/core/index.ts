@@ -36,6 +36,7 @@ export { adminUrl, scopeUrl } from "~/core/router/scope-path";
 // Access layer: scope roles (inherited downward) and memberships (counting upward).
 export type { MinRole, ScopeAccess, ScopeMember } from "~/core/scopes/access";
 export {
+	allowedVisibilities,
 	canManageScope,
 	canViewScope,
 	currentUser,
@@ -54,6 +55,7 @@ export {
 	viewableMemberScopes,
 } from "~/core/scopes/access";
 export type { Scope } from "~/core/scopes/schema/scopes";
+export { VISIBILITIES, type Visibility } from "~/core/scopes/visibility";
 // Server-only core services for modules (memberships tiers, user tags). Tag *rule evaluation*
 // is not core; it lives in the events module (`src/modules/events/services/tag-rules.ts`).
 export { deleteS3Objects } from "~/core/media/image-processing.service";

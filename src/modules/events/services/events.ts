@@ -325,9 +325,9 @@ export const eventsService = {
 		const visibilityCondition: SQL | undefined =
 			visible.ids.length > 0
 				? or(
-						eq(events.visibility, "global"),
+						eq(events.visibility, "public"),
 						and(
-							eq(events.visibility, "group-only"),
+							eq(events.visibility, "members"),
 							visible.includesRoot
 								? or(
 										inArray(events.scopeId, visible.ids),
@@ -336,7 +336,7 @@ export const eventsService = {
 								: inArray(events.scopeId, visible.ids),
 						),
 					)
-				: eq(events.visibility, "global");
+				: eq(events.visibility, "public");
 
 		const results = await db
 			.select({ event: events, user: publicUserSelect })
@@ -439,7 +439,7 @@ export const eventsService = {
 		return result;
 	},
 
-	/** The scope's next events, soonest first; group-only ones only when `includeGroupOnly`. */
+	/** The scope's next events, soonest first; members-only ones only when `includeGroupOnly`. */
 	async getUpcomingByScopeId(
 		scopeId: string,
 		options: { includeGroupOnly: boolean; limit: number },
@@ -450,7 +450,7 @@ export const eventsService = {
 				scopeId,
 				deletedAt: { isNull: true },
 				endDate: { gte: now },
-				...(options.includeGroupOnly ? {} : { visibility: "global" }),
+				...(options.includeGroupOnly ? {} : { visibility: "public" }),
 			},
 			orderBy: { startDate: "asc" },
 			limit: options.limit,

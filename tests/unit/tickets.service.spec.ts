@@ -56,7 +56,7 @@ function createTicketFixture(userId: string, eventOffset = 7) {
 		end,
 		"online",
 		userId,
-		"global",
+		"public",
 	);
 
 	db.prepare(

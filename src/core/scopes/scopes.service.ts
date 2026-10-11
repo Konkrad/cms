@@ -12,6 +12,7 @@ import {
 	scopeRoles,
 	scopes,
 } from "~/core/scopes/schema/scopes";
+import type { Visibility } from "~/core/scopes/visibility";
 import {
 	type PublicUser,
 	publicUserSelect,
@@ -37,7 +38,7 @@ export interface ListMembersOptions {
 	includeDescendants?: boolean;
 	limit?: number;
 }
-export type Visibility = "public" | "members" | "representatives";
+export type { Visibility };
 
 export class ScopeError extends Error {
 	constructor(message: string) {

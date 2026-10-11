@@ -1,7 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, Link, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { format } from "date-fns";
-import { Button, Pagination, SearchBar } from "~/core/ui";
+import { Button, Pagination, SearchBar, VISIBILITY_LABELS } from "~/core/ui";
 import { eventsService } from "../services/events";
 import { requireAdminEventById } from "./event-guards";
 import type { AdminEventsData } from "./list-data";
@@ -68,14 +68,12 @@ export const AdminEventsList = component$<Props>(({ data }) => {
 								<td class="px-6 py-4 whitespace-nowrap">
 									<span
 										class={`px-2 py-1 text-xs font-semibold rounded-full ${
-											event.visibility === "group-only"
-												? "bg-blue-100 text-blue-800"
-												: "bg-green-100 text-green-800"
+											event.visibility === "public"
+												? "bg-green-100 text-green-800"
+												: "bg-blue-100 text-blue-800"
 										}`}
 									>
-										{event.visibility === "group-only"
-											? "Group Only"
-											: "Global"}
+										{VISIBILITY_LABELS[event.visibility].label}
 									</span>
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

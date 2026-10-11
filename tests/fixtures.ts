@@ -420,7 +420,7 @@ export function createTestEvent(userId: string): {
 		end,
 		"online",
 		userId,
-		"global",
+		"public",
 	);
 	db.prepare(
 		`INSERT INTO inventory_groups (id, event_id, name, max_capacity, needs_ticket)
@@ -447,14 +447,14 @@ export function createTestEvent(userId: string): {
 }
 
 /**
- * Create an event owned by `organizerId`, optionally owned by a scope and/or group-only, with no
+ * Create an event owned by `organizerId`, optionally owned by a scope and/or members-only, with no
  * products. `past` makes it already finished. `cleanup()` removes it and its participation rows.
  */
 export function createScopeEventInDb(opts: {
 	organizerId: string;
 	title: string;
 	scopeId?: string | null;
-	visibility?: "global" | "group-only";
+	visibility?: "public" | "members";
 	past?: boolean;
 }): { eventId: string; cleanup(): void } {
 	const db = openDb();
@@ -475,7 +475,7 @@ export function createScopeEventInDb(opts: {
 		"online",
 		opts.organizerId,
 		opts.scopeId ?? null,
-		opts.visibility ?? "global",
+		opts.visibility ?? "public",
 	);
 	db.close();
 
@@ -553,7 +553,7 @@ export function createTestEventWithProduct(opts: {
 		end,
 		"online",
 		opts.ownerId,
-		"global",
+		"public",
 	);
 	db.prepare(
 		`INSERT INTO inventory_groups (id, event_id, name, max_capacity, needs_ticket)
@@ -964,7 +964,7 @@ export function createPostInDb(opts: {
 	body: string;
 	userId: string;
 	scopeId?: string | null;
-	visibility?: "global" | "group-only";
+	visibility?: "public" | "members";
 	createdAt?: string;
 }): string {
 	const db = openDb();
@@ -978,7 +978,7 @@ export function createPostInDb(opts: {
 		opts.body,
 		opts.userId,
 		opts.scopeId ?? null,
-		opts.visibility ?? "global",
+		opts.visibility ?? "public",
 		now,
 		now,
 	);

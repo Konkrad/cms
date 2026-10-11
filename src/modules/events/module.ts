@@ -17,14 +17,14 @@ export const eventsModule = defineModule({
 		sections: [{ path: "events", label: "Events", order: 30, scopes: "all" }],
 	},
 	blocks: eventsBlocks,
-	// Detail pages of global events only; group-only events are not public.
+	// Detail pages of global events only; members-only events are not public.
 	sitemap: async () => {
 		const entries: { path: string; lastmod: string }[] = [];
 		let cursor: string | null | undefined = null;
 		do {
 			const result = await eventsService.getAll(100, cursor);
 			for (const evt of result.items) {
-				if (evt.visibility !== "global") continue;
+				if (evt.visibility !== "public") continue;
 				entries.push({ path: `/events/${evt.id}`, lastmod: evt.updatedAt });
 			}
 			cursor = result.nextCursor;

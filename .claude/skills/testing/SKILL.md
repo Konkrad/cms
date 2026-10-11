@@ -76,7 +76,7 @@ Helpers named `create*InDb` / `create*` that return `cleanup()` should be cleane
 | `grantScopeRole(userId, scopeId, role)` / `revokeScopeRole(...)` / `getScopeRoles(userId, scopeId)` | Scope roles (`admin`, `moderator`, `coordinator`, `representative`) |
 | `rootScopeId(db)` | Id of the root scope (created if missing) |
 | `createTestEvent(userId)` | Minimal event with one product |
-| `createScopeEventInDb({ organizerId, title, scopeId?, visibility?, past? })` | Event owned by a scope (`global` / `group-only`), optionally past |
+| `createScopeEventInDb({ organizerId, title, scopeId?, visibility?, past? })` | Event owned by a scope (`public` / `members` / `representatives`), optionally past |
 | `createTestEventWithProduct({ ownerId, isFuture?, participantCapacity?, title? })` | Event + product; returns `{ eventId, productId, cleanup }` |
 | `setParticipationInDb(...)` | Set a user's RSVP for an event (yes/no/maybe) |
 | `createTicketInDb({ buyerId, eventId, productId })` | Ticket (with transaction); returns the ticket id |

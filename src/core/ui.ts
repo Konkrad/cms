@@ -22,3 +22,8 @@ export { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 export { VisibilitySelector } from "~/core/admin/VisibilitySelector";
 export { BlockNoteEditor } from "~/core/content/editor";
 export { publicImageUrlFromKey } from "~/core/media/images";
+export {
+	VISIBILITIES,
+	VISIBILITY_LABELS,
+	type Visibility,
+} from "~/core/scopes/visibility";

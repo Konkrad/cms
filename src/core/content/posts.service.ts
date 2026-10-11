@@ -20,6 +20,7 @@ import {
 import { db } from "~/core/db/connection";
 import { canViewScope, viewableMemberScopes } from "~/core/scopes/access";
 import { scopesService } from "~/core/scopes/scopes.service";
+import type { Visibility } from "~/core/scopes/visibility";
 import {
 	decodeCursor,
 	getNextCursorFromRows,
@@ -40,16 +41,16 @@ export type PostWithUser = Post & {
 	user: PublicUser;
 };
 
-/** RQB `where` part: global posts, plus group-only posts of the given scopes. */
+/** RQB `where` part: global posts, plus members-only posts of the given scopes. */
 function visibleWhere({ ids, includesRoot: root }: MemberScopes) {
-	if (ids.length === 0) return { visibility: "global" as const };
+	if (ids.length === 0) return { visibility: "public" as const };
 	const scopeId = root
 		? { OR: [{ scopeId: { in: ids } }, { scopeId: { isNull: true as const } }] }
 		: { scopeId: { in: ids } };
 	return {
 		OR: [
-			{ visibility: "global" as const },
-			{ visibility: "group-only" as const, ...scopeId },
+			{ visibility: "public" as const },
+			{ visibility: "members" as const, ...scopeId },
 		],
 	};
 }
@@ -59,11 +60,11 @@ function visibleSql({
 	ids,
 	includesRoot: root,
 }: MemberScopes): SQL | undefined {
-	if (ids.length === 0) return eq(posts.visibility, "global");
+	if (ids.length === 0) return eq(posts.visibility, "public");
 	return or(
-		eq(posts.visibility, "global"),
+		eq(posts.visibility, "public"),
 		and(
-			eq(posts.visibility, "group-only"),
+			eq(posts.visibility, "members"),
 			root
 				? or(inArray(posts.scopeId, ids), isNull(posts.scopeId))
 				: inArray(posts.scopeId, ids),
@@ -73,17 +74,17 @@ function visibleSql({
 
 export const postsService = {
 	/**
-	 * Whether a viewer may see a post: global posts are public; group-only posts are for
+	 * Whether a viewer may see a post: global posts are public; members-only posts are for
 	 * members of the post's scope (or of a scope below it) and role holders on it.
 	 */
 	async canView(
 		post: { visibility: string; scopeId: string | null },
 		viewer: { id: string } | null,
 	): Promise<boolean> {
-		if (post.visibility !== "group-only") return true;
+		if (post.visibility === "public") return true;
 		const scopeId = post.scopeId ?? (await scopesService.getRoot())?.id;
 		if (!scopeId) return false;
-		return canViewScope(viewer, scopeId, "members");
+		return canViewScope(viewer, scopeId, post.visibility as Visibility);
 	},
 
 	/** Posts visible to `viewerId` (null = guest: global posts only), newest first. */
@@ -278,7 +279,7 @@ export const postsService = {
 			where: {
 				scopeId,
 				deletedAt: { isNull: true },
-				...(includeGroupOnly ? {} : { visibility: "global" }),
+				...(includeGroupOnly ? {} : { visibility: "public" }),
 			},
 			orderBy: { createdAt: "desc" },
 			limit,

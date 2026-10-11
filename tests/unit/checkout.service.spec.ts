@@ -37,7 +37,7 @@ async function createEventFixture(userId: string) {
 		endDate: end,
 		locationType: "online",
 		userId,
-		visibility: "global",
+		visibility: "public",
 	} as any);
 	cleanupEventIds.push(event.id);
 

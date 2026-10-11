@@ -31,7 +31,7 @@ function makeEventData(
 		endDate: end,
 		locationType: "online",
 		userId,
-		visibility: "global",
+		visibility: "public",
 		...overrides,
 	} as any;
 }

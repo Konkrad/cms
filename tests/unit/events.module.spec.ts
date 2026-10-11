@@ -137,7 +137,7 @@ describe("events scope page hook", () => {
 		});
 	});
 
-	it("shows group-only events to members only", async () => {
+	it("shows members-only events to members only", async () => {
 		const owner = createTestUser();
 		const member = createTestUser();
 		const outsider = createTestUser();
@@ -146,7 +146,7 @@ describe("events scope page hook", () => {
 		addMember(member.userId, groupId);
 		const secret = createTestEvent(owner.userId, {
 			title: "Members Only",
-			visibility: "group-only",
+			visibility: "members",
 			startDate: future(3),
 			endDate: future(4),
 		});
@@ -166,18 +166,18 @@ describe("events scope page hook", () => {
 
 describe("canViewEvent", () => {
 	it("allows everyone on global events", async () => {
-		const event = { visibility: "global", scopeId: null };
+		const event = { visibility: "public", scopeId: null };
 		expect(await canViewEvent(event, null)).toBe(true);
 		expect(await canViewEvent(event, { id: "x" })).toBe(true);
 	});
 
-	it("limits group-only events to members and platform admins", async () => {
+	it("limits members-only events to members and platform admins", async () => {
 		const member = createTestUser();
 		const outsider = createTestUser();
 		cleanups.push(member.cleanup, outsider.cleanup);
 		const groupId = createScope();
 		addMember(member.userId, groupId);
-		const event = { visibility: "group-only", scopeId: groupId };
+		const event = { visibility: "members", scopeId: groupId };
 
 		expect(await canViewEvent(event, null)).toBe(false);
 		expect(await canViewEvent(event, { id: outsider.userId })).toBe(false);
@@ -186,10 +186,10 @@ describe("canViewEvent", () => {
 		expect(await canViewEvent(event, { id: outsider.userId })).toBe(true);
 	});
 
-	it("hides a group-only event without a group from non-admins", async () => {
+	it("hides a members-only event without a group from non-admins", async () => {
 		const user = createTestUser();
 		cleanups.push(user.cleanup);
-		const event = { visibility: "group-only", scopeId: null };
+		const event = { visibility: "members", scopeId: null };
 		expect(await canViewEvent(event, { id: user.userId })).toBe(false);
 	});
 });

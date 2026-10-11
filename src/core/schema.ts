@@ -7,6 +7,10 @@ export {
 	scopeRoles,
 	scopes,
 } from "~/core/scopes/schema/scopes";
+export {
+	VISIBILITIES,
+	type Visibility,
+} from "~/core/scopes/visibility";
 export type { User } from "~/core/users/schema";
 export { users } from "~/core/users/schema";
 

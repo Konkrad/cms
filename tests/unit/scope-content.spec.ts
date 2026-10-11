@@ -57,7 +57,7 @@ beforeAll(async () => {
 	siblingMember = user();
 	await scopesService.join(chapterMember, chapter.id);
 	await scopesService.join(siblingMember, sibling.id);
-	regionPostId = insertPost(region.id, "group-only");
+	regionPostId = insertPost(region.id, "members");
 });
 
 afterAll(() => {
@@ -72,7 +72,7 @@ afterAll(() => {
 
 describe("members-only content flows to members of the scopes below", () => {
 	it("canView: a chapter member sees the region's members-only post", async () => {
-		const post = { visibility: "group-only", scopeId: region.id };
+		const post = { visibility: "members", scopeId: region.id };
 		expect(await postsService.canView(post, { id: chapterMember })).toBe(true);
 		expect(await postsService.canView(post, { id: siblingMember })).toBe(false);
 		expect(await postsService.canView(post, null)).toBe(false);
@@ -89,7 +89,7 @@ describe("members-only content flows to members of the scopes below", () => {
 	it("a region member does not see a chapter's members-only post", async () => {
 		const regionMember = user();
 		await scopesService.join(regionMember, region.id);
-		const post = { visibility: "group-only", scopeId: chapter.id };
+		const post = { visibility: "members", scopeId: chapter.id };
 		expect(await postsService.canView(post, { id: regionMember })).toBe(false);
 		expect(await postsService.canView(post, { id: chapterMember })).toBe(true);
 	});

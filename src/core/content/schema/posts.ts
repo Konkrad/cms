@@ -5,6 +5,7 @@ import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { scopes } from "../../scopes/schema/scopes";
+import { VISIBILITIES } from "../../scopes/visibility";
 import { users } from "../../users/schema";
 
 // Simple BlockNote to HTML converter
@@ -85,9 +86,9 @@ export const posts = sqliteTable("posts", {
 		.references(() => users.id),
 	// Owning scope; null = the root (site-wide).
 	scopeId: text("scope_id").references(() => scopes.id),
-	visibility: text("visibility", { enum: ["group-only", "global"] })
+	visibility: text("visibility", { enum: VISIBILITIES })
 		.notNull()
-		.default("global"),
+		.default("public"),
 	featuredImage: text("featured_image"),
 	showAuthor: integer("show_author", { mode: "boolean" })
 		.notNull()

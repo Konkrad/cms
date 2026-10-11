@@ -359,7 +359,7 @@ export function createTestEvent(
 		(overrides.endDate as string) ?? pastEnd,
 		(overrides.locationType as string) ?? "in-person",
 		userId,
-		(overrides.visibility as string) ?? "global",
+		(overrides.visibility as string) ?? "public",
 		new Date().toISOString(),
 		new Date().toISOString(),
 	);

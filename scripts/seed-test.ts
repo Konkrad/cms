@@ -433,7 +433,7 @@ const qaEventDefs: Array<{
 	title: string;
 	body: string;
 	groupSlug: string | null;
-	visibility: "global" | "group-only";
+	visibility: "public" | "members";
 	authorIdx: number;
 	startOffsetDays: number;
 	durationHours: number;
@@ -447,7 +447,7 @@ const qaEventDefs: Array<{
 		title: "Past Meetup (E2E)",
 		body: "<p>Past event used for E2E tests.</p>",
 		groupSlug: "berlin",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: -1,
 		startOffsetDays: -30,
 		durationHours: 2,
@@ -461,7 +461,7 @@ const qaEventDefs: Array<{
 		title: "Checkout QA – Multi-Ticket & Capacity",
 		body: "<p>QA event for checkout validation: quantity controls, participant assignment, and capacity limits.</p>",
 		groupSlug: "berlin",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: -1,
 		startOffsetDays: 16,
 		durationHours: 4,

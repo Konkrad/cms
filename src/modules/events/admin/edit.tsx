@@ -1,5 +1,6 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
+import { allowedVisibilities } from "~/core";
 import {
 	Button,
 	ImageUploader,
@@ -7,6 +8,7 @@ import {
 	Select,
 	SmartDatePicker,
 	TextArea,
+	VISIBILITIES,
 	VisibilitySelector,
 } from "~/core/ui";
 import { eventsService } from "../services/events";
@@ -23,7 +25,7 @@ const editEventSchema = z.object({
 	address: z.string().min(1, "Location is required"),
 	locationType: z.enum(["in_person", "online", "hybrid"]),
 	onlineUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
-	visibility: z.enum(["global", "group-only"]).default("global"),
+	visibility: z.enum(VISIBILITIES),
 	image1: z.string().optional(),
 	image2: z.string().optional(),
 });
@@ -32,6 +34,17 @@ export const useEditEvent = routeAction$(async (data, event) => {
 	// Scope check on the event in the URL; the id in the form body is not trusted.
 	const groupContext = await requireAdminEvent(event);
 	const eventId = event.params.id;
+	const allowed = await allowedVisibilities(
+		groupContext.user,
+		groupContext.scope.id,
+	);
+	// Keeping the current visibility is always allowed (an approved public event stays public).
+	if (
+		data.visibility !== groupContext.event.visibility &&
+		!allowed.includes(data.visibility)
+	) {
+		return { success: false, error: "You cannot publish with this visibility" };
+	}
 
 	try {
 		await eventsService.update(eventId, {
@@ -42,7 +55,7 @@ export const useEditEvent = routeAction$(async (data, event) => {
 			address: data.address,
 			locationType: data.locationType,
 			onlineUrl: data.onlineUrl || null,
-			visibility: groupContext.isRoot ? data.visibility : "group-only",
+			visibility: data.visibility,
 			image1: data.image1 || null,
 			image2: data.image2 || null,
 		});
@@ -155,13 +168,15 @@ export const AdminEventEdit = component$<Props>(
 							/>
 						)}
 
-						{!groupContext.isRoot && (
-							<VisibilitySelector
-								name="visibility"
-								value={eventData.visibility as any}
-								isGroupContext={true}
-							/>
-						)}
+						<VisibilitySelector
+							name="visibility"
+							value={eventData.visibility}
+							options={VISIBILITIES.filter(
+								(v) =>
+									groupContext.visibilities.includes(v) ||
+									v === eventData.visibility,
+							)}
+						/>
 
 						<hr class="border-gray-200" />
 						<p class="text-sm font-semibold text-gray-700">Event Page Images</p>

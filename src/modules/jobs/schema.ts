@@ -3,7 +3,7 @@ import { type InferSelectModel, sql } from "drizzle-orm";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { defineModuleSchema, users } from "~/core/schema";
+import { defineModuleSchema, scopes, users } from "~/core/schema";
 
 export const jobs = sqliteTable("jobs", {
 	id: text("id").primaryKey(),
@@ -28,6 +28,10 @@ export const jobs = sqliteTable("jobs", {
 	suggestedBy: text("suggested_by")
 		.notNull()
 		.references(() => users.id),
+	// Owning scope (spec 4.2: every scoped content row has one; site-wide = the root).
+	scopeId: text("scope_id")
+		.notNull()
+		.references(() => scopes.id, { onDelete: "cascade" }),
 	createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 	updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -46,7 +50,7 @@ export const insertJobSchema = baseInsertSchema.extend({
 
 // updatedAt is handled by the service, not included in input
 export const updateJobSchema = baseInsertSchema
-	.omit({ id: true, createdAt: true, updatedAt: true })
+	.omit({ id: true, scopeId: true, createdAt: true, updatedAt: true })
 	.partial()
 	.extend({
 		expiresAt: z.coerce

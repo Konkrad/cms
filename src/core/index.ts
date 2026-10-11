@@ -51,6 +51,7 @@ export {
 	listManagedScopes,
 	listMembers,
 	requireScopeRole,
+	requireWithinScope,
 	scopeLabels,
 	viewableMemberScopes,
 } from "~/core/scopes/access";

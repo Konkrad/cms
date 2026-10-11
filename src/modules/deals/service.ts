@@ -1,11 +1,16 @@
-import { and, desc, eq, gte, isNull, or } from "drizzle-orm";
+import { desc, eq, gte, inArray, isNull, or } from "drizzle-orm";
 import { db } from "~/core";
 import type { Deal, InsertDeal, UpdateDeal } from "./schema";
 import { deals, insertDealSchema, updateDealSchema } from "./schema";
 
 export const dealsService = {
-	async getAll(): Promise<Deal[]> {
-		return db.select().from(deals).orderBy(desc(deals.createdAt));
+	/** Every deal, or only those owned by `scopeIds` (an admin scope's subtree). */
+	async getAll(scopeIds: string[] | null = null): Promise<Deal[]> {
+		return db
+			.select()
+			.from(deals)
+			.where(scopeIds ? inArray(deals.scopeId, scopeIds) : undefined)
+			.orderBy(desc(deals.createdAt));
 	},
 
 	async getActive(): Promise<Deal[]> {

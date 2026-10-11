@@ -5,7 +5,12 @@ import { electionsService } from "./service";
 export const electionsModule = defineModule({
 	id: "elections",
 	pages: electionsPages,
-	admin: { sections: [{ path: "elections", label: "Elections", order: 200 }] },
+	// Election cycles are owned by a scope; each scope's admin manages its own and its subtree's.
+	admin: {
+		sections: [
+			{ path: "elections", label: "Elections", order: 200, scopes: "all" },
+		],
+	},
 	menuLinks: [{ key: "elections", label: "Elections", url: "/elections" }],
 	// Election history is private: only the profile owner gets it.
 	async profile({ userId, isOwnProfile }) {

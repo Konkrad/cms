@@ -16,8 +16,10 @@ import { insertJobSchema, jobs, updateJobSchema } from "./schema";
 export type JobWithUser = Job & { user: PublicUser };
 
 export const jobsService = {
-	async getAll(): Promise<JobWithUser[]> {
+	/** Every job, or only those owned by `scopeIds` (an admin scope's subtree). */
+	async getAll(scopeIds: string[] | null = null): Promise<JobWithUser[]> {
 		const rows = await db.query.jobs.findMany({
+			where: scopeIds ? { scopeId: { in: scopeIds } } : undefined,
 			orderBy: { createdAt: "desc" },
 			with: { user: { columns: publicUserColumns } },
 		});

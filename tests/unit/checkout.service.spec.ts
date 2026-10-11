@@ -5,7 +5,7 @@ import { eventsService } from "~/modules/events/services/events";
 import { inventoryGroupsService } from "~/modules/events/services/inventory-groups";
 import { productsService } from "~/modules/events/services/products";
 import { stripeService } from "~/modules/events/services/stripe";
-import { createTestUser, openDb } from "./helpers";
+import { createTestUser, ensureRootScope, openDb } from "./helpers";
 
 const cleanupEventIds: string[] = [];
 const cleanupGroupIds: string[] = [];
@@ -37,6 +37,7 @@ async function createEventFixture(userId: string) {
 		endDate: end,
 		locationType: "online",
 		userId,
+		scopeId: ensureRootScope(),
 		visibility: "public",
 	} as any);
 	cleanupEventIds.push(event.id);

@@ -499,7 +499,9 @@ for (const e of qaEventDefs) {
 			latitude: e.latitude,
 			onlineUrl: null,
 			userId: resolveAuthor(e.authorIdx),
-			scopeId: e.groupSlug ? (groupIds[e.groupSlug] ?? null) : null,
+			scopeId: e.groupSlug
+				? (groupIds[e.groupSlug] ?? rootScope!.id)
+				: rootScope!.id,
 			visibility: e.visibility,
 			createdAt: now(),
 			updatedAt: now(),
@@ -1369,6 +1371,7 @@ for (const c of electionCycleDefs) {
 		db.insert(schema.electionCycles)
 			.values({
 				id,
+				scopeId: rootScope!.id,
 				title: c.title,
 				year: c.year,
 				description: c.description,

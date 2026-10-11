@@ -6,11 +6,9 @@ import { loadAdminDeal } from "../../../../../../modules/deals/admin/edit-data";
 
 export { useUpdateDeal } from "../../../../../../modules/deals/admin/edit";
 
-export const useDeal = routeLoader$(async (event) => {
-	const loaded = await loadAdminDeal(event);
-	if (!loaded) throw event.redirect(303, "/admin/root/deals");
-	return assertNoPrivateFields(loaded);
-});
+export const useDeal = routeLoader$(async (event) =>
+	assertNoPrivateFields(await loadAdminDeal(event)),
+);
 
 export default component$(() => {
 	const data = useDeal();

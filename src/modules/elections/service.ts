@@ -52,8 +52,10 @@ export type ElectionApplicationPublic = Omit<
 export const electionsService = {
 	// Cycles
 
-	async getCycles(): Promise<ElectionCycle[]> {
+	/** Every cycle, or only those owned by `scopeIds` (an admin scope's subtree). */
+	async getCycles(scopeIds: string[] | null = null): Promise<ElectionCycle[]> {
 		return db.query.electionCycles.findMany({
+			where: scopeIds ? { scopeId: { in: scopeIds } } : undefined,
 			orderBy: { year: "desc" },
 		});
 	},
@@ -82,7 +84,38 @@ export const electionsService = {
 		return row as ElectionCycleWithPositions | undefined;
 	},
 
+	/**
+	 * The owning scope of a cycle, or of the cycle of a position or application; undefined when
+	 * the row does not exist. For the admin scope checks of actions that take such an id.
+	 */
+	async scopeOf(ref: {
+		cycleId?: string;
+		positionId?: string;
+		applicationId?: string;
+	}): Promise<{ scopeId: string } | undefined> {
+		let cycleId = ref.cycleId;
+		if (ref.positionId) {
+			cycleId = (
+				await db.query.electionPositions.findFirst({
+					where: { id: ref.positionId },
+				})
+			)?.cycleId;
+		} else if (ref.applicationId) {
+			cycleId = (
+				await db.query.electionApplications.findFirst({
+					where: { id: ref.applicationId },
+				})
+			)?.cycleId;
+		}
+		if (!cycleId) return undefined;
+		const cycle = await db.query.electionCycles.findFirst({
+			where: { id: cycleId },
+		});
+		return cycle ? { scopeId: cycle.scopeId } : undefined;
+	},
+
 	async createCycle(data: {
+		scopeId: string;
 		title: string;
 		year: number;
 		description?: string;

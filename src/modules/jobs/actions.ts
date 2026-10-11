@@ -1,5 +1,10 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { currentScopeRest, matchPath, requireModuleAuth } from "~/core";
+import {
+	currentScope,
+	currentScopeRest,
+	matchPath,
+	requireModuleAuth,
+} from "~/core";
 import { jobsService } from "./service";
 
 const MAX_DAYS = 30;
@@ -34,6 +39,8 @@ export const useSubmitJob = routeAction$(
 			expiresAt,
 			status: "pending",
 			suggestedBy: user.id,
+			// Owned by the scope whose /jobs/new the form was posted from (the root by default).
+			scopeId: (await currentScope(event))!.id,
 		} as any);
 
 		throw event.redirect(303, "/jobs/mine");

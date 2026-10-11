@@ -1,14 +1,22 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, Link, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { format } from "date-fns";
-import { requireModuleAdmin } from "~/core";
+import { requireModuleAdmin, requireWithinScope } from "~/core";
 import { Button, Pagination, SearchBar } from "~/core/ui";
 import { dealsService } from "../service";
 import type { AdminDealsData } from "./list-data";
 
 export const useDeleteDeal = routeAction$(
 	async (data, event) => {
-		await requireModuleAdmin(event, { module: "deals", scope: "global" });
+		const { scope } = await requireModuleAdmin(event, {
+			module: "deals",
+			scope: "any",
+		});
+		await requireWithinScope(
+			event,
+			scope,
+			await dealsService.getById(data.dealId),
+		);
 		await dealsService.delete(data.dealId);
 		return { success: true };
 	},
@@ -25,7 +33,7 @@ export const AdminDealsList = component$<{ data: AdminDealsData }>(
 			<div>
 				<div class="flex items-center justify-between mb-6">
 					<h2 class="text-2xl font-bold text-gray-800">Deals</h2>
-					<Button href="/admin/root/deals/new">Add Deal</Button>
+					<Button href={`${data.adminBase}/deals/new`}>Add Deal</Button>
 				</div>
 
 				<SearchBar value={data.search} placeholder="Search by name…" />
@@ -87,7 +95,7 @@ export const AdminDealsList = component$<{ data: AdminDealsData }>(
 										<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
 											<div class="flex items-center gap-4">
 												<Link
-													href={`/admin/root/deals/${deal.id}/edit`}
+													href={`${data.adminBase}/deals/${deal.id}/edit`}
 													class="text-blue-600 hover:text-blue-900"
 												>
 													Edit

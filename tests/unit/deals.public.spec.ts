@@ -8,6 +8,7 @@ const deal: Deal = {
 	description: "desc",
 	logo: "public/deals/logos/x.svg",
 	validUntil: null,
+	scopeId: "root",
 	steps: [
 		{ type: "text", title: "Open", text: "public text" },
 		{

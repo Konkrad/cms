@@ -1,7 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, Link, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { format } from "date-fns";
-import { requireModuleAdmin } from "~/core";
+import { requireModuleAdmin, requireWithinScope } from "~/core";
 import { Pagination, SearchBar } from "~/core/ui";
 import { notifyIfApproved } from "../notifications";
 import { jobsService } from "../service";
@@ -9,8 +9,12 @@ import type { AdminJobsData } from "./list-data";
 
 export const useApproveJob = routeAction$(
 	async (data, event) => {
-		await requireModuleAdmin(event, { module: "jobs", scope: "global" });
+		const { scope } = await requireModuleAdmin(event, {
+			module: "jobs",
+			scope: "any",
+		});
 		const before = await jobsService.getById(data.jobId);
+		await requireWithinScope(event, scope, before);
 		if (!before) return event.fail(404, { message: "Job not found" });
 		const after = await jobsService.update(data.jobId, {
 			status: "approved",
@@ -23,7 +27,15 @@ export const useApproveJob = routeAction$(
 
 export const useDeleteJob = routeAction$(
 	async (data, event) => {
-		await requireModuleAdmin(event, { module: "jobs", scope: "global" });
+		const { scope } = await requireModuleAdmin(event, {
+			module: "jobs",
+			scope: "any",
+		});
+		await requireWithinScope(
+			event,
+			scope,
+			await jobsService.getById(data.jobId),
+		);
 		await jobsService.delete(data.jobId);
 		return { success: true };
 	},
@@ -131,7 +143,7 @@ export const AdminJobsList = component$<{ data: AdminJobsData }>(({ data }) => {
 												</Form>
 											)}
 											<Link
-												href={`/admin/root/jobs/${job.id}/edit`}
+												href={`${data.adminBase}/jobs/${job.id}/edit`}
 												class="text-blue-600 hover:text-blue-900"
 											>
 												Edit

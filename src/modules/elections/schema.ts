@@ -9,7 +9,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { defineModuleSchema, users } from "~/core/schema";
+import { defineModuleSchema, scopes, users } from "~/core/schema";
 
 export const electionCycles = sqliteTable("election_cycles", {
 	id: text("id").primaryKey(),
@@ -25,6 +25,10 @@ export const electionCycles = sqliteTable("election_cycles", {
 		enum: ["associated", "full"],
 	}),
 	votingUrl: text("voting_url"),
+	// Owning scope (spec 4.2: every scoped content row has one; site-wide = the root).
+	scopeId: text("scope_id")
+		.notNull()
+		.references(() => scopes.id, { onDelete: "cascade" }),
 	createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 	updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -41,7 +45,7 @@ export const insertElectionCycleSchema = electionCycleBase.extend({
 });
 
 export const updateElectionCycleSchema = electionCycleBase
-	.omit({ id: true, createdAt: true, updatedAt: true })
+	.omit({ id: true, scopeId: true, createdAt: true, updatedAt: true })
 	.partial();
 
 export type ElectionCycle = InferSelectModel<typeof electionCycles>;

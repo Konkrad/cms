@@ -48,8 +48,12 @@ export async function createEventWithInventory(
 			)
 			.get() as { image1: string; image2: string } | undefined;
 
-		// Find the owning scope (a group) by slug if provided
-		let scopeId: string | null = null;
+		// Find the owning scope (a group) by slug if provided; the root otherwise.
+		let scopeId = (
+			db.prepare("SELECT id FROM scopes WHERE parent_id IS NULL").get() as {
+				id: string;
+			}
+		).id;
 		if (opts.groupSlug) {
 			const g = db
 				.prepare(

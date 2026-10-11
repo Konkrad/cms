@@ -62,8 +62,7 @@ export const useCreateEvent = routeAction$(async (data, event) => {
 		locationType: data.locationType,
 		onlineUrl: data.onlineUrl || null,
 		visibility: data.visibility,
-		// Root events are site-wide (no scope).
-		scopeId: isRoot ? null : scope.id,
+		scopeId: scope.id,
 		userId: user.id,
 		image1: data.image1 || null,
 		image2: data.image2 || null,

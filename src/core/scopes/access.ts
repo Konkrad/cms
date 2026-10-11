@@ -201,17 +201,31 @@ export const getSubtreeIds = (scopeId: string) =>
 	scopesService.subtreeIds(scopeId);
 
 /**
- * Whether an item owned by `itemScopeId` (null = the root) lies in `scope`'s subtree, i.e. may
- * be managed from that scope's admin. Use it in admin actions after `requireScopeRole`.
+ * Whether an item owned by `itemScopeId` lies in `scope`'s subtree, i.e. may be managed from
+ * that scope's admin. Use it in admin loaders and actions after `requireScopeRole`.
  */
 export async function isWithinScope(
 	scope: Scope,
-	itemScopeId: string | null,
+	itemScopeId: string,
 ): Promise<boolean> {
 	if (scope.parentId === null) return true;
-	if (!itemScopeId) return false;
 	const item = await scopesService.getById(itemScopeId);
 	return !!item && isAncestorPath(scope.path, item.path);
+}
+
+/**
+ * 404 unless the item exists and lies in `scope`'s subtree. For admin loaders and actions that
+ * take an item id (from the URL or the form body), right after the auth call, so a
+ * representative can neither read nor change a sibling scope's item by id.
+ */
+export async function requireWithinScope(
+	event: Pick<RequestEvent, "error">,
+	scope: Scope,
+	item: { scopeId: string } | null | undefined,
+): Promise<void> {
+	if (!item || !(await isWithinScope(scope, item.scopeId))) {
+		throw event.error(404, "Not found");
+	}
 }
 
 /**

@@ -51,6 +51,22 @@ function addMember(userId: string, scopeId: string) {
 	db.close();
 }
 
+function grantRole(userId: string, scopeId: string, role: string) {
+	const db = openDb();
+	db.prepare(
+		"INSERT INTO scope_roles (user_id, scope_id, role) VALUES (?, ?, ?)",
+	).run(userId, scopeId, role);
+	db.close();
+	cleanups.push(() => {
+		const d = openDb();
+		d.prepare("DELETE FROM scope_roles WHERE user_id = ? AND scope_id = ?").run(
+			userId,
+			scopeId,
+		);
+		d.close();
+	});
+}
+
 const future = (days: number) =>
 	new Date(Date.now() + days * 86400000).toISOString();
 
@@ -165,8 +181,8 @@ describe("events scope page hook", () => {
 });
 
 describe("canViewEvent", () => {
-	it("allows everyone on global events", async () => {
-		const event = { visibility: "public", scopeId: null };
+	it("allows everyone on public events", async () => {
+		const event = { visibility: "public", scopeId: ensureRootScope() };
 		expect(await canViewEvent(event, null)).toBe(true);
 		expect(await canViewEvent(event, { id: "x" })).toBe(true);
 	});
@@ -186,10 +202,22 @@ describe("canViewEvent", () => {
 		expect(await canViewEvent(event, { id: outsider.userId })).toBe(true);
 	});
 
-	it("hides a members-only event without a group from non-admins", async () => {
+	it("hides a members-only root event from users without a membership", async () => {
 		const user = createTestUser();
 		cleanups.push(user.cleanup);
-		const event = { visibility: "members", scopeId: null };
+		const event = { visibility: "members", scopeId: ensureRootScope() };
 		expect(await canViewEvent(event, { id: user.userId })).toBe(false);
+	});
+
+	it("limits representatives-only events to role holders", async () => {
+		const member = createTestUser();
+		const rep = createTestUser();
+		cleanups.push(member.cleanup, rep.cleanup);
+		const groupId = createScope();
+		addMember(member.userId, groupId);
+		grantRole(rep.userId, groupId, "representative");
+		const event = { visibility: "representatives", scopeId: groupId };
+		expect(await canViewEvent(event, { id: member.userId })).toBe(false);
+		expect(await canViewEvent(event, { id: rep.userId })).toBe(true);
 	});
 });

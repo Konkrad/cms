@@ -9,7 +9,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { defineModuleSchema, users } from "~/core/schema";
+import { defineModuleSchema, scopes, users } from "~/core/schema";
 
 export const qualificationTypes = sqliteTable("qualification_types", {
 	id: text("id").primaryKey(),
@@ -19,6 +19,10 @@ export const qualificationTypes = sqliteTable("qualification_types", {
 	grantsMembershipTier: text("grants_membership_tier", {
 		enum: ["associated", "full"],
 	}).notNull(),
+	// Owning scope (spec 4.2: every scoped content row has one; site-wide = the root).
+	scopeId: text("scope_id")
+		.notNull()
+		.references(() => scopes.id, { onDelete: "cascade" }),
 	createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 	updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -35,7 +39,7 @@ export const insertQualificationTypeSchema = qualificationTypeBase.extend({
 });
 
 export const updateQualificationTypeSchema = qualificationTypeBase
-	.omit({ id: true, createdAt: true, updatedAt: true })
+	.omit({ id: true, scopeId: true, createdAt: true, updatedAt: true })
 	.partial();
 
 export type QualificationType = InferSelectModel<typeof qualificationTypes>;

@@ -1,16 +1,20 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { requireModuleAdmin } from "~/core";
+import { requireModuleAdmin, requireWithinScope } from "~/core";
 import { BlockNoteEditor, Button, Input, Select } from "~/core/ui";
 import { notifyIfApproved } from "../notifications";
-import type { PublicJob } from "../public-job";
 import { jobsService } from "../service";
+import type { AdminJobData } from "./edit-data";
 
 export const useUpdateJob = routeAction$(
 	async (data, event) => {
-		await requireModuleAdmin(event, { module: "jobs", scope: "global" });
+		const { scope, adminBase } = await requireModuleAdmin(event, {
+			module: "jobs",
+			scope: "any",
+		});
 
 		const before = await jobsService.getById(event.params.id);
+		await requireWithinScope(event, scope, before);
 		if (!before) return event.fail(404, { message: "Job not found" });
 		const after = await jobsService.update(event.params.id, {
 			title: data.title,
@@ -29,7 +33,7 @@ export const useUpdateJob = routeAction$(
 		} as any);
 		await notifyIfApproved(before, after);
 
-		throw event.redirect(303, "/admin/root/jobs");
+		throw event.redirect(303, `${adminBase}/jobs`);
 	},
 	zod$({
 		title: z.string().min(1, "Title is required"),
@@ -47,7 +51,8 @@ export const useUpdateJob = routeAction$(
 	}),
 );
 
-export const AdminJobEdit = component$<{ job: PublicJob }>(({ job }) => {
+export const AdminJobEdit = component$<{ data: AdminJobData }>(({ data }) => {
+	const { job, adminBase } = data;
 	const updateAction = useUpdateJob();
 
 	const body = useSignal(job.body ?? "");
@@ -63,7 +68,7 @@ export const AdminJobEdit = component$<{ job: PublicJob }>(({ job }) => {
 		<div>
 			<div class="flex items-center justify-between mb-6">
 				<h2 class="text-2xl font-bold text-gray-800">Edit Job</h2>
-				<Button href="/admin/root/jobs" variant="secondary">
+				<Button href={`${adminBase}/jobs`} variant="secondary">
 					Back to Jobs
 				</Button>
 			</div>
@@ -159,7 +164,7 @@ export const AdminJobEdit = component$<{ job: PublicJob }>(({ job }) => {
 
 					<div class="flex gap-4">
 						<Button type="submit">Save Changes</Button>
-						<Button href="/admin/root/jobs" variant="secondary">
+						<Button href={`${adminBase}/jobs`} variant="secondary">
 							Cancel
 						</Button>
 					</div>

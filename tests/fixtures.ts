@@ -410,8 +410,8 @@ export function createTestEvent(userId: string): {
 	const end = new Date(Date.now() + 14 * 86400000 + 7200000).toISOString();
 
 	db.prepare(
-		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, visibility)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, scope_id, visibility)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		eventId,
 		"Consent Test Event",
@@ -420,6 +420,7 @@ export function createTestEvent(userId: string): {
 		end,
 		"online",
 		userId,
+		rootScopeId(db),
 		"public",
 	);
 	db.prepare(
@@ -453,8 +454,8 @@ export function createTestEvent(userId: string): {
 export function createScopeEventInDb(opts: {
 	organizerId: string;
 	title: string;
-	scopeId?: string | null;
-	visibility?: "public" | "members";
+	scopeId?: string;
+	visibility?: "public" | "members" | "representatives";
 	past?: boolean;
 }): { eventId: string; cleanup(): void } {
 	const db = openDb();
@@ -474,7 +475,7 @@ export function createScopeEventInDb(opts: {
 		end,
 		"online",
 		opts.organizerId,
-		opts.scopeId ?? null,
+		opts.scopeId ?? rootScopeId(db),
 		opts.visibility ?? "public",
 	);
 	db.close();
@@ -543,8 +544,8 @@ export function createTestEventWithProduct(opts: {
 	const end = new Date(Date.now() + offset + 7200000).toISOString();
 
 	db.prepare(
-		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, visibility)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, scope_id, visibility)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		eventId,
 		opts.title ?? "Ticket Test Event",
@@ -553,6 +554,7 @@ export function createTestEventWithProduct(opts: {
 		end,
 		"online",
 		opts.ownerId,
+		rootScopeId(db),
 		"public",
 	);
 	db.prepare(
@@ -661,14 +663,16 @@ export function createJobInDb(opts: {
 	title?: string;
 	status?: "pending" | "approved";
 	expiresAt?: string;
+	/** Owning scope (default: the root). */
+	scopeId?: string;
 }): { jobId: string; cleanup(): void } {
 	const db = openDb();
 	const jobId = crypto.randomUUID();
 	const expiresAt =
 		opts.expiresAt ?? new Date(Date.now() + 30 * 86400000).toISOString();
 	db.prepare(
-		`INSERT INTO jobs (id, title, body, location_type, expires_at, status, suggested_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO jobs (id, title, body, location_type, expires_at, status, suggested_by, scope_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		jobId,
 		opts.title ?? "Test Job",
@@ -677,6 +681,7 @@ export function createJobInDb(opts: {
 		expiresAt,
 		opts.status ?? "pending",
 		opts.suggestedBy,
+		opts.scopeId ?? rootScopeId(db),
 	);
 	db.close();
 
@@ -832,12 +837,14 @@ export function createDealInDb(opts: {
 	logo?: string | null;
 	validUntil?: string | null;
 	steps?: unknown[];
+	/** Owning scope (default: the root). */
+	scopeId?: string;
 }): { dealId: string; cleanup(): void } {
 	const db = openDb();
 	const dealId = crypto.randomUUID();
 	db.prepare(
-		`INSERT INTO deals (id, name, description, logo, valid_until, steps)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO deals (id, name, description, logo, valid_until, steps, scope_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		dealId,
 		opts.name ?? "Test Deal",
@@ -845,6 +852,7 @@ export function createDealInDb(opts: {
 		opts.logo ?? null,
 		opts.validUntil ?? null,
 		JSON.stringify(opts.steps ?? []),
+		opts.scopeId ?? rootScopeId(db),
 	);
 	db.close();
 	return { dealId, cleanup: () => deleteDealById(dealId) };
@@ -963,8 +971,8 @@ export function createPostInDb(opts: {
 	title: string;
 	body: string;
 	userId: string;
-	scopeId?: string | null;
-	visibility?: "public" | "members";
+	scopeId?: string;
+	visibility?: "public" | "members" | "representatives";
 	createdAt?: string;
 }): string {
 	const db = openDb();
@@ -977,7 +985,7 @@ export function createPostInDb(opts: {
 		opts.title,
 		opts.body,
 		opts.userId,
-		opts.scopeId ?? null,
+		opts.scopeId ?? rootScopeId(db),
 		opts.visibility ?? "public",
 		now,
 		now,
@@ -1339,13 +1347,14 @@ export function createQualificationTypeInDb(
 	const db = openDb();
 	const typeId = crypto.randomUUID();
 	db.prepare(
-		`INSERT INTO qualification_types (id, slug, label, grants_membership_tier, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO qualification_types (id, slug, label, grants_membership_tier, scope_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		typeId,
 		(overrides.slug as string) ?? `e2e-type-${typeId.slice(0, 8)}`,
 		(overrides.label as string) ?? "E2E Test Type",
 		(overrides.grantsMembershipTier as string) ?? "associated",
+		(overrides.scopeId as string) ?? rootScopeId(db),
 		new Date().toISOString(),
 		new Date().toISOString(),
 	);
@@ -1476,13 +1485,14 @@ export function createElectionCycleInDb(
 	const db = openDb();
 	const cycleId = crypto.randomUUID();
 	db.prepare(
-		`INSERT INTO election_cycles (id, title, year, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO election_cycles (id, title, year, status, scope_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		cycleId,
 		(overrides.title as string) ?? "E2E Test Elections",
 		(overrides.year as number) ?? 2026,
 		(overrides.status as string) ?? "draft",
+		(overrides.scopeId as string) ?? rootScopeId(db),
 		new Date().toISOString(),
 		new Date().toISOString(),
 	);

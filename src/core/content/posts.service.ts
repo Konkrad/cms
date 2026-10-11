@@ -78,13 +78,11 @@ export const postsService = {
 	 * members of the post's scope (or of a scope below it) and role holders on it.
 	 */
 	async canView(
-		post: { visibility: string; scopeId: string | null },
+		post: { visibility: string; scopeId: string },
 		viewer: { id: string } | null,
 	): Promise<boolean> {
 		if (post.visibility === "public") return true;
-		const scopeId = post.scopeId ?? (await scopesService.getRoot())?.id;
-		if (!scopeId) return false;
-		return canViewScope(viewer, scopeId, post.visibility as Visibility);
+		return canViewScope(viewer, post.scopeId, post.visibility as Visibility);
 	},
 
 	/** Posts visible to `viewerId` (null = guest: global posts only), newest first. */

@@ -6,7 +6,10 @@ import { dealsService } from "./service";
 export const dealsModule = defineModule({
 	id: "deals",
 	pages: dealsPages,
-	admin: { sections: [{ path: "deals", label: "Deals", order: 100 }] },
+	// Deals are owned by a scope; each scope's admin manages its own and its subtree's.
+	admin: {
+		sections: [{ path: "deals", label: "Deals", order: 100, scopes: "all" }],
+	},
 	blocks: dealsBlocks,
 	sitemap: async () =>
 		(await dealsService.getActive()).map((deal) => ({

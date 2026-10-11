@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { dealsService } from "~/modules/deals/service";
-import { openDb } from "./helpers";
+import { ensureRootScope, openDb } from "./helpers";
 
 const cleanupDealIds: string[] = [];
 
@@ -17,6 +17,7 @@ async function makeDeal(overrides: Record<string, unknown> = {}) {
 		name: "Test Deal",
 		description: "A deal",
 		steps: [{ type: "promo", title: "Code", text: "Use it", promoCode: "X1" }],
+		scopeId: ensureRootScope(),
 		...overrides,
 	} as any);
 	cleanupDealIds.push(deal.id);

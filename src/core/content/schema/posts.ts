@@ -84,8 +84,10 @@ export const posts = sqliteTable("posts", {
 	userId: text("user_id")
 		.notNull()
 		.references(() => users.id),
-	// Owning scope; null = the root (site-wide).
-	scopeId: text("scope_id").references(() => scopes.id),
+	// Owning scope (site-wide = the root).
+	scopeId: text("scope_id")
+		.notNull()
+		.references(() => scopes.id),
 	visibility: text("visibility", { enum: VISIBILITIES })
 		.notNull()
 		.default("public"),

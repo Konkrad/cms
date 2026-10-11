@@ -782,7 +782,7 @@ postDefs.forEach((p, i) => {
 			body: p.body,
 			editorState: null,
 			userId: resolveAuthor(p.authorIdx),
-			scopeId: p.groupSlug ? groupIds[p.groupSlug] : null,
+			scopeId: p.groupSlug ? groupIds[p.groupSlug] : rootScope!.id,
 			visibility: p.visibility,
 			createdAt,
 			updatedAt: createdAt,
@@ -1110,7 +1110,7 @@ for (const e of eventDefs) {
 			onlineUrl:
 				e.city === "Online" ? "https://meet.example.com/town-hall" : null,
 			userId: resolveAuthor(e.authorIdx),
-			scopeId: e.groupSlug ? groupIds[e.groupSlug] : null,
+			scopeId: e.groupSlug ? groupIds[e.groupSlug] : rootScope!.id,
 			visibility: e.visibility,
 			createdAt: now(),
 			updatedAt: now(),
@@ -1559,7 +1559,7 @@ console.log("  inventory & products seeded");
 				latitude: opts.latitude,
 				onlineUrl: opts.onlineUrl ?? null,
 				userId: adminUser!.id,
-				scopeId: opts.groupSlug ? groupIds[opts.groupSlug] : null,
+				scopeId: opts.groupSlug ? groupIds[opts.groupSlug] : rootScope!.id,
 				visibility: "public",
 				createdAt,
 				updatedAt: createdAt,
@@ -3198,6 +3198,7 @@ for (const d of dealDefs) {
 	db.insert(schema.deals)
 		.values({
 			id: uuid(),
+			scopeId: rootScope!.id,
 			name: d.name,
 			description: d.description,
 			logo: logoKey,
@@ -3309,6 +3310,7 @@ for (const j of jobDefs) {
 	db.insert(schema.jobs)
 		.values({
 			id: uuid(),
+			scopeId: rootScope!.id,
 			title: j.title,
 			body: j.body,
 			editorState: null,
@@ -3471,6 +3473,7 @@ for (const qt of qualTypeDefs) {
 		db.insert(schema.qualificationTypes)
 			.values({
 				id,
+				scopeId: rootScope!.id,
 				slug: qt.slug,
 				label: qt.label,
 				description: qt.description,

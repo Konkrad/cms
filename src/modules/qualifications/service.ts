@@ -43,6 +43,7 @@ export const qualificationsService = {
 	},
 
 	async createType(data: {
+		scopeId: string;
 		slug: string;
 		label: string;
 		description?: string;

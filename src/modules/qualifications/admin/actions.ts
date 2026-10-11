@@ -4,11 +4,12 @@ import { qualificationsService } from "../service";
 
 export const useCreateType = routeAction$(
 	async (data, event) => {
-		await requireModuleAdmin(event, {
+		// Root only ("global"): a type grants a membership tier, which is site-wide.
+		const { scope } = await requireModuleAdmin(event, {
 			module: "qualifications",
 			scope: "global",
 		});
-		await qualificationsService.createType(data);
+		await qualificationsService.createType({ ...data, scopeId: scope.id });
 		return { success: true };
 	},
 	zod$({

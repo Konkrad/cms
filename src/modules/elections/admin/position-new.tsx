@@ -69,7 +69,7 @@ export const AdminNewPosition = component$<{ data: AdminNewPositionData }>(
 							Add Position
 						</button>
 						<a
-							href={`/admin/root/elections/${guard.cycle.id}`}
+							href={`${guard.adminBase}/elections/${guard.cycle.id}`}
 							class="text-sm text-gray-500 hover:text-gray-700 py-2"
 						>
 							Cancel

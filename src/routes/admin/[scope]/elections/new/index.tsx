@@ -12,6 +12,6 @@ export const useGuard = routeLoader$(async (event) =>
 );
 
 export default component$(() => {
-	useGuard();
-	return <AdminNewElection />;
+	const guard = useGuard();
+	return <AdminNewElection data={guard.value} />;
 });

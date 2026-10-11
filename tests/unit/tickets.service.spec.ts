@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { afterEach, describe, expect, it } from "vitest";
 import { ticketsService } from "~/modules/events/services/tickets";
-import { createTestUser, openDb } from "./helpers";
+import { createTestUser, ensureRootScope, openDb } from "./helpers";
 
 // IDs cleaned up after each test
 const cleanupEventIds: string[] = [];
@@ -46,8 +46,8 @@ function createTicketFixture(userId: string, eventOffset = 7) {
 	).toISOString();
 
 	db.prepare(
-		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, visibility)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, scope_id, visibility)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		eventId,
 		"Scan Test Event",
@@ -56,6 +56,7 @@ function createTicketFixture(userId: string, eventOffset = 7) {
 		end,
 		"online",
 		userId,
+		ensureRootScope(),
 		"public",
 	);
 

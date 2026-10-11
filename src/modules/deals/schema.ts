@@ -3,7 +3,7 @@ import { type InferSelectModel, sql } from "drizzle-orm";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { defineModuleSchema } from "~/core/schema";
+import { defineModuleSchema, scopes } from "~/core/schema";
 
 export interface DealStep {
 	type: "text" | "link" | "promo";
@@ -25,6 +25,10 @@ export const deals = sqliteTable("deals", {
 		.$type<DealStep[]>()
 		.notNull()
 		.default([]),
+	// Owning scope (spec 4.2: every scoped content row has one; site-wide = the root).
+	scopeId: text("scope_id")
+		.notNull()
+		.references(() => scopes.id, { onDelete: "cascade" }),
 	createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 	updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -83,7 +87,7 @@ export const updateDealSchema = baseInsertSchema
 			.optional(),
 	})
 	.partial()
-	.omit({ id: true });
+	.omit({ id: true, scopeId: true });
 
 export default defineModuleSchema({
 	tables: { deals },

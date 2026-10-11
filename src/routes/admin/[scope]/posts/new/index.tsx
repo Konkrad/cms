@@ -46,8 +46,7 @@ export const useCreatePost = routeAction$(async (data, event) => {
 			editorState: data.editorState || null,
 			featuredImage: data.featuredImage || null,
 			userId: user.id,
-			// Root posts are site-wide (no scope).
-			scopeId: isRoot ? null : scope.id,
+			scopeId: scope.id,
 			visibility: data.visibility,
 		} as any);
 

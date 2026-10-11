@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { afterEach, describe, expect, it } from "vitest";
 import { eventsService } from "~/modules/events/services/events";
-import { createTestUser, openDb } from "./helpers";
+import { createTestUser, ensureRootScope, openDb } from "./helpers";
 
 const cleanupEventIds: string[] = [];
 let cleanupUser: (() => void) | null = null;
@@ -31,6 +31,7 @@ function makeEventData(
 		endDate: end,
 		locationType: "online",
 		userId,
+		scopeId: ensureRootScope(),
 		visibility: "public",
 		...overrides,
 	} as any;

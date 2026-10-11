@@ -6,11 +6,11 @@ import { loadAdminDealNew } from "../../../../../modules/deals/admin/new-data";
 
 export { useCreateDeal } from "../../../../../modules/deals/admin/new";
 
-export const useGlobalOnly = routeLoader$(async (event) =>
+export const useDealNew = routeLoader$(async (event) =>
 	assertNoPrivateFields(await loadAdminDealNew(event)),
 );
 
 export default component$(() => {
-	useGlobalOnly();
-	return <AdminDealNew />;
+	const data = useDealNew();
+	return <AdminDealNew data={data.value} />;
 });

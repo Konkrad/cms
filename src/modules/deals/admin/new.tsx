@@ -3,11 +3,15 @@ import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireModuleAdmin } from "~/core";
 import { Button, ImageUploader, Input, TextArea } from "~/core/ui";
 import { dealsService } from "../service";
+import type { AdminDealNewData } from "./new-data";
 import { StepsEditor } from "./StepsEditor";
 
 export const useCreateDeal = routeAction$(
 	async (data, event) => {
-		await requireModuleAdmin(event, { module: "deals", scope: "global" });
+		const { scope, adminBase } = await requireModuleAdmin(event, {
+			module: "deals",
+			scope: "any",
+		});
 
 		const steps = JSON.parse(data.steps || "[]");
 
@@ -19,9 +23,10 @@ export const useCreateDeal = routeAction$(
 				? new Date(data.validUntil).toISOString()
 				: null,
 			steps,
+			scopeId: scope.id,
 		} as any);
 
-		throw event.redirect(303, "/admin/root/deals");
+		throw event.redirect(303, `${adminBase}/deals`);
 	},
 	zod$({
 		name: z.string().min(1, "Name is required"),
@@ -32,75 +37,85 @@ export const useCreateDeal = routeAction$(
 	}),
 );
 
-export const AdminDealNew = component$(() => {
-	const createAction = useCreateDeal();
-	const isSubmitting = useSignal(false);
-	const triggerUpload = useSignal(false);
+export const AdminDealNew = component$<{ data: AdminDealNewData }>(
+	({ data }) => {
+		const createAction = useCreateDeal();
+		const isSubmitting = useSignal(false);
+		const triggerUpload = useSignal(false);
 
-	const handleSubmit = $(() => {
-		isSubmitting.value = true;
-		triggerUpload.value = true;
-	});
+		const handleSubmit = $(() => {
+			isSubmitting.value = true;
+			triggerUpload.value = true;
+		});
 
-	const onUploadSettled = $(() => {
-		const form = document.querySelector("form") as HTMLFormElement | null;
-		if (form) createAction.submit(new FormData(form));
-	});
+		const onUploadSettled = $(() => {
+			const form = document.querySelector("form") as HTMLFormElement | null;
+			if (form) createAction.submit(new FormData(form));
+		});
 
-	return (
-		<div>
-			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-2xl font-bold text-gray-800">Add Deal</h2>
-				<Button href="/admin/root/deals" variant="secondary">
-					Back to Deals
-				</Button>
-			</div>
+		return (
+			<div>
+				<div class="flex items-center justify-between mb-6">
+					<h2 class="text-2xl font-bold text-gray-800">Add Deal</h2>
+					<Button href={`${data.adminBase}/deals`} variant="secondary">
+						Back to Deals
+					</Button>
+				</div>
 
-			<div class="bg-white rounded-lg shadow-sm p-6">
-				<form preventdefault:submit onSubmit$={handleSubmit} class="space-y-6">
-					<Input name="name" label="Name" required placeholder="Deal name" />
+				<div class="bg-white rounded-lg shadow-sm p-6">
+					<form
+						preventdefault:submit
+						onSubmit$={handleSubmit}
+						class="space-y-6"
+					>
+						<Input name="name" label="Name" required placeholder="Deal name" />
 
-					<TextArea
-						name="description"
-						label="Description"
-						rows={3}
-						placeholder="Brief description of this deal"
-					/>
-
-					<div>
-						<p class="text-sm font-medium text-gray-700 mb-1">
-							Logo (SVG, optional)
-						</p>
-						<ImageUploader
-							name="logo"
-							path="public/deals/logos"
-							pipeline="svg"
-							triggerSignal={triggerUpload}
-							onSettled$={onUploadSettled}
-							aspectRatio="1/1"
+						<TextArea
+							name="description"
+							label="Description"
+							rows={3}
+							placeholder="Brief description of this deal"
 						/>
-					</div>
 
-					<Input name="validUntil" label="Valid Until (optional)" type="date" />
-
-					<div>
-						<p class="text-sm font-medium text-gray-700 mb-2">Steps</p>
-						<StepsEditor />
-					</div>
-
-					{createAction.value?.failed && (
-						<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm">
-							Failed to create deal. Please check the form.
+						<div>
+							<p class="text-sm font-medium text-gray-700 mb-1">
+								Logo (SVG, optional)
+							</p>
+							<ImageUploader
+								name="logo"
+								path="public/deals/logos"
+								pipeline="svg"
+								triggerSignal={triggerUpload}
+								onSettled$={onUploadSettled}
+								aspectRatio="1/1"
+							/>
 						</div>
-					)}
 
-					<div class="flex gap-4">
-						<Button type="submit" disabled={isSubmitting.value}>
-							{isSubmitting.value ? "Saving…" : "Create Deal"}
-						</Button>
-					</div>
-				</form>
+						<Input
+							name="validUntil"
+							label="Valid Until (optional)"
+							type="date"
+						/>
+
+						<div>
+							<p class="text-sm font-medium text-gray-700 mb-2">Steps</p>
+							<StepsEditor />
+						</div>
+
+						{createAction.value?.failed && (
+							<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm">
+								Failed to create deal. Please check the form.
+							</div>
+						)}
+
+						<div class="flex gap-4">
+							<Button type="submit" disabled={isSubmitting.value}>
+								{isSubmitting.value ? "Saving…" : "Create Deal"}
+							</Button>
+						</div>
+					</form>
+				</div>
 			</div>
-		</div>
-	);
-});
+		);
+	},
+);

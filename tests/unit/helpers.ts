@@ -128,13 +128,14 @@ export function createTestQualificationType(
 	const db = openDb();
 	const typeId = crypto.randomUUID();
 	db.prepare(
-		`INSERT INTO qualification_types (id, slug, label, grants_membership_tier, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO qualification_types (id, slug, label, grants_membership_tier, scope_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		typeId,
 		(overrides.slug as string) ?? `test-type-${typeId.slice(0, 8)}`,
 		(overrides.label as string) ?? "Test Type",
 		(overrides.grantsMembershipTier as string) ?? "associated",
+		(overrides.scopeId as string) ?? ensureRootScope(),
 		new Date().toISOString(),
 		new Date().toISOString(),
 	);
@@ -247,13 +248,14 @@ export function createTestElectionCycle(
 	const db = openDb();
 	const cycleId = crypto.randomUUID();
 	db.prepare(
-		`INSERT INTO election_cycles (id, title, year, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO election_cycles (id, title, year, status, scope_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		cycleId,
 		(overrides.title as string) ?? "Test Elections",
 		(overrides.year as number) ?? 2026,
 		(overrides.status as string) ?? "draft",
+		(overrides.scopeId as string) ?? ensureRootScope(),
 		new Date().toISOString(),
 		new Date().toISOString(),
 	);
@@ -349,8 +351,8 @@ export function createTestEvent(
 	const pastDate = new Date(Date.now() - 7 * 86400000).toISOString();
 	const pastEnd = new Date(Date.now() - 6 * 86400000).toISOString();
 	db.prepare(
-		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, visibility, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, scope_id, visibility, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		eventId,
 		(overrides.title as string) ?? "Test Event",
@@ -359,6 +361,7 @@ export function createTestEvent(
 		(overrides.endDate as string) ?? pastEnd,
 		(overrides.locationType as string) ?? "in-person",
 		userId,
+		(overrides.scopeId as string) ?? ensureRootScope(),
 		(overrides.visibility as string) ?? "public",
 		new Date().toISOString(),
 		new Date().toISOString(),

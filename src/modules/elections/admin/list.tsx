@@ -22,7 +22,7 @@ export const AdminElectionsList = component$<{ data: AdminElectionsData }>(
 				<div class="flex items-center justify-between mb-6">
 					<h2 class="text-2xl font-bold text-gray-800">Elections</h2>
 					<Link
-						href="/admin/root/elections/new"
+						href={`${loaded.adminBase}/elections/new`}
 						class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
 					>
 						New Election Cycle
@@ -69,7 +69,7 @@ export const AdminElectionsList = component$<{ data: AdminElectionsData }>(
 									</td>
 									<td class="px-6 py-4 text-sm">
 										<Link
-											href={`/admin/root/elections/${cycle.id}`}
+											href={`${loaded.adminBase}/elections/${cycle.id}`}
 											class="text-blue-600 hover:text-blue-900"
 										>
 											Manage

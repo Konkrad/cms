@@ -5,7 +5,6 @@ import {
 	canViewScope,
 	currentScopeRest,
 	getCurrentUserData,
-	getRootScope,
 	matchPath,
 	publicImageUrlFromKey,
 	scopeLabels,
@@ -31,16 +30,14 @@ type Viewer = { id: string } | null;
  * Members-only events are for members of the event's scope (or of a scope below it) and role
  * holders on it (roles inherit downward, so root admins see everything); representatives-only
  * events for role holders only. Public events are
- * public. Events without a scope belong to the root.
+ * public.
  */
 export async function canViewEvent(
-	event: { visibility: string; scopeId: string | null },
+	event: { visibility: string; scopeId: string },
 	viewer: Viewer,
 ): Promise<boolean> {
 	if (event.visibility === "public") return true;
-	const scopeId = event.scopeId ?? (await getRootScope())?.id;
-	if (!scopeId) return false;
-	return canViewScope(viewer, scopeId, event.visibility as Visibility);
+	return canViewScope(viewer, event.scopeId, event.visibility as Visibility);
 }
 
 /** The event for a public page, or null (404) when missing, deleted or not visible to the viewer. */

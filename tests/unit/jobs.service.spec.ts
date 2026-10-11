@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { jobsService } from "~/modules/jobs/service";
-import { createTestUser, openDb } from "./helpers";
+import { createTestUser, ensureRootScope, openDb } from "./helpers";
 
 const cleanupJobIds: string[] = [];
 let cleanupUser: (() => void) | null = null;
@@ -24,6 +24,7 @@ function makeJobData(userId: string, overrides: Record<string, unknown> = {}) {
 		country: "Germany",
 		expiresAt: new Date(Date.now() + 14 * 86400000),
 		suggestedBy: userId,
+		scopeId: ensureRootScope(),
 		...overrides,
 	} as any;
 }

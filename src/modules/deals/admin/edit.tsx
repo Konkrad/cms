@@ -1,7 +1,7 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { format } from "date-fns";
-import { requireModuleAdmin } from "~/core";
+import { requireModuleAdmin, requireWithinScope } from "~/core";
 import { Button, ImageUploader, Input, TextArea } from "~/core/ui";
 import { dealsService } from "../service";
 import type { AdminDealData } from "./edit-data";
@@ -9,7 +9,15 @@ import { StepsEditor } from "./StepsEditor";
 
 export const useUpdateDeal = routeAction$(
 	async (data, event) => {
-		await requireModuleAdmin(event, { module: "deals", scope: "global" });
+		const { scope, adminBase } = await requireModuleAdmin(event, {
+			module: "deals",
+			scope: "any",
+		});
+		await requireWithinScope(
+			event,
+			scope,
+			await dealsService.getById(event.params.id),
+		);
 
 		const steps = JSON.parse(data.steps || "[]");
 
@@ -23,7 +31,7 @@ export const useUpdateDeal = routeAction$(
 			steps,
 		} as any);
 
-		throw event.redirect(303, "/admin/root/deals");
+		throw event.redirect(303, `${adminBase}/deals`);
 	},
 	zod$({
 		name: z.string().min(1, "Name is required"),
@@ -65,7 +73,7 @@ export const AdminDealEdit = component$<{ data: AdminDealData }>(
 			<div>
 				<div class="flex items-center justify-between mb-6">
 					<h2 class="text-2xl font-bold text-gray-800">Edit Deal</h2>
-					<Button href="/admin/root/deals" variant="secondary">
+					<Button href={`${loaded.adminBase}/deals`} variant="secondary">
 						Back to Deals
 					</Button>
 				</div>

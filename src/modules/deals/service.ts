@@ -1,5 +1,5 @@
-import { desc, eq, gte, inArray, isNull, or } from "drizzle-orm";
-import { db } from "~/core";
+import { and, desc, eq, gte, inArray, isNull, or } from "drizzle-orm";
+import { type ContentFilter, db } from "~/core";
 import type { Deal, InsertDeal, UpdateDeal } from "./schema";
 import { deals, insertDealSchema, updateDealSchema } from "./schema";
 
@@ -13,12 +13,18 @@ export const dealsService = {
 			.orderBy(desc(deals.createdAt));
 	},
 
-	async getActive(): Promise<Deal[]> {
+	/** Unexpired deals of a listing (`scopeContentFilter`), newest first. */
+	async getActive(filter: ContentFilter): Promise<Deal[]> {
 		const now = new Date().toISOString();
 		return db
 			.select()
 			.from(deals)
-			.where(or(isNull(deals.validUntil), gte(deals.validUntil, now)))
+			.where(
+				and(
+					or(isNull(deals.validUntil), gte(deals.validUntil, now)),
+					filter.where(deals),
+				),
+			)
 			.orderBy(desc(deals.createdAt));
 	},
 

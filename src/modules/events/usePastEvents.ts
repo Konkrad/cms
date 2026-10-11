@@ -1,21 +1,26 @@
 import { $, useSignal, useTask$ } from "@qwik.dev/core";
 import { server$ } from "@qwik.dev/router";
 import type { EventsPage } from "~/contracts/events";
-import { publicImageUrlFromKey } from "~/core";
+import { publicImageUrlFromKey, requestContentFilter } from "~/core";
 import { eventsService } from "./services/events";
 
-const fetchPastEvents = server$(
-	async (cursor?: string | null): Promise<EventsPage> => {
-		const { items, nextCursor } = await eventsService.getPastPaged(10, cursor);
-		return {
-			events: items.map((e) => ({
-				...e,
-				image1: publicImageUrlFromKey(e.image1),
-			})),
-			nextCursor,
-		};
-	},
-);
+// The listing of the page's scope (the URL's scope prefix), as the viewer sees it.
+const fetchPastEvents = server$(async function (
+	cursor?: string | null,
+): Promise<EventsPage> {
+	const { items, nextCursor } = await eventsService.getPastPaged(
+		await requestContentFilter(this),
+		10,
+		cursor,
+	);
+	return {
+		events: items.map((e) => ({
+			...e,
+			image1: publicImageUrlFromKey(e.image1),
+		})),
+		nextCursor,
+	};
+});
 
 /** Headless composable owning data/pagination for the "Past Events" page-builder block. */
 export function usePastEvents() {

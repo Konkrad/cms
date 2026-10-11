@@ -1,15 +1,4 @@
-import {
-	and,
-	desc,
-	eq,
-	inArray,
-	isNull,
-	like,
-	lt,
-	or,
-	type SQL,
-	sql,
-} from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, like, lt, sql } from "drizzle-orm";
 import { sanitizeRichHtml } from "~/core/content/sanitize-html";
 import type { InsertPost, Post, UpdatePost } from "~/core/content/schema/posts";
 import {
@@ -18,8 +7,8 @@ import {
 	updatePostSchema,
 } from "~/core/content/schema/posts";
 import { db } from "~/core/db/connection";
-import { canViewScope, viewableMemberScopes } from "~/core/scopes/access";
-import { scopesService } from "~/core/scopes/scopes.service";
+import { canViewScope } from "~/core/scopes/access";
+import type { ContentFilter } from "~/core/scopes/content-filter";
 import type { Visibility } from "~/core/scopes/visibility";
 import {
 	decodeCursor,
@@ -35,42 +24,9 @@ import {
 } from "~/core/users/public-user";
 import { users as usersTable } from "~/core/users/schema";
 
-type MemberScopes = Awaited<ReturnType<typeof viewableMemberScopes>>;
-
 export type PostWithUser = Post & {
 	user: PublicUser;
 };
-
-/** RQB `where` part: global posts, plus members-only posts of the given scopes. */
-function visibleWhere({ ids, includesRoot: root }: MemberScopes) {
-	if (ids.length === 0) return { visibility: "public" as const };
-	const scopeId = root
-		? { OR: [{ scopeId: { in: ids } }, { scopeId: { isNull: true as const } }] }
-		: { scopeId: { in: ids } };
-	return {
-		OR: [
-			{ visibility: "public" as const },
-			{ visibility: "members" as const, ...scopeId },
-		],
-	};
-}
-
-/** SQL counterpart of `visibleWhere` for core select queries. */
-function visibleSql({
-	ids,
-	includesRoot: root,
-}: MemberScopes): SQL | undefined {
-	if (ids.length === 0) return eq(posts.visibility, "public");
-	return or(
-		eq(posts.visibility, "public"),
-		and(
-			eq(posts.visibility, "members"),
-			root
-				? or(inArray(posts.scopeId, ids), isNull(posts.scopeId))
-				: inArray(posts.scopeId, ids),
-		),
-	);
-}
 
 export const postsService = {
 	/**
@@ -85,9 +41,9 @@ export const postsService = {
 		return canViewScope(viewer, post.scopeId, post.visibility as Visibility);
 	},
 
-	/** Posts visible to `viewerId` (null = guest: global posts only), newest first. */
+	/** The posts a listing shows (`scopeContentFilter`: viewer and listing scope), newest first. */
 	async getAll(
-		viewerId: string | null,
+		filter: ContentFilter,
 		limit: number = 10,
 		cursor?: string | null,
 		direction: PageDirection = "forward",
@@ -97,9 +53,6 @@ export const postsService = {
 		prevCursor: string | null;
 	}> {
 		const cursorObj = decodeCursor(cursor ?? null);
-		const visible = await viewableMemberScopes(
-			viewerId ? { id: viewerId } : null,
-		);
 
 		const results = await db.query.posts.findMany({
 			with: {
@@ -112,7 +65,7 @@ export const postsService = {
 			limit: limit + 1,
 			where: {
 				deletedAt: { isNull: true },
-				...visibleWhere(visible),
+				RAW: (t) => filter.where(t),
 				...(cursorObj?.createdAt
 					? direction === "forward"
 						? { createdAt: { lt: cursorObj.createdAt } }
@@ -178,29 +131,26 @@ export const postsService = {
 	},
 
 	async getRecent(
-		viewerId: string | null,
+		filter: ContentFilter,
 		limit: number = 3,
 	): Promise<PostWithUser[]> {
-		const res = await this.getAll(viewerId, limit);
+		const res = await this.getAll(filter, limit);
 		return res.items;
 	},
 
-	/** One archive page of the posts visible to `viewerId` (null = guest). */
+	/** One archive page of the posts a listing shows (`scopeContentFilter`). */
 	async getPage(
-		viewerId: string | null,
+		filter: ContentFilter,
 		page: number,
 		perPage: number = 10,
 	): Promise<{ items: PostWithUser[]; totalPages: number }> {
 		const pageIndex = Math.max(0, page);
 		const safePerPage = Math.max(1, perPage);
-		const visible = await viewableMemberScopes(
-			viewerId ? { id: viewerId } : null,
-		);
 
 		const totalResult = await db
 			.select({ total: sql<number>`count(*)` })
 			.from(posts)
-			.where(and(isNull(posts.deletedAt), visibleSql(visible)));
+			.where(and(isNull(posts.deletedAt), filter.where(posts)));
 
 		const total = Number(totalResult[0]?.total ?? 0);
 		const totalPages = Math.ceil(total / safePerPage);
@@ -211,7 +161,7 @@ export const postsService = {
 			},
 			where: {
 				deletedAt: { isNull: true },
-				...visibleWhere(visible),
+				RAW: (t) => filter.where(t),
 			},
 			orderBy: { createdAt: "desc", id: "desc" },
 			limit: safePerPage,
@@ -263,38 +213,13 @@ export const postsService = {
 		};
 	},
 
-	/**
-	 * Latest posts of a scope. Group-only posts are included only when the caller has
-	 * decided the viewer may see them (member, representative or admin).
-	 */
-	async getRecentByScope(
-		scopeId: string,
-		limit: number,
-		{ includeGroupOnly }: { includeGroupOnly: boolean },
-	): Promise<PostWithUser[]> {
-		const rows = await db.query.posts.findMany({
-			with: { user: { columns: publicUserColumns } },
-			where: {
-				scopeId,
-				deletedAt: { isNull: true },
-				...(includeGroupOnly ? {} : { visibility: "public" }),
-			},
-			orderBy: { createdAt: "desc" },
-			limit,
-		});
-		return rows as PostWithUser[];
-	},
-
+	/** Like `getAll` (forward only), as a select query. */
 	async getVisiblePosts(
-		userId: string | null,
+		filter: ContentFilter,
 		limit: number = 10,
 		cursor?: string | null,
 	): Promise<{ items: PostWithUser[]; nextCursor?: string | null }> {
 		const cursorObj = decodeCursor(cursor ?? null);
-
-		const visibilityCondition = visibleSql(
-			await viewableMemberScopes(userId ? { id: userId } : null),
-		);
 
 		const results = await db
 			.select({ post: posts, user: publicUserSelect })
@@ -303,7 +228,7 @@ export const postsService = {
 			.where(
 				and(
 					isNull(posts.deletedAt),
-					visibilityCondition,
+					filter.where(posts),
 					cursorObj?.createdAt
 						? lt(posts.createdAt, cursorObj.createdAt)
 						: undefined,

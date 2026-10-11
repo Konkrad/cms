@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { scopeContentFilter } from "~/core/scopes/content-filter";
 import { dealsService } from "~/modules/deals/service";
 import { ensureRootScope, openDb } from "./helpers";
 
@@ -80,7 +81,9 @@ describe("dealsService.getAll / getActive", () => {
 			expect.arrayContaining([open.id, future.id, expired.id]),
 		);
 
-		const activeIds = (await dealsService.getActive()).map((d) => d.id);
+		const activeIds = (
+			await dealsService.getActive(await scopeContentFilter(null))
+		).map((d) => d.id);
 		expect(activeIds).toContain(open.id);
 		expect(activeIds).toContain(future.id);
 		expect(activeIds).not.toContain(expired.id);

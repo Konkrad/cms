@@ -1,4 +1,4 @@
-import { defineModule } from "~/core";
+import { defineModule, scopeContentFilter } from "~/core";
 import { dealsBlocks } from "./blocks";
 import { dealsPages } from "./pages";
 import { dealsService } from "./service";
@@ -12,8 +12,11 @@ export const dealsModule = defineModule({
 	},
 	blocks: dealsBlocks,
 	sitemap: async () =>
-		(await dealsService.getActive()).map((deal) => ({
-			path: `/deals/${deal.id}`,
-			lastmod: deal.updatedAt,
-		})),
+		// The root listing: every deal of every scope.
+		(await dealsService.getActive(await scopeContentFilter(null))).map(
+			(deal) => ({
+				path: `/deals/${deal.id}`,
+				lastmod: deal.updatedAt,
+			}),
+		),
 });

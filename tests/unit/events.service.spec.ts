@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { afterEach, describe, expect, it } from "vitest";
+import { scopeContentFilter } from "~/core/scopes/content-filter";
 import { eventsService } from "~/modules/events/services/events";
 import { createTestUser, ensureRootScope, openDb } from "./helpers";
 
@@ -105,7 +106,9 @@ describe("eventsService.getUpcoming", () => {
 		const future = await eventsService.create(makeEventData(userId));
 		cleanupEventIds.push(future.id);
 
-		const upcoming = await eventsService.getUpcoming();
+		const upcoming = await eventsService.getUpcoming(
+			await scopeContentFilter(null),
+		);
 		const ids = upcoming.map((e) => e.id);
 
 		expect(ids).toContain(future.id);

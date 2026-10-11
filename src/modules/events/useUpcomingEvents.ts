@@ -1,11 +1,15 @@
 import { $, useSignal, useTask$ } from "@qwik.dev/core";
 import { server$ } from "@qwik.dev/router";
 import type { EventsPage } from "~/contracts/events";
-import { publicImageUrlFromKey } from "~/core";
+import { publicImageUrlFromKey, requestContentFilter } from "~/core";
 import { eventsService } from "./services/events";
 
-const fetchUpcomingInitial = server$(async (): Promise<EventsPage> => {
-	const { items, nextCursor } = await eventsService.getUpcomingInitial(3);
+// The listing of the page's scope (the URL's scope prefix), as the viewer sees it.
+const fetchUpcomingInitial = server$(async function (): Promise<EventsPage> {
+	const { items, nextCursor } = await eventsService.getUpcomingInitial(
+		await requestContentFilter(this),
+		3,
+	);
 	return {
 		events: items.map((e) => ({
 			...e,
@@ -15,21 +19,22 @@ const fetchUpcomingInitial = server$(async (): Promise<EventsPage> => {
 	};
 });
 
-const fetchUpcomingMore = server$(
-	async (cursor: string): Promise<EventsPage> => {
-		const { items, nextCursor } = await eventsService.getUpcomingFrom(
-			cursor,
-			10,
-		);
-		return {
-			events: items.map((e) => ({
-				...e,
-				image1: publicImageUrlFromKey(e.image1),
-			})),
-			nextCursor,
-		};
-	},
-);
+const fetchUpcomingMore = server$(async function (
+	cursor: string,
+): Promise<EventsPage> {
+	const { items, nextCursor } = await eventsService.getUpcomingFrom(
+		await requestContentFilter(this),
+		cursor,
+		10,
+	);
+	return {
+		events: items.map((e) => ({
+			...e,
+			image1: publicImageUrlFromKey(e.image1),
+		})),
+		nextCursor,
+	};
+});
 
 /** Headless composable owning data/pagination for the "Upcoming Events" page-builder block. */
 export function useUpcomingEvents() {

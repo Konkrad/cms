@@ -188,6 +188,7 @@ describe("scopeExtrasOf", () => {
 							locationType: "online",
 							city: null,
 							address: null,
+							source: null,
 						},
 					]
 				: [],

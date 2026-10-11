@@ -167,21 +167,6 @@ export async function requireAdmin(event: RequestEvent) {
 	return user;
 }
 
-/**
- * Scopes whose members-only items the user may see: those they joined and every ancestor
- * (membership counts upward), plus everything at or below a scope where they hold a role.
- * `includesRoot` is set when that covers the root, which also owns items without a scope.
- * Empty for guests. For listing queries; single items use `canViewScope`.
- */
-export async function viewableMemberScopes(
-	user: AccessUser,
-): Promise<{ ids: string[]; includesRoot: boolean }> {
-	const ids = await scopesService.memberVisibleScopeIds(user?.id ?? null);
-	if (ids.length === 0) return { ids, includesRoot: false };
-	const root = await scopesService.getRoot();
-	return { ids, includesRoot: !!root && ids.includes(root.id) };
-}
-
 /** userId -> public label ("Local Rep Berlin", or the name of a scope they joined). */
 export async function scopeLabels(
 	userIds: string[],

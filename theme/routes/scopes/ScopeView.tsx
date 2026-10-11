@@ -215,6 +215,7 @@ export const ScopeView = component$<{
 							return (
 								<ContentCard
 									key={e.id}
+									category={e.source ?? undefined}
 									title={e.title}
 									image={e.image1 ?? undefined}
 									date={formatEventDate(e.startDate, e.endDate)}
@@ -235,9 +236,10 @@ export const ScopeView = component$<{
 						Latest from the Community
 					</h2>
 					<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-						{recentPosts.map((p: any) => (
+						{recentPosts.map((p) => (
 							<ContentCard
 								key={p.id}
+								category={p.source ?? undefined}
 								date={new Date(p.createdAt).toLocaleDateString("en-GB", {
 									year: "numeric",
 									month: "long",

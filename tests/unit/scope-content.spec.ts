@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { postsService } from "~/core/content/posts.service";
+import { scopeContentFilter } from "~/core/scopes/content-filter";
 import type { Scope } from "~/core/scopes/schema/scopes";
 import { scopesService } from "~/core/scopes/scopes.service";
 import { createTestUser, openDb } from "./helpers";
@@ -22,7 +23,7 @@ function user() {
 	return t.userId;
 }
 
-function insertPost(scopeId: string | null, visibility: string) {
+function insertPost(scopeId: string, visibility: string) {
 	const id = crypto.randomUUID();
 	const db = openDb();
 	db.prepare(
@@ -78,12 +79,27 @@ describe("members-only content flows to members of the scopes below", () => {
 		expect(await postsService.canView(post, null)).toBe(false);
 	});
 
-	it("listings include it for the chapter member only", async () => {
+	it("the chapter's listing includes it for the chapter member only", async () => {
 		const ids = async (viewer: string | null) =>
-			(await postsService.getAll(viewer, 100)).items.map((p) => p.id);
+			(
+				await postsService.getAll(
+					await scopeContentFilter(viewer ? { id: viewer } : null, chapter.id),
+					100,
+				)
+			).items.map((p) => p.id);
 		expect(await ids(chapterMember)).toContain(regionPostId);
 		expect(await ids(siblingMember)).not.toContain(regionPostId);
 		expect(await ids(null)).not.toContain(regionPostId);
+	});
+
+	it("never flows up: the root listing does not show it, even to the member", async () => {
+		const rootIds = (
+			await postsService.getAll(
+				await scopeContentFilter({ id: chapterMember }),
+				100,
+			)
+		).items.map((p) => p.id);
+		expect(rootIds).not.toContain(regionPostId);
 	});
 
 	it("a region member does not see a chapter's members-only post", async () => {

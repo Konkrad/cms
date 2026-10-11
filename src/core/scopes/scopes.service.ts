@@ -600,6 +600,36 @@ export const scopesService = {
 		return rows.map((r) => r.id);
 	},
 
+	/**
+	 * Ids of the scopes whose representatives-only content the user may see: every scope at or
+	 * below one where they hold a role (roles inherit downward). Empty for guests.
+	 */
+	async roleVisibleScopeIds(userId: string | null): Promise<string[]> {
+		if (!userId) return [];
+		const roleRows = await db
+			.select({ path: scopes.path })
+			.from(scopeRoles)
+			.innerJoin(scopes, eq(scopes.id, scopeRoles.scopeId))
+			.where(
+				and(
+					eq(scopeRoles.userId, userId),
+					inArray(scopeRoles.role, VIEW_ALL_ROLES),
+				),
+			);
+		if (roleRows.length === 0) return [];
+		const rows = await db
+			.select({ id: scopes.id })
+			.from(scopes)
+			.where(
+				or(
+					...roleRows.map(
+						(r) => sql`${scopes.path} LIKE ${likePrefix(r.path)} ESCAPE '\\'`,
+					),
+				),
+			);
+		return rows.map((r) => r.id);
+	},
+
 	// ── Visibility ─────────────────────────────────────────────────────────────
 
 	async canView(

@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { and, eq, or } from "drizzle-orm";
 import {
+	type ContentFilter,
 	db,
 	membershipsService,
 	type PublicUser,
@@ -60,15 +61,19 @@ export const electionsService = {
 		});
 	},
 
-	async getPublicCycles(): Promise<ElectionCycle[]> {
+	/** Non-draft cycles of a listing (`scopeContentFilter`), oldest year first. */
+	async getPublicCycles(filter: ContentFilter): Promise<ElectionCycle[]> {
 		return db
 			.select()
 			.from(electionCycles)
 			.where(
-				or(
-					eq(electionCycles.status, "open"),
-					eq(electionCycles.status, "voting"),
-					eq(electionCycles.status, "closed"),
+				and(
+					or(
+						eq(electionCycles.status, "open"),
+						eq(electionCycles.status, "voting"),
+						eq(electionCycles.status, "closed"),
+					),
+					filter.where(electionCycles),
 				),
 			)
 			.orderBy(electionCycles.year) as Promise<ElectionCycle[]>;

@@ -4,6 +4,7 @@ import { postsService } from "~/core/content/posts.service";
 import { activeModules } from "~/core/registry/manifests";
 import { sitemapEntriesOf } from "~/core/router/modules";
 import { scopeUrl } from "~/core/router/scope-path";
+import { scopeContentFilter } from "~/core/scopes/content-filter";
 import { scopesService } from "~/core/scopes/scopes.service";
 import { env } from "~/env";
 
@@ -54,7 +55,13 @@ export const onGet: RequestHandler = async ({
 
 	let postsCursor: string | null | undefined = null;
 	do {
-		const result = await postsService.getAll(null, 100, postsCursor, "forward");
+		// The root listing for a guest: every public post.
+		const result = await postsService.getAll(
+			await scopeContentFilter(null),
+			100,
+			postsCursor,
+			"forward",
+		);
 		for (const post of result.items) {
 			if (post.visibility !== "public") continue;
 			entries.push({

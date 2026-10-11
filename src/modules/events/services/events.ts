@@ -1,17 +1,6 @@
+import { and, desc, eq, inArray, isNull, like, lt, or, sql } from "drizzle-orm";
 import {
-	and,
-	desc,
-	eq,
-	gte,
-	inArray,
-	isNull,
-	like,
-	lt,
-	or,
-	type SQL,
-	sql,
-} from "drizzle-orm";
-import {
+	type ContentFilter,
 	createCursorFromItem,
 	db,
 	decodeCursor,
@@ -19,14 +8,10 @@ import {
 	isMember,
 	type PublicUser,
 	publicUserColumns,
-	publicUserSelect,
-	viewableMemberScopes,
 } from "~/core";
 import { users as usersTable } from "~/core/schema";
 import type { Event, InsertEvent, UpdateEvent } from "../schema/events";
 import { events, insertEventSchema, updateEventSchema } from "../schema/events";
-import { inventoryGroups } from "../schema/inventory-groups";
-import { products } from "../schema/products";
 
 /** An event with its organizer's public identity (never the organizer's email or profile row). */
 export type EventWithUser = Event & {
@@ -67,26 +52,32 @@ export const eventsService = {
 		};
 	},
 
-	async getUpcoming(): Promise<Event[]> {
+	/** The upcoming events a listing shows (`scopeContentFilter`), soonest first. */
+	async getUpcoming(filter: ContentFilter, limit?: number): Promise<Event[]> {
 		const now = new Date().toISOString();
 
-		const results = await db.query.events.findMany({
+		return db.query.events.findMany({
 			where: {
 				endDate: { gte: now },
 				deletedAt: { isNull: true },
+				RAW: (t) => filter.where(t),
 			},
 			orderBy: { startDate: "asc", id: "asc" },
+			limit,
 		});
-
-		return results;
 	},
 
 	async getUpcomingInitial(
+		filter: ContentFilter,
 		baseLimit: number = 3,
 	): Promise<{ items: Event[]; nextCursor: string | null }> {
 		const now = new Date().toISOString();
 		const rows = await db.query.events.findMany({
-			where: { endDate: { gte: now }, deletedAt: { isNull: true } },
+			where: {
+				endDate: { gte: now },
+				deletedAt: { isNull: true },
+				RAW: (t) => filter.where(t),
+			},
 			orderBy: { startDate: "asc", id: "asc" },
 			limit: baseLimit + 10,
 		});
@@ -112,6 +103,7 @@ export const eventsService = {
 	},
 
 	async getUpcomingFrom(
+		filter: ContentFilter,
 		cursor: string,
 		limit: number = 10,
 	): Promise<{ items: Event[]; nextCursor: string | null }> {
@@ -122,6 +114,7 @@ export const eventsService = {
 			where: {
 				endDate: { gte: now },
 				deletedAt: { isNull: true },
+				RAW: (t) => filter.where(t),
 				...(cursorObj?.startDate
 					? { startDate: { gt: cursorObj.startDate } }
 					: {}),
@@ -136,6 +129,7 @@ export const eventsService = {
 	},
 
 	async getPastPaged(
+		filter: ContentFilter,
 		limit: number = 10,
 		cursor?: string | null,
 	): Promise<{ items: Event[]; nextCursor: string | null }> {
@@ -146,6 +140,7 @@ export const eventsService = {
 			where: {
 				endDate: { lt: now },
 				deletedAt: { isNull: true },
+				RAW: (t) => filter.where(t),
 				...(cursorObj?.startDate
 					? { startDate: { lt: cursorObj.startDate } }
 					: {}),
@@ -157,42 +152,6 @@ export const eventsService = {
 		const nextCursor =
 			getNextCursorFromRows(rows, ["startDate"], limit) ?? null;
 		return { items: rows.slice(0, limit), nextCursor };
-	},
-
-	async getYears(): Promise<number[]> {
-		const now = new Date().toISOString();
-		const results = await db.query.events.findMany({
-			where: {
-				endDate: { lt: now },
-				deletedAt: { isNull: true },
-			},
-			columns: {
-				startDate: true,
-			},
-		});
-
-		const yearsSet = new Set<number>(
-			results.map((e) => new Date(e.startDate).getFullYear()),
-		);
-		return Array.from(yearsSet).sort((a, b) => b - a);
-	},
-
-	async getEventsByYear(year: number): Promise<Event[]> {
-		const now = new Date().toISOString();
-
-		const results = await db.query.events.findMany({
-			where: {
-				endDate: { lt: now },
-				deletedAt: { isNull: true },
-			},
-			orderBy: { startDate: "desc", id: "desc" },
-		});
-
-		const filtered = results.filter(
-			(e) => new Date(e.startDate).getFullYear() === year,
-		);
-
-		return filtered;
 	},
 
 	async getById(id: string): Promise<EventWithUser | undefined> {
@@ -313,67 +272,6 @@ export const eventsService = {
 		return { valid: false, reason: "Sales have closed for this event" };
 	},
 
-	async getVisibleEvents(
-		userId: string | null,
-		limit: number = 10,
-		cursor?: string | null,
-	): Promise<{ items: EventWithUser[]; nextCursor?: string | null }> {
-		const cursorObj = decodeCursor(cursor ?? null);
-
-		// Group-only events of the scopes whose members-only items the viewer may see.
-		const visible = await viewableMemberScopes(userId ? { id: userId } : null);
-		const visibilityCondition: SQL | undefined =
-			visible.ids.length > 0
-				? or(
-						eq(events.visibility, "public"),
-						and(
-							eq(events.visibility, "members"),
-							visible.includesRoot
-								? or(
-										inArray(events.scopeId, visible.ids),
-										isNull(events.scopeId),
-									)
-								: inArray(events.scopeId, visible.ids),
-						),
-					)
-				: eq(events.visibility, "public");
-
-		const results = await db
-			.select({ event: events, user: publicUserSelect })
-			.from(events)
-			.innerJoin(usersTable, eq(events.userId, usersTable.id))
-			.where(
-				and(
-					isNull(events.deletedAt),
-					visibilityCondition,
-					cursorObj?.createdAt
-						? lt(events.createdAt, cursorObj.createdAt)
-						: undefined,
-				),
-			)
-			.orderBy(desc(events.createdAt), desc(events.id))
-			.limit(limit + 1);
-
-		let nextCursor: string | undefined | null;
-		let items = results;
-		if (results.length > limit) {
-			nextCursor = getNextCursorFromRows(
-				results.map((r) => r.event),
-				["createdAt"],
-				limit,
-			);
-			items = results.slice(0, limit);
-		}
-
-		return {
-			items: items.map((row) => ({
-				...row.event,
-				user: row.user,
-			})) as EventWithUser[],
-			nextCursor: nextCursor ?? null,
-		};
-	},
-
 	/** Admin event list (title/city search; `scopeIds` limits it to those scopes, null = all). */
 	async adminList({
 		scopeIds,
@@ -437,24 +335,6 @@ export const eventsService = {
 			.returning();
 
 		return result;
-	},
-
-	/** The scope's next events, soonest first; members-only ones only when `includeGroupOnly`. */
-	async getUpcomingByScopeId(
-		scopeId: string,
-		options: { includeGroupOnly: boolean; limit: number },
-	): Promise<Event[]> {
-		const now = new Date().toISOString();
-		return db.query.events.findMany({
-			where: {
-				scopeId,
-				deletedAt: { isNull: true },
-				endDate: { gte: now },
-				...(options.includeGroupOnly ? {} : { visibility: "public" }),
-			},
-			orderBy: { startDate: "asc" },
-			limit: options.limit,
-		});
 	},
 
 	async countPastByScopeId(scopeId: string): Promise<number> {

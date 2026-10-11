@@ -1,11 +1,15 @@
 import { useSignal, useTask$ } from "@qwik.dev/core";
 import { server$ } from "@qwik.dev/router";
 import type { DealListItem } from "~/contracts/deals";
+import { requestContentFilter } from "~/core";
 import { toDealListItem } from "./public-deal";
 import { dealsService } from "./service";
 
-const fetchActiveDeals = server$(async (): Promise<DealListItem[]> => {
-	return (await dealsService.getActive()).map(toDealListItem);
+// The listing of the page's scope (the URL's scope prefix).
+const fetchActiveDeals = server$(async function (): Promise<DealListItem[]> {
+	return (await dealsService.getActive(await requestContentFilter(this))).map(
+		toDealListItem,
+	);
 });
 
 /** Headless composable owning data-fetching for the "Deals" page-builder block. */

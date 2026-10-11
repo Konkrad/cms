@@ -11,11 +11,14 @@ const fetchPosts = server$(async function (options: {
 }): Promise<PostsPage> {
 	const { postsService } = await import("~/core/content/posts.service");
 	const { getServerSession } = await import("~/core/auth/server-auth");
+	const { scopeContentFilter } = await import("~/core/scopes/content-filter");
+	const { currentScope } = await import("~/core/router/scope-request");
 	const { formatUser } = await import("~/core/users/format");
 
 	const session = await getServerSession(this as RequestEventCommon);
+	// The listing of the page's scope (the URL's scope prefix), as this viewer sees it.
 	const res = await postsService.getAll(
-		session?.id ?? null,
+		await scopeContentFilter(session, await currentScope(this)),
 		options.limit,
 		options.cursor ?? null,
 		options.direction ?? "forward",

@@ -125,6 +125,7 @@ describe("events scope page hook", () => {
 		const owner = createTestUser();
 		cleanups.push(owner.cleanup);
 		const groupId = createScope();
+		const siblingId = createScope();
 		const next = createTestEvent(owner.userId, {
 			title: "Group Next",
 			startDate: future(3),
@@ -136,9 +137,16 @@ describe("events scope page hook", () => {
 			startDate: future(3),
 			endDate: future(4),
 		});
-		for (const e of [next, old, elsewhere]) cleanups.push(e.cleanup);
+		const fromRoot = createTestEvent(owner.userId, {
+			title: "Root Event",
+			startDate: future(1),
+			endDate: future(2),
+		});
+		for (const e of [next, old, elsewhere, fromRoot]) cleanups.push(e.cleanup);
 		assignEventToScope(next.eventId, groupId);
 		assignEventToScope(old.eventId, groupId);
+		// A sibling group's event never shows; the root's public event flows down.
+		assignEventToScope(elsewhere.eventId, siblingId);
 
 		const extras = await eventsModule.scopePage?.({
 			scopeId: groupId,
@@ -146,11 +154,16 @@ describe("events scope page hook", () => {
 		});
 
 		expect(extras?.pastEventCount).toBe(1);
-		expect(extras?.upcomingEvents?.map((e) => e.title)).toEqual(["Group Next"]);
-		expect(extras?.upcomingEvents?.[0]).toMatchObject({
-			id: next.eventId,
-			locationType: "in-person",
-		});
+		const titles = extras?.upcomingEvents?.map((e) => e.title);
+		expect(titles).toContain("Group Next");
+		expect(titles).toContain("Root Event");
+		expect(titles).not.toContain("Other Group Event");
+		expect(
+			extras?.upcomingEvents?.find((e) => e.id === next.eventId),
+		).toMatchObject({ locationType: "in-person", source: null });
+		expect(
+			extras?.upcomingEvents?.find((e) => e.id === fromRoot.eventId)?.source,
+		).toBeTruthy();
 	});
 
 	it("shows members-only events to members only", async () => {
@@ -169,14 +182,14 @@ describe("events scope page hook", () => {
 		cleanups.push(secret.cleanup);
 		assignEventToScope(secret.eventId, groupId);
 
-		const titles = async (viewerId: string | null) =>
-			(
+		const sees = async (viewerId: string | null) =>
+			!!(
 				await eventsModule.scopePage?.({ scopeId: groupId, viewerId })
-			)?.upcomingEvents?.map((e) => e.title);
+			)?.upcomingEvents?.some((e) => e.title === "Members Only");
 
-		expect(await titles(null)).toEqual([]);
-		expect(await titles(outsider.userId)).toEqual([]);
-		expect(await titles(member.userId)).toEqual(["Members Only"]);
+		expect(await sees(null)).toBe(false);
+		expect(await sees(outsider.userId)).toBe(false);
+		expect(await sees(member.userId)).toBe(true);
 	});
 });
 

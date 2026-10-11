@@ -5,6 +5,7 @@ import { getCurrentUserData } from "~/core/auth/server-auth";
 import { postsService } from "~/core/content/posts.service";
 import { canonicalUrl, htmlToDescription } from "~/core/content/seo";
 import { publicImageUrlFromKey } from "~/core/media/images";
+import { scopeContentFilter } from "~/core/scopes/content-filter";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { formatUser } from "~/core/users/format";
 import { PostView } from "~theme/routes/posts/PostView";
@@ -33,7 +34,11 @@ export const usePost = routeLoader$(
 		const authorAvatarUrl = post.user.profilePictureSmallUrl;
 
 		// Fetch related posts (recent, excluding this one)
-		const recentPosts = await postsService.getRecent(viewer?.id ?? null, 4);
+		// Related: the listing of the post's own scope, as this viewer sees it.
+		const recentPosts = await postsService.getRecent(
+			await scopeContentFilter(viewer, post.scopeId),
+			4,
+		);
 		const relatedPosts = recentPosts
 			.filter((p) => p.id !== id)
 			.slice(0, 3)

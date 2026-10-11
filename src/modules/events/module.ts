@@ -1,4 +1,9 @@
-import { canViewScope, defineModule, publicImageUrlFromKey } from "~/core";
+import {
+	defineModule,
+	publicImageUrlFromKey,
+	scopeContentFilter,
+	scopeSourceLabels,
+} from "~/core";
 import { eventsBlocks } from "./blocks";
 import {
 	saleAlertNotification,
@@ -36,21 +41,21 @@ export const eventsModule = defineModule({
 		const { upcoming, past } = await participationService.getByUserId(userId);
 		return { upcomingEvents: upcoming, pastEvents: past };
 	},
-	// The scope's next events and its finished-event count. Group-only events are listed only
-	// to members of the scope (or of a scope below it) and role holders on it.
+	// The scope's next events (its listing: own and ancestors' events as far as the viewer may
+	// see them, public events from below, labelled with their source) and its finished-event count.
 	async scopePage({ scopeId, viewerId }) {
-		const canSeeMembersOnly = await canViewScope(
+		const filter = await scopeContentFilter(
 			viewerId ? { id: viewerId } : null,
 			scopeId,
-			"members",
 		);
 		const [pastEventCount, upcoming] = await Promise.all([
 			eventsService.countPastByScopeId(scopeId),
-			eventsService.getUpcomingByScopeId(scopeId, {
-				includeGroupOnly: canSeeMembersOnly,
-				limit: 3,
-			}),
+			eventsService.getUpcoming(filter, 3),
 		]);
+		const sources = await scopeSourceLabels(
+			scopeId,
+			upcoming.map((e) => e.scopeId),
+		);
 		return {
 			pastEventCount,
 			upcomingEvents: upcoming.map((e) => ({
@@ -62,6 +67,7 @@ export const eventsModule = defineModule({
 				locationType: e.locationType,
 				city: e.city,
 				address: e.address,
+				source: sources[e.scopeId] ?? null,
 			})),
 		};
 	},

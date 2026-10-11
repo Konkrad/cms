@@ -30,6 +30,8 @@ export interface ScopeUpcomingEvent {
 	locationType: string;
 	city: string | null;
 	address: string | null;
+	/** Name of the owning scope when it is not the page's scope (content flowing in). */
+	source: string | null;
 }
 
 /**
@@ -83,6 +85,8 @@ export type ScopeViewData = ScopeExtras & {
 		createdAt: string;
 		featuredImage: string | null;
 		authorName: string;
+		/** Name of the owning scope when it is not the page's scope (content flowing in). */
+		source: string | null;
 	}>;
 	image1: string | null;
 	image2: string | null;

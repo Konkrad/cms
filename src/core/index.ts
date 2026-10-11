@@ -53,8 +53,14 @@ export {
 	requireScopeRole,
 	requireWithinScope,
 	scopeLabels,
-	viewableMemberScopes,
 } from "~/core/scopes/access";
+// Listings of scoped content (spec 4.3): own + ancestors by visibility, public items from below.
+export {
+	type ContentFilter,
+	requestContentFilter,
+	scopeContentFilter,
+	scopeSourceLabels,
+} from "~/core/scopes/content-filter";
 export type { Scope } from "~/core/scopes/schema/scopes";
 export { VISIBILITIES, type Visibility } from "~/core/scopes/visibility";
 // Server-only core services for modules (memberships tiers, user tags). Tag *rule evaluation*

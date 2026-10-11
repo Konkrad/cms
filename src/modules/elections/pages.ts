@@ -1,5 +1,10 @@
 import type { ElectionDetailViewData } from "~/contracts/elections";
-import { definePage, membershipsService, requireAuth } from "~/core";
+import {
+	definePage,
+	membershipsService,
+	requestContentFilter,
+	requireAuth,
+} from "~/core";
 import { toPublicCandidate } from "./public-election";
 import { electionsService } from "./service";
 
@@ -8,7 +13,9 @@ export const electionsListPage = definePage({
 	path: "/elections",
 	async load(event) {
 		await requireAuth(event);
-		const all = await electionsService.getPublicCycles();
+		const all = await electionsService.getPublicCycles(
+			await requestContentFilter(event),
+		);
 		const open = all.filter(
 			(c) => c.status === "open" || c.status === "voting",
 		);

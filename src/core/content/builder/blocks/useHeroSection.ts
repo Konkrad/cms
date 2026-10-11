@@ -3,9 +3,15 @@ import { server$ } from "@qwik.dev/router";
 import type { HeroPost } from "~/contracts/posts";
 import { postsService } from "~/core/content/posts.service";
 import { publicImageUrlFromKey } from "~/core/media/images";
+import { currentScope } from "~/core/router/scope-request";
+import { scopeContentFilter } from "~/core/scopes/content-filter";
 
-const fetchLatestGlobalPosts = server$(async (): Promise<HeroPost[]> => {
-	const res = await postsService.getVisiblePosts(null, 3);
+const fetchLatestGlobalPosts = server$(async function (): Promise<HeroPost[]> {
+	// The latest public posts of the page's scope listing (as a guest sees them).
+	const res = await postsService.getVisiblePosts(
+		await scopeContentFilter(null, await currentScope(this)),
+		3,
+	);
 	return res.items.map((post) => ({
 		...post,
 		featuredImageUrl: publicImageUrlFromKey(post.featuredImage),

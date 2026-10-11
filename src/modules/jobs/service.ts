@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, gt, gte, lt, or } from "drizzle-orm";
 import {
+	type ContentFilter,
 	db,
 	decodeCursor,
 	type PageDirection,
@@ -46,7 +47,9 @@ export const jobsService = {
 		return (rows as JobWithUser[]).filter((j) => j.expiresAt >= now);
 	},
 
+	/** Approved, unexpired jobs of a listing (`scopeContentFilter`), newest first. */
 	async getApprovedPaged(
+		filter: ContentFilter,
 		limit: number = 10,
 		cursor?: string | null,
 		direction: PageDirection = "forward",
@@ -61,6 +64,7 @@ export const jobsService = {
 		const baseCondition = and(
 			eq(jobs.status, "approved"),
 			gte(jobs.expiresAt, now),
+			filter.where(jobs),
 		);
 
 		const boundary = cursorObj

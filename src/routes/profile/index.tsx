@@ -4,11 +4,13 @@ import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
 import { formResultsService } from "~/core/forms/form-results.service";
 import { buildFormPath } from "~/core/forms/forms";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
+import { listNotificationSettings } from "~/core/notifications/preferences";
 import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { userTagsService } from "~/core/tags/user-tags.service";
 import { formatAffiliationResultJson } from "~/core/users/affiliation";
 import { UserProfile } from "~theme/routes/profile/UserProfile/UserProfile";
+import { useSetNotificationPreference } from "../../core/notifications/profile/useSetNotificationPreference";
 import { activeProfileExtras } from "../../core/registry/manifests";
 import { useUpdateDetails } from "../../core/users/profile/useUpdateDetails";
 import { useUpdateLocation } from "../../core/users/profile/useUpdateLocation";
@@ -19,7 +21,13 @@ import { useUpdateName } from "../../core/users/profile/useUpdateName";
 import { useUpdatePicture } from "../../core/users/profile/useUpdatePicture";
 
 // Re-export so Qwik City registers the actions for this route.
-export { useUpdateName, useUpdateLocation, useUpdatePicture, useUpdateDetails };
+export {
+	useUpdateName,
+	useUpdateLocation,
+	useUpdatePicture,
+	useUpdateDetails,
+	useSetNotificationPreference,
+};
 
 export const useProfile = routeLoader$(async (event) => {
 	await requireAuth(event);
@@ -37,16 +45,18 @@ export const useProfile = routeLoader$(async (event) => {
 			)
 		: null;
 
-	const [submittedForms, tags, extras, userGroups] = await Promise.all([
-		formResultsService.getByUser(user.id),
-		userTagsService.getByUser(user.id),
-		activeProfileExtras({
-			userId: user.id,
-			viewerId: user.id,
-			isOwnProfile: true,
-		}),
-		groupMembershipsService.getUserGroups(user.id),
-	]);
+	const [submittedForms, tags, extras, userGroups, notificationSettings] =
+		await Promise.all([
+			formResultsService.getByUser(user.id),
+			userTagsService.getByUser(user.id),
+			activeProfileExtras({
+				userId: user.id,
+				viewerId: user.id,
+				isOwnProfile: true,
+			}),
+			groupMembershipsService.getUserGroups(user.id),
+			listNotificationSettings(user.id),
+		]);
 
 	return assertNoPrivateFields(
 		{
@@ -62,6 +72,7 @@ export const useProfile = routeLoader$(async (event) => {
 			upcomingEvents: extras.upcomingEvents ?? [],
 			pastEvents: extras.pastEvents ?? [],
 			isOwner: true,
+			notificationSettings,
 			email: (user.email as string | null) ?? null,
 			yearOfBirth: user.yearOfBirth ?? null,
 			sex: user.sex ?? null,
@@ -106,6 +117,7 @@ export default component$(() => {
 	const updateLocationAction = useUpdateLocation();
 	const updatePictureAction = useUpdatePicture();
 	const updateDetailsAction = useUpdateDetails();
+	const setNotificationPreferenceAction = useSetNotificationPreference();
 	return (
 		<UserProfile
 			{...profile.value}
@@ -113,6 +125,7 @@ export default component$(() => {
 			updateLocationAction={updateLocationAction}
 			updatePictureAction={updatePictureAction}
 			updateDetailsAction={updateDetailsAction}
+			setNotificationPreferenceAction={setNotificationPreferenceAction}
 		/>
 	);
 });

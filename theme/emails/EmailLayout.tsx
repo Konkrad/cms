@@ -10,6 +10,8 @@ interface EmailLayoutProps {
 	title: string;
 	subtitle: string;
 	baseUrl: string;
+	/** One-click unsubscribe link for optional notifications; shown in the footer when set. */
+	unsubscribeUrl?: string | null;
 	children: React.ReactNode;
 }
 
@@ -17,6 +19,7 @@ const EmailLayout = ({
 	title,
 	subtitle,
 	baseUrl,
+	unsubscribeUrl,
 	children,
 }: EmailLayoutProps) => {
 	return (
@@ -50,7 +53,7 @@ const EmailLayout = ({
 						<div className="p-6">{children}</div>
 
 						{/* Footer */}
-						<Footer />
+						<Footer unsubscribeUrl={unsubscribeUrl} />
 					</Container>
 				</Body>
 			</Tailwind>

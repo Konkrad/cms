@@ -1,11 +1,16 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
 import type {
+	NotificationSetting,
+	SetNotificationPreferenceAction,
+} from "~/contracts/notifications";
+import type {
 	UpdateDetailsAction,
 	UpdateLocationAction,
 	UpdateNameAction,
 	UpdatePictureAction,
 } from "~/contracts/profile";
+import { NotificationSettings } from "~theme/shared/NotificationSettings/NotificationSettings";
 import { PrivacyBadge } from "~theme/shared/PrivacyBadge/PrivacyBadge";
 import { ProfileAvatarEdit } from "~theme/shared/ProfileAvatarEdit/ProfileAvatarEdit";
 import { ProfileDetailsEdit } from "~theme/shared/ProfileDetailsEdit/ProfileDetailsEdit";
@@ -69,11 +74,14 @@ export interface UserProfileProps {
 	submittedForms?: FormEntry[];
 	affiliationEntries?: { question: string; answer: string }[];
 	affiliationEditPath?: string | null;
+	/** Optional notifications the owner can mute (own profile only). */
+	notificationSettings?: NotificationSetting[];
 	// In-place edit actions (own profile only)
 	updateNameAction?: UpdateNameAction;
 	updateLocationAction?: UpdateLocationAction;
 	updatePictureAction?: UpdatePictureAction;
 	updateDetailsAction?: UpdateDetailsAction;
+	setNotificationPreferenceAction?: SetNotificationPreferenceAction;
 }
 
 const formatDate = (iso: string) =>
@@ -118,6 +126,8 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 		updateLocationAction,
 		updatePictureAction,
 		updateDetailsAction,
+		notificationSettings,
+		setNotificationPreferenceAction,
 	} = props;
 
 	const displayName = `${name} ${familyName}`.trim();
@@ -130,7 +140,8 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 			!!yearOfBirth ||
 			!!sex ||
 			(electionGroups && electionGroups.length > 0) ||
-			(submittedForms && submittedForms.length > 0));
+			(submittedForms && submittedForms.length > 0) ||
+			(notificationSettings && notificationSettings.length > 0));
 
 	// Editing is only offered on the owner's own profile, and only when the
 	// route actually supplied the actions (PublicProfileView never does).
@@ -428,6 +439,27 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 								</ul>
 							</section>
 						)}
+
+						{/* Notification settings */}
+						{notificationSettings &&
+							notificationSettings.length > 0 &&
+							setNotificationPreferenceAction && (
+								<section
+									id="notification-settings"
+									class={PRIVATE_SECTION_CLASS}
+								>
+									<div class="flex items-center gap-2 mb-3">
+										<h2 class="text-xl font-semibold text-text">
+											Notifications
+										</h2>
+										<PrivacyBadge />
+									</div>
+									<NotificationSettings
+										settings={notificationSettings}
+										action={setNotificationPreferenceAction}
+									/>
+								</section>
+							)}
 					</div>
 				</div>
 			)}

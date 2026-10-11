@@ -16,6 +16,7 @@ import {
 import "dotenv/config";
 import { createServer } from "node:http";
 import { runMigrations } from "./core/db/migrate";
+import { allowOneClickUnsubscribe } from "./core/notifications/one-click";
 import { startOutboxWorker } from "./core/notifications/worker";
 import render from "./entry.ssr";
 import { env } from "./env";
@@ -31,6 +32,7 @@ startOutboxWorker();
 const { router, notFound, staticFile } = createQwikRouter({ render });
 
 const server = createServer((req, res) => {
+	allowOneClickUnsubscribe(req);
 	staticFile(req, res, () => {
 		router(req, res, () => {
 			notFound(req, res, () => {});

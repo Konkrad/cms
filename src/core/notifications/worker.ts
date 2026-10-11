@@ -7,6 +7,7 @@ import type {
 } from "~/core/notifications/define";
 import { notificationOutboxService } from "~/core/notifications/outbox.service";
 import type { NotificationOutboxRow } from "~/core/notifications/schema";
+import { unsubscribeUrl } from "~/core/notifications/unsubscribe-token";
 import { usersService } from "~/core/users/users.service";
 import { env } from "~/env";
 
@@ -111,7 +112,15 @@ async function processRow(
 				address: row.recipientAddress,
 			},
 			appUrl: env.APP_URL,
-			unsubscribeUrl: null,
+			// Optional notifications to a user carry a signed link that mutes exactly this one.
+			unsubscribeUrl:
+				def.optional && row.recipientUserId
+					? unsubscribeUrl({
+							userId: row.recipientUserId,
+							notificationId: def.id,
+							channel: channelId,
+						})
+					: null,
 		};
 		const content = await renderer(row.data as never, ctx);
 		await channel.send({

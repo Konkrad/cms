@@ -8,6 +8,7 @@ import type {
 	NotificationDefinition,
 } from "~/core/notifications/define";
 import { notificationOutboxService } from "~/core/notifications/outbox.service";
+import { notificationPreferencesService } from "~/core/notifications/preferences.service";
 import type { NewNotificationOutboxRow } from "~/core/notifications/schema";
 
 /** A message for the team rather than a user, e.g. `{ channel: "telegram", target: "ops" }`. */
@@ -27,7 +28,8 @@ export interface NotifyInput {
 
 /**
  * Queues a notification: one `notification_outbox` row per recipient and channel, status
- * `pending`. Nothing is sent inline; the outbox worker renders and sends. Server-only.
+ * `pending`, skipping users who muted an optional notification on that channel. Nothing is
+ * sent inline; the outbox worker renders and sends. Server-only.
  * Throws on an unknown id, non-serializable data or an unknown ops target.
  * Returns the ids of the rows written.
  */
@@ -97,6 +99,11 @@ export async function enqueueNotification(
 		createdAt,
 	});
 
+	// Only optional notifications can be muted; required ones ignore preferences.
+	const muted = def.optional
+		? await notificationPreferencesService.getMuted(userIds, def.id)
+		: new Set<string>();
+
 	const rows: NewNotificationOutboxRow[] = [];
 	let reachesUsers = false;
 	for (const channel of def.channels) {
@@ -106,6 +113,7 @@ export async function enqueueNotification(
 		if (!addresses) continue;
 		reachesUsers = true;
 		for (const userId of userIds) {
+			if (muted.has(`${userId}:${channel}`)) continue;
 			const address = addresses.get(userId) ?? null;
 			rows.push(
 				row(

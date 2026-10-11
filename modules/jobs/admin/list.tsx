@@ -3,13 +3,19 @@ import { Form, Link, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { format } from "date-fns";
 import { requireModuleAdmin } from "~/core";
 import { Pagination, SearchBar } from "~/core/ui";
+import { notifyIfApproved } from "../notifications";
 import { jobsService } from "../service";
 import type { AdminJobsData } from "./list-data";
 
 export const useApproveJob = routeAction$(
 	async (data, event) => {
 		await requireModuleAdmin(event, { module: "jobs", scope: "global" });
-		await jobsService.update(data.jobId, { status: "approved" } as any);
+		const before = await jobsService.getById(data.jobId);
+		if (!before) return event.fail(404, { message: "Job not found" });
+		const after = await jobsService.update(data.jobId, {
+			status: "approved",
+		} as any);
+		await notifyIfApproved(before, after);
 		return { success: true };
 	},
 	zod$({ jobId: z.string().uuid() }),

@@ -1,4 +1,10 @@
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+	index,
+	integer,
+	primaryKey,
+	sqliteTable,
+	text,
+} from "drizzle-orm/sqlite-core";
 import { users } from "../users/schema";
 
 /**
@@ -37,3 +43,21 @@ export const notificationOutbox = sqliteTable(
 
 export type NotificationOutboxRow = typeof notificationOutbox.$inferSelect;
 export type NewNotificationOutboxRow = typeof notificationOutbox.$inferInsert;
+
+/**
+ * Per-user mutes for OPTIONAL notifications (`optional: true`), one row per notification and
+ * channel. No row means enabled. Required notifications ignore this table.
+ */
+export const notificationPreferences = sqliteTable(
+	"notification_preferences",
+	{
+		userId: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		notificationId: text("notification_id").notNull(),
+		channel: text("channel").notNull(),
+		enabled: integer("enabled", { mode: "boolean" }).notNull(),
+		updatedAt: text("updated_at").notNull(),
+	},
+	(t) => [primaryKey({ columns: [t.userId, t.notificationId, t.channel] })],
+);

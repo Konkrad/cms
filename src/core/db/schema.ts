@@ -7,7 +7,10 @@ import { posts } from "../content/schema/posts";
 import { formResults } from "../forms/schema/form-results";
 import { forms } from "../forms/schema/forms";
 import { userMemberships } from "../memberships/schema";
-import { notificationOutbox } from "../notifications/schema";
+import {
+	notificationOutbox,
+	notificationPreferences,
+} from "../notifications/schema";
 import { moduleTables, withModuleRelations } from "../registry/schemas";
 import { groupMemberships } from "../scopes/schema/group-memberships";
 import { groupRepresentatives } from "../scopes/schema/group-representatives";
@@ -51,6 +54,7 @@ export const schemaRelations = defineRelations(
 		formResults,
 		userMemberships,
 		notificationOutbox,
+		notificationPreferences,
 		tagDefinitions,
 		userTags,
 		scopes,

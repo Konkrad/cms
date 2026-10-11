@@ -2,6 +2,7 @@ import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireModuleAdmin } from "~/core";
 import { BlockNoteEditor, Button, Input, Select } from "~/core/ui";
+import { notifyIfApproved } from "../notifications";
 import type { PublicJob } from "../public-job";
 import { jobsService } from "../service";
 
@@ -9,7 +10,9 @@ export const useUpdateJob = routeAction$(
 	async (data, event) => {
 		await requireModuleAdmin(event, { module: "jobs", scope: "global" });
 
-		await jobsService.update(event.params.id, {
+		const before = await jobsService.getById(event.params.id);
+		if (!before) return event.fail(404, { message: "Job not found" });
+		const after = await jobsService.update(event.params.id, {
 			title: data.title,
 			body: data.body,
 			editorState: data.editorState || null,
@@ -24,6 +27,7 @@ export const useUpdateJob = routeAction$(
 			expiresAt: new Date(data.expiresAt),
 			status: data.status as "pending" | "approved",
 		} as any);
+		await notifyIfApproved(before, after);
 
 		throw event.redirect(303, "/admin/global/jobs");
 	},

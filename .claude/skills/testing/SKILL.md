@@ -98,6 +98,9 @@ Helpers named `create*InDb` / `create*` that return `cleanup()` should be cleane
 | `createElectionCycleInDb(overrides?)` | Election cycle; returns `{ cycleId, cleanup }` |
 | `createElectionPositionInDb(cycleId, overrides?)` | Position in a cycle |
 | `createElectionApplicationInDb(positionId, cycleId, userId, status?, adminNote?)` | Application |
+| `getOutboxRows({ notificationId?, recipientUserId?, channel? })` / `getOutboxRowById(id)` | Read `notification_outbox` rows |
+| `createOutboxRowInDb(opts)` | Outbox row (e.g. a `failed` one for the admin view); returns `{ id, cleanup }` |
+| `getNotificationPreference(userId, notificationId, channel)` | Stored preference (`null` = never toggled, i.e. enabled) |
 
 `SHARED_E2E_EMAIL` is the shared login used by the auth setup project.
 

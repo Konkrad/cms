@@ -9,6 +9,7 @@ import { qwikRouter } from "@qwik.dev/router/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, type Plugin, type UserConfig } from "vite";
 import pkg from "./package.json";
+import { allowOneClickUnsubscribe } from "./src/core/notifications/one-click";
 
 // Absolute path to ./src for the "~" alias below.
 const srcDir = fileURLToPath(new URL("./src/", import.meta.url));
@@ -50,6 +51,7 @@ export default defineConfig(
 		return {
 			publicDir,
 			plugins: [
+				oneClickUnsubscribe(),
 				// Dev server only, after the migrations above (never in builds or vitest, which
 				// uses vitest.config.ts). The production server starts it in entry.node-server.tsx.
 				...(devServer ? [notificationOutboxWorker()] : []),
@@ -119,6 +121,19 @@ export default defineConfig(
 );
 
 // *** utils ***
+
+/** Dev-server side of `allowOneClickUnsubscribe` (runs before Qwik's middleware). */
+function oneClickUnsubscribe(): Plugin {
+	return {
+		name: "cms:one-click-unsubscribe",
+		configureServer(server) {
+			server.middlewares.use((req, _res, next) => {
+				allowOneClickUnsubscribe(req);
+				next();
+			});
+		},
+	};
+}
 
 /**
  * Starts the notification outbox worker in the dev server process once it listens. Loaded

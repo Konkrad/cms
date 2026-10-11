@@ -125,6 +125,12 @@ function deleteUserCascade(
 	db.prepare("DELETE FROM user_qualifications WHERE user_id = ?").run(userId);
 	db.prepare("DELETE FROM user_memberships WHERE user_id = ?").run(userId);
 	db.prepare("DELETE FROM user_tags WHERE user_id = ?").run(userId);
+	db.prepare("DELETE FROM notification_outbox WHERE recipient_user_id = ?").run(
+		userId,
+	);
+	db.prepare("DELETE FROM notification_preferences WHERE user_id = ?").run(
+		userId,
+	);
 	// Sessions and user/login rows
 	db.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
 	db.prepare("DELETE FROM users WHERE id = ?").run(userId);
@@ -673,6 +679,117 @@ export function deleteJobById(id: string): void {
 	const db = openDb();
 	db.prepare("DELETE FROM jobs WHERE id = ?").run(id);
 	db.close();
+}
+
+// ── Notification helpers ──────────────────────────────────────────────────────
+
+export interface OutboxRow {
+	id: string;
+	notification_id: string;
+	channel: string;
+	recipient_user_id: string | null;
+	recipient_address: string | null;
+	data: string;
+	status: "pending" | "sent" | "failed";
+	attempts: number;
+	last_error: string | null;
+}
+
+/** Outbox rows matching all given filters, oldest first. */
+export function getOutboxRows(filter: {
+	notificationId?: string;
+	recipientUserId?: string;
+	channel?: string;
+}): OutboxRow[] {
+	const where: string[] = [];
+	const args: string[] = [];
+	if (filter.notificationId) {
+		where.push("notification_id = ?");
+		args.push(filter.notificationId);
+	}
+	if (filter.recipientUserId) {
+		where.push("recipient_user_id = ?");
+		args.push(filter.recipientUserId);
+	}
+	if (filter.channel) {
+		where.push("channel = ?");
+		args.push(filter.channel);
+	}
+	const db = openDb();
+	const rows = db
+		.prepare(
+			`SELECT * FROM notification_outbox ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY created_at`,
+		)
+		.all(...args) as OutboxRow[];
+	db.close();
+	return rows;
+}
+
+export function getOutboxRowById(id: string): OutboxRow | undefined {
+	const db = openDb();
+	const row = db
+		.prepare("SELECT * FROM notification_outbox WHERE id = ?")
+		.get(id) as OutboxRow | undefined;
+	db.close();
+	return row;
+}
+
+/** Inserts an outbox row directly (e.g. a failed one for the admin view). */
+export function createOutboxRowInDb(opts: {
+	notificationId: string;
+	channel: string;
+	recipientUserId?: string | null;
+	recipientAddress?: string | null;
+	data?: Record<string, unknown>;
+	status?: "pending" | "sent" | "failed";
+	attempts?: number;
+	lastError?: string | null;
+}): { id: string; cleanup(): void } {
+	const db = openDb();
+	const id = crypto.randomUUID();
+	const now = new Date().toISOString();
+	db.prepare(
+		`INSERT INTO notification_outbox (id, notification_id, channel, recipient_user_id,
+       recipient_address, data, status, attempts, last_error, next_attempt_at, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+	).run(
+		id,
+		opts.notificationId,
+		opts.channel,
+		opts.recipientUserId ?? null,
+		opts.recipientAddress ?? null,
+		JSON.stringify(opts.data ?? {}),
+		opts.status ?? "pending",
+		opts.attempts ?? 0,
+		opts.lastError ?? null,
+		now,
+		now,
+	);
+	db.close();
+	return {
+		id,
+		cleanup() {
+			const db2 = openDb();
+			db2.prepare("DELETE FROM notification_outbox WHERE id = ?").run(id);
+			db2.close();
+		},
+	};
+}
+
+/** The stored preference (null when the user never toggled it, i.e. enabled). */
+export function getNotificationPreference(
+	userId: string,
+	notificationId: string,
+	channel: string,
+): boolean | null {
+	const db = openDb();
+	const row = db
+		.prepare(
+			"SELECT enabled FROM notification_preferences WHERE user_id = ? AND notification_id = ? AND channel = ?",
+		)
+		.get(userId, notificationId, channel) as { enabled: number } | undefined;
+	db.close();
+	return row ? row.enabled === 1 : null;
 }
 
 // ── Deal helpers ──────────────────────────────────────────────────────────────

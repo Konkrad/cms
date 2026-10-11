@@ -27,6 +27,7 @@ import path from "path";
 import sharp from "sharp";
 import { runMigrations } from "../src/core/db/migrate.ts";
 import * as schema from "../src/core/db/schema.ts";
+import { slugify } from "../src/core/shared/slug.ts";
 
 dotenv.config();
 
@@ -54,6 +55,22 @@ const db = drizzle({
 	client: sqlite,
 	relations: schema.schemaRelations,
 });
+
+/** A free event slug in a scope (the events service's rule: the title's slug, then -2, -3, …). */
+function seedEventSlug(scopeId: string, title: string): string {
+	const taken = new Set(
+		db
+			.select({ slug: schema.events.slug })
+			.from(schema.events)
+			.where(eq(schema.events.scopeId, scopeId))
+			.all()
+			.map((r) => r.slug),
+	);
+	const base = slugify(title) || "event";
+	let slug = base;
+	for (let n = 2; taken.has(slug); n++) slug = `${base}-${n}`;
+	return slug;
+}
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -1105,6 +1122,10 @@ for (const e of eventDefs) {
 		.values({
 			id: uuid(),
 			title: e.title,
+			slug: seedEventSlug(
+				e.groupSlug ? groupIds[e.groupSlug] : rootScope!.id,
+				e.title,
+			),
 			body: e.body,
 			startDate: start,
 			endDate: end,
@@ -1555,6 +1576,10 @@ console.log("  inventory & products seeded");
 			.values({
 				id: eventId,
 				title: opts.title,
+				slug: seedEventSlug(
+					opts.groupSlug ? groupIds[opts.groupSlug] : rootScope!.id,
+					opts.title,
+				),
 				body: opts.body,
 				startDate: opts.startDate,
 				endDate,

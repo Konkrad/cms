@@ -46,9 +46,10 @@ function createTicketFixture(userId: string, eventOffset = 7) {
 	).toISOString();
 
 	db.prepare(
-		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, scope_id, visibility)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO events (id, slug, title, body, start_date, end_date, location_type, user_id, scope_id, visibility)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
+		eventId,
 		eventId,
 		"Scan Test Event",
 		"<p>test</p>",

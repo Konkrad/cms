@@ -1,4 +1,14 @@
-import { and, asc, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	inArray,
+	isNotNull,
+	like,
+	or,
+	sql,
+} from "drizzle-orm";
 import { pages } from "~/core/content/schema/pages";
 import { posts } from "~/core/content/schema/posts";
 import { db } from "~/core/db/connection";
@@ -172,6 +182,23 @@ export const scopesService = {
 	async listPaths(): Promise<Set<string>> {
 		const rows = await db.select({ path: scopes.path }).from(scopes);
 		return new Set(rows.map((r) => r.path));
+	},
+
+	/** Scopes whose name or slug contains `query`, by path (admin link picker). */
+	async search(query: string, limit: number): Promise<Scope[]> {
+		return db
+			.select()
+			.from(scopes)
+			.where(
+				or(like(scopes.name, `%${query}%`), like(scopes.slug, `%${query}%`)),
+			)
+			.orderBy(asc(scopes.path))
+			.limit(limit);
+	},
+
+	/** Every scope's id and path (the tree is small; cached by `getScopePathsById`). */
+	async listIdPaths(): Promise<Array<{ id: string; path: string }>> {
+		return db.select({ id: scopes.id, path: scopes.path }).from(scopes);
 	},
 
 	/** Ancestors of a scope, root first, excluding the scope itself. */

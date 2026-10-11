@@ -30,8 +30,15 @@ export function splitScopePath(
 	};
 }
 
-/** Public URL for a sub path within a scope: scopeUrl("/germany/", "/events") = "/germany/events". */
-export function scopeUrl(scopePath: string, subPath = "/"): string {
+/**
+ * Public URL for a sub path within a scope (its path or the scope itself):
+ * scopeUrl("/germany/", "/events") = scopeUrl(germany, "/events") = "/germany/events".
+ */
+export function scopeUrl(
+	scope: string | { path: string },
+	subPath = "/",
+): string {
+	const scopePath = typeof scope === "string" ? scope : scope.path;
 	const base = scopePath.replace(/\/+$/, "");
 	const sub = subPath.replace(/^\/+/, "");
 	if (!sub) return base || "/";

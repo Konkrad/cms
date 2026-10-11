@@ -8,6 +8,8 @@ import {
 	isMember,
 	type PublicUser,
 	publicUserColumns,
+	slugify,
+	uniqueSlug,
 } from "~/core";
 import { users as usersTable } from "~/core/schema";
 import type { Event, InsertEvent, UpdateEvent } from "../schema/events";
@@ -170,12 +172,97 @@ export const eventsService = {
 
 	async create(data: InsertEvent): Promise<Event> {
 		const parsed = insertEventSchema.parse(data);
+		const slug = await this.freeSlug(
+			parsed.scopeId,
+			slugify(parsed.slug || parsed.title) || "event",
+		);
 		const [result] = await db
 			.insert(events)
-			.values(parsed as any)
+			.values({ ...parsed, slug } as any)
 			.returning();
 
 		return result;
+	},
+
+	/** `base`, or `base-2`, … : the first slug no event of the scope has (deleted ones included). */
+	async freeSlug(scopeId: string, base: string): Promise<string> {
+		return uniqueSlug(base, async (slug) =>
+			Boolean(
+				await db.query.events.findFirst({
+					where: { scopeId, slug },
+					columns: { id: true },
+				}),
+			),
+		);
+	},
+
+	/**
+	 * The id of the event a URL names in a scope: the scope's event with that slug, else the
+	 * event with that id (old `/events/<id>` links), else the only event anywhere with that
+	 * slug. The page then redirects to the canonical URL. Deleted events are not found.
+	 */
+	async findByParam(scopeId: string, param: string): Promise<string | null> {
+		const live = { deletedAt: { isNull: true as const } };
+		const inScope = await db.query.events.findFirst({
+			where: { scopeId, slug: param, ...live },
+			columns: { id: true },
+		});
+		if (inScope) return inScope.id;
+		const byId = await db.query.events.findFirst({
+			where: { id: param, ...live },
+			columns: { id: true },
+		});
+		if (byId) return byId.id;
+		const bySlug = await db.query.events.findMany({
+			where: { slug: param, ...live },
+			columns: { id: true },
+			limit: 2,
+		});
+		return bySlug.length === 1 ? bySlug[0].id : null;
+	},
+
+	/** Owning scope and slug of the live events with these ids (reference resolution). */
+	async locate(
+		ids: readonly string[],
+	): Promise<
+		Array<{ id: string; scopeId: string; slug: string; title: string }>
+	> {
+		if (!ids.length) return [];
+		return db
+			.select({
+				id: events.id,
+				scopeId: events.scopeId,
+				slug: events.slug,
+				title: events.title,
+			})
+			.from(events)
+			.where(and(inArray(events.id, [...ids]), isNull(events.deletedAt)));
+	},
+
+	/** Public live events whose title contains `query`, latest first (admin link picker). */
+	async searchPublic(
+		query: string,
+		limit: number,
+	): Promise<
+		Array<{ id: string; scopeId: string; slug: string; title: string }>
+	> {
+		return db
+			.select({
+				id: events.id,
+				scopeId: events.scopeId,
+				slug: events.slug,
+				title: events.title,
+			})
+			.from(events)
+			.where(
+				and(
+					isNull(events.deletedAt),
+					eq(events.visibility, "public"),
+					like(events.title, `%${query}%`),
+				),
+			)
+			.orderBy(desc(events.startDate))
+			.limit(limit);
 	},
 
 	async update(id: string, data: UpdateEvent): Promise<Event | undefined> {

@@ -78,6 +78,37 @@ export interface ScopePageContext {
 	viewerId: string | null;
 }
 
+/** Where one item lives: its owning scope and, when its URL uses one, its slug. */
+export interface RefLocation {
+	id: string;
+	scopeId: string;
+	/** URL slug, when the type's `path` uses `:slug` (unique within the scope). */
+	slug?: string | null;
+	/** Shown in the admin link picker. */
+	title?: string;
+}
+
+/**
+ * How core turns references to one item type (`<module>:<type>:<id>`) into URLs (spec 4.3).
+ * Core builds every URL from the owning scope's path; the module only says where each item
+ * lives. Visibility is not checked here (a URL is not a leak), but never return private data.
+ */
+export interface RefTypeDefinition {
+	/** Label of the type in the admin link picker, e.g. "Event". */
+	label: string;
+	/** Path of an item's page within its scope: `:slug` or `:id`, e.g. "/events/:slug". */
+	path: string;
+	/** Locations of the items with these ids; an id left out is "unavailable" (gone). */
+	locate: (ids: readonly string[]) => Promise<RefLocation[]>;
+	/**
+	 * The id of the item a `path` parameter names in a scope (a slug, or an id), or null.
+	 * Default: the parameter is the id. Used to turn pasted URLs into references.
+	 */
+	find?: (scopeId: string, param: string) => Promise<string | null>;
+	/** Public items whose title matches `query`, for the admin link picker. */
+	search?: (query: string, limit: number) => Promise<RefLocation[]>;
+}
+
 export interface ModuleDefinition {
 	id: string;
 	pages?: PageDefinition<unknown>[];
@@ -122,6 +153,12 @@ export interface ModuleDefinition {
 	 * so rows queued by a module that is later deactivated are still sent.
 	 */
 	notifications?: NotificationDefinition[];
+	/**
+	 * Item types other content may reference (`<module>:<type>:<id>`): where each item lives,
+	 * so core can build its canonical URL (`itemUrl`, `resolveRef`). References to a module
+	 * that is not active resolve to "unavailable".
+	 */
+	refs?: Record<string, RefTypeDefinition>;
 }
 
 export function defineModule(module: ModuleDefinition): ModuleDefinition {

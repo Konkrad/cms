@@ -78,6 +78,16 @@ export const eventsModule = defineModule({
 	},
 	scopeContentCount: (scopeId) => eventsService.countByScopeId(scopeId),
 	notifications: [ticketConfirmationNotification, saleAlertNotification],
+	// `events:event:<id>` → `<scope path>/events/<slug>`.
+	refs: {
+		event: {
+			label: "Event",
+			path: "/events/:slug",
+			locate: (ids) => eventsService.locate(ids),
+			find: (scopeId, param) => eventsService.findByParam(scopeId, param),
+			search: (query, limit) => eventsService.searchPublic(query, limit),
+		},
+	},
 	reevaluateUserTags: (userId) => tagRulesService.evaluateRulesForUser(userId),
 	// Lazy: the fulfilment graph (Stripe client, services) would otherwise load with the
 	// manifest and form an import cycle through ~/core (stripe.ts reads env at load time).

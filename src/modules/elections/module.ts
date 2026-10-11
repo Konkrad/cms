@@ -12,6 +12,15 @@ export const electionsModule = defineModule({
 		],
 	},
 	menuLinks: [{ key: "elections", label: "Elections", url: "/elections" }],
+	// `elections:cycle:<id>` → `<scope path>/elections/<id>`.
+	refs: {
+		cycle: {
+			label: "Election",
+			path: "/elections/:id",
+			locate: (ids) => electionsService.locate(ids),
+			search: (query, limit) => electionsService.searchPublished(query, limit),
+		},
+	},
 	// Election history is private: only the profile owner gets it.
 	async profile({ userId, isOwnProfile }) {
 		if (!isOwnProfile) return {};

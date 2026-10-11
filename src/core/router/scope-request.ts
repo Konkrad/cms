@@ -17,25 +17,37 @@ export function isScopeablePath(pathname: string): boolean {
 }
 
 let cachedPaths: Set<string> | null = null;
+let cachedById: Map<string, string> | null = null;
 let cachedDataVersion = -1;
 
 /** Drop the cached scope paths; call after any scope write. */
 export function invalidateScopePaths(): void {
 	cachedPaths = null;
+	cachedById = null;
 }
 
 /**
- * All scope paths, cached in memory. In-process writes invalidate explicitly;
- * SQLite's data_version changes when another connection (seed script, test
- * fixture) commits, which covers writes from outside this process.
+ * Scope paths by scope id, cached in memory. In-process writes invalidate explicitly;
+ * SQLite's data_version changes when another connection (seed script, test fixture)
+ * commits, which covers writes from outside this process.
  */
-export async function getScopePaths(): Promise<ReadonlySet<string>> {
+export async function getScopePathsById(): Promise<
+	ReadonlyMap<string, string>
+> {
 	const dataVersion = sqlite.pragma("data_version", { simple: true }) as number;
-	if (!cachedPaths || dataVersion !== cachedDataVersion) {
-		cachedPaths = await scopesService.listPaths();
+	if (!cachedById || !cachedPaths || dataVersion !== cachedDataVersion) {
+		const rows = await scopesService.listIdPaths();
+		cachedById = new Map(rows.map((r) => [r.id, r.path]));
+		cachedPaths = new Set(rows.map((r) => r.path));
 		cachedDataVersion = dataVersion;
 	}
-	return cachedPaths;
+	return cachedById;
+}
+
+/** All scope paths (see `getScopePathsById`). */
+export async function getScopePaths(): Promise<ReadonlySet<string>> {
+	await getScopePathsById();
+	return cachedPaths as Set<string>;
 }
 
 /** Scope path of the current request ("/" when no scope prefix matched). */

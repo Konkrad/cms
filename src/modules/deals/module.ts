@@ -11,6 +11,15 @@ export const dealsModule = defineModule({
 		sections: [{ path: "deals", label: "Deals", order: 100, scopes: "all" }],
 	},
 	blocks: dealsBlocks,
+	// `deals:deal:<id>` → `<scope path>/deals/<id>`.
+	refs: {
+		deal: {
+			label: "Deal",
+			path: "/deals/:id",
+			locate: (ids) => dealsService.locate(ids),
+			search: (query, limit) => dealsService.searchActive(query, limit),
+		},
+	},
 	sitemap: async () =>
 		// The root listing: every deal of every scope.
 		(await dealsService.getActive(await scopeContentFilter(null))).map(

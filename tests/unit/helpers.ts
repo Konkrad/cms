@@ -351,9 +351,10 @@ export function createTestEvent(
 	const pastDate = new Date(Date.now() - 7 * 86400000).toISOString();
 	const pastEnd = new Date(Date.now() - 6 * 86400000).toISOString();
 	db.prepare(
-		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, scope_id, visibility, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO events (id, slug, title, body, start_date, end_date, location_type, user_id, scope_id, visibility, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
+		eventId,
 		eventId,
 		(overrides.title as string) ?? "Test Event",
 		"<p>Test</p>",

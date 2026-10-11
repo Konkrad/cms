@@ -1,6 +1,7 @@
 import { defineModule } from "~/core";
 import { jobApprovedNotification } from "./notifications";
 import { jobsPages } from "./pages";
+import { jobsService } from "./service";
 
 export const jobsModule = defineModule({
 	id: "jobs",
@@ -11,4 +12,13 @@ export const jobsModule = defineModule({
 	},
 	menuLinks: [{ key: "jobs", label: "Jobs", url: "/jobs" }],
 	notifications: [jobApprovedNotification],
+	// `jobs:job:<id>` → `<scope path>/jobs/<id>`.
+	refs: {
+		job: {
+			label: "Job",
+			path: "/jobs/:id",
+			locate: (ids) => jobsService.locate(ids),
+			search: (query, limit) => jobsService.searchPublished(query, limit),
+		},
+	},
 });

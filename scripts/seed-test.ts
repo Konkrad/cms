@@ -35,6 +35,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import fs from "fs";
 import { runMigrations } from "../src/core/db/migrate.ts";
 import * as schema from "../src/core/db/schema.ts";
+import { slugify } from "../src/core/shared/slug.ts";
 
 dotenv.config();
 
@@ -52,6 +53,22 @@ runMigrations();
 
 const sqlite = new Database(DB_PATH);
 const db = drizzle({ client: sqlite, relations: schema.schemaRelations });
+
+/** A free event slug in a scope (the events service's rule: the title's slug, then -2, -3, …). */
+function seedEventSlug(scopeId: string, title: string): string {
+	const taken = new Set(
+		db
+			.select({ slug: schema.events.slug })
+			.from(schema.events)
+			.where(eq(schema.events.scopeId, scopeId))
+			.all()
+			.map((r) => r.slug),
+	);
+	const base = slugify(title) || "event";
+	let slug = base;
+	for (let n = 2; taken.has(slug); n++) slug = `${base}-${n}`;
+	return slug;
+}
 
 function uuid() {
 	return crypto.randomUUID();
@@ -498,6 +515,10 @@ for (const e of qaEventDefs) {
 		.values({
 			id: uuid(),
 			title: e.title,
+			slug: seedEventSlug(
+				e.groupSlug ? (groupIds[e.groupSlug] ?? rootScope!.id) : rootScope!.id,
+				e.title,
+			),
 			body: e.body,
 			startDate: start,
 			endDate: end,

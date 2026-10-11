@@ -257,6 +257,36 @@ export const postsService = {
 		};
 	},
 
+	/** Owning scope of the posts with these ids that are not deleted (reference resolution). */
+	async locate(
+		ids: readonly string[],
+	): Promise<Array<{ id: string; scopeId: string; title: string }>> {
+		if (!ids.length) return [];
+		return db
+			.select({ id: posts.id, scopeId: posts.scopeId, title: posts.title })
+			.from(posts)
+			.where(and(inArray(posts.id, [...ids]), isNull(posts.deletedAt)));
+	},
+
+	/** Public posts whose title contains `query`, newest first (admin link picker). */
+	async searchPublic(
+		query: string,
+		limit: number,
+	): Promise<Array<{ id: string; scopeId: string; title: string }>> {
+		return db
+			.select({ id: posts.id, scopeId: posts.scopeId, title: posts.title })
+			.from(posts)
+			.where(
+				and(
+					isNull(posts.deletedAt),
+					eq(posts.visibility, "public"),
+					like(posts.title, `%${query}%`),
+				),
+			)
+			.orderBy(desc(posts.createdAt))
+			.limit(limit);
+	},
+
 	async create(data: InsertPost): Promise<Post> {
 		const parsed = await insertPostSchema.parseAsync(data);
 

@@ -1,41 +1,51 @@
 import crypto from "crypto";
 import { sql } from "drizzle-orm";
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { scopes, users, VISIBILITIES } from "~/core/schema";
 
-export const events = sqliteTable("events", {
-	id: text("id").primaryKey(),
-	title: text("title").notNull(),
-	body: text("body").notNull(),
-	startDate: text("start_date").notNull(),
-	endDate: text("end_date").notNull(),
+export const events = sqliteTable(
+	"events",
+	{
+		id: text("id").primaryKey(),
+		title: text("title").notNull(),
+		// URL segment under the owning scope (`/germany/berlin/events/<slug>`), unique per scope.
+		// Generated from the title on create (`eventsService.create`); events created before
+		// slugs existed have their id as slug.
+		slug: text("slug").notNull(),
+		body: text("body").notNull(),
+		startDate: text("start_date").notNull(),
+		endDate: text("end_date").notNull(),
 
-	locationType: text("location_type").notNull(),
-	address: text("address"),
-	city: text("city"),
-	country: text("country"),
-	longitude: text("longitude"),
-	latitude: text("latitude"),
-	onlineUrl: text("online_url"),
-	userId: text("user_id")
-		.notNull()
-		.references(() => users.id),
-	// Owning scope (site-wide = the root).
-	scopeId: text("scope_id")
-		.notNull()
-		.references(() => scopes.id),
-	visibility: text("visibility", { enum: VISIBILITIES })
-		.notNull()
-		.default("public"),
-	image1: text("image1"),
-	image2: text("image2"),
-	deletedAt: text("deleted_at"),
-	deletedBy: text("deleted_by").references(() => users.id),
-	createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-	updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-});
+		locationType: text("location_type").notNull(),
+		address: text("address"),
+		city: text("city"),
+		country: text("country"),
+		longitude: text("longitude"),
+		latitude: text("latitude"),
+		onlineUrl: text("online_url"),
+		userId: text("user_id")
+			.notNull()
+			.references(() => users.id),
+		// Owning scope (site-wide = the root).
+		scopeId: text("scope_id")
+			.notNull()
+			.references(() => scopes.id),
+		visibility: text("visibility", { enum: VISIBILITIES })
+			.notNull()
+			.default("public"),
+		image1: text("image1"),
+		image2: text("image2"),
+		deletedAt: text("deleted_at"),
+		deletedBy: text("deleted_by").references(() => users.id),
+		createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+		updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+	},
+	(table) => [
+		uniqueIndex("events_scope_slug_unique").on(table.scopeId, table.slug),
+	],
+);
 
 const baseInsertSchema = createInsertSchema(events);
 const baseSelectSchema = createSelectSchema(events);
@@ -54,7 +64,7 @@ export const insertEventSchema = baseInsertSchema
 	})
 	.partial({
 		id: true,
-
+		slug: true,
 		createdAt: true,
 		updatedAt: true,
 	});

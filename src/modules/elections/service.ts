@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, inArray, like, ne, or } from "drizzle-orm";
 import {
 	type ContentFilter,
 	db,
@@ -51,6 +51,42 @@ export type ElectionApplicationPublic = Omit<
 };
 
 export const electionsService = {
+	/** Owning scope of the election cycles with these ids (reference resolution). */
+	async locate(
+		ids: readonly string[],
+	): Promise<Array<{ id: string; scopeId: string; title: string }>> {
+		if (!ids.length) return [];
+		return db
+			.select({
+				id: electionCycles.id,
+				scopeId: electionCycles.scopeId,
+				title: electionCycles.title,
+			})
+			.from(electionCycles)
+			.where(inArray(electionCycles.id, [...ids]));
+	},
+
+	/** Published (not draft) cycles whose title contains `query` (admin link picker). */
+	async searchPublished(
+		query: string,
+		limit: number,
+	): Promise<Array<{ id: string; scopeId: string; title: string }>> {
+		return db
+			.select({
+				id: electionCycles.id,
+				scopeId: electionCycles.scopeId,
+				title: electionCycles.title,
+			})
+			.from(electionCycles)
+			.where(
+				and(
+					ne(electionCycles.status, "draft"),
+					like(electionCycles.title, `%${query}%`),
+				),
+			)
+			.limit(limit);
+	},
+
 	// Cycles
 
 	/** Every cycle, or only those owned by `scopeIds` (an admin scope's subtree). */

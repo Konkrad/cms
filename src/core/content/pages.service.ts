@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, like, or } from "drizzle-orm";
 import { sanitizeRichHtml } from "~/core/content/sanitize-html";
 import type { MenuItem } from "~/core/content/schema/menu-items";
 import { menuItems } from "~/core/content/schema/menu-items";
@@ -123,6 +123,49 @@ export const pagesService = {
 		const rows = await db.select().from(pages).where(eq(pages.id, id));
 		if (!rows.length) return undefined;
 		return (await withMenuItems(rows as Page[]))[0];
+	},
+
+	/** Owning scope and slug of the pages with these ids (reference resolution). */
+	async locate(
+		ids: readonly string[],
+	): Promise<
+		Array<{ id: string; scopeId: string; slug: string; title: string }>
+	> {
+		if (!ids.length) return [];
+		return db
+			.select({
+				id: pages.id,
+				scopeId: pages.scopeId,
+				slug: pages.slug,
+				title: pages.title,
+			})
+			.from(pages)
+			.where(inArray(pages.id, [...ids]));
+	},
+
+	/** Published pages whose title or slug contains `query` (admin link picker). */
+	async searchPublished(
+		query: string,
+		limit: number,
+	): Promise<
+		Array<{ id: string; scopeId: string; slug: string; title: string }>
+	> {
+		return db
+			.select({
+				id: pages.id,
+				scopeId: pages.scopeId,
+				slug: pages.slug,
+				title: pages.title,
+			})
+			.from(pages)
+			.where(
+				and(
+					eq(pages.status, "published"),
+					or(like(pages.title, `%${query}%`), like(pages.slug, `%${query}%`)),
+				),
+			)
+			.orderBy(asc(pages.title))
+			.limit(limit);
 	},
 
 	/** The page of a scope at a slug ("" = the root's home page), published or not. */

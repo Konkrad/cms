@@ -150,3 +150,25 @@ describe("eventsService.isFreeEvent", () => {
 		expect(free).toBe(false);
 	});
 });
+
+describe("event slugs", () => {
+	it("are generated from the title, unique per scope", async () => {
+		const { userId, cleanup } = createTestUser();
+		cleanupUser = cleanup;
+		const title = `Sommer Fest ${crypto.randomUUID().slice(0, 8)} Ü!`;
+		const a = await eventsService.create(makeEventData(userId, { title }));
+		const b = await eventsService.create(makeEventData(userId, { title }));
+		cleanupEventIds.push(a.id, b.id);
+		expect(a.slug).toMatch(/^sommer-fest-[0-9a-f]{8}-u$/);
+		expect(b.slug).toBe(`${a.slug}-2`);
+		// A URL names the event by slug in its scope, or by id from anywhere.
+		expect(await eventsService.findByParam(ensureRootScope(), b.slug)).toBe(
+			b.id,
+		);
+		expect(await eventsService.findByParam("other-scope", a.id)).toBe(a.id);
+		expect(await eventsService.findByParam("other-scope", a.slug)).toBe(a.id);
+		expect(await eventsService.findByParam(ensureRootScope(), "nope")).toBe(
+			null,
+		);
+	});
+});

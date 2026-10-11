@@ -410,9 +410,10 @@ export function createTestEvent(userId: string): {
 	const end = new Date(Date.now() + 14 * 86400000 + 7200000).toISOString();
 
 	db.prepare(
-		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, scope_id, visibility)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO events (id, slug, title, body, start_date, end_date, location_type, user_id, scope_id, visibility)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
+		eventId,
 		eventId,
 		"Consent Test Event",
 		"<p>test</p>",
@@ -465,9 +466,10 @@ export function createScopeEventInDb(opts: {
 	const end = new Date(Date.now() + offset + 7200000).toISOString();
 
 	db.prepare(
-		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, scope_id, visibility)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO events (id, slug, title, body, start_date, end_date, location_type, user_id, scope_id, visibility)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
+		eventId,
 		eventId,
 		opts.title,
 		"<p>e2e group event</p>",
@@ -544,9 +546,10 @@ export function createTestEventWithProduct(opts: {
 	const end = new Date(Date.now() + offset + 7200000).toISOString();
 
 	db.prepare(
-		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, scope_id, visibility)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO events (id, slug, title, body, start_date, end_date, location_type, user_id, scope_id, visibility)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
+		eventId,
 		eventId,
 		opts.title ?? "Ticket Test Event",
 		"<p>test</p>",

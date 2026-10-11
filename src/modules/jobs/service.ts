@@ -1,4 +1,15 @@
-import { and, asc, desc, eq, gt, gte, lt, or } from "drizzle-orm";
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	gt,
+	gte,
+	inArray,
+	like,
+	lt,
+	or,
+} from "drizzle-orm";
 import {
 	type ContentFilter,
 	db,
@@ -17,6 +28,36 @@ import { insertJobSchema, jobs, updateJobSchema } from "./schema";
 export type JobWithUser = Job & { user: PublicUser };
 
 export const jobsService = {
+	/** Owning scope of the jobs with these ids (reference resolution). */
+	async locate(
+		ids: readonly string[],
+	): Promise<Array<{ id: string; scopeId: string; title: string }>> {
+		if (!ids.length) return [];
+		return db
+			.select({ id: jobs.id, scopeId: jobs.scopeId, title: jobs.title })
+			.from(jobs)
+			.where(inArray(jobs.id, [...ids]));
+	},
+
+	/** Approved, unexpired jobs whose title contains `query` (admin link picker). */
+	async searchPublished(
+		query: string,
+		limit: number,
+	): Promise<Array<{ id: string; scopeId: string; title: string }>> {
+		return db
+			.select({ id: jobs.id, scopeId: jobs.scopeId, title: jobs.title })
+			.from(jobs)
+			.where(
+				and(
+					eq(jobs.status, "approved"),
+					gte(jobs.expiresAt, new Date().toISOString()),
+					like(jobs.title, `%${query}%`),
+				),
+			)
+			.orderBy(desc(jobs.createdAt))
+			.limit(limit);
+	},
+
 	/** Every job, or only those owned by `scopeIds` (an admin scope's subtree). */
 	async getAll(scopeIds: string[] | null = null): Promise<JobWithUser[]> {
 		const rows = await db.query.jobs.findMany({

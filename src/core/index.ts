@@ -69,6 +69,7 @@ export { VISIBILITIES, type Visibility } from "~/core/scopes/visibility";
 export { deleteS3Objects } from "~/core/media/image-processing.service";
 export { membershipsService } from "~/core/memberships/memberships.service";
 export { assertNoPrivateFields } from "~/core/shared/no-private-fields";
+export { slugify, uniqueSlug } from "~/core/shared/slug";
 export type { PageDirection } from "~/core/shared/pagination";
 export {
 	createCursorFromItem,
@@ -98,6 +99,24 @@ export * from "./schema";
 // back, so they must stay after the definitions above.
 export { requireModuleAdmin } from "~/core/registry/module-admin";
 export { requireModuleAuth } from "~/core/registry/module-auth";
+// Internal references (spec 4.3): never build or store item URLs by hand.
+export {
+	internalLinksToRefs,
+	itemUrl,
+	renderRichHtml,
+	resolveRef,
+	resolveRefs,
+	withItemUrls,
+} from "~/core/registry/refs";
+export type { RefLocation, RefTypeDefinition } from "~/core/router/modules";
+export {
+	formatRef,
+	itemRef,
+	parseHumanRef,
+	parseRef,
+	refHref,
+	scopeRef,
+} from "~/core/refs/refs";
 
 // Env-derived values (server-only). Modules must not import `~/env`; add a getter here instead.
 /** Public base URL of this site (no trailing-slash guarantee). */

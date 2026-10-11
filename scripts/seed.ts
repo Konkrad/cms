@@ -2111,11 +2111,11 @@ for (let i = 0; i < eventsNoImg.length; i++) {
 
 const groupsNoImg = sqlite
 	.prepare(
-		"SELECT id FROM groups WHERE (image1 IS NULL OR image1 LIKE '%picsum.photos%' OR image2 IS NULL OR image2 LIKE '%picsum.photos%' OR image3 IS NULL OR image3 LIKE '%picsum.photos%')",
+		"SELECT id FROM scopes WHERE (image1 IS NULL OR image1 LIKE '%picsum.photos%' OR image2 IS NULL OR image2 LIKE '%picsum.photos%' OR image3 IS NULL OR image3 LIKE '%picsum.photos%')",
 	)
 	.all() as Array<{ id: string }>;
 const updateGroup = sqlite.prepare(
-	"UPDATE groups SET image1 = ?, image2 = ?, image3 = ? WHERE id = ?",
+	"UPDATE scopes SET image1 = ?, image2 = ?, image3 = ? WHERE id = ?",
 );
 for (let i = 0; i < groupsNoImg.length; i++) {
 	updateGroup.run(

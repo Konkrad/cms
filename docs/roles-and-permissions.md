@@ -16,7 +16,7 @@ below it**: an admin of a region is an admin of all its chapters.
   tags, notifications, qualifications) and can move groups or change their
   URL (old URLs keep working through redirects).
 - **Representative** ("local rep") — manages their group and the groups below
-  it: events, posts, pages, jobs, deals, elections, forms, sub-groups and
+  it: events, notes, articles, pages, jobs, deals, elections, forms, sub-groups and
   members. Their public content needs a coordinator or admin (until reviews
   exist they can publish to members or representatives only). Representatives have no
   users directory: they see the members of their own groups only, and they
@@ -31,7 +31,7 @@ can grant only the representative role. Nobody can revoke their own role.
 
 Members join chapters themselves (or are added by a manager). Membership
 counts **upward**: a member of Berlin counts as a member of Germany, so
-members-only posts and events of Germany are visible to Berlin's members.
+members-only notes, articles and events of Germany are visible to Berlin's members.
 New users belong to the whole site only.
 
 ## Summary
@@ -39,6 +39,6 @@ New users belong to the whole site only.
 | Who | Can manage | Cannot manage |
 |---|---|---|
 | Member | Their own profile, RSVPs, tickets | Anything in an admin area |
-| Representative of a group | That group and the groups below: events, posts, forms, sub-groups, members, other representatives | Sibling or parent groups, the users directory, system sections |
+| Representative of a group | That group and the groups below: events, notes, articles, forms, sub-groups, members, other representatives | Sibling or parent groups, the users directory, system sections |
 | Admin / moderator of a group | The same, plus granting every role | Groups outside their branch |
 | Platform admin (admin of the top) | Everything, including the system sections and moving groups | — |

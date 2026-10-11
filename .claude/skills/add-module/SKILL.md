@@ -51,27 +51,31 @@ Jobs (`src/modules/jobs/`) is the worked example throughout. Modules: deals, ele
 - Scopes and access (all from `~/core`): `canViewScope(user, scopeId, "public" | "members" | "representatives")` for single items; listings take a `ContentFilter` from `scopeContentFilter(viewer, scope?)` or `requestContentFilter(event)` (viewer + URL scope prefix; pass `this` in `server$`) and apply `filter.where({ scopeId, visibility? })` (select builder) or `RAW: (t) => filter.where(t)` (relational queries); a table without a visibility column counts as public. `scopeSourceLabels` labels items of other scopes. Also `allowedVisibilities`, `isMember`, `listMembers`, `canManageScope`, `listManagedScopes`, `scopeLabels`, `getScope`/`getAncestors`/`getDescendants`/`getSubtreeIds`, `isWithinScope`/`requireWithinScope`. Never read the scope tables or compute inheritance yourself. Every content row has a NOT NULL `scopeId` (`scopes` from `~/core/schema`, `onDelete: "cascade"`; site-wide = the root); visibility columns use `VISIBILITIES` from `~/core/schema`. Details and the rest of the auth rules: CLAUDE.md Security. `tests/unit/action-auth.spec.ts` fails when an action does not start with its auth call.
 - Validate with `zod$`, whitelist updatable columns, re-check ownership in both loader and action.
 
-## Posts about your items
+## Notes and articles about your items
 
-A module needs no news/updates table: posts are core and can have a subject, a reference to one of your items (`subjectType` = `<module>:<type>`, `subjectId` = the id; the type must be in your manifest's `refs`). Worked example: the events module (`public-event.ts`, `admin/posts.tsx`, `admin/posts-data.ts`).
+A module needs no news/updates table: notes (short, no title or image) and articles (title, optional image, rich text) are core types and can have a subject, a reference to one of your items (`subjectType` = `<module>:<type>`, `subjectId` = the id; the type must be in your manifest's `refs`). Worked example: the events module's Updates tab (`public-event.ts`, `admin/updates.tsx`, `admin/updates-data.ts`).
 
 ```ts
-import { PostInputError, postFormSchema, posts } from "~/core";
-import { PostForm } from "~/core/ui";
+import { articleFormSchema, articles, ContentInputError, noteFormSchema, notes, updatesFor } from "~/core";
+import { ArticleForm, NoteForm } from "~/core/ui";
 
-// item page loader, after the visibility check: cards the viewer may see (contract PostCardData)
-posts: await posts.forSubject("events:event", event.id, viewer),
+// item page loader, after the visibility check: both types merged newest first (StreamItemData[])
+updates: await updatesFor("events:event", event.id, viewer),
+// or one type: notes.forSubject(...) / articles.forSubject(...)
 
-// admin action (auth first): scope = the item's, subject = the item; title optional (none = a note)
-await posts.create({ scopeId: item.scopeId, subjectType: "events:event", subjectId: item.id,
-  title: data.title, body: data.body, visibility: data.visibility, authorId: user.id });
-// zod$(postFormSchema) validates PostForm's fields; catch only PostInputError (bad input) and
-// show its message. posts.listForSubjectAdmin(type, id) lists all of them for the admin page;
-// posts.delete(id, { subjectType, subjectId }) deletes only a post about that item.
+// admin actions (auth first): scope = the item's, subject = the item
+await notes.create({ scopeId: item.scopeId, subjectType: "events:event", subjectId: item.id,
+  body: data.body, visibility: data.visibility, authorId: user.id });          // zod$(noteFormSchema)
+await articles.create({ scopeId: item.scopeId, subjectType: "events:event", subjectId: item.id,
+  title: data.title, featuredImage: data.featuredImage || null, body: data.body,
+  visibility: data.visibility, authorId: user.id });                          // zod$(articleFormSchema)
+// Catch only ContentInputError (bad input) and show its message. adminUpdatesFor(type, id) lists
+// both for the admin page; notes.delete(id, { subjectType, subjectId }) / articles.delete(...)
+// delete only an item about that subject.
 ```
 
-- The service checks the scope, the author's visibility (`allowedVisibilities`) and that the subject resolves (unknown or inactive module, missing item → `PostInputError`), and sanitizes the body. Never insert into `posts` yourself.
-- The theme renders `PostCardData` with `PostCard` (`theme/shared/PostCard`), which picks the note or article layout from `kind`.
+- The services check the scope, the author's visibility (`allowedVisibilities`), that the subject resolves (unknown or inactive module, missing item → `ContentInputError`), the note length (`NOTE_MAX_LENGTH`) and the article image key (`public/articles/…`), and sanitize the body. Never insert into `notes` or `articles` yourself.
+- The theme renders `StreamItemData` with `StreamCard` / `StreamList` (`theme/shared/StreamList`), which pick `NoteCard` or `ArticleCard` by `type`.
 
 ## Notifications
 

@@ -11,35 +11,43 @@ platform, regardless of the public site's branding, so this guide applies
 no matter which community or organization you're managing.
 
 ![Admin dashboard nav](./images/admin-event-create.png)
-*The admin menu of the whole site: Dashboard, Users, Posts, Events, Forms,
-Pages, Groups, Deals, Jobs, Elections, Qualifications. A chapter's admin
-shows Dashboard, Members, Posts, Events, Forms, Pages, Deals, Jobs, Elections
-and Group settings, limited to that chapter and the groups below it.*
+*The admin menu of the whole site: Dashboard, Users, Notes, Articles, Events,
+Forms, Pages, Groups, Deals, Jobs, Elections, Qualifications. A chapter's admin
+shows Dashboard, Members, Notes, Articles, Events, Forms, Pages, Deals, Jobs,
+Elections and Group settings, limited to that chapter and the groups below it.*
 
 ## Content
 
-- **Posts** — news of the site or a group. A post without a title is shown as a
-  short note ("Doors open at 18:00"); give it a title and it becomes an article. Both
-  appear together in post listings. A post can be *about* an item (pick it under
-  "About"), such as an event: it then also shows under that event.
-- **Event posts** — on an event's admin page, the **Posts** tab writes posts about the
-  event (announcement, updates, recap). They show under the event on its page.
+- **Notes** — short news of the site or a group ("Doors open at 18:00"): text and
+  links only, at most 1000 characters, no title and no image. Write one in the quick
+  form at the top of the Notes list. Anything longer is an article.
+- **Articles** — long-form news with a title, an optional featured image (shown on
+  the article, its card and the hero block, and when the article is shared) and full
+  formatted text. Create them under Articles → New article.
+- Notes and articles appear together, newest first, in the news (the **Stream**
+  page block, a group's page, the archive at `/archive/all`). A Stream block can also
+  show notes only (a "short stream") or articles only; the archive has
+  `/archive/notes` and `/archive/articles`. Both can be *about* an item (pick it
+  under "About" when editing), such as an event: they then also show under it.
+- **Event updates** — on an event's admin page, the **Updates** tab has *Write note*
+  (e.g. "Doors open at 18:00") and *Write article* (the announcement, the recap).
+  They show under the event on its page, newest first.
 - **Pages** — full pages (like the homepage, "About Us," or a community's
   landing page) built with a visual, drag-and-drop page builder out of
   reusable content blocks (a hero banner, an events list, a text section,
   and so on). Every group has its own pages, served under its address
   (`/germany/berlin/about`); listing blocks on them show that group's
   content. The site menus are managed on the top level only.
-- **Links and addresses** — every event, post, job, deal and election has one
+- **Links and addresses** — every event, note, article, job, deal and election has one
   address under the group that owns it (`/germany/berlin/events/summer-bbq`);
   the same item opened under another address is forwarded there. Links you
   pick in a menu, a page block's link field or the "Link the selected text"
-  search above the post editor point at the item itself, not at its address:
+  search above the text editor point at the item itself, not at its address:
   renaming or moving a group, or renaming a page, never breaks them, and a
   link to something that was deleted simply disappears (its text stays). In a
   menu's URL field you can also type a group as `root/germany/berlin` or its
   listing as `root/germany/berlin:events`.
-- **Visibility** — posts and events are *Public* (everyone; also listed on
+- **Visibility** — notes, articles and events are *Public* (everyone; also listed on
   every group above), *Members* (members of the group and the groups below
   it) or *Representatives*. A group's pages list its own items, those of the
   groups above it (labelled with their source) and the public items of the

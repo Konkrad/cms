@@ -82,9 +82,11 @@ Helpers named `create*InDb` / `create*` that return `cleanup()` should be cleane
 | `setParticipationInDb(...)` | Set a user's RSVP for an event (yes/no/maybe) |
 | `createTicketInDb({ buyerId, eventId, productId })` | Ticket (with transaction); returns the ticket id |
 | `addParticipantToTicket(...)` | Add a participant row to an existing ticket |
-| `createPostInDb({ title, body, userId, scopeId?, visibility?, subject?, publishedAt? })` | Post fixture: `title: null` = a note; `subject: { type: "events:event", id }` attaches it to an item; returns the id |
-| `getPostByTitle(title)` / `getPostsByBodyText(text)` / `deletePostById(id)` / `deletePostByTitle(title)` | Read posts (notes have no title: find them by body text) / delete |
-| `ensureNewsPage()` | Make sure the news page exists; returns `{ pageId }` |
+| `createNoteInDb({ body, userId, scopeId?, visibility?, subject?, publishedAt? })` | Published note (no title, no image); `subject: { type: "events:event", id }` attaches it to an item; returns the id |
+| `createArticleInDb({ title, body, userId, scopeId?, visibility?, featuredImage?, subject?, publishedAt? })` | Published article (`featuredImage` = a public S3 key); returns the id |
+| `getNotesByBodyText(text)` / `getArticleByTitle(title)` | Read notes (no title: find them by body text) / the newest article with a title |
+| `deleteNoteById(id)` / `deleteArticleById(id)` / `deleteArticleByTitle(title)` | Delete notes and articles |
+| `ensureNewsPage()` | Make sure the `/news` page (a Stream block, notes and articles) exists; returns `{ pageId }` |
 | `createPageInDb(opts)` / `getPageBySlug(slug)` / `deletePageBySlug(slug)` | Page fixtures: a root page with a menu item, or with `scopeId` a scope's page (no menu item) |
 | `getPageContent(pageId)` | Parsed content blocks of a page |
 | `deletePageAndMenuItems(pageId)` | Delete a page and its linked menu items |

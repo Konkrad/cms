@@ -20,7 +20,7 @@ A theme is a `theme/` directory with this shape:
 - **`chrome/`** — site-wide layout wrapping every page: `Navigation/`,
   `SiteFooter/`.
 - **`blocks/`** — page-builder blocks (e.g. a hero section, an upcoming-events
-  list, a posts list) that admins compose pages out of via the visual page
+  list, a news stream of notes and articles) that admins compose pages out of via the visual page
   builder. Blocks are the one place theme code is allowed to self-fetch
   data via `server$()`, since the page builder has no route loader to hand
   them props.
@@ -28,7 +28,7 @@ A theme is a `theme/` directory with this shape:
   `EventView`, `CheckoutView`), each receiving typed, already
   secrets-stripped props from the matching core `src/routes/**` loader. A
   theme route component never imports `db`, `env`, or a service directly.
-  Links to events, posts, jobs and other items come in the props as `url`
+  Links to events, notes, articles, jobs and other items come in the props as `url`
   fields (an item lives under the address of the group that owns it, e.g.
   `/germany/berlin/events/summer-bbq`): a theme never builds those URLs
   itself, and a unit test fails on `/events/${id}`-style links.

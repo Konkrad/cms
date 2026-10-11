@@ -50,7 +50,7 @@ export async function resolveRef(ref: string): Promise<string | null> {
 
 /**
  * Current URL and label (the item's title, when its type gives one) of an item reference,
- * or null when it is unavailable. For links that show what they point to (a post's subject).
+ * or null when it is unavailable. For links that show what they point to (the subject of a note or an article).
  */
 export async function describeRef(
 	ref: string,
@@ -70,7 +70,7 @@ type Locatable = { id: string; scopeId: string; slug?: string | null };
 
 /**
  * Canonical URL of an item under the scope that owns it: itemUrl("events:event", event) =
- * "/germany/berlin/events/summer-bbq". `kind` is `<module>:<type>` (`core:post`, `jobs:job`).
+ * "/germany/berlin/events/summer-bbq". `kind` is `<module>:<type>` (`core:article`, `jobs:job`).
  */
 export async function itemUrl(kind: string, item: Locatable): Promise<string> {
 	return (await itemUrlsWith(registered(), kind, [item]))[0];
@@ -184,7 +184,7 @@ export interface LinkTarget {
 }
 
 /**
- * Scopes, their module listings, CMS pages, posts and module items whose name or title
+ * Scopes, their module listings, CMS pages, notes, articles and module items whose name or title
  * matches `query`, as references for the admin link picker. Public items only (titles of
  * members-only content are not listed).
  */

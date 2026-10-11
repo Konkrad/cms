@@ -21,9 +21,9 @@ import {
 	requireAdmin,
 	requireScopeRole,
 } from "~/core/scopes/access";
-import { SCOPE_KINDS } from "~/core/scopes/kinds";
 import { ScopeError, scopesService } from "~/core/scopes/scopes.service";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
+import { env } from "~/env";
 
 /** Why a scope cannot be deleted, or null when it can (by this user). */
 async function deleteBlocker(
@@ -81,7 +81,7 @@ export const useScopeSettings = routeLoader$(async (event) => {
 			adminHref: adminUrl(c.path),
 			publicHref: scopeUrl(c.path),
 		})),
-		kinds: [...SCOPE_KINDS],
+		kinds: [...env.SCOPE_KINDS],
 		deleteBlocker: blocker,
 		canMove,
 		moveTargets,
@@ -144,7 +144,10 @@ export const useCreateChildScope = routeAction$(
 		throw event.redirect(303, adminUrl(child.path, "/scope"));
 	},
 	zod$({
-		kind: z.enum(SCOPE_KINDS),
+		// One of the configured kinds (env.SCOPE_KINDS).
+		kind: z.string().refine((kind) => env.SCOPE_KINDS.includes(kind), {
+			message: "Unknown group kind",
+		}),
 		slug: z.string().trim().toLowerCase().min(1).max(63),
 		name: z.string().trim().min(1, "Name is required").max(120),
 	}),

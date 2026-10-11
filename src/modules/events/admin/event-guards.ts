@@ -23,10 +23,7 @@ export async function requireAdminEventById(
 	eventId: string,
 	opts: { onMissing?: "404" | "redirect" } = {},
 ) {
-	const ctx = await requireModuleAdmin(event, {
-		module: "events",
-		scope: "any",
-	});
+	const ctx = await requireModuleAdmin(event, { module: "events" });
 	const target = await eventsService.getById(eventId);
 	if (!target) {
 		if (opts.onMissing === "redirect") {

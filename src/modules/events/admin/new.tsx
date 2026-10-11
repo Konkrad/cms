@@ -35,7 +35,6 @@ const eventSchema = z.object({
 export const useCreateEvent = routeAction$(async (data, event) => {
 	const { user, isRoot, scope, adminBase } = await requireModuleAdmin(event, {
 		module: "events",
-		scope: "any",
 	});
 
 	if (!(await allowedVisibilities(user, scope.id)).includes(data.visibility)) {

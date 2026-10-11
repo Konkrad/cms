@@ -7,7 +7,6 @@ import { dealsService } from "../service";
 export async function loadAdminDeals(event: RequestEventLoader) {
 	const { scope, isRoot, adminBase } = await requireModuleAdmin(event, {
 		module: "deals",
-		scope: "any",
 	});
 
 	const search = event.url.searchParams.get("search")?.trim() ?? "";

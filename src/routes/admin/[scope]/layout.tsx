@@ -6,6 +6,7 @@ import { Breadcrumbs } from "~/core/admin/Breadcrumbs";
 import { ScopeSwitcher } from "~/core/admin/ScopeSwitcher";
 import { ROOT_ONLY_SECTIONS } from "~/core/admin/sections";
 import { activeAdminSections } from "~/core/registry/manifests";
+import { sectionAllowedOn } from "~/core/router/modules";
 import { adminUrl, scopeUrl } from "~/core/router/scope-path";
 import {
 	ADMIN_ACCESS,
@@ -14,15 +15,12 @@ import {
 } from "~/core/scopes/access";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 
-/** Module sections declared only for the root ("global"). */
-const moduleRootOnly = activeAdminSections
-	.filter((s) => s.scopes !== "all")
-	.map((s) => s.path);
-
 /**
  * The admin shell of one scope (`/admin/[scope]/…`): authorizes a managing role on the scope
- * (inherited downward), answers 404 for a root-only section opened on another scope, and
- * builds the scope switcher (scopes the user manages) and the scope trail for the breadcrumbs.
+ * (inherited downward), answers 404 for a section that does not exist on this scope (a core
+ * system section on another scope than the root, a module section whose manifest `scopes`
+ * rule excludes the scope's kind), and builds the scope switcher (scopes the user manages)
+ * and the scope trail for the breadcrumbs.
  */
 export const useScopeAdmin = routeLoader$(async (event) => {
 	const { user, scope, ancestors } = await requireScopeRole(
@@ -31,9 +29,10 @@ export const useScopeAdmin = routeLoader$(async (event) => {
 	);
 	const isRoot = scope.parentId === null;
 	const section = event.url.pathname.split("/")[3] ?? "";
+	const moduleSection = activeAdminSections.find((s) => s.path === section);
 	if (
-		!isRoot &&
-		(ROOT_ONLY_SECTIONS.includes(section) || moduleRootOnly.includes(section))
+		(!isRoot && ROOT_ONLY_SECTIONS.includes(section)) ||
+		(moduleSection && !sectionAllowedOn(moduleSection, scope))
 	) {
 		throw event.error(404, "Not found");
 	}
@@ -63,10 +62,10 @@ export const useScopeAdmin = routeLoader$(async (event) => {
 			depth: s.path.split("/").filter(Boolean).length,
 			href: adminUrl(s.path),
 		})),
-		// Module sections declared for every scope ("all"); the root shows them all.
-		adminSections: isRoot
-			? activeAdminSections
-			: activeAdminSections.filter((s) => s.scopes === "all"),
+		// Module sections that exist on this scope (manifest `scopes`: root, all or kinds).
+		adminSections: activeAdminSections
+			.filter((s) => sectionAllowedOn(s, scope))
+			.map(({ path, label, order }) => ({ path, label, order })),
 	});
 });
 

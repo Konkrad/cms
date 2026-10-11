@@ -11,7 +11,6 @@ export const useUpdateDeal = routeAction$(
 	async (data, event) => {
 		const { scope, adminBase } = await requireModuleAdmin(event, {
 			module: "deals",
-			scope: "any",
 		});
 		await requireWithinScope(
 			event,

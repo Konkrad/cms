@@ -4,10 +4,9 @@ import { qualificationsService } from "../service";
 
 export const useCreateType = routeAction$(
 	async (data, event) => {
-		// Root only ("global"): a type grants a membership tier, which is site-wide.
+		// Root only (the section default): a type grants a site-wide membership tier.
 		const { scope } = await requireModuleAdmin(event, {
 			module: "qualifications",
-			scope: "global",
 		});
 		await qualificationsService.createType({ ...data, scopeId: scope.id });
 		return { success: true };
@@ -22,10 +21,7 @@ export const useCreateType = routeAction$(
 
 export const useDeleteType = routeAction$(
 	async (data, event) => {
-		await requireModuleAdmin(event, {
-			module: "qualifications",
-			scope: "global",
-		});
+		await requireModuleAdmin(event, { module: "qualifications" });
 		await qualificationsService.deleteType(data.typeId);
 		return { success: true };
 	},
@@ -36,7 +32,6 @@ export const useApproveQualification = routeAction$(
 	async (data, event) => {
 		const { user } = await requireModuleAdmin(event, {
 			module: "qualifications",
-			scope: "global",
 		});
 		await qualificationsService.approve(
 			data.qualId,
@@ -52,7 +47,6 @@ export const useRejectQualification = routeAction$(
 	async (data, event) => {
 		const { user } = await requireModuleAdmin(event, {
 			module: "qualifications",
-			scope: "global",
 		});
 		await qualificationsService.reject(data.qualId, user.id, data.notes);
 		return { success: true };
@@ -67,7 +61,6 @@ export const useGenerateToken = routeAction$(
 	async (data, event) => {
 		const { user } = await requireModuleAdmin(event, {
 			module: "qualifications",
-			scope: "global",
 		});
 		await qualificationsService.createToken(
 			data.typeId,
@@ -84,10 +77,7 @@ export const useGenerateToken = routeAction$(
 
 export const useRevokeToken = routeAction$(
 	async (data, event) => {
-		await requireModuleAdmin(event, {
-			module: "qualifications",
-			scope: "global",
-		});
+		await requireModuleAdmin(event, { module: "qualifications" });
 		await qualificationsService.revokeToken(data.tokenId);
 		return { success: true };
 	},

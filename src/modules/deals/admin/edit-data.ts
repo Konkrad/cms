@@ -13,7 +13,6 @@ import { dealsService } from "../service";
 export async function loadAdminDeal(event: RequestEventLoader) {
 	const { scope, adminBase } = await requireModuleAdmin(event, {
 		module: "deals",
-		scope: "any",
 	});
 	const deal = await dealsService.getById(event.params.id);
 	await requireWithinScope(event, scope, deal);

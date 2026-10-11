@@ -10,7 +10,6 @@ export const useCreateDeal = routeAction$(
 	async (data, event) => {
 		const { scope, adminBase } = await requireModuleAdmin(event, {
 			module: "deals",
-			scope: "any",
 		});
 
 		const steps = JSON.parse(data.steps || "[]");

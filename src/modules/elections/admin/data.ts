@@ -10,10 +10,13 @@ import { electionsService } from "../service";
 
 /** Server-only: import from route loaders only, never from components. */
 
-const ANY = { module: "elections", scope: "any" } as const;
+const ELECTIONS = { module: "elections" } as const;
 
 export async function loadAdminElections(event: RequestEventLoader) {
-	const { scope, isRoot, adminBase } = await requireModuleAdmin(event, ANY);
+	const { scope, isRoot, adminBase } = await requireModuleAdmin(
+		event,
+		ELECTIONS,
+	);
 
 	const search = event.url.searchParams.get("search")?.trim() ?? "";
 	const page = Math.max(
@@ -37,13 +40,13 @@ export async function loadAdminElections(event: RequestEventLoader) {
 
 /** Guard for the create-cycle form, which loads no data. */
 export async function guardNewElection(event: RequestEventLoader) {
-	const { adminBase } = await requireModuleAdmin(event, ANY);
+	const { adminBase } = await requireModuleAdmin(event, ELECTIONS);
 	return { adminBase };
 }
 
 /** A cycle of the URL scope's subtree (404 otherwise). */
 async function loadScopedCycle(event: RequestEventLoader) {
-	const access = await requireModuleAdmin(event, ANY);
+	const access = await requireModuleAdmin(event, ELECTIONS);
 	const cycle = await electionsService.getCycleById(event.params.id);
 	await requireWithinScope(event, access.scope, cycle);
 	return { cycle: cycle!, adminBase: access.adminBase };

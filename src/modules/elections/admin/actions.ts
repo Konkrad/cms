@@ -2,11 +2,11 @@ import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireModuleAdmin, requireWithinScope } from "~/core";
 import { electionsService } from "../service";
 
-const ANY = { module: "elections", scope: "any" } as const;
+const ELECTIONS = { module: "elections" } as const;
 
 export const useCreateCycle = routeAction$(
 	async (data, event) => {
-		const { scope, adminBase } = await requireModuleAdmin(event, ANY);
+		const { scope, adminBase } = await requireModuleAdmin(event, ELECTIONS);
 
 		const cycle = await electionsService.createCycle({
 			scopeId: scope.id,
@@ -28,7 +28,7 @@ export const useCreateCycle = routeAction$(
 
 export const useCreatePosition = routeAction$(
 	async (data, event) => {
-		const { scope, adminBase } = await requireModuleAdmin(event, ANY);
+		const { scope, adminBase } = await requireModuleAdmin(event, ELECTIONS);
 		await requireWithinScope(
 			event,
 			scope,
@@ -63,7 +63,7 @@ export const useCreatePosition = routeAction$(
 
 export const useAdvanceStatus = routeAction$(
 	async (data, event) => {
-		const { scope } = await requireModuleAdmin(event, ANY);
+		const { scope } = await requireModuleAdmin(event, ELECTIONS);
 		await requireWithinScope(
 			event,
 			scope,
@@ -87,7 +87,7 @@ export const useAdvanceStatus = routeAction$(
 
 export const useSetVotingUrl = routeAction$(
 	async (data, event) => {
-		const { scope } = await requireModuleAdmin(event, ANY);
+		const { scope } = await requireModuleAdmin(event, ELECTIONS);
 		await requireWithinScope(
 			event,
 			scope,
@@ -103,7 +103,7 @@ export const useSetVotingUrl = routeAction$(
 
 export const useDeletePosition = routeAction$(
 	async (data, event) => {
-		const { scope } = await requireModuleAdmin(event, ANY);
+		const { scope } = await requireModuleAdmin(event, ELECTIONS);
 		await requireWithinScope(
 			event,
 			scope,
@@ -118,7 +118,7 @@ export const useDeletePosition = routeAction$(
 
 export const useApproveApplication = routeAction$(
 	async (data, event) => {
-		const { scope } = await requireModuleAdmin(event, ANY);
+		const { scope } = await requireModuleAdmin(event, ELECTIONS);
 		await requireWithinScope(
 			event,
 			scope,
@@ -136,7 +136,7 @@ export const useApproveApplication = routeAction$(
 
 export const useRejectApplication = routeAction$(
 	async (data, event) => {
-		const { scope } = await requireModuleAdmin(event, ANY);
+		const { scope } = await requireModuleAdmin(event, ELECTIONS);
 		await requireWithinScope(
 			event,
 			scope,

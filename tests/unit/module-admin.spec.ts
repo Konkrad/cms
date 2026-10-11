@@ -9,6 +9,11 @@ vi.mock("~/core/scopes/access", () => ({
 }));
 
 import { requireModuleAdmin } from "~/core/registry/module-admin";
+import {
+	defineModule,
+	sectionAllowedOn,
+	unknownSectionKinds,
+} from "~/core/router/modules";
 import { toPublicUser } from "~/core/users/public-user";
 
 /** Event whose redirect/error helpers throw a tagged object, like Qwik's. */
@@ -22,12 +27,17 @@ const makeEvent = () =>
 
 const rootAccess = {
 	user: { id: "u1" },
-	scope: { id: "root", parentId: null, path: "/" },
+	scope: { id: "root", parentId: null, path: "/", kind: "root" },
 	ancestors: [],
 };
 const chapterAccess = {
 	user: { id: "u2" },
-	scope: { id: "c1", parentId: "r1", path: "/region/chapter/" },
+	scope: {
+		id: "c1",
+		parentId: "r1",
+		path: "/region/chapter/",
+		kind: "chapter",
+	},
 	ancestors: [],
 };
 
@@ -36,52 +46,47 @@ describe("requireModuleAdmin", () => {
 
 	it("asks for a managing role on the URL's scope", async () => {
 		requireScopeRole.mockResolvedValueOnce(rootAccess);
-		await requireModuleAdmin(makeEvent(), { module: "events", scope: "any" });
+		await requireModuleAdmin(makeEvent(), { module: "events" });
 		expect(requireScopeRole).toHaveBeenCalledWith(
 			expect.anything(),
 			"representative",
 		);
 	});
 
-	it("scope any: returns the access for the root and for other scopes", async () => {
+	it('a section for "all" scopes: returns the access for the root and for other scopes', async () => {
 		requireScopeRole.mockResolvedValueOnce(rootAccess);
-		expect(
-			await requireModuleAdmin(makeEvent(), { module: "events", scope: "any" }),
-		).toEqual({ ...rootAccess, isRoot: true, adminBase: "/admin/root" });
+		expect(await requireModuleAdmin(makeEvent(), { module: "events" })).toEqual(
+			{ ...rootAccess, isRoot: true, adminBase: "/admin/root" },
+		);
 		requireScopeRole.mockResolvedValueOnce(chapterAccess);
-		expect(
-			await requireModuleAdmin(makeEvent(), { module: "events", scope: "any" }),
-		).toEqual({
-			...chapterAccess,
-			isRoot: false,
-			adminBase: "/admin/region.chapter",
-		});
+		expect(await requireModuleAdmin(makeEvent(), { module: "events" })).toEqual(
+			{
+				...chapterAccess,
+				isRoot: false,
+				adminBase: "/admin/region.chapter",
+			},
+		);
 	});
 
-	it("scope global: returns the access on the root", async () => {
+	it("a root-only section: returns the access on the root, 404s elsewhere", async () => {
 		requireScopeRole.mockResolvedValueOnce(rootAccess);
 		expect(
-			await requireModuleAdmin(makeEvent(), {
-				module: "jobs",
-				scope: "global",
-			}),
+			await requireModuleAdmin(makeEvent(), { module: "qualifications" }),
 		).toMatchObject({ isRoot: true });
-	});
-
-	it("scope global: 404s on any other scope", async () => {
 		requireScopeRole.mockResolvedValueOnce(chapterAccess);
 		await expect(
-			requireModuleAdmin(makeEvent(), { module: "deals", scope: "global" }),
+			requireModuleAdmin(makeEvent(), { module: "qualifications" }),
 		).rejects.toMatchObject({ error: { status: 404 } });
 	});
 
-	it("404s for an inactive module in either scope", async () => {
+	it("404s for an inactive module or an unknown section", async () => {
 		requireScopeRole.mockResolvedValue(rootAccess);
-		for (const scope of ["global", "any"] as const) {
-			await expect(
-				requireModuleAdmin(makeEvent(), { module: "nope", scope }),
-			).rejects.toMatchObject({ error: { status: 404 } });
-		}
+		await expect(
+			requireModuleAdmin(makeEvent(), { module: "nope" }),
+		).rejects.toMatchObject({ error: { status: 404 } });
+		await expect(
+			requireModuleAdmin(makeEvent(), { module: "jobs", section: "nope" }),
+		).rejects.toMatchObject({ error: { status: 404 } });
 	});
 
 	it("propagates the auth helper's redirect and checks auth before the module", async () => {
@@ -89,8 +94,55 @@ describe("requireModuleAdmin", () => {
 			redirect: { status: 302, url: "/login" },
 		});
 		await expect(
-			requireModuleAdmin(makeEvent(), { module: "nope", scope: "any" }),
+			requireModuleAdmin(makeEvent(), { module: "nope" }),
 		).rejects.toEqual({ redirect: { status: 302, url: "/login" } });
+	});
+});
+
+describe("admin sections limited to scope kinds", () => {
+	const root = { parentId: null, kind: "root" };
+	const region = { parentId: "r", kind: "region" };
+	const chapter = { parentId: "g", kind: "chapter" };
+
+	it("defaults to the root only", () => {
+		expect(sectionAllowedOn({}, root)).toBe(true);
+		expect(sectionAllowedOn({}, region)).toBe(false);
+		expect(sectionAllowedOn({ scopes: "root" }, chapter)).toBe(false);
+	});
+
+	it('"all" exists everywhere', () => {
+		for (const s of [root, region, chapter]) {
+			expect(sectionAllowedOn({ scopes: "all" }, s)).toBe(true);
+		}
+	});
+
+	it('a list of kinds exists on those kinds; "root" names the root', () => {
+		const section = { scopes: ["root", "region"] };
+		expect(sectionAllowedOn(section, root)).toBe(true);
+		expect(sectionAllowedOn(section, region)).toBe(true);
+		expect(sectionAllowedOn(section, chapter)).toBe(false);
+		expect(sectionAllowedOn({ scopes: ["chapter"] }, root)).toBe(false);
+	});
+
+	it("finds kinds the deployment does not configure", () => {
+		const mod = defineModule({
+			id: "m",
+			admin: {
+				sections: [
+					{ path: "a", label: "A", scopes: ["region", "district"] },
+					{ path: "b", label: "B", scopes: "all" },
+				],
+			},
+		});
+		expect(unknownSectionKinds([mod], ["region", "chapter"])).toEqual([
+			"m/a: district",
+		]);
+	});
+
+	it("every registered module uses configured kinds only", async () => {
+		const { allModules } = await import("~/core/registry/manifests");
+		const { env } = await import("~/env");
+		expect(unknownSectionKinds(allModules, env.SCOPE_KINDS)).toEqual([]);
 	});
 });
 

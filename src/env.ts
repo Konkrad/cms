@@ -102,6 +102,30 @@ const envSchema = z.object({
 	LOGIN_EMAIL_WINDOW_MINUTES: z.coerce.number().int().positive().default(15),
 	LOGIN_IP_MAX_PER_WINDOW: z.coerce.number().int().positive().default(10),
 	LOGIN_IP_WINDOW_MINUTES: z.coerce.number().int().positive().default(60),
+
+	// Scope tree: the kinds a group below the root can have (deployment configuration, spec
+	// 4.2), comma-separated, in the order the admin offers them. The root's kind is "root".
+	// Module admin sections may be limited to some of these kinds (`scopes` in the manifest).
+	SCOPE_KINDS: z
+		.string()
+		.default("region,chapter")
+		.transform((value) =>
+			value
+				.split(",")
+				.map((kind) => kind.trim())
+				.filter(Boolean),
+		)
+		.pipe(
+			z
+				.array(z.string().regex(/^[a-z][a-z0-9-]*$/))
+				.min(1)
+				.refine((kinds) => !kinds.includes("root"), {
+					message: '"root" is the root\'s kind, not a configurable one',
+				})
+				.refine((kinds) => new Set(kinds).size === kinds.length, {
+					message: "Duplicate scope kind",
+				}),
+		),
 });
 
 /**
@@ -159,6 +183,7 @@ export const env = {
 	LOGIN_EMAIL_WINDOW_MINUTES: _env.LOGIN_EMAIL_WINDOW_MINUTES,
 	LOGIN_IP_MAX_PER_WINDOW: _env.LOGIN_IP_MAX_PER_WINDOW,
 	LOGIN_IP_WINDOW_MINUTES: _env.LOGIN_IP_WINDOW_MINUTES,
+	SCOPE_KINDS: _env.SCOPE_KINDS as readonly string[],
 
 	// helpful booleans
 	isProduction: _env.NODE_ENV === "production",

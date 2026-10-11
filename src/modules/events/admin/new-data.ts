@@ -3,10 +3,7 @@ import { allowedVisibilities, requireModuleAdmin } from "~/core";
 
 /** Server-only: import from route loaders only, never from components. */
 export async function loadNewEventContext(event: RequestEventLoader) {
-	const ctx = await requireModuleAdmin(event, {
-		module: "events",
-		scope: "any",
-	});
+	const ctx = await requireModuleAdmin(event, { module: "events" });
 	return {
 		isRoot: ctx.isRoot,
 		adminBase: ctx.adminBase,

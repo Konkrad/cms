@@ -10,11 +10,44 @@ export interface AdminSection {
 	label: string;
 	order?: number;
 	/**
-	 * Where the entry shows: only in the root scope's admin ("global", default) or in the
-	 * admin of every scope ("all", e.g. events). An "all" section's routes must authorize per
-	 * scope (`requireModuleAdmin` / `requireScopeRole`).
+	 * Which scopes' admin has the section (spec 4.8): the root only ("root", default), every
+	 * scope ("all", e.g. events) or the scopes of the listed kinds (deployment configuration,
+	 * `SCOPE_KINDS`; "root" for the root), e.g. ["root", "region"]. Elsewhere the `[scope]`
+	 * layout and `requireModuleAdmin` answer 404. A section on other scopes than the root must
+	 * limit its data to the URL scope's subtree (`isWithinScope`, `getSubtreeIds`).
 	 */
-	scopes?: "global" | "all";
+	scopes?: AdminSectionScopes;
+}
+
+export type AdminSectionScopes = "root" | "all" | readonly string[];
+
+/** Whether an admin section exists in the admin of `scope` (see `AdminSection.scopes`). */
+export function sectionAllowedOn(
+	section: Pick<AdminSection, "scopes">,
+	scope: { parentId: string | null; kind: string },
+): boolean {
+	const rule = section.scopes ?? "root";
+	if (rule === "all") return true;
+	const isRoot = scope.parentId === null;
+	if (rule === "root") return isRoot;
+	return rule.includes(isRoot ? "root" : scope.kind);
+}
+
+/** Kinds named by the admin sections of `modules` that `kinds` (plus "root") does not know. */
+export function unknownSectionKinds(
+	modules: readonly ModuleDefinition[],
+	kinds: readonly string[],
+): string[] {
+	const known = new Set(["root", ...kinds]);
+	return modules.flatMap((m) =>
+		(m.admin?.sections ?? []).flatMap((s) =>
+			Array.isArray(s.scopes)
+				? s.scopes
+						.filter((k) => !known.has(k))
+						.map((k) => `${m.id}/${s.path}: ${k}`)
+				: [],
+		),
+	);
 }
 
 export interface MenuLink {

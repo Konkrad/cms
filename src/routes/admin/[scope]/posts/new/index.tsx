@@ -32,7 +32,6 @@ const postSchema = z.object({
 
 export const useCreatePost = routeAction$(async (data, event) => {
 	const { user, scope } = await requireScopeRole(event, ADMIN_ACCESS);
-	const isRoot = scope.parentId === null;
 	if (!(await allowedVisibilities(user, scope.id)).includes(data.visibility)) {
 		return {
 			success: false,

@@ -1,10 +1,9 @@
 /**
- * Kinds a new scope can have, offered when creating a child scope. Deployment configuration:
- * the tree itself does not depend on them (the root's kind is "root"). The UI calls every
- * scope a group; the kind says which sort.
+ * The root scope's kind. The kinds of the scopes below it (region, chapter, …) are deployment
+ * configuration: `env.SCOPE_KINDS` (src/env.ts); the tree itself does not depend on them. The
+ * UI calls every scope a group; the kind says which sort.
  */
-export const SCOPE_KINDS = ["region", "chapter"] as const;
-export type ScopeKind = (typeof SCOPE_KINDS)[number];
+export const ROOT_KIND = "root";
 
 /** Public S3 prefix of scope home page images (uploaded through /api/images). */
 export const SCOPE_IMAGE_PREFIX = "public/scopes/";

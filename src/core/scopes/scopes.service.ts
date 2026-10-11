@@ -6,7 +6,7 @@ import { forms } from "~/core/forms/schema/forms";
 import { redirectsService } from "~/core/router/redirects.service";
 import { childPath, SCOPE_SLUG_RE } from "~/core/router/scope-path";
 import { invalidateScopePaths } from "~/core/router/scope-request";
-import { SCOPE_IMAGE_PREFIX } from "~/core/scopes/kinds";
+import { ROOT_KIND, SCOPE_IMAGE_PREFIX } from "~/core/scopes/kinds";
 import {
 	type Scope,
 	type ScopeRole,
@@ -85,7 +85,7 @@ export const scopesService = {
 			.values({
 				id: crypto.randomUUID(),
 				parentId: null,
-				kind: "root",
+				kind: ROOT_KIND,
 				slug: "",
 				name,
 				path: "/",
@@ -104,6 +104,8 @@ export const scopesService = {
 		if (reservedSlugs.has(input.slug))
 			throw new ScopeError(`Scope slug "${input.slug}" is reserved`);
 		if (!input.kind.trim()) throw new ScopeError("Scope kind is required");
+		if (input.kind === ROOT_KIND)
+			throw new ScopeError("Only the root has the root kind");
 		if (!input.name.trim()) throw new ScopeError("Scope name is required");
 
 		const parent = await this.getById(input.parentId);

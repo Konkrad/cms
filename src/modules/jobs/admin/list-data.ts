@@ -8,7 +8,6 @@ import { jobsService } from "../service";
 export async function loadAdminJobs(event: RequestEventLoader) {
 	const { scope, isRoot, adminBase } = await requireModuleAdmin(event, {
 		module: "jobs",
-		scope: "any",
 	});
 
 	const search = event.url.searchParams.get("search")?.trim() ?? "";

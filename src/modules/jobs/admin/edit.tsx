@@ -10,7 +10,6 @@ export const useUpdateJob = routeAction$(
 	async (data, event) => {
 		const { scope, adminBase } = await requireModuleAdmin(event, {
 			module: "jobs",
-			scope: "any",
 		});
 
 		const before = await jobsService.getById(event.params.id);

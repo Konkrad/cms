@@ -9,10 +9,7 @@ import type { AdminJobsData } from "./list-data";
 
 export const useApproveJob = routeAction$(
 	async (data, event) => {
-		const { scope } = await requireModuleAdmin(event, {
-			module: "jobs",
-			scope: "any",
-		});
+		const { scope } = await requireModuleAdmin(event, { module: "jobs" });
 		const before = await jobsService.getById(data.jobId);
 		await requireWithinScope(event, scope, before);
 		if (!before) return event.fail(404, { message: "Job not found" });
@@ -27,10 +24,7 @@ export const useApproveJob = routeAction$(
 
 export const useDeleteJob = routeAction$(
 	async (data, event) => {
-		const { scope } = await requireModuleAdmin(event, {
-			module: "jobs",
-			scope: "any",
-		});
+		const { scope } = await requireModuleAdmin(event, { module: "jobs" });
 		await requireWithinScope(
 			event,
 			scope,

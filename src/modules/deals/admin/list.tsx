@@ -8,10 +8,7 @@ import type { AdminDealsData } from "./list-data";
 
 export const useDeleteDeal = routeAction$(
 	async (data, event) => {
-		const { scope } = await requireModuleAdmin(event, {
-			module: "deals",
-			scope: "any",
-		});
+		const { scope } = await requireModuleAdmin(event, { module: "deals" });
 		await requireWithinScope(
 			event,
 			scope,

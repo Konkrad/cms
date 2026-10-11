@@ -8,10 +8,7 @@ import {
 
 /** Server-only: import from route loaders only, never from components. */
 export async function loadAdminQualifications(event: RequestEventLoader) {
-	await requireModuleAdmin(event, {
-		module: "qualifications",
-		scope: "global",
-	});
+	await requireModuleAdmin(event, { module: "qualifications" });
 	const [types, pending, all] = await Promise.all([
 		qualificationsService.getTypes(),
 		qualificationsService.getPendingApplications(),

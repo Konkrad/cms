@@ -8,7 +8,6 @@ import { participationService } from "../services/participation";
 export async function loadAdminEvents(event: RequestEventLoader) {
 	const { scope, isRoot, adminBase } = await requireModuleAdmin(event, {
 		module: "events",
-		scope: "any",
 	});
 	const { url } = event;
 	const search = url.searchParams.get("search")?.trim() ?? "";

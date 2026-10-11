@@ -13,6 +13,7 @@ import {
 	selectActive,
 } from "~/core/router/modules";
 import { reservedScopeSlugs } from "~/core/router/reserved-slugs";
+import { scopesService } from "~/core/scopes/scopes.service";
 import config from "../../../modules.config";
 import { dealsModule } from "../../modules/deals/module";
 import { electionsModule } from "../../modules/elections/module";
@@ -47,6 +48,15 @@ export const activeScopeExtras = (ctx: ScopePageContext) =>
 /** Items every module (active or not: their rows stay) owns in a scope. */
 export const moduleScopeContentCount = (scopeId: string) =>
 	scopeContentCountOf(allModules, scopeId);
+
+/** Whether a scope owns any content (core posts/forms or any module's items). */
+export async function scopeHasContent(scopeId: string): Promise<boolean> {
+	const [core, modules] = await Promise.all([
+		scopesService.countCoreContent(scopeId),
+		moduleScopeContentCount(scopeId),
+	]);
+	return core + modules > 0;
+}
 
 /** Re-runs the tag rules of every active module for one user. */
 export const reevaluateUserTagsForUser = (userId: string) =>

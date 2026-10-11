@@ -4,6 +4,7 @@ import { db } from "~/core/db/connection";
 import { forms } from "~/core/forms/schema/forms";
 import { childPath, SCOPE_SLUG_RE } from "~/core/router/scope-path";
 import { invalidateScopePaths } from "~/core/router/scope-request";
+import { SCOPE_IMAGE_PREFIX } from "~/core/scopes/kinds";
 import {
 	type Scope,
 	type ScopeRole,
@@ -237,25 +238,42 @@ export const scopesService = {
 		invalidateScopePaths();
 	},
 
-	/** Update the editable fields of a scope (name and home page profile). */
+	/** Update the name and description of a scope. */
 	async updateProfile(
 		scopeId: string,
-		input: {
-			name: string;
-			description: string | null;
-			image1: string | null;
-			image2: string | null;
-			image3: string | null;
-		},
+		input: { name: string; description: string | null },
 	): Promise<Scope> {
-		if (!input.name.trim()) throw new ScopeError("Scope name is required");
+		const name = input.name.trim();
+		if (!name) throw new ScopeError("Scope name is required");
 		const [updated] = await db
 			.update(scopes)
-			.set({ ...input, name: input.name.trim() })
+			.set({ name, description: input.description?.trim() || null })
 			.where(eq(scopes.id, scopeId))
 			.returning();
 		if (!updated) throw new ScopeError("Scope not found");
 		return updated;
+	},
+
+	/**
+	 * Set (or clear with null) one home page image. The key must be a public scope image
+	 * (`public/scopes/…`) uploaded through /api/images; anything else is rejected.
+	 */
+	async setImage(
+		scopeId: string,
+		slot: 1 | 2 | 3,
+		key: string | null,
+	): Promise<void> {
+		if (
+			key !== null &&
+			(!key.startsWith(SCOPE_IMAGE_PREFIX) || key.includes(".."))
+		) {
+			throw new ScopeError("Invalid image key");
+		}
+		const column = ({ 1: "image1", 2: "image2", 3: "image3" } as const)[slot];
+		await db
+			.update(scopes)
+			.set({ [column]: key })
+			.where(eq(scopes.id, scopeId));
 	},
 
 	/** Scopes with this slug, anywhere in the tree (slugs are unique among siblings only). */

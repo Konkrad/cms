@@ -28,7 +28,20 @@ export const AdminNav = component$<AdminNavProps>(
 			{ order: 0, href: basePath, label: "Dashboard", exact: true },
 			{ order: 20, href: `${basePath}/posts`, label: "Posts" },
 			{ order: 40, href: `${basePath}/forms`, label: "Forms" },
+			{
+				order: 60,
+				href: `${basePath}/scope`,
+				label: isRoot ? "Groups" : "Group settings",
+			},
 		];
+		// The members of a group (public profiles); the root has the users view instead.
+		if (!isRoot) {
+			navItems.push({
+				order: 10,
+				href: `${basePath}/members`,
+				label: "Members",
+			});
+		}
 
 		// System sections: root only
 		if (isRoot) {

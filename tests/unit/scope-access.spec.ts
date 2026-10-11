@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -14,6 +15,7 @@ import {
 	pathFromAdminSegment,
 } from "~/core/router/scope-path";
 import {
+	canGrantRole,
 	canManageScope,
 	canViewScope,
 	isMember,
@@ -283,6 +285,63 @@ describe("requireScopeRole", () => {
 		);
 		expect(access.user.id).toBe(u.regionAdmin);
 		expect(access.ancestors.map((s) => s.id)).toEqual([root.id, region.id]);
+	});
+});
+
+describe("granting roles", () => {
+	it("lets admins grant every role and representatives only representative", async () => {
+		const admin = { id: u.regionAdmin };
+		for (const role of [
+			"admin",
+			"moderator",
+			"coordinator",
+			"representative",
+		] as const) {
+			expect(await canGrantRole(admin, chapterA.id, role)).toBe(true);
+		}
+		const rep = { id: u.repA };
+		expect(await canGrantRole(rep, chapterA.id, "representative")).toBe(true);
+		expect(await canGrantRole(rep, chapterA.id, "admin")).toBe(false);
+		expect(await canGrantRole(rep, chapterA.id, "coordinator")).toBe(false);
+		expect(await canGrantRole(rep, chapterB.id, "representative")).toBe(false);
+		expect(
+			await canGrantRole({ id: u.coordinator }, chapterA.id, "coordinator"),
+		).toBe(false);
+	});
+});
+
+describe("scope content and images", () => {
+	it("reports content owned by a scope (core posts and module events)", async () => {
+		const { scopeHasContent } = await import("~/core/registry/manifests");
+		expect(await scopeHasContent(chapterB.id)).toBe(false);
+		const db = openDb();
+		const postId = crypto.randomUUID();
+		db.prepare(
+			"INSERT INTO posts (id, title, body, user_id, scope_id) VALUES (?, 't', 'b', ?, ?)",
+		).run(postId, u.repA, chapterB.id);
+		db.close();
+		try {
+			expect(await scopeHasContent(chapterB.id)).toBe(true);
+		} finally {
+			const d = openDb();
+			d.prepare("DELETE FROM posts WHERE id = ?").run(postId);
+			d.close();
+		}
+	}, 30_000);
+
+	it("accepts only public scope image keys", async () => {
+		await expect(
+			scopesService.setImage(chapterB.id, 1, "private/profile-pictures/x.webp"),
+		).rejects.toThrow(/Invalid image key/);
+		await expect(
+			scopesService.setImage(chapterB.id, 1, "public/scopes/../x.webp"),
+		).rejects.toThrow(/Invalid image key/);
+		await scopesService.setImage(chapterB.id, 2, "public/scopes/ok.webp");
+		expect((await scopesService.getById(chapterB.id))?.image2).toBe(
+			"public/scopes/ok.webp",
+		);
+		await scopesService.setImage(chapterB.id, 2, null);
+		expect((await scopesService.getById(chapterB.id))?.image2).toBeNull();
 	});
 });
 

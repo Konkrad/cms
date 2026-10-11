@@ -226,3 +226,20 @@ export async function requireSystemAdmin(
 	if (access.scope.parentId !== null) throw event.error(404, "Not found");
 	return access;
 }
+
+/**
+ * Whether the user may grant or revoke `role` on a scope: managing roles (admin, moderator)
+ * and coordinator need an admin/moderator role on it (inherited); a representative may only
+ * grant or revoke "representative".
+ */
+export async function canGrantRole(
+	user: AccessUser,
+	scopeId: string,
+	role: Role,
+): Promise<boolean> {
+	return canManageScope(
+		user,
+		scopeId,
+		role === "representative" ? "representative" : "admin",
+	);
+}

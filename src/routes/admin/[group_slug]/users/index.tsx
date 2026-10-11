@@ -58,15 +58,15 @@ export const useUsers = routeLoader$(async ({ params, url }) => {
 			search,
 		},
 		{
-			// Admin user management: admins search and contact users by email and manage roles.
-			allow: ["email", "role"],
+			// Admin user management: admins search and contact users by email.
+			allow: ["email"],
 		},
 	);
 });
 
 export const useSetTier = routeAction$(
 	async (data, event) => {
-		const { requireAdmin } = await import("~/core/auth/server-auth");
+		const { requireAdmin } = await import("~/core/scopes/access");
 		const admin = await requireAdmin(event);
 		await membershipsService.setTier(data.userId, data.tier, admin.id);
 		return { success: true };
@@ -79,7 +79,7 @@ export const useSetTier = routeAction$(
 
 export const useRemoveMembership = routeAction$(
 	async (data, event) => {
-		const { requireAdmin } = await import("~/core/auth/server-auth");
+		const { requireAdmin } = await import("~/core/scopes/access");
 		await requireAdmin(event);
 		await membershipsService.removeMembership(data.userId);
 		return { success: true };
@@ -89,7 +89,7 @@ export const useRemoveMembership = routeAction$(
 
 export const useGrantTag = routeAction$(
 	async (data, event) => {
-		const { requireAdmin } = await import("~/core/auth/server-auth");
+		const { requireAdmin } = await import("~/core/scopes/access");
 		const admin = await requireAdmin(event);
 		await userTagsService.grantFromDefinition(
 			data.userId,
@@ -106,7 +106,7 @@ export const useGrantTag = routeAction$(
 
 export const useRevokeTag = routeAction$(
 	async (data, event) => {
-		const { requireAdmin } = await import("~/core/auth/server-auth");
+		const { requireAdmin } = await import("~/core/scopes/access");
 		await requireAdmin(event);
 		await userTagsService.revoke(data.userId, data.slug);
 		return { success: true };
@@ -115,7 +115,7 @@ export const useRevokeTag = routeAction$(
 );
 
 export const useReevaluateBadges = routeAction$(async (_data, event) => {
-	const { requireAdmin } = await import("~/core/auth/server-auth");
+	const { requireAdmin } = await import("~/core/scopes/access");
 	await requireAdmin(event);
 	const memberships = await membershipsService.getAll();
 	await Promise.all(
@@ -217,9 +217,9 @@ export default component$(() => {
 									>
 										{user.name} {user.familyName}
 									</Link>
-									{user.role !== "user" && (
+									{user.platformRole && (
 										<span class="ml-2 px-1.5 py-0.5 text-xs rounded bg-purple-100 text-purple-700 capitalize">
-											{user.role}
+											{user.platformRole}
 										</span>
 									)}
 								</td>

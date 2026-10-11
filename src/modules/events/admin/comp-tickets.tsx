@@ -30,7 +30,6 @@ export const useIssueCompTicket = routeAction$(
 			const newUser = await usersService.create({
 				name: data.name,
 				familyName: "",
-				role: "user",
 			});
 			userId = newUser.id;
 		}

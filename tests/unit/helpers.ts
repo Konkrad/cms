@@ -83,11 +83,41 @@ export function createTestUser(overrides: Record<string, unknown> = {}): {
 				.run(userId);
 			db2.prepare("DELETE FROM events WHERE user_id = ?").run(userId);
 			db2.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
+			db2.prepare("DELETE FROM scope_roles WHERE user_id = ?").run(userId);
+			db2
+				.prepare("DELETE FROM scope_memberships WHERE user_id = ?")
+				.run(userId);
 			db2.prepare("DELETE FROM users WHERE id = ?").run(userId);
 			db2.prepare("DELETE FROM logins WHERE id = ?").run(loginId);
 			db2.close();
 		},
 	};
+}
+
+/** Id of the root scope, created when missing. */
+export function ensureRootScope(): string {
+	const db = openDb();
+	let row = db.prepare("SELECT id FROM scopes WHERE parent_id IS NULL").get() as
+		| { id: string }
+		| undefined;
+	if (!row) {
+		row = { id: crypto.randomUUID() };
+		db.prepare(
+			"INSERT INTO scopes (id, parent_id, kind, slug, name, path) VALUES (?, NULL, 'root', '', 'Root', '/')",
+		).run(row.id);
+	}
+	db.close();
+	return row.id;
+}
+
+/** Make a user a platform admin (admin of the root scope); removed by the user's cleanup. */
+export function grantRootAdmin(userId: string): void {
+	const rootId = ensureRootScope();
+	const db = openDb();
+	db.prepare(
+		"INSERT OR IGNORE INTO scope_roles (user_id, scope_id, role) VALUES (?, ?, 'admin')",
+	).run(userId, rootId);
+	db.close();
 }
 
 // ── New feature helpers ─────────────────────────────────────────────────────

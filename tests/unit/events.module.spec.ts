@@ -6,6 +6,7 @@ import {
 	createTestEvent,
 	createTestParticipation,
 	createTestUser,
+	grantRootAdmin,
 	openDb,
 } from "./helpers";
 
@@ -167,7 +168,7 @@ describe("canViewEvent", () => {
 	it("allows everyone on global events", async () => {
 		const event = { visibility: "global", groupId: null };
 		expect(await canViewEvent(event, null)).toBe(true);
-		expect(await canViewEvent(event, { id: "x", role: "user" })).toBe(true);
+		expect(await canViewEvent(event, { id: "x" })).toBe(true);
 	});
 
 	it("limits group-only events to members and platform admins", async () => {
@@ -179,23 +180,16 @@ describe("canViewEvent", () => {
 		const event = { visibility: "group-only", groupId };
 
 		expect(await canViewEvent(event, null)).toBe(false);
-		expect(
-			await canViewEvent(event, { id: outsider.userId, role: "user" }),
-		).toBe(false);
-		expect(await canViewEvent(event, { id: member.userId, role: "user" })).toBe(
-			true,
-		);
-		expect(
-			await canViewEvent(event, { id: outsider.userId, role: "admin" }),
-		).toBe(true);
+		expect(await canViewEvent(event, { id: outsider.userId })).toBe(false);
+		expect(await canViewEvent(event, { id: member.userId })).toBe(true);
+		grantRootAdmin(outsider.userId);
+		expect(await canViewEvent(event, { id: outsider.userId })).toBe(true);
 	});
 
 	it("hides a group-only event without a group from non-admins", async () => {
 		const user = createTestUser();
 		cleanups.push(user.cleanup);
 		const event = { visibility: "group-only", groupId: null };
-		expect(await canViewEvent(event, { id: user.userId, role: "user" })).toBe(
-			false,
-		);
+		expect(await canViewEvent(event, { id: user.userId })).toBe(false);
 	});
 });

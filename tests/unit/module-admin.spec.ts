@@ -83,7 +83,6 @@ describe("toPublicUser", () => {
 			city: "London",
 			country: "UK",
 			yearOfBirth: 1815,
-			role: "admin",
 			consent: { photos: true },
 			profilePicture: "private/profile-pictures/x.png",
 		};

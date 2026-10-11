@@ -6,6 +6,7 @@ import { deleteSession, getCurrentUserData } from "~/core/auth/server-auth";
 import { menuItemsService } from "~/core/content/menu-items.service";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
 import { currentScopePath } from "~/core/router/scope-request";
+import { isPlatformAdmin } from "~/core/scopes/access";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { formatUser } from "~/core/users/format";
 import { env } from "~/env";
@@ -49,7 +50,7 @@ export const useServerTimeLoader = routeLoader$(() => {
 
 /**
  * The logged-in user as the nav needs it (see ~/contracts/layout#NavUser). Built here
- * so the full user row (email, role, consent, location...) never reaches the page.
+ * so the full user row (email, consent, location...) never reaches the page.
  */
 export const useUserSession = routeLoader$(async (event): Promise<NavUser> => {
 	const u = await getCurrentUserData(event);
@@ -60,7 +61,7 @@ export const useUserSession = routeLoader$(async (event): Promise<NavUser> => {
 	return assertNoPrivateFields({
 		id: u.id,
 		displayName: u.name ? formatUser(u, true).displayName : "User",
-		isAdmin: u.role === "admin",
+		isAdmin: await isPlatformAdmin(u),
 		profilePictureSmallUrl: publicImageUrlFromKey(thumbKey),
 	});
 });

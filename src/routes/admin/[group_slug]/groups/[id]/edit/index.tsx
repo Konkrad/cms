@@ -5,6 +5,7 @@ import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
 import { getCurrentUserData } from "~/core/auth/server-auth";
 import { publicImageUrlFromKey } from "~/core/media/images";
+import { isPlatformAdmin } from "~/core/scopes/access";
 import { geocodingService } from "~/core/scopes/geocoding.service";
 import { groupsService } from "~/core/scopes/groups.service";
 
@@ -41,7 +42,7 @@ const groupSchema = z.object({
 
 export const useUpdateGroup = routeAction$(async (data, event) => {
 	const user = await getCurrentUserData(event as any);
-	if (!user || user.role !== "admin") {
+	if (!user || !(await isPlatformAdmin(user))) {
 		return { success: false, error: "Unauthorized" };
 	}
 

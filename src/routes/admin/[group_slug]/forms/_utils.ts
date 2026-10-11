@@ -1,4 +1,5 @@
 import { getCurrentUserData } from "~/core/auth/server-auth";
+import { isPlatformAdmin } from "~/core/scopes/access";
 import { canManageGroupContent } from "~/core/scopes/access-control";
 import { groupsService } from "~/core/scopes/groups.service";
 
@@ -18,7 +19,7 @@ export async function resolveFormsAdminScope(
 
 	const groupSlug = event.params.group_slug;
 	if (groupSlug === "global") {
-		if (user.role !== "admin") {
+		if (!(await isPlatformAdmin(user))) {
 			throw event.redirect(302, "/");
 		}
 		return { scopeType: "global", scopeId: null, userId: user.id };

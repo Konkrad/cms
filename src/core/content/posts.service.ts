@@ -18,6 +18,7 @@ import {
 	updatePostSchema,
 } from "~/core/content/schema/posts";
 import { db } from "~/core/db/connection";
+import { isPlatformAdmin } from "~/core/scopes/access";
 import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
 import { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
 import {
@@ -77,11 +78,11 @@ export const postsService = {
 	 */
 	async canView(
 		post: { visibility: string; groupId: string | null },
-		viewer: { id: string; role?: string | null } | null,
+		viewer: { id: string } | null,
 	): Promise<boolean> {
 		if (post.visibility !== "group-only") return true;
 		if (!viewer) return false;
-		if (viewer.role === "admin") return true;
+		if (await isPlatformAdmin(viewer)) return true;
 		if (!post.groupId) return false;
 		const [isMember, isRep] = await Promise.all([
 			groupMembershipsService.isMember(viewer.id, post.groupId),

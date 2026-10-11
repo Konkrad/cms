@@ -9,6 +9,7 @@ import { getCurrentUserData } from "~/core/auth/server-auth";
 import { postsService } from "~/core/content/posts.service";
 import { canonicalUrl } from "~/core/content/seo";
 import { publicImageUrlFromKey } from "~/core/media/images";
+import { isPlatformAdmin } from "~/core/scopes/access";
 import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
 import { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
 import { groupsService } from "~/core/scopes/groups.service";
@@ -31,7 +32,7 @@ export const useGroupData = routeLoader$(
 				])
 			: [false, false];
 		// Group-only posts are for the group's members and representatives (and admins).
-		const canSeeGroupOnly = isMember || isRep || user?.role === "admin";
+		const canSeeGroupOnly = isMember || isRep || (await isPlatformAdmin(user));
 
 		const [memberCount, rep, recentMembers, recentPosts, extras] =
 			await Promise.all([

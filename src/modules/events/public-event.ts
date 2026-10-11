@@ -7,6 +7,7 @@ import {
 	groupMembershipsService,
 	groupRepresentativesService,
 	groupsService,
+	isPlatformAdmin,
 	matchPath,
 	publicImageUrlFromKey,
 	toPublicUser,
@@ -24,7 +25,7 @@ export const eventIdOf = (
 	pattern: string,
 ) => matchPath(pattern, currentScopeRest(event))?.id;
 
-type Viewer = { id: string; role?: string | null } | null;
+type Viewer = { id: string } | null;
 
 /**
  * Group-only events are for members (and representatives) of the event's group;
@@ -36,7 +37,7 @@ export async function canViewEvent(
 ): Promise<boolean> {
 	if (event.visibility !== "group-only") return true;
 	if (!viewer) return false;
-	if (viewer.role === "admin") return true;
+	if (await isPlatformAdmin(viewer)) return true;
 	if (!event.groupId) return false;
 	const [isMember, isRep] = await Promise.all([
 		groupMembershipsService.isMember(viewer.id, event.groupId),

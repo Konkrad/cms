@@ -5,6 +5,7 @@ import { AdminNav } from "~/core/admin/AdminNav";
 import { Breadcrumbs } from "~/core/admin/Breadcrumbs";
 import { getCurrentUserData } from "~/core/auth/server-auth";
 import { activeAdminSections } from "~/core/registry/manifests";
+import { isPlatformAdmin } from "~/core/scopes/access";
 import { canManageGroupContent } from "~/core/scopes/access-control";
 import { groupsService } from "~/core/scopes/groups.service";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
@@ -21,7 +22,7 @@ export const useGroupAdminAuth = routeLoader$(async (event) => {
 	// Check if global admin context
 	if (groupSlug === "global") {
 		// Must be platform admin
-		if (user.role !== "admin") {
+		if (!(await isPlatformAdmin(user))) {
 			throw redirect(302, "/");
 		}
 		sharedMap.set("adminContext", { isGlobal: true });

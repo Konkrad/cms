@@ -35,7 +35,9 @@ export async function createEventWithInventory(
 	try {
 		// Find an admin user as organizer
 		const admin = db
-			.prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1")
+			.prepare(
+				"SELECT r.user_id AS id FROM scope_roles r JOIN scopes s ON s.id = r.scope_id WHERE s.parent_id IS NULL AND r.role = 'admin' LIMIT 1",
+			)
 			.get() as { id: string } | undefined;
 		const adminId = admin?.id;
 

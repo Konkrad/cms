@@ -1,16 +1,28 @@
-import { and, desc, eq, inArray, like, or, type SQL, sql } from "drizzle-orm";
+import {
+	and,
+	desc,
+	eq,
+	inArray,
+	isNull,
+	like,
+	or,
+	type SQL,
+	sql,
+} from "drizzle-orm";
 import { logins } from "~/core/auth/schema/logins";
 import { sessions } from "~/core/auth/schema/sessions";
 import { db } from "~/core/db/connection";
 import { userMemberships } from "~/core/memberships/schema";
 import { groupMemberships } from "~/core/scopes/schema/group-memberships";
+import { scopeRoles, scopes } from "~/core/scopes/schema/scopes";
 import { userTagsService } from "~/core/tags/user-tags.service";
 import { users } from "~/core/users/schema";
 
 /** Admin user management (`/admin/[group_slug]/users`). */
 export const adminUsersService = {
 	/**
-	 * PRIVATE: users (all, or one group's members) with login email and platform role,
+	 * PRIVATE: users (all, or one group's members) with login email, platform role (their
+	 * admin/moderator role on the root scope),
 	 * membership tier, tags and last login, for the admin users page only. Searches
 	 * name, family name and email.
 	 */
@@ -38,7 +50,6 @@ export const adminUsersService = {
 			name: users.name,
 			familyName: users.familyName,
 			email: logins.email,
-			role: users.role,
 			city: users.city,
 			country: users.country,
 			createdAt: users.createdAt,
@@ -51,7 +62,6 @@ export const adminUsersService = {
 				name: string;
 				familyName: string;
 				email: string | null;
-				role: "user" | "admin";
 				city: string | null;
 				country: string | null;
 				createdAt: string;
@@ -103,23 +113,38 @@ export const adminUsersService = {
 		}
 
 		const userIds = rows.map((u) => u.id);
-		const [membershipRows, allTags, lastLoginRows] = userIds.length
-			? await Promise.all([
-					db
-						.select()
-						.from(userMemberships)
-						.where(inArray(userMemberships.userId, userIds)),
-					userTagsService.getAll(),
-					db
-						.select({
-							userId: sessions.userId,
-							lastLogin: sql<string>`MAX(${sessions.createdAt})`,
-						})
-						.from(sessions)
-						.where(inArray(sessions.userId, userIds))
-						.groupBy(sessions.userId),
-				])
-			: [[], [], []];
+		const [membershipRows, allTags, lastLoginRows, rootRoleRows] =
+			userIds.length
+				? await Promise.all([
+						db
+							.select()
+							.from(userMemberships)
+							.where(inArray(userMemberships.userId, userIds)),
+						userTagsService.getAll(),
+						db
+							.select({
+								userId: sessions.userId,
+								lastLogin: sql<string>`MAX(${sessions.createdAt})`,
+							})
+							.from(sessions)
+							.where(inArray(sessions.userId, userIds))
+							.groupBy(sessions.userId),
+						db
+							.select({ userId: scopeRoles.userId, role: scopeRoles.role })
+							.from(scopeRoles)
+							.innerJoin(scopes, eq(scopes.id, scopeRoles.scopeId))
+							.where(
+								and(
+									isNull(scopes.parentId),
+									inArray(scopeRoles.userId, userIds),
+									inArray(scopeRoles.role, ["admin", "moderator"]),
+								),
+							),
+					])
+				: [[], [], [], []];
+		const platformRoleMap = new Map(
+			rootRoleRows.map((r) => [r.userId, r.role]),
+		);
 
 		const membershipMap = new Map(membershipRows.map((m) => [m.userId, m]));
 		const tagsByUser = new Map<string, typeof allTags>();
@@ -139,6 +164,8 @@ export const adminUsersService = {
 				membership: membershipMap.get(u.id) ?? null,
 				tags: tagsByUser.get(u.id) ?? [],
 				lastLogin: lastLoginMap.get(u.id) ?? null,
+				/** The user's role on the root scope (a platform admin), if any. */
+				platformRole: platformRoleMap.get(u.id) ?? null,
 			})),
 		};
 	},

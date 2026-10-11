@@ -2,6 +2,7 @@ import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { getCurrentUserData } from "~/core/auth/server-auth";
+import { isPlatformAdmin } from "~/core/scopes/access";
 import { groupMembershipsService } from "~/core/scopes/group-memberships.service";
 import { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
 import { groupsService } from "~/core/scopes/groups.service";
@@ -34,8 +35,8 @@ export const useMembers = routeLoader$(async ({ params, redirect }) => {
 
 	return assertNoPrivateFields(
 		{ group: { id: group.id, name: group.name }, members: enriched },
-		// Global admin members page: shows each member's email and platform role.
-		{ allow: ["email", "role"] },
+		// Global admin members page: shows each member's email.
+		{ allow: ["email"] },
 	);
 });
 
@@ -45,7 +46,7 @@ const promoteSchema = z.object({
 
 export const usePromote = routeAction$(async (data, event) => {
 	const user = await getCurrentUserData(event as any);
-	if (!user || user.role !== "admin") {
+	if (!user || !(await isPlatformAdmin(user))) {
 		return { success: false, error: "Unauthorized" };
 	}
 
@@ -94,9 +95,6 @@ export default component$(() => {
 								Email
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Role
-							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 								Member Since
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -114,17 +112,6 @@ export default component$(() => {
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap">
 									<div class="text-sm text-gray-900">{m.email ?? ""}</div>
-								</td>
-								<td class="px-6 py-4 whitespace-nowrap">
-									<span
-										class={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-											m.role === "admin"
-												? "bg-purple-100 text-purple-800"
-												: "bg-green-100 text-green-800"
-										}`}
-									>
-										{m.role}
-									</span>
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
 									{new Date(m.joinedAt).toLocaleDateString()}

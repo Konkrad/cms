@@ -19,7 +19,6 @@ export const PRIVATE_FIELD_KEYS: readonly string[] = [
 	"photoConsentGiven",
 	// the private full-size S3 key; `profilePictureSmall` is a public key
 	"profilePicture",
-	"role",
 	"phone",
 	// logins / sessions
 	"magicHash",

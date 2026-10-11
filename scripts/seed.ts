@@ -212,9 +212,7 @@ const ADMIN_EMAIL = "admin@example.com";
 
 const existingUsers = db.select().from(schema.users).all();
 
-let adminUser = existingUsers.find(
-	(u) => u.role === "admin" && u.name === "Admin",
-);
+let adminUser = existingUsers.find((u) => u.name === "Admin");
 let hostUser = existingUsers.find((u) => u.name === "Host");
 
 if (!adminUser) {
@@ -233,7 +231,6 @@ if (!adminUser) {
 			id,
 			name: "Admin",
 			familyName: "User",
-			role: "admin",
 			loginId,
 			createdAt: now(),
 			updatedAt: now(),
@@ -262,7 +259,6 @@ if (!hostUser) {
 			id,
 			name: "Host",
 			familyName: "User",
-			role: "admin",
 			loginId,
 			createdAt: now(),
 			updatedAt: now(),
@@ -274,6 +270,39 @@ if (!hostUser) {
 		.all()
 		.find((u) => u.id === id)!;
 	console.log("  created host user 'Host' (host@example.com)");
+}
+
+// ─── Scope tree root and platform admins ─────────────────────────────────────
+// A platform admin is an admin of the root scope (there is no users.role).
+
+let rootScope = db
+	.select()
+	.from(schema.scopes)
+	.all()
+	.find((s) => s.parentId === null);
+if (!rootScope) {
+	const id = uuid();
+	db.insert(schema.scopes)
+		.values({
+			id,
+			parentId: null,
+			kind: "root",
+			slug: "",
+			name: "Community",
+			path: "/",
+		})
+		.run();
+	rootScope = db
+		.select()
+		.from(schema.scopes)
+		.all()
+		.find((s) => s.id === id)!;
+}
+for (const admin of [adminUser!, hostUser!]) {
+	db.insert(schema.scopeRoles)
+		.values({ userId: admin.id, scopeId: rootScope.id, role: "admin" })
+		.onConflictDoNothing()
+		.run();
 }
 
 const TEST_USER_EMAILS = new Set(
@@ -292,7 +321,7 @@ let testUsers = db
 	.select()
 	.from(schema.users)
 	.all()
-	.filter((u) => u.role === "user" && testLoginIds.has(u.loginId ?? ""));
+	.filter((u) => testLoginIds.has(u.loginId ?? ""));
 
 // Ensure existing test users have the consent fields needed to reach the survey phase.
 for (const u of testUsers) {
@@ -324,7 +353,6 @@ if (testUsers.length < 10) {
 				id: uuid(),
 				name: faker.person.firstName(),
 				familyName: faker.person.lastName(),
-				role: "user",
 				loginId,
 				consent: { lastProfileUpdate: now(), locationVerification: now() },
 				createdAt: now(),
@@ -336,7 +364,7 @@ if (testUsers.length < 10) {
 		.select()
 		.from(schema.users)
 		.all()
-		.filter((u) => u.role === "user" && testLoginIds.has(u.loginId ?? ""));
+		.filter((u) => testLoginIds.has(u.loginId ?? ""));
 	console.log(`  ensured 10 test users exist (now ${testUsers.length})`);
 }
 
@@ -354,7 +382,12 @@ const allBulkUsers = db
 	.select()
 	.from(schema.users)
 	.all()
-	.filter((u) => u.role === "user" && !testLoginIds.has(u.loginId ?? ""));
+	.filter(
+		(u) =>
+			u.id !== adminUser!.id &&
+			u.id !== hostUser!.id &&
+			!testLoginIds.has(u.loginId ?? ""),
+	);
 
 // All users missing a city (includes admin, host, test, QA users)
 const allUsersWithoutCity = db
@@ -416,7 +449,6 @@ if (neededNew > 0 || bulkUsersWithoutCity.length > 0) {
 				id: uuid(),
 				name: faker.person.firstName(),
 				familyName: faker.person.lastName(),
-				role: "user",
 				loginId,
 				city,
 				country,

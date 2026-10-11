@@ -3,8 +3,8 @@
  *
  * Fixtures:
  *  - `guestPage`  – unauthenticated page (no session cookie)
- *  - `memberPage` – authenticated as a regular user (role: "user")
- *  - `adminPage`  – authenticated as an admin       (role: "admin")
+ *  - `memberPage` – authenticated as a regular user (no scope role)
+ *  - `adminPage`  – authenticated as a platform admin (admin of the root scope)
  *
  * Each authenticated fixture creates a temporary user+login+session in the DB
  * and removes all three rows automatically after the test.
@@ -80,7 +80,21 @@ export function getPageBySlug(
 
 // ── Auth session helpers ──────────────────────────────────────────────────────
 
+/** "admin" = platform admin (admin role on the root scope); "user" = no scope role. */
 export type UserRole = "user" | "admin";
+
+/** Id of the root scope (the seed creates it; created here when missing). */
+export function rootScopeId(db: ReturnType<typeof openDb>): string {
+	const row = db
+		.prepare("SELECT id FROM scopes WHERE parent_id IS NULL")
+		.get() as { id: string } | undefined;
+	if (row) return row.id;
+	const id = crypto.randomUUID();
+	db.prepare(
+		"INSERT INTO scopes (id, parent_id, kind, slug, name, path) VALUES (?, NULL, 'root', '', 'Community', '/')",
+	).run(id);
+	return id;
+}
 
 export interface CreatedSession {
 	userId: string;
@@ -112,6 +126,9 @@ function deleteUserCascade(
 		"DELETE FROM tickets WHERE transaction_id IN (SELECT id FROM transactions WHERE user_id = ?)",
 	).run(userId);
 	db.prepare("DELETE FROM transactions WHERE user_id = ?").run(userId);
+	// Scope roles and memberships
+	db.prepare("DELETE FROM scope_roles WHERE user_id = ?").run(userId);
+	db.prepare("DELETE FROM scope_memberships WHERE user_id = ?").run(userId);
 	// Group membership and representatives
 	db.prepare("DELETE FROM group_representatives WHERE user_id = ?").run(userId);
 	db.prepare("DELETE FROM group_memberships WHERE user_id = ?").run(userId);
@@ -167,8 +184,14 @@ export function createUserSession(
 		expiresAt,
 	);
 	db.prepare(
-		"INSERT INTO users (id, name, family_name, login_id, role, consent, food_preference, photo_consent_given) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-	).run(userId, "Test", "User", loginId, role, consent, "none", 1);
+		"INSERT INTO users (id, name, family_name, login_id, consent, food_preference, photo_consent_given) VALUES (?, ?, ?, ?, ?, ?, ?)",
+	).run(userId, "Test", "User", loginId, consent, "none", 1);
+	// A platform admin is an admin of the root scope.
+	if (role === "admin") {
+		db.prepare(
+			"INSERT INTO scope_roles (user_id, scope_id, role) VALUES (?, ?, 'admin')",
+		).run(userId, rootScopeId(db));
+	}
 	db.prepare(
 		"INSERT INTO sessions (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)",
 	).run(sessionId, userId, sessionToken, expiresAt);

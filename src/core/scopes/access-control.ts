@@ -1,6 +1,7 @@
 import type { RequestEvent } from "~/core/auth/server-auth";
 import { getCurrentUserData } from "~/core/auth/server-auth";
 import type { Group, User } from "~/core/db/schema";
+import { isPlatformAdmin } from "~/core/scopes/access";
 import { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
 import { groupsService } from "~/core/scopes/groups.service";
 
@@ -9,10 +10,6 @@ export async function canManageGroupContent(
 	groupId: string,
 ): Promise<boolean> {
 	return await groupRepresentativesService.isRepresentative(userId, groupId);
-}
-
-export function isPlatformAdmin(user: User): boolean {
-	return user.role === "admin";
 }
 
 export type GroupAdminContext =
@@ -37,7 +34,7 @@ export async function requireGroupAdmin(
 		?.group_slug;
 
 	if (groupSlug === "global") {
-		if (user.role !== "admin") throw event.redirect(302, "/");
+		if (!(await isPlatformAdmin(user))) throw event.redirect(302, "/");
 		return { user: user as unknown as User, isGlobal: true, group: null };
 	}
 

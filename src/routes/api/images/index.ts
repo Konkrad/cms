@@ -70,7 +70,7 @@ function sanitizeUploadPrefix(raw: string): string | null {
  */
 async function isUploadAuthorized(
 	prefix: string,
-	user: { id: string; role?: string | null },
+	user: { id: string },
 ): Promise<boolean> {
 	if (
 		prefix.startsWith("private/profile-pictures") ||
@@ -79,7 +79,8 @@ async function isUploadAuthorized(
 		return true;
 	}
 
-	const isStaff = user.role === "admin";
+	const { isPlatformAdmin } = await import("~/core/scopes/access");
+	const isStaff = await isPlatformAdmin(user);
 	if (prefix.startsWith("private/events/")) {
 		return isStaff;
 	}

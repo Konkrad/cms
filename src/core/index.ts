@@ -40,6 +40,7 @@ export {
 	canViewScope,
 	currentUser,
 	isMember,
+	isPlatformAdmin,
 	listManagedScopes,
 	listMembers,
 	requireScopeRole,

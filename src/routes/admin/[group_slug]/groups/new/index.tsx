@@ -4,6 +4,7 @@ import { Button } from "~/components/ui/Button";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
 import { getCurrentUserData } from "~/core/auth/server-auth";
+import { isPlatformAdmin } from "~/core/scopes/access";
 import { geocodingService } from "~/core/scopes/geocoding.service";
 import { groupsService } from "~/core/scopes/groups.service";
 
@@ -27,7 +28,7 @@ const groupSchema = z.object({
 export const useCreateGroup = routeAction$(async (data, event) => {
 	// Ensure user is authenticated and a platform admin
 	const user = await getCurrentUserData(event as any);
-	if (!user || user.role !== "admin") {
+	if (!user || !(await isPlatformAdmin(user))) {
 		return { success: false, error: "Unauthorized" };
 	}
 

@@ -87,7 +87,7 @@ export const groupMembershipsService = {
 	},
 
 	/**
-	 * PRIVATE: a group's members with their login email and platform role, for the
+	 * PRIVATE: a group's members with their login email, for the
 	 * global admin members page only. Public pages use `getSomeMembers`.
 	 */
 	async getMembersWithEmailAndRole(groupId: string) {
@@ -97,7 +97,6 @@ export const groupMembershipsService = {
 				name: users.name,
 				familyName: users.familyName,
 				email: logins.email,
-				role: users.role,
 				city: users.city,
 				country: users.country,
 				joinedAt: groupMemberships.joinedAt,

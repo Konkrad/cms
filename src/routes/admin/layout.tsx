@@ -1,7 +1,7 @@
 import { component$, Slot } from "@qwik.dev/core";
 import type { RequestHandler } from "@qwik.dev/router";
 import { routeLoader$ } from "@qwik.dev/router";
-import { requireAdmin } from "~/core/auth/server-auth";
+import { requireAdmin } from "~/core/scopes/access";
 
 export const onGet: RequestHandler = ({ cacheControl }) => {
 	cacheControl({ noCache: true });

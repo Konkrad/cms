@@ -300,14 +300,13 @@ for (const person of CAST) {
 	const userId = uuid();
 	db.prepare(
 		`INSERT INTO users
-			(id, name, family_name, login_id, role, consent, food_preference, photo_consent_given, profile_picture, profile_picture_small, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			(id, name, family_name, login_id, consent, food_preference, photo_consent_given, profile_picture, profile_picture_small, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		userId,
 		person.name,
 		person.familyName,
 		loginId,
-		person.role,
 		JSON.stringify(consent),
 		person.foodPreference,
 		person.photoConsentGiven === null ? null : person.photoConsentGiven ? 1 : 0,
@@ -316,6 +315,22 @@ for (const person of CAST) {
 		now(),
 		now(),
 	);
+
+	// A platform admin is an admin of the root scope (there is no users.role).
+	if (person.role === "admin") {
+		let root = db
+			.prepare("SELECT id FROM scopes WHERE parent_id IS NULL")
+			.get() as { id: string } | undefined;
+		if (!root) {
+			root = { id: uuid() };
+			db.prepare(
+				"INSERT INTO scopes (id, parent_id, kind, slug, name, path) VALUES (?, NULL, 'root', '', 'Community', '/')",
+			).run(root.id);
+		}
+		db.prepare(
+			"INSERT OR IGNORE INTO scope_roles (user_id, scope_id, role) VALUES (?, ?, 'admin')",
+		).run(userId, root.id);
+	}
 
 	console.log(
 		`  created ${person.role} '${person.name} ${person.familyName}' (${person.email})`,

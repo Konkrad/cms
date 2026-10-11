@@ -99,7 +99,6 @@ export async function getCurrentUserData(
 			profilePicture: u.profilePicture,
 			profilePictureSmall: u.profilePictureSmall,
 			consent: u.consent ?? {},
-			role: u.role,
 			createdAt: u.createdAt,
 			updatedAt: u.updatedAt,
 		} as any;
@@ -109,16 +108,6 @@ export async function getCurrentUserData(
 	return null;
 }
 
-export async function isAdmin(event: RequestEvent): Promise<boolean> {
-	const userData = await getCurrentUserData(event);
-
-	if (!userData) {
-		return false;
-	}
-
-	return userData.role === "admin";
-}
-
 /* pending login helpers removed - legacy details flow no longer used */
 
 export async function requireAuth(event: RequestEvent) {
@@ -126,17 +115,6 @@ export async function requireAuth(event: RequestEvent) {
 
 	if (!user) {
 		throw event.redirect(302, "/login");
-	}
-
-	return user;
-}
-
-export async function requireAdmin(event: RequestEvent) {
-	const user = await requireAuth(event);
-	const adminStatus = await isAdmin(event);
-
-	if (!adminStatus) {
-		throw event.redirect(302, "/");
 	}
 
 	return user;

@@ -85,8 +85,8 @@ setup("create shared test session", async ({ page }) => {
 		expiresAt,
 	);
 	db.prepare(
-		"INSERT INTO users (id, name, family_name, login_id, role, consent, food_preference, photo_consent_given) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-	).run(userId, "E2E", "User", loginId, "member", consent, "none", 1);
+		"INSERT INTO users (id, name, family_name, login_id, consent, food_preference, photo_consent_given) VALUES (?, ?, ?, ?, ?, ?, ?)",
+	).run(userId, "E2E", "User", loginId, consent, "none", 1);
 	db.prepare(
 		"INSERT INTO sessions (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)",
 	).run(sessionId, userId, sessionToken, expiresAt);

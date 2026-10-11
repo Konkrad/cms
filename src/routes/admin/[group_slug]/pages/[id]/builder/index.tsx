@@ -1,13 +1,13 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
-import { requireAdmin } from "~/core/auth/server-auth";
 import { Canvas } from "~/core/content/builder/Canvas";
 import { ComponentsSidebar } from "~/core/content/builder/ComponentsSidebar";
 import { PropertiesPanel } from "~/core/content/builder/PropertiesPanel";
 import { componentLoaderService } from "~/core/content/component-loader.service";
 import { pagesService } from "~/core/content/pages.service";
 import type { BlockData, BlockDefinition } from "~/core/db/schema";
+import { requireAdmin } from "~/core/scopes/access";
 
 // Pages are only accessible in global context
 export const useCheckGlobalContext = routeLoader$(

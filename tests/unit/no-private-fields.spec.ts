@@ -31,7 +31,9 @@ describe("findPrivateFields", () => {
 	});
 
 	it("flags a forbidden key even when its value is null", () => {
-		expect(findPrivateFields({ user: { role: null } })).toEqual(["user.role"]);
+		expect(findPrivateFields({ user: { phone: null } })).toEqual([
+			"user.phone",
+		]);
 	});
 
 	it("flags every stripe* key and the private profile picture key", () => {
@@ -69,8 +71,8 @@ describe("findPrivateFields", () => {
 	it("skips allowed keys only", () => {
 		expect(
 			findPrivateFields(
-				{ users: [{ email: "a@b.c", role: "admin", sex: "f" }] },
-				["email", "role"],
+				{ users: [{ email: "a@b.c", phone: "123", sex: "f" }] },
+				["email", "phone"],
 			),
 		).toEqual(["users[0].sex"]);
 	});

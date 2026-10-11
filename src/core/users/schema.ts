@@ -35,9 +35,6 @@ export const users = sqliteTable("users", {
 		.$type<UserConsent>()
 		.notNull()
 		.default(sql`'{}'`),
-	role: text("role", { enum: ["user", "admin"] })
-		.notNull()
-		.default("user"),
 	createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 	updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -67,7 +64,6 @@ export const insertUserSchema = baseInsertSchema
 		id: true,
 		createdAt: true,
 		updatedAt: true,
-		role: true,
 	});
 
 export const updateUserSchema = baseInsertSchema

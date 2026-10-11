@@ -126,6 +126,7 @@ test.describe("Deals — admin", () => {
 			"Jobs",
 			"Elections",
 			"Qualifications",
+			"Notifications",
 		]);
 	});
 

@@ -1,9 +1,9 @@
 /**
  * Core → theme data contracts for the event photo gallery route
- * (`/events/:id/photos`, modules/events).
+ * (`/events/:id/photos`, src/modules/events).
  */
-import type { useGenerateSecureUrl } from "~modules/events/actions";
-import type { PhotosPageData } from "~modules/events/public-checkout";
+import type { useGenerateSecureUrl } from "~/modules/events/actions";
+import type { PhotosPageData } from "~/modules/events/public-checkout";
 
 export type EventPhotosPageData = PhotosPageData;
 export type EventPhotosEventData = PhotosPageData["event"];

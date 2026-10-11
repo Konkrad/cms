@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { electionsService } from "~modules/elections/service";
+import { electionsService } from "~/modules/elections/service";
 import {
 	createTestElectionApplication,
 	createTestElectionCycle,

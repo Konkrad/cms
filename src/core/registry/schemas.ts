@@ -2,18 +2,18 @@
  * DB side of module registration. Loaded by drizzle-kit via `src/core/db/schema.ts`,
  * so it must not import a DB connection or `~/env`.
  */
-import dealsSchema from "../../../modules/deals/schema";
-import electionsSchema from "../../../modules/elections/schema";
-import eventsSchema from "../../../modules/events/schema";
-import jobsSchema from "../../../modules/jobs/schema";
-import qualificationsSchema from "../../../modules/qualifications/schema";
+import dealsSchema from "../../modules/deals/schema";
+import electionsSchema from "../../modules/elections/schema";
+import eventsSchema from "../../modules/events/schema";
+import jobsSchema from "../../modules/jobs/schema";
+import qualificationsSchema from "../../modules/qualifications/schema";
 
 // Module tables, picked up by drizzle-kit as part of `src/core/db/schema.ts`.
-export * from "../../../modules/deals/schema";
-export * from "../../../modules/elections/schema";
-export * from "../../../modules/events/schema";
-export * from "../../../modules/jobs/schema";
-export * from "../../../modules/qualifications/schema";
+export * from "../../modules/deals/schema";
+export * from "../../modules/elections/schema";
+export * from "../../modules/events/schema";
+export * from "../../modules/jobs/schema";
+export * from "../../modules/qualifications/schema";
 
 export const moduleSchemas = [
 	dealsSchema,

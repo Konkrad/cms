@@ -1,15 +1,15 @@
 /**
- * Core → theme data contracts for the public elections pages (modules/elections).
+ * Core → theme data contracts for the public elections pages (src/modules/elections).
  */
 
 import type { PublicUser } from "~/core/users/public-user";
-import type { useSubmitApplication } from "~modules/elections/actions";
+import type { useSubmitApplication } from "~/modules/elections/actions";
 import type {
 	electionApplyPage,
 	electionsListPage,
 	myApplicationsPage,
-} from "~modules/elections/pages";
-import type { ElectionCycleWithPositions } from "~modules/elections/service";
+} from "~/modules/elections/pages";
+import type { ElectionCycleWithPositions } from "~/modules/elections/service";
 
 type PageData<P extends { load: (...args: never[]) => Promise<unknown> }> =
 	Awaited<ReturnType<P["load"]>>;

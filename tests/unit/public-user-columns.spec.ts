@@ -9,7 +9,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROOT = path.resolve(__dirname, "../..");
-const SCAN_DIRS = ["src", "modules"];
+const SCAN_DIRS = ["src"];
 
 function listSourceFiles(dir: string): string[] {
 	const out: string[] = [];
@@ -115,7 +115,7 @@ describe("relational queries load users with public columns only", () => {
 		).toEqual([]);
 	});
 
-	it("no file in src/ or modules/ loads a full users row through `with:`", () => {
+	it("no file in src/ (including src/modules/) loads a full users row through `with:`", () => {
 		const offences = files.flatMap((file, i) =>
 			findUnrestrictedUserLoads(sources[i], relationNames).map(
 				(p) => `${path.relative(ROOT, file)} ${p}`,

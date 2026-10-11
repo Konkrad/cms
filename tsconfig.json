@@ -19,8 +19,7 @@
 		"noEmit": true,
 		"paths": {
 			"~/*": ["./src/*"],
-			"~theme/*": ["./theme/*"],
-			"~modules/*": ["./modules/*"]
+			"~theme/*": ["./theme/*"]
 		}
 	},
 	"exclude": ["dist", "server"]

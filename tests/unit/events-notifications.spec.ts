@@ -9,7 +9,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { db } from "~/core/db/connection";
 import { notificationOutbox } from "~/core/notifications/schema";
 import { processOutboxOnce } from "~/core/notifications/worker";
-import { onTicketsPaid } from "~modules/events/payments";
+import { onTicketsPaid } from "~/modules/events/payments";
 import {
 	getTelegramMessages,
 	startTelegramMock,

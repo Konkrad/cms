@@ -1,8 +1,8 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
-import { AdminEventAttendance } from "../../../../../../../modules/events/admin/attendance";
-import { loadAdminAttendance } from "../../../../../../../modules/events/admin/attendance-data";
+import { AdminEventAttendance } from "../../../../../../modules/events/admin/attendance";
+import { loadAdminAttendance } from "../../../../../../modules/events/admin/attendance-data";
 
 export const useAttendance = routeLoader$(async (event) =>
 	assertNoPrivateFields(await loadAdminAttendance(event), {

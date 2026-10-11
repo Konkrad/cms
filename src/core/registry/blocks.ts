@@ -4,9 +4,9 @@
  * instead. `unit/modules.spec.ts` checks it against the manifests.
  */
 import { disabledBlockTypes } from "~/core/router/modules";
-import { dealsBlocks } from "../../../modules/deals/blocks";
-import { eventsBlocks } from "../../../modules/events/blocks";
 import config from "../../../modules.config";
+import { dealsBlocks } from "../../modules/deals/blocks";
+import { eventsBlocks } from "../../modules/events/blocks";
 
 /** Module id → block types it owns. Add a line per module that contributes blocks. */
 export const moduleBlocks: Record<string, string[]> = {

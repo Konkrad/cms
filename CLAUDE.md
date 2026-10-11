@@ -17,7 +17,7 @@
 - `src/core/<area>/` — core internals: `admin`, `auth`, `content`, `db`, `forms`, `media`, `memberships`, `notifications`, `payments`, `registry`, `router`, `scopes`, `shared`, `tags`, `users`. Each area owns its services, schema (`schema.ts` or `schema/`) and helpers. `src/core/db/schema.ts` merges all schemas.
 - `src/core/notifications/` — `notify()` writes `notification_outbox` rows; `worker.ts` (started in `entry.node-server.tsx` and by a dev-server plugin in `vite.config.ts`) sends them through channel adapters (`channels/`); preferences, signed unsubscribe (`/api/notifications/unsubscribe`), admin failure view at `/admin/global/notifications`.
 - Root files of `src/core` are the only core surface modules may import: `~/core` (`index.ts`, server+client API), `~/core/ui` (UI primitives), `~/core/schema` (core table references), `~/core/seo` (client-safe SEO helpers), `~/core/setup-actions` (onboarding step actions).
-- `modules/<id>/` — feature modules (deals, elections, events, jobs, qualifications); `modules.config.ts` lists the active ones; `src/core/registry/*` registers them.
+- `src/modules/<id>/` — feature modules (deals, elections, events, jobs, qualifications), first-party app code under the same license as core, imported as `~/modules/*`; one `schema.ts` per module (a `schema/` folder only for many tables). `modules.config.ts` at the repo root lists the active ones; `src/core/registry/*` registers them (via relative paths).
 - `src/routes/**` — Qwik City routes (loaders, actions, auth). Public module pages are `definePage` entries served by the catch-all `src/routes/[...path]`. Admin lives in `src/routes/admin/[group_slug]/**` and is core, not themeable.
 - `theme/` — separately licensed presentation layer for public routes (`blocks`, `chrome`, `emails`, `routes`, `shared`, `tokens`), imported via the `~theme/*` alias. It reaches core data only through `src/contracts/*` types and headless composables.
 - `src/contracts/*.ts` — typed payloads shared between core and theme/modules.
@@ -28,7 +28,7 @@
 Load the matching skill (`.claude/skills/<name>/SKILL.md`) before working in its area:
 
 - `testing` — writing or running tests, test plans, e2e fixtures, the pre-commit test run, verifying behavior at runtime.
-- `add-module` — creating or changing a feature module in `modules/`, its registration, pages, admin sections, actions, hooks, import boundary.
+- `add-module` — creating or changing a feature module in `src/modules/`, its registration, pages, admin sections, actions, hooks, import boundary.
 - `theme` — anything in `theme/`, contracts, headless composables, design tokens, UI components, `qwikify$`, the theme/core license boundary.
 - `database` — schema changes, migrations, the migration runner, resetting a local DB.
 - `images` — S3 images, public vs private keys, profile pictures, `VITE_S3_BASE_URL`.
@@ -87,4 +87,4 @@ These rules encode mistakes that have actually shipped in this codebase. Treat e
 
 - This repo uses Biome (`biome.json`), not eslint. Run `npx biome check .` (or `npm run biome` to auto-fix) after implementing changes, before considering the work complete.
 - `.githooks/pre-commit` (activated by the `prepare` script via `git config core.hooksPath .githooks`) runs Biome on **staged files only** and blocks the commit on errors; it also runs the Vitest unit suite. The repo has pre-existing lint debt: fix what you touch, do not clear unrelated debt. Fix the underlying issue rather than `git commit --no-verify` unless explicitly instructed.
-- Import boundaries are enforced by `noRestrictedImports` overrides in `biome.json` for `theme/**` and `modules/**` (check with `npx biome lint theme` / `npx biome lint modules`); see the `theme` and `add-module` skills.
+- Import boundaries are enforced by `noRestrictedImports` overrides in `biome.json` for `theme/**` and `src/modules/**` (check with `npx biome lint theme` / `npx biome lint src/modules`); see the `theme` and `add-module` skills.

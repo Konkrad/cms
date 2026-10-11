@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { afterEach, describe, expect, it } from "vitest";
-import { canViewEvent } from "~modules/events/public-event";
-import { eventsModule } from "../../modules/events/module";
+import { canViewEvent } from "~/modules/events/public-event";
+import { eventsModule } from "../../src/modules/events/module";
 import {
 	createTestEvent,
 	createTestParticipation,

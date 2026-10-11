@@ -1,13 +1,13 @@
 /**
- * Core → theme data contracts for the event checkout flow (`/events/:id/checkout`, modules/events).
+ * Core → theme data contracts for the event checkout flow (`/events/:id/checkout`, src/modules/events).
  */
 import type { useSaveFoodPreference } from "~/core/users/setup/FoodPreferenceStep/useSaveFoodPreference";
 import type { useSavePhotoConsent } from "~/core/users/setup/PhotoConsentStep/useSavePhotoConsent";
 import type {
 	useCheckPaymentStatus,
 	useCreateCheckoutSession,
-} from "~modules/events/actions";
-import type { CheckoutPageData } from "~modules/events/public-checkout";
+} from "~/modules/events/actions";
+import type { CheckoutPageData } from "~/modules/events/public-checkout";
 
 export type CheckoutData = CheckoutPageData;
 export type CreateCheckoutSessionAction = ReturnType<

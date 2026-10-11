@@ -11,12 +11,12 @@ import {
 	reevaluateUserTagsOf,
 	selectActive,
 } from "~/core/router/modules";
-import { dealsModule } from "../../../modules/deals/module";
-import { electionsModule } from "../../../modules/elections/module";
-import { eventsModule } from "../../../modules/events/module";
-import { jobsModule } from "../../../modules/jobs/module";
-import { qualificationsModule } from "../../../modules/qualifications/module";
 import config from "../../../modules.config";
+import { dealsModule } from "../../modules/deals/module";
+import { electionsModule } from "../../modules/elections/module";
+import { eventsModule } from "../../modules/events/module";
+import { jobsModule } from "../../modules/jobs/module";
+import { qualificationsModule } from "../../modules/qualifications/module";
 
 /** Every module that exists in the codebase; `modules.config.ts` picks the active ones. */
 export const allModules: ModuleDefinition[] = [

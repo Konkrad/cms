@@ -2,6 +2,8 @@
  * Core → theme data contract for the profile page (`/profile`) and its
  * in-place editing actions.
  */
+
+import type { ticketsService } from "~/modules/events/services/tickets";
 import type {
 	useUpdateDetails,
 	useUpdateLocation,
@@ -12,7 +14,6 @@ import type {
 	useUpdateParticipants,
 	useUserDashboard,
 } from "~/routes/profile/tickets";
-import type { ticketsService } from "~modules/events/services/tickets";
 
 export type UpdateNameAction = ReturnType<typeof useUpdateName>;
 export type UpdateLocationAction = ReturnType<typeof useUpdateLocation>;

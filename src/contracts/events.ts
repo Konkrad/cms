@@ -1,13 +1,13 @@
 /**
- * Core → theme data contracts for the public event detail route (`/events/:id`, modules/events),
- * and for the events-block composables (`~modules/events/useUpcomingEvents`, `usePastEvents`).
+ * Core → theme data contracts for the public event detail route (`/events/:id`, src/modules/events),
+ * and for the events-block composables (`~/modules/events/useUpcomingEvents`, `usePastEvents`).
  */
 
-import type { useUpdateParticipation } from "~modules/events/actions";
-import type { Event } from "~modules/events/schema/events";
-import type { ParticipationStatus } from "~modules/events/schema/participation-status";
-import type { Product } from "~modules/events/schema/products";
-import type { eventsService } from "~modules/events/services/events";
+import type { useUpdateParticipation } from "~/modules/events/actions";
+import type { Event } from "~/modules/events/schema/events";
+import type { ParticipationStatus } from "~/modules/events/schema/participation-status";
+import type { Product } from "~/modules/events/schema/products";
+import type { eventsService } from "~/modules/events/services/events";
 
 /** Someone going to an event, as other visitors see them. */
 export type EventParticipant = {

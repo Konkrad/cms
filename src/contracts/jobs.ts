@@ -1,5 +1,5 @@
 /**
- * Core → theme data contracts for the public jobs pages (modules/jobs).
+ * Core → theme data contracts for the public jobs pages (src/modules/jobs).
  */
 
 import type { PublicUser } from "~/core/users/public-user";
@@ -7,9 +7,9 @@ import type {
 	useDeleteMyJob,
 	useSubmitJob,
 	useUpdateMyJob,
-} from "~modules/jobs/actions";
-import type { editMyJobPage, myJobsPage } from "~modules/jobs/pages";
-import type { Job } from "~modules/jobs/schema";
+} from "~/modules/jobs/actions";
+import type { editMyJobPage, myJobsPage } from "~/modules/jobs/pages";
+import type { Job } from "~/modules/jobs/schema";
 
 type PageData<P extends { load: (...args: never[]) => Promise<unknown> }> =
 	Awaited<ReturnType<P["load"]>>;

@@ -1,10 +1,10 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
-import { AdminEventScan } from "../../../../../../../modules/events/admin/scan";
-import { loadAdminScan } from "../../../../../../../modules/events/admin/scan-data";
+import { AdminEventScan } from "../../../../../../modules/events/admin/scan";
+import { loadAdminScan } from "../../../../../../modules/events/admin/scan-data";
 
-export { useScanEventTicket } from "../../../../../../../modules/events/admin/scan";
+export { useScanEventTicket } from "../../../../../../modules/events/admin/scan";
 
 export const useEvent = routeLoader$(async (event) =>
 	assertNoPrivateFields(await loadAdminScan(event)),

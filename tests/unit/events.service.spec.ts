@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { afterEach, describe, expect, it } from "vitest";
-import { eventsService } from "~modules/events/services/events";
+import { eventsService } from "~/modules/events/services/events";
 import { createTestUser, openDb } from "./helpers";
 
 const cleanupEventIds: string[] = [];

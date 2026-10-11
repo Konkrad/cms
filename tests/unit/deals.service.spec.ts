@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { dealsService } from "~modules/deals/service";
+import { dealsService } from "~/modules/deals/service";
 import { openDb } from "./helpers";
 
 const cleanupDealIds: string[] = [];

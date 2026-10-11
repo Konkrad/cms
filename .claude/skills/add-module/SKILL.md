@@ -1,15 +1,15 @@
 ---
 name: add-module
-description: Use when creating a new feature module under modules/, or changing an existing module's manifest, pages, admin sections, actions, schema, blocks, sitemap, profile/group-page hooks, payments, or its registration in src/core/registry and modules.config.ts. Also when a module needs something from core or hits the modules import boundary.
+description: Use when creating a new feature module under src/modules/, or changing an existing module's manifest, pages, admin sections, actions, schema, blocks, sitemap, profile/group-page hooks, payments, or its registration in src/core/registry and modules.config.ts. Also when a module needs something from core or hits the modules import boundary.
 ---
 
 # Feature modules
 
-Jobs (`modules/jobs/`) is the worked example throughout. Modules: deals, elections, events, jobs, qualifications.
+Jobs (`src/modules/jobs/`) is the worked example throughout. Modules: deals, elections, events, jobs, qualifications.
 
 ## Layout
 
-`modules/<id>/` holds only module folders. Typical files: `module.ts` (manifest via `defineModule`), `pages.ts` (`definePage` entries), `views.tsx` (client-safe view map), `actions.ts` (public `routeAction$`s), `schema.ts` (or `schema/` for many tables), `service.ts`, `public-<x>.ts` (public payload mapping, e.g. `toPublicJob`), `admin/` (`list.tsx` + `list-data.ts`, `edit.tsx` + `edit-data.ts`), optional `blocks.ts`, `use*.ts` composables, `notifications.ts` / `emails.ts` (notification definitions), `payments.ts`.
+`src/modules/<id>/` holds only module folders (modules are first-party code under `src`, same license as core; `theme/` and the site config `modules.config.ts` stay at the repo root). Typical files: `module.ts` (manifest via `defineModule`), `pages.ts` (`definePage` entries), `views.tsx` (client-safe view map), `actions.ts` (public `routeAction$`s), `schema.ts` (or `schema/` for many tables), `service.ts`, `public-<x>.ts` (public payload mapping, e.g. `toPublicJob`), `admin/` (`list.tsx` + `list-data.ts`, `edit.tsx` + `edit-data.ts`), optional `blocks.ts`, `use*.ts` composables, `notifications.ts` / `emails.ts` (notification definitions), `payments.ts`.
 
 ## Registration (one line each)
 
@@ -37,16 +37,16 @@ Jobs (`modules/jobs/`) is the worked example throughout. Modules: deals, electio
 ## Pages and actions
 
 - Public pages are `definePage({ id, path, load(event, { params }) })` entries served by the catch-all `src/routes/[...path]`; the view for each page id comes from `views.tsx`. Page data is declared in `src/contracts/<module>.ts` (e.g. `JobsListData`) and the catch-all runs the leak check on it (`allowPrivateFields` on `definePage` to allow a field with a reason).
-- Module `routeAction$`s and admin actions are re-exported from the route files via RELATIVE paths only (`../../../modules/jobs/actions`). Qwik production-build footgun: the Rollup transform mis-resolves `~`/`~theme` aliased re-exports.
+- Module `routeAction$`s and admin actions are re-exported from the route files via RELATIVE paths only (e.g. `../../modules/jobs/actions` from `src/routes/x/`). Qwik production-build footgun: the Rollup transform mis-resolves `~`/`~theme` aliased re-exports.
 - Authorize as the first statement (before any `try`): `requireModuleAuth(event, "<id>")` for public actions/loaders (login + module active), `requireModuleAdmin(event, { module, scope: "global" | "any" })` for admin ones (both from `~/core`). Details and the rest of the auth rules: CLAUDE.md Security. After adding an action, grep that every `routeAction$` has its auth call.
 - Validate with `zod$`, whitelist updatable columns, re-check ownership in both loader and action.
 
 ## Notifications
 
-Modules never pick a transport: no `sendEmail`, no Telegram client (neither is in `~/core`). Declare, then queue. Worked examples: `modules/jobs/notifications.ts` (optional), `modules/events/emails.ts` (required email + ops Telegram alert).
+Modules never pick a transport: no `sendEmail`, no Telegram client (neither is in `~/core`). Declare, then queue. Worked examples: `src/modules/jobs/notifications.ts` (optional), `src/modules/events/emails.ts` (required email + ops Telegram alert).
 
 ```ts
-// modules/<id>/notifications.ts — listed in the manifest: notifications: [jobApprovedNotification]
+// src/modules/<id>/notifications.ts — listed in the manifest: notifications: [jobApprovedNotification]
 export const jobApprovedNotification = defineNotification<{ jobId: string; jobTitle: string }>({
 	id: "jobs.approved",            // "<module>.<name>", unique
 	label: "Job approved",          // shown in the profile settings when optional
@@ -89,5 +89,5 @@ Layout rule, the same for every module: ONE `schema.ts` holding the tables, thei
 
 ## Import boundary
 
-Enforced by the `modules/**` override in `biome.json` (check with `npx biome lint modules`). Modules import only:
-`~/core` (add exports to `src/core/index.ts` when a module needs more), `~/core/ui`, `~/core/schema`, `~/core/seo`, `~/core/setup-actions`, `~/contracts/*`, `~theme/*`, relative files in their own folder, and npm packages. Never `~/core/<area>/**` (areas, including the registry), `~/core-api`, `~/ui`, `~/components/**`, `~/env` or another module (`~modules/**`).
+Enforced by the `src/modules/**` override in `biome.json` (check with `npx biome lint src/modules`). Modules import only:
+`~/core` (add exports to `src/core/index.ts` when a module needs more), `~/core/ui`, `~/core/schema`, `~/core/seo`, `~/core/setup-actions`, `~/contracts/*`, `~theme/*`, relative files in their own folder, and npm packages. Never `~/core/<area>/**` (areas, including the registry), `~/core-api`, `~/ui`, `~/components/**`, `~/env` or another module (`~/modules/**`).

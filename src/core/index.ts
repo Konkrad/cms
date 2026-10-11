@@ -1,7 +1,7 @@
 /**
  * Module API: the root files of `src/core` (this file, `schema`, `ui`, `seo`, `setup-actions`)
- * are the only core surface feature modules (`modules/**`) may import, besides `~/contracts/*`.
- * Enforced by the `modules/**` override in biome.json. Add an export here only when a module needs it.
+ * are the only core surface feature modules (`src/modules/**`) may import, besides `~/contracts/*`.
+ * Enforced by the `src/modules/**` override in biome.json. Add an export here only when a module needs it.
  */
 
 // biome-ignore-all assist/source/organizeImports: export order matters. The definePage/defineModule re-exports must come before ~/core/registry/manifests, which imports the modules, which import this file (import cycle).
@@ -33,7 +33,7 @@ export {
 export { requireActiveModule } from "~/core/registry/manifests";
 export { currentScopeRest } from "~/core/router/scope-request";
 // Server-only core services for modules (memberships tiers, user tags). Tag *rule evaluation*
-// is not core; it lives in the events module (`modules/events/services/tag-rules.ts`).
+// is not core; it lives in the events module (`src/modules/events/services/tag-rules.ts`).
 export { groupMembershipsService } from "~/core/scopes/group-memberships.service";
 export { groupRepresentativesService } from "~/core/scopes/group-representatives.service";
 export { groupsService } from "~/core/scopes/groups.service";

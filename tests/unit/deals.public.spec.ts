@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { toDealListItem, toPublicDeal } from "~modules/deals/public-deal";
-import type { Deal } from "~modules/deals/schema";
+import { toDealListItem, toPublicDeal } from "~/modules/deals/public-deal";
+import type { Deal } from "~/modules/deals/schema";
 
 const deal: Deal = {
 	id: "d1",

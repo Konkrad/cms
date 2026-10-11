@@ -1,10 +1,10 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
-import { AdminJobEdit } from "../../../../../../../modules/jobs/admin/edit";
-import { loadAdminJob } from "../../../../../../../modules/jobs/admin/edit-data";
+import { AdminJobEdit } from "../../../../../../modules/jobs/admin/edit";
+import { loadAdminJob } from "../../../../../../modules/jobs/admin/edit-data";
 
-export { useUpdateJob } from "../../../../../../../modules/jobs/admin/edit";
+export { useUpdateJob } from "../../../../../../modules/jobs/admin/edit";
 
 export const useJob = routeLoader$(async (event) => {
 	const job = await loadAdminJob(event);

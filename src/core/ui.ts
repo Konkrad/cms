@@ -1,4 +1,4 @@
-/** UI primitives available to feature modules (`modules/**`); modules import UI only from here. */
+/** UI primitives available to feature modules (`src/modules/**`); modules import UI only from here. */
 
 export {
 	Alert,

@@ -16,8 +16,6 @@ const srcDir = fileURLToPath(new URL("./src/", import.meta.url));
 // Absolute path to ./theme for the "~theme" alias below. The theme layer is a
 // separately-licensed folder; the public site's presentational components live here.
 const themeDir = fileURLToPath(new URL("./theme/", import.meta.url));
-// Absolute path to ./modules for the "~modules" alias (feature modules: pages, actions).
-const modulesDir = fileURLToPath(new URL("./modules/", import.meta.url));
 // Static assets served at the site root (favicon, manifest, robots.txt, fonts, logo)
 // live under theme/static since they're theme/brand-owned — a fork replaces this
 // whole directory to reskin the site's identity.
@@ -77,7 +75,6 @@ export default defineConfig(
 				// anchored on the slash so it won't match "~theme/", but order it first for clarity).
 				alias: [
 					{ find: /^~theme\//, replacement: themeDir },
-					{ find: /^~modules\//, replacement: modulesDir },
 					{ find: /^~\//, replacement: srcDir },
 				],
 				dedupe: ["react", "react-dom"],

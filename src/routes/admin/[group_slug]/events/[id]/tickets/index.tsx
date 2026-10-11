@@ -1,10 +1,10 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
-import { AdminEventTickets } from "../../../../../../../modules/events/admin/tickets";
-import { loadAdminTickets } from "../../../../../../../modules/events/admin/tickets-data";
+import { AdminEventTickets } from "../../../../../../modules/events/admin/tickets";
+import { loadAdminTickets } from "../../../../../../modules/events/admin/tickets-data";
 
-export { useScanTicketByQr } from "../../../../../../../modules/events/admin/tickets";
+export { useScanTicketByQr } from "../../../../../../modules/events/admin/tickets";
 
 export const useTickets = routeLoader$(async (event) =>
 	assertNoPrivateFields(await loadAdminTickets(event), {

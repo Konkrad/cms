@@ -2,7 +2,7 @@
  * Core → theme data contracts for email templates.
  *
  * `email-notifications.service.ts` (login) and the notification renderers of modules
- * (`modules/events/emails.ts`, `modules/jobs/notifications.ts`) construct these shapes and
+ * (`src/modules/events/emails.ts`, `src/modules/jobs/notifications.ts`) construct these shapes and
  * render them against `~theme/emails/*`. Theme imports
  * the types from here instead of owning them, same boundary as route `*View` contracts.
  */

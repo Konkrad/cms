@@ -89,7 +89,7 @@
 			}
 		},
 		{
-			"includes": ["modules/**"],
+			"includes": ["src/modules/**"],
 			"linter": {
 				"rules": {
 					"style": {
@@ -114,7 +114,7 @@
 										"message": "modules must not import core components — use ~/core/ui."
 									},
 									{
-										"group": ["~modules/**"],
+										"group": ["~/modules/**"],
 										"message": "modules never import another module; import files of your own folder via relative paths."
 									}
 								]

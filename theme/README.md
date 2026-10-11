@@ -31,8 +31,8 @@ this folder to reskin the public site without touching core logic.
   is the brand asset served at `${baseUrl}/static/logo.svg`. Core only computes
   the props (the "loader" equivalent — date formatting, env access): the login
   email in `src/core/notifications/email-notifications.service.ts`, everything
-  else in notification renderers (`modules/events/emails.ts`,
-  `modules/jobs/notifications.ts`) that the outbox worker renders and sends.
+  else in notification renderers (`src/modules/events/emails.ts`,
+  `src/modules/jobs/notifications.ts`) that the outbox worker renders and sends.
   `EmailLayout` takes an optional `unsubscribeUrl` (footer link for optional
   notifications) — the same loader/View split used for routes.
 
@@ -47,7 +47,7 @@ from `src/contracts/**`. Theme components import `~/contracts/*` and **must not*
 import `db`, `env`, services, or `~/core/auth/*`. Where a component needs
 live data after SSR (page-builder block data, `/jobs` pagination), it calls a
 core-owned headless composable instead (`src/core/content/builder/blocks/*.ts`,
-`modules/jobs/useJobsPagination.ts`) — the composable owns the service/db/auth
+`src/modules/jobs/useJobsPagination.ts`) — the composable owns the service/db/auth
 calls, the theme component only renders the signals it returns. This is enforced,
 not just documented: `biome.json` has a `noRestrictedImports` override on
 `theme/**` that fails the build on a direct `~/core`/`~/core/schema`/

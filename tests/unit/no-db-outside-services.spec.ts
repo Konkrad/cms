@@ -11,7 +11,7 @@ const isServiceFile = (path: string) =>
 	/(^|\/)services\//.test(path) ||
 	/(^|\/)service\.ts$/.test(path) ||
 	/\.service\.ts$/.test(path) ||
-	/^modules\/[^/]+\/payments\.ts$/.test(path);
+	/^src\/modules\/[^/]+\/payments\.ts$/.test(path);
 
 const DB_IMPORT =
 	/import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*"(~\/core|~\/core\/db\/connection)"/g;
@@ -36,7 +36,7 @@ describe("db access outside services", () => {
 	it("routes, loaders, actions and components never import db", () => {
 		const offenders = [
 			...sourceFiles(join(root, "src", "routes")),
-			...sourceFiles(join(root, "modules")),
+			...sourceFiles(join(root, "src", "modules")),
 		]
 			.map((path) => relative(root, path))
 			.filter((path) => !isServiceFile(path))

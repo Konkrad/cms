@@ -1,8 +1,8 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
-import { AdminEventParticipation } from "../../../../../../../modules/events/admin/participation";
-import { loadAdminParticipation } from "../../../../../../../modules/events/admin/participation-data";
+import { AdminEventParticipation } from "../../../../../../modules/events/admin/participation";
+import { loadAdminParticipation } from "../../../../../../modules/events/admin/participation-data";
 
 export const useParticipation = routeLoader$(async (event) =>
 	assertNoPrivateFields(await loadAdminParticipation(event), {

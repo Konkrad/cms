@@ -1,11 +1,13 @@
 import {
+	createArticleInDb,
 	createMenuItemInDb,
-	createPostInDb,
+	createNoteInDb,
 	createScopeEventInDb,
 	createScopeInDb,
 	createUserSession,
+	deleteArticleById,
 	deleteMenuItemById,
-	deletePostByTitle,
+	deleteNoteById,
 	deleteScopeById,
 	expect,
 	renameScopeInDb,
@@ -65,27 +67,39 @@ test.describe("canonical item URLs and references", () => {
 		}
 	});
 
-	test("a post lives at its scope's URL", async ({ guestPage: page }) => {
-		const title = `Refs post ${ts}`;
-		const postId = createPostInDb({
+	test("a note and an article live at their scope's URL", async ({
+		guestPage: page,
+	}) => {
+		const title = `Refs article ${ts}`;
+		const articleId = createArticleInDb({
 			title,
-			body: "<p>Scoped post</p>",
+			body: "<p>Scoped article</p>",
+			userId: organizer.userId,
+			scopeId: scope.id,
+		});
+		const noteId = createNoteInDb({
+			body: `<p>Scoped note ${ts}</p>`,
 			userId: organizer.userId,
 			scopeId: scope.id,
 		});
 		try {
-			const r = await page.request.get(`/posts/${postId}`, {
-				maxRedirects: 0,
-			});
-			expect(r.status()).toBe(301);
-			expect(new URL(r.headers().location, "http://x").pathname).toBe(
-				`${scope.path}posts/${postId}`,
-			);
-			const res = await page.goto(`${scope.path}posts/${postId}`);
+			for (const path of [`articles/${articleId}`, `notes/${noteId}`]) {
+				const r = await page.request.get(`/${path}`, { maxRedirects: 0 });
+				expect(r.status(), path).toBe(301);
+				expect(new URL(r.headers().location, "http://x").pathname).toBe(
+					`${scope.path}${path}`,
+				);
+			}
+			const res = await page.goto(`${scope.path}articles/${articleId}`);
 			expect(res?.status()).toBe(200);
 			await expect(page.getByRole("heading", { name: title })).toBeVisible();
+			await page.goto(`${scope.path}notes/${noteId}`);
+			await expect(page.locator('[data-layout="note"]')).toContainText(
+				`Scoped note ${ts}`,
+			);
 		} finally {
-			deletePostByTitle(title);
+			deleteArticleById(articleId);
+			deleteNoteById(noteId);
 		}
 	});
 
@@ -134,30 +148,30 @@ test.describe("canonical item URLs and references", () => {
 		});
 		const title = `Refs rich text ${ts}`;
 		const gone = "0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b";
-		const postId = createPostInDb({
+		const articleId = createArticleInDb({
 			title,
-			body: `<p>Visit <a href="ref:scope:${moved.id}">our chapter</a> or read <a href="ref:core:post:${gone}">the old news</a>.</p>`,
+			body: `<p>Visit <a href="ref:scope:${moved.id}">our chapter</a> or read <a href="ref:core:article:${gone}">the old news</a>.</p>`,
 			userId: organizer.userId,
 		});
 		try {
-			await page.goto(`/posts/${postId}`);
+			await page.goto(`/articles/${articleId}`);
 			const article = page.locator("article, main").first();
 			await expect(
 				article.getByRole("link", { name: "our chapter" }),
 			).toHaveAttribute("href", `${scope.path}rt-${ts}`);
-			// The deleted post's link is gone, its text stays.
+			// The deleted article's link is gone, its text stays.
 			await expect(article.getByText("the old news")).toBeVisible();
 			await expect(
 				article.getByRole("link", { name: "the old news" }),
 			).toHaveCount(0);
 
 			renameScopeInDb(moved.id, `rt-moved-${ts}`);
-			await page.goto(`/posts/${postId}`);
+			await page.goto(`/articles/${articleId}`);
 			await expect(
 				article.getByRole("link", { name: "our chapter" }),
 			).toHaveAttribute("href", `${scope.path}rt-moved-${ts}`);
 		} finally {
-			deletePostByTitle(title);
+			deleteArticleById(articleId);
 		}
 	});
 });

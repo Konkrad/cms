@@ -132,7 +132,8 @@ function deleteUserCascade(
 	// Misc user-linked data
 	db.prepare("DELETE FROM form_results WHERE user_id = ?").run(userId);
 	db.prepare("DELETE FROM participation_status WHERE user_id = ?").run(userId);
-	db.prepare("DELETE FROM posts WHERE author_id = ?").run(userId);
+	db.prepare("DELETE FROM notes WHERE author_id = ?").run(userId);
+	db.prepare("DELETE FROM articles WHERE author_id = ?").run(userId);
 	db.prepare("DELETE FROM jobs WHERE suggested_by = ?").run(userId);
 	// New feature tables
 	db.prepare("DELETE FROM election_applications WHERE user_id = ?").run(userId);
@@ -923,7 +924,7 @@ export function createScopeInDb(opts: {
 
 /**
  * Delete a scope and everything below it, with their roles, memberships and redirects. Their
- * pages, jobs and deals are deleted; other content rows (posts, events, forms, election cycles,
+ * pages, jobs and deals are deleted; other content rows (notes, articles, events, forms, election cycles,
  * qualification types) are handed to the root rather than deleted.
  */
 /**
@@ -967,7 +968,8 @@ export function deleteScopeById(id: string): void {
 			}
 			const rootId = rootScopeId(db);
 			for (const table of [
-				"posts",
+				"notes",
+				"articles",
 				"events",
 				"forms",
 				"election_cycles",
@@ -988,11 +990,15 @@ export function deleteScopeById(id: string): void {
 	db.close();
 }
 
-// ── Post helpers ──────────────────────────────────────────────────────────────
+// ── Note and article helpers ──────────────────────────────────────────────────
 
-export function getPostByTitle(title: string): {
+type Visibility = "public" | "members" | "representatives";
+
+/** The newest article with this title. */
+export function getArticleByTitle(title: string): {
 	id: string;
-	title: string | null;
+	title: string;
+	featured_image: string | null;
 	subject_type: string | null;
 	subject_id: string | null;
 	visibility: string;
@@ -1000,17 +1006,17 @@ export function getPostByTitle(title: string): {
 	const db = openDb();
 	const row = db
 		.prepare(
-			"SELECT id, title, subject_type, subject_id, visibility FROM posts WHERE title = ? ORDER BY published_at DESC LIMIT 1",
+			"SELECT id, title, featured_image, subject_type, subject_id, visibility FROM articles WHERE title = ? ORDER BY published_at DESC LIMIT 1",
 		)
-		.get(title) as ReturnType<typeof getPostByTitle> | undefined;
+		.get(title) as ReturnType<typeof getArticleByTitle> | undefined;
 	db.close();
 	return row ?? null;
 }
 
-/** Posts whose body contains `text` (notes have no title), newest first. */
-export function getPostsByBodyText(text: string): Array<{
+/** Notes whose body contains `text` (notes have no title), newest first. */
+export function getNotesByBodyText(text: string): Array<{
 	id: string;
-	title: string | null;
+	body: string;
 	subject_type: string | null;
 	subject_id: string | null;
 	visibility: string;
@@ -1018,23 +1024,22 @@ export function getPostsByBodyText(text: string): Array<{
 	const db = openDb();
 	const rows = db
 		.prepare(
-			"SELECT id, title, subject_type, subject_id, visibility FROM posts WHERE body LIKE ? ORDER BY published_at DESC",
+			"SELECT id, body, subject_type, subject_id, visibility FROM notes WHERE body LIKE ? ORDER BY published_at DESC",
 		)
-		.all(`%${text}%`) as ReturnType<typeof getPostsByBodyText>;
+		.all(`%${text}%`) as ReturnType<typeof getNotesByBodyText>;
 	db.close();
 	return rows;
 }
 
 /**
- * Create a post fixture (spec 4.4): `title: null` makes a note, a title an article; `subject`
- * attaches it to an item (`{ type: "events:event", id }`). Returns the new post's id.
+ * Create a published note (spec 4.4: short, no title, no image); `subject` attaches it to an
+ * item (`{ type: "events:event", id }`). Returns the new note's id.
  */
-export function createPostInDb(opts: {
-	title: string | null;
+export function createNoteInDb(opts: {
 	body: string;
 	userId: string;
 	scopeId?: string;
-	visibility?: "public" | "members" | "representatives";
+	visibility?: Visibility;
 	subject?: { type: string; id: string };
 	publishedAt?: string;
 }): string {
@@ -1042,10 +1047,9 @@ export function createPostInDb(opts: {
 	const id = crypto.randomUUID();
 	const now = opts.publishedAt ?? new Date().toISOString();
 	db.prepare(
-		"INSERT INTO posts (id, title, body, author_id, scope_id, visibility, subject_type, subject_id, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO notes (id, body, author_id, scope_id, visibility, subject_type, subject_id, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
 	).run(
 		id,
-		opts.title,
 		opts.body,
 		opts.userId,
 		opts.scopeId ?? rootScopeId(db),
@@ -1059,25 +1063,67 @@ export function createPostInDb(opts: {
 	return id;
 }
 
-export function deletePostById(id: string): void {
+/**
+ * Create a published article (title required, `featuredImage` an optional public S3 key);
+ * `subject` attaches it to an item. Returns the new article's id.
+ */
+export function createArticleInDb(opts: {
+	title: string;
+	body: string;
+	userId: string;
+	scopeId?: string;
+	visibility?: Visibility;
+	featuredImage?: string | null;
+	subject?: { type: string; id: string };
+	publishedAt?: string;
+}): string {
 	const db = openDb();
-	db.prepare("DELETE FROM posts WHERE id = ?").run(id);
+	const id = crypto.randomUUID();
+	const now = opts.publishedAt ?? new Date().toISOString();
+	db.prepare(
+		"INSERT INTO articles (id, title, featured_image, body, author_id, scope_id, visibility, subject_type, subject_id, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+	).run(
+		id,
+		opts.title,
+		opts.featuredImage ?? null,
+		opts.body,
+		opts.userId,
+		opts.scopeId ?? rootScopeId(db),
+		opts.visibility ?? "public",
+		opts.subject?.type ?? null,
+		opts.subject?.id ?? null,
+		now,
+		now,
+	);
+	db.close();
+	return id;
+}
+
+export function deleteNoteById(id: string): void {
+	const db = openDb();
+	db.prepare("DELETE FROM notes WHERE id = ?").run(id);
 	db.close();
 }
 
-export function deletePostByTitle(title: string): void {
+export function deleteArticleById(id: string): void {
 	const db = openDb();
-	db.prepare("DELETE FROM posts WHERE title = ?").run(title);
+	db.prepare("DELETE FROM articles WHERE id = ?").run(id);
+	db.close();
+}
+
+export function deleteArticleByTitle(title: string): void {
+	const db = openDb();
+	db.prepare("DELETE FROM articles WHERE title = ?").run(title);
 	db.close();
 }
 
 // ── Page / menu helpers ───────────────────────────────────────────────────────
 
 /**
- * Idempotently ensure a published `/news` page with a PostsListBlock exists
- * (page-builder infrastructure the News specs render posts through) — a no-op
+ * Idempotently ensure a published `/news` page with a Stream block (notes and articles) exists
+ * (page-builder infrastructure the News specs render the stream through) — a no-op
  * if it already exists. Never deleted by tests: it's reusable plumbing, not
- * per-test data, so specs only need to manage the posts they create.
+ * per-test data, so specs only need to manage the notes and articles they create.
  */
 export function ensureNewsPage(): { pageId: string } {
 	const db = openDb();
@@ -1095,9 +1141,9 @@ export function ensureNewsPage(): { pageId: string } {
 	const content = JSON.stringify([
 		{
 			id: crypto.randomUUID(),
-			componentType: "PostsListBlock",
+			componentType: "StreamBlock",
 			order: 0,
-			data: { limit: 10 },
+			data: { show: "all", limit: 10 },
 		},
 	]);
 

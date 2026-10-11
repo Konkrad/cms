@@ -7,14 +7,14 @@
 import type { Browser } from "@playwright/test";
 import {
 	addScopeMember,
+	createArticleInDb,
 	createJobInDb,
 	createPageInDb,
-	createPostInDb,
 	createScopeEventInDb,
 	createScopeInDb,
 	createUserSession,
+	deleteArticleByTitle,
 	deletePageAndMenuItems,
-	deletePostByTitle,
 	deleteScopeById,
 	expect,
 	getScopeByPath,
@@ -84,12 +84,12 @@ async function pageAs(
 }
 
 test.describe("Content flows between levels", () => {
-	test("a region's public post shows on its chapter's page, labelled with the region", async ({
+	test("a region's public article shows on its chapter's page, labelled with the region", async ({
 		guestPage: page,
 	}) => {
 		const title = `Region news ${suffix}`;
-		cleanups.push(() => deletePostByTitle(title));
-		createPostInDb({
+		cleanups.push(() => deleteArticleByTitle(title));
+		createArticleInDb({
 			title,
 			body: "<p>For every chapter of the region</p>",
 			userId: author.userId,
@@ -103,23 +103,23 @@ test.describe("Content flows between levels", () => {
 		await expect(card).toContainText("Flow Region");
 	});
 
-	test("a chapter's public post flows up to the region, a sibling's members-only post does not", async ({
+	test("a chapter's public article flows up to the region, a sibling's members-only article does not", async ({
 		guestPage: page,
 	}) => {
 		const up = `Chapter B public ${suffix}`;
 		const hidden = `Chapter B members ${suffix}`;
 		cleanups.push(
-			() => deletePostByTitle(up),
-			() => deletePostByTitle(hidden),
+			() => deleteArticleByTitle(up),
+			() => deleteArticleByTitle(hidden),
 		);
-		createPostInDb({
+		createArticleInDb({
 			title: up,
 			body: "<p>public</p>",
 			userId: author.userId,
 			scopeId: chapterB.id,
 			visibility: "public",
 		});
-		createPostInDb({
+		createArticleInDb({
 			title: hidden,
 			body: "<p>members</p>",
 			userId: author.userId,
@@ -139,8 +139,8 @@ test.describe("Content flows between levels", () => {
 		guestPage,
 	}) => {
 		const title = `Region members-only ${suffix}`;
-		cleanups.push(() => deletePostByTitle(title));
-		createPostInDb({
+		cleanups.push(() => deleteArticleByTitle(title));
+		createArticleInDb({
 			title,
 			body: "<p>members of the region</p>",
 			userId: author.userId,

@@ -447,28 +447,30 @@ test.describe("Pages — builder: content blocks", () => {
 		}
 	});
 
-	test("PostsListBlock: configure limit then save", async ({
+	test("StreamBlock: configure type and limit then save", async ({
 		adminPage: page,
 	}) => {
 		const { pageId } = createPageInDb({
-			title: "Builder PostsListBlock",
-			url: `/e2e-builder-posts-${Date.now()}`,
+			title: "Builder StreamBlock",
+			url: `/e2e-builder-stream-${Date.now()}`,
 			menuName: "main",
 			status: "draft",
 		});
 		try {
 			await goToBuilder(page, pageId);
-			await addBlock(page, "PostsListBlock");
+			await addBlock(page, "StreamBlock");
 
 			await expect(page.locator('input[name="limit"]')).toBeVisible({
 				timeout: 5_000,
 			});
 			await page.locator('input[name="limit"]').fill("3");
+			await page.locator('select[name="show"]').selectOption("notes");
 
 			await saveAndConfirm(page);
 
 			const content = getPageContent(pageId);
 			expect((content[0] as any).data.limit).toBe(3);
+			expect((content[0] as any).data.show).toBe("notes");
 		} finally {
 			deletePageAndMenuItems(pageId);
 		}

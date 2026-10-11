@@ -8,7 +8,7 @@ import type { Browser } from "@playwright/test";
 import {
 	addScopeMember,
 	adminSegmentOf,
-	createPostInDb,
+	createArticleInDb,
 	createRedirectInDb,
 	createScopeEventInDb,
 	createScopeInDb,
@@ -192,12 +192,12 @@ test.describe("Scope home page", () => {
 });
 
 test.describe("Members-only content flows down", () => {
-	test("a member of a chapter sees the region's members-only post", async ({
+	test("a member of a chapter sees the region's members-only article", async ({
 		browser,
 	}) => {
 		const author = createUserSession("user");
 		const outsider = createUserSession("user");
-		const postId = createPostInDb({
+		const articleId = createArticleInDb({
 			title: `Region members only ${suffix}`,
 			body: "<p>For the whole region</p>",
 			userId: author.userId,
@@ -207,7 +207,7 @@ test.describe("Members-only content flows down", () => {
 		try {
 			// fillerMembers[0] joined chapter A only; membership counts upward to the region.
 			const member = await pageAs(browser, fillerMembers[0]);
-			const ok = await member.page.goto(`/posts/${postId}`);
+			const ok = await member.page.goto(`/articles/${articleId}`);
 			expect(ok?.status()).toBe(200);
 			await expect(
 				member.page.locator(`text=Region members only ${suffix}`).first(),
@@ -215,7 +215,7 @@ test.describe("Members-only content flows down", () => {
 			await member.ctx.close();
 
 			const other = await pageAs(browser, outsider);
-			const denied = await other.page.goto(`/posts/${postId}`);
+			const denied = await other.page.goto(`/articles/${articleId}`);
 			expect(denied?.status()).toBe(404);
 			expect(await other.page.content()).not.toContain(
 				`Region members only ${suffix}`,

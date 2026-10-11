@@ -917,8 +917,9 @@ export function createScopeInDb(opts: {
 }
 
 /**
- * Delete a scope and everything below it, with their roles and memberships; content rows owned
- * by them (posts, events, forms) are detached (scope_id = NULL) rather than deleted.
+ * Delete a scope and everything below it, with their roles, memberships and redirects. Their
+ * pages, jobs and deals are deleted; other content rows (posts, events, forms, election cycles,
+ * qualification types) are handed to the root rather than deleted.
  */
 export function deleteScopeById(id: string): void {
 	const db = openDb();
@@ -938,13 +939,28 @@ export function deleteScopeById(id: string): void {
 			db.prepare("DELETE FROM scope_memberships WHERE scope_id = ?").run(
 				scopeId,
 			);
-			for (const table of ["posts", "events", "forms"]) {
-				db.prepare(
-					`UPDATE ${table} SET scope_id = NULL WHERE scope_id = ?`,
-				).run(scopeId);
+			for (const table of ["pages", "jobs", "deals"]) {
+				db.prepare(`DELETE FROM ${table} WHERE scope_id = ?`).run(scopeId);
+			}
+			const rootId = rootScopeId(db);
+			for (const table of [
+				"posts",
+				"events",
+				"forms",
+				"election_cycles",
+				"qualification_types",
+			]) {
+				db.prepare(`UPDATE ${table} SET scope_id = ? WHERE scope_id = ?`).run(
+					rootId,
+					scopeId,
+				);
 			}
 			db.prepare("DELETE FROM scopes WHERE id = ?").run(scopeId);
 		}
+		const prefix = scope.path.replace(/\/$/, "");
+		db.prepare(
+			"DELETE FROM redirects WHERE from_path = ? OR from_path LIKE ? OR to_path = ? OR to_path LIKE ?",
+		).run(prefix, `${prefix}/%`, prefix, `${prefix}/%`);
 	}
 	db.close();
 }

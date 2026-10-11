@@ -689,10 +689,10 @@ test.describe("Elections — application flow", () => {
 // ── Module wiring ─────────────────────────────────────────────────────────────
 
 test.describe("Elections — module wiring", () => {
-	test("group-scoped admin URLs do not render the elections admin UI", async ({
+	test("a group's admin does not reach a cycle of another scope", async ({
 		guestPage: page,
 	}) => {
-		const admin = createUserSession("admin");
+		const admin = createUserSession("user");
 		const slug = `elec-scope-${Date.now()}`;
 		const groupId = createScopeInDb({
 			parentPath: "/",
@@ -707,18 +707,14 @@ test.describe("Elections — module wiring", () => {
 		try {
 			await loginAs(page, admin.sessionToken);
 
-			// Elections is a root-only section: 404 on any other scope.
+			// Elections exist in every scope's admin, limited to the scope's subtree: the
+			// root's cycle is not reachable from the group.
 			const res = await page.goto(`/admin/${slug}/elections/${cycleId}`);
 			expect(res?.status()).toBe(404);
 			await expect(page.locator('input[name="cycleId"]')).toHaveCount(0);
 			await expect(
 				page.getByRole("button", { name: /^Applications \(/ }),
 			).toHaveCount(0);
-
-			expect((await page.goto(`/admin/${slug}/elections/new`))?.status()).toBe(
-				404,
-			);
-			await expect(page.locator('input[name="title"]')).toHaveCount(0);
 
 			expect(
 				(

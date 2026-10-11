@@ -127,10 +127,10 @@ test.describe("Deals — admin", () => {
 		]);
 	});
 
-	test("group-scoped admin route does not render the deal editor", async ({
+	test("a group's admin does not reach a deal of another scope by id", async ({
 		browser,
 	}) => {
-		const admin = createUserSession("admin");
+		const admin = createUserSession("user");
 		const slug = `deals-scope-${Date.now()}`;
 		const groupId = createScopeInDb({
 			parentPath: "/",
@@ -153,15 +153,14 @@ test.describe("Deals — admin", () => {
 		]);
 		const page = await ctx.newPage();
 		try {
-			for (const path of ["new", `${dealId}/edit`]) {
-				const res = await page.goto(`/admin/${slug}/deals/${path}`);
-				// Deals is a root-only section: 404 on any other scope.
-				expect(res?.status()).toBe(404);
-				await expect(page.locator("input[name='name']")).toHaveCount(0);
-				await expect(page.getByText("Edit Deal", { exact: true })).toHaveCount(
-					0,
-				);
-			}
+			// Deals exist in every scope's admin, limited to the scope's subtree: the root's
+			// deal is not reachable from the group.
+			const res = await page.goto(`/admin/${slug}/deals/${dealId}/edit`);
+			expect(res?.status()).toBe(404);
+			await expect(page.locator("input[name='name']")).toHaveCount(0);
+			// The group's own list does not show it either.
+			await page.goto(`/admin/${slug}/deals`);
+			await expect(page.getByText("Scoped Edit Target")).toHaveCount(0);
 		} finally {
 			await ctx.close();
 			cleanup();

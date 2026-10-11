@@ -419,7 +419,8 @@ test.describe("Jobs — admin", () => {
 		]);
 		const page = await ctx.newPage();
 		try {
-			// Jobs is a root-only section: 404 on any other scope.
+			// Jobs exist in every scope's admin, limited to the scope's subtree: the root's job
+			// is not reachable from the group.
 			const res = await page.goto(`/admin/${slug}/jobs/${jobId}/edit`);
 			expect(res?.status()).toBe(404);
 			await expect(page.locator("input[name='title']")).toHaveCount(0);

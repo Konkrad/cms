@@ -48,7 +48,8 @@ export const useDeletePage = routeAction$(
 
 export const useMenuItems = routeLoader$(async (event) => {
 	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
-	if (scope.parentId !== null) return { main: [], footer: [] };
+	if (scope.parentId !== null)
+		return { main: [], footer: [], staticUrls: [] as string[] };
 
 	// Auto-sync: ensure every static link appears in the main menu (draft by default).
 	async function syncMenu(menuName: "main" | "footer") {
@@ -93,7 +94,9 @@ export const useMenuItems = routeLoader$(async (event) => {
 		syncMenu("footer"),
 	]);
 
-	return { main, footer };
+	// Computed here: the static links come from the module registry (server-only).
+	const staticUrls = getStaticMenuLinks().map((l) => normalizeUrl(l.url));
+	return { main, footer, staticUrls };
 });
 
 const normalizeUrl = (url: string) => {
@@ -542,7 +545,7 @@ export default component$(() => {
 				<MenuTable
 					mainItems={menuItemsData.value.main}
 					footerItems={menuItemsData.value.footer}
-					staticUrls={getStaticMenuLinks().map((l) => normalizeUrl(l.url))}
+					staticUrls={menuItemsData.value.staticUrls}
 					onMove$={$(async (params) => {
 						const result = await moveMenuItemAction.submit(params);
 						if (!result.value || "failed" in result.value)

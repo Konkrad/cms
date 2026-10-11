@@ -196,7 +196,7 @@ export const useRenameScope = routeAction$(
 		try {
 			renamed = await scopesService.changeSlug(
 				scope.id,
-				data.slug,
+				data.newSlug,
 				reservedSlugs,
 			);
 		} catch (error) {
@@ -206,7 +206,7 @@ export const useRenameScope = routeAction$(
 		}
 		throw event.redirect(303, adminUrl(renamed.path, "/scope"));
 	},
-	zod$({ slug: z.string().trim().toLowerCase().min(1).max(63) }),
+	zod$({ newSlug: z.string().trim().toLowerCase().min(1).max(63) }),
 );
 
 export default component$(() => {
@@ -437,7 +437,7 @@ export default component$(() => {
 							</label>
 							<input
 								id="rename-slug"
-								name="slug"
+								name="newSlug"
 								value={scope.slug}
 								class="rounded border border-gray-300 px-3 py-2 text-sm"
 							/>

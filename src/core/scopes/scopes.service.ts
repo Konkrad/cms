@@ -3,6 +3,7 @@ import { pages } from "~/core/content/schema/pages";
 import { posts } from "~/core/content/schema/posts";
 import { db } from "~/core/db/connection";
 import { forms } from "~/core/forms/schema/forms";
+import { redirectsService } from "~/core/router/redirects.service";
 import { childPath, SCOPE_SLUG_RE } from "~/core/router/scope-path";
 import { invalidateScopePaths } from "~/core/router/scope-request";
 import { SCOPE_IMAGE_PREFIX } from "~/core/scopes/kinds";
@@ -118,6 +119,7 @@ export const scopesService = {
 			);
 		await this.assertNoPageAt(input.parentId, input.slug);
 
+		await redirectsService.release(path);
 		const [created] = await db
 			.insert(scopes)
 			.values({
@@ -233,13 +235,69 @@ export const scopesService = {
 		}
 		await this.assertNoPageAt(newParentId, scope.slug);
 
+		await this.relocate(scope, {
+			parentId: newParentId,
+			path: childPath(newParent.path, scope.slug),
+		});
+		return (await this.getById(scopeId)) as Scope;
+	},
+
+	/**
+	 * Change a scope's slug (its URL segment); rewrites the paths of its subtree like `move`
+	 * and redirects the old URLs. Same slug rules as `create`.
+	 */
+	async changeSlug(
+		scopeId: string,
+		slug: string,
+		reservedSlugs: ReadonlySet<string>,
+	): Promise<Scope> {
+		const scope = await this.getById(scopeId);
+		if (!scope) throw new ScopeError("Scope not found");
+		if (scope.parentId === null)
+			throw new ScopeError("The root scope has no slug");
+		if (slug === scope.slug) return scope;
+		if (!SCOPE_SLUG_RE.test(slug))
+			throw new ScopeError(`Invalid scope slug "${slug}"`);
+		if (reservedSlugs.has(slug))
+			throw new ScopeError(`Scope slug "${slug}" is reserved`);
+		const parent = (await this.getById(scope.parentId)) as Scope;
+		const clash = await db.query.scopes.findFirst({
+			where: { parentId: parent.id, slug },
+		});
+		if (clash)
+			throw new ScopeError(
+				`Scope "${slug}" already exists under ${parent.path}`,
+			);
+		await this.assertNoPageAt(parent.id, slug);
+		await this.relocate(scope, {
+			slug,
+			path: childPath(parent.path, slug),
+		});
+		return (await this.getById(scopeId)) as Scope;
+	},
+
+	/**
+	 * Give a scope a new path (new parent and/or slug) and rewrite the paths of its whole
+	 * subtree atomically, then redirect every old scope path of the subtree to its new one.
+	 */
+	async relocate(
+		scope: Scope,
+		change: { path: string; parentId?: string; slug?: string },
+	): Promise<void> {
 		const oldPath = scope.path;
-		const newPath = childPath(newParent.path, scope.slug);
+		const newPath = change.path;
+		const subtree = await db
+			.select({ path: scopes.path })
+			.from(scopes)
+			.where(sql`${scopes.path} LIKE ${likePrefix(oldPath)} ESCAPE '\\'`);
 
 		db.transaction((tx) => {
 			tx.update(scopes)
-				.set({ parentId: newParentId })
-				.where(eq(scopes.id, scopeId))
+				.set({
+					...(change.parentId ? { parentId: change.parentId } : {}),
+					...(change.slug ? { slug: change.slug } : {}),
+				})
+				.where(eq(scopes.id, scope.id))
 				.run();
 			// substr is 1-based: keep everything after the old prefix.
 			tx.update(scopes)
@@ -251,7 +309,10 @@ export const scopesService = {
 		});
 		invalidateScopePaths();
 
-		return (await this.getById(scopeId)) as Scope;
+		// Deepest first does not matter: each row maps one old scope path to its new one.
+		for (const { path } of subtree) {
+			await redirectsService.add(path, newPath + path.slice(oldPath.length));
+		}
 	},
 
 	async delete(scopeId: string): Promise<void> {

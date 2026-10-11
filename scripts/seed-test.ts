@@ -416,6 +416,13 @@ for (const chapter of [
 	ensureScope(sampleRegion, { ...chapter, kind: "chapter" });
 }
 console.log("  scope tree: root → germany → berlin, hamburg");
+// Legacy group URLs (/groups/<slug>) of the sample chapters redirect to their scope paths.
+for (const slug of ["berlin", "hamburg"]) {
+	db.insert(schema.redirects)
+		.values({ fromPath: `/groups/${slug}`, toPath: `/germany/${slug}` })
+		.onConflictDoNothing()
+		.run();
+}
 
 // ─── Resolve group (chapter scope) IDs by slug ───────────────────────────────
 

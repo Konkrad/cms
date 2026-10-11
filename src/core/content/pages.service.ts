@@ -8,6 +8,7 @@ import { pages } from "~/core/content/schema/pages";
 import type { BlockData } from "~/core/content/schema/shared";
 import { db } from "~/core/db/connection";
 import type { ModuleDefinition } from "~/core/router/modules";
+import { redirectsService } from "~/core/router/redirects.service";
 import { pageSlugProblem } from "~/core/router/reserved-slugs";
 import { scopeUrl } from "~/core/router/scope-path";
 import { scopes } from "~/core/scopes/schema/scopes";
@@ -171,6 +172,9 @@ export const pagesService = {
 	): Promise<Page> {
 		const problem = await this.slugProblem(input.scopeId, input.slug, modules);
 		if (problem) throw new PageError(problem);
+		const scope = await scopesService.getById(input.scopeId);
+		// A page now lives here: an old URL redirected away from it is live again.
+		await redirectsService.release(scopeUrl(scope!.path, input.slug));
 		const [inserted] = await db
 			.insert(pages)
 			.values({
@@ -222,6 +226,14 @@ export const pagesService = {
 			})
 			.where(eq(pages.id, id))
 			.returning();
+		// A changed URL: the old one (bookmarks, external links) redirects to the new one.
+		if (before.slug !== after.slug && before.slug !== "") {
+			const scope = await scopesService.getById(before.scopeId);
+			await redirectsService.add(
+				scopeUrl(scope!.path, before.slug),
+				scopeUrl(scope!.path, after.slug),
+			);
+		}
 		return { before, after: after as Page };
 	},
 

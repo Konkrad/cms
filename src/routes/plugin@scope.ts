@@ -1,4 +1,5 @@
 import type { RequestHandler } from "@qwik.dev/router";
+import { redirectsService } from "~/core/router/redirects.service";
 import { splitScopePath } from "~/core/router/scope-path";
 import {
 	getScopePaths,
@@ -8,13 +9,24 @@ import {
 } from "~/core/router/scope-request";
 
 /**
- * Splits a hierarchical URL into its scope prefix and the remainder:
+ * Runs before every route. First answers 301 for an old public URL that moved (a moved or
+ * renamed scope, a renamed page, a legacy /groups/<slug> URL; see the redirects table). Then
+ * splits a hierarchical URL into its scope prefix and the remainder:
  * /germany/berlin/jobs/42 → scope /germany/berlin/, rest /jobs/42. The catch-all
  * route ([...path]) resolves the module page from the remainder.
  */
 export const onRequest: RequestHandler = async (event) => {
-	const { pathname } = event.url;
-	const { scopePath, rest } = isScopeablePath(pathname)
+	const { pathname, search } = event.url;
+	const scopeable = isScopeablePath(pathname);
+	if (
+		scopeable &&
+		(event.method === "GET" || event.method === "HEAD") &&
+		!pathname.startsWith("/admin/")
+	) {
+		const target = await redirectsService.resolve(pathname);
+		if (target) throw event.redirect(301, `${target}${search}`);
+	}
+	const { scopePath, rest } = scopeable
 		? splitScopePath(pathname, await getScopePaths())
 		: { scopePath: "/", rest: pathname };
 	event.sharedMap.set(SCOPE_PATH_KEY, scopePath);

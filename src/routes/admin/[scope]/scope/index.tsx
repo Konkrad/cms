@@ -180,8 +180,35 @@ export const useMoveScope = routeAction$(
 	zod$({ parentId: z.string().min(1) }),
 );
 
+/**
+ * Changing a scope's slug changes the URLs of its whole subtree (the old ones redirect), so it
+ * is for platform admins only, like moving.
+ */
+export const useRenameScope = routeAction$(
+	async (data, event) => {
+		await requireAdmin(event);
+		const scope = await requestScope(event);
+		if (!scope) throw event.error(404, "Not found");
+		let renamed: Awaited<ReturnType<typeof scopesService.changeSlug>>;
+		try {
+			renamed = await scopesService.changeSlug(
+				scope.id,
+				data.slug,
+				reservedSlugs,
+			);
+		} catch (error) {
+			if (error instanceof ScopeError)
+				return event.fail(400, { message: error.message });
+			throw error;
+		}
+		throw event.redirect(303, adminUrl(renamed.path, "/scope"));
+	},
+	zod$({ slug: z.string().trim().toLowerCase().min(1).max(63) }),
+);
+
 export default component$(() => {
 	const data = useScopeSettings();
+	const rename = useRenameScope();
 	const update = useUpdateScope();
 	const setImage = useSetScopeImage();
 	const create = useCreateChildScope();
@@ -397,6 +424,32 @@ export default component$(() => {
 					{move.value?.failed && (
 						<p class="text-sm text-red-600">{move.value.message}</p>
 					)}
+					<Form action={rename} class="flex gap-3 items-end">
+						<div>
+							<label
+								for="rename-slug"
+								class="block text-sm font-medium text-gray-700 mb-1"
+							>
+								URL segment
+							</label>
+							<input
+								id="rename-slug"
+								name="slug"
+								value={scope.slug}
+								class="rounded border border-gray-300 px-3 py-2 text-sm"
+							/>
+						</div>
+						<Button type="submit" variant="secondary">
+							Change URL
+						</Button>
+					</Form>
+					{rename.value?.failed && (
+						<p class="text-sm text-red-600">{rename.value.message}</p>
+					)}
+					<p class="text-sm text-gray-500">
+						Old URLs of this group and the groups below it redirect to the new
+						ones.
+					</p>
 				</section>
 			)}
 

@@ -1600,3 +1600,41 @@ export function createElectionApplicationInDb(
 		},
 	};
 }
+
+// ── Redirect helpers ──────────────────────────────────────────────────────────
+
+/** A redirects row (old public path → new path, no trailing slashes); returns its cleanup. */
+export function createRedirectInDb(
+	fromPath: string,
+	toPath: string,
+): () => void {
+	const db = openDb();
+	db.prepare(
+		"INSERT OR REPLACE INTO redirects (from_path, to_path) VALUES (?, ?)",
+	).run(fromPath, toPath);
+	db.close();
+	return () => {
+		const d = openDb();
+		d.prepare("DELETE FROM redirects WHERE from_path = ?").run(fromPath);
+		d.close();
+	};
+}
+
+/** Where a redirects row sends `fromPath`, or null. */
+export function getRedirectTarget(fromPath: string): string | null {
+	const db = openDb();
+	const row = db
+		.prepare("SELECT to_path FROM redirects WHERE from_path = ?")
+		.get(fromPath) as { to_path: string } | undefined;
+	db.close();
+	return row?.to_path ?? null;
+}
+
+/** Delete the redirects rows from or into paths starting with `prefix` (test cleanup). */
+export function deleteRedirectsLike(prefix: string): void {
+	const db = openDb();
+	db.prepare(
+		"DELETE FROM redirects WHERE from_path LIKE ? OR to_path LIKE ?",
+	).run(`${prefix}%`, `${prefix}%`);
+	db.close();
+}

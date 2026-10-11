@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import { describe, expect, it } from "vitest";
 
 // Services are the privacy boundary (CLAUDE.md § Security): only service code may query the
 // database. Route files, loaders, actions, pages and components call services instead.

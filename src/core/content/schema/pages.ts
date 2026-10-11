@@ -1,19 +1,36 @@
 import crypto from "crypto";
 import { sql } from "drizzle-orm";
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
+import { scopes } from "../../scopes/schema/scopes";
 import type { BlockData } from "./shared";
 
-export const pages = sqliteTable("pages", {
-	id: text("id").primaryKey(),
-	content: text("content", { mode: "json" }).$type<BlockData[]>(),
-	status: text("status", { enum: ["draft", "published"] })
-		.notNull()
-		.default("draft"),
-	createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-	updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-});
+/**
+ * A CMS page, owned by a scope and served under that scope's path by the catch-all:
+ * `/<scope path>/<slug>` (`/about`, `/germany/berlin/about`). The root's page with the empty
+ * slug is the site's home page. A slug is one URL segment.
+ */
+export const pages = sqliteTable(
+	"pages",
+	{
+		id: text("id").primaryKey(),
+		scopeId: text("scope_id")
+			.notNull()
+			.references(() => scopes.id),
+		slug: text("slug").notNull(),
+		title: text("title").notNull(),
+		content: text("content", { mode: "json" }).$type<BlockData[]>(),
+		status: text("status", { enum: ["draft", "published"] })
+			.notNull()
+			.default("draft"),
+		createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+		updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+	},
+	(table) => [
+		uniqueIndex("pages_scope_slug_unique").on(table.scopeId, table.slug),
+	],
+);
 
 const baseInsertSchema = createInsertSchema(pages);
 const baseSelectSchema = createSelectSchema(pages);

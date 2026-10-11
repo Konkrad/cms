@@ -28,6 +28,7 @@ export const AdminNav = component$<AdminNavProps>(
 			{ order: 0, href: basePath, label: "Dashboard", exact: true },
 			{ order: 20, href: `${basePath}/posts`, label: "Posts" },
 			{ order: 40, href: `${basePath}/forms`, label: "Forms" },
+			{ order: 50, href: `${basePath}/pages`, label: "Pages" },
 			{
 				order: 60,
 				href: `${basePath}/scope`,
@@ -47,7 +48,6 @@ export const AdminNav = component$<AdminNavProps>(
 		if (isRoot) {
 			navItems.push(
 				{ order: 10, href: `${basePath}/users`, label: "Users" },
-				{ order: 50, href: `${basePath}/pages`, label: "Pages" },
 				{
 					order: 900,
 					href: `${basePath}/notifications`,

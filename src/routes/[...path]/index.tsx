@@ -82,9 +82,13 @@ export const usePathPage = routeLoader$(async (event) => {
 			return { pageId: SCOPE_HOME, key: scopePath, data: home as unknown };
 		}
 	}
-	// No module page: the CMS page at that URL (CMS pages are not scoped yet).
+	// No module page: the scope's CMS page at that slug.
 	const page = assertNoPrivateFields(
-		await loadCmsPage(event, decodeURIComponent(rest)),
+		await loadCmsPage(
+			event,
+			await currentScope(event),
+			decodeURIComponent(rest),
+		),
 	);
 	return { pageId: CMS_PAGE, key: rest, data: page as unknown };
 });
@@ -115,7 +119,7 @@ export const head: DocumentHead = ({ resolveValue, url }) => {
 			};
 		}
 
-		const title = page.menuItem?.title ?? "Community Hub";
+		const title = page.title || "Community Hub";
 		const description = descriptionFromBlocks(page.content);
 		const canonical = canonicalUrl(url.pathname, url.origin);
 

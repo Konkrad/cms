@@ -1,20 +1,55 @@
 import { $, component$ } from "@qwik.dev/core";
-import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
+import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { MenuTable } from "~/core/content/admin/MenuTable/MenuTable";
 import { menuItemsService } from "~/core/content/menu-items.service";
+import { pagesService } from "~/core/content/pages.service";
 import type { MenuItem } from "~/core/content/schema/menu-items";
 import { getStaticMenuLinks } from "~/core/content/static-menu-links";
 import { sanitizeSvg } from "~/core/content/svg-sanitize";
-import { requireSystemAdmin } from "~/core/scopes/access";
+import { adminUrl, scopeUrl } from "~/core/router/scope-path";
+import {
+	ADMIN_ACCESS,
+	requireScopeRole,
+	requireSystemAdmin,
+	requireWithinScope,
+} from "~/core/scopes/access";
 
-// Pages are only accessible in global context
-export const useAdminAuth = routeLoader$(async (event) => {
-	await requireSystemAdmin(event);
-	return true;
+/**
+ * The pages of the URL's scope (managers of the scope). The site menus are global, so the
+ * menu manager below exists on the root only.
+ */
+export const usePagesAdmin = routeLoader$(async (event) => {
+	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
+	const pages = await pagesService.listByScope(scope.id);
+	return {
+		isRoot: scope.parentId === null,
+		adminBase: adminUrl(scope.path),
+		pages: pages.map((p) => ({
+			id: p.id,
+			title: p.title,
+			url: scopeUrl(scope.path, p.slug),
+			status: p.status,
+		})),
+	};
 });
 
-export const useMenuItems = routeLoader$(async () => {
+/** Delete a page of the URL's scope or one below it. */
+export const useDeletePage = routeAction$(
+	async (data, event) => {
+		const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
+		const page = await pagesService.getById(data.pageId);
+		await requireWithinScope(event, scope, page);
+		await pagesService.delete(data.pageId);
+		return { success: true };
+	},
+	zod$({ pageId: z.string().min(1) }),
+);
+
+export const useMenuItems = routeLoader$(async (event) => {
+	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
+	if (scope.parentId !== null) return { main: [], footer: [] };
+
 	// Auto-sync: ensure every static link appears in the main menu (draft by default).
 	async function syncMenu(menuName: "main" | "footer") {
 		let items = await menuItemsService.getAll(menuName, {
@@ -420,6 +455,8 @@ export const useMoveMenuItem = routeAction$(
 );
 
 export default component$(() => {
+	const admin = usePagesAdmin();
+	const deletePageAction = useDeletePage();
 	const menuItemsData = useMenuItems();
 	const addToMenuAction = useAddToMenu();
 	const updateMenuItemAction = useUpdateMenuItem();
@@ -430,56 +467,124 @@ export default component$(() => {
 		<div>
 			<div class="flex justify-between items-center mb-6">
 				<h2 class="text-2xl font-bold">Manage Pages</h2>
-				<Button href="/admin/root/pages/new" variant="primary">
+				<Button href={`${admin.value.adminBase}/pages/new`} variant="primary">
 					Create New Page
 				</Button>
 			</div>
 
-			<MenuTable
-				mainItems={menuItemsData.value.main}
-				footerItems={menuItemsData.value.footer}
-				staticUrls={getStaticMenuLinks().map((l) => normalizeUrl(l.url))}
-				onMove$={$(async (params) => {
-					const result = await moveMenuItemAction.submit(params);
-					if (!result.value || "failed" in result.value)
-						return { success: false };
-					return {
-						success: result.value.success ?? false,
-						error: result.value.error,
-					};
-				})}
-				onUpdate$={$(async (params) => {
-					const result = await updateMenuItemAction.submit({
-						...params,
-						menuName: params.menuName as "main" | "footer",
-						target: params.target as "_self" | "_blank" | "_parent" | "_top",
-					});
-					if (!result.value || "failed" in result.value)
-						return { success: false };
-					return {
-						success: result.value.success ?? false,
-						error: result.value.error,
-					};
-				})}
-				onAdd$={$(async (params) => {
-					const result = await addToMenuAction.submit(params);
-					if (!result.value || "failed" in result.value)
-						return { success: false };
-					return {
-						success: result.value.success ?? false,
-						error: result.value.error,
-					};
-				})}
-				onDelete$={$(async (params) => {
-					const result = await deleteMenuItemAction.submit(params);
-					if (!result.value || "failed" in result.value)
-						return { success: false };
-					return {
-						success: result.value.success ?? false,
-						error: result.value.error,
-					};
-				})}
-			/>
+			{!admin.value.isRoot && (
+				<div class="bg-white rounded-lg shadow-sm overflow-x-auto">
+					<table class="min-w-full divide-y divide-gray-200">
+						<thead class="bg-gray-50">
+							<tr>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Title
+								</th>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									URL
+								</th>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Status
+								</th>
+								<th class="px-6 py-3" />
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-gray-200">
+							{admin.value.pages.map((p) => (
+								<tr key={p.id}>
+									<td class="px-6 py-4 text-sm font-medium text-gray-900">
+										{p.title}
+									</td>
+									<td class="px-6 py-4 text-sm text-gray-500">
+										<a href={p.url} class="hover:underline">
+											{p.url}
+										</a>
+									</td>
+									<td class="px-6 py-4 text-sm text-gray-500 capitalize">
+										{p.status}
+									</td>
+									<td class="px-6 py-4 text-sm text-right space-x-3">
+										<a
+											href={`${admin.value.adminBase}/pages/${p.id}/edit`}
+											class="text-blue-600 hover:text-blue-900"
+										>
+											Settings
+										</a>
+										<a
+											href={`${admin.value.adminBase}/pages/${p.id}/builder`}
+											class="text-blue-600 hover:text-blue-900"
+										>
+											Edit content
+										</a>
+										<Form action={deletePageAction} class="inline">
+											<input type="hidden" name="pageId" value={p.id} />
+											<button
+												type="submit"
+												class="text-red-600 hover:text-red-900"
+											>
+												Delete
+											</button>
+										</Form>
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+					{admin.value.pages.length === 0 && (
+						<p class="px-6 py-8 text-center text-gray-500">
+							No pages in this group yet.
+						</p>
+					)}
+				</div>
+			)}
+
+			{admin.value.isRoot && (
+				<MenuTable
+					mainItems={menuItemsData.value.main}
+					footerItems={menuItemsData.value.footer}
+					staticUrls={getStaticMenuLinks().map((l) => normalizeUrl(l.url))}
+					onMove$={$(async (params) => {
+						const result = await moveMenuItemAction.submit(params);
+						if (!result.value || "failed" in result.value)
+							return { success: false };
+						return {
+							success: result.value.success ?? false,
+							error: result.value.error,
+						};
+					})}
+					onUpdate$={$(async (params) => {
+						const result = await updateMenuItemAction.submit({
+							...params,
+							menuName: params.menuName as "main" | "footer",
+							target: params.target as "_self" | "_blank" | "_parent" | "_top",
+						});
+						if (!result.value || "failed" in result.value)
+							return { success: false };
+						return {
+							success: result.value.success ?? false,
+							error: result.value.error,
+						};
+					})}
+					onAdd$={$(async (params) => {
+						const result = await addToMenuAction.submit(params);
+						if (!result.value || "failed" in result.value)
+							return { success: false };
+						return {
+							success: result.value.success ?? false,
+							error: result.value.error,
+						};
+					})}
+					onDelete$={$(async (params) => {
+						const result = await deleteMenuItemAction.submit(params);
+						if (!result.value || "failed" in result.value)
+							return { success: false };
+						return {
+							success: result.value.success ?? false,
+							error: result.value.error,
+						};
+					})}
+				/>
+			)}
 		</div>
 	);
 });

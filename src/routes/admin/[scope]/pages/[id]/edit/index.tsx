@@ -5,50 +5,63 @@ import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { menuItemsService } from "~/core/content/menu-items.service";
-import { pagesService } from "~/core/content/pages.service";
-import { requireSystemAdmin } from "~/core/scopes/access";
+import {
+	PageError,
+	pagesService,
+	slugFromPath,
+} from "~/core/content/pages.service";
+import { allModules } from "~/core/registry/manifests";
+import { adminUrl, scopeUrl } from "~/core/router/scope-path";
+import {
+	ADMIN_ACCESS,
+	getScope,
+	requireScopeRole,
+	requireWithinScope,
+} from "~/core/scopes/access";
 
-// Pages are only accessible in global context
-export const useAdminAuth = routeLoader$(async (event) => {
-	await requireSystemAdmin(event);
-	return true;
-});
-
-export const usePage = routeLoader$(async ({ params }) => {
-	const page = await pagesService.getById(params.id);
-	if (!page) {
-		throw new Error("Page not found");
-	}
-	return page;
+/** The page must belong to the URL's scope or one below it (managers of the scope). */
+export const usePage = routeLoader$(async (event) => {
+	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
+	const page = await pagesService.getById(event.params.id);
+	await requireWithinScope(event, scope, page);
+	return {
+		...page!,
+		adminBase: adminUrl(scope.path),
+		isRootPage: page!.scopeId === scope.id && scope.parentId === null,
+	};
 });
 
 export const useUpdatePage = routeAction$(
 	async (data, event) => {
-		await requireSystemAdmin(event);
+		const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
+		const page = await pagesService.getById(event.params.id);
+		await requireWithinScope(event, scope, page);
+		const owner = await getScope(page!.scopeId);
+		const slug = slugFromPath(data.url);
+		const url = scopeUrl(owner!.path, slug);
 
 		try {
-			const page = await pagesService.getById(event.params.id);
-			if (!page) return { success: false, error: "Page not found" };
-
-			// Update the linked menu item's title, url and visibility if one exists
-			if (page.menuItem) {
-				await menuItemsService.update(page.menuItem.id, {
-					title: data.title,
-					url: data.url,
-					status: data.visibility as "visible" | "hidden",
-				});
-			}
-
-			// Update the page's publication status
-			await pagesService.update(event.params.id, {
-				status: data.pageStatus as "draft" | "published",
-			});
-
-			throw event.redirect(303, "/admin/root/pages");
-		} catch (err: any) {
-			if (err?.status === 303) throw err;
-			return { success: false, error: err?.message || "Failed to update page" };
+			await pagesService.update(
+				page!.id,
+				{ title: data.title, slug, status: data.pageStatus },
+				allModules,
+			);
+		} catch (err) {
+			if (err instanceof PageError)
+				return { success: false, error: err.message };
+			throw err;
 		}
+
+		// Root pages: keep the linked menu item's title, URL and visibility in step.
+		if (page!.menuItem) {
+			await menuItemsService.update(page!.menuItem.id, {
+				title: data.title,
+				url,
+				status: data.visibility,
+			});
+		}
+
+		throw event.redirect(303, adminUrl(scope.path, "/pages"));
 	},
 	zod$({
 		title: z.string().min(1, "Title is required"),
@@ -87,9 +100,7 @@ export default component$(() => {
 						name="title"
 						label="Page Title"
 						required
-						value={
-							action.formData?.get("title") || page.value.menuItem?.title || ""
-						}
+						value={action.formData?.get("title") || page.value.title}
 						error={action.value?.fieldErrors?.title?.[0]}
 					/>
 
@@ -98,13 +109,11 @@ export default component$(() => {
 							name="url"
 							label="URL"
 							required
-							value={
-								action.formData?.get("url") || page.value.menuItem?.url || ""
-							}
+							value={action.formData?.get("url") || `/${page.value.slug}`}
 							error={action.value?.fieldErrors?.url?.[0]}
 						/>
 						<p class="mt-1 text-sm text-gray-500">
-							The URL path for this page (e.g. /about-us) or an external URL.
+							One URL segment, served under the group's path (e.g. /about-us).
 						</p>
 					</div>
 
@@ -122,25 +131,27 @@ export default component$(() => {
 						</option>
 					</Select>
 
-					<Select
-						name="visibility"
-						label="Menu Visibility"
-						required
-						error={action.value?.fieldErrors?.visibility?.[0]}
-					>
-						<option value="visible" selected={visibility === "visible"}>
-							Visible — shown in navigation
-						</option>
-						<option value="hidden" selected={visibility === "hidden"}>
-							Hidden — not shown in navigation
-						</option>
-					</Select>
+					{page.value.menuItem && (
+						<Select
+							name="visibility"
+							label="Menu Visibility"
+							required
+							error={action.value?.fieldErrors?.visibility?.[0]}
+						>
+							<option value="visible" selected={visibility === "visible"}>
+								Visible — shown in navigation
+							</option>
+							<option value="hidden" selected={visibility === "hidden"}>
+								Hidden — not shown in navigation
+							</option>
+						</Select>
+					)}
 
 					<div class="flex gap-4">
 						<Button type="submit" disabled={action.isRunning}>
 							{action.isRunning ? "Updating..." : "Update Page"}
 						</Button>
-						<Button href="/admin/root/pages" variant="secondary">
+						<Button href={`${page.value.adminBase}/pages`} variant="secondary">
 							Cancel
 						</Button>
 					</div>

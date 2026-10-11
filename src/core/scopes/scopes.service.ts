@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
+import { pages } from "~/core/content/schema/pages";
 import { posts } from "~/core/content/schema/posts";
 import { db } from "~/core/db/connection";
 import { forms } from "~/core/forms/schema/forms";
@@ -115,6 +116,7 @@ export const scopesService = {
 			throw new ScopeError(
 				`Scope "${input.slug}" already exists under ${parent.path}`,
 			);
+		await this.assertNoPageAt(input.parentId, input.slug);
 
 		const [created] = await db
 			.insert(scopes)
@@ -129,6 +131,30 @@ export const scopesService = {
 			.returning();
 		invalidateScopePaths();
 		return created;
+	},
+
+	/**
+	 * A child scope's path would shadow a CMS page of its parent with the same slug
+	 * (`/germany/about`): reject the slug when such a page exists.
+	 */
+	async assertNoPageAt(parentId: string, slug: string): Promise<void> {
+		const page = await db.query.pages.findFirst({
+			where: { scopeId: parentId, slug },
+		});
+		if (page) {
+			throw new ScopeError(
+				`A page with the URL segment "${slug}" already exists there`,
+			);
+		}
+	},
+
+	/** Slugs of a scope's children (pages may not take them). */
+	async childSlugs(scopeId: string): Promise<Set<string>> {
+		const rows = await db
+			.select({ slug: scopes.slug })
+			.from(scopes)
+			.where(eq(scopes.parentId, scopeId));
+		return new Set(rows.map((r) => r.slug));
 	},
 
 	async getById(id: string): Promise<Scope | undefined> {
@@ -205,6 +231,7 @@ export const scopesService = {
 				`Scope "${scope.slug}" already exists under ${newParent.path}`,
 			);
 		}
+		await this.assertNoPageAt(newParentId, scope.slug);
 
 		const oldPath = scope.path;
 		const newPath = childPath(newParent.path, scope.slug);
@@ -308,19 +335,17 @@ export const scopesService = {
 		);
 	},
 
-	/** Number of posts and forms owned by the scope (core content; modules report their own). */
+	/** Number of posts, pages and forms owned by the scope (core content; modules report their own). */
 	async countCoreContent(scopeId: string): Promise<number> {
-		const [[postRows], [formRows]] = await Promise.all([
-			db
-				.select({ count: sql<number>`COUNT(*)` })
-				.from(posts)
-				.where(eq(posts.scopeId, scopeId)),
-			db
-				.select({ count: sql<number>`COUNT(*)` })
-				.from(forms)
-				.where(eq(forms.scopeId, scopeId)),
-		]);
-		return Number(postRows?.count ?? 0) + Number(formRows?.count ?? 0);
+		const counts = await Promise.all(
+			[posts, pages, forms].map((table) =>
+				db
+					.select({ count: sql<number>`COUNT(*)` })
+					.from(table)
+					.where(eq(table.scopeId, scopeId)),
+			),
+		);
+		return counts.reduce((sum, [row]) => sum + Number(row?.count ?? 0), 0);
 	},
 
 	// ── Roles (inherit downward) ───────────────────────────────────────────────

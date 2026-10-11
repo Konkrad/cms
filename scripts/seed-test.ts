@@ -186,6 +186,9 @@ if (!homeMenuItem) {
 	db.insert(schema.pages)
 		.values({
 			id: pageId,
+			scopeId: rootScope!.id,
+			slug: "",
+			title: "Home",
 			content: [],
 			status: "published",
 			createdAt: now(),

@@ -5,7 +5,6 @@
  */
 export const ROOT_ONLY_SECTIONS: readonly string[] = [
 	"users",
-	"pages",
 	"tags",
 	"notifications",
 ];

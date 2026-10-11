@@ -1033,8 +1033,8 @@ export function ensureNewsPage(): { pageId: string } {
 	]);
 
 	db.prepare(
-		"INSERT INTO pages (id, content, status, created_at, updated_at) VALUES (?, ?, 'published', ?, ?)",
-	).run(pageId, content, now, now);
+		"INSERT INTO pages (id, scope_id, slug, title, content, status, created_at, updated_at) VALUES (?, ?, 'news', 'News', ?, 'published', ?, ?)",
+	).run(pageId, rootScopeId(db), content, now, now);
 	db.prepare(
 		"INSERT INTO menu_items (id, menu_name, title, url, page_id, parent_id, position, status, icon, target, created_at, updated_at) VALUES (?, 'main', 'News', '/news', ?, null, 999, 'hidden', null, '_self', ?, ?)",
 	).run(menuItemId, pageId, now, now);
@@ -1042,11 +1042,18 @@ export function ensureNewsPage(): { pageId: string } {
 	return { pageId };
 }
 
+/**
+ * A page with a (hidden) menu item at `url` ("/<slug>"), owned by the root. With `scopeId` the
+ * page belongs to that scope instead (served at "<scope path><slug>") and gets no menu item
+ * (`menuItemId` is then empty).
+ */
 export function createPageInDb(opts: {
 	title: string;
 	url: string;
 	menuName: "main" | "footer";
 	status: "draft" | "published";
+	scopeId?: string;
+	content?: unknown[];
 }): { pageId: string; menuItemId: string } {
 	const db = openDb();
 	const pageId = crypto.randomUUID();
@@ -1054,8 +1061,21 @@ export function createPageInDb(opts: {
 	const now = new Date().toISOString();
 
 	db.prepare(
-		"INSERT INTO pages (id, content, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-	).run(pageId, JSON.stringify([]), opts.status, now, now);
+		"INSERT INTO pages (id, scope_id, slug, title, content, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+	).run(
+		pageId,
+		opts.scopeId ?? rootScopeId(db),
+		opts.url.replace(/^\/+|\/+$/g, ""),
+		opts.title,
+		JSON.stringify(opts.content ?? []),
+		opts.status,
+		now,
+		now,
+	);
+	if (opts.scopeId) {
+		db.close();
+		return { pageId, menuItemId: "" };
+	}
 
 	const maxPosRow = db
 		.prepare("SELECT MAX(position) as pos FROM menu_items WHERE menu_name = ?")

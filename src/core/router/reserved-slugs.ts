@@ -1,5 +1,5 @@
 import type { ModuleDefinition } from "~/core/router/modules";
-import { ROOT_ADMIN_SEGMENT } from "~/core/router/scope-path";
+import { ROOT_ADMIN_SEGMENT, SCOPE_SLUG_RE } from "~/core/router/scope-path";
 
 /**
  * First segments of the static routes in `src/routes` (a unit test keeps this list in sync
@@ -41,4 +41,38 @@ export function reservedScopeSlugs(
 		}
 	}
 	return reserved;
+}
+
+/**
+ * Why `slug` cannot be a CMS page slug in a scope (null when it can). A page is served at
+ * `<scope path>/<slug>` by the catch-all, so its slug must not be shadowed by anything matched
+ * first at that level: a child scope with the same slug (the scope prefix wins), a module page
+ * at exactly `/<slug>` (module pages win) or, at the root, a static core route. The empty slug
+ * is the root's home page; other scopes have their scope home there.
+ */
+export function pageSlugProblem(
+	slug: string,
+	ctx: {
+		isRoot: boolean;
+		modules: readonly ModuleDefinition[];
+		childScopeSlugs: ReadonlySet<string>;
+	},
+): string | null {
+	if (slug === "") {
+		return ctx.isRoot ? null : "Only the root has a page at its own path";
+	}
+	if (!SCOPE_SLUG_RE.test(slug)) {
+		return "A page slug is one URL segment of lowercase letters, digits and dashes";
+	}
+	if (ctx.childScopeSlugs.has(slug)) {
+		return `A group called "${slug}" already exists here`;
+	}
+	if (ctx.isRoot && CORE_ROUTE_SEGMENTS.includes(slug)) {
+		return `"${slug}" is a reserved path`;
+	}
+	const modulePaths = new Set(
+		ctx.modules.flatMap((m) => (m.pages ?? []).map((p) => p.path)),
+	);
+	if (modulePaths.has(`/${slug}`)) return `"${slug}" is a module page`;
+	return null;
 }

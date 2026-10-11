@@ -5,66 +5,86 @@ import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { menuItemsService } from "~/core/content/menu-items.service";
-import { pagesService } from "~/core/content/pages.service";
-import { requireSystemAdmin } from "~/core/scopes/access";
+import {
+	PageError,
+	pagesService,
+	slugFromPath,
+} from "~/core/content/pages.service";
+import { allModules } from "~/core/registry/manifests";
+import { adminUrl, scopeUrl } from "~/core/router/scope-path";
+import { ADMIN_ACCESS, requireScopeRole } from "~/core/scopes/access";
 
-// Pages are only accessible in global context
-export const useAdminAuth = routeLoader$(async (event) => {
-	await requireSystemAdmin(event);
-	return true;
+/** Pages belong to the URL's scope; its managers create them. */
+export const usePageScope = routeLoader$(async (event) => {
+	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
+	return {
+		isRoot: scope.parentId === null,
+		scopeUrl: scopeUrl(scope.path),
+	};
 });
 
 export const useCreatePage = routeAction$(
 	async (data, event) => {
-		await requireSystemAdmin(event);
+		const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
+		const isRoot = scope.parentId === null;
+		const slug = slugFromPath(data.url);
+		const url = scopeUrl(scope.path, slug);
 
 		try {
-			const normalizedUrl = data.url.trim().startsWith("/")
-				? data.url.trim()
-				: `/${data.url.trim()}`;
-			const menuName = data.menuName as "main" | "footer";
-
-			// Reject if the URL is already taken in any menu
-			const allItems = await menuItemsService.getAll(undefined, {
-				includeHidden: true,
-			});
-			const duplicate = allItems.find((item) => item.url === normalizedUrl);
-			if (duplicate) {
-				return {
-					success: false,
-					error: `The URL "${normalizedUrl}" is already in use by another menu item.`,
-				};
+			// Root pages are linked from the (global) site menus.
+			if (isRoot) {
+				const allItems = await menuItemsService.getAll(undefined, {
+					includeHidden: true,
+				});
+				if (allItems.some((item) => item.url === url)) {
+					return {
+						success: false,
+						error: `The URL "${url}" is already in use by another menu item.`,
+					};
+				}
 			}
 
-			// Create the page first
-			const page = await pagesService.create({
-				status: (data.status as "draft" | "published") || "draft",
-				content: [],
-			});
-
-			const existing = await menuItemsService.getAll(menuName, {
-				includeHidden: true,
-			});
-			const maxPosition = existing.reduce(
-				(max, item) => Math.max(max, item.position),
-				-1,
+			const page = await pagesService.create(
+				{
+					scopeId: scope.id,
+					slug,
+					title: data.title,
+					status: data.status,
+				},
+				allModules,
 			);
-			await menuItemsService.create({
-				menuName,
-				title: data.title,
-				url: normalizedUrl,
-				pageId: page.id,
-				parentId: null,
-				position: maxPosition + 1,
-				status: "hidden",
-				icon: null,
-				target: "_self",
-			});
 
-			throw event.redirect(303, `/admin/root/pages/${page.id}/builder`);
+			if (isRoot) {
+				const menuName = data.menuName;
+				const existing = await menuItemsService.getAll(menuName, {
+					includeHidden: true,
+				});
+				const maxPosition = existing.reduce(
+					(max, item) => Math.max(max, item.position),
+					-1,
+				);
+				await menuItemsService.create({
+					menuName,
+					title: data.title,
+					url,
+					pageId: page.id,
+					parentId: null,
+					position: maxPosition + 1,
+					status: "hidden",
+					icon: null,
+					target: "_self",
+				});
+			}
+
+			throw event.redirect(
+				303,
+				adminUrl(scope.path, `/pages/${page.id}/builder`),
+			);
 		} catch (err: any) {
 			if (err?.status === 303) throw err;
-			return { success: false, error: err?.message || "Failed to create page" };
+			if (err instanceof PageError)
+				return { success: false, error: err.message };
+			throw err;
 		}
 	},
 	zod$({
@@ -77,6 +97,7 @@ export const useCreatePage = routeAction$(
 
 export default component$(() => {
 	const action = useCreatePage();
+	const scope = usePageScope();
 
 	return (
 		<div class="max-w-2xl mx-auto px-4 py-8">
@@ -109,19 +130,22 @@ export default component$(() => {
 							placeholder="/about-us"
 						/>
 						<p class="mt-1 text-sm text-gray-500">
-							The URL path for this page (e.g. /about-us) or an external URL.
+							One URL segment, served under this group's path:{" "}
+							{scope.value.scopeUrl.replace(/\/$/, "")}/about-us
 						</p>
 					</div>
 
-					<Select
-						name="menuName"
-						label="Menu"
-						value={(action.formData?.get("menuName") as string) || "main"}
-						error={action.value?.fieldErrors?.menuName?.[0]}
-					>
-						<option value="main">Main</option>
-						<option value="footer">Footer</option>
-					</Select>
+					{scope.value.isRoot && (
+						<Select
+							name="menuName"
+							label="Menu"
+							value={(action.formData?.get("menuName") as string) || "main"}
+							error={action.value?.fieldErrors?.menuName?.[0]}
+						>
+							<option value="main">Main</option>
+							<option value="footer">Footer</option>
+						</Select>
+					)}
 
 					<Select
 						name="status"

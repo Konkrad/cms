@@ -35,7 +35,7 @@ export const PageView = component$<{ page: PageViewData }>(({ page }) => {
 			) : (
 				<div class="max-w-4xl mx-auto px-4 py-16">
 					<h1 class="text-4xl font-bold text-text-heading mb-4">
-						{page.menuItem?.title}
+						{page.title}
 					</h1>
 					<p class="text-text-secondary">
 						This page is empty. Add content in the page builder.

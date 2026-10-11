@@ -7,20 +7,19 @@ import { PropertiesPanel } from "~/core/content/builder/PropertiesPanel";
 import { componentLoaderService } from "~/core/content/component-loader.service";
 import { pagesService } from "~/core/content/pages.service";
 import type { BlockData, BlockDefinition } from "~/core/db/schema";
-import { requireSystemAdmin } from "~/core/scopes/access";
+import { adminUrl } from "~/core/router/scope-path";
+import {
+	ADMIN_ACCESS,
+	requireScopeRole,
+	requireWithinScope,
+} from "~/core/scopes/access";
 
-// Pages are only accessible in global context
-export const useAdminAuth = routeLoader$(async (event) => {
-	await requireSystemAdmin(event);
-	return true;
-});
-
-export const usePage = routeLoader$(async ({ params }) => {
-	const page = await pagesService.getById(params.id);
-	if (!page) {
-		throw new Error("Page not found");
-	}
-	return page;
+/** The page must belong to the URL's scope or one below it (managers of the scope). */
+export const usePage = routeLoader$(async (event) => {
+	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
+	const page = await pagesService.getById(event.params.id);
+	await requireWithinScope(event, scope, page);
+	return { ...page!, adminBase: adminUrl(scope.path) };
 });
 
 export const useComponentDefinitions = routeLoader$(async () => {
@@ -30,12 +29,15 @@ export const useComponentDefinitions = routeLoader$(async () => {
 
 export const useSavePage = routeAction$(
 	async (data, event) => {
-		await requireSystemAdmin(event);
-
-		const accessToken = event.cookie.get("sb-access-token")?.value;
-		const refreshToken = event.cookie.get("sb-refresh-token")?.value;
+		const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
+		await requireWithinScope(
+			event,
+			scope,
+			await pagesService.getById(event.params.id),
+		);
 
 		try {
+			// Sanitized on write by the service (HTML fields, script URLs).
 			const content = JSON.parse(data.content);
 			await pagesService.update(event.params.id, { content });
 
@@ -215,12 +217,15 @@ export default component$(() => {
 		<div class="fixed inset-0 bg-gray-50 flex flex-col">
 			<div class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
 				<div class="flex items-center gap-4">
-					<a href="/admin/root/pages" class="text-gray-600 hover:text-gray-900">
+					<a
+						href={`${page.value.adminBase}/pages`}
+						class="text-gray-600 hover:text-gray-900"
+					>
 						← Back to Pages
 					</a>
 					<div class="border-l border-gray-300 h-6"></div>
 					<h1 class="text-lg font-semibold text-gray-900">
-						{page.value.menuItem?.title}
+						{page.value.title}
 					</h1>
 					{hasUnsavedChanges.value && (
 						<span class="text-sm text-orange-600 font-medium">

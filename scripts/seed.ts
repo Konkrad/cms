@@ -2924,6 +2924,9 @@ for (const p of pageDefs) {
 	db.insert(schema.pages)
 		.values({
 			id: pageId,
+			scopeId: rootScope!.id,
+			slug: p.slug.replace(/^\/+/, ""),
+			title: p.title,
 			content: p.content,
 			status: p.status,
 			createdAt: now(),

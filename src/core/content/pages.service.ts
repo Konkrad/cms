@@ -1,138 +1,228 @@
 import crypto from "crypto";
-import { and, desc, eq, lt } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
+import { sanitizeRichHtml } from "~/core/content/sanitize-html";
 import type { MenuItem } from "~/core/content/schema/menu-items";
 import { menuItems } from "~/core/content/schema/menu-items";
-import type { InsertPage, Page, UpdatePage } from "~/core/content/schema/pages";
+import type { Page } from "~/core/content/schema/pages";
 import { pages } from "~/core/content/schema/pages";
+import type { BlockData } from "~/core/content/schema/shared";
 import { db } from "~/core/db/connection";
-import { decodeCursor, getNextCursorFromRows } from "~/core/shared/pagination";
+import type { ModuleDefinition } from "~/core/router/modules";
+import { pageSlugProblem } from "~/core/router/reserved-slugs";
+import { scopeUrl } from "~/core/router/scope-path";
+import { scopes } from "~/core/scopes/schema/scopes";
+import { scopesService } from "~/core/scopes/scopes.service";
 
 export type PageWithMenuItem = Page & {
 	menuItem: Pick<MenuItem, "id" | "title" | "url" | "status"> | null;
 };
 
-export const pagesService = {
-	/** URL and last update of every published page with a visible menu item (sitemap). */
-	async getPublishedUrls(): Promise<Array<{ url: string; updatedAt: string }>> {
-		return db
-			.select({ url: menuItems.url, updatedAt: pages.updatedAt })
-			.from(pages)
-			.innerJoin(menuItems, eq(menuItems.pageId, pages.id))
-			.where(
-				and(eq(pages.status, "published"), eq(menuItems.status, "visible")),
+export class PageError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "PageError";
+	}
+}
+
+/** Blocks whose `content` field is rendered as HTML (`dangerouslySetInnerHTML`). */
+const HTML_BLOCKS = new Set(["TextBlock"]);
+
+/**
+ * Page content is written by scope managers (representatives included) and rendered for
+ * everyone, so it is sanitized on write: HTML fields through `sanitizeRichHtml`, and any
+ * `javascript:` / `data:` URL value (link and button fields) is dropped.
+ */
+export function sanitizeBlocks(blocks: BlockData[]): BlockData[] {
+	const clean = (value: unknown): unknown => {
+		if (typeof value === "string") {
+			return /^\s*(javascript:|vbscript:|data:text\/html)/i.test(value)
+				? ""
+				: value;
+		}
+		if (Array.isArray(value)) return value.map(clean);
+		if (value && typeof value === "object") {
+			return Object.fromEntries(
+				Object.entries(value).map(([k, v]) => [k, clean(v)]),
 			);
+		}
+		return value;
+	};
+	return blocks.map((block) => {
+		const data = clean(block.data ?? {}) as Record<string, unknown>;
+		if (
+			HTML_BLOCKS.has(block.componentType) &&
+			typeof data.content === "string"
+		) {
+			data.content = sanitizeRichHtml(data.content);
+		}
+		return { ...block, data };
+	});
+}
+
+/** "/about" or "about" → "about"; "/" → "" (the root's home page). */
+export function slugFromPath(path: string): string {
+	return path.trim().replace(/^\/+|\/+$/g, "");
+}
+
+async function withMenuItems(rows: Page[]): Promise<PageWithMenuItem[]> {
+	const ids = rows.map((p) => p.id);
+	const linked = ids.length
+		? await db
+				.select({
+					id: menuItems.id,
+					title: menuItems.title,
+					url: menuItems.url,
+					status: menuItems.status,
+					pageId: menuItems.pageId,
+				})
+				.from(menuItems)
+				.where(inArray(menuItems.pageId, ids))
+		: [];
+	const byPage = new Map(linked.map((m) => [m.pageId, m]));
+	return rows.map((page) => {
+		const mi = byPage.get(page.id);
+		return {
+			...page,
+			menuItem: mi
+				? { id: mi.id, title: mi.title, url: mi.url, status: mi.status }
+				: null,
+		};
+	});
+}
+
+export const pagesService = {
+	/** Public URL and last update of every published page (sitemap). */
+	async getPublishedUrls(): Promise<Array<{ url: string; updatedAt: string }>> {
+		const rows = await db
+			.select({
+				slug: pages.slug,
+				updatedAt: pages.updatedAt,
+				scopePath: scopes.path,
+			})
+			.from(pages)
+			.innerJoin(scopes, eq(scopes.id, pages.scopeId))
+			.where(eq(pages.status, "published"));
+		return rows.map((r) => ({
+			url: scopeUrl(r.scopePath, r.slug),
+			updatedAt: r.updatedAt,
+		}));
 	},
 
-	async getAll(
-		limit: number = 10,
-		cursor?: string | null,
-	): Promise<{ items: PageWithMenuItem[]; nextCursor?: string | null }> {
-		const cursorObj = decodeCursor(cursor ?? null);
-
-		let query: any = db.select().from(pages);
-
-		if (cursorObj && cursorObj.createdAt != null) {
-			query = query.where(lt(pages.createdAt, cursorObj.createdAt));
-		}
-
-		query = query.orderBy(desc(pages.createdAt), desc(pages.id));
-		query = query.limit(limit + 1);
-
-		const rows = await query;
-
-		let nextCursor: string | undefined | null;
-		let items = rows as Page[];
-		if (rows.length > limit) {
-			nextCursor = getNextCursorFromRows(rows as any[], ["createdAt"], limit);
-			items = rows.slice(0, limit);
-		}
-
-		// Fetch linked menu items for the returned pages
-		const pageIds = items.map((p) => p.id);
-		const linkedMenuItems = pageIds.length
-			? await db
-					.select({
-						id: menuItems.id,
-						title: menuItems.title,
-						url: menuItems.url,
-						status: menuItems.status,
-						pageId: menuItems.pageId,
-					})
-					.from(menuItems)
-					.where((menuItems.pageId as any).in(pageIds))
-			: [];
-		const menuItemByPageId = new Map(linkedMenuItems.map((m) => [m.pageId, m]));
-
-		const mapped: PageWithMenuItem[] = items.map((page) => {
-			const mi = menuItemByPageId.get(page.id);
-			return {
-				...page,
-				menuItem: mi
-					? { id: mi.id, title: mi.title, url: mi.url, status: mi.status }
-					: null,
-			};
-		});
-
-		return { items: mapped, nextCursor: nextCursor ?? null };
+	/** The pages a scope owns, by slug, with their menu item (root pages only have one). */
+	async listByScope(scopeId: string): Promise<PageWithMenuItem[]> {
+		const rows = await db
+			.select()
+			.from(pages)
+			.where(eq(pages.scopeId, scopeId))
+			.orderBy(asc(pages.slug));
+		return withMenuItems(rows as Page[]);
 	},
 
 	async getById(id: string): Promise<PageWithMenuItem | undefined> {
-		const result = await db.select().from(pages).where(eq(pages.id, id));
-		if (!result.length) return undefined;
-		const page = result[0];
-		const miResult = await db
-			.select({
-				id: menuItems.id,
-				title: menuItems.title,
-				url: menuItems.url,
-				status: menuItems.status,
-			})
-			.from(menuItems)
-			.where(eq(menuItems.pageId, id));
-		return {
-			...page,
-			menuItem: miResult.length ? miResult[0] : null,
-		};
+		const rows = await db.select().from(pages).where(eq(pages.id, id));
+		if (!rows.length) return undefined;
+		return (await withMenuItems(rows as Page[]))[0];
 	},
 
-	async getByUrl(url: string): Promise<PageWithMenuItem | undefined> {
-		const miResult = await db
-			.select()
-			.from(menuItems)
-			.where(eq(menuItems.url, url));
-		const mi = miResult.find((m) => m.pageId != null);
-		if (!mi?.pageId) return undefined;
-		const pageResult = await db
+	/** The page of a scope at a slug ("" = the root's home page), published or not. */
+	async getBySlug(scopeId: string, slug: string): Promise<Page | undefined> {
+		const rows = await db
 			.select()
 			.from(pages)
-			.where(eq(pages.id, mi.pageId));
-		if (!pageResult.length) return undefined;
-		return {
-			...pageResult[0],
-			menuItem: { id: mi.id, title: mi.title, url: mi.url, status: mi.status },
-		};
+			.where(and(eq(pages.scopeId, scopeId), eq(pages.slug, slug)));
+		return rows[0] as Page | undefined;
 	},
 
-	async create(data: InsertPage): Promise<Page> {
+	/**
+	 * Why `slug` cannot be used for a page of `scopeId` (null when it can): the URL rules of
+	 * `pageSlugProblem` plus another page of the scope with that slug.
+	 */
+	async slugProblem(
+		scopeId: string,
+		slug: string,
+		modules: readonly ModuleDefinition[],
+		exceptPageId?: string,
+	): Promise<string | null> {
+		const scope = await scopesService.getById(scopeId);
+		if (!scope) return "Scope not found";
+		const problem = pageSlugProblem(slug, {
+			isRoot: scope.parentId === null,
+			modules,
+			childScopeSlugs: await scopesService.childSlugs(scopeId),
+		});
+		if (problem) return problem;
+		const existing = await this.getBySlug(scopeId, slug);
+		if (existing && existing.id !== exceptPageId) {
+			return `A page at "${scopeUrl(scope.path, slug)}" already exists`;
+		}
+		return null;
+	},
+
+	/** Create a page in a scope. Throws `PageError` when the slug is not available. */
+	async create(
+		input: {
+			scopeId: string;
+			slug: string;
+			title: string;
+			status?: "draft" | "published";
+			content?: BlockData[];
+		},
+		modules: readonly ModuleDefinition[],
+	): Promise<Page> {
+		const problem = await this.slugProblem(input.scopeId, input.slug, modules);
+		if (problem) throw new PageError(problem);
 		const [inserted] = await db
 			.insert(pages)
 			.values({
 				id: crypto.randomUUID(),
-				...data,
-				content: data.content || [],
-				status: data.status || "draft",
-			} as any)
+				scopeId: input.scopeId,
+				slug: input.slug,
+				title: input.title,
+				content: sanitizeBlocks(input.content ?? []),
+				status: input.status ?? "draft",
+			})
 			.returning();
-		return inserted;
+		return inserted as Page;
 	},
 
-	async update(id: string, data: UpdatePage): Promise<Page | undefined> {
-		const [updated] = await db
+	/**
+	 * Update a page's settings or content. A new slug is checked like on create. Returns the page
+	 * before and after, so callers can react to a changed URL.
+	 */
+	async update(
+		id: string,
+		data: {
+			title?: string;
+			slug?: string;
+			status?: "draft" | "published";
+			content?: BlockData[];
+		},
+		modules: readonly ModuleDefinition[] = [],
+	): Promise<{ before: Page; after: Page }> {
+		const [before] = (await db
+			.select()
+			.from(pages)
+			.where(eq(pages.id, id))) as Page[];
+		if (!before) throw new PageError("Page not found");
+		if (data.slug !== undefined && data.slug !== before.slug) {
+			const problem = await this.slugProblem(
+				before.scopeId,
+				data.slug,
+				modules,
+				id,
+			);
+			if (problem) throw new PageError(problem);
+		}
+		const [after] = await db
 			.update(pages)
-			.set(data)
+			.set({
+				...data,
+				...(data.content ? { content: sanitizeBlocks(data.content) } : {}),
+				updatedAt: new Date().toISOString(),
+			})
 			.where(eq(pages.id, id))
 			.returning();
-		return updated;
+		return { before, after: after as Page };
 	},
 
 	async delete(id: string): Promise<void> {

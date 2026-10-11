@@ -19,19 +19,6 @@ const SLIDE_GRADIENTS = [
 	"linear-gradient(135deg, var(--color-accent-dark) 0%, var(--color-accent) 100%)",
 ];
 
-function stripHtml(html: string): string {
-	return html
-		.replace(/<[^>]*>/g, " ")
-		.replace(/\s+/g, " ")
-		.trim();
-}
-
-function getExcerpt(body: string, maxLength: number = 120): string {
-	const plain = stripHtml(body);
-	if (plain.length <= maxLength) return plain;
-	return `${plain.substring(0, maxLength).trimEnd()}...`;
-}
-
 export default component$(() => {
 	const { posts, isLoading } = useHeroSection();
 	const currentSlide = useSignal(0);
@@ -59,7 +46,7 @@ export default component$(() => {
 	const slide = posts.value[currentSlide.value];
 	const slideGradient =
 		SLIDE_GRADIENTS[currentSlide.value % SLIDE_GRADIENTS.length];
-	const excerpt = slide.body ? getExcerpt(slide.body) : "";
+	const excerpt = slide.excerpt;
 
 	return (
 		<div class="hero-section-container">
@@ -71,24 +58,12 @@ export default component$(() => {
 						<div key={post.id} class="hero-carousel-slide">
 							<a href={post.url} class="hero-carousel-card">
 								<div class="hero-carousel-image-wrap">
-									{post.featuredImageUrl ? (
-										<img
-											src={post.featuredImageUrl}
-											alt={post.title}
-											class="hero-carousel-image"
-											width={400}
-											height={400}
-										/>
-									) : (
-										<div
-											class="hero-carousel-gradient"
-											style={{ background: gradient }}
-										>
-											<span class="hero-carousel-slide-number">
-												{index + 1}
-											</span>
-										</div>
-									)}
+									<div
+										class="hero-carousel-gradient"
+										style={{ background: gradient }}
+									>
+										<span class="hero-carousel-slide-number">{index + 1}</span>
+									</div>
 								</div>
 								<div class="hero-carousel-content">
 									<h2 class="hero-carousel-title">{post.title}</h2>
@@ -104,24 +79,14 @@ export default component$(() => {
 			<div class="hero-section-desktop">
 				<div class="hero-section-desktop-image-wrapper">
 					<div class="hero-section-desktop-image-frame">
-						{slide.featuredImageUrl ? (
-							<img
-								src={slide.featuredImageUrl}
-								alt={slide.title}
-								class="hero-section-desktop-image"
-								width={400}
-								height={400}
-							/>
-						) : (
-							<div
-								class="hero-section-desktop-gradient"
-								style={{ background: slideGradient }}
-							>
-								<span class="hero-section-desktop-slide-number">
-									{currentSlide.value + 1}
-								</span>
-							</div>
-						)}
+						<div
+							class="hero-section-desktop-gradient"
+							style={{ background: slideGradient }}
+						>
+							<span class="hero-section-desktop-slide-number">
+								{currentSlide.value + 1}
+							</span>
+						</div>
 					</div>
 				</div>
 

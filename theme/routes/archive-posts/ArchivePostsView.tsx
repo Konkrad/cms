@@ -1,8 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
 import type { ArchivePostsViewData } from "~/contracts/archive-posts";
-import { formatPostDate, toPlainText } from "~/core/content/posts";
-import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
+import { PostCardList } from "~theme/shared/PostCard/PostCard";
 
 /** Themed view shared by `/archive/posts` and `/archive/posts/[page]`. */
 export const ArchivePostsView = component$<{ data: ArchivePostsViewData }>(
@@ -39,19 +38,7 @@ export const ArchivePostsView = component$<{ data: ArchivePostsViewData }>(
 				{items.length === 0 ? (
 					<p class="text-text-muted text-center py-8">No posts found.</p>
 				) : (
-					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-						{items.map((post) => (
-							<ContentCard
-								key={post.id}
-								title={post.title}
-								image={post.featuredImage ?? undefined}
-								date={formatPostDate(post.createdAt)}
-								description={toPlainText(post.body).substring(0, 180)}
-								href={post.url}
-								label="Read More"
-							/>
-						))}
-					</div>
+					<PostCardList posts={items} />
 				)}
 
 				{totalPages > 1 && (

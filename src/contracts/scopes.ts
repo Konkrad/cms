@@ -4,6 +4,7 @@
  * The UI calls scopes groups, regions and chapters.
  */
 
+import type { PostCardData } from "~/contracts/posts";
 import type { useJoinScope } from "~/core/scopes/scope-actions";
 export type JoinScopeAction = ReturnType<typeof useJoinScope>;
 
@@ -80,18 +81,8 @@ export type ScopeViewData = ScopeExtras & {
 	/** Explicit member of this scope or of one below it. */
 	isMember: boolean;
 	isLoggedIn: boolean;
-	recentPosts: Array<{
-		id: string;
-		/** Canonical URL under the owning scope. */
-		url: string;
-		title: string;
-		body: string;
-		createdAt: string;
-		featuredImage: string | null;
-		authorName: string;
-		/** Name of the owning scope when it is not the page's scope (content flowing in). */
-		source: string | null;
-	}>;
+	/** Latest posts (notes and articles), labelled with their source scope when it is not this one. */
+	recentPosts: PostCardData[];
 	image1: string | null;
 	image2: string | null;
 	image3: string | null;

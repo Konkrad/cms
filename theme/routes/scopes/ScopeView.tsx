@@ -8,6 +8,7 @@ import { LocalRepTile } from "~theme/blocks/FeatureBlock/LocalRepTile";
 import { ParticipantsTile } from "~theme/blocks/FeatureBlock/ParticipantsTile";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 import { ParticipantsModal } from "~theme/shared/ParticipantsModal";
+import { PostCardList } from "~theme/shared/PostCard/PostCard";
 
 const GRID_LAYOUT = `"left-top middle right-top" "left-bottom middle right-top" "left-bottom middle right-bottom"`;
 const FALLBACK =
@@ -235,23 +236,7 @@ export const ScopeView = component$<{
 					<h2 class="font-semibold text-[32px] text-text-heading mb-6">
 						Latest from the Community
 					</h2>
-					<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-						{recentPosts.map((p) => (
-							<ContentCard
-								key={p.id}
-								category={p.source ?? undefined}
-								date={new Date(p.createdAt).toLocaleDateString("en-GB", {
-									year: "numeric",
-									month: "long",
-									day: "numeric",
-								})}
-								title={p.title}
-								image={p.featuredImage ?? undefined}
-								description={p.body.replace(/<[^>]+>/g, "").substring(0, 150)}
-								href={p.url}
-							/>
-						))}
-					</div>
+					<PostCardList posts={recentPosts} />
 				</div>
 			)}
 			{/* Members modal */}

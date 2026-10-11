@@ -1,9 +1,9 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
 import type { ScopeViewData } from "~/contracts/scopes";
+import { toPostCards } from "~/core/content/post-cards";
 import { postsService } from "~/core/content/posts.service";
 import { publicImageUrlFromKey } from "~/core/media/images";
 import { activeScopeExtras } from "~/core/registry/manifests";
-import { withItemUrls } from "~/core/registry/refs";
 import { scopeUrl } from "~/core/router/scope-path";
 import { currentUser, isMember } from "~/core/scopes/access";
 import {
@@ -50,7 +50,7 @@ export async function loadScopeHome(
 	const rep = reps.find((r) => r.role === "representative");
 	// The scope's own (and its subtree's) posts first, then the ancestors', newest first.
 	const recentPosts = localFirst(postCandidates, filter, 3).sort((a, b) =>
-		b.createdAt.localeCompare(a.createdAt),
+		(b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""),
 	);
 	// Posts of other scopes are labelled with their source.
 	const sources = await scopeSourceLabels(
@@ -91,16 +91,7 @@ export async function loadScopeHome(
 			: null,
 		isMember: member,
 		isLoggedIn: !!user,
-		recentPosts: (await withItemUrls("core:post", recentPosts)).map((p) => ({
-			id: p.id,
-			url: p.url,
-			title: p.title,
-			body: p.body,
-			createdAt: p.createdAt,
-			featuredImage: publicImageUrlFromKey(p.featuredImage ?? null),
-			authorName: `${p.user.name} ${p.user.familyName}`,
-			source: sources[p.scopeId] ?? null,
-		})),
+		recentPosts: await toPostCards(recentPosts, { loggedIn: !!user, sources }),
 		image1: publicImageUrlFromKey(scope.image1),
 		image2: publicImageUrlFromKey(scope.image2),
 		image3: publicImageUrlFromKey(scope.image3),

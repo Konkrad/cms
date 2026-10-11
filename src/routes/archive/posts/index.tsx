@@ -1,10 +1,10 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import type { ArchivePostsViewData } from "~/contracts/archive-posts";
+import { getServerSession } from "~/core/auth/server-auth";
+import { toPostCards } from "~/core/content/post-cards";
 import { postsService } from "~/core/content/posts.service";
 import { canonicalUrl } from "~/core/content/seo";
-import { publicImageUrlFromKey } from "~/core/media/images";
-import { withItemUrls } from "~/core/registry/refs";
 import { requestContentFilter } from "~/core/scopes/content-filter";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { ArchivePostsView } from "~theme/routes/archive-posts/ArchivePostsView";
@@ -19,12 +19,8 @@ export const useArchivePostsPage = routeLoader$(
 			page,
 			POSTS_PER_PAGE,
 		);
-		const items = (await withItemUrls("core:post", result.items)).map(
-			(post) => ({
-				...post,
-				featuredImage: publicImageUrlFromKey(post.featuredImage),
-			}),
-		);
+		const viewer = await getServerSession(event);
+		const items = await toPostCards(result.items, { loggedIn: !!viewer });
 
 		return assertNoPrivateFields({
 			page,

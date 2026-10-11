@@ -1,216 +1,102 @@
-import { $, component$, useSignal } from "@qwik.dev/core";
-import { routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
+import { component$ } from "@qwik.dev/core";
+import { routeAction$, routeLoader$, zod$ } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
-import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
-import { Input } from "~/components/ui/Input";
-import { BlockNoteEditor } from "~/core/content/editor";
+import { PostForm, type PostFormResult } from "~/core/admin/PostForm/PostForm";
+import { postFormSchema, subjectFromField } from "~/core/content/post-form";
+import { PostInputError } from "~/core/content/posts";
 import { postsService } from "~/core/content/posts.service";
-import { publicImageUrlFromKey } from "~/core/media/images";
+import { refHref } from "~/core/refs/refs";
+import { describeRef } from "~/core/registry/refs";
 import { adminUrl } from "~/core/router/scope-path";
 import {
 	ADMIN_ACCESS,
+	allowedVisibilities,
 	isWithinScope,
 	requireScopeRole,
 } from "~/core/scopes/access";
-
-const updateSchema = z.object({
-	title: z.string().min(1, "Title is required"),
-	content: z.string(),
-	editorState: z.string().optional(),
-	featuredImage: z.string().optional(),
-	showAuthor: z.string().optional(), // "on" when checked, absent when not
-});
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 
 export const usePost = routeLoader$(async (event) => {
-	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
-	const postId = event.params.id;
-	const post = await postsService.getById(postId);
-
-	if (!post) {
-		throw event.redirect(303, adminUrl(scope.path, "/posts"));
-	}
-	if (!(await isWithinScope(scope, post.scopeId))) {
+	const { user, scope } = await requireScopeRole(event, ADMIN_ACCESS);
+	const post = await postsService.getById(event.params.id);
+	if (!post) throw event.redirect(303, adminUrl(scope.path, "/posts"));
+	if (!(await isWithinScope(scope, post.scopeId)))
 		throw event.error(403, "Forbidden");
-	}
 
-	return {
-		post,
+	const subjectRef =
+		post.subjectType && post.subjectId
+			? `${post.subjectType}:${post.subjectId}`
+			: null;
+	const subject = subjectRef ? await describeRef(subjectRef) : null;
+	// The current visibility stays selectable (unchanged values are not re-checked).
+	const allowed = await allowedVisibilities(user, post.scopeId);
+	return assertNoPrivateFields({
 		base: adminUrl(scope.path),
-		featuredImageUrl: publicImageUrlFromKey(post.featuredImage),
-	};
+		visibilities: [...new Set([post.visibility, ...allowed])],
+		post: {
+			id: post.id,
+			title: post.title,
+			body: post.body,
+			visibility: post.visibility,
+			subject: subjectRef
+				? {
+						href: refHref(subjectRef),
+						label: subject?.title ?? `${subjectRef} (unavailable)`,
+					}
+				: null,
+		},
+	});
 });
 
-export const useUpdatePost = routeAction$(async (data, event) => {
-	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
-	const postId = event.params.id;
-	const target = await postsService.getById(postId);
-	if (!target) return { success: false, error: "Post not found" };
-	if (!(await isWithinScope(scope, target.scopeId))) {
-		throw event.error(403, "Forbidden");
-	}
-
-	try {
-		const updated = await postsService.update(postId, {
-			title: data.title,
-			editorState: data.editorState || null,
-			featuredImage: data.featuredImage || null,
-			showAuthor: data.showAuthor === "on",
-		});
-
-		if (!updated) {
-			return {
-				success: false,
-				error: "Post not found",
-			};
+export const useUpdatePost = routeAction$(
+	async (data, event): Promise<PostFormResult> => {
+		const { user, scope } = await requireScopeRole(event, ADMIN_ACCESS);
+		const target = await postsService.getById(event.params.id);
+		if (!target) return { success: false, error: "Post not found" };
+		if (!(await isWithinScope(scope, target.scopeId)))
+			throw event.error(403, "Forbidden");
+		try {
+			await postsService.update(
+				target.id,
+				{
+					title: data.title ?? null,
+					body: data.body,
+					visibility: data.visibility,
+					...subjectFromField(data.subject),
+				},
+				user.id,
+			);
+		} catch (error) {
+			if (error instanceof PostInputError)
+				return { success: false, error: error.message };
+			throw error;
 		}
-
-		return {
-			success: true,
-		};
-	} catch (error: any) {
-		return {
-			success: false,
-			error: error?.message || "Failed to update post",
-		};
-	}
-}, zod$(updateSchema));
+		return { success: true };
+	},
+	zod$(postFormSchema),
+);
 
 export default component$(() => {
 	const data = usePost();
-	const updatePostAction = useUpdatePost();
-	const isSubmitting = useSignal(false);
-	const content = useSignal(data.value.post.body || "");
-	const editorState = useSignal(data.value.post.editorState || null);
-	const triggerUpload = useSignal(false);
-	const showFeaturedUploader = useSignal(!data.value.post.featuredImage);
-
-	const handleEditorChange$ = $((htmlContent: string, state: string) => {
-		content.value = htmlContent;
-		editorState.value = state;
-	});
-
-	const handleSubmit = $(() => {
-		isSubmitting.value = true;
-		triggerUpload.value = true;
-	});
-
-	const onUploadDone = $(() => {
-		const form = document.querySelector("form");
-		if (form) updatePostAction.submit(new FormData(form));
-	});
-
+	const updatePost = useUpdatePost();
 	return (
 		<div>
 			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-2xl font-bold text-gray-800">Edit Post</h2>
+				<h2 class="text-2xl font-bold text-gray-800">Edit post</h2>
 				<Button href={`${data.value.base}/posts`} variant="secondary">
 					Back to Posts
 				</Button>
 			</div>
-
 			<div class="bg-white rounded-lg shadow-sm p-6">
-				<form preventdefault:submit onSubmit$={handleSubmit} class="space-y-6">
-					<Input
-						name="title"
-						label="Title"
-						value={data.value.post.title}
-						placeholder="Enter post title"
-						required
-					/>
-
-					<p class="text-sm font-medium text-gray-700 mb-1">
-						Featured Image (optional)
-					</p>
-					{!showFeaturedUploader.value && data.value.post.featuredImage ? (
-						<div class="relative rounded-sm border border-gray-200 overflow-hidden">
-							<img
-								src={data.value.featuredImageUrl || ""}
-								alt="Current"
-								width="400"
-								height="400"
-								class="w-full object-cover"
-								style={{ aspectRatio: "1/1" }}
-							/>
-							<button
-								type="button"
-								class="absolute bottom-2 right-2 rounded-sm bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-white"
-								onClick$={() => {
-									showFeaturedUploader.value = true;
-								}}
-							>
-								Change image
-							</button>
-							<input
-								type="hidden"
-								name="featuredImage"
-								value={data.value.post.featuredImage}
-							/>
-						</div>
-					) : (
-						<ImageUploader
-							name="featuredImage"
-							path="public/posts"
-							aspectRatio="1/1"
-							crop
-							cropAspectRatio="1/1"
-							triggerSignal={triggerUpload}
-							onSettled$={onUploadDone}
-						/>
-					)}
-
-					<label class="flex items-center gap-3 cursor-pointer select-none">
-						<input
-							type="checkbox"
-							name="showAuthor"
-							checked={data.value.post.showAuthor}
-							class="w-4 h-4 rounded border-gray-300 text-blue-600"
-						/>
-						<span class="text-sm font-medium text-gray-700">
-							Show author block on article page
-						</span>
-					</label>
-
-					<div>
-						<p class="block text-sm font-medium text-gray-700 mb-2">Content</p>
-						<div class="border border-gray-300 rounded-lg overflow-hidden">
-							<BlockNoteEditor
-								editorState={data.value.post.editorState}
-								content={data.value.post.body || ""}
-								onChange$={handleEditorChange$}
-								uploadUrl="/api/images"
-								linkPicker
-							/>
-						</div>
-					</div>
-
-					<input type="hidden" name="content" value={content.value} />
-					<input
-						type="hidden"
-						name="editorState"
-						value={editorState.value || ""}
-					/>
-
-					{updatePostAction.value?.error && (
-						<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm">
-							{updatePostAction.value.error}
-						</div>
-					)}
-
-					{updatePostAction.value?.success && (
-						<div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-sm">
-							Post updated successfully!
-						</div>
-					)}
-
-					<div class="flex gap-4">
-						<Button type="submit" disabled={isSubmitting.value}>
-							{isSubmitting.value ? "Saving..." : "Save Changes"}
-						</Button>
-						<Button href={`${data.value.base}/posts`} variant="secondary">
-							Cancel
-						</Button>
-					</div>
-				</form>
+				<PostForm
+					action={updatePost}
+					visibilities={data.value.visibilities}
+					values={data.value.post}
+					subjectPicker
+					submitLabel="Save Changes"
+					cancelHref={`${data.value.base}/posts`}
+					successMessage="Post updated successfully!"
+				/>
 			</div>
 		</div>
 	);

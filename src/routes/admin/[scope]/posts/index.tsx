@@ -67,14 +67,14 @@ export default component$(() => {
 				<Button href={`${data.value.base}/posts/new`}>Create New Post</Button>
 			</div>
 
-			<SearchBar value={data.value.search} placeholder="Search by title…" />
+			<SearchBar value={data.value.search} placeholder="Search posts…" />
 
 			<div class="bg-white rounded-lg shadow-sm overflow-x-auto">
 				<table class="min-w-full divide-y divide-gray-200">
 					<thead class="bg-gray-50">
 						<tr>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Title
+								Post
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 								Author
@@ -92,19 +92,23 @@ export default component$(() => {
 							<tr key={post.id} class="hover:bg-gray-50">
 								<td class="px-6 py-4">
 									<div class="text-sm font-medium text-gray-900">
-										{post.title}
+										{post.title ?? (
+											<span class="italic text-gray-500">Note</span>
+										)}
 									</div>
 									<div class="text-sm text-gray-500 line-clamp-1">
-										{post.body.substring(0, 100)}…
+										{post.excerpt}
 									</div>
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap">
 									<div class="text-sm text-gray-900">
-										{post.user.name} {post.user.familyName}
+										{post.author.name} {post.author.familyName}
 									</div>
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-									{format(new Date(post.createdAt), "MMM d, yyyy")}
+									{post.publishedAt
+										? format(new Date(post.publishedAt), "MMM d, yyyy")
+										: "Not published"}
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
 									<div class="flex items-center gap-4">

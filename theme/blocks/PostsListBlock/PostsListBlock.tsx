@@ -2,7 +2,7 @@ import { component$ } from "@qwik.dev/core";
 import { CursorPager } from "~/components/ui/CursorPager";
 import type { BlockDefinition } from "~/contracts/blocks";
 import { usePostsList } from "~/core/content/builder/blocks/usePostsList";
-import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
+import { PostCardList } from "~theme/shared/PostCard/PostCard";
 
 interface PostsListBlockProps {
 	limit?: number;
@@ -44,25 +44,7 @@ export default component$<PostsListBlockProps>((props) => {
 				<p class="text-text-muted text-center py-8">No posts found.</p>
 			) : (
 				<>
-					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-						{items.value.map((post) => (
-							<ContentCard
-								key={post.id}
-								title={post.title}
-								image={post.featuredImage ?? undefined}
-								date={new Intl.DateTimeFormat("en-US", {
-									day: "numeric",
-									month: "long",
-									year: "numeric",
-								}).format(new Date(post.createdAt))}
-								description={post.body
-									.replace(/<[^>]+>/g, "")
-									.substring(0, 160)}
-								href={post.url}
-								label="Read More"
-							/>
-						))}
-					</div>
+					<PostCardList posts={items.value} />
 
 					<CursorPager
 						hasPrevious={prevCursor.value !== null}

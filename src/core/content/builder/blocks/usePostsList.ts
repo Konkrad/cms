@@ -2,7 +2,6 @@ import { $, useOnWindow, useSignal, useVisibleTask$ } from "@qwik.dev/core";
 import type { RequestEventCommon } from "@qwik.dev/router";
 import { server$ } from "@qwik.dev/router";
 import type { PostsPage } from "~/contracts/posts";
-import { publicImageUrlFromKey } from "~/core/media/images";
 
 const fetchPosts = server$(async function (options: {
 	limit: number;
@@ -13,8 +12,7 @@ const fetchPosts = server$(async function (options: {
 	const { getServerSession } = await import("~/core/auth/server-auth");
 	const { scopeContentFilter } = await import("~/core/scopes/content-filter");
 	const { currentScope } = await import("~/core/router/scope-request");
-	const { formatUser } = await import("~/core/users/format");
-	const { withItemUrls } = await import("~/core/registry/refs");
+	const { toPostCards } = await import("~/core/content/post-cards");
 
 	const session = await getServerSession(this as RequestEventCommon);
 	// The listing of the page's scope (the URL's scope prefix), as this viewer sees it.
@@ -24,12 +22,7 @@ const fetchPosts = server$(async function (options: {
 		options.cursor ?? null,
 		options.direction ?? "forward",
 	);
-
-	const items = (await withItemUrls("core:post", res.items)).map((post) => ({
-		...post,
-		featuredImage: publicImageUrlFromKey(post.featuredImage),
-		user: formatUser(post.user, !!session),
-	}));
+	const items = await toPostCards(res.items, { loggedIn: !!session });
 
 	return { items, nextCursor: res.nextCursor, prevCursor: res.prevCursor };
 });

@@ -66,7 +66,8 @@ function sanitizeUploadPrefix(raw: string): string | null {
  *
  *  - profile-pictures → any authenticated user (their own avatar)
  *  - private/events/  → admin only (mirrors the event-photo create action)
- *  - public/* content → admin or anyone with a managing role on a scope
+ *  - public/* content (article images under `public/articles/`, scope images, logos…) →
+ *    admin or anyone with a managing role on a scope
  */
 async function isUploadAuthorized(
 	prefix: string,

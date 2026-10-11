@@ -27,12 +27,15 @@ export const Breadcrumbs = component$<BreadcrumbsProps>(({ trail }) => {
 		} else if (segments.includes("edit")) {
 			breadcrumbs.push({ label: "Edit Event" });
 		}
-	} else if (segments.includes("posts")) {
-		breadcrumbs.push({ label: "Posts" });
+	} else if (segments.includes("notes")) {
+		breadcrumbs.push({ label: "Notes" });
+		if (segments.includes("edit")) breadcrumbs.push({ label: "Edit Note" });
+	} else if (segments.includes("articles")) {
+		breadcrumbs.push({ label: "Articles" });
 		if (segments.includes("new")) {
-			breadcrumbs.push({ label: "New Post" });
+			breadcrumbs.push({ label: "New Article" });
 		} else if (segments.includes("edit")) {
-			breadcrumbs.push({ label: "Edit Post" });
+			breadcrumbs.push({ label: "Edit Article" });
 		}
 	} else if (segments.includes("users")) {
 		breadcrumbs.push({ label: "Users" });

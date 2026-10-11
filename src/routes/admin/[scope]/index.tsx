@@ -95,6 +95,12 @@ export default component$(() => {
 					<Button href={`${stats.value.base}/events/new`} variant="secondary">
 						+ New Event
 					</Button>
+					<Button href={`${stats.value.base}/notes`} variant="secondary">
+						+ New Note
+					</Button>
+					<Button href={`${stats.value.base}/articles/new`} variant="secondary">
+						+ New Article
+					</Button>
 					{stats.value.isRoot && (
 						<Button href={`${stats.value.base}/pages/new`} variant="secondary">
 							+ New Page

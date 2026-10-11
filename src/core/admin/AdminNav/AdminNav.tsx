@@ -26,6 +26,8 @@ export const AdminNav = component$<AdminNavProps>(
 		// (e.g. Deals/Jobs between Groups and Qualifications). Sections without `order` go last.
 		const navItems: NavItem[] = [
 			{ order: 0, href: basePath, label: "Dashboard", exact: true },
+			{ order: 20, href: `${basePath}/notes`, label: "Notes" },
+			{ order: 21, href: `${basePath}/articles`, label: "Articles" },
 			{ order: 40, href: `${basePath}/forms`, label: "Forms" },
 			{ order: 50, href: `${basePath}/pages`, label: "Pages" },
 			{

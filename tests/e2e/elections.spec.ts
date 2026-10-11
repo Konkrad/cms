@@ -743,9 +743,11 @@ test.describe("Elections — module wiring", () => {
 			parentPath: `/${region}/`,
 			slug: chapter,
 		}).id;
+		// Owned by the chapter: its canonical URL is under the chapter's prefix.
 		const { cycleId, cleanup } = createElectionCycleInDb({
 			status: "closed",
 			title: "Scoped Public Cycle",
+			scopeId: chapterId,
 		});
 		const session = createUserSession("user");
 		try {

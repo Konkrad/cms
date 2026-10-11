@@ -29,7 +29,7 @@ test.describe("Events — guest visibility", () => {
 			},
 			false,
 		);
-		await page.goto(`/events/${ev.id}`);
+		await page.goto(`/events/${ev.slug}`);
 		await expect(page.locator("text=Log In to RSVP")).toBeVisible();
 	});
 
@@ -45,7 +45,7 @@ test.describe("Events — guest visibility", () => {
 			},
 			false,
 		);
-		await page.goto(`/events/${ev.id}`);
+		await page.goto(`/events/${ev.slug}`);
 		await expect(page.locator('h3:has-text("Online")')).toBeVisible();
 		await expect(page.locator('img[src="/online.png"]').first()).toBeVisible({
 			timeout: 5_000,
@@ -64,9 +64,9 @@ test.describe("Events — guest visibility", () => {
 			},
 			true,
 		);
-		await page.goto(`/events/${ev.id}`);
+		await page.goto(`/events/${ev.slug}`);
 		await expect(
-			page.locator(`a[href="/events/${ev.id}/checkout"]`).first(),
+			page.locator(`a[href="/events/${ev.slug}/checkout"]`).first(),
 		).toBeVisible({ timeout: 5_000 });
 	});
 
@@ -89,7 +89,7 @@ test.describe("Events — guest visibility", () => {
 			},
 			true,
 		);
-		await page.goto(`/events/${ev.id}`);
+		await page.goto(`/events/${ev.slug}`);
 		await expect(page.locator("text=Sold Out")).toBeVisible({ timeout: 5_000 });
 	});
 
@@ -106,7 +106,7 @@ test.describe("Events — guest visibility", () => {
 			},
 			false,
 		);
-		await page.goto(`/events/${ev.id}`);
+		await page.goto(`/events/${ev.slug}`);
 		await expect(page.locator("text=Buy Your Tickets")).toHaveCount(0);
 		await expect(page.locator('button:has-text("✓ Going")')).toHaveCount(0);
 		await expect(page.locator("text=Join Waitlist")).toHaveCount(0);
@@ -133,7 +133,7 @@ test.describe("Events — logged-in interactions", () => {
 			},
 			true,
 		);
-		await page.goto(`/events/${ev.id}`);
+		await page.goto(`/events/${ev.slug}`);
 		await expect(page.locator('button:has-text("✓ Going")')).toBeVisible({
 			timeout: 5_000,
 		});
@@ -161,7 +161,7 @@ test.describe("Events — logged-in interactions", () => {
 			true,
 		);
 
-		await page.goto(`/events/${ev.id}`);
+		await page.goto(`/events/${ev.slug}`);
 
 		await expect(page.locator('button:has-text("✓ Going")')).toBeVisible({
 			timeout: 5_000,
@@ -197,8 +197,8 @@ test.describe("Events — logged-in interactions", () => {
 			},
 			true,
 		);
-		await page.goto(`/events/${ev.id}`);
-		await page.click(`a[href="/events/${ev.id}/checkout"]`);
+		await page.goto(`/events/${ev.slug}`);
+		await page.click(`a[href="/events/${ev.slug}/checkout"]`);
 		await page.waitForURL(/\/events\/.+\/checkout/, { timeout: 15_000 });
 		await expect(
 			page
@@ -219,7 +219,7 @@ test.describe("Events — logged-in interactions", () => {
 			},
 			false,
 		);
-		await page.goto(`/events/${ev.id}`);
+		await page.goto(`/events/${ev.slug}`);
 		await expect(page.locator("text=Join Waitlist")).toBeVisible({
 			timeout: 5_000,
 		});

@@ -455,6 +455,8 @@ export function createTestEvent(userId: string): {
 export function createScopeEventInDb(opts: {
 	organizerId: string;
 	title: string;
+	/** URL slug in the scope; the event id by default. */
+	slug?: string;
 	scopeId?: string;
 	visibility?: "public" | "members" | "representatives";
 	past?: boolean;
@@ -470,7 +472,7 @@ export function createScopeEventInDb(opts: {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		eventId,
-		eventId,
+		opts.slug ?? eventId,
 		opts.title,
 		"<p>e2e group event</p>",
 		start,
@@ -924,6 +926,24 @@ export function createScopeInDb(opts: {
  * pages, jobs and deals are deleted; other content rows (posts, events, forms, election cycles,
  * qualification types) are handed to the root rather than deleted.
  */
+/**
+ * Give a scope a new slug, rewriting the paths of its subtree like a rename in the admin
+ * (without the redirect rows). References to the scope and its content need no change.
+ */
+export function renameScopeInDb(id: string, slug: string): { path: string } {
+	const db = openDb();
+	const scope = db.prepare("SELECT path FROM scopes WHERE id = ?").get(id) as {
+		path: string;
+	};
+	const newPath = scope.path.replace(/[^/]+\/$/, `${slug}/`);
+	db.prepare("UPDATE scopes SET slug = ? WHERE id = ?").run(slug, id);
+	db.prepare(
+		"UPDATE scopes SET path = ? || substr(path, ?) WHERE path LIKE ?",
+	).run(newPath, scope.path.length + 1, `${scope.path}%`);
+	db.close();
+	return { path: newPath };
+}
+
 export function deleteScopeById(id: string): void {
 	const db = openDb();
 	const scope = db.prepare("SELECT path FROM scopes WHERE id = ?").get(id) as
@@ -1030,13 +1050,11 @@ export function deletePostByTitle(title: string): void {
 export function ensureNewsPage(): { pageId: string } {
 	const db = openDb();
 	const existing = db
-		.prepare(
-			"SELECT page_id FROM menu_items WHERE url = '/news' AND page_id IS NOT NULL LIMIT 1",
-		)
-		.get() as { page_id: string } | undefined;
+		.prepare("SELECT id FROM pages WHERE scope_id = ? AND slug = 'news'")
+		.get(rootScopeId(db)) as { id: string } | undefined;
 	if (existing) {
 		db.close();
-		return { pageId: existing.page_id };
+		return { pageId: existing.id };
 	}
 
 	const pageId = crypto.randomUUID();
@@ -1055,16 +1073,16 @@ export function ensureNewsPage(): { pageId: string } {
 		"INSERT INTO pages (id, scope_id, slug, title, content, status, created_at, updated_at) VALUES (?, ?, 'news', 'News', ?, 'published', ?, ?)",
 	).run(pageId, rootScopeId(db), content, now, now);
 	db.prepare(
-		"INSERT INTO menu_items (id, menu_name, title, url, page_id, parent_id, position, status, icon, target, created_at, updated_at) VALUES (?, 'main', 'News', '/news', ?, null, 999, 'hidden', null, '_self', ?, ?)",
-	).run(menuItemId, pageId, now, now);
+		"INSERT INTO menu_items (id, menu_name, title, url, page_id, parent_id, position, status, icon, target, created_at, updated_at) VALUES (?, 'main', 'News', ?, ?, null, 999, 'hidden', null, '_self', ?, ?)",
+	).run(menuItemId, `ref:core:page:${pageId}`, pageId, now, now);
 	db.close();
 	return { pageId };
 }
 
 /**
- * A page with a (hidden) menu item at `url` ("/<slug>"), owned by the root. With `scopeId` the
- * page belongs to that scope instead (served at "<scope path><slug>") and gets no menu item
- * (`menuItemId` is then empty).
+ * A page at `url` ("/<slug>") with a (hidden) menu item linking to it by reference
+ * (`ref:core:page:<id>`), owned by the root. With `scopeId` the page belongs to that scope
+ * instead (served at "<scope path><slug>") and gets no menu item (`menuItemId` is then empty).
  */
 export function createPageInDb(opts: {
 	title: string;
@@ -1107,7 +1125,7 @@ export function createPageInDb(opts: {
 		menuItemId,
 		opts.menuName,
 		opts.title,
-		opts.url,
+		`ref:core:page:${pageId}`,
 		pageId,
 		position,
 		now,
@@ -1167,6 +1185,20 @@ export function getMenuItemByUrl(
 			"SELECT id, title, url, status FROM menu_items WHERE url = ? LIMIT 1",
 		)
 		.get(url) as
+		| { id: string; title: string; url: string; status: string }
+		| undefined;
+	db.close();
+	return row;
+}
+
+/** A menu item row by id (its stored `url` may be a `ref:` reference). */
+export function getMenuItemById(
+	id: string,
+): { id: string; title: string; url: string; status: string } | undefined {
+	const db = openDb();
+	const row = db
+		.prepare("SELECT id, title, url, status FROM menu_items WHERE id = ?")
+		.get(id) as
 		| { id: string; title: string; url: string; status: string }
 		| undefined;
 	db.close();

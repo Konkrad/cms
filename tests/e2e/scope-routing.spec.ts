@@ -104,9 +104,11 @@ test.describe("Scope routing — events module pages", () => {
 		guestPage: page,
 	}) => {
 		const organizer = createUserSession("user");
+		// Owned by the chapter: its canonical URL is under the chapter's prefix.
 		const event = createScopeEventInDb({
 			organizerId: organizer.userId,
 			title: "Scoped Event Page",
+			scopeId: chapterId,
 		});
 		try {
 			const res = await page.goto(`${PREFIX}/events/${event.eventId}`);
@@ -131,11 +133,12 @@ test.describe("Scope routing — events module pages", () => {
 				salesStartOffset: -1,
 				salesEndOffset: 30,
 				needsTicket: false,
+				groupSlug: CHAPTER,
 			},
 			true,
 		);
 		try {
-			await m.page.goto(`${PREFIX}/events/${ev.id}`);
+			await m.page.goto(`${PREFIX}/events/${ev.slug}`);
 			await m.page.waitForLoadState("networkidle");
 			await m.page.click('button:has-text("✓ Going")');
 			await expect(

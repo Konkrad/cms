@@ -236,7 +236,7 @@ test.describe("Notifications — events", () => {
 		);
 		const { context, page } = await loggedInPage(browser, session.sessionToken);
 		try {
-			await page.goto(`/events/${ev.id}`);
+			await page.goto(`/events/${ev.slug}`);
 			const since = new Date();
 			await page.locator('button:has-text("✓ Going")').first().click();
 			await expect(

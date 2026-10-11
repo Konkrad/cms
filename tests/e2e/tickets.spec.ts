@@ -43,16 +43,16 @@ test.describe("Tickets", () => {
 			true,
 		);
 
-		await page.goto(`/events/${ev.id}`);
+		await page.goto(`/events/${ev.slug}`);
 
 		// Ensure checkout CTA exists and follow it
 		const checkoutAnchors = await page
-			.locator(`a[href="/events/${ev.id}/checkout"]`)
+			.locator(`a[href="/events/${ev.slug}/checkout"]`)
 			.count();
 		if (checkoutAnchors === 0)
 			throw new Error("Expected checkout CTA for multi-product free event");
 
-		await page.click(`a[href="/events/${ev.id}/checkout"]`);
+		await page.click(`a[href="/events/${ev.slug}/checkout"]`);
 		await expect(page.locator('h1:has-text("Purchase Tickets")')).toBeVisible();
 
 		// select first free product and proceed
@@ -87,7 +87,7 @@ test.describe("Tickets", () => {
 			true,
 		);
 
-		await page.goto(`/events/${ev.id}`);
+		await page.goto(`/events/${ev.slug}`);
 
 		// Expect participation toggle and select yes.
 		const rsvpBtn = page.locator('button:has-text("✓ Going")').first();
@@ -125,7 +125,7 @@ test.describe("Tickets", () => {
 			true,
 		);
 
-		await page.goto(`/events/${ev.id}`);
+		await page.goto(`/events/${ev.slug}`);
 
 		const rsvpBtn = page.locator('button:has-text("✓ Going")').first();
 		await expect(rsvpBtn).toBeVisible({ timeout: 5_000 });
@@ -167,7 +167,7 @@ test.describe("Tickets", () => {
 			sold_quantity: number;
 		};
 
-		await page.goto(`/events/${ev.id}`);
+		await page.goto(`/events/${ev.slug}`);
 
 		await expect(page.locator('button:has-text("✓ Going")')).toBeVisible({
 			timeout: 5_000,
@@ -216,9 +216,9 @@ test.describe("Tickets", () => {
 			true,
 		);
 
-		await page.goto(`/events/${ev.id}`);
+		await page.goto(`/events/${ev.slug}`);
 		// Use the live stripe-mock + backend: click through normal checkout
-		await page.click(`a[href="/events/${ev.id}/checkout"]`);
+		await page.click(`a[href="/events/${ev.slug}/checkout"]`);
 		await expect(page.locator('h1:has-text("Purchase Tickets")')).toBeVisible();
 
 		// select product and proceed
@@ -236,7 +236,7 @@ test.describe("Tickets", () => {
 		// Wait for the create-checkout-session action response (client posts to the action when moving to step 2)
 		const createResp = await page.waitForResponse(
 			(r) =>
-				r.url().includes(`/events/${ev.id}/checkout`) &&
+				r.url().includes(`/events/${ev.slug}/checkout`) &&
 				r.request().method() === "POST",
 			{ timeout: 5000 },
 		);
@@ -445,7 +445,7 @@ test.describe("Participant Assignment Step", () => {
 		const page = await ctx.newPage();
 
 		try {
-			await page.goto(`/events/${ev.id}/checkout`);
+			await page.goto(`/events/${ev.slug}/checkout`);
 			await expect(
 				page.locator('h1:has-text("Purchase Tickets")'),
 			).toBeVisible();
@@ -519,7 +519,7 @@ test.describe("Participant Assignment Step", () => {
 		const page = await ctx.newPage();
 
 		try {
-			await page.goto(`/events/${ev.id}/checkout`);
+			await page.goto(`/events/${ev.slug}/checkout`);
 			await expect(
 				page.locator('h1:has-text("Purchase Tickets")'),
 			).toBeVisible();
@@ -588,7 +588,7 @@ test.describe("Participant Assignment Step", () => {
 		const page = await ctx.newPage();
 
 		try {
-			await page.goto(`/events/${ev.id}/checkout`);
+			await page.goto(`/events/${ev.slug}/checkout`);
 			await expect(
 				page.locator('h1:has-text("Purchase Tickets")'),
 			).toBeVisible();

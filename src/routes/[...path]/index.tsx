@@ -26,8 +26,6 @@ export * from "../../core/registry/actions";
 export { useJoinScope } from "../../core/scopes/scope-actions";
 
 const CMS_PAGE = "cms";
-/** Core pages (posts) first, then the active modules' pages, in declared order. */
-const publicPages = [...corePages, ...modulePages];
 const SCOPE_HOME = "scope";
 
 function scopeHomeHead(data: ScopeViewData, url: URL) {
@@ -68,7 +66,10 @@ function descriptionFromBlocks(blocks: BlockData[] | null): string {
 export const usePathPage = routeLoader$(async (event) => {
 	const rest = currentScopeRest(event);
 	const scopePath = currentScopePath(event);
-	const match = matchPage(publicPages, rest);
+	// Core pages (posts) first, then the active modules' pages, in declared order. Referenced
+	// only inside the loader: a top-level constant would pull the server graph into the
+	// client's route module.
+	const match = matchPage([...corePages, ...modulePages], rest);
 	if (match) {
 		const data = await match.page.load(event, {
 			params: match.params,

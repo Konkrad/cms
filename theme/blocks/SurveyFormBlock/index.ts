@@ -1,2 +1,1 @@
-export { default } from "./SurveyFormBlock";
-export { definition } from "./SurveyFormBlock";
+export { default, definition } from "./SurveyFormBlock";

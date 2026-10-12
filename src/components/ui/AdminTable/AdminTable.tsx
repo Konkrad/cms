@@ -1,11 +1,11 @@
 import { component$, Slot } from "@qwik.dev/core";
 
 export const AdminTable = component$(() => {
-  return (
-    <div class="bg-white shadow-sm rounded-lg overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200">
-        <Slot />
-      </table>
-    </div>
-  );
+	return (
+		<div class="bg-white shadow-sm rounded-lg overflow-x-auto">
+			<table class="min-w-full divide-y divide-gray-200">
+				<Slot />
+			</table>
+		</div>
+	);
 });

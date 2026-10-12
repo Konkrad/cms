@@ -1,2 +1,1 @@
-export { default } from "./GroupsListBlock";
-export { definition } from "./GroupsListBlock";
+export { default, definition } from "./GroupsListBlock";

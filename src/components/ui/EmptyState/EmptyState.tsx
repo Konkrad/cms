@@ -1,19 +1,19 @@
 import { component$, Slot } from "@qwik.dev/core";
 
 type EmptyStateProps = {
-  message: string;
-  description?: string;
-  class?: string;
+	message: string;
+	description?: string;
+	class?: string;
 };
 
 export const EmptyState = component$<EmptyStateProps>(
-  ({ message, description, class: className }) => {
-    return (
-      <div class={`text-center py-12 text-text-muted ${className || ""}`}>
-        <Slot />
-        <p class="text-lg font-medium">{message}</p>
-        {description && <p class="text-sm mt-1">{description}</p>}
-      </div>
-    );
-  },
+	({ message, description, class: className }) => {
+		return (
+			<div class={`text-center py-12 text-text-muted ${className || ""}`}>
+				<Slot />
+				<p class="text-lg font-medium">{message}</p>
+				{description && <p class="text-sm mt-1">{description}</p>}
+			</div>
+		);
+	},
 );

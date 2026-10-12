@@ -63,14 +63,18 @@ describe("intervals and registration", () => {
 		).toThrow(/Duplicate/);
 	});
 
-	it("only active modules' schedules are registered", () => {
+	it("only active modules' schedules are registered, besides core's", () => {
 		const run = async () => {};
 		const modules = [
 			{ id: "on", schedules: [{ id: "x", every: "1h" as const, run }] },
 			{ id: "off", schedules: [{ id: "y", every: "1h" as const, run }] },
 		];
 		const active = selectActive(modules as never, ["on"]);
-		expect(buildSchedules(active).map((s) => s.key)).toEqual(["on.x"]);
+		// Core's own schedules (payment expiry, spec 4.7) always run.
+		expect(buildSchedules(active).map((s) => s.key)).toEqual([
+			"core.payments-expiry",
+			"on.x",
+		]);
 	});
 });
 

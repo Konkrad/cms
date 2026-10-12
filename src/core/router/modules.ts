@@ -4,6 +4,7 @@ import type { FormPurpose } from "~/core/forms/purposes";
 import type { NotificationDefinition } from "~/core/notifications/define";
 import type { PaymentHandlers } from "~/core/payments/payments";
 import type { PageDefinition } from "~/core/router/pages";
+import type { ScheduleDefinition } from "~/core/scheduler/define";
 
 export interface AdminSection {
 	/** Path relative to the admin base path, e.g. "jobs" -> /admin/root/jobs. */
@@ -165,6 +166,12 @@ export interface ModuleDefinition {
 	 * Admins pick the active form per purpose and scope; read it with `forms.active(ctx, purpose)`.
 	 */
 	forms?: FormPurpose[];
+	/**
+	 * Recurring jobs (spec 4.1), run in the server process while the module is active:
+	 * `{ id, every: "1d", run(ctx) }`. A run must be safe to repeat; a failure is retried with
+	 * backoff and listed in the admin failure view.
+	 */
+	schedules?: ScheduleDefinition[];
 }
 
 export function defineModule(module: ModuleDefinition): ModuleDefinition {

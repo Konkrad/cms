@@ -59,6 +59,8 @@ export default defineConfig({
 			TELEGRAM_API_URL: "http://localhost:8099",
 			// Drain the notification outbox quickly so emails/alerts arrive within test timeouts.
 			NOTIFICATIONS_POLL_INTERVAL_MS: "500",
+			// Run due schedules and review handlers quickly too.
+			SCHEDULER_POLL_INTERVAL_MS: "500",
 		},
 	},
 	use: {

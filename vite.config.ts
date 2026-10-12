@@ -133,7 +133,7 @@ function oneClickUnsubscribe(): Plugin {
 }
 
 /**
- * Starts the notification outbox worker in the dev server process once it listens. Loaded
+ * Starts the notification outbox worker and the scheduler in the dev server process once it listens. Loaded
  * through Vite's SSR module graph (not a plain import) so the app's "~" aliases resolve;
  * `startOutboxWorker` guards against a second start on dev-server restarts.
  */
@@ -146,6 +146,10 @@ function notificationOutboxWorker(): Plugin {
 					"/src/core/notifications/worker.ts",
 				);
 				startOutboxWorker();
+				const { startScheduler } = await server.ssrLoadModule(
+					"/src/core/scheduler/worker.ts",
+				);
+				startScheduler();
 			});
 		},
 	};

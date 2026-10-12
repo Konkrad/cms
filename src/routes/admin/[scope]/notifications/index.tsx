@@ -1,6 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { notificationOutboxService } from "~/core/notifications/outbox.service";
+import { scheduleRunsService } from "~/core/scheduler/schedule-runs.service";
 import { requireSystemAdmin } from "~/core/scopes/access";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 
@@ -8,8 +9,10 @@ import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 export const useUndeliveredNotifications = routeLoader$(async (event) => {
 	await requireSystemAdmin(event);
 	const rows = await notificationOutboxService.listUndeliveredWithAddress();
+	// Scheduled jobs (manifest `schedules`) whose last run failed; they retry with backoff.
+	const schedules = await scheduleRunsService.listFailing();
 	return assertNoPrivateFields(
-		{ rows },
+		{ rows, schedules },
 		{
 			// Platform admins diagnose delivery failures: they need to see where a message
 			// was going (the email address or chat id resolved for the recipient).
@@ -32,12 +35,25 @@ export const useRetryNotification = routeAction$(
 	zod$({ id: z.string().uuid() }),
 );
 
+/** Runs a failing schedule again at the next scheduler tick. */
+export const useRunScheduleNow = routeAction$(
+	async (data, event) => {
+		await requireSystemAdmin(event);
+		if (!(await scheduleRunsService.runSoon(data.key, new Date())))
+			return event.fail(404, { message: "Schedule not found" });
+		return { success: true };
+	},
+	zod$({ key: z.string().min(1) }),
+);
+
 const formatDate = (iso: string) => new Date(iso).toLocaleString("en-GB");
 
 export default component$(() => {
 	const data = useUndeliveredNotifications();
 	const retry = useRetryNotification();
+	const runNow = useRunScheduleNow();
 	const rows = data.value.rows;
+	const schedules = data.value.schedules;
 
 	return (
 		<div>
@@ -118,6 +134,72 @@ export default component$(() => {
 												class="text-blue-600 hover:text-blue-800 font-medium"
 											>
 												Retry
+											</button>
+										</Form>
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				)}
+			</div>
+
+			<h3 class="text-xl font-bold text-gray-800 mt-10 mb-2">Scheduled jobs</h3>
+			<p class="text-sm text-gray-500 mb-4">
+				Recurring jobs whose last run failed. They are retried with backoff;
+				"Run now" runs one at the next tick.
+			</p>
+			<div
+				class="bg-white rounded-lg shadow-sm overflow-x-auto"
+				data-testid="failing-schedules"
+			>
+				{schedules.length === 0 ? (
+					<div class="px-5 py-8 text-center text-gray-400 text-sm">
+						No failing scheduled jobs.
+					</div>
+				) : (
+					<table class="min-w-full divide-y divide-gray-200 text-sm">
+						<thead class="bg-gray-50">
+							<tr>
+								{[
+									"Job",
+									"Failures",
+									"Last error",
+									"Last run",
+									"Next run",
+									"",
+								].map((label) => (
+									<th
+										key={label}
+										class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+									>
+										{label}
+									</th>
+								))}
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-gray-200">
+							{schedules.map((row) => (
+								<tr key={row.key} data-schedule-key={row.key}>
+									<td class="px-4 py-3 font-mono text-xs">{row.key}</td>
+									<td class="px-4 py-3">{row.failures}</td>
+									<td class="px-4 py-3 text-red-700 max-w-xs break-words">
+										{row.lastError ?? ""}
+									</td>
+									<td class="px-4 py-3 whitespace-nowrap">
+										{row.lastRunAt ? formatDate(row.lastRunAt) : "—"}
+									</td>
+									<td class="px-4 py-3 whitespace-nowrap">
+										{formatDate(row.nextRunAt)}
+									</td>
+									<td class="px-4 py-3">
+										<Form action={runNow}>
+											<input type="hidden" name="key" value={row.key} />
+											<button
+												type="submit"
+												class="text-blue-600 hover:text-blue-800 font-medium"
+											>
+												Run now
 											</button>
 										</Form>
 									</td>

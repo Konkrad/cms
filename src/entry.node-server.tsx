@@ -18,6 +18,7 @@ import { createServer } from "node:http";
 import { runMigrations } from "./core/db/migrate";
 import { allowOneClickUnsubscribe } from "./core/notifications/one-click";
 import { startOutboxWorker } from "./core/notifications/worker";
+import { startScheduler } from "./core/scheduler/worker";
 import render from "./entry.ssr";
 import { env } from "./env";
 
@@ -28,6 +29,8 @@ declare global {
 runMigrations();
 // Sends queued notifications (src/core/notifications) from this process, after migrations.
 startOutboxWorker();
+// Runs the schedules of core and the active modules (and retried review handlers).
+startScheduler();
 
 const { router, notFound, staticFile } = createQwikRouter({ render });
 

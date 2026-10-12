@@ -97,6 +97,13 @@ const envSchema = z.object({
 		.default(5000),
 	NOTIFICATIONS_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
 
+	// Scheduler (manifest `schedules`) and retried handler calls (review decisions)
+	SCHEDULER_POLL_INTERVAL_MS: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(30_000),
+
 	// Login throttling (sending magic-link / OTP emails)
 	LOGIN_EMAIL_MAX_PER_WINDOW: z.coerce.number().int().positive().default(3),
 	LOGIN_EMAIL_WINDOW_MINUTES: z.coerce.number().int().positive().default(15),
@@ -179,6 +186,7 @@ export const env = {
 	ALTCHA_HMAC_KEY: _env.ALTCHA_HMAC_KEY,
 	NOTIFICATIONS_POLL_INTERVAL_MS: _env.NOTIFICATIONS_POLL_INTERVAL_MS,
 	NOTIFICATIONS_MAX_ATTEMPTS: _env.NOTIFICATIONS_MAX_ATTEMPTS,
+	SCHEDULER_POLL_INTERVAL_MS: _env.SCHEDULER_POLL_INTERVAL_MS,
 	LOGIN_EMAIL_MAX_PER_WINDOW: _env.LOGIN_EMAIL_MAX_PER_WINDOW,
 	LOGIN_EMAIL_WINDOW_MINUTES: _env.LOGIN_EMAIL_WINDOW_MINUTES,
 	LOGIN_IP_MAX_PER_WINDOW: _env.LOGIN_IP_MAX_PER_WINDOW,

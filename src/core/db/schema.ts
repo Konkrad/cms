@@ -14,6 +14,7 @@ import {
 } from "../notifications/schema";
 import { moduleTables, withModuleRelations } from "../registry/schemas";
 import { redirects } from "../router/schema";
+import { scheduleRuns } from "../scheduler/schema";
 import { scopeMemberships, scopeRoles, scopes } from "../scopes/schema/scopes";
 import { tagDefinitions } from "../tags/schema/tag-definitions";
 import { userTags } from "../tags/schema/user-tags";
@@ -32,6 +33,7 @@ export * from "../memberships/schema";
 export * from "../notifications/schema";
 export * from "../registry/schemas";
 export * from "../router/schema";
+export * from "../scheduler/schema";
 export * from "../scopes/schema/scopes";
 export * from "../tags/schema/tag-definitions";
 export * from "../tags/schema/user-tags";
@@ -53,6 +55,7 @@ export const schemaRelations = defineRelations(
 		notificationOutbox,
 		notificationPreferences,
 		redirects,
+		scheduleRuns,
 		tagDefinitions,
 		userTags,
 		scopes,

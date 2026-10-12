@@ -24,6 +24,34 @@ describe("social-web inactive", () => {
 		expect(sent()).toBeNull();
 	});
 
+	it("answers 404 for WebFinger, the actor, the inbox (any method), the outbox, objects and activities", async () => {
+		const actor = await import("~/modules/social-web/actor");
+		const outbox = await import("~/modules/social-web/outbox");
+		const cases = [
+			[
+				actor.handleWebfingerGet,
+				"/api/well-known/webfinger?resource=acct:news@localhost:5173",
+				"GET",
+			],
+			[actor.handleActorGet, "/social/actor", "GET"],
+			[actor.handleInboxRequest, "/social/inbox", "GET"],
+			[actor.handleInboxRequest, "/social/inbox", "POST"],
+			[outbox.handleOutboxGet, "/social/outbox", "GET"],
+			[outbox.handleObjectGet, "/social/objects/note/x", "GET"],
+			[outbox.handleActivityGet, "/social/activities/create/note/x", "GET"],
+		] as const;
+		for (const [handler, path, method] of cases) {
+			const { event, sent } = fakeRequestEvent(`${APP}${path}`, {
+				method,
+				params: { verb: "create", type: "note", id: "x" },
+			});
+			await expect(handler(event), `${method} ${path}`).rejects.toMatchObject({
+				status: 404,
+			});
+			expect(sent()).toBeNull();
+		}
+	});
+
 	it("announces no feed", async () => {
 		const { activeFeeds } = await import("~/core/registry/manifests");
 		expect(activeFeeds).toEqual([]);

@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { notesService } from "~/core/content/notes.service";
 import type { Scope } from "~/core/scopes/schema/scopes";
 import { scopesService } from "~/core/scopes/scopes.service";
 import {
@@ -8,6 +9,11 @@ import {
 	isOwnResource,
 } from "~/modules/social-web/actor";
 import { handleFeedGet } from "~/modules/social-web/feed";
+import {
+	handleActivityGet,
+	handleObjectGet,
+	handleOutboxGet,
+} from "~/modules/social-web/outbox";
 import { cdata, escapeXml } from "~/modules/social-web/rss";
 import { createTestUser, openDb } from "./helpers";
 import {
@@ -267,7 +273,11 @@ describe("RSS feed", () => {
 async function getJson(
 	handler: (event: import("@qwik.dev/router").RequestEvent) => Promise<void>,
 	url: string,
-	init: { method?: string; headers?: Record<string, string> } = {},
+	init: {
+		method?: string;
+		headers?: Record<string, string>;
+		params?: Record<string, string>;
+	} = {},
 ) {
 	const { event, sent } = fakeRequestEvent(url, init);
 	await handler(event);
@@ -415,6 +425,238 @@ describe("inbox", () => {
 			type: "OrderedCollection",
 			totalItems: 0,
 			orderedItems: [],
+		});
+	});
+});
+
+describe("outbox", () => {
+	let noteA: string;
+	let articleB: string;
+	let noteC: string;
+	let members: string;
+	type Activity = {
+		id: string;
+		type: string;
+		actor: string;
+		published: string;
+		object: Record<string, unknown>;
+	};
+
+	beforeAll(async () => {
+		// Enough older entries for a second page.
+		for (let h = 0; h < 20; h++)
+			insertNote(`<p>filler ${h} ${tag}</p>`, at(15, h));
+		noteA = insertNote(`<p>Note A ${tag} <a href="/x">x</a></p>`, at(20, 0));
+		articleB = insertArticle(
+			`Article B ${tag}`,
+			`<p>Body B ${tag}</p>`,
+			at(20, 1),
+			{
+				image: "public/articles/b.png",
+			},
+		);
+		noteC = insertNote(`<p>Note C ${tag}</p>`, at(20, 2));
+		members = insertNote(`<p>Members ${tag}</p>`, at(20, 3), "members");
+		await notesService.delete(noteC);
+		// Deleted "later" than everything else in the test DB, so it tops the outbox.
+		const db = openDb();
+		db.prepare(
+			"UPDATE content_tombstones SET deleted_at = ? WHERE item_id = ?",
+		).run(at(21), noteC);
+		db.close();
+	});
+
+	const outbox = (query = "", headers: Record<string, string> = {}) =>
+		getJson(handleOutboxGet, `${APP}/social/outbox${query}`, { headers });
+
+	it("is an OrderedCollection with totalItems and a first page", async () => {
+		const response = await outbox();
+		expect(response.headers.get("content-type")).toBe(
+			"application/activity+json; charset=utf-8",
+		);
+		expect(response.json).toMatchObject({
+			"@context": "https://www.w3.org/ns/activitystreams",
+			id: `${APP}/social/outbox`,
+			type: "OrderedCollection",
+			attributedTo: `${APP}/social/actor`,
+			first: `${APP}/social/outbox?page=first`,
+		});
+		expect(response.json.totalItems).toBeGreaterThanOrEqual(26);
+	});
+
+	it("lists activities newest first: the Delete, the tombstoned Create, then Creates", async () => {
+		const page = (await outbox("?page=first")).json;
+		expect(page).toMatchObject({
+			id: `${APP}/social/outbox?page=first`,
+			type: "OrderedCollectionPage",
+			partOf: `${APP}/social/outbox`,
+		});
+		const items = page.orderedItems as Activity[];
+		expect(items).toHaveLength(20);
+		expect(items.slice(0, 4).map((a) => [a.type, a.object.id])).toEqual([
+			["Delete", `${APP}/social/objects/note/${noteC}`],
+			["Create", `${APP}/social/objects/note/${noteC}`],
+			["Create", `${APP}/social/objects/article/${articleB}`],
+			["Create", `${APP}/social/objects/note/${noteA}`],
+		]);
+		const published = items.map((a) => a.published);
+		expect([...published].sort().reverse()).toEqual(published);
+		for (const activity of items) {
+			expect(activity.actor).toBe(`${APP}/social/actor`);
+			expect(activity.object.id).not.toContain(members);
+		}
+	});
+
+	it("maps a note to a Note and an article to an Article with a preview Note", async () => {
+		const items = (await outbox("?page=first")).json.orderedItems as Activity[];
+		const note = items.find(
+			(a) => a.object.id === `${APP}/social/objects/note/${noteA}`,
+		);
+		expect(note).toMatchObject({
+			id: `${APP}/social/activities/create/note/${noteA}`,
+			type: "Create",
+			published: at(20, 0),
+			to: ["https://www.w3.org/ns/activitystreams#Public"],
+			object: {
+				type: "Note",
+				attributedTo: `${APP}/social/actor`,
+				url: `${APP}/sw-${tag}/notes/${noteA}`,
+				content: `<p>Note A ${tag} <a href="${APP}/x">x</a></p>`,
+				published: at(20, 0),
+			},
+		});
+		expect(note?.object).not.toHaveProperty("name");
+		const article = items.find(
+			(a) => a.object.id === `${APP}/social/objects/article/${articleB}`,
+		);
+		expect(article?.object).toMatchObject({
+			type: "Article",
+			name: `Article B ${tag}`,
+			summary: `<p>Body B ${tag}</p>`,
+			content: `<p>Body B ${tag}</p>`,
+			url: `${APP}/sw-${tag}/articles/${articleB}`,
+			image: { type: "Image", mediaType: "image/png" },
+			preview: {
+				type: "Note",
+				attributedTo: `${APP}/social/actor`,
+				content: `<p><strong>Article B ${tag}</strong></p><p>Body B ${tag}</p>`,
+				published: at(20, 1),
+				attachment: [{ type: "Image", mediaType: "image/png" }],
+			},
+		});
+		expect(JSON.stringify(items)).not.toContain("Lovelace");
+	});
+
+	it("shows a deleted note as a Tombstone, in its Create and in a Delete", async () => {
+		const items = (await outbox("?page=first")).json.orderedItems as Activity[];
+		const tombstone = {
+			id: `${APP}/social/objects/note/${noteC}`,
+			type: "Tombstone",
+			formerType: "Note",
+			published: at(20, 2),
+			deleted: at(21),
+		};
+		expect(items[0]).toMatchObject({
+			id: `${APP}/social/activities/delete/note/${noteC}`,
+			type: "Delete",
+			published: at(21),
+			object: tombstone,
+		});
+		expect(items[1]).toMatchObject({ type: "Create", object: tombstone });
+	});
+
+	it("pages on with stable cursors", async () => {
+		const first = (await outbox("?page=first")).json;
+		const next = String(first.next);
+		expect(next).toMatch(new RegExp(`^${APP}/social/outbox\\?page=[\\w-]+$`));
+		const second = (await outbox(next.slice(next.indexOf("?")))).json;
+		const firstItems = first.orderedItems as Activity[];
+		const secondItems = second.orderedItems as Activity[];
+		expect(secondItems.length).toBeGreaterThan(0);
+		expect(secondItems.map((a) => a.id)).not.toContain(firstItems[0].id);
+		expect(
+			secondItems[0].published <= (firstItems.at(-1)?.published ?? ""),
+		).toBe(true);
+		await expect(outbox("?page=bogus")).rejects.toMatchObject({ status: 400 });
+	});
+
+	it("answers 304 to matching validators, per page", async () => {
+		const collection = await outbox();
+		const etag = collection.headers.get("etag") ?? "";
+		expect(collection.headers.get("last-modified")).toBeTruthy();
+		expect((await outbox("", { "if-none-match": etag })).status).toBe(304);
+		expect(
+			(await outbox("?page=first", { "if-none-match": etag })).status,
+		).toBe(200);
+		const page = await outbox("?page=first");
+		expect(
+			(
+				await outbox("?page=first", {
+					"if-none-match": page.headers.get("etag") ?? "",
+				})
+			).status,
+		).toBe(304);
+	});
+
+	it("serves each object: live, gone (410 Tombstone) or never public (404)", async () => {
+		const object = (type: string, id: string) =>
+			getJson(handleObjectGet, `${APP}/social/objects/${type}/${id}`, {
+				params: { type, id },
+			});
+		const live = await object("article", articleB);
+		expect(live.json).toMatchObject({
+			"@context": "https://www.w3.org/ns/activitystreams",
+			type: "Article",
+			name: `Article B ${tag}`,
+		});
+		const { event, sent } = fakeRequestEvent(
+			`${APP}/social/objects/note/${noteC}`,
+			{
+				params: { type: "note", id: noteC },
+			},
+		);
+		await handleObjectGet(event);
+		expect(sent()?.status).toBe(410);
+		expect(JSON.parse(sent()?.body ?? "{}")).toMatchObject({
+			type: "Tombstone",
+			formerType: "Note",
+		});
+		await expect(object("note", members)).rejects.toMatchObject({
+			status: 404,
+		});
+		await expect(object("page", noteA)).rejects.toMatchObject({ status: 404 });
+		await expect(object("note", "nope")).rejects.toMatchObject({ status: 404 });
+	});
+
+	it("serves each activity of the outbox and nothing else", async () => {
+		const activity = (verb: string, type: string, id: string) =>
+			getJson(
+				handleActivityGet,
+				`${APP}/social/activities/${verb}/${type}/${id}`,
+				{
+					params: { verb, type, id },
+				},
+			);
+		expect((await activity("create", "note", noteA)).json).toMatchObject({
+			type: "Create",
+			object: { type: "Note" },
+		});
+		expect((await activity("delete", "note", noteC)).json).toMatchObject({
+			type: "Delete",
+			object: { type: "Tombstone" },
+		});
+		expect((await activity("create", "note", noteC)).json).toMatchObject({
+			type: "Create",
+			object: { type: "Tombstone" },
+		});
+		await expect(activity("delete", "note", noteA)).rejects.toMatchObject({
+			status: 404,
+		});
+		await expect(activity("update", "note", noteA)).rejects.toMatchObject({
+			status: 404,
+		});
+		await expect(activity("create", "note", members)).rejects.toMatchObject({
+			status: 404,
 		});
 	});
 });

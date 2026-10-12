@@ -23,7 +23,11 @@ export class FakeHttpError extends Error {
  */
 export function fakeRequestEvent(
 	url: string,
-	init: { method?: string; headers?: Record<string, string> } = {},
+	init: {
+		method?: string;
+		headers?: Record<string, string>;
+		params?: Record<string, string>;
+	} = {},
 ): { event: RequestEvent; sent: () => SentResponse | null } {
 	const method = init.method ?? "GET";
 	const headers = new Headers();
@@ -33,7 +37,7 @@ export function fakeRequestEvent(
 		method,
 		request: new Request(url, { method, headers: init.headers }),
 		headers,
-		params: {},
+		params: init.params ?? {},
 		sharedMap: new Map(),
 		send(status: number, body: unknown) {
 			sent = { status, body: String(body ?? ""), headers };

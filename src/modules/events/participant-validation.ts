@@ -1,4 +1,4 @@
-import { t } from "~/core";
+import { t } from "~/core/i18n";
 export function isValidEmail(value: string): boolean {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }

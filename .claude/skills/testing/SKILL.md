@@ -115,7 +115,7 @@ Helpers named `create*InDb` / `create*` that return `cleanup()` should be cleane
 | `createFormInDb({ title, scopeId?, purpose?, schema? })` / `createFormResultInDb(formId, answers?)` | Form (a survey unless `purpose`) / a result (locks the form) |
 | `getFormsByTitle(title)` / `deleteFormsByTitle(title)` / `getFormResultsBySubject(ref)` | Find / delete forms; answers stored by an item ref |
 | `setEventDebriefRequested(eventId, daysAgo?)` | Mark an event's debrief as requested (what the daily schedule does) |
-| `createRedirectInDb(from, to)` / `getRedirectTarget(from)` / `deleteRedirectsLike(prefix)` | `redirects` rows (old public path → new path) |
+| `getRedirectTarget(from)` / `deleteRedirectsLike(prefix)` | `redirects` rows (old public path → new path) |
 
 `SHARED_E2E_EMAIL` is the shared login used by the auth setup project. Seeded users, role fixtures and the shared session have completed every user requirement (`scripts/seed-requirements.ts`, versions checked by `tests/unit/requirements.spec.ts`); only `createTestUser` and new Mailpit logins hit the setup gate.
 

@@ -27,7 +27,6 @@ describe("resolveRedirect", () => {
 	const rows = new Map([
 		["/germany/berlin", "/france/berlin"],
 		["/old-page", "/new-page"],
-		["/groups/berlin", "/germany/berlin"],
 	]);
 
 	it("matches exact paths and whole-segment prefixes", () => {
@@ -36,7 +35,6 @@ describe("resolveRedirect", () => {
 		expect(resolveRedirect(rows, "/germany/berlin/jobs/42")).toBe(
 			"/france/berlin/jobs/42",
 		);
-		expect(resolveRedirect(rows, "/groups/berlin")).toBe("/germany/berlin");
 	});
 
 	it("ignores partial segments and unknown paths", () => {

@@ -9,7 +9,6 @@ import {
 	addScopeMember,
 	adminSegmentOf,
 	createArticleInDb,
-	createRedirectInDb,
 	createScopeEventInDb,
 	createScopeInDb,
 	createUserSession,
@@ -170,23 +169,6 @@ test.describe("Scope home page", () => {
 		} finally {
 			await ctx.close();
 			joiner.cleanup();
-		}
-	});
-
-	test("old /groups/<slug> URLs redirect to the scope path", async ({
-		guestPage: page,
-	}) => {
-		// Legacy group URLs are rows of the redirects table (migrated and seeded).
-		const cleanup = createRedirectInDb(`/groups/${CHAPTER_A}`, URL_A);
-		try {
-			const response = await page.request.get(`/groups/${CHAPTER_A}`, {
-				maxRedirects: 0,
-			});
-			expect(response.status()).toBe(301);
-			await page.goto(`/groups/${CHAPTER_A}`);
-			await expect(page).toHaveURL(URL_A);
-		} finally {
-			cleanup();
 		}
 	});
 });

@@ -555,13 +555,6 @@ for (const def of groupDefs) {
 		kind: "chapter",
 	}).id;
 }
-// The chapters had /groups/<slug> URLs before the scope tree: keep them working.
-for (const def of groupDefs) {
-	db.insert(schema.redirects)
-		.values({ fromPath: `/groups/${def.slug}`, toPath: `/germany/${def.slug}` })
-		.onConflictDoNothing()
-		.run();
-}
 
 // ─── 6. Memberships ──────────────────────────────────────────────────────────
 

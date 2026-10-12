@@ -1791,23 +1791,6 @@ export function createElectionApplicationInDb(
 
 // ── Redirect helpers ──────────────────────────────────────────────────────────
 
-/** A redirects row (old public path → new path, no trailing slashes); returns its cleanup. */
-export function createRedirectInDb(
-	fromPath: string,
-	toPath: string,
-): () => void {
-	const db = openDb();
-	db.prepare(
-		"INSERT OR REPLACE INTO redirects (from_path, to_path) VALUES (?, ?)",
-	).run(fromPath, toPath);
-	db.close();
-	return () => {
-		const d = openDb();
-		d.prepare("DELETE FROM redirects WHERE from_path = ?").run(fromPath);
-		d.close();
-	};
-}
-
 /** Where a redirects row sends `fromPath`, or null. */
 export function getRedirectTarget(fromPath: string): string | null {
 	const db = openDb();

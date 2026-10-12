@@ -10,9 +10,8 @@ import {
 
 /**
  * Runs before every route. First answers 301 for an old URL that moved (a moved or renamed
- * scope, its admin URLs, a renamed page, a legacy /groups/<slug> URL; see the redirects
- * table). Then
- * splits a hierarchical URL into its scope prefix and the remainder:
+ * scope, its admin URLs, a renamed page; see the redirects table). Then splits a
+ * hierarchical URL into its scope prefix and the remainder:
  * /germany/berlin/jobs/42 → scope /germany/berlin/, rest /jobs/42. The catch-all
  * route ([...path]) resolves the module page from the remainder.
  */

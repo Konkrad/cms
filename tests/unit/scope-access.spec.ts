@@ -456,7 +456,6 @@ describe("reserved scope slugs", () => {
 			"login",
 			"notes",
 			"articles",
-			"groups",
 			"root",
 			"events",
 			"jobs",

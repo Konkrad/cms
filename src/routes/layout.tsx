@@ -2,10 +2,16 @@ import { component$, Slot } from "@qwik.dev/core";
 import type { RequestHandler } from "@qwik.dev/router";
 import { routeAction$, routeLoader$ } from "@qwik.dev/router";
 import type { NavUser } from "~/contracts/layout";
-import { deleteSession, getCurrentUserData } from "~/core/auth/server-auth";
+import {
+	deleteSession,
+	getCurrentUserData,
+	getServerSession,
+} from "~/core/auth/server-auth";
 import { menuItemsService } from "~/core/content/menu-items.service";
 import { resolveMenuUrls } from "~/core/content/menu-links";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
+import { requirements } from "~/core/registry/requirements";
+import { GLOBAL_CONTEXT } from "~/core/requirements/define";
 import { currentScopePath } from "~/core/router/scope-request";
 import { listManagedScopes } from "~/core/scopes/access";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
@@ -14,20 +20,28 @@ import { env } from "~/env";
 import { Navigation } from "~theme/chrome/Navigation/Navigation";
 import { SiteFooter } from "~theme/chrome/SiteFooter/SiteFooter";
 
-const ONBOARDING_EXEMPT = ["/profile/setup", "/login", "/auth/", "/api/"];
+/** Paths a user with pending `global` requirements may still open (setup itself, auth, APIs). */
+const SETUP_EXEMPT = [
+	"/profile/setup",
+	"/onboarding",
+	"/login",
+	"/auth/",
+	"/api/",
+];
 
+/**
+ * The global gate (spec 4.6): while a requirement of the `global` context is pending (profile
+ * basics, location, the onboarding survey, or a module's), every page sends a logged-in user to
+ * the setup flow, which brings them back to the page afterwards.
+ */
 export const onRequest: RequestHandler = async (event) => {
-	const { pathname } = new URL(event.request.url);
-	const isExempt = ONBOARDING_EXEMPT.some((prefix) =>
-		pathname.startsWith(prefix),
-	);
+	const { pathname, search } = event.url;
+	const isExempt = SETUP_EXEMPT.some((prefix) => pathname.startsWith(prefix));
 	if (!isExempt) {
-		const user = await getCurrentUserData(event);
-		if (user) {
-			const consent = (user as any).consent ?? {};
-			if (!consent.lastProfileUpdate || !consent.locationVerification) {
-				throw event.redirect(302, "/profile/setup");
-			}
+		const user = await getServerSession(event);
+		if (user && (await requirements.pending(user, GLOBAL_CONTEXT)).length > 0) {
+			const next = encodeURIComponent(`${pathname}${search}`);
+			throw event.redirect(302, `/profile/setup?next=${next}`);
 		}
 	}
 	await event.next();
@@ -51,7 +65,7 @@ export const useServerTimeLoader = routeLoader$(() => {
 
 /**
  * The logged-in user as the nav needs it (see ~/contracts/layout#NavUser). Built here
- * so the full user row (email, consent, location...) never reaches the page.
+ * so the full user row (email, location...) never reaches the page.
  */
 export const useUserSession = routeLoader$(async (event): Promise<NavUser> => {
 	const u = await getCurrentUserData(event);

@@ -1,14 +1,14 @@
 /**
- * Core → theme data contract for the onboarding/profile-setup route
- * (`/profile/setup`).
+ * Core → theme data contract for the setup flow (`/profile/setup`): the pending `global`
+ * requirements of the logged-in user (spec 4.6), one step at a time.
  */
+import type { RequirementStepData } from "~/contracts/requirements";
 
-import type { useMarkLocation } from "~/core/users/setup/LocationStep/useMarkLocation";
-import type { useUpdateProfile } from "~/core/users/setup/ProfileStep/useUpdateProfile";
-import type { useOnboardingLoader } from "~/routes/profile/setup";
+export type { SubmitRequirementAction } from "~/contracts/requirements";
 
-export type OnboardingViewData = ReturnType<
-	typeof useOnboardingLoader
->["value"];
-export type UpdateProfileAction = ReturnType<typeof useUpdateProfile>;
-export type MarkLocationAction = ReturnType<typeof useMarkLocation>;
+export interface SetupViewData {
+	/** Pending steps, in order; the first is shown. Prefilled with the viewer's OWN data. */
+	steps: RequirementStepData[];
+	/** Where the user goes once every step is done (an internal path). */
+	next: string;
+}

@@ -1,6 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Scope } from "~/core/scopes/schema/scopes";
 import { scopesService } from "~/core/scopes/scopes.service";
+import {
+	handleActorGet,
+	handleInboxRequest,
+	handleWebfingerGet,
+	isOwnResource,
+} from "~/modules/social-web/actor";
 import { handleFeedGet } from "~/modules/social-web/feed";
 import { cdata, escapeXml } from "~/modules/social-web/rss";
 import { createTestUser, openDb } from "./helpers";
@@ -254,6 +260,162 @@ describe("RSS feed", () => {
 		const after = await feed("", { "if-none-match": before ?? "" });
 		expect(after.status).toBe(200);
 		expect(after.headers.get("etag")).not.toBe(before);
+	});
+});
+
+/** A JSON endpoint's answer, parsed. */
+async function getJson(
+	handler: (event: import("@qwik.dev/router").RequestEvent) => Promise<void>,
+	url: string,
+	init: { method?: string; headers?: Record<string, string> } = {},
+) {
+	const { event, sent } = fakeRequestEvent(url, init);
+	await handler(event);
+	const response = sent();
+	if (!response) throw new Error("nothing sent");
+	const json =
+		response.status === 200 ? JSON.parse(response.body) : (null as unknown);
+	return { ...response, json: json as Record<string, unknown> };
+}
+
+describe("WebFinger", () => {
+	const finger = (resource: string) =>
+		getJson(
+			handleWebfingerGet,
+			`${APP}/api/well-known/webfinger?resource=${encodeURIComponent(resource)}`,
+		);
+
+	it("matches the account with or without acct:, in any case, or the actor IRI", () => {
+		for (const resource of [
+			"acct:news@localhost:5173",
+			"news@localhost:5173",
+			"ACCT:News@LOCALHOST:5173",
+			"@news@localhost:5173",
+			`${APP}/social/actor`,
+		])
+			expect(isOwnResource(resource), resource).toBe(true);
+		for (const resource of [
+			"acct:other@localhost:5173",
+			"acct:news@example.org",
+			"acct:news",
+			"news",
+			`${APP}/social/actorx`,
+		])
+			expect(isOwnResource(resource), resource).toBe(false);
+	});
+
+	it("answers the JRD with a self link to the actor", async () => {
+		const response = await finger("acct:news@localhost:5173");
+		expect(response.status).toBe(200);
+		expect(response.headers.get("content-type")).toBe(
+			"application/jrd+json; charset=utf-8",
+		);
+		expect(response.headers.get("access-control-allow-origin")).toBe("*");
+		expect(response.json).toEqual({
+			subject: "acct:news@localhost:5173",
+			aliases: [`${APP}/social/actor`],
+			links: [
+				{
+					rel: "self",
+					type: "application/activity+json",
+					href: `${APP}/social/actor`,
+				},
+				{
+					rel: "http://webfinger.net/rel/profile-page",
+					type: "text/html",
+					href: `${APP}/`,
+				},
+			],
+		});
+	});
+
+	it("answers 404 for another account and 400 without a resource", async () => {
+		await expect(finger("acct:someone@localhost:5173")).rejects.toMatchObject({
+			status: 404,
+		});
+		await expect(
+			getJson(handleWebfingerGet, `${APP}/api/well-known/webfinger`),
+		).rejects.toMatchObject({ status: 400 });
+	});
+});
+
+describe("actor", () => {
+	it("is a poll-only Service with an update interval, inbox and outbox", async () => {
+		const response = await getJson(handleActorGet, `${APP}/social/actor`, {
+			headers: { accept: "application/activity+json" },
+		});
+		expect(response.headers.get("content-type")).toBe(
+			"application/activity+json; charset=utf-8",
+		);
+		expect(response.json).toMatchObject({
+			"@context": [
+				"https://www.w3.org/ns/activitystreams",
+				"https://w3id.org/fep/b06c",
+			],
+			id: `${APP}/social/actor`,
+			type: "Service",
+			preferredUsername: "news",
+			name: "Test App",
+			url: `${APP}/`,
+			icon: {
+				type: "Image",
+				url: `${APP}/favicon.svg`,
+				mediaType: "image/svg+xml",
+			},
+			inbox: `${APP}/social/inbox`,
+			outbox: `${APP}/social/outbox`,
+			pollOnly: true,
+			updateInterval: "P1D",
+		});
+		expect(response.json.summary).toBe("<p>Test App</p>");
+		// Nothing a poll-only actor would not maintain (FEP-b06c).
+		for (const key of ["followers", "following", "liked", "endpoints"])
+			expect(response.json).not.toHaveProperty(key);
+	});
+
+	it("answers JSON-LD with the AS2 profile when asked for it, and 304 on a match", async () => {
+		const ld = await getJson(handleActorGet, `${APP}/social/actor`, {
+			headers: {
+				accept:
+					'application/ld+json; profile="https://www.w3.org/ns/activitystreams"',
+			},
+		});
+		expect(ld.headers.get("content-type")).toBe(
+			'application/ld+json; profile="https://www.w3.org/ns/activitystreams"; charset=utf-8',
+		);
+		expect(ld.headers.get("vary")).toBe("Accept");
+		const again = await getJson(handleActorGet, `${APP}/social/actor`, {
+			headers: { "if-none-match": ld.headers.get("etag") ?? "" },
+		});
+		// The ETag names the representation: an activity+json request does not match it.
+		expect(again.status).toBe(200);
+		const same = await getJson(handleActorGet, `${APP}/social/actor`, {
+			headers: { "if-none-match": again.headers.get("etag") ?? "" },
+		});
+		expect(same.status).toBe(304);
+	});
+});
+
+describe("inbox", () => {
+	it("answers 405 to every write and reads nothing", async () => {
+		for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+			const { event, sent } = fakeRequestEvent(`${APP}/social/inbox`, {
+				method,
+			});
+			await handleInboxRequest(event);
+			expect(sent()?.status, method).toBe(405);
+			expect(sent()?.headers.get("allow")).toBe("GET, HEAD");
+		}
+	});
+
+	it("shows an empty collection on GET", async () => {
+		const response = await getJson(handleInboxRequest, `${APP}/social/inbox`);
+		expect(response.json).toMatchObject({
+			id: `${APP}/social/inbox`,
+			type: "OrderedCollection",
+			totalItems: 0,
+			orderedItems: [],
+		});
 	});
 });
 

@@ -1,13 +1,7 @@
 import { getSiteInfo, type StreamType } from "~/core";
+import { INBOX_PATH, SOCIAL_PATH } from "./paths";
 
-/** The module id (`modules.config.ts`). */
-export const MODULE_ID = "social-web";
-
-/** Site path of the RSS feed (`src/routes/feed.xml`). */
-export const FEED_PATH = "/feed.xml";
-
-/** Base path of the ActivityPoll actor's documents (`src/routes/social`). */
-export const SOCIAL_PATH = "/social";
+export { FEED_PATH, INBOX_PATH, MODULE_ID, SOCIAL_PATH } from "./paths";
 
 /** The site's public base URL without a trailing slash. */
 export const siteBase = (): string => getSiteInfo().url.replace(/\/+$/, "");
@@ -27,7 +21,7 @@ export const socialUrls = () => {
 	const base = `${siteBase()}${SOCIAL_PATH}`;
 	return {
 		actor: `${base}/actor`,
-		inbox: `${base}/inbox`,
+		inbox: `${siteBase()}${INBOX_PATH}`,
 		outbox: `${base}/outbox`,
 		object: (type: StreamType, id: string) => `${base}/objects/${type}/${id}`,
 		activity: (verb: ActivityVerb, type: StreamType, id: string) =>

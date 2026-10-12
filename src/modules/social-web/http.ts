@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { RequestEvent } from "@qwik.dev/router";
 
 /** HTTP caching validators of a response (RFC 9110 conditional requests). */
@@ -69,4 +70,56 @@ export async function sendCached(
 	const response = await build();
 	headers.set("Content-Type", response.contentType);
 	event.send(response.status ?? 200, response.body);
+}
+
+export const ACTIVITY_JSON = "application/activity+json; charset=utf-8";
+export const LD_JSON =
+	'application/ld+json; profile="https://www.w3.org/ns/activitystreams"; charset=utf-8';
+
+/**
+ * The content type of an ActivityStreams answer: JSON-LD with the AS2 profile when the client
+ * asks for that and not for `application/activity+json` (ActivityPub 3.2), else the latter.
+ */
+export function activityContentType(accept: string | null): string {
+	const wantsLd = !!accept && /application\/ld\+json/i.test(accept);
+	const wantsActivity = !!accept && /application\/activity\+json/i.test(accept);
+	return wantsLd && !wantsActivity ? LD_JSON : ACTIVITY_JSON;
+}
+
+/** A strong ETag for a body (content addressed). */
+export function bodyEtag(prefix: string, body: string): string {
+	return `"${prefix}-${createHash("sha1").update(body).digest("base64url")}"`;
+}
+
+/**
+ * Sends an ActivityStreams document (or a WebFinger JRD) built for this request, with an ETag
+ * from its content, 304 answers and CORS open to everyone (public, read-only data).
+ */
+export async function sendJsonDocument(
+	event: RequestEvent,
+	document: unknown,
+	options: {
+		contentType: string;
+		status?: number;
+		lastModified?: string | null;
+	},
+): Promise<void> {
+	const body = JSON.stringify(document);
+	event.headers.set("Access-Control-Allow-Origin", "*");
+	await sendCached(
+		event,
+		{
+			etag: bodyEtag(
+				options.contentType.startsWith("application/ld") ? "ld" : "as",
+				body,
+			),
+			lastModified: options.lastModified ?? null,
+		},
+		async () => ({
+			body,
+			contentType: options.contentType,
+			status: options.status,
+		}),
+		{ vary: "Accept" },
+	);
 }

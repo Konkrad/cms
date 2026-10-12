@@ -8,9 +8,9 @@ export const UNSUBSCRIBE_PATH = "/api/notifications/unsubscribe";
  * application/x-www-form-urlencoded from its own servers, without our Origin. Qwik's CSRF
  * check rejects exactly that (cross-site form POST). The endpoint is authorized by its signed
  * token, not by cookies, so CSRF does not apply to it: for this one path and method only, the
- * content type is relabelled before Qwik sees the request. Used by the production server
- * (entry.node-server.tsx) and the dev server (vite.config.ts). No app imports: vite.config
- * loads this file.
+ * content type is relabelled before Qwik sees the request. Called through `prepareRawRequest`
+ * (src/core/registry/raw-request.ts) by the production and dev servers. No app imports:
+ * vite.config loads this file.
  */
 export function allowOneClickUnsubscribe(req: IncomingMessage): void {
 	if (req.method !== "POST") return;

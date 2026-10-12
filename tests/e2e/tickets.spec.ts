@@ -1,13 +1,16 @@
-import Stripe from "stripe";
 import {
 	createTestUser,
 	expect,
+	getPaymentById,
+	getPaymentsBySubject,
+	getTransactionStatus,
 	getUserIdByEmail,
 	REQUIREMENT_VERSIONS,
 	SHARED_E2E_EMAIL,
 	test,
 } from "../fixtures";
 import { waitForEmailHtml } from "../utils/mailpit-client";
+import { signedCheckoutEvent } from "../utils/stripe-webhook";
 import {
 	clearTelegramMessages,
 	getTelegramMessages,
@@ -200,7 +203,7 @@ test.describe("Tickets", () => {
 			.toBe(product.sold_quantity);
 	});
 
-	test("paid ticket purchase creates payment intent and processes webhook", async ({
+	test("paid ticket purchase: payment row, signed webhook, ticket and receipt", async ({
 		page,
 		db,
 	}) => {
@@ -216,148 +219,85 @@ test.describe("Tickets", () => {
 			},
 			true,
 		);
+		const sharedUserId = getUserIdByEmail(SHARED_E2E_EMAIL);
+
+		// The provider's hosted checkout page (stripe-mock answers with a checkout.stripe.com URL).
+		await page.route("https://checkout.stripe.com/**", (route) =>
+			route.fulfill({
+				contentType: "text/html",
+				body: "<html><body><h1>Stripe Checkout (test)</h1></body></html>",
+			}),
+		);
 
 		await page.goto(`/events/${ev.slug}`);
-		// Use the live stripe-mock + backend: click through normal checkout
 		await page.click(`a[href="/events/${ev.slug}/checkout"]`);
 		await expect(page.locator('h1:has-text("Purchase Tickets")')).toBeVisible();
-
-		// select product and proceed
 		await page
 			.locator(`div:has-text("${productName}") input[type="radio"]`)
 			.first()
 			.check();
-
-		// Move through participants and into payment.
 		await page.click('button:has-text("Continue to Participants")');
 		await page.click('button:has-text("Continue to Payment")');
+		await expect(page.locator('h2:has-text("Order Summary")')).toBeVisible();
 
-		// proceed: client UI will create checkout session (we intercept it) and mount Stripe (stubbed)
-
-		// Wait for the create-checkout-session action response (client posts to the action when moving to step 2)
-		const createResp = await page.waitForResponse(
-			(r) =>
-				r.url().includes(`/events/${ev.slug}/checkout`) &&
-				r.request().method() === "POST",
-			{ timeout: 5000 },
-		);
-
-		// Parse response to get paymentIntent id
-		const createJson = await createResp.json();
-		// Helper: recursively search for paymentIntentId in returned payload (Qwik action shapes can be nested)
-		function findPaymentIntent(obj: any): string | null {
-			if (!obj || typeof obj !== "object") return null;
-			if (obj.paymentIntentId) return obj.paymentIntentId;
-			const keys = Object.keys(obj);
-			for (let i = 0; i < keys.length; i++) {
-				const k = keys[i];
-				const v = obj[k];
-				// Handle Qwik SSR serialization: "paymentIntentId" appears as a string
-				// value in an array followed 2 positions later by the actual ID (due to type tags)
-				if (v === "paymentIntentId" && i + 2 < keys.length) {
-					const maybeId = obj[keys[i + 2]];
-					if (typeof maybeId === "string" && maybeId.startsWith("pi_")) {
-						return maybeId;
-					}
-				}
-				try {
-					const found = findPaymentIntent(v);
-					if (found) return found;
-				} catch (e) {}
-			}
-			return null;
-		}
-
-		const paymentIntentId = findPaymentIntent(createJson);
-		if (!paymentIntentId) {
-			const status = createResp.status();
-			throw new Error(
-				`No paymentIntentId returned from server - status=${status} body=${JSON.stringify(createJson)}`,
-			);
-		}
-
-		// Verify order summary and that the Complete Payment button is enabled
-		await expect(page.locator('h2:has-text("Order Summary")')).toBeVisible({
-			timeout: 5000,
-		});
-		await page.waitForSelector(
-			'button:has-text("Complete Payment"):not([disabled])',
-			{ timeout: 5000 },
-		);
-		await expect(
-			page.locator('button:has-text("Complete Payment")'),
-		).toBeVisible();
-
-		// Click Complete Payment to submit payment. The client will poll the payment intent status.
+		// Complete Payment creates the payment and sends the buyer to the provider.
 		await page.click('button:has-text("Complete Payment")');
+		await page.waitForURL(/checkout\.stripe\.com/, { timeout: 15_000 });
 
-		// Confirm the payment intent in stripe-mock so it shows as succeeded when the server polls it
-		const stripeHost = process.env.STRIPE_API_BASE_URL
-			? new URL(process.env.STRIPE_API_BASE_URL)
-			: new URL("http://localhost:12111");
-		// Use the stripe-mock test helper to confirm the payment intent
-		await fetch(
-			`${stripeHost.origin}/v1/test_helpers/payment_intents/${paymentIntentId}/confirm`,
-			{ method: "POST" },
-		);
-
-		// Build a webhook event for payment_intent.succeeded and POST it to the app to run fulfillment
-		const since = new Date();
-		const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-			apiVersion: "2026-06-24.dahlia",
-			host: stripeHost.hostname,
-			port: stripeHost.port ? Number(stripeHost.port) : 12111,
-			protocol: stripeHost.protocol.replace(":", "") as any,
-		});
-		// Retrieve the payment intent object from stripe-mock.
-		// stripe-mock is stateless: it ignores metadata on create and returns a canned
-		// amount/metadata on retrieve. Inject the real values from the test context so
-		// the webhook handler can look up the event/user and calculate fees correctly.
-		const pi = await stripeClient.paymentIntents.retrieve(paymentIntentId);
-		const sharedUserId = getUserIdByEmail(SHARED_E2E_EMAIL);
-		const eventProducts = db.getProductsByEventId(ev.id) as Array<{
-			id: string;
-			name: string;
-			price: number;
-		}>;
-		const chosenProduct =
-			eventProducts.find((p) => p.name === productName) ?? eventProducts[0];
-		const totalAmountCents = Math.round(chosenProduct.price * 100);
-		(pi as any).amount = totalAmountCents;
-		(pi as any).metadata = {
-			moduleId: "events",
+		const [payment] = getPaymentsBySubject(`events:event:${ev.id}`);
+		expect(payment).toMatchObject({
+			module_id: "events",
 			kind: "tickets",
-			eventId: ev.id,
-			userId: sharedUserId,
-			items: JSON.stringify([{ productId: chosenProduct.id, quantity: 1 }]),
-		};
-
-		const eventPayload = {
-			id: `evt_test_${Date.now()}`,
-			type: "payment_intent.succeeded",
-			data: { object: pi },
-		};
-
-		const payloadString = JSON.stringify(eventPayload);
-		const sig = stripeClient.webhooks.generateTestHeaderString({
-			payload: payloadString,
-			secret: process.env.STRIPE_WEBHOOK_SECRET || "",
+			user_id: sharedUserId,
+			status: "pending",
+			// From the product's DB price, in cents.
+			amount: 1250,
+			currency: "eur",
 		});
+		expect(payment.provider_ref).toBeTruthy();
+		expect(getTransactionStatus(payment.id)).toBe("pending");
 
-		// Post webhook to the app
+		// Back on the site before the webhook: not shown as paid (the return proves nothing).
+		await page.goto(`/events/${ev.slug}/checkout?payment=${payment.id}`);
+		await expect(page.getByText("Payment processing")).toBeVisible();
+
+		// Stripe's signed webhook marks it paid; the module issues the ticket.
+		const since = new Date();
 		clearTelegramMessages();
-		const webhookUrl = new URL("/api/webhooks/stripe", page.url()).toString();
-		await fetch(webhookUrl, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"Stripe-Signature": sig,
-			},
-			body: payloadString,
-		});
+		const res = await page.request.post(
+			"/api/payments/webhook/stripe",
+			signedCheckoutEvent(payment.id),
+		);
+		expect(res.status()).toBe(200);
+		expect(getPaymentById(payment.id)?.status).toBe("paid");
+		await expect
+			.poll(() => getTransactionStatus(payment.id), { timeout: 15_000 })
+			.toBe("paid");
+		await expect
+			.poll(() =>
+				db.getTicketCountByEventIdAndUserId(ev.id, sharedUserId ?? ""),
+			)
+			.toBe(1);
 
-		// Wait for the app to process webhook and send confirmation email
-		await waitForEmailHtml(SHARED_E2E_EMAIL, 30000, since);
+		// The events ticket email and core's generic receipt both arrive.
+		const ticketMail = await waitForEmailHtml(
+			SHARED_E2E_EMAIL,
+			30_000,
+			since,
+			"Your tickets",
+		);
+		expect(ticketMail).toContain("Purchase Confirmed");
+		const receipt = await waitForEmailHtml(
+			SHARED_E2E_EMAIL,
+			30_000,
+			since,
+			"Your receipt",
+		);
+		expect(receipt).toContain(productName);
+		expect(receipt).toContain("€12.50");
+
+		await page.goto(`/events/${ev.slug}/checkout?payment=${payment.id}`);
+		await expect(page.getByText("Payment Successful!")).toBeVisible();
 
 		// Telegram notifications are best-effort and can be disabled in some test setups.
 		const telegramMsgs = getTelegramMessages();

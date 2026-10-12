@@ -568,7 +568,6 @@ function seedInventory(opts: {
 				participantCapacity: p.participantCapacity ?? 1,
 				features: [],
 				imageKey: null,
-				stripeProductId: null,
 				soldQuantity: p.soldQuantity ?? 0,
 				createdAt: now(),
 				updatedAt: now(),
@@ -760,6 +759,35 @@ function seedTransaction(opts: {
 	const purchaseDate = new Date();
 	purchaseDate.setDate(purchaseDate.getDate() - opts.daysAgo);
 
+	// A paid order has its core payment (spec 4.7); free ones have none.
+	const paymentId = totalAmount > 0 ? uuid() : null;
+	if (paymentId)
+		db.insert(schema.payments)
+			.values({
+				id: paymentId,
+				moduleId: "events",
+				kind: "tickets",
+				refId: txId,
+				userId: buyer.id,
+				status: "paid",
+				mode: "payment",
+				provider: "stripe",
+				providerRef: `cs_seed_${uuid().slice(0, 8)}`,
+				providerPaymentRef: `pi_seed_${uuid().slice(0, 8)}`,
+				amount: Math.round(totalAmount * 100),
+				currency: "eur",
+				lines: itemValues.map((iv) => ({
+					label:
+						eventProducts.find((p) => p.id === iv.productId)?.name ?? "Ticket",
+					amount: Math.round(iv.unitPrice * 100),
+					quantity: iv.quantity,
+				})),
+				subjectRef: `events:event:${event.id}`,
+				createdAt: purchaseDate.toISOString(),
+				updatedAt: purchaseDate.toISOString(),
+				paidAt: purchaseDate.toISOString(),
+			})
+			.run();
 	db.insert(schema.transactions)
 		.values({
 			id: txId,
@@ -767,8 +795,8 @@ function seedTransaction(opts: {
 			userId: buyer.id,
 			totalAmount,
 			transactionFee: fee,
-			stripeSessionId: `cs_seed_${uuid().slice(0, 8)}`,
-			stripePaymentId: totalAmount > 0 ? `pi_seed_${uuid().slice(0, 8)}` : null,
+			status: "paid",
+			paymentId,
 			paymentDate: purchaseDate.toISOString(),
 			createdAt: purchaseDate.toISOString(),
 		})

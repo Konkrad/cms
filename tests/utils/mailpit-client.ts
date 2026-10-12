@@ -14,6 +14,7 @@ export async function waitForEmailHtml(
 	recipient: string,
 	timeout = 30000,
 	since?: Date,
+	subjectIncludes?: string,
 ): Promise<string> {
 	const endTime = Date.now() + timeout;
 
@@ -29,6 +30,8 @@ export async function waitForEmailHtml(
 			)
 				return false;
 			if (since && m.Created && new Date(m.Created) < since) return false;
+			if (subjectIncludes && !m.Subject?.includes(subjectIncludes))
+				return false;
 			return true;
 		});
 

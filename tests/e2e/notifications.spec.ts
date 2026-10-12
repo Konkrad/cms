@@ -2,12 +2,11 @@
  * Notification system end to end: outbox -> worker (running in the dev server, polling every
  * NOTIFICATIONS_POLL_INTERVAL_MS) -> Mailpit / Telegram mock.
  */
-import crypto from "node:crypto";
 import dotenv from "dotenv";
-import Stripe from "stripe";
 import {
 	createJobInDb,
 	createOutboxRowInDb,
+	createPendingTicketPaymentInDb,
 	createUserSession,
 	expect,
 	getNotificationPreference,
@@ -17,6 +16,7 @@ import {
 	test,
 } from "../fixtures";
 import { extractAllLinks, waitForEmailHtml } from "../utils/mailpit-client";
+import { signedCheckoutEvent } from "../utils/stripe-webhook";
 import {
 	getTelegramMessages,
 	startTelegramMock,
@@ -285,37 +285,30 @@ test.describe("Notifications — events", () => {
 		const product = (
 			db.getProductsByEventId(ev.id) as Array<{ id: string; name: string }>
 		).find((p) => p.name === productName);
+		// The pending order and payment the checkout creates (spec 4.7).
+		const pending = createPendingTicketPaymentInDb({
+			buyerId: buyer.userId,
+			eventId: ev.id,
+			productId: product?.id ?? "",
+			unitPrice: 15,
+		});
 		try {
-			const paymentIntent = {
-				id: `pi_e2e_${crypto.randomUUID().replaceAll("-", "")}`,
-				object: "payment_intent",
-				amount: 1500,
-				metadata: {
-					moduleId: "events",
-					kind: "tickets",
-					eventId: ev.id,
-					userId: buyer.userId,
-					items: JSON.stringify([{ productId: product?.id, quantity: 1 }]),
-				},
-			};
-			const payload = JSON.stringify({
-				id: `evt_e2e_${Date.now()}`,
-				type: "payment_intent.succeeded",
-				data: { object: paymentIntent },
-			});
-			const signature = Stripe.webhooks.generateTestHeaderString({
-				payload,
-				secret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
-			});
-			const res = await request.post("/api/webhooks/stripe", {
-				data: payload,
-				headers: {
-					"Content-Type": "application/json",
-					"Stripe-Signature": signature,
-				},
-			});
+			const res = await request.post(
+				"/api/payments/webhook/stripe",
+				signedCheckoutEvent(pending.paymentId),
+			);
 			expect(res.status()).toBe(200);
 
+			// The module's onPaid runs from the retried handler queue (scheduler tick).
+			await expect
+				.poll(
+					() =>
+						getOutboxRows({ notificationId: "events.sale" }).filter(
+							(r) => JSON.parse(r.data).productName === productName,
+						).length,
+					{ timeout: 15_000 },
+				)
+				.toBe(1);
 			const [alert] = getOutboxRows({ notificationId: "events.sale" }).filter(
 				(r) => JSON.parse(r.data).productName === productName,
 			);
@@ -351,6 +344,7 @@ test.describe("Notifications — events", () => {
 					.toBe("sent");
 			}
 		} finally {
+			pending.cleanup();
 			buyer.cleanup();
 		}
 	});

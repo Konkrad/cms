@@ -178,7 +178,7 @@ export async function createEventWithInventory(
 		for (const p of opts.products) {
 			const id = require("crypto").randomUUID();
 			db.prepare(
-				`INSERT INTO products (id, event_id, inventory_group_id, name, price, max_quantity, participant_capacity, features, image_url, stripe_product_id, sold_quantity, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+				`INSERT INTO products (id, event_id, inventory_group_id, name, price, max_quantity, participant_capacity, features, image_key, sold_quantity, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
 			).run(
 				id,
 				ev.id,
@@ -188,7 +188,6 @@ export async function createEventWithInventory(
 				p.maxQuantity,
 				p.participantCapacity ?? 1,
 				JSON.stringify([]),
-				null,
 				null,
 				p.soldQuantity || 0,
 				new Date().toISOString(),

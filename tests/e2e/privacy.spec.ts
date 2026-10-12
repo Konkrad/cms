@@ -1,7 +1,7 @@
 /**
  * Private-by-default page payloads. Every loader result passes through
  * assertNoPrivateFields in dev/test, so a page that leaks a private field fails
- * with a 500 here; the HTML checks make sure other users' emails and Stripe ids
+ * with a 500 here; the HTML checks make sure other users' emails
  * never reach the browser.
  */
 import {
@@ -98,7 +98,7 @@ test.describe("Privacy — page payloads", () => {
 		}
 	});
 
-	test("/profile/tickets hides other participants' emails and Stripe ids", async ({
+	test("/profile/tickets hides other participants' emails", async ({
 		guestPage: page,
 	}) => {
 		const organizer = createUserSession("admin");
@@ -123,8 +123,6 @@ test.describe("Privacy — page payloads", () => {
 			const html = await page.content();
 			expect(html).toContain("Friend Person");
 			expect(html).not.toContain(friendEmail);
-			// createTicketInDb stores Stripe ids prefixed with "free_".
-			expect(html).not.toContain("free_");
 		} finally {
 			ev.cleanup();
 			organizer.cleanup();

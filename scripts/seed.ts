@@ -1327,7 +1327,6 @@ function seedInventory(opts: {
 				participantCapacity: p.participantCapacity ?? 1,
 				features: [],
 				imageKey: null,
-				stripeProductId: null,
 				soldQuantity: p.soldQuantity ?? 0,
 				createdAt: now(),
 				updatedAt: now(),
@@ -1694,7 +1693,6 @@ console.log("  inventory & products seeded");
 					participantCapacity: 1,
 					features: [],
 					imageKey: null,
-					stripeProductId: null,
 					createdAt,
 					updatedAt: createdAt,
 				})
@@ -1709,6 +1707,36 @@ console.log("  inventory & products seeded");
 					new Date(opts.startDate).getTime() - Math.random() * 25 * 86_400_000,
 				).toISOString();
 				const txId = uuid();
+				// A paid order has its core payment (spec 4.7); free ones have none.
+				const paymentId = product.price > 0 ? uuid() : null;
+				if (paymentId)
+					db.insert(schema.payments)
+						.values({
+							id: paymentId,
+							moduleId: "events",
+							kind: "tickets",
+							refId: txId,
+							userId: buyerId,
+							status: "paid",
+							mode: "payment",
+							provider: "stripe",
+							providerRef: `cs_hist_${uuid().slice(0, 8)}`,
+							providerPaymentRef: `pi_hist_${uuid().slice(0, 8)}`,
+							amount: Math.round(product.price * 100),
+							currency: "eur",
+							lines: [
+								{
+									label: product.name,
+									amount: Math.round(product.price * 100),
+									quantity: 1,
+								},
+							],
+							subjectRef: `events:event:${eventId}`,
+							createdAt: purchaseDate,
+							updatedAt: purchaseDate,
+							paidAt: purchaseDate,
+						})
+						.run();
 				db.insert(schema.transactions)
 					.values({
 						id: txId,
@@ -1719,9 +1747,8 @@ console.log("  inventory & products seeded");
 							product.price > 0
 								? Math.round(product.price * 0.029 * 100) / 100
 								: 0,
-						stripeSessionId: `cs_hist_${uuid().slice(0, 8)}`,
-						stripePaymentId:
-							product.price > 0 ? `pi_hist_${uuid().slice(0, 8)}` : null,
+						status: "paid",
+						paymentId,
 						paymentDate: purchaseDate,
 						createdAt: purchaseDate,
 					})

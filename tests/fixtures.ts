@@ -683,15 +683,9 @@ export function createTicketInDb(opts: {
 	const ticketId = crypto.randomUUID();
 	const qrCodeUuid = crypto.randomUUID();
 	db.prepare(
-		`INSERT INTO transactions (id, user_id, event_id, total_amount, transaction_fee, stripe_session_id, stripe_payment_id)
-     VALUES (?, ?, ?, 0, 0, ?, ?)`,
-	).run(
-		transactionId,
-		opts.buyerId,
-		opts.eventId,
-		`free_${crypto.randomUUID()}`,
-		`free_${crypto.randomUUID()}`,
-	);
+		`INSERT INTO transactions (id, user_id, event_id, total_amount, transaction_fee)
+     VALUES (?, ?, ?, 0, 0)`,
+	).run(transactionId, opts.buyerId, opts.eventId);
 	db.prepare(
 		`INSERT INTO tickets (id, qr_code_uuid, transaction_id, product_id, event_id, buyer_id)
      VALUES (?, ?, ?, ?, ?, ?)`,
@@ -1975,4 +1969,123 @@ export function deleteFormsByTitle(title: string): void {
 		db.prepare("DELETE FROM forms WHERE id = ?").run(id);
 	}
 	db.close();
+}
+
+// ── Payments (spec 4.7) ──────────────────────────────────────────────────────────────────
+
+export interface PaymentRow {
+	id: string;
+	module_id: string;
+	kind: string;
+	ref_id: string;
+	user_id: string;
+	status: string;
+	amount: number;
+	currency: string;
+	provider_ref: string | null;
+	subject_ref: string | null;
+}
+
+/**
+ * A pending ticket order with its pending Stripe payment, as the checkout creates them (for
+ * webhook tests that skip the checkout UI). Prices in euros; returns the ids and a cleanup.
+ */
+export function createPendingTicketPaymentInDb(opts: {
+	buyerId: string;
+	eventId: string;
+	productId: string;
+	unitPrice: number;
+	quantity?: number;
+}): { paymentId: string; transactionId: string; cleanup: () => void } {
+	const db = openDb();
+	const paymentId = crypto.randomUUID();
+	const transactionId = crypto.randomUUID();
+	const quantity = opts.quantity ?? 1;
+	const now = new Date().toISOString();
+	const amount = Math.round(opts.unitPrice * 100);
+	db.prepare(
+		`INSERT INTO payments (id, module_id, kind, ref_id, user_id, status, mode, provider, provider_ref, amount, currency, lines, subject_ref, created_at, updated_at, expires_at)
+     VALUES (?, 'events', 'tickets', ?, ?, 'pending', 'payment', 'stripe', ?, ?, 'eur', ?, ?, ?, ?, ?)`,
+	).run(
+		paymentId,
+		transactionId,
+		opts.buyerId,
+		`cs_e2e_${paymentId.replaceAll("-", "")}`,
+		amount * quantity,
+		JSON.stringify([{ label: "Ticket", amount, quantity }]),
+		`events:event:${opts.eventId}`,
+		now,
+		now,
+		new Date(Date.now() + 3600_000).toISOString(),
+	);
+	db.prepare(
+		`INSERT INTO transactions (id, user_id, event_id, total_amount, transaction_fee, status, payment_id, participants)
+     VALUES (?, ?, ?, ?, 0, 'pending', ?, '[]')`,
+	).run(
+		transactionId,
+		opts.buyerId,
+		opts.eventId,
+		opts.unitPrice * quantity,
+		paymentId,
+	);
+	db.prepare(
+		`INSERT INTO transaction_items (id, transaction_id, product_id, quantity, unit_price)
+     VALUES (?, ?, ?, ?, ?)`,
+	).run(
+		crypto.randomUUID(),
+		transactionId,
+		opts.productId,
+		quantity,
+		opts.unitPrice,
+	);
+	db.close();
+	return {
+		paymentId,
+		transactionId,
+		cleanup() {
+			const d = openDb();
+			d.prepare("DELETE FROM tickets WHERE transaction_id = ?").run(
+				transactionId,
+			);
+			d.prepare("DELETE FROM transaction_items WHERE transaction_id = ?").run(
+				transactionId,
+			);
+			d.prepare("DELETE FROM transactions WHERE id = ?").run(transactionId);
+			d.prepare("DELETE FROM payment_events WHERE payment_id = ?").run(
+				paymentId,
+			);
+			d.prepare("DELETE FROM payments WHERE id = ?").run(paymentId);
+			d.close();
+		},
+	};
+}
+
+export function getPaymentById(id: string): PaymentRow | undefined {
+	const db = openDb();
+	const row = db.prepare("SELECT * FROM payments WHERE id = ?").get(id) as
+		| PaymentRow
+		| undefined;
+	db.close();
+	return row;
+}
+
+/** Payments for an item (`events:event:<id>`), newest first. */
+export function getPaymentsBySubject(subjectRef: string): PaymentRow[] {
+	const db = openDb();
+	const rows = db
+		.prepare(
+			"SELECT * FROM payments WHERE subject_ref = ? ORDER BY created_at DESC",
+		)
+		.all(subjectRef) as PaymentRow[];
+	db.close();
+	return rows;
+}
+
+export function getTransactionStatus(paymentId: string): string | undefined {
+	const db = openDb();
+	const row = db
+		.prepare("SELECT status FROM transactions WHERE payment_id = ?")
+		.get(paymentId) as { status: string } | undefined;
+	db.close();
+	return row?.status;
 }

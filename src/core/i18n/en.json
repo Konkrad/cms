@@ -572,6 +572,7 @@
 	"core.forms.unknownQuestion": "Unknown question",
 	"core.forms.wrongPurpose": "The form is not made for this purpose",
 	"core.forms.wrongScope": "The form does not belong to this scope",
+	"core.layout.userFallbackName": "User",
 	"core.menu.archive": "Archive",
 	"core.menu.communities": "Communities",
 	"core.menu.events": "Events",

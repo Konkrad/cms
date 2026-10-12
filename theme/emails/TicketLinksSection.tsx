@@ -16,9 +16,9 @@ export interface TicketLinksSectionProps {
 export default function TicketLinksSection({
 	tickets,
 	baseUrl,
-	heading = "Your Tickets",
-	description = "Present these QR codes at the event entrance for entry:",
-	ticketLabelPrefix = "Ticket",
+	heading = t("theme.emailTicketLinksSection.yourTickets"),
+	description = t("theme.emailTicketLinksSection.presentTheseQrCodes"),
+	ticketLabelPrefix = t("theme.emailTicketLinksSection.ticket"),
 }: TicketLinksSectionProps) {
 	if (tickets.length === 0) {
 		return null;

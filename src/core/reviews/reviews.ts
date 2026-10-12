@@ -169,6 +169,23 @@ export const reviews = {
 		return { required: true, reviewId: review.id };
 	},
 
+	/**
+	 * Whether submitting the item now would need a review (the rule of `submit`, without
+	 * submitting): lets a module keep a new item as a draft and ask for its proposal form first.
+	 */
+	async isRequired(ctx: { userId: string }, ref: string): Promise<boolean> {
+		const item = await locateRef(ref);
+		if (!item) throw new ReviewError("Unknown item");
+		if (await reviewsService.hasApproved(ref)) return false;
+		return reviewRequired({ id: ctx.userId }, item.scopeId, item.visibility);
+	},
+
+	/** Whether the user may decide the item's pending submission (to preview a hidden item). */
+	async canReview(user: AccessUser, ref: string): Promise<boolean> {
+		const latest = await reviewsService.latestFor(ref);
+		return latest?.status === "in_review" && canDecide(user, latest);
+	},
+
 	/** The latest submission of an item (null when it was never submitted). */
 	async statusOf(ref: string): Promise<ReviewStatusInfo | null> {
 		const latest = await reviewsService.latestFor(ref);

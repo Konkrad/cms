@@ -12,7 +12,12 @@ import {
 	uniqueSlug,
 } from "~/core";
 import { users as usersTable } from "~/core/schema";
-import type { Event, InsertEvent, UpdateEvent } from "../schema/events";
+import type {
+	Event,
+	EventStatus,
+	InsertEvent,
+	UpdateEvent,
+} from "../schema/events";
 import { events, insertEventSchema, updateEventSchema } from "../schema/events";
 
 /** An event with its organizer's public identity (never the organizer's email or profile row). */
@@ -35,6 +40,8 @@ export const eventsService = {
 			limit: limit + 1,
 			where: {
 				deletedAt: { isNull: true },
+				// Draft and in-review events are not public (spec 5.2).
+				status: "published",
 				...(cursorObj?.createdAt
 					? { createdAt: { lt: cursorObj.createdAt } }
 					: {}),
@@ -62,6 +69,8 @@ export const eventsService = {
 			where: {
 				endDate: { gte: now },
 				deletedAt: { isNull: true },
+				// Draft and in-review events are not public (spec 5.2).
+				status: "published",
 				RAW: (t) => filter.where(t),
 			},
 			orderBy: { startDate: "asc", id: "asc" },
@@ -78,6 +87,8 @@ export const eventsService = {
 			where: {
 				endDate: { gte: now },
 				deletedAt: { isNull: true },
+				// Draft and in-review events are not public (spec 5.2).
+				status: "published",
 				RAW: (t) => filter.where(t),
 			},
 			orderBy: { startDate: "asc", id: "asc" },
@@ -116,6 +127,8 @@ export const eventsService = {
 			where: {
 				endDate: { gte: now },
 				deletedAt: { isNull: true },
+				// Draft and in-review events are not public (spec 5.2).
+				status: "published",
 				RAW: (t) => filter.where(t),
 				...(cursorObj?.startDate
 					? { startDate: { gt: cursorObj.startDate } }
@@ -142,6 +155,8 @@ export const eventsService = {
 			where: {
 				endDate: { lt: now },
 				deletedAt: { isNull: true },
+				// Draft and in-review events are not public (spec 5.2).
+				status: "published",
 				RAW: (t) => filter.where(t),
 				...(cursorObj?.startDate
 					? { startDate: { lt: cursorObj.startDate } }
@@ -262,6 +277,7 @@ export const eventsService = {
 			.where(
 				and(
 					isNull(events.deletedAt),
+					eq(events.status, "published"),
 					eq(events.visibility, "public"),
 					like(events.title, `%${query}%`),
 				),
@@ -394,6 +410,7 @@ export const eventsService = {
 					title: events.title,
 					startDate: events.startDate,
 					visibility: events.visibility,
+					status: events.status,
 					userName: usersTable.name,
 					userFamilyName: usersTable.familyName,
 				})
@@ -411,9 +428,38 @@ export const eventsService = {
 				title: e.title,
 				startDate: e.startDate,
 				visibility: e.visibility,
+				status: e.status,
 				organizerName: `${e.userName ?? ""} ${e.userFamilyName ?? ""}`.trim(),
 			})),
 		};
+	},
+
+	/** Sets the review state (spec 5.2): draft, in_review or published. */
+	async setStatus(id: string, status: EventStatus): Promise<Event | undefined> {
+		const [result] = await db
+			.update(events)
+			.set({ status, updatedAt: new Date().toISOString() })
+			.where(eq(events.id, id))
+			.returning();
+		return result;
+	},
+
+	/** Whether to post an announcement note when the proposal is approved. */
+	async setAnnounceOnApproval(id: string, announce: boolean): Promise<void> {
+		await db
+			.update(events)
+			.set({ announceOnApproval: announce })
+			.where(eq(events.id, id));
+	},
+
+	/** Records the announcement note, unless one was recorded before (returns whether it was). */
+	async setAnnouncementNote(id: string, noteId: string): Promise<boolean> {
+		const updated = await db
+			.update(events)
+			.set({ announcementNoteId: noteId })
+			.where(and(eq(events.id, id), isNull(events.announcementNoteId)))
+			.returning({ id: events.id });
+		return updated.length === 1;
 	},
 
 	async softDelete(id: string, deletedBy: string): Promise<Event | undefined> {
@@ -438,6 +484,7 @@ export const eventsService = {
 				and(
 					eq(events.scopeId, scopeId),
 					isNull(events.deletedAt),
+					eq(events.status, "published"),
 					lt(events.endDate, now),
 				),
 			);

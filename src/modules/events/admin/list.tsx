@@ -75,6 +75,14 @@ export const AdminEventsList = component$<Props>(({ data }) => {
 									>
 										{VISIBILITY_LABELS[event.visibility].label}
 									</span>
+									{event.status !== "published" && (
+										<span
+											class="ml-2 px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800"
+											data-event-status={event.status}
+										>
+											{event.status === "draft" ? "Draft" : "In review"}
+										</span>
+									)}
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
 									{event.participationCounts.yes || 0} going

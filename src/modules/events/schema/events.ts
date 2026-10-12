@@ -1,9 +1,17 @@
 import crypto from "crypto";
 import { sql } from "drizzle-orm";
-import { sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import {
+	integer,
+	sqliteTable,
+	text,
+	uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { scopes, users, VISIBILITIES } from "~/core/schema";
+
+export const EVENT_STATUSES = ["draft", "in_review", "published"] as const;
+export type EventStatus = (typeof EVENT_STATUSES)[number];
 
 export const events = sqliteTable(
 	"events",
@@ -35,6 +43,17 @@ export const events = sqliteTable(
 		visibility: text("visibility", { enum: VISIBILITIES })
 			.notNull()
 			.default("public"),
+		// Review (spec 4.9, 5.2): a chapter's public event is a draft until its proposal is
+		// approved; draft and in-review events are hidden publicly.
+		status: text("status", { enum: EVENT_STATUSES })
+			.notNull()
+			.default("published"),
+		// Post an announcement note about the event when its proposal is approved.
+		announceOnApproval: integer("announce_on_approval", { mode: "boolean" })
+			.notNull()
+			.default(true),
+		// The announcement note, once posted (so a retried handler posts it once).
+		announcementNoteId: text("announcement_note_id"),
 		image1: text("image1"),
 		image2: text("image2"),
 		deletedAt: text("deleted_at"),

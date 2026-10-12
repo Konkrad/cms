@@ -8,6 +8,7 @@ export default component$(() => {
 
 	const tabs = [
 		{ path: "details", label: "Details" },
+		{ path: "review", label: "Review" },
 		{ path: "products", label: "Products" },
 		{ path: "participation", label: "Participants" },
 		{ path: "transactions", label: "Transactions" },

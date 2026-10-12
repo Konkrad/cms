@@ -98,6 +98,20 @@ export const eventsModule = defineModule({
 	reevaluateUserTags: (userId) => tagRulesService.evaluateRulesForUser(userId),
 	// Lazy: the fulfilment graph (Stripe client, services) would otherwise load with the
 	// manifest and form an import cycle through ~/core (stripe.ts reads env at load time).
+	// Proposal and debrief questions are forms admins edit (spec 5.2); the active form per scope.
+	forms: [
+		{ purpose: "events.proposal", label: "Event proposal" },
+		{ purpose: "events.debrief", label: "Event debrief" },
+	],
+	// A chapter's public event is published when its proposal is approved (lazy: see payments).
+	reviews: {
+		event: {
+			onApproved: async (ctx, decision) =>
+				(await import("./review")).onEventApproved(ctx, decision),
+			onRejected: async (ctx, decision) =>
+				(await import("./review")).onEventRejected(ctx, decision),
+		},
+	},
 	payments: {
 		tickets: {
 			onPaid: async (ctx) => (await import("./payments")).onTicketsPaid(ctx),

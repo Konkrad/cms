@@ -194,8 +194,23 @@ describe("events scope page hook", () => {
 });
 
 describe("canViewEvent", () => {
+	it("hides draft and in-review events from everyone, even public ones", async () => {
+		for (const status of ["draft", "in_review"]) {
+			const event = {
+				visibility: "public",
+				scopeId: ensureRootScope(),
+				status,
+			};
+			expect(await canViewEvent(event, null)).toBe(false);
+		}
+	});
+
 	it("allows everyone on public events", async () => {
-		const event = { visibility: "public", scopeId: ensureRootScope() };
+		const event = {
+			visibility: "public",
+			scopeId: ensureRootScope(),
+			status: "published",
+		};
 		expect(await canViewEvent(event, null)).toBe(true);
 		expect(await canViewEvent(event, { id: "x" })).toBe(true);
 	});
@@ -206,7 +221,11 @@ describe("canViewEvent", () => {
 		cleanups.push(member.cleanup, outsider.cleanup);
 		const groupId = createScope();
 		addMember(member.userId, groupId);
-		const event = { visibility: "members", scopeId: groupId };
+		const event = {
+			visibility: "members",
+			scopeId: groupId,
+			status: "published",
+		};
 
 		expect(await canViewEvent(event, null)).toBe(false);
 		expect(await canViewEvent(event, { id: outsider.userId })).toBe(false);
@@ -218,7 +237,11 @@ describe("canViewEvent", () => {
 	it("hides a members-only root event from users without a membership", async () => {
 		const user = createTestUser();
 		cleanups.push(user.cleanup);
-		const event = { visibility: "members", scopeId: ensureRootScope() };
+		const event = {
+			visibility: "members",
+			scopeId: ensureRootScope(),
+			status: "published",
+		};
 		expect(await canViewEvent(event, { id: user.userId })).toBe(false);
 	});
 
@@ -229,7 +252,11 @@ describe("canViewEvent", () => {
 		const groupId = createScope();
 		addMember(member.userId, groupId);
 		grantRole(rep.userId, groupId, "representative");
-		const event = { visibility: "representatives", scopeId: groupId };
+		const event = {
+			visibility: "representatives",
+			scopeId: groupId,
+			status: "published",
+		};
 		expect(await canViewEvent(event, { id: member.userId })).toBe(false);
 		expect(await canViewEvent(event, { id: rep.userId })).toBe(true);
 	});

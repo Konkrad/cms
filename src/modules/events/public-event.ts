@@ -2,6 +2,7 @@ import type { RequestEventLoader } from "@qwik.dev/router";
 import type { EventPageData } from "~/contracts/events";
 import {
 	buildProfileUrl,
+	canManageScope,
 	canViewScope,
 	currentScope,
 	currentScopeRest,
@@ -10,6 +11,7 @@ import {
 	matchPath,
 	publicImageUrlFromKey,
 	requireCanonicalUrl,
+	reviews,
 	scopeLabels,
 	toPublicUser,
 	updatesFor,
@@ -45,11 +47,30 @@ type Viewer = { id: string } | null;
  * public.
  */
 export async function canViewEvent(
-	event: { visibility: string; scopeId: string },
+	event: { visibility: string; scopeId: string; status: string },
 	viewer: Viewer,
 ): Promise<boolean> {
+	// Draft and in-review events are not public (spec 5.2); see `canPreviewEvent`.
+	if (event.status !== "published") return false;
 	if (event.visibility === "public") return true;
 	return canViewScope(viewer, event.scopeId, event.visibility as Visibility);
+}
+
+/**
+ * Who may open an unpublished (draft or in-review) event's page: its organiser, the managers of
+ * its scope and whoever may decide its review. Nobody can register for it (actions use
+ * `canViewEvent`).
+ */
+export async function canPreviewEvent(
+	event: { id: string; userId: string; scopeId: string; status: string },
+	viewer: Viewer,
+): Promise<boolean> {
+	if (!viewer || event.status === "published") return false;
+	return (
+		viewer.id === event.userId ||
+		(await canManageScope(viewer, event.scopeId, "representative")) ||
+		(await reviews.canReview(viewer, `events:event:${event.id}`))
+	);
 }
 
 /**
@@ -69,7 +90,11 @@ export async function getViewableEvent(
 	const event = eventId ? await eventsService.getById(eventId) : undefined;
 	if (!event) return null;
 	const viewer = (await getCurrentUserData(requestEvent)) as Viewer;
-	if (!(await canViewEvent(event, viewer))) return null;
+	if (
+		!(await canViewEvent(event, viewer)) &&
+		!(await canPreviewEvent(event, viewer))
+	)
+		return null;
 	const url = await itemUrl("events:event", event);
 	requireCanonicalUrl(requestEvent, `${url}${suffix}`);
 	return { event, viewer, url };

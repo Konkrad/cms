@@ -197,7 +197,16 @@ export const notesService = {
 	 * the subject resolves; sanitizes the body (links only, `NOTE_MAX_LENGTH`). Throws
 	 * `ContentInputError` otherwise. Callers authorize first (e.g. `requireScopeRole`).
 	 */
-	async create(input: NoteInput & { authorId: string }): Promise<Note> {
+	async create(
+		input: NoteInput & {
+			authorId: string;
+			/**
+			 * The approved review of the note's subject, submitted by the author: the note announces
+			 * that item and needs no review of its own (checked here).
+			 */
+			announcesReviewId?: string | null;
+		},
+	): Promise<Note> {
 		await requireExistingScope(input.scopeId);
 		await checkVisibility(input.authorId, input.scopeId, input.visibility);
 		const subject = await validateSubject(input.subjectType, input.subjectId);
@@ -216,7 +225,12 @@ export const notesService = {
 				updatedAt: now,
 			})
 			.returning();
-		return (await submitNewItem("note", row, input.authorId))
+		return (await submitNewItem(
+			"note",
+			row,
+			input.authorId,
+			input.announcesReviewId,
+		))
 			? ((await this.publish(row.id)) ?? row)
 			: row;
 	},

@@ -25,9 +25,21 @@ const refOf = (kind: Kind, id: string) => `core:${kind}:${id}`;
  */
 export async function submitNewItem(
 	kind: Kind,
-	item: Item,
+	item: Item & { subjectType: string | null; subjectId: string | null },
 	authorId: string,
+	announcesReviewId?: string | null,
 ): Promise<boolean> {
+	// An announcement of an approved item by its submitter (the event's "Post announcement")
+	// was reviewed with the item.
+	if (announcesReviewId) {
+		const review = await reviewsService.getById(announcesReviewId);
+		if (
+			review?.status === "approved" &&
+			review.submittedBy === authorId &&
+			review.ref === `${item.subjectType}:${item.subjectId}`
+		)
+			return true;
+	}
 	const { required } = await reviews.submit(
 		{ userId: authorId },
 		refOf(kind, item.id),

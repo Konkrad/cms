@@ -1,6 +1,6 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { allowedVisibilities, requireModuleAdmin } from "~/core";
+import { allowedVisibilities, requireModuleAdmin, reviews } from "~/core";
 import {
 	AddressAutocomplete,
 	Button,
@@ -33,7 +33,7 @@ const eventSchema = z.object({
 });
 
 export const useCreateEvent = routeAction$(async (data, event) => {
-	const { user, isRoot, scope, adminBase } = await requireModuleAdmin(event, {
+	const { user, scope, adminBase } = await requireModuleAdmin(event, {
 		module: "events",
 	});
 
@@ -48,7 +48,9 @@ export const useCreateEvent = routeAction$(async (data, event) => {
 		};
 	}
 
-	await eventsService.create({
+	// A draft first: a chapter's public event is published once its proposal is approved
+	// (spec 5.2); core decides whether that review is needed.
+	const created = await eventsService.create({
 		title: data.title,
 		body: data.body,
 		startDate: new Date(data.startDate).toISOString(),
@@ -65,7 +67,13 @@ export const useCreateEvent = routeAction$(async (data, event) => {
 		userId: user.id,
 		image1: data.image1 || null,
 		image2: data.image2 || null,
+		status: "draft",
 	});
+	if (
+		await reviews.isRequired({ userId: user.id }, `events:event:${created.id}`)
+	)
+		throw event.redirect(303, `${adminBase}/events/${created.id}/review`);
+	await eventsService.setStatus(created.id, "published");
 
 	throw event.redirect(303, `${adminBase}/events`);
 }, zod$(eventSchema));

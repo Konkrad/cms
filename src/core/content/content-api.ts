@@ -54,7 +54,7 @@ export const notes = {
 	 * `ContentInputError` for bad input.
 	 */
 	async create(
-		input: NoteInput & { authorId: string },
+		input: NoteInput & { authorId: string; announcesReviewId?: string | null },
 	): Promise<{ id: string; url: string; inReview: boolean }> {
 		const note = await notesService.create(input);
 		return {

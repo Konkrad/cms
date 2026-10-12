@@ -1,6 +1,6 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { allowedVisibilities } from "~/core";
+import { allowedVisibilities, reviews } from "~/core";
 import {
 	Button,
 	ImageUploader,
@@ -59,6 +59,25 @@ export const useEditEvent = routeAction$(async (data, event) => {
 			image1: data.image1 || null,
 			image2: data.image2 || null,
 		});
+
+		// A published event made public that was never approved goes through review like a
+		// new one (spec 5.2): back to draft, then its proposal on the Review tab.
+		const before = groupContext.event;
+		if (
+			before.status === "published" &&
+			before.visibility !== "public" &&
+			data.visibility === "public" &&
+			(await reviews.isRequired(
+				{ userId: groupContext.user.id },
+				`events:event:${eventId}`,
+			))
+		) {
+			await eventsService.setStatus(eventId, "draft");
+			throw event.redirect(
+				303,
+				`${groupContext.adminBase}/events/${eventId}/review`,
+			);
+		}
 
 		throw event.redirect(303, `${groupContext.adminBase}/events`);
 	} catch (error: any) {

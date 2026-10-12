@@ -114,6 +114,14 @@ await notify("events.sale", { to: { channel: "telegram", target: "ops" }, data: 
 - `notify` only inserts rows (never sends inline) and throws on an unknown id or non-serializable data. Delivery, retries (exponential backoff, `NOTIFICATIONS_MAX_ATTEMPTS`) and failures are the worker's job; failed rows show up at `/admin/global/notifications`.
 - Unit tests: `enqueueNotification(def, input)` and `processOutboxOnce({ resolve, channels })` with fake channels (see `tests/unit/notifications*.spec.ts`).
 
+## UI strings and formatting (spec 4.8)
+
+- Every user-facing string goes in `src/modules/<id>/i18n/en.json` and `de.json` (flat keys, namespace `<id>.*`, e.g. `"jobs.admin.list.noJobsYet"`), rendered with `t("<id>.<key>", { name })` from `~/core/ui` (components) or `~/core` (server code: manifests, notifications, actions, services). Placeholders are `{name}`; for counts use a plural pair `<key>_one` / `<key>_other` and pass `{ count }`. Map DB enum values to labels through keys; seed content is content, not UI.
+- Register the catalog once in `src/core/registry/i18n.ts` (`catalogSources.modules[id] = { en, de }`). It is served only while the module is active. Manifest labels, block names, notification labels/subjects, requirement titles and zod messages (`.min(1, t("…"))`) use `t()` too; they are evaluated in the site locale.
+- `de.json` must have exactly the keys of `en.json` with the same `{placeholders}`; `tests/unit/i18n-catalogs.spec.ts` fails otherwise, and when module code uses another namespace or a key that does not exist. JSX text in module components fails `tests/unit/no-hardcoded-jsx-text.spec.ts`.
+- Dates, numbers and money: `formatDate(value, "date" | "dateLong" | "dateTime" | "time" | … | Intl options)`, `formatNumber`, `formatCurrency(amount, "EUR")`, `formatMoney(minorUnits, currency)` from `~/core/ui` / `~/core`; never `toLocale*`, date-fns display formats or `new Intl.*("en-US")`.
+- Don't name a local variable `t` in a file that translates (shadowing).
+
 ## Server/client split
 
 - Keep server-only loader logic in `*-data.ts` files imported only inside `routeLoader$` (e.g. `loadAdminJobs`), so it never reaches the client bundle. No server code (services, `db`, `~/core` server exports) in components or `views.tsx`; view maps are bundled for the browser.

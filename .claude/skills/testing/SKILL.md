@@ -139,6 +139,8 @@ npx playwright test --project auth-flows
 
 Projects: `setup` (shared session), `auth-flows` (`auth.spec.ts`, `profile-setup.spec.ts`), `chromium` (everything else, stored session).
 
+UI language: the default run is English. To check German, run the suite once with `SITE_LOCALE=de` on its own port and DB (`SITE_LOCALE=de E2E_PORT=5281 DB_PATH=/tmp/e2e-de.db npx playwright test`); `tests/e2e/i18n.spec.ts` reads `<html lang>` and expects that locale's strings, other specs assert English text and fail under `de` for that reason only. Unit tests always see the English catalog (no Vite plugin); test other locales with `createTranslator` / `buildCatalog` / `createFormatters` (`tests/unit/i18n.spec.ts`).
+
 ## Environment pitfalls
 
 - e2e needs the Docker services from `docker-compose.yml`: Mailpit (email, `:8025`), MinIO (S3), stripe-mock. Start them with `docker compose up -d` before running; without them login, upload and checkout tests fail for environmental reasons.

@@ -33,6 +33,12 @@ The presentational layer for public-facing routes lives in `theme/` and is licen
 - A block field that links somewhere uses `type: "link"` (not `"url"`): the builder offers a search over scopes, pages, notes, articles and module items and stores the pick as a `ref:` reference; the CMS page loader hands the block the current URL (an unavailable reference becomes `""`). `"url"` stays for external embeds (video, iframe).
 - Module-owned block types are also listed in the module's `blocks.ts` and `src/core/registry/blocks.ts` (see `add-module`).
 
+## UI strings and formatting (spec 4.8)
+
+- Theme text lives in `theme/i18n/en.json` + `de.json` (flat keys `theme.<component>.<key>`), rendered with `t("theme.…", params?)` imported from `~/contracts/i18n` (the theme's door to core's i18n runtime, together with `formatDate` / `formatNumber` / `formatCurrency` / `formatMoney` / `siteLocale`). Never literal JSX text or text attributes (`placeholder`, `title`, `aria-label`, `alt`, `label`…): `tests/unit/no-hardcoded-jsx-text.spec.ts` flags them (small justified allow-list there). Block definitions (`name`, field `label`s, options, defaults) and email templates use `t()` as well.
+- Plurals: `<key>_one` / `<key>_other` with `{ count }`. Keep sentences whole where you can (one key with `{param}`s) instead of fragments around inline elements.
+- Tests should find elements by role or `data-testid`, not by translated text (e.g. `data-testid="profile-menu"`).
+
 ## Enforced boundary
 
 `biome.json` has a `noRestrictedImports` override scoped to `theme/**` that fails the build on any import of `~/core` (module API root), `~/core/schema`, `~/core/db/**`, `~/core/*/*.service`, `~/core/*/schema` (and `/**`), `~/core/auth/**`, or `~/env`. Run `npx biome lint theme`. When adding a new dynamic block or live data need, add a composable in core (or the module) first; do not import a service directly from `theme/**` to work around the rule.

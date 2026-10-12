@@ -8,6 +8,7 @@ import { type NoteInput, notesService } from "~/core/content/notes.service";
 import { stream } from "~/core/content/stream.service";
 import { toStreamCards } from "~/core/content/stream-cards";
 import { itemUrl } from "~/core/registry/refs";
+import { reviews } from "~/core/reviews/reviews";
 
 /**
  * The notes and articles API for modules (`notes`, `articles`, `updatesFor` from `~/core`).
@@ -41,15 +42,26 @@ export type AdminUpdate = {
 	visibility: NoteInput["visibility"];
 	publishedAt: string | null;
 	authorName: string;
+	/** The review state when it was submitted (`in_review`, `rejected`, …), else null. */
+	reviewStatus: string | null;
+	reviewComment: string | null;
 };
 
 export const notes = {
-	/** Creates and publishes a note by `authorId`; throws `ContentInputError` for bad input. */
+	/**
+	 * Creates a note by `authorId`, published at once unless it needs review (a public note by
+	 * an author below coordinator of the scope: `inReview`, published on approval). Throws
+	 * `ContentInputError` for bad input.
+	 */
 	async create(
 		input: NoteInput & { authorId: string },
-	): Promise<{ id: string; url: string }> {
+	): Promise<{ id: string; url: string; inReview: boolean }> {
 		const note = await notesService.create(input);
-		return { id: note.id, url: await itemUrl("core:note", note) };
+		return {
+			id: note.id,
+			url: await itemUrl("core:note", note),
+			inReview: !note.publishedAt,
+		};
 	},
 
 	/** Updates body, visibility or subject; `editorId` is checked like an author. */
@@ -84,12 +96,16 @@ export const notes = {
 };
 
 export const articles = {
-	/** Creates and publishes an article by `authorId`; throws `ContentInputError` for bad input. */
+	/** Creates an article by `authorId`, like `notes.create` (review included). */
 	async create(
 		input: ArticleInput & { authorId: string },
-	): Promise<{ id: string; url: string }> {
+	): Promise<{ id: string; url: string; inReview: boolean }> {
 		const article = await articlesService.create(input);
-		return { id: article.id, url: await itemUrl("core:article", article) };
+		return {
+			id: article.id,
+			url: await itemUrl("core:article", article),
+			inReview: !article.publishedAt,
+		};
 	},
 
 	/** Updates title, image, body, visibility or subject; `editorId` is checked like an author. */
@@ -142,6 +158,9 @@ export async function adminUpdatesFor(
 	subjectId: string,
 ): Promise<AdminUpdate[]> {
 	const rows = await stream.listForSubject(subjectType, subjectId);
+	const statuses = await reviews.statusOfMany(
+		rows.map((r) => `core:${r.type}:${r.id}`),
+	);
 	return rows.map((r) => ({
 		type: r.type,
 		id: r.id,
@@ -150,6 +169,8 @@ export async function adminUpdatesFor(
 		visibility: r.visibility,
 		publishedAt: r.publishedAt,
 		authorName: `${r.author.name} ${r.author.familyName}`,
+		reviewStatus: statuses.get(`core:${r.type}:${r.id}`)?.status ?? null,
+		reviewComment: statuses.get(`core:${r.type}:${r.id}`)?.comment ?? null,
 	}));
 }
 

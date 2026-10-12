@@ -13,6 +13,8 @@ import { PAGE_SIZE, Pagination } from "~/core/admin/Pagination/Pagination";
 import { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 import { articlesService } from "~/core/content/articles.service";
 import { publicImageUrlFromKey } from "~/core/media/images";
+import { ReviewStatusBadge } from "~/core/reviews/ReviewStatusBadge";
+import { withReviewStatus } from "~/core/reviews/reviews";
 import { adminUrl } from "~/core/router/scope-path";
 import {
 	ADMIN_ACCESS,
@@ -41,10 +43,12 @@ export const useArticles = routeLoader$(async (event) => {
 	});
 
 	return assertNoPrivateFields({
-		articles: items.map(({ featuredImage, ...a }) => ({
-			...a,
-			imageUrl: publicImageUrlFromKey(featuredImage),
-		})),
+		articles: (await withReviewStatus("article", items)).map(
+			({ featuredImage, ...a }) => ({
+				...a,
+				imageUrl: publicImageUrlFromKey(featuredImage),
+			}),
+		),
 		total,
 		page,
 		pageSize: PAGE_SIZE,
@@ -129,9 +133,11 @@ export default component$(() => {
 									{article.author.name} {article.author.familyName}
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-									{article.publishedAt
-										? format(new Date(article.publishedAt), "MMM d, yyyy")
-										: "Not published"}
+									{article.publishedAt ? (
+										format(new Date(article.publishedAt), "MMM d, yyyy")
+									) : (
+										<ReviewStatusBadge review={article.review} />
+									)}
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
 									<div class="flex items-center gap-4">

@@ -180,10 +180,17 @@ describe("notes", () => {
 		await expect(
 			note({ ...base(), scopeId: "nope", body: "<p>x</p>" }),
 		).rejects.toThrow("Unknown scope");
-		// Public chapter content from a representative needs review (spec 4.9): not allowed yet.
+		// Without a role in the scope, only members-only content (never public).
 		await expect(
-			note({ ...base(), authorId: representative, body: "<p>x</p>" }),
+			note({ ...base(), authorId: outsider, body: "<p>x</p>" }),
 		).rejects.toThrow("visibility");
+		// A representative's public note is created but waits for review (spec 4.9).
+		const inReview = await note({
+			...base(),
+			authorId: representative,
+			body: "<p>x</p>",
+		});
+		expect(inReview.publishedAt).toBeNull();
 		const ok = await note({
 			...base(),
 			authorId: representative,
@@ -208,7 +215,7 @@ describe("notes", () => {
 			),
 		).rejects.toBeInstanceOf(ContentInputError);
 		await expect(
-			notesService.update(row.id, { visibility: "public" }, representative),
+			notesService.update(row.id, { visibility: "public" }, outsider),
 		).rejects.toBeInstanceOf(ContentInputError);
 		await expect(
 			notesService.update(

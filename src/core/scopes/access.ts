@@ -234,16 +234,16 @@ export async function requireSystemAdmin(
 }
 
 /**
- * The visibilities the user may give an item owned by the scope. Public content of a scope is
- * listed on every ancestor (content flows up), so it needs a coordinator, admin or moderator
- * of the scope or above (spec 4.9: their content skips review). Representatives may publish to
- * members and representatives only until reviews exist.
+ * The visibilities the user may give an item owned by the scope: every one for anyone with a
+ * role there (managers and coordinators, inherited downward). Public content from a
+ * representative goes through review before it is published (spec 4.9, `reviews.submit`);
+ * a coordinator's, admin's or moderator's is published directly.
  */
 export async function allowedVisibilities(
 	user: AccessUser,
 	scopeId: string,
 ): Promise<Visibility[]> {
-	return (await canManageScope(user, scopeId, "coordinator"))
+	return (await canManageScope(user, scopeId, REVIEW_ACCESS))
 		? ["public", "members", "representatives"]
 		: ["members", "representatives"];
 }

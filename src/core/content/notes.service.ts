@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, like, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, like, sql } from "drizzle-orm";
 import {
 	canViewStreamItem,
 	changedSubject,
@@ -9,6 +9,7 @@ import {
 	validateSubject,
 } from "~/core/content/content-input";
 import { textExcerpt } from "~/core/content/content-items";
+import { reviewAfterEdit, submitNewItem } from "~/core/content/content-review";
 import { type Note, notes } from "~/core/content/schema/notes";
 import { db } from "~/core/db/connection";
 import {
@@ -210,11 +211,14 @@ export const notesService = {
 				body: await cleanNoteBody(input.body),
 				visibility: input.visibility,
 				authorId: input.authorId,
-				publishedAt: now,
+				// Published below unless it needs review (spec 4.9).
+				publishedAt: null,
 				updatedAt: now,
 			})
 			.returning();
-		return row;
+		return (await submitNewItem("note", row, input.authorId))
+			? ((await this.publish(row.id)) ?? row)
+			: row;
 	},
 
 	/**
@@ -244,6 +248,27 @@ export const notesService = {
 			.update(notes)
 			.set(changes)
 			.where(eq(notes.id, id))
+			.returning();
+		if (!row) return row;
+		const next = await reviewAfterEdit("note", current, row, editorId);
+		if (next === "publish") return (await this.publish(row.id)) ?? row;
+		if (next === "unpublish") {
+			const [hidden] = await db
+				.update(notes)
+				.set({ publishedAt: null })
+				.where(eq(notes.id, row.id))
+				.returning();
+			return hidden;
+		}
+		return row;
+	},
+
+	/** Publishes an unpublished item now (review approved, or no review needed). */
+	async publish(id: string): Promise<Note | undefined> {
+		const [row] = await db
+			.update(notes)
+			.set({ publishedAt: new Date().toISOString() })
+			.where(and(eq(notes.id, id), isNull(notes.publishedAt)))
 			.returning();
 		return row;
 	},

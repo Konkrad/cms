@@ -307,3 +307,25 @@ export async function reviewQueue(
 		mine: await Promise.all(mine.map((r) => toItem(r, false))),
 	};
 }
+
+/**
+ * Adds each item's latest review (`{ status, comment }` or null) to admin list rows of core
+ * notes or articles.
+ */
+export async function withReviewStatus<T extends { id: string }>(
+	kind: "note" | "article",
+	rows: T[],
+): Promise<
+	Array<T & { review: { status: ReviewStatus; comment: string | null } | null }>
+> {
+	const statuses = await reviews.statusOfMany(
+		rows.map((r) => `core:${kind}:${r.id}`),
+	);
+	return rows.map((r) => {
+		const s = statuses.get(`core:${kind}:${r.id}`);
+		return {
+			...r,
+			review: s ? { status: s.status, comment: s.comment } : null,
+		};
+	});
+}

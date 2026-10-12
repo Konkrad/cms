@@ -15,6 +15,8 @@ import { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 import { noteFormSchema } from "~/core/content/content-form";
 import { ContentInputError } from "~/core/content/content-items";
 import { notesService } from "~/core/content/notes.service";
+import { ReviewStatusBadge } from "~/core/reviews/ReviewStatusBadge";
+import { withReviewStatus } from "~/core/reviews/reviews";
 import { adminUrl } from "~/core/router/scope-path";
 import {
 	ADMIN_ACCESS,
@@ -44,7 +46,7 @@ export const useNotes = routeLoader$(async (event) => {
 	});
 
 	return assertNoPrivateFields({
-		notes: items,
+		notes: await withReviewStatus("note", items),
 		total,
 		page,
 		pageSize: PAGE_SIZE,
@@ -60,18 +62,18 @@ export const useCreateNote = routeAction$(
 	async (data, event): Promise<ContentFormResult> => {
 		const { user, scope } = await requireScopeRole(event, ADMIN_ACCESS);
 		try {
-			await notesService.create({
+			const note = await notesService.create({
 				scopeId: scope.id,
 				body: data.body,
 				visibility: data.visibility,
 				authorId: user.id,
 			});
+			return { success: true, inReview: !note.publishedAt };
 		} catch (error) {
 			if (error instanceof ContentInputError)
 				return { success: false, error: error.message };
 			throw error;
 		}
-		return { success: true };
 	},
 	zod$(noteFormSchema),
 );
@@ -144,9 +146,11 @@ export default component$(() => {
 									{note.author.name} {note.author.familyName}
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-									{note.publishedAt
-										? format(new Date(note.publishedAt), "MMM d, yyyy")
-										: "Not published"}
+									{note.publishedAt ? (
+										format(new Date(note.publishedAt), "MMM d, yyyy")
+									) : (
+										<ReviewStatusBadge review={note.review} />
+									)}
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
 									<div class="flex items-center gap-4">

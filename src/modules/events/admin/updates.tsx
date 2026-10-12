@@ -31,16 +31,16 @@ const aboutEvent = (id: string) => ({
 });
 
 async function saved(
-	write: () => Promise<unknown>,
+	write: () => Promise<{ inReview: boolean }>,
 ): Promise<ContentFormResult> {
 	try {
-		await write();
+		const { inReview } = await write();
+		return { success: true, inReview };
 	} catch (error) {
 		if (error instanceof ContentInputError)
 			return { success: false, error: error.message };
 		throw error;
 	}
-	return { success: true };
 }
 
 export const useCreateEventNote = routeAction$(async (data, requestEvent) => {
@@ -168,8 +168,15 @@ export const AdminEventUpdates = component$<{ data: AdminEventUpdatesData }>(
 											{VISIBILITY_LABELS[item.visibility].label}
 											{item.publishedAt
 												? ` · ${new Date(item.publishedAt).toLocaleDateString("en-GB")}`
-												: ""}
+												: item.reviewStatus === "rejected"
+													? " · Not approved"
+													: " · In review"}
 										</p>
+										{!item.publishedAt && item.reviewComment && (
+											<p class="text-xs text-red-700 mt-1 whitespace-pre-wrap">
+												“{item.reviewComment}”
+											</p>
+										)}
 									</div>
 									<Form action={deleteUpdate}>
 										<input type="hidden" name="type" value={item.type} />

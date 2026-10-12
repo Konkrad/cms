@@ -44,7 +44,7 @@ export const useUpdateNote = routeAction$(
 		if (!(await isWithinScope(scope, target.scopeId)))
 			throw event.error(403, "Forbidden");
 		try {
-			await notesService.update(
+			const saved = await notesService.update(
 				target.id,
 				{
 					body: data.body,
@@ -53,12 +53,12 @@ export const useUpdateNote = routeAction$(
 				},
 				user.id,
 			);
+			return { success: true, inReview: !!saved && !saved.publishedAt };
 		} catch (error) {
 			if (error instanceof ContentInputError)
 				return { success: false, error: error.message };
 			throw error;
 		}
-		return { success: true };
 	},
 	zod$(noteFormSchema),
 );

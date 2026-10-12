@@ -55,7 +55,7 @@ export const useUpdateArticle = routeAction$(
 		if (!(await isWithinScope(scope, target.scopeId)))
 			throw event.error(403, "Forbidden");
 		try {
-			await articlesService.update(
+			const saved = await articlesService.update(
 				target.id,
 				{
 					title: data.title,
@@ -66,12 +66,12 @@ export const useUpdateArticle = routeAction$(
 				},
 				user.id,
 			);
+			return { success: true, inReview: !!saved && !saved.publishedAt };
 		} catch (error) {
 			if (error instanceof ContentInputError)
 				return { success: false, error: error.message };
 			throw error;
 		}
-		return { success: true };
 	},
 	zod$(articleFormSchema),
 );

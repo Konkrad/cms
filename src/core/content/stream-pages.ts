@@ -5,6 +5,7 @@ import type { StreamItemData } from "~/contracts/stream";
 import { getCurrentUserData } from "~/core/auth/server-auth";
 import { articlesService } from "~/core/content/articles.service";
 import { textExcerpt } from "~/core/content/content-items";
+import { canPreviewUnpublished } from "~/core/content/content-review";
 import { notesService } from "~/core/content/notes.service";
 import { stream } from "~/core/content/stream.service";
 import {
@@ -48,7 +49,15 @@ export const notePage = definePage({
 	async load(event, { params }): Promise<NoteViewData | null> {
 		const note = await notesService.getById(params.id);
 		const user = await viewer(event);
-		if (!note || !(await notesService.canView(note, user))) {
+		// Unpublished (in review or rejected): 404 except for its author and its reviewers,
+		// who preview it here; it stays out of every listing, the stream and the sitemap.
+		if (
+			!note ||
+			!(
+				(await notesService.canView(note, user)) ||
+				(await canPreviewUnpublished("note", note, user))
+			)
+		) {
 			event.status(404);
 			return null;
 		}
@@ -81,7 +90,13 @@ export const articlePage = definePage({
 	async load(event, { params }): Promise<ArticleViewData | null> {
 		const article = await articlesService.getById(params.id);
 		const user = await viewer(event);
-		if (!article || !(await articlesService.canView(article, user))) {
+		if (
+			!article ||
+			!(
+				(await articlesService.canView(article, user)) ||
+				(await canPreviewUnpublished("article", article, user))
+			)
+		) {
 			event.status(404);
 			return null;
 		}

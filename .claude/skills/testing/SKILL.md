@@ -63,13 +63,15 @@ Helpers named `create*InDb` / `create*` that return `cleanup()` should be cleane
 
 | Helper | Purpose |
 |---|---|
-| `createUserSession(role, prefix?, { name, familyName }?)` | Temp user + login + session (+ root admin role for `"admin"`); returns `{ userId, sessionToken, cleanup }` |
+| `createUserSession(role, prefix?, { name, familyName }?, completed?)` | Temp user + login + session (+ root admin role for `"admin"`) with every user requirement completed (`completed`: `{ only?, except?, values? }`); returns `{ userId, sessionToken, cleanup }` |
 | `createUserSessionWithMembership(tier)` | Like `createUserSession("user")` plus a membership (`"associated"` / `"full"`) |
 | `createDbSession(userId)` / `deleteDbSession(id)` | Insert / delete a session row for an existing user |
-| `createTestUser(opts)` | User with preset consent/food/photo fields |
+| `createTestUser({ completed?, values? })` | Logged-in user with only the listed requirements completed (default none: gated to `/profile/setup`, asked at checkout); `GLOBAL_REQUIREMENTS` = profile, location, onboarding survey |
 | `getUserById(id)` / `getUserIdByEmail(email)` / `getUserEmailById(id)` | Look up user rows, ids, login emails |
 | `deleteUserByEmail(email)` | Delete user + login by email (Mailpit test cleanup) |
-| `setUserConsentByEmail(email, consent)` | Update consent JSON for a user |
+| `completeRequirementsByEmail(email, options?)` | Complete requirements for a user who logged in through Mailpit |
+| `getUserRequirement(userId, id)` / `setRequirementVersion(userId, id, version)` | A stored completion (`value` parsed) / store it at an older version (as after a version bump) |
+| `setActiveOnboardingForm(formId \| null)` | Set or clear the root's active onboarding form; returns the previous id to restore |
 | `createScopeInDb({ parentPath, slug, name?, kind? })` / `deleteScopeById(id)` | Create a scope (a group: region, chapter…; returns `{ id, path, segment }`, e.g. `/e2e-region/`, `e2e-region`) / delete it with its subtree, roles, memberships, redirects, pages, jobs and deals (other content goes to the root: `scope_id` is NOT NULL) |
 | `renameScopeInDb(id, slug)` | New slug for a scope, rewriting its subtree's paths (no redirect rows); references follow |
 | `getScopeByPath(path)` / `adminSegmentOf(path)` | Look up a scope / its `/admin/[scope]` segment (`/a/b/` → `a.b`, `/` → `root`) |
@@ -113,7 +115,7 @@ Helpers named `create*InDb` / `create*` that return `cleanup()` should be cleane
 | `setEventDebriefRequested(eventId, daysAgo?)` | Mark an event's debrief as requested (what the daily schedule does) |
 | `createRedirectInDb(from, to)` / `getRedirectTarget(from)` / `deleteRedirectsLike(prefix)` | `redirects` rows (old public path → new path) |
 
-`SHARED_E2E_EMAIL` is the shared login used by the auth setup project.
+`SHARED_E2E_EMAIL` is the shared login used by the auth setup project. Seeded users, role fixtures and the shared session have completed every user requirement (`scripts/seed-requirements.ts`, versions checked by `tests/unit/requirements.spec.ts`); only `createTestUser` and new Mailpit logins hit the setup gate.
 
 ## Running e2e
 

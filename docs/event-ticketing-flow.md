@@ -52,6 +52,12 @@ These are two separate things:
 
 ## 4. What a member sees at checkout — three steps
 
+**Before the tickets — a couple of quick questions.** The first time a member
+buys a ticket or registers for an event, they are asked their dietary
+preference and whether they consent to being photographed. The answers are
+kept, so they are not asked again; organisers see them in the event's
+**Participation** list.
+
 **Step 1 — choose tickets.** Remaining availability is shown live for each
 ticket type.
 
@@ -63,9 +69,8 @@ the first attendee.
 
 ![Checkout step 2](./images/checkout-2-participants.png)
 
-**Step 3 — payment.** An order summary, then (if needed) a couple of quick
-questions like dietary preference and photo consent, then payment. If the
-total is €0, the ticket is issued immediately with no payment step needed.
+**Step 3 — payment.** An order summary, then payment. If the total is €0, the
+ticket is issued immediately with no payment step needed.
 
 ![Checkout step 3](./images/checkout-3-payment.png)
 

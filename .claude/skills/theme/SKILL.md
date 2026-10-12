@@ -21,6 +21,10 @@ The presentational layer for public-facing routes lives in `theme/` and is licen
 - Mixed listings (the Stream block, `ArchiveViewData`, scope home `recentNews`, related items, an event's `updates`) are `StreamItemData[]`, newest first: render them with `StreamList` / `StreamCard` (`theme/shared/StreamList`), which pick `NoteCard` / `ArticleCard` by `type`. Pages: `NoteView` (`theme/routes/notes`, `data-layout="note"`) and `ArticleView` (`theme/routes/articles`, `data-layout="article"`, image beside the text).
 - The Stream block's `show` setting (`all` / `notes` / `articles`) and the archives (`/archive/<all|notes|articles>`) filter by type in core (`useStream`, `stream.service.ts`); the theme never filters lists itself. `HeroArticle` (hero block) lists articles with their image.
 
+## User requirement steps
+
+- Pending requirements (spec 4.6) reach the theme as `RequirementStepData[]` (`~/contracts/requirements`): render them with `RequirementSteps` / `RequirementStep` (`theme/shared/RequirementStep/`), which post to core's single action passed in as a prop (`SubmitRequirementAction`). Custom views by `step.view` (`core.profile`, `core.location`, `core.form`), otherwise `GenericFields` from `step.fields`. Field names are the requirement's input keys; errors come back per field in the action value. The setup flow is `theme/routes/onboarding/SetupView.tsx`.
+
 ## Headless composables and blocks
 
 - **Page-builder blocks have no route loader**, so each "dynamic" block delegates data-fetching/pagination to a composable: core ones under `src/core/content/builder/blocks/use*.ts` (`useScopesList` — the child scopes of the page's scope —, `useHeroSection`, `useStream`); module blocks live in the module (`src/modules/events/useUpcomingEvents.ts`, `useUpcomingEvents`/`usePastEvents`, `src/modules/deals/useDealsList.ts`). Plain functions using `useSignal`/`useTask$`/`server$()`, Qwik's native "custom hook" pattern.

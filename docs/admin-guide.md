@@ -100,7 +100,7 @@ Once an event exists, its management page has tabs for:
   The events list shows overdue debriefs (asked a week ago or more).
 - **Products** — ticket types and how many are available (see the
   ticketing doc for how this works)
-- **Participation** — who's RSVP'd (separate from paid ticket sales)
+- **Participation** — who's RSVP'd (separate from paid ticket sales), with each person's food preference and photo consent
 - **Tickets / Scan** — issued tickets, and the QR check-in scanner for the door
 - **Comp Tickets** — issue free tickets directly, without going through checkout
 - **Transactions** — payment records
@@ -129,6 +129,10 @@ and exported.
   make it the active one.
 - Answers are checked on the server against the questions; text answers are
   stored and shown as plain text.
+- **Onboarding survey** — while an *Onboarding survey* form is active for the
+  whole site, every member fills it in once during setup (after their profile
+  and location), before they can use the site. With no active onboarding form
+  the step is skipped.
 
 ## Qualifications
 

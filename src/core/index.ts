@@ -129,6 +129,16 @@ export {
 	ARTICLE_IMAGE_PATH,
 	NOTE_MAX_LENGTH,
 } from "~/core/content/content-items";
+// Forms (spec 4.10): the active form of a purpose you declare, answers stored by reference.
+export {
+	type ActiveForm,
+	FormAccessError,
+	FormAnswerError,
+	type FormQuestion,
+	forms,
+	type ItemFormResult,
+} from "~/core/forms/forms-api";
+export type { FormPurpose } from "~/core/forms/purposes";
 export type { RefLocation, RefTypeDefinition } from "~/core/router/modules";
 export { requireCanonicalUrl } from "~/core/refs/canonical";
 export {

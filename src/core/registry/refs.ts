@@ -66,6 +66,35 @@ export async function describeRef(
 	return { url, title: located?.title ?? null };
 }
 
+/**
+ * The owning scope and label of the item a reference names, for any registered module (an
+ * inactive module's items still have an owner: reviews and form results attached to them stay
+ * manageable). Null for a malformed or scope reference, an unknown type or a missing item.
+ */
+export async function locateRef(ref: string): Promise<{
+	module: string;
+	type: string;
+	id: string;
+	scopeId: string;
+	title: string | null;
+} | null> {
+	const parsed = parseRef(ref);
+	if (!parsed || parsed.kind !== "item") return null;
+	const def = registered().find((m) => m.id === parsed.module)?.refs?.[
+		parsed.type
+	];
+	if (!def) return null;
+	const [located] = await def.locate([parsed.id]);
+	if (!located) return null;
+	return {
+		module: parsed.module,
+		type: parsed.type,
+		id: parsed.id,
+		scopeId: located.scopeId,
+		title: located.title ?? null,
+	};
+}
+
 type Locatable = { id: string; scopeId: string; slug?: string | null };
 
 /**

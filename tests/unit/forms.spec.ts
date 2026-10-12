@@ -11,10 +11,11 @@ import {
 	formAssignmentsService,
 	formsService,
 } from "~/core/forms/forms.service";
+import { FormAccessError, forms } from "~/core/forms/forms-api";
 import { isSurveyForm } from "~/core/forms/purposes";
 import type { Scope } from "~/core/scopes/schema/scopes";
 import { scopesService } from "~/core/scopes/scopes.service";
-import { createTestUser, openDb } from "./helpers";
+import { createTestEvent, createTestUser, openDb } from "./helpers";
 
 const tag = Date.now().toString(36);
 const PURPOSE = `test.purpose-${tag}`;
@@ -92,6 +93,7 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
+	for (const c of cleanups.reverse()) c();
 	const db = openDb();
 	for (const s of [chapter, region, otherRegion]) {
 		db.prepare("DELETE FROM form_assignments WHERE scope_id = ?").run(s.id);
@@ -108,7 +110,6 @@ afterAll(() => {
 	for (const s of [chapter, region, otherRegion])
 		db.prepare("DELETE FROM scopes WHERE id = ?").run(s.id);
 	db.close();
-	for (const c of cleanups.reverse()) c();
 });
 
 describe("validateAnswers", () => {
@@ -256,5 +257,46 @@ describe("active form per purpose", () => {
 		expect(isSurveyForm({ purpose: null })).toBe(true);
 		expect(isSurveyForm({ purpose: "core.onboarding" })).toBe(true);
 		expect(isSurveyForm({ purpose: "events.proposal" })).toBe(false);
+	});
+});
+
+describe("module API", () => {
+	it("active, submit and resultsFor (managers of the item's scope only)", async () => {
+		const manager = createTestUser();
+		const member = createTestUser();
+		cleanups.push(manager.cleanup, member.cleanup);
+		await scopesService.grantRole(manager.userId, region.id, "representative");
+		await scopesService.join(member.userId, chapter.id);
+		const event = createTestEvent(author, { scopeId: chapter.id });
+		cleanups.push(event.cleanup);
+		const ref = `events:event:${event.eventId}`;
+
+		const f = await form(region.id);
+		await formAssignmentsService.setActive(PURPOSE, region.id, f.id);
+		const active = await forms.active({ scopeId: chapter.id }, PURPOSE);
+		expect(active?.id).toBe(f.id);
+		expect(active?.questions.map((q) => q.name)).toContain("story");
+
+		await expect(
+			forms.submit({ userId: author }, f.id, { subjectRef: ref, answers: {} }),
+		).rejects.toBeInstanceOf(FormAnswerError);
+		const saved = await forms.submit({ userId: author }, f.id, {
+			subjectRef: ref,
+			answers: { name: "Ada", story: "<i>plain</i>" },
+		});
+		expect(saved.answers).toEqual({ name: "Ada", story: "<i>plain</i>" });
+		expect(await formsService.isLocked(f.id)).toBe(true);
+
+		const results = await forms.resultsFor({ userId: manager.userId }, ref);
+		expect(results).toHaveLength(1);
+		expect(results[0].rows.find((r) => r.name === "story")?.answer).toBe(
+			"<i>plain</i>",
+		);
+		await expect(
+			forms.resultsFor({ userId: member.userId }, ref),
+		).rejects.toBeInstanceOf(FormAccessError);
+		await expect(
+			forms.resultsFor({ userId: manager.userId }, "events:event:missing"),
+		).rejects.toBeInstanceOf(FormAccessError);
 	});
 });

@@ -2,6 +2,7 @@
 
 import { Section, Text } from "@react-email/components";
 import type { PaymentReceiptEmailProps } from "~/contracts/emails";
+import { t } from "~/contracts/i18n";
 import { colors } from "~theme/tokens/tokens";
 import EmailLayout from "./EmailLayout";
 
@@ -17,14 +18,18 @@ export default function PaymentReceiptEmail({
 }: PaymentReceiptEmailProps) {
 	const cell = { padding: "8px 0", color: colors.text, fontSize: "14px" };
 	return (
-		<EmailLayout title="Payment receipt" subtitle={date} baseUrl={baseUrl}>
+		<EmailLayout
+			title={t("theme.emailPaymentReceipt.paymentReceipt")}
+			subtitle={date}
+			baseUrl={baseUrl}
+		>
 			<Text
 				style={{ fontSize: "18px", marginBottom: "16px", color: colors.text }}
 			>
-				Hello {recipientName}!
+				{t("theme.emailPaymentReceipt.hello", { recipientName })}
 			</Text>
 			<Text style={{ color: colors["text-secondary"], marginBottom: "16px" }}>
-				Thank you for your payment. This is your receipt.
+				{t("theme.emailPaymentReceipt.thankYouForYourPayment")}
 				{note ? ` ${note}.` : ""}
 			</Text>
 			<Section style={{ marginBottom: "24px" }}>
@@ -39,7 +44,9 @@ export default function PaymentReceiptEmail({
 							</tr>
 						))}
 						<tr>
-							<td style={{ ...cell, fontWeight: 700 }}>Total</td>
+							<td style={{ ...cell, fontWeight: 700 }}>
+								{t("theme.emailPaymentReceipt.total")}
+							</td>
 							<td style={{ ...cell, fontWeight: 700, textAlign: "right" }}>
 								{total}
 							</td>
@@ -48,7 +55,7 @@ export default function PaymentReceiptEmail({
 				</table>
 			</Section>
 			<Text style={{ color: colors["text-secondary"], fontSize: "12px" }}>
-				Receipt number: {reference}
+				{t("theme.emailPaymentReceipt.receiptNumber", { reference })}
 			</Text>
 		</EmailLayout>
 	);

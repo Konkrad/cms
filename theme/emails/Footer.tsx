@@ -2,6 +2,7 @@
 
 import { Link, Section, Text } from "@react-email/components";
 import React from "react";
+import { t } from "~/contracts/i18n";
 import { emailBrand } from "~theme/emails/brand";
 import { colors, fonts } from "~theme/tokens/tokens";
 
@@ -19,8 +20,10 @@ const Footer = ({ unsubscribeUrl }: { unsubscribeUrl?: string | null }) => {
 			<Text
 				style={{ margin: "0", color: colors["text-muted"], fontSize: "14px" }}
 			>
-				© {new Date().getFullYear()} {emailBrand.footerCopyright}. All rights
-				reserved.
+				{t("theme.emailFooter.allRightsReserved", {
+					year: new Date().getFullYear(),
+					footerCopyright: emailBrand.footerCopyright,
+				})}
 			</Text>
 			{unsubscribeUrl && (
 				<Text
@@ -31,7 +34,7 @@ const Footer = ({ unsubscribeUrl }: { unsubscribeUrl?: string | null }) => {
 					}}
 				>
 					<Link href={unsubscribeUrl} style={{ color: colors["text-muted"] }}>
-						Unsubscribe from these emails
+						{t("theme.emailFooter.unsubscribeFromTheseEmails")}
 					</Link>
 				</Text>
 			)}

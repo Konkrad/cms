@@ -3,6 +3,7 @@
 import { Button, Hr, Section, Text } from "@react-email/components";
 import React from "react";
 import type { LoginEmailProps } from "~/contracts/emails";
+import { t } from "~/contracts/i18n";
 import { colors } from "~theme/tokens/tokens";
 import { emailBrand } from "./brand";
 import EmailLayout from "./EmailLayout";
@@ -21,16 +22,15 @@ export default function LoginEmail({
 }: LoginEmailProps) {
 	return (
 		<EmailLayout
-			title={`Sign in to ${appName}`}
-			subtitle="Authentication Request"
+			title={t("theme.emailLogin.signInTo", { appName })}
+			subtitle={t("theme.emailLogin.authenticationRequest")}
 			baseUrl={baseUrl}
 		>
 			{/* Greeting */}
 			<Text
 				style={{ fontSize: "16px", marginBottom: "16px", color: colors.text }}
 			>
-				Use the button below to sign in, or copy the 6-letter code into the
-				site.
+				{t("theme.emailLogin.useTheButtonBelowTo")}
 			</Text>
 
 			{/* Sign In Button */}
@@ -49,7 +49,7 @@ export default function LoginEmail({
 						border: "none",
 					}}
 				>
-					Sign in to {appName}
+					{t("theme.emailLogin.signInTo", { appName })}
 				</Button>
 			</Section>
 
@@ -70,7 +70,7 @@ export default function LoginEmail({
 						marginBottom: "12px",
 					}}
 				>
-					Or enter this code:
+					{t("theme.emailLogin.orEnterThisCode")}
 				</Text>
 				<Text
 					style={{
@@ -95,7 +95,7 @@ export default function LoginEmail({
 						marginTop: "12px",
 					}}
 				>
-					The link and code expire in {expiresInMinutes} minutes.
+					{t("theme.emailLogin.theLinkAndCodeExpire", { expiresInMinutes })}
 				</Text>
 			</Section>
 
@@ -110,7 +110,7 @@ export default function LoginEmail({
 						marginBottom: "8px",
 					}}
 				>
-					If you didn't request this, you can safely ignore this email.
+					{t("theme.emailLogin.ifYouDidnTRequest")}
 				</Text>
 				<Text
 					style={{
@@ -118,8 +118,7 @@ export default function LoginEmail({
 						color: colors["text-muted"],
 					}}
 				>
-					For security reasons, do not share your code or sign-in link with
-					anyone.
+					{t("theme.emailLogin.forSecurityReasonsDoNot")}
 				</Text>
 			</Section>
 		</EmailLayout>

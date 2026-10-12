@@ -2,9 +2,11 @@ import { createElement } from "react";
 import {
 	adminUrl,
 	defineNotification,
+	formatCurrency,
 	formatDate,
 	getScope,
 	itemUrl,
+	t,
 } from "~/core";
 import NoticeEmail from "~theme/emails/Notice";
 import TicketConfirmationEmail from "~theme/emails/TicketConfirmation";
@@ -30,7 +32,7 @@ export interface TicketConfirmationData extends Record<string, unknown> {
 export const ticketConfirmationNotification =
 	defineNotification<TicketConfirmationData>({
 		id: "events.ticket-confirmation",
-		label: "Ticket confirmation",
+		label: t("events.notifications.ticketConfirmation.label"),
 		channels: ["email"],
 		optional: false,
 		render: {
@@ -40,7 +42,9 @@ export const ticketConfirmationNotification =
 				// Read at send time: the QR links show the ticket's current uuid.
 				const tickets = await ticketsService.getQrCodeRefsByIds(data.ticketIds);
 				return {
-					subject: `Your tickets for ${event.title}`,
+					subject: t("events.notifications.ticketConfirmation.subject", {
+						title: event.title,
+					}),
 					react: createElement(TicketConfirmationEmail, {
 						baseUrl: ctx.appUrl,
 						event: {
@@ -87,13 +91,16 @@ export interface SaleAlertData extends Record<string, unknown> {
 /** "New sale" alert to the ops Telegram channel, one per purchased product. Required. */
 export const saleAlertNotification = defineNotification<SaleAlertData>({
 	id: "events.sale",
-	label: "New ticket sale",
+	label: t("events.notifications.sale.label"),
 	channels: ["telegram"],
 	optional: false,
 	render: {
 		telegram: (data) =>
-			`🎫 New sale: ${data.quantity}x ${data.productName} (€${data.amount.toFixed(2)})\n` +
-			`📊 Remaining: ${data.remaining} spots`,
+			`${t("events.notifications.sale.line", {
+				quantity: data.quantity,
+				product: data.productName,
+				amount: formatCurrency(data.amount, "EUR"),
+			})}\n${t("events.notifications.sale.remaining", { count: data.remaining })}`,
 	},
 });
 
@@ -109,7 +116,7 @@ export const debriefRequestedNotification = defineNotification<{
 	reminder: boolean;
 }>({
 	id: "events.debrief-requested",
-	label: "Event debrief",
+	label: t("events.notifications.debriefRequested.label"),
 	channels: ["email"],
 	optional: false,
 	render: {
@@ -118,20 +125,31 @@ export const debriefRequestedNotification = defineNotification<{
 			if (!event) throw new Error(`Event ${data.eventId} not found`);
 			return {
 				subject: data.reminder
-					? `Reminder: debrief for ${event.title}`
-					: `How did ${event.title} go?`,
+					? t("events.notifications.debriefRequested.reminderSubject", {
+							title: event.title,
+						})
+					: t("events.notifications.debriefRequested.subject", {
+							title: event.title,
+						}),
 				react: createElement(NoticeEmail, {
 					baseUrl: ctx.appUrl,
-					recipientName: ctx.recipient.name ?? "there",
-					title: data.reminder ? "Debrief reminder" : "Event debrief",
+					recipientName:
+						ctx.recipient.name ?? t("events.notifications.fallbackName"),
+					title: data.reminder
+						? t("events.notifications.debriefRequested.reminderTitle")
+						: t("events.notifications.debriefRequested.title"),
 					subtitle: event.title,
 					paragraphs: [
 						data.reminder
-							? `A week ago we asked how "${event.title}" went. Please take a few minutes for the debrief.`
-							: `"${event.title}" has ended. Please tell us how it went in a short debrief.`,
+							? t("events.notifications.debriefRequested.reminderBody", {
+									title: event.title,
+								})
+							: t("events.notifications.debriefRequested.body", {
+									title: event.title,
+								}),
 					],
 					quote: null,
-					buttonLabel: "Fill in the debrief",
+					buttonLabel: t("events.notifications.debriefRequested.button"),
 					buttonUrl: new URL(
 						await eventReviewTab(event),
 						ctx.appUrl,
@@ -148,7 +166,7 @@ export const debriefSubmittedNotification = defineNotification<{
 	eventId: string;
 }>({
 	id: "events.debrief-submitted",
-	label: "Event debrief submitted",
+	label: t("events.notifications.debriefSubmitted.label"),
 	channels: ["email"],
 	optional: false,
 	render: {
@@ -156,17 +174,22 @@ export const debriefSubmittedNotification = defineNotification<{
 			const event = await eventsService.getById(data.eventId);
 			if (!event) throw new Error(`Event ${data.eventId} not found`);
 			return {
-				subject: `Debrief: ${event.title}`,
+				subject: t("events.notifications.debriefSubmitted.subject", {
+					title: event.title,
+				}),
 				react: createElement(NoticeEmail, {
 					baseUrl: ctx.appUrl,
-					recipientName: ctx.recipient.name ?? "there",
-					title: "Debrief submitted",
+					recipientName:
+						ctx.recipient.name ?? t("events.notifications.fallbackName"),
+					title: t("events.notifications.debriefSubmitted.title"),
 					subtitle: event.title,
 					paragraphs: [
-						`The organiser of "${event.title}" filled in the debrief.`,
+						t("events.notifications.debriefSubmitted.body", {
+							title: event.title,
+						}),
 					],
 					quote: null,
-					buttonLabel: "Read the debrief",
+					buttonLabel: t("events.notifications.debriefSubmitted.button"),
 					buttonUrl: new URL(
 						await eventReviewTab(event),
 						ctx.appUrl,

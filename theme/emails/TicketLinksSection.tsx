@@ -1,6 +1,8 @@
 /** @jsxImportSource react */
+
 import { Img, Section, Text } from "@react-email/components";
 import type * as React from "react";
+import { t } from "~/contracts/i18n";
 import { colors } from "~theme/tokens/tokens";
 
 export interface TicketLinksSectionProps {
@@ -33,12 +35,17 @@ export default function TicketLinksSection({
 					</Text>
 					<Img
 						src={`${baseUrl}/profile/tickets/${ticket.id}_${ticket.qrCodeUuid}`}
-						alt={`QR Code for ${ticketLabelPrefix} ${index + 1}`}
+						alt={t("theme.emailTicketLinksSection.qrCodeFor", {
+							ticketLabelPrefix,
+							value: index + 1,
+						})}
 						width="200"
 						height="200"
 						style={qrCodeStyle}
 					/>
-					<Text style={uuidStyle}>ID: {ticket.id}</Text>
+					<Text style={uuidStyle}>
+						{t("theme.emailTicketLinksSection.id", { id: ticket.id })}
+					</Text>
 				</div>
 			))}
 		</Section>

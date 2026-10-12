@@ -5,6 +5,7 @@ import {
 	notify,
 	refHref,
 	resolveRef,
+	t,
 } from "~/core";
 import JobApprovedEmail from "~theme/emails/JobApproved";
 
@@ -19,16 +20,19 @@ export const jobApprovedNotification = defineNotification<{
 	link: string;
 }>({
 	id: "jobs.approved",
-	label: "Job approved",
-	description: "When a job you suggested is approved and published.",
+	label: t("jobs.notifications.approved.label"),
+	description: t("jobs.notifications.approved.description"),
 	channels: ["email"],
 	optional: true,
 	render: {
 		email: async (data, ctx) => ({
-			subject: `Your job "${data.jobTitle}" is live`,
+			subject: t("jobs.notifications.approved.subject", {
+				jobTitle: data.jobTitle,
+			}),
 			react: createElement(JobApprovedEmail, {
 				baseUrl: ctx.appUrl,
-				recipientName: ctx.recipient.name ?? "there",
+				recipientName:
+					ctx.recipient.name ?? t("jobs.notifications.fallbackName"),
 				jobTitle: data.jobTitle,
 				// The current URL (the scope may have moved since); the job board if it is gone.
 				jobUrl: new URL(

@@ -2,6 +2,7 @@
 
 import { Button, Section, Text } from "@react-email/components";
 import type { NoticeEmailProps } from "~/contracts/emails";
+import { t } from "~/contracts/i18n";
 import { colors } from "~theme/tokens/tokens";
 import EmailLayout from "./EmailLayout";
 
@@ -27,7 +28,7 @@ export default function NoticeEmail({
 			<Text
 				style={{ fontSize: "18px", marginBottom: "16px", color: colors.text }}
 			>
-				Hello {recipientName}!
+				{t("theme.emailNotice.hello", { recipientName })}
 			</Text>
 			{paragraphs.map((p) => (
 				<Text

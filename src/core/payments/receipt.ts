@@ -28,7 +28,7 @@ export const paymentReceiptNotification = defineNotification<{
 				subject: t("core.payments.receipt.subject", { total }),
 				react: createElement(PaymentReceiptEmail, {
 					baseUrl: ctx.appUrl,
-					recipientName: ctx.recipient.name ?? "there",
+					recipientName: ctx.recipient.name ?? t("core.email.fallbackName"),
 					date: formatDate(payment.paidAt ?? payment.updatedAt),
 					reference: payment.id,
 					lines: payment.lines.map((line) => ({

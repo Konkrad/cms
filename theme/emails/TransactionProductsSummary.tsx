@@ -1,6 +1,8 @@
 /** @jsxImportSource react */
+
 import { Section, Text } from "@react-email/components";
 import type * as React from "react";
+import { formatCurrency, t } from "~/contracts/i18n";
 import { colors } from "~theme/tokens/tokens";
 
 export interface TransactionProduct {
@@ -31,14 +33,24 @@ export default function TransactionProductsSummary({
 
 	return (
 		<Section style={sectionStyle}>
-			<Text style={headingStyle}>Order Summary</Text>
+			<Text style={headingStyle}>
+				{t("theme.emailTransactionProductsSummary.orderSummary")}
+			</Text>
 			<table style={tableStyle}>
 				<thead>
 					<tr style={headerRowStyle}>
-						<th style={headerCellStyle}>Item</th>
-						<th style={headerCellStyle}>Qty</th>
-						<th style={headerCellStyle}>Price</th>
-						<th style={headerCellStyle}>Total</th>
+						<th style={headerCellStyle}>
+							{t("theme.emailTransactionProductsSummary.item")}
+						</th>
+						<th style={headerCellStyle}>
+							{t("theme.emailTransactionProductsSummary.qty")}
+						</th>
+						<th style={headerCellStyle}>
+							{t("theme.emailTransactionProductsSummary.price")}
+						</th>
+						<th style={headerCellStyle}>
+							{t("theme.emailTransactionProductsSummary.total")}
+						</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -49,18 +61,18 @@ export default function TransactionProductsSummary({
 							<tr key={index} style={bodyRowStyle}>
 								<td style={bodyCellStyle}>{product.name}</td>
 								<td style={bodyCellStyle}>{product.quantity}</td>
-								<td style={bodyCellStyle}>€{price.toFixed(2)}</td>
-								<td style={bodyCellStyle}>€{total.toFixed(2)}</td>
+								<td style={bodyCellStyle}>{formatCurrency(price, "EUR")}</td>
+								<td style={bodyCellStyle}>{formatCurrency(total, "EUR")}</td>
 							</tr>
 						);
 					})}
 					{showTotal && (
 						<tr style={finalTotalRowStyle}>
 							<td colSpan={3} style={finalTotalLabelCellStyle}>
-								Total Paid
+								{t("theme.emailTransactionProductsSummary.totalPaid")}
 							</td>
 							<td style={finalTotalValueCellStyle}>
-								€{calculatedTotal.toFixed(2)}
+								{formatCurrency(calculatedTotal, "EUR")}
 							</td>
 						</tr>
 					)}

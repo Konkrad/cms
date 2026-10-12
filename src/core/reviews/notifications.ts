@@ -56,7 +56,7 @@ export const reviewRequestedNotification = defineNotification<{
 				subject: t("core.reviews.requested.subject", { title: c.title }),
 				react: createElement(NoticeEmail, {
 					baseUrl: ctx.appUrl,
-					recipientName: ctx.recipient.name ?? "there",
+					recipientName: ctx.recipient.name ?? t("core.email.fallbackName"),
 					title: t("core.reviews.requested.title"),
 					subtitle: c.scopeName,
 					paragraphs: [
@@ -92,7 +92,7 @@ export const reviewDecidedNotification = defineNotification<{
 					: t("core.reviews.decided.rejectedSubject", { title: c.title }),
 				react: createElement(NoticeEmail, {
 					baseUrl: ctx.appUrl,
-					recipientName: ctx.recipient.name ?? "there",
+					recipientName: ctx.recipient.name ?? t("core.email.fallbackName"),
 					title: approved
 						? t("core.reviews.decided.approvedTitle")
 						: t("core.reviews.decided.rejectedTitle"),

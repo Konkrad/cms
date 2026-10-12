@@ -551,6 +551,7 @@
 	"core.content.unknownVisibility": "Unknown visibility: {visibility}",
 	"core.content.visibilityNotAllowed": "You cannot publish with this visibility",
 	"core.content.writeSomethingFirst": "Write something first",
+	"core.email.fallbackName": "there",
 	"core.email.login.subject": "Sign in to {appName}",
 	"core.forms.alreadySubmitted": "You already submitted this form",
 	"core.forms.altchaFailed": "ALTCHA verification failed",

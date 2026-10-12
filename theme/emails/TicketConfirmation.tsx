@@ -3,6 +3,7 @@
 import { Heading, Hr, Section, Text } from "@react-email/components";
 import React from "react";
 import type { TicketConfirmationEmailProps } from "~/contracts/emails";
+import { t } from "~/contracts/i18n";
 import { colors } from "~theme/tokens/tokens";
 import EmailLayout from "./EmailLayout";
 import TicketLinksSection from "./TicketLinksSection";
@@ -18,7 +19,7 @@ const TicketConfirmationEmail = ({
 	return (
 		<EmailLayout
 			title={event.title}
-			subtitle="Purchase Confirmation & Tickets"
+			subtitle={t("theme.emailTicketConfirmation.purchaseConfirmationTickets")}
 			baseUrl={baseUrl}
 		>
 			{/* Success Message */}
@@ -39,10 +40,10 @@ const TicketConfirmationEmail = ({
 						marginBottom: "8px",
 					}}
 				>
-					✓ Purchase Confirmed
+					{t("theme.emailTicketConfirmation.purchaseConfirmed")}
 				</Text>
 				<Text style={{ fontSize: "16px", color: colors.success, margin: "0" }}>
-					Thank you for your purchase!
+					{t("theme.emailTicketConfirmation.thankYouForYourPurchase")}
 				</Text>
 			</Section>
 
@@ -50,11 +51,16 @@ const TicketConfirmationEmail = ({
 			<Text
 				style={{ fontSize: "18px", marginBottom: "16px", color: colors.text }}
 			>
-				Hello {transaction.buyerName}!
+				{t("theme.emailTicketConfirmation.hello", {
+					buyerName: transaction.buyerName,
+				})}
 			</Text>
 			<Text style={{ color: colors["text-secondary"], marginBottom: "24px" }}>
-				Your purchase for <strong>{event.title}</strong> has been confirmed.
-				{hasTickets && " Your tickets are ready below."}
+				{t("theme.emailTicketConfirmation.yourPurchaseFor")}{" "}
+				<strong>{event.title}</strong>{" "}
+				{t("theme.emailTicketConfirmation.hasBeenConfirmed")}
+				{hasTickets &&
+					t("theme.emailTicketConfirmation.yourTicketsAreReadyBelow")}
 			</Text>
 
 			{/* Event Details */}
@@ -76,17 +82,20 @@ const TicketConfirmationEmail = ({
 						marginTop: "0",
 					}}
 				>
-					Event Details
+					{t("theme.emailTicketConfirmation.eventDetails")}
 				</Heading>
 				<Text style={{ color: colors["text-secondary"], marginBottom: "8px" }}>
-					<strong>Event:</strong> {event.title}
+					<strong>{t("theme.emailTicketConfirmation.event")}</strong>{" "}
+					{event.title}
 				</Text>
 				<Text style={{ color: colors["text-secondary"], marginBottom: "8px" }}>
-					<strong>Date:</strong> {event.date}
+					<strong>{t("theme.emailTicketConfirmation.date")}</strong>{" "}
+					{event.date}
 				</Text>
 				{event.location && (
 					<Text style={{ color: colors["text-secondary"], marginBottom: "0" }}>
-						<strong>Location:</strong> {event.location}
+						<strong>{t("theme.emailTicketConfirmation.location")}</strong>{" "}
+						{event.location}
 					</Text>
 				)}
 			</Section>
@@ -104,9 +113,11 @@ const TicketConfirmationEmail = ({
 					<TicketLinksSection
 						tickets={tickets}
 						baseUrl={baseUrl}
-						heading="Your Tickets"
-						description="Please save these ticket QR codes. You'll need to present them at the event:"
-						ticketLabelPrefix="Ticket"
+						heading={t("theme.emailTicketConfirmation.yourTickets")}
+						description={t(
+							"theme.emailTicketConfirmation.pleaseSaveTheseTicketQr",
+						)}
+						ticketLabelPrefix={t("theme.emailTicketConfirmation.ticket")}
 					/>
 				</>
 			)}
@@ -125,7 +136,7 @@ const TicketConfirmationEmail = ({
 						marginTop: "0",
 					}}
 				>
-					What's Next?
+					{t("theme.emailTicketConfirmation.whatSNext")}
 				</Heading>
 				<ul style={{ paddingLeft: "20px", margin: "0" }}>
 					{hasTickets && (
@@ -138,8 +149,10 @@ const TicketConfirmationEmail = ({
 									marginBottom: "8px",
 								}}
 							>
-								<strong>Save your tickets:</strong> Download or screenshot the
-								QR codes above
+								<strong>
+									{t("theme.emailTicketConfirmation.saveYourTickets")}
+								</strong>{" "}
+								{t("theme.emailTicketConfirmation.downloadOrScreenshotTheQr")}
 							</li>
 							<li
 								style={{
@@ -149,8 +162,8 @@ const TicketConfirmationEmail = ({
 									marginBottom: "8px",
 								}}
 							>
-								<strong>At the event:</strong> Present your QR code at the
-								entrance for scanning
+								<strong>{t("theme.emailTicketConfirmation.atTheEvent")}</strong>{" "}
+								{t("theme.emailTicketConfirmation.presentYourQrCodeAt")}
 							</li>
 						</>
 					)}
@@ -162,8 +175,10 @@ const TicketConfirmationEmail = ({
 							marginBottom: "0",
 						}}
 					>
-						<strong>Need help?</strong> Contact support with your transaction
-						ID:{" "}
+						<strong>{t("theme.emailTicketConfirmation.needHelp")}</strong>{" "}
+						{t(
+							"theme.emailTicketConfirmation.contactSupportWithYourTransaction",
+						)}{" "}
 						<code
 							style={{
 								backgroundColor: colors["bg-muted"],
@@ -188,8 +203,7 @@ const TicketConfirmationEmail = ({
 					marginBottom: "0",
 				}}
 			>
-				This is a confirmation of your purchase. Please keep this email for your
-				records.
+				{t("theme.emailTicketConfirmation.thisIsAConfirmationOf")}
 			</Text>
 		</EmailLayout>
 	);

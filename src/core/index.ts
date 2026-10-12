@@ -33,7 +33,18 @@ export {
 
 // Server-only: do not call from client code (reference only inside loaders/actions/server$).
 export { db } from "~/core/db/connection";
-export type { PaymentContext, PaymentHandlers } from "~/core/payments/payments";
+export type {
+	CreatePaymentInput,
+	PaymentHandler,
+	PaymentHandlerContext,
+	PaymentHandlers,
+	PaymentInfo,
+} from "~/core/payments/payments";
+export {
+	PaymentsDisabledError,
+	payments,
+} from "~/core/payments/payments";
+export type { PaymentLine, PaymentStatus } from "~/core/payments/schema";
 export type { PublicUser } from "~/core/users/public-user";
 export {
 	publicUserColumns,
@@ -188,13 +199,3 @@ export {
 // Env-derived values (server-only). Modules must not import `~/env`; add a getter here instead.
 /** Public base URL of this site (no trailing-slash guarantee). */
 export const getAppUrl = (): string => env.APP_URL;
-
-/** Stripe client settings (secret key plus optional dev/proxy overrides). */
-export const getStripeEnv = () => ({
-	secretKey: env.STRIPE_SECRET_KEY,
-	apiBaseUrl: env.STRIPE_API_BASE_URL,
-	proxyUrl: env.STRIPE_PROXY_URL,
-});
-
-/** Stripe publishable key handed to the browser for Stripe.js. */
-export const getStripePublishableKey = (): string => env.STRIPE_PUBLISHABLE_KEY;

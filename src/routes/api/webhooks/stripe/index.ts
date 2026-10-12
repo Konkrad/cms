@@ -1,23 +1,15 @@
 import type { RequestHandler } from "@qwik.dev/router";
-import Stripe from "stripe";
-import { dispatchPayment, handleStripeWebhook } from "~/core/payments/payments";
-import { allModules } from "~/core/registry/manifests";
-import { env } from "~/env";
+import { handlePaymentWebhook } from "~/core/payments/payments";
 
-/** Stripe webhook: verifies the signature, then hands the payment to the owning module. */
+/**
+ * The old Stripe webhook URL, kept for Stripe endpoints still configured with it (Stripe does
+ * not follow redirects for webhooks). Same handler as `/api/payments/webhook/stripe`.
+ */
 export const onPost: RequestHandler = async ({ request, json }) => {
-	const { status, body } = await handleStripeWebhook({
-		body: await request.text(),
-		signature: request.headers.get("stripe-signature"),
-		verify: (payload, signature) =>
-			// Static helper: verification needs only the secret, no API client.
-			Stripe.webhooks.constructEvent(
-				payload,
-				signature,
-				env.STRIPE_WEBHOOK_SECRET,
-			),
-		// All registered modules, not only active ones: late payments must not be lost.
-		dispatch: (event) => dispatchPayment(allModules, event),
-	});
+	const { status, body } = await handlePaymentWebhook(
+		"stripe",
+		await request.text(),
+		request.headers,
+	);
 	json(status, body);
 };

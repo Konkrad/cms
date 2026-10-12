@@ -35,9 +35,13 @@ export const PUBLIC_HANDLERS: Record<string, string> = {
 	// expiring token in the URL is the authorization.
 	"src/routes/api/notifications/unsubscribe/index.ts#onPost":
 		"one-click unsubscribe, authorized by the signed token",
-	// Stripe calls it without a session; the handler verifies the webhook signature first.
+	// Payment providers call it without a session; the handler verifies the webhook
+	// signature before anything else (spec 4.7).
+	"src/routes/api/payments/webhook/[provider]/index.ts#onPost":
+		"payment provider webhook, authorized by the signature",
+	// The old Stripe webhook URL (endpoints configured before spec 4.7), same handler.
 	"src/routes/api/webhooks/stripe/index.ts#onPost":
-		"Stripe webhook, authorized by the signature",
+		"Stripe webhook (old URL), authorized by the signature",
 	// Public forms (surveys) accept guest answers; the handler checks the form is public.
 	"src/routes/api/forms/[id]/submit/index.ts#onPost":
 		"public survey submission, checked against the form's visibility",

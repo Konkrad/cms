@@ -148,9 +148,10 @@ export interface ModuleDefinition {
 	 */
 	reevaluateUserTags?: (userId: string) => Promise<void>;
 	/**
-	 * Stripe payment callbacks by payment kind. Server-only. The core webhook calls
-	 * `payments[metadata.kind]` of the module named by `metadata.moduleId` on the PaymentIntent,
-	 * even while the module is inactive (see `src/core/payments/payments.ts`).
+	 * Payment handlers by payment kind (spec 4.7), named so core can call them hours later and
+	 * after a restart: core queues `payments[kind][hook]` of the module that created the payment
+	 * (`payments.create`) once per status change, retries it until it succeeds, and calls it
+	 * even while the module is inactive. Server-only.
 	 */
 	payments?: Record<string, PaymentHandlers>;
 	/**

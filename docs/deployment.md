@@ -40,6 +40,10 @@ below are the same regardless of the tool driving them.
   `checkout.session.async_payment_failed`, `checkout.session.expired`,
   `charge.refunded`, and for subscriptions `invoice.paid`, `invoice.payment_failed`,
   `customer.subscription.deleted`. The old `/api/webhooks/stripe` URL still works.
+- **Social web (if the `social-web` module is active).** `/.well-known/*` reaches the app
+  (it is rewritten to `/api/well-known/*` inside the server), so let the reverse proxy pass
+  it through. The account is `<SOCIAL_WEB_ACCOUNT>@<APP_URL host>` (default `news`), the RSS
+  feed `/feed.xml`; both are pull-only and the server never sends anything out.
 - **Litestream is optional.** If you want continuous SQLite → S3 replication for
   disaster recovery, set `DB_PATH`/`S3_BUCKET`/`AWS_*` and run the container as
   written (`entrypoint.sh` wraps the server in `litestream replicate -exec`). If

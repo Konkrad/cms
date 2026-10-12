@@ -5,7 +5,7 @@ description: Use when creating a new feature module under src/modules/, or chang
 
 # Feature modules
 
-Jobs (`src/modules/jobs/`) is the worked example throughout. Modules: deals, elections, events, jobs, qualifications.
+Jobs (`src/modules/jobs/`) is the worked example throughout. Modules: deals, elections, events, jobs, qualifications, social-web.
 
 ## Layout
 
@@ -25,6 +25,8 @@ Jobs (`src/modules/jobs/`) is the worked example throughout. Modules: deals, ele
 ## Manifest hooks (`ModuleDefinition` in `src/core/router/modules.ts`)
 
 - `pages`: `definePage` entries, matched in order by the catch-all. Declare static paths before parameterised ones (`/jobs/new` before `/jobs/:id`).
+- `routes: ["feed.xml", "social"]`: first segments of route files the module owns in `src/routes` (machine endpoints outside the catch-all: feeds, JSON documents). They are reserved as scope slugs and allowed by the route-folder unit test; each route file only delegates (via a RELATIVE import) to a module handler that calls `requireActiveModule(event, "<id>")` first, so it answers 404 while the module is inactive. Worked example: social-web (`src/routes/feed.xml`, `src/routes/social/**`, `src/routes/api/well-known/webfinger`).
+- `feeds: [{ title, href, type }]`: feeds the module serves; the root layout adds `<link rel="alternate">` to every page's head and the theme footer links them (`FeedLinks` in `~/contracts/layout`).
 - `admin: { sections: [{ path, label, order?, scopes? }] }`: admin nav entries, sorted by `order`. `scopes: "root"` (default) exists on the root scope's admin only (`/admin/root/<path>`); `"all"` in every scope's admin (events, jobs, deals, elections); a list of kinds (`["root", "region"]`, kinds from `SCOPE_KINDS` in `src/env.ts`, a unit test checks them) on scopes of those kinds. Elsewhere the `[scope]` layout and `requireModuleAdmin` answer 404. A section outside the root must limit data to the URL scope's subtree (`getSubtreeIds` in list loaders, `requireWithinScope(event, scope, item)` for every item id in loaders and actions) and create items with `scopeId: scope.id`.
 - `menuLinks: [{ key, label, url }]`: links offered for the site menus.
 - `blocks`: page-builder block types the module owns (hidden while inactive); must match `src/core/registry/blocks.ts` (a unit test checks it).

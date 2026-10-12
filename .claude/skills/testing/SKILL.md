@@ -119,6 +119,10 @@ Helpers named `create*InDb` / `create*` that return `cleanup()` should be cleane
 
 `SHARED_E2E_EMAIL` is the shared login used by the auth setup project. Seeded users, role fixtures and the shared session have completed every user requirement (`scripts/seed-requirements.ts`, versions checked by `tests/unit/requirements.spec.ts`); only `createTestUser` and new Mailpit logins hit the setup gate.
 
+Role fixtures (`adminPage`, `memberPage`) create a temporary user per test and delete it, with its notes and articles, when the test ends: check content such a user creates within the same test (use `test.step` for a longer flow, e.g. `tests/e2e/social-web.spec.ts`).
+
+Endpoint handlers (route `onGet`/`onRequest` delegating to module code, e.g. the social-web feed and actor) are unit-tested with `fakeRequestEvent(url, { method, headers, params })` from `tests/unit/request-event.ts` (`sent()` returns status, body, headers; `event.error` throws a `FakeHttpError` with `status`); `assertWellFormedXml` checks generated XML without a parser dependency.
+
 ## Running e2e
 
 `playwright.config.ts` starts its own dev server on an isolated test DB: it reseeds with `npm run db:seed:test -- --fresh`, then `npm start -- --port $E2E_PORT`; `reuseExistingServer` is false, so the port must be free. Defaults: `E2E_PORT=5179`, `DB_PATH=<repo>/my-database.test.db`. Set both to isolate a run (parallel agents, a second checkout):

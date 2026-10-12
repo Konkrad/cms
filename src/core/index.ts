@@ -6,6 +6,7 @@
 
 // biome-ignore-all assist/source/organizeImports: export order matters. The definePage/defineModule re-exports must come before ~/core/registry/manifests, which imports the modules, which import this file (import cycle).
 
+import { requirementsService } from "~/core/requirements/requirements.service";
 import { env } from "~/env";
 
 // Module/page definition (client-safe)
@@ -19,6 +20,16 @@ export type {
 	RenderContext,
 } from "~/core/notifications/define";
 export { defineNotification } from "~/core/notifications/define";
+export type {
+	RequirementDefinition,
+	RequirementPrefill,
+	RequirementUser,
+} from "~/core/requirements/define";
+export {
+	defineRequirement,
+	GLOBAL_CONTEXT,
+	RequirementInputError,
+} from "~/core/requirements/define";
 
 // Server-only: do not call from client code (reference only inside loaders/actions/server$).
 export { db } from "~/core/db/connection";
@@ -99,6 +110,15 @@ export * from "./schema";
 // back, so they must stay after the definitions above.
 export { requireModuleAdmin } from "~/core/registry/module-admin";
 export { requireModuleAuth } from "~/core/registry/module-auth";
+// User requirements (spec 4.6): `requirements.pending(user, context)` in a loader and again in the
+// action (never trust the client); steps are submitted through core's single step action.
+export type { PendingRequirement } from "~/core/requirements/requirements";
+export { requirements } from "~/core/registry/requirements";
+/** ADMIN ONLY: stored requirement values (private answers) by user id, then requirement id. */
+export const requirementValuesByUser = (
+	requirementIds: readonly string[],
+	userIds: readonly string[],
+) => requirementsService.valuesByUser(requirementIds, userIds);
 // Internal references (spec 4.3): never build or store item URLs by hand.
 export {
 	internalLinksToRefs,

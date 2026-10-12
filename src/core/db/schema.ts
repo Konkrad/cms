@@ -13,6 +13,7 @@ import {
 	notificationPreferences,
 } from "../notifications/schema";
 import { moduleTables, withModuleRelations } from "../registry/schemas";
+import { userRequirements } from "../requirements/schema";
 import { reviews } from "../reviews/schema";
 import { redirects } from "../router/schema";
 import { handlerCalls, scheduleRuns } from "../scheduler/schema";
@@ -33,6 +34,7 @@ export * from "../forms/schema/forms";
 export * from "../memberships/schema";
 export * from "../notifications/schema";
 export * from "../registry/schemas";
+export * from "../requirements/schema";
 export * from "../reviews/schema";
 export * from "../router/schema";
 export * from "../scheduler/schema";
@@ -60,6 +62,7 @@ export const schemaRelations = defineRelations(
 		scheduleRuns,
 		handlerCalls,
 		reviews,
+		userRequirements,
 		tagDefinitions,
 		userTags,
 		scopes,

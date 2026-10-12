@@ -3,6 +3,7 @@ import type { ScopeExtras } from "~/contracts/scopes";
 import type { FormPurpose } from "~/core/forms/purposes";
 import type { NotificationDefinition } from "~/core/notifications/define";
 import type { PaymentHandlers } from "~/core/payments/payments";
+import type { RequirementDefinition } from "~/core/requirements/define";
 import type { ReviewHandlers } from "~/core/reviews/define";
 import type { PageDefinition } from "~/core/router/pages";
 import type { ScheduleDefinition } from "~/core/scheduler/define";
@@ -181,6 +182,13 @@ export interface ModuleDefinition {
 	 * the module is inactive. Submit with `reviews.submit` from `~/core`.
 	 */
 	reviews?: Record<string, ReviewHandlers>;
+	/**
+	 * User requirements (spec 4.6) this module asks for, from `defineRequirement` (`~/core`): ids
+	 * are `<module id>.<name>`, contexts like `"event.checkout"`. They apply only while the module
+	 * is active; check them with `requirements.pending(user, context)` and submit them through
+	 * core's single step action, never an action of your own.
+	 */
+	requirements?: RequirementDefinition[];
 }
 
 export function defineModule(module: ModuleDefinition): ModuleDefinition {
@@ -262,6 +270,23 @@ export const scopeContentCountOf = async (
 export const notificationsOf = (
 	modules: readonly ModuleDefinition[],
 ): NotificationDefinition[] => modules.flatMap((m) => m.notifications ?? []);
+
+/**
+ * Requirement definitions of the given modules, in module order. Throws when an id does not start
+ * with its module's id (`events.photoConsent` in the events module).
+ */
+export const requirementsOf = (
+	modules: readonly ModuleDefinition[],
+): RequirementDefinition[] =>
+	modules.flatMap((m) =>
+		(m.requirements ?? []).map((def) => {
+			if (!def.id.startsWith(`${m.id}.`))
+				throw new Error(
+					`Requirement "${def.id}" of module ${m.id} must start with "${m.id}."`,
+				);
+			return def;
+		}),
+	);
 
 /** Form purposes of the given modules, in module order. */
 export const formPurposesOf = (

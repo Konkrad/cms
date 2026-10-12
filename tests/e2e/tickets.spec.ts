@@ -3,6 +3,7 @@ import {
 	createTestUser,
 	expect,
 	getUserIdByEmail,
+	REQUIREMENT_VERSIONS,
 	SHARED_E2E_EMAIL,
 	test,
 } from "../fixtures";
@@ -394,17 +395,8 @@ test.describe("Participant Assignment Step", () => {
 	test("buyer is pre-assigned to the first slot of each product", async ({
 		browser,
 	}) => {
-		const now = new Date().toISOString();
 		const session = createTestUser({
-			consent: {
-				terms: "yes",
-				lastProfileUpdate: now,
-				locationVerification: now,
-				foodPreference: now,
-				photoConsent: now,
-			},
-			foodPreference: "none",
-			photoConsentGiven: true,
+			completed: Object.keys(REQUIREMENT_VERSIONS),
 		});
 
 		const ev = await createEventWithInventory({
@@ -475,17 +467,8 @@ test.describe("Participant Assignment Step", () => {
 	test("can proceed to payment with unfilled capacity slots", async ({
 		browser,
 	}) => {
-		const now = new Date().toISOString();
 		const session = createTestUser({
-			consent: {
-				terms: "yes",
-				lastProfileUpdate: now,
-				locationVerification: now,
-				foodPreference: now,
-				photoConsent: now,
-			},
-			foodPreference: "none",
-			photoConsentGiven: true,
+			completed: Object.keys(REQUIREMENT_VERSIONS),
 		});
 
 		const ev = await createEventWithInventory({
@@ -549,17 +532,8 @@ test.describe("Participant Assignment Step", () => {
 	});
 
 	test("manual participant entry fills an open slot", async ({ browser }) => {
-		const now = new Date().toISOString();
 		const session = createTestUser({
-			consent: {
-				terms: "yes",
-				lastProfileUpdate: now,
-				locationVerification: now,
-				foodPreference: now,
-				photoConsent: now,
-			},
-			foodPreference: "none",
-			photoConsentGiven: true,
+			completed: Object.keys(REQUIREMENT_VERSIONS),
 		});
 
 		const ev = await createEventWithInventory({

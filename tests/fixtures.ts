@@ -16,6 +16,11 @@ import { execSync } from "child_process";
 import crypto from "crypto";
 import path from "path";
 import { fileURLToPath } from "url";
+import {
+	type CompleteRequirementsOptions,
+	completeRequirements,
+	REQUIREMENT_VERSIONS,
+} from "../scripts/seed-requirements";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DB_PATH = process.env.DB_PATH ?? path.join(ROOT, "my-database.db");
@@ -131,6 +136,7 @@ function deleteUserCascade(
 	db.prepare("DELETE FROM scope_memberships WHERE user_id = ?").run(userId);
 	// Misc user-linked data
 	db.prepare("DELETE FROM form_results WHERE user_id = ?").run(userId);
+	db.prepare("DELETE FROM user_requirements WHERE user_id = ?").run(userId);
 	db.prepare("DELETE FROM reviews WHERE submitted_by = ?").run(userId);
 	db.prepare("UPDATE reviews SET reviewed_by = NULL WHERE reviewed_by = ?").run(
 		userId,
@@ -167,6 +173,8 @@ export function createUserSession(
 		name: "Test",
 		familyName: "User",
 	},
+	/** Which requirements are completed (default: all). */
+	completed: CompleteRequirementsOptions = {},
 ): CreatedSession {
 	const db = openDb();
 	const userId = crypto.randomUUID();
@@ -176,22 +184,17 @@ export function createUserSession(
 	const sessionToken = crypto.randomBytes(48).toString("hex");
 	const expiresAt = new Date(Date.now() + 3_600_000).toISOString();
 
-	const now = new Date().toISOString();
-	const consent = JSON.stringify({
-		lastProfileUpdate: now,
-		locationVerification: now,
-		foodPreference: now,
-		photoConsent: now,
-	});
-
 	db.prepare("INSERT INTO logins (id, email, expires_at) VALUES (?, ?, ?)").run(
 		loginId,
 		email,
 		expiresAt,
 	);
 	db.prepare(
-		"INSERT INTO users (id, name, family_name, login_id, consent, food_preference, photo_consent_given) VALUES (?, ?, ?, ?, ?, ?, ?)",
-	).run(userId, name.name, name.familyName, loginId, consent, "none", 1);
+		"INSERT INTO users (id, name, family_name, login_id) VALUES (?, ?, ?, ?)",
+	).run(userId, name.name, name.familyName, loginId);
+	// Role fixtures have completed every user requirement (spec 4.6), so they are not sent to
+	// /profile/setup or asked at checkout. Use `createTestUser` for a user with pending ones.
+	completeRequirements(db, [userId], completed);
 	// A platform admin is an admin of the root scope.
 	if (role === "admin") {
 		db.prepare(
@@ -261,52 +264,99 @@ export function deleteUserByEmail(email: string): void {
 	db.close();
 }
 
-/** Update the consent JSON for the user identified by their login email. */
-export function setUserConsentByEmail(
+/** Mark user requirements completed for the user with this login email (default: all). */
+export function completeRequirementsByEmail(
 	email: string,
-	consent: Record<string, string>,
+	options: CompleteRequirementsOptions = {},
 ): void {
+	const userId = getUserIdByEmail(email);
+	if (!userId) return;
 	const db = openDb();
-	const login = db
-		.prepare("SELECT id FROM logins WHERE email = ?")
-		.get(email) as { id: string } | undefined;
-	if (!login) {
-		db.close();
-		return;
-	}
-	const user = db
-		.prepare("SELECT id FROM users WHERE login_id = ?")
-		.get(login.id) as { id: string } | undefined;
-	if (!user) {
-		db.close();
-		return;
-	}
-	db.prepare("UPDATE users SET consent = ? WHERE id = ?").run(
-		JSON.stringify(consent),
-		user.id,
-	);
+	completeRequirements(db, [userId], options);
 	db.close();
 }
 
-/** Create a user with specific consent/food/photo fields (for profile-setup tests). */
-export function createTestUser(opts: {
-	consent: Record<string, string>;
-	foodPreference?: string | null;
-	photoConsentGiven?: boolean | null;
-}): CreatedSession {
-	const session = createUserSession("user");
+/**
+ * A logged-in user with only the listed requirements completed (default: none, so the global
+ * gate sends them to /profile/setup and checkout asks the event questions).
+ */
+export function createTestUser(
+	opts: {
+		completed?: readonly string[];
+		values?: Readonly<Record<string, unknown>>;
+	} = {},
+): CreatedSession {
+	return createUserSession(
+		"user",
+		"req",
+		{ name: "Test", familyName: "User" },
+		{ only: opts.completed ?? [], values: opts.values },
+	);
+}
+
+/** Ids of the global requirements (profile, location, onboarding survey). */
+export const GLOBAL_REQUIREMENTS = [
+	"core.profile",
+	"core.location",
+	"core.onboarding",
+];
+
+/** A user's stored completion of a requirement (`value` parsed), or undefined. */
+export function getUserRequirement(
+	userId: string,
+	requirementId: string,
+): { version: number; completedAt: string; value: unknown } | undefined {
+	const db = openDb();
+	const row = db
+		.prepare(
+			"SELECT version, completed_at AS completedAt, value FROM user_requirements WHERE user_id = ? AND requirement_id = ?",
+		)
+		.get(userId, requirementId) as
+		| { version: number; completedAt: string; value: string | null }
+		| undefined;
+	db.close();
+	return row
+		? { ...row, value: row.value == null ? null : JSON.parse(row.value) }
+		: undefined;
+}
+
+/** Store a completion at an older version (as if the requirement's version was bumped since). */
+export function setRequirementVersion(
+	userId: string,
+	requirementId: string,
+	version: number,
+): void {
 	const db = openDb();
 	db.prepare(
-		"UPDATE users SET consent = ?, food_preference = ?, photo_consent_given = ? WHERE id = ?",
-	).run(
-		JSON.stringify(opts.consent),
-		opts.foodPreference ?? null,
-		opts.photoConsentGiven == null ? null : opts.photoConsentGiven ? 1 : 0,
-		session.userId,
-	);
+		"UPDATE user_requirements SET version = ? WHERE user_id = ? AND requirement_id = ?",
+	).run(version, userId, requirementId);
 	db.close();
-	return session;
 }
+
+/**
+ * Sets (or clears, with null) the root's active onboarding form (`core.onboarding`); returns
+ * the previously active form id so the test can restore it.
+ */
+export function setActiveOnboardingForm(formId: string | null): string | null {
+	const db = openDb();
+	const rootId = rootScopeId(db);
+	const previous = db
+		.prepare(
+			"SELECT form_id AS formId FROM form_assignments WHERE purpose = 'core.onboarding' AND scope_id = ?",
+		)
+		.get(rootId) as { formId: string } | undefined;
+	db.prepare(
+		"DELETE FROM form_assignments WHERE purpose = 'core.onboarding' AND scope_id = ?",
+	).run(rootId);
+	if (formId)
+		db.prepare(
+			"INSERT INTO form_assignments (purpose, scope_id, form_id, updated_at) VALUES ('core.onboarding', ?, ?, ?)",
+		).run(rootId, formId, new Date().toISOString());
+	db.close();
+	return previous?.formId ?? null;
+}
+
+export { REQUIREMENT_VERSIONS };
 
 // ── Scope helpers (groups are scopes: regions, chapters) ──────────────────────
 

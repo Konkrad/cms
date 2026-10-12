@@ -8,6 +8,7 @@ import Database from "better-sqlite3";
 import crypto from "crypto";
 import path from "path";
 import { fileURLToPath } from "url";
+import { completeRequirements } from "../../scripts/seed-requirements";
 import { SHARED_E2E_EMAIL } from "../fixtures";
 
 const ROOT = path.resolve(
@@ -22,7 +23,6 @@ setup("create shared test session", async ({ page }) => {
 	// Wait on a held lock instead of erroring (matches the app + openDb()).
 	db.pragma("busy_timeout = 5000");
 	const email = SHARED_E2E_EMAIL;
-	const now = new Date().toISOString();
 
 	// Remove any previous shared session so the token is always fresh
 	const existing = db
@@ -66,17 +66,11 @@ setup("create shared test session", async ({ page }) => {
 		db.prepare("DELETE FROM logins WHERE id = ?").run(existing.id);
 	}
 
-	// Create a regular member with full consent so they land on / rather than /profile/setup
+	// A regular member with every requirement completed, so they land on / rather than /profile/setup
 	const loginId = crypto.randomUUID();
 	const userId = crypto.randomUUID();
 	const sessionToken = crypto.randomBytes(48).toString("hex");
 	const sessionId = crypto.randomUUID();
-	const consent = JSON.stringify({
-		lastProfileUpdate: now,
-		locationVerification: now,
-		foodPreference: now,
-		photoConsent: now,
-	});
 	const expiresAt = new Date(Date.now() + 86400000).toISOString();
 
 	db.prepare("INSERT INTO logins (id, email, expires_at) VALUES (?, ?, ?)").run(
@@ -85,8 +79,9 @@ setup("create shared test session", async ({ page }) => {
 		expiresAt,
 	);
 	db.prepare(
-		"INSERT INTO users (id, name, family_name, login_id, consent, food_preference, photo_consent_given) VALUES (?, ?, ?, ?, ?, ?, ?)",
-	).run(userId, "E2E", "User", loginId, consent, "none", 1);
+		"INSERT INTO users (id, name, family_name, login_id) VALUES (?, ?, ?, ?)",
+	).run(userId, "E2E", "User", loginId);
+	completeRequirements(db, [userId]);
 	db.prepare(
 		"INSERT INTO sessions (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)",
 	).run(sessionId, userId, sessionToken, expiresAt);

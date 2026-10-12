@@ -148,3 +148,32 @@ describe("SITE_LOCALE", () => {
 		expect(siteLocaleSchema.safeParse("fr").success).toBe(false);
 	});
 });
+
+describe("validation messages", () => {
+	it("maps the router's zod issues through the catalog", async () => {
+		const { validationMessage } = await import(
+			"~/core/i18n/validation-messages"
+		);
+		const issue = (fields: Record<string, unknown>) =>
+			validationMessage({ path: [], message: "", ...fields } as never);
+		expect(issue({ code: "invalid_type", received: "undefined" })).toBe(
+			"Required",
+		);
+		expect(issue({ code: "too_small", type: "string", minimum: 1 })).toBe(
+			"Required",
+		);
+		expect(issue({ code: "too_small", type: "string", minimum: 3 })).toBe(
+			"At least 3 characters",
+		);
+		expect(issue({ code: "too_big", type: "string", maximum: 1 })).toBe(
+			"At most 1 character",
+		);
+		expect(issue({ code: "invalid_string", validation: "email" })).toBe(
+			"Invalid email address",
+		);
+		expect(issue({ code: "invalid_enum_value" })).toBe(
+			"Pick one of the options",
+		);
+		expect(issue({ code: "custom" })).toBeUndefined();
+	});
+});

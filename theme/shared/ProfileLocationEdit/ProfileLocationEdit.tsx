@@ -2,6 +2,7 @@ import { component$, useSignal, useTask$ } from "@qwik.dev/core";
 import { Form } from "@qwik.dev/router";
 import { AddressAutocomplete } from "~/components/ui/AddressAutocomplete";
 import { Button } from "~/components/ui/Button";
+import { t } from "~/contracts/i18n";
 import type { UpdateLocationAction } from "~/contracts/profile";
 
 export interface ProfileLocationEditProps {
@@ -37,7 +38,7 @@ export const ProfileLocationEdit = component$<ProfileLocationEditProps>(
 					)}
 					<button
 						type="button"
-						aria-label="Edit location"
+						aria-label={t("theme.profileLocationEdit.editLocation")}
 						onClick$={() => {
 							isEditing.value = true;
 						}}
@@ -73,8 +74,8 @@ export const ProfileLocationEdit = component$<ProfileLocationEditProps>(
 				<input type="hidden" name="longitude" value={longitude.value} />
 				<AddressAutocomplete
 					name="location_search"
-					label="Location"
-					placeholder="Start typing your city..."
+					label={t("theme.profileLocationEdit.location")}
+					placeholder={t("theme.profileLocationEdit.startTypingYourCity")}
 					value={currentLocation}
 					latitudeSignal={latitude}
 					longitudeSignal={longitude}
@@ -83,7 +84,7 @@ export const ProfileLocationEdit = component$<ProfileLocationEditProps>(
 				/>
 				<div class="flex gap-2">
 					<Button type="submit" size="sm">
-						Save
+						{t("theme.profileLocationEdit.save")}
 					</Button>
 					<Button
 						type="button"
@@ -93,7 +94,7 @@ export const ProfileLocationEdit = component$<ProfileLocationEditProps>(
 							isEditing.value = false;
 						}}
 					>
-						Cancel
+						{t("theme.profileLocationEdit.cancel")}
 					</Button>
 				</div>
 			</Form>

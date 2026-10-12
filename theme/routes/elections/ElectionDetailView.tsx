@@ -1,6 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
 import type { ElectionDetailViewData } from "~/contracts/elections";
+import { t } from "~/contracts/i18n";
 
 /** Themed view for a single election cycle (`/elections/[id]`). */
 export const ElectionDetailView = component$<{ data: ElectionDetailViewData }>(
@@ -12,10 +13,10 @@ export const ElectionDetailView = component$<{ data: ElectionDetailViewData }>(
 		const isVoting = cycle.status === "voting";
 
 		const windowBannerText = isOpen
-			? "✓ Applications are currently open."
+			? t("theme.electionDetail.applicationsAreCurrentlyOpen")
 			: isVoting
-				? "⬤ Voting is in progress — applications are closed."
-				: "Applications for this election are closed.";
+				? t("theme.electionDetail.votingIsInProgressApplications")
+				: t("theme.electionDetail.applicationsForThisElectionAre");
 
 		const windowBannerClass = isOpen
 			? "bg-success-bg border-success-border text-success"
@@ -44,20 +45,20 @@ export const ElectionDetailView = component$<{ data: ElectionDetailViewData }>(
 							rel="noopener noreferrer"
 							class="shrink-0 bg-primary text-white px-4 py-1.5 rounded-full text-sm font-medium hover:bg-primary"
 						>
-							Vote now →
+							{t("theme.electionDetail.voteNow")}
 						</a>
 					)}
 				</div>
 
 				{isOpen && !userCanApply && cycle.requiredMembershipTier && (
 					<div class="mb-5 p-4 bg-warning-bg border border-warning-border rounded-lg text-warning text-sm">
-						You need at least{" "}
+						{t("theme.electionDetail.youNeedAtLeast")}{" "}
 						<strong>
 							{cycle.requiredMembershipTier === "full"
-								? "Full Member"
-								: "Associated Member"}
+								? t("theme.electionDetail.fullMember")
+								: t("theme.electionDetail.associatedMember")}
 						</strong>{" "}
-						status to apply for this election.
+						{t("theme.electionDetail.statusToApplyForThis")}
 					</div>
 				)}
 
@@ -87,14 +88,14 @@ export const ElectionDetailView = component$<{ data: ElectionDetailViewData }>(
 									{isOpen &&
 										(hasApplied ? (
 											<span class="text-xs text-success bg-success-bg border border-success-border px-2.5 py-1 rounded-full shrink-0">
-												✓ Applied
+												{t("theme.electionDetail.applied")}
 											</span>
 										) : userCanApply ? (
 											<Link
 												href={`${data.applyUrl}?positionId=${position.id}`}
 												class="text-sm bg-primary text-white px-4 py-1.5 rounded-full hover:bg-primary shrink-0"
 											>
-												Apply
+												{t("theme.electionDetail.apply")}
 											</Link>
 										) : null)}
 								</div>
@@ -102,7 +103,7 @@ export const ElectionDetailView = component$<{ data: ElectionDetailViewData }>(
 								{/* Candidates */}
 								{candidates.length === 0 ? (
 									<div class="px-5 py-5 text-sm text-text-muted italic">
-										No candidates yet.
+										{t("theme.electionDetail.noCandidatesYet")}
 									</div>
 								) : (
 									<div class="divide-y divide-gray-100">
@@ -118,7 +119,7 @@ export const ElectionDetailView = component$<{ data: ElectionDetailViewData }>(
 												<dl class="space-y-3 text-sm">
 													<div>
 														<dt class="text-xs font-medium text-text-muted uppercase tracking-wide mb-1">
-															Why they want this role
+															{t("theme.electionDetail.whyTheyWantThisRole")}
 														</dt>
 														<dd class="text-text whitespace-pre-wrap">
 															{(app as any).motivationWhy}
@@ -126,7 +127,7 @@ export const ElectionDetailView = component$<{ data: ElectionDetailViewData }>(
 													</div>
 													<div>
 														<dt class="text-xs font-medium text-text-muted uppercase tracking-wide mb-1">
-															Relevant experience
+															{t("theme.electionDetail.relevantExperience")}
 														</dt>
 														<dd class="text-text whitespace-pre-wrap">
 															{(app as any).motivationExperience}
@@ -134,7 +135,7 @@ export const ElectionDetailView = component$<{ data: ElectionDetailViewData }>(
 													</div>
 													<div>
 														<dt class="text-xs font-medium text-text-muted uppercase tracking-wide mb-1">
-															What they want to achieve
+															{t("theme.electionDetail.whatTheyWantToAchieve")}
 														</dt>
 														<dd class="text-text whitespace-pre-wrap">
 															{(app as any).motivationGoals}
@@ -152,7 +153,7 @@ export const ElectionDetailView = component$<{ data: ElectionDetailViewData }>(
 
 				<div class="mt-6 text-sm text-text-muted">
 					<Link href="/elections/mine" class="text-primary hover:text-primary">
-						View my applications →
+						{t("theme.electionDetail.viewMyApplications")}
 					</Link>
 				</div>
 			</div>

@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Avatar, Button } from "~/components/ui";
+import { t } from "~/contracts/i18n";
 
 interface LocalRepTileProps {
 	area?: string;
@@ -16,7 +17,9 @@ export const LocalRepTile = component$<LocalRepTileProps>((props) => {
 			style={props.area ? { gridArea: props.area } : undefined}
 		>
 			<div>
-				<h3 class="font-semibold text-[24px] text-white mb-4">Local Rep</h3>
+				<h3 class="font-semibold text-[24px] text-white mb-4">
+					{t("theme.localRepTile.localRep")}
+				</h3>
 
 				<div class="flex items-center gap-3">
 					<Avatar
@@ -35,7 +38,7 @@ export const LocalRepTile = component$<LocalRepTileProps>((props) => {
 			{props.profileUrl ? (
 				<div class="mt-6">
 					<Button href={props.profileUrl} variant="secondary">
-						View Profile
+						{t("theme.localRepTile.viewProfile")}
 					</Button>
 				</div>
 			) : null}

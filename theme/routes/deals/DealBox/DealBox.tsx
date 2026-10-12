@@ -1,4 +1,5 @@
 import { $, component$ } from "@qwik.dev/core";
+import { t } from "~/contracts/i18n";
 
 export interface DealBoxProps {
 	type: "link" | "text" | "promo";
@@ -52,7 +53,7 @@ export const DealBox = component$<DealBoxProps>(
 							</svg>
 						</div>
 						<p class="font-['Lato',sans-serif] font-bold text-[14px] leading-[1.348] text-[#121212] m-0">
-							{linkText || content || "Go to the Website"}
+							{linkText || content || t("theme.dealBox.goToTheWebsite")}
 						</p>
 					</div>
 				)}
@@ -75,7 +76,7 @@ export const DealBox = component$<DealBoxProps>(
 							</p>
 						)}
 						<p class="font-['Lato',sans-serif] font-bold text-[24px] leading-[1.523] text-[#96c046] mt-2 m-0 text-left">
-							{content || "XXX XXXX XXX"}
+							{content || t("theme.dealBox.xxxXxxxXxx")}
 						</p>
 					</div>
 				)}
@@ -99,7 +100,7 @@ export const DealBox = component$<DealBoxProps>(
 							<path d="M7 11V7a5 5 0 0 1 10 0v4" />
 						</svg>
 						<p class="font-['Lato',sans-serif] font-semibold text-[14px] text-[#121212] opacity-60 m-0">
-							Login to unlock
+							{t("theme.dealBox.loginToUnlock")}
 						</p>
 					</div>
 				)}

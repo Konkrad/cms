@@ -1,6 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
 import type { ElectionsViewData } from "~/contracts/elections";
+import { t } from "~/contracts/i18n";
 
 /** Themed view for the public elections list (`/elections`). */
 export const ElectionsView = component$<{ data: ElectionsViewData }>(
@@ -8,20 +9,24 @@ export const ElectionsView = component$<{ data: ElectionsViewData }>(
 		return (
 			<div class="max-w-3xl mx-auto px-4 py-8">
 				<div class="flex items-center justify-between mb-6">
-					<h1 class="text-3xl font-bold text-text-heading">Board Elections</h1>
+					<h1 class="text-3xl font-bold text-text-heading">
+						{t("theme.elections.boardElections")}
+					</h1>
 					<Link
 						href="/elections/mine"
 						class="text-sm text-primary hover:text-primary"
 					>
-						My Applications →
+						{t("theme.elections.myApplications")}
 					</Link>
 				</div>
 
 				{data.cycles.length === 0 ? (
 					<div class="text-center py-16 text-text-muted">
-						<p class="text-lg font-medium">No elections are currently open.</p>
+						<p class="text-lg font-medium">
+							{t("theme.elections.noElectionsAreCurrentlyOpen")}
+						</p>
 						<p class="text-sm mt-2">
-							Check back later or view your past applications above.
+							{t("theme.elections.checkBackLaterOrView")}
 						</p>
 					</div>
 				) : (
@@ -36,7 +41,7 @@ export const ElectionsView = component$<{ data: ElectionsViewData }>(
 									<div>
 										<div class="flex items-center gap-2 mb-1">
 											<span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-bg text-success">
-												Applications open
+												{t("theme.elections.applicationsOpen")}
 											</span>
 										</div>
 										<h2 class="text-lg font-semibold text-text-heading">
@@ -49,16 +54,16 @@ export const ElectionsView = component$<{ data: ElectionsViewData }>(
 										)}
 										{cycle.requiredMembershipTier && (
 											<p class="text-xs text-warning mt-2">
-												Requires{" "}
+												{t("theme.elections.requires")}{" "}
 												{cycle.requiredMembershipTier === "full"
-													? "Full Member"
-													: "Associated Member"}{" "}
-												status to apply
+													? t("theme.elections.fullMember")
+													: t("theme.elections.associatedMember")}{" "}
+												{t("theme.elections.statusToApply")}
 											</p>
 										)}
 									</div>
 									<span class="text-sm text-primary font-medium ml-4 shrink-0">
-										View & Apply →
+										{t("theme.elections.viewApply")}
 									</span>
 								</div>
 							</Link>

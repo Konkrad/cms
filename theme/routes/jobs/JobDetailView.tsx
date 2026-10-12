@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
-import { formatDate } from "~/contracts/i18n";
+import { formatDate, t } from "~/contracts/i18n";
 import type { JobDetailData } from "~/contracts/jobs";
 
 function locationLabel(job: {
@@ -13,16 +13,16 @@ function locationLabel(job: {
 			[job.city, job.country].filter(Boolean).join(", ") || "On-site / Hybrid"
 		);
 	}
-	if (job.locationType === "remote-eu") return "Remote — EU";
-	return `Remote — ${job.country ?? ""}`;
+	if (job.locationType === "remote-eu") return t("theme.jobDetail.remoteEu");
+	return t("theme.jobDetail.remote", { value: job.country ?? "" });
 }
 
 const RELATION_LABELS: Record<string, string> = {
-	hiring: "hiring for this role",
+	hiring: t("theme.jobDetail.hiringForThisRole"),
 	founder: "founder",
-	"direct-team": "you'd be on their team",
-	"works-there": "works there",
-	other: "community member",
+	"direct-team": t("theme.jobDetail.youDBeOnTheir"),
+	"works-there": t("theme.jobDetail.worksThere"),
+	other: t("theme.jobDetail.communityMember"),
 };
 
 /** Themed view for a single job posting (`/jobs/[id]`). */
@@ -39,7 +39,7 @@ export const JobDetailView = component$<{ data: JobDetailData }>(({ data }) => {
 		<div class="max-w-2xl mx-auto px-4 py-8">
 			<div class="mb-6">
 				<Link href="/jobs" class="text-sm text-primary hover:text-primary">
-					← Back to Job Board
+					{t("theme.jobDetail.backToJobBoard")}
 				</Link>
 			</div>
 
@@ -48,11 +48,15 @@ export const JobDetailView = component$<{ data: JobDetailData }>(({ data }) => {
 
 				<dl class="grid grid-cols-1 gap-2 text-sm mb-6 pb-6 border-b border-border">
 					<div class="flex gap-2">
-						<dt class="text-text-muted w-24 shrink-0">Location</dt>
+						<dt class="text-text-muted w-24 shrink-0">
+							{t("theme.jobDetail.location")}
+						</dt>
 						<dd class="text-text-heading">{locationLabel(job)}</dd>
 					</div>
 					<div class="flex gap-2">
-						<dt class="text-text-muted w-24 shrink-0">Posted by</dt>
+						<dt class="text-text-muted w-24 shrink-0">
+							{t("theme.jobDetail.postedBy")}
+						</dt>
 						<dd class="text-text-heading">
 							<Link href={`/users/${job.user?.id}`} class="hover:underline">
 								{posterName}
@@ -63,7 +67,9 @@ export const JobDetailView = component$<{ data: JobDetailData }>(({ data }) => {
 						</dd>
 					</div>
 					<div class="flex gap-2">
-						<dt class="text-text-muted w-24 shrink-0">Listed until</dt>
+						<dt class="text-text-muted w-24 shrink-0">
+							{t("theme.jobDetail.listedUntil")}
+						</dt>
 						<dd class="text-text-heading">{formatDate(job.expiresAt)}</dd>
 					</div>
 				</dl>
@@ -81,7 +87,7 @@ export const JobDetailView = component$<{ data: JobDetailData }>(({ data }) => {
 							rel="noopener noreferrer"
 							class="inline-flex items-center px-6 py-3 text-base font-medium text-white bg-primary rounded-lg hover:bg-primary"
 						>
-							Apply Now
+							{t("theme.jobDetail.applyNow")}
 						</a>
 					</div>
 				)}

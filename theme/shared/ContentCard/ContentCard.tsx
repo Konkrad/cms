@@ -1,4 +1,5 @@
 import { component$ } from "@qwik.dev/core";
+import { t } from "~/contracts/i18n";
 
 export interface ContentCardProps {
 	image?: string | null;
@@ -60,7 +61,7 @@ export const ContentCard = component$<ContentCardProps>(
 						</p>
 					)}
 					<span class="text-sm font-medium text-primary mt-auto pt-3">
-						{label ?? "Read more →"}
+						{label ?? t("theme.contentCard.readMore")}
 					</span>
 				</div>
 			</a>

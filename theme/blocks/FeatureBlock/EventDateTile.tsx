@@ -1,5 +1,5 @@
 import { $, component$ } from "@qwik.dev/core";
-import { formatDate } from "~/contracts/i18n";
+import { formatDate, t } from "~/contracts/i18n";
 
 interface EventDateTileProps {
 	startDate: Date;
@@ -66,7 +66,9 @@ export const EventDateTile = component$<EventDateTileProps>((props) => {
 		const uid = `${dtStart}-${dtEnd}@event`;
 		const now = toICalDateString(new Date());
 
-		const summary = escapeICalText(props.title || "Event");
+		const summary = escapeICalText(
+			props.title || t("theme.blocks.feature.event"),
+		);
 		const location = props.location ? escapeICalText(props.location) : "";
 		const description = props.description
 			? escapeICalText(props.description)
@@ -121,7 +123,7 @@ export const EventDateTile = component$<EventDateTileProps>((props) => {
 			style={props.area ? { gridArea: props.area } : undefined}
 		>
 			<h3 class="font-semibold text-[30px] leading-[1.406] text-white mb-8">
-				Save the Date
+				{t("theme.eventDateTile.saveTheDate")}
 			</h3>
 
 			{/* Date Range */}
@@ -215,7 +217,7 @@ export const EventDateTile = component$<EventDateTileProps>((props) => {
 						</span>
 					</span>
 					<span class="font-bold text-[14px] leading-[1.348] text-white group-hover:underline">
-						Add to Calendar
+						{t("theme.eventDateTile.addToCalendar")}
 					</span>
 				</button>
 			)}

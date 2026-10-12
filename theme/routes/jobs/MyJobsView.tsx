@@ -1,7 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, Link } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
-import { formatDate } from "~/contracts/i18n";
+import { formatDate, t } from "~/contracts/i18n";
 import type { DeleteMyJobAction, MyJobsData } from "~/contracts/jobs";
 
 function locationLabel(job: {
@@ -12,8 +12,8 @@ function locationLabel(job: {
 	if (job.locationType === "on-site") {
 		return [job.city, job.country].filter(Boolean).join(", ") || "On-site";
 	}
-	if (job.locationType === "remote-eu") return "Remote — EU";
-	return `Remote — ${job.country ?? ""}`;
+	if (job.locationType === "remote-eu") return t("theme.myJobs.remoteEu");
+	return t("theme.myJobs.remote", { value: job.country ?? "" });
 }
 
 /** Themed view for the user's own job submissions (`/jobs/mine`). */
@@ -25,38 +25,40 @@ export const MyJobsView = component$<{
 		<div class="max-w-3xl mx-auto px-4 py-8">
 			<div class="mb-6">
 				<Link href="/jobs" class="text-sm text-primary hover:text-primary">
-					← Back to Job Board
+					{t("theme.myJobs.backToJobBoard")}
 				</Link>
 			</div>
 
 			<div class="flex items-center justify-between mb-8">
-				<h1 class="text-2xl font-bold text-text-heading">My Job Submissions</h1>
-				<Button href="/jobs/new">Post a Job</Button>
+				<h1 class="text-2xl font-bold text-text-heading">
+					{t("theme.myJobs.myJobSubmissions")}
+				</h1>
+				<Button href="/jobs/new">{t("theme.myJobs.postAJob")}</Button>
 			</div>
 
 			<div class="bg-white border border-border rounded-lg overflow-hidden">
 				{data.jobs.length === 0 ? (
 					<div class="text-center py-12 text-text-muted">
-						You haven't submitted any job postings yet.
+						{t("theme.myJobs.youHavenTSubmittedAny")}
 					</div>
 				) : (
 					<table class="min-w-full divide-y divide-gray-200">
 						<thead class="bg-bg">
 							<tr>
 								<th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
-									Job
+									{t("theme.myJobs.job")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
-									Location
+									{t("theme.myJobs.location")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
-									Expires
+									{t("theme.myJobs.expires")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
-									Status
+									{t("theme.myJobs.status")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
-									Actions
+									{t("theme.myJobs.actions")}
 								</th>
 							</tr>
 						</thead>
@@ -81,7 +83,7 @@ export const MyJobsView = component$<{
 														: "text-text-secondary"
 												}
 											>
-												{isExpired ? "Expired · " : ""}
+												{isExpired ? t("theme.myJobs.expired") : ""}
 												{formatDate(job.expiresAt)}
 											</span>
 										</td>
@@ -95,8 +97,8 @@ export const MyJobsView = component$<{
 												].join(" ")}
 											>
 												{job.status === "approved"
-													? "Approved"
-													: "Pending review"}
+													? t("theme.myJobs.approved")
+													: t("theme.myJobs.pendingReview")}
 											</span>
 										</td>
 										<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -106,7 +108,7 @@ export const MyJobsView = component$<{
 														href={`/jobs/mine/${job.id}/edit`}
 														class="text-primary hover:text-primary-dark"
 													>
-														Edit
+														{t("theme.myJobs.edit")}
 													</Link>
 												)}
 												{job.status === "pending" && (
@@ -116,12 +118,16 @@ export const MyJobsView = component$<{
 															type="submit"
 															class="text-error hover:text-error"
 															onClick$={(e) => {
-																if (!confirm("Delete this job posting?")) {
+																if (
+																	!confirm(
+																		t("theme.myJobs.deleteThisJobPosting"),
+																	)
+																) {
 																	e.preventDefault();
 																}
 															}}
 														>
-															Delete
+															{t("theme.myJobs.delete")}
 														</button>
 													</Form>
 												)}

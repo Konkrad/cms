@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
-import { formatDate } from "~/contracts/i18n";
+import { formatCurrency, formatDate, t } from "~/contracts/i18n";
 import { publicImageUrlFromKey } from "~/core/media/images";
 import type { ParticipantAssignmentUnit } from "./types";
 
@@ -39,13 +39,16 @@ export const ProductSelectionStep = component$<ProductSelectionStepProps>(
 						<div class="mb-4">
 							<h2 class="text-xl font-bold">{group.name}</h2>
 							<p class="text-sm text-text-secondary">
-								{group.remainingCapacity} of {group.maxCapacity} spots remaining
+								{t("theme.productSelectionStep.ofSpotsRemaining", {
+									remainingCapacity: group.remainingCapacity,
+									maxCapacity: group.maxCapacity,
+								})}
 							</p>
 						</div>
 
 						{group.remainingCapacity === 0 ? (
 							<div class="p-4 bg-bg-muted text-text-secondary rounded-sm text-center">
-								Sold Out
+								{t("theme.productSelectionStep.soldOut")}
 							</div>
 						) : !group.isSalesOpen ? (
 							<div
@@ -66,8 +69,8 @@ export const ProductSelectionStep = component$<ProductSelectionStepProps>(
 								>
 									{group.salesStartDate &&
 									new Date(group.salesStartDate) > new Date()
-										? "🕒 Sales Not Yet Open"
-										: "🔒 Sales Closed"}
+										? t("theme.productSelectionStep.salesNotYetOpen")
+										: t("theme.productSelectionStep.salesClosed")}
 								</div>
 								<p
 									class={
@@ -79,15 +82,25 @@ export const ProductSelectionStep = component$<ProductSelectionStepProps>(
 								>
 									{group.salesStartDate &&
 									new Date(group.salesStartDate) > new Date()
-										? `Opens ${formatDate(group.salesStartDate, "dateTime")}`
+										? t("theme.productSelectionStep.opens", {
+												salesStartDate: formatDate(
+													group.salesStartDate,
+													"dateTime",
+												),
+											})
 										: group.salesEndDate
-											? `Closed ${formatDate(group.salesEndDate, "dateTime")}`
-											: "Sales are not available for this group"}
+											? t("theme.productSelectionStep.closed", {
+													salesEndDate: formatDate(
+														group.salesEndDate,
+														"dateTime",
+													),
+												})
+											: t("theme.productSelectionStep.salesAreNotAvailableFor")}
 								</p>
 							</div>
 						) : ((group.availableProducts as any[]) || []).length === 0 ? (
 							<div class="p-4 bg-bg-muted text-text-secondary rounded-sm text-center">
-								No products available
+								{t("theme.productSelectionStep.noProductsAvailable")}
 							</div>
 						) : (
 							<div class="space-y-4">
@@ -166,9 +179,11 @@ export const ProductSelectionStep = component$<ProductSelectionStepProps>(
 																	</ul>
 																)}
 															<p class="text-sm text-text-secondary mt-2">
-																€{product.price.toFixed(2)} | Sold:{" "}
-																{product.soldQuantity} /{" "}
-																{product.maxQuantity || "∞"}
+																{t("theme.productSelectionStep.sold", {
+																	price: formatCurrency(product.price, "EUR"),
+																	soldQuantity: product.soldQuantity,
+																	maxQuantity: product.maxQuantity || "∞",
+																})}
 															</p>
 														</div>
 
@@ -242,8 +257,12 @@ export const ProductSelectionStep = component$<ProductSelectionStepProps>(
 
 				<div class="sticky bottom-0 bg-white border-t pt-4 pb-2">
 					<div class="flex justify-between items-center mb-4">
-						<span class="text-xl font-bold">Total:</span>
-						<span class="text-2xl font-bold">€{total.toFixed(2)}</span>
+						<span class="text-xl font-bold">
+							{t("theme.productSelectionStep.total")}
+						</span>
+						<span class="text-2xl font-bold">
+							{formatCurrency(total, "EUR")}
+						</span>
 					</div>
 					<Button
 						class="w-full"
@@ -289,7 +308,9 @@ export const ProductSelectionStep = component$<ProductSelectionStepProps>(
 							onContinue$(units);
 						}}
 					>
-						Continue to Participants ({totalTickets} tickets)
+						{t("theme.productSelectionStep.continueToParticipantsTickets", {
+							count: totalTickets,
+						})}
 					</Button>
 				</div>
 			</div>

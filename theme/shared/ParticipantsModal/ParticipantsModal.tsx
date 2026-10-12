@@ -2,6 +2,7 @@ import { component$, type QRL } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
 import { Avatar } from "~/components/ui/Avatar";
 import { Modal } from "~/components/ui/Modal";
+import { t } from "~/contracts/i18n";
 import { formatUserName } from "~/core/users/format";
 import type { ParticipantData } from "~theme/blocks/FeatureBlock/ParticipantsTile";
 
@@ -17,10 +18,12 @@ export const ParticipantsModal = component$<ParticipantsModalProps>(
 			<Modal
 				open={true}
 				onClose$={onClose$}
-				title={`Participants — ${eventName}`}
+				title={t("theme.participantsModal.participants", { eventName })}
 			>
 				{participants.length === 0 ? (
-					<p class="text-text-muted text-center py-8">No participants yet.</p>
+					<p class="text-text-muted text-center py-8">
+						{t("theme.participantsModal.noParticipantsYet")}
+					</p>
 				) : (
 					<ul class="divide-y divide-gray-200">
 						{participants.map((p) => {

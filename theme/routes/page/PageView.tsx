@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
+import { t } from "~/contracts/i18n";
 import type { PageViewData } from "~/contracts/page";
 import { BlockRenderer } from "~/core/content/builder/BlockRenderer";
 
@@ -9,13 +10,13 @@ export const PageView = component$<{ page: PageViewData }>(({ page }) => {
 		return (
 			<div class="max-w-4xl mx-auto px-4 py-16 text-center">
 				<h1 class="text-4xl font-bold text-text-heading mb-4">
-					Page Not Found
+					{t("theme.page.pageNotFound")}
 				</h1>
 				<p class="text-text-secondary mb-8">
-					The page you're looking for doesn't exist or has been removed.
+					{t("theme.page.thePageYouReLooking")}
 				</p>
 				<Link href="/" class="text-primary hover:text-primary font-medium">
-					Go back home
+					{t("theme.page.goBackHome")}
 				</Link>
 			</div>
 		);
@@ -38,7 +39,7 @@ export const PageView = component$<{ page: PageViewData }>(({ page }) => {
 						{page.title}
 					</h1>
 					<p class="text-text-secondary">
-						This page is empty. Add content in the page builder.
+						{t("theme.page.thisPageIsEmptyAdd")}
 					</p>
 				</div>
 			)}

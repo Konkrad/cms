@@ -1,23 +1,24 @@
 import { component$, useSignal, useVisibleTask$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { t } from "~/contracts/i18n";
 import { SurveyRuntime } from "~/core/forms/SurveyRuntime";
 
 export const definition: BlockDefinition = {
-	name: "Survey Form",
+	name: t("theme.blocks.surveyForm.surveyForm"),
 	componentType: "SurveyFormBlock",
 	category: "dynamic",
 	icon: "📝",
 	configSchema: [
 		{
 			name: "formId",
-			label: "Form ID",
+			label: t("theme.blocks.surveyForm.formId"),
 			type: "text",
 			required: true,
-			placeholder: "UUID of the form",
+			placeholder: t("theme.blocks.surveyForm.uuidOfTheForm"),
 		},
 		{
 			name: "showTitle",
-			label: "Show Form Title",
+			label: t("theme.blocks.surveyForm.showFormTitle"),
 			type: "boolean",
 			defaultValue: true,
 		},
@@ -49,7 +50,7 @@ export default component$<SurveyFormBlockProps>(
 		useVisibleTask$(async ({ track }) => {
 			track(() => formId);
 			if (!formId) {
-				error.value = "Form ID is required.";
+				error.value = t("theme.blocks.surveyForm.formIdIsRequired");
 				formData.value = null;
 				return;
 			}
@@ -59,12 +60,13 @@ export default component$<SurveyFormBlockProps>(
 			});
 
 			if (!response.ok) {
-				const payload = (await response
-					.json()
-					.catch(() => ({ error: "Failed to load form." }))) as {
+				const payload = (await response.json().catch(() => ({
+					error: t("theme.blocks.surveyForm.failedToLoadForm"),
+				}))) as {
 					error?: string;
 				};
-				error.value = payload.error || "Failed to load form.";
+				error.value =
+					payload.error || t("theme.blocks.surveyForm.failedToLoadForm");
 				formData.value = null;
 				return;
 			}
@@ -88,7 +90,11 @@ export default component$<SurveyFormBlockProps>(
 		}
 
 		if (!formData.value) {
-			return <div class="forms-alert forms-alert-info">Loading form...</div>;
+			return (
+				<div class="forms-alert forms-alert-info">
+					{t("theme.surveyFormBlock.loadingForm")}
+				</div>
+			);
 		}
 
 		return (

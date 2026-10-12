@@ -4,6 +4,7 @@ import type {
 	ApplyViewData,
 	SubmitApplicationAction,
 } from "~/contracts/elections";
+import { t } from "~/contracts/i18n";
 
 /** Themed view for the election application form (`/elections/[id]/apply`). */
 export const ApplyView = component$<{
@@ -21,17 +22,16 @@ export const ApplyView = component$<{
 				← {cycle.title}
 			</a>
 			<h1 class="text-2xl font-bold text-text-heading mt-2 mb-1">
-				Apply for {position.title}
+				{t("theme.apply.applyFor", { title: position.title })}
 			</h1>
 			<p class="text-sm text-text-muted mb-6">
-				Your application will be reviewed by an admin before it is publicly
-				visible.
+				{t("theme.apply.yourApplicationWillBeReviewed")}
 			</p>
 
 			{submitAction.value?.failed && (
 				<div class="mb-4 p-3 bg-error-bg border border-error-border rounded text-error text-sm">
 					{(submitAction.value as any).error ??
-						"Please fill in all fields (minimum 10 characters each)."}
+						t("theme.apply.pleaseFillInAllFields")}
 				</div>
 			)}
 
@@ -44,7 +44,7 @@ export const ApplyView = component$<{
 						for="motivationWhy"
 						class="block text-sm font-medium text-text-secondary mb-1"
 					>
-						Why do you want this role?
+						{t("theme.apply.whyDoYouWantThis")}
 					</label>
 					<textarea
 						id="motivationWhy"
@@ -63,7 +63,7 @@ export const ApplyView = component$<{
 						for="motivationExperience"
 						class="block text-sm font-medium text-text-secondary mb-1"
 					>
-						What relevant experience do you bring?
+						{t("theme.apply.whatRelevantExperienceDoYou")}
 					</label>
 					<textarea
 						id="motivationExperience"
@@ -82,7 +82,7 @@ export const ApplyView = component$<{
 						for="motivationGoals"
 						class="block text-sm font-medium text-text-secondary mb-1"
 					>
-						What would you like to achieve in this role?
+						{t("theme.apply.whatWouldYouLikeTo")}
 					</label>
 					<textarea
 						id="motivationGoals"
@@ -102,13 +102,13 @@ export const ApplyView = component$<{
 						type="submit"
 						class="bg-primary text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-primary"
 					>
-						Submit Application
+						{t("theme.apply.submitApplication")}
 					</button>
 					<a
 						href={data.cycleUrl}
 						class="text-sm text-text-muted hover:text-text-secondary py-2"
 					>
-						Cancel
+						{t("theme.apply.cancel")}
 					</a>
 				</div>
 			</Form>

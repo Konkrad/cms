@@ -1,4 +1,5 @@
 import { component$ } from "@qwik.dev/core";
+import { t } from "~/contracts/i18n";
 import type { QualificationVerifyViewData } from "~/contracts/qualifications";
 
 /** Themed view for the qualification verify route (`/qualifications/verify/[token]`). */
@@ -26,11 +27,11 @@ export const QualificationVerifyView = component$<{
 						</svg>
 					</div>
 					<h1 class="text-2xl font-bold text-text-heading mb-2">
-						Verification Failed
+						{t("theme.qualificationVerify.verificationFailed")}
 					</h1>
 					<p class="text-text-secondary mb-6">{result.error}</p>
 					<a href="/profile" class="text-primary hover:underline text-sm">
-						Go to my profile
+						{t("theme.qualificationVerify.goToMyProfile")}
 					</a>
 				</div>
 			</div>
@@ -58,16 +59,16 @@ export const QualificationVerifyView = component$<{
 						</svg>
 					</div>
 					<h1 class="text-2xl font-bold text-text-heading mb-2">
-						Already Verified
+						{t("theme.qualificationVerify.alreadyVerified")}
 					</h1>
 					<p class="text-text-secondary mb-6">
-						You already have this qualification on your profile.
+						{t("theme.qualificationVerify.youAlreadyHaveThisQualification")}
 					</p>
 					<a
 						href="/profile"
 						class="inline-block bg-primary text-white px-5 py-2 rounded-md font-medium hover:bg-primary"
 					>
-						View my profile
+						{t("theme.qualificationVerify.viewMyProfile")}
 					</a>
 				</div>
 			</div>
@@ -94,16 +95,16 @@ export const QualificationVerifyView = component$<{
 					</svg>
 				</div>
 				<h1 class="text-2xl font-bold text-text-heading mb-2">
-					Qualification Verified!
+					{t("theme.qualificationVerify.qualificationVerified")}
 				</h1>
 				<p class="text-text-secondary mb-6">
-					Your qualification has been verified and added to your profile.
+					{t("theme.qualificationVerify.yourQualificationHasBeenVerified")}
 				</p>
 				<a
 					href="/profile"
 					class="inline-block bg-success text-white px-5 py-2 rounded-md font-medium hover:bg-success"
 				>
-					View my profile
+					{t("theme.qualificationVerify.viewMyProfile")}
 				</a>
 			</div>
 		</div>

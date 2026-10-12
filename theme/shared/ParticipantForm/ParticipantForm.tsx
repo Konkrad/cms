@@ -1,4 +1,5 @@
 import { component$, type QRL, useStore } from "@qwik.dev/core";
+import { t } from "~/contracts/i18n";
 import type { SearchUserResult } from "~theme/routes/events/checkout/types";
 
 export type ParticipantFormSlot = {
@@ -74,7 +75,11 @@ export const ParticipantForm = component$<ParticipantFormProps>(
 										<p class="text-sm font-medium truncate">
 											{slot.locked ? buyer?.name || slot.name : slot.name}
 										</p>
-										<p class="text-xs text-text-muted">Participant {idx + 1}</p>
+										<p class="text-xs text-text-muted">
+											{t("theme.participantForm.participant", {
+												value: idx + 1,
+											})}
+										</p>
 									</div>
 									<button
 										type="button"
@@ -95,7 +100,7 @@ export const ParticipantForm = component$<ParticipantFormProps>(
 											onSlotsChange$(next);
 										}}
 									>
-										Remove
+										{t("theme.participantForm.remove")}
 									</button>
 								</div>
 							);
@@ -109,12 +114,12 @@ export const ParticipantForm = component$<ParticipantFormProps>(
 						{ui.manualMode ? (
 							<div class="border rounded-lg p-3 space-y-2 bg-bg">
 								<p class="text-xs font-medium text-text-secondary">
-									Add participant manually
+									{t("theme.participantForm.addParticipantManually")}
 								</p>
 								<input
 									type="text"
 									class="w-full px-3 py-2 border rounded-lg text-sm"
-									placeholder="Full name"
+									placeholder={t("theme.participantForm.fullName")}
 									value={ui.manualName}
 									onInput$={(_, el) => {
 										ui.manualName = el.value;
@@ -123,7 +128,7 @@ export const ParticipantForm = component$<ParticipantFormProps>(
 								<input
 									type="email"
 									class="w-full px-3 py-2 border rounded-lg text-sm"
-									placeholder="Email address"
+									placeholder={t("theme.participantForm.emailAddress")}
 									value={ui.manualEmail}
 									onInput$={(_, el) => {
 										ui.manualEmail = el.value;
@@ -160,7 +165,7 @@ export const ParticipantForm = component$<ParticipantFormProps>(
 											ui.manualEmail = "";
 										}}
 									>
-										Add
+										{t("theme.participantForm.add")}
 									</button>
 									<button
 										type="button"
@@ -171,7 +176,7 @@ export const ParticipantForm = component$<ParticipantFormProps>(
 											ui.manualEmail = "";
 										}}
 									>
-										Cancel
+										{t("theme.participantForm.cancel")}
 									</button>
 								</div>
 							</div>
@@ -181,7 +186,9 @@ export const ParticipantForm = component$<ParticipantFormProps>(
 									type="text"
 									value={ui.searchQuery}
 									class="w-full px-3 py-2 border rounded-lg text-sm"
-									placeholder="Search participant by name…"
+									placeholder={t(
+										"theme.participantForm.searchParticipantByName",
+									)}
 									onFocus$={() => {
 										ui.focused = true;
 									}}
@@ -216,8 +223,10 @@ export const ParticipantForm = component$<ParticipantFormProps>(
 												ui.searchResults = [];
 												ui.searchError =
 													resp.status === 401
-														? "Please log in again to search users."
-														: "User search failed. Please try again.";
+														? t("theme.participantForm.pleaseLogInAgainTo")
+														: t(
+																"theme.participantForm.userSearchFailedPleaseTry",
+															);
 												return;
 											}
 
@@ -226,7 +235,9 @@ export const ParticipantForm = component$<ParticipantFormProps>(
 												[]) as SearchUserResult[];
 										} catch {
 											ui.searchResults = [];
-											ui.searchError = "User search failed. Please try again.";
+											ui.searchError = t(
+												"theme.participantForm.userSearchFailedPleaseTry",
+											);
 										} finally {
 											ui.searchLoading = false;
 										}
@@ -234,7 +245,9 @@ export const ParticipantForm = component$<ParticipantFormProps>(
 								/>
 
 								{ui.searchLoading && (
-									<p class="text-xs text-text-muted mt-1">Searching…</p>
+									<p class="text-xs text-text-muted mt-1">
+										{t("theme.participantForm.searching")}
+									</p>
 								)}
 								{!ui.searchLoading && ui.searchError && (
 									<p class="text-xs text-error mt-1">{ui.searchError}</p>
@@ -260,9 +273,11 @@ export const ParticipantForm = component$<ParticipantFormProps>(
 												+
 											</div>
 											<div>
-												<p class="text-sm font-medium">Add manually</p>
+												<p class="text-sm font-medium">
+													{t("theme.participantForm.addManually")}
+												</p>
 												<p class="text-xs text-text-muted">
-													Enter name and email address
+													{t("theme.participantForm.enterNameAndEmailAddress")}
 												</p>
 											</div>
 										</button>
@@ -328,7 +343,7 @@ export const ParticipantForm = component$<ParticipantFormProps>(
 											previouslyAdded.length > 0 && (
 												<>
 													<p class="px-3 py-1.5 text-xs font-semibold text-text-muted uppercase tracking-wide bg-bg">
-														Previously added
+														{t("theme.participantForm.previouslyAdded")}
 													</p>
 													{previouslyAdded.map((p, i) => (
 														<button

@@ -3,6 +3,7 @@ import { Form } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
+import { t } from "~/contracts/i18n";
 import type { UpdateDetailsAction } from "~/contracts/profile";
 
 export interface ProfileDetailsEditProps {
@@ -12,10 +13,10 @@ export interface ProfileDetailsEditProps {
 }
 
 const SEX_LABELS: Record<string, string> = {
-	male: "Male",
-	female: "Female",
-	other: "Other",
-	prefer_not_to_say: "Prefer not to say",
+	male: t("theme.profileDetailsEdit.male"),
+	female: t("theme.profileDetailsEdit.female"),
+	other: t("theme.profileDetailsEdit.other"),
+	prefer_not_to_say: t("theme.profileDetailsEdit.preferNotToSay"),
 };
 
 /** In-place editor for year of birth / gender, shown in the owner-only details bar. */
@@ -40,15 +41,23 @@ export const ProfileDetailsEdit = component$<ProfileDetailsEditProps>(
 				>
 					{yearOfBirth && (
 						<span>
-							<span class="font-medium">Year of birth:</span> {yearOfBirth}
+							<span class="font-medium">
+								{t("theme.profileDetailsEdit.yearOfBirth")}
+							</span>{" "}
+							{yearOfBirth}
 						</span>
 					)}
 					{sex && (
 						<span>
-							<span class="font-medium">Gender:</span> {SEX_LABELS[sex] ?? sex}
+							<span class="font-medium">
+								{t("theme.profileDetailsEdit.gender")}
+							</span>{" "}
+							{SEX_LABELS[sex] ?? sex}
 						</span>
 					)}
-					{!yearOfBirth && !sex && <span>Add year of birth / gender</span>}
+					{!yearOfBirth && !sex && (
+						<span>{t("theme.profileDetailsEdit.addYearOfBirthGender")}</span>
+					)}
 					<svg
 						aria-hidden="true"
 						class="w-3.5 h-3.5 shrink-0"
@@ -75,21 +84,28 @@ export const ProfileDetailsEdit = component$<ProfileDetailsEditProps>(
 					</p>
 				)}
 				<Input
-					label="Year of birth"
+					label={t("theme.profileDetailsEdit.yearOfBirth2")}
 					name="year_of_birth"
 					type="number"
 					value={yearOfBirth ?? ""}
 					class="w-28"
 				/>
-				<Select label="Gender" name="sex" value={sex ?? ""} class="w-40">
-					<option value="">Select gender</option>
-					<option value="male">Male</option>
-					<option value="female">Female</option>
-					<option value="other">Other</option>
-					<option value="prefer_not_to_say">Prefer not to say</option>
+				<Select
+					label={t("theme.profileDetailsEdit.gender2")}
+					name="sex"
+					value={sex ?? ""}
+					class="w-40"
+				>
+					<option value="">{t("theme.profileDetailsEdit.selectGender")}</option>
+					<option value="male">{t("theme.profileDetailsEdit.male")}</option>
+					<option value="female">{t("theme.profileDetailsEdit.female")}</option>
+					<option value="other">{t("theme.profileDetailsEdit.other")}</option>
+					<option value="prefer_not_to_say">
+						{t("theme.profileDetailsEdit.preferNotToSay")}
+					</option>
 				</Select>
 				<Button type="submit" size="sm">
-					Save
+					{t("theme.profileDetailsEdit.save")}
 				</Button>
 				<Button
 					type="button"
@@ -99,7 +115,7 @@ export const ProfileDetailsEdit = component$<ProfileDetailsEditProps>(
 						isEditing.value = false;
 					}}
 				>
-					Cancel
+					{t("theme.profileDetailsEdit.cancel")}
 				</Button>
 			</Form>
 		);

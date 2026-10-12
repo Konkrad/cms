@@ -1,11 +1,12 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { t } from "~/contracts/i18n";
 import { useHeroSection } from "~/core/content/builder/blocks/useHeroSection";
 import "./HeroSectionBlock.css";
 
 export const definition: BlockDefinition = {
-	name: "Hero Section",
+	name: t("theme.blocks.heroSection.heroSection"),
 	componentType: "HeroSectionBlock",
 	category: "dynamic",
 	icon: "🖼️",
@@ -30,7 +31,9 @@ export default component$(() => {
 	if (isLoading.value) {
 		return (
 			<div class="hero-section-loading">
-				<div class="hero-section-loading-text">Loading latest articles...</div>
+				<div class="hero-section-loading-text">
+					{t("theme.heroSectionBlock.loadingLatestArticles")}
+				</div>
 			</div>
 		);
 	}
@@ -38,7 +41,9 @@ export default component$(() => {
 	if (articles.value.length === 0) {
 		return (
 			<div class="hero-section-empty">
-				<div class="hero-section-empty-text">No articles yet.</div>
+				<div class="hero-section-empty-text">
+					{t("theme.heroSectionBlock.noArticlesYet")}
+				</div>
 			</div>
 		);
 	}
@@ -79,7 +84,9 @@ export default component$(() => {
 								</div>
 								<div class="hero-carousel-content">
 									<h2 class="hero-carousel-title">{article.title}</h2>
-									<span class="hero-carousel-cta">Read more →</span>
+									<span class="hero-carousel-cta">
+										{t("theme.heroSectionBlock.readMore")}
+									</span>
 								</div>
 							</a>
 						</div>
@@ -118,7 +125,7 @@ export default component$(() => {
 					{excerpt && <p class="hero-section-desktop-description">{excerpt}</p>}
 
 					<Button href={slide.url} size="xl">
-						Read the Article
+						{t("theme.heroSectionBlock.readTheArticle")}
 					</Button>
 				</div>
 			</div>
@@ -132,7 +139,9 @@ export default component$(() => {
 							type="button"
 							class={`hero-section-dot ${currentSlide.value === index ? "hero-section-dot-active" : ""}`}
 							onClick$={$(() => goToSlide(index))}
-							aria-label={`Go to slide ${index + 1}`}
+							aria-label={t("theme.heroSectionBlock.goToSlide", {
+								value: index + 1,
+							})}
 						/>
 					))}
 				</div>

@@ -1,15 +1,32 @@
 import { component$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { t } from "~/contracts/i18n";
 import { FeatureGrid } from "./FeatureGrid";
 import { ImageTile } from "./ImageTile";
 import { StatTile } from "./StatTile";
 
 export const GRID_AREAS = [
-	{ name: "left-top", label: "Left Top", color: "#3B82F6" },
-	{ name: "left-bottom", label: "Left Bottom", color: "#10B981" },
-	{ name: "middle", label: "Middle", color: "#F59E0B" },
-	{ name: "right-top", label: "Right Top", color: "#8B5CF6" },
-	{ name: "right-bottom", label: "Right Bottom", color: "#EF4444" },
+	{
+		name: "left-top",
+		label: t("theme.blocks.feature.leftTop"),
+		color: "#3B82F6",
+	},
+	{
+		name: "left-bottom",
+		label: t("theme.blocks.feature.leftBottom"),
+		color: "#10B981",
+	},
+	{ name: "middle", label: t("theme.blocks.feature.middle"), color: "#F59E0B" },
+	{
+		name: "right-top",
+		label: t("theme.blocks.feature.rightTop"),
+		color: "#8B5CF6",
+	},
+	{
+		name: "right-bottom",
+		label: t("theme.blocks.feature.rightBottom"),
+		color: "#EF4444",
+	},
 ] as const;
 
 export type GridAreaName = (typeof GRID_AREAS)[number]["name"];
@@ -40,8 +57,8 @@ const DEFAULT_TILES: TileConfig[] = [
 		type: "stat",
 		area: "left-top",
 		number: "2000+",
-		title: "Users",
-		description: "A fast growing community that inspires and connects.",
+		title: t("theme.blocks.feature.users"),
+		description: t("theme.blocks.feature.aFastGrowingCommunityThat"),
 	},
 	{
 		type: "image",
@@ -52,8 +69,7 @@ const DEFAULT_TILES: TileConfig[] = [
 		type: "image",
 		area: "middle",
 		image: "public/events/seed-3.webp",
-		overlayText:
-			"With multiple events all over Europe every year we help to grow your network and make memories.",
+		overlayText: t("theme.blocks.feature.withMultipleEventsAllOver"),
 	},
 	{
 		type: "image",
@@ -64,8 +80,8 @@ const DEFAULT_TILES: TileConfig[] = [
 		type: "stat",
 		area: "right-bottom",
 		number: "10+",
-		title: "Local communities",
-		description: "Can't find your city yet? Start your own one.",
+		title: t("theme.blocks.feature.localCommunities"),
+		description: t("theme.blocks.feature.canTFindYourCity"),
 	},
 ];
 
@@ -81,26 +97,26 @@ function parseTiles(tilesJson?: string): TileConfig[] {
 }
 
 export const definition: BlockDefinition = {
-	name: "Feature Grid",
+	name: t("theme.blocks.feature.featureGrid"),
 	componentType: "FeatureBlock",
 	category: "content",
 	icon: "🧩",
 	configSchema: [
 		{
 			name: "layout",
-			label: "Grid Layout",
+			label: t("theme.blocks.feature.gridLayout"),
 			type: "grid-layout",
 			defaultValue: DEFAULT_LAYOUT,
 		},
 		{
 			name: "gap",
-			label: "Grid Gap (px)",
+			label: t("theme.blocks.feature.gridGapPx"),
 			type: "number",
 			defaultValue: 24,
 		},
 		{
 			name: "tilesJson",
-			label: "Tiles",
+			label: t("theme.blocks.feature.tiles"),
 			type: "tiles",
 			defaultValue: JSON.stringify(DEFAULT_TILES, null, 2),
 		},
@@ -127,7 +143,7 @@ export default component$<FeatureBlockProps>((props) => {
 								key={`tile-${index}`}
 								area={tile.area}
 								number={tile.number ?? "0"}
-								title={tile.title ?? "Title"}
+								title={tile.title ?? t("theme.featureBlock.title")}
 								description={tile.description}
 							/>
 						);

@@ -1,6 +1,7 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
+import { t } from "~/contracts/i18n";
 import type { SendLoginAction, VerifyLoginAction } from "~/contracts/login";
 
 /** Themed view for the magic-link + OTP login flow (`/login`). */
@@ -17,7 +18,7 @@ export const LoginView = component$<{
 
 	const handleSend = $(async () => {
 		if (!email.value) {
-			error.value = "Please provide an email";
+			error.value = t("theme.login.pleaseProvideAnEmail");
 			return;
 		}
 
@@ -31,15 +32,15 @@ export const LoginView = component$<{
 			await sendAction.submit(formData);
 
 			if (!sendAction.value?.success) {
-				error.value = sendAction.value?.error || "Failed to send login email";
+				error.value =
+					sendAction.value?.error || t("theme.login.failedToSendLoginEmail");
 				return;
 			}
 
-			info.value =
-				"Check your email for the sign-in link and the 6-letter code.";
+			info.value = t("theme.login.checkYourEmailForThe");
 			step.value = "verify";
 		} catch (err: any) {
-			error.value = err?.message || "Failed to send login email";
+			error.value = err?.message || t("theme.login.failedToSendLoginEmail");
 		} finally {
 			isLoading.value = false;
 		}
@@ -47,7 +48,7 @@ export const LoginView = component$<{
 
 	const handleVerify = $(async () => {
 		if (!email.value || !code.value) {
-			error.value = "Please enter your email and the 6-letter code";
+			error.value = t("theme.login.pleaseEnterYourEmailAnd");
 			return;
 		}
 
@@ -65,13 +66,14 @@ export const LoginView = component$<{
 			// Otherwise, check the returned value for errors.
 			if (verifyAction.value && !verifyAction.value.success) {
 				error.value =
-					verifyAction.value.error || "Invalid code or verification failed";
+					verifyAction.value.error ||
+					t("theme.login.invalidCodeOrVerificationFailed");
 				return;
 			}
 		} catch (err: any) {
 			// If a redirect occurred, the code here may never run.
 			// Surface any unexpected errors.
-			error.value = err?.message || "Verification failed";
+			error.value = err?.message || t("theme.login.verificationFailed");
 		} finally {
 			isLoading.value = false;
 		}
@@ -82,11 +84,13 @@ export const LoginView = component$<{
 			<div class="w-full max-w-md mx-auto px-6 py-12">
 				{step.value === "send" ? (
 					<>
-						<h1 class="text-4xl font-bold text-text-heading mb-1">Sign In</h1>
+						<h1 class="text-4xl font-bold text-text-heading mb-1">
+							{t("theme.login.signIn")}
+						</h1>
 						<p class="text-text-secondary mb-8">
-							New here?{" "}
+							{t("theme.login.newHere")}{" "}
 							<span class="text-text-secondary">
-								Just enter your email — we'll create your account automatically.
+								{t("theme.login.justEnterYourEmailWe")}
 							</span>
 						</p>
 
@@ -102,9 +106,9 @@ export const LoginView = component$<{
 							class="space-y-5"
 						>
 							<Input
-								label="Email"
+								label={t("theme.login.email")}
 								type="email"
-								placeholder="your@email.com"
+								placeholder={t("theme.login.yourEmailCom")}
 								value={email.value}
 								onInput$={(e) => {
 									email.value = (e.target as HTMLInputElement).value;
@@ -119,18 +123,20 @@ export const LoginView = component$<{
 								disabled={isLoading.value}
 								class="w-full"
 							>
-								{isLoading.value ? "Sending..." : "Send sign-in link & code"}
+								{isLoading.value
+									? t("theme.login.sending")
+									: t("theme.login.sendSignInLinkCode")}
 							</Button>
 						</form>
 					</>
 				) : (
 					<>
 						<h1 class="text-4xl font-bold text-text-heading mb-1">
-							Check your email
+							{t("theme.login.checkYourEmail")}
 						</h1>
 						<p class="text-text-secondary mb-8">
-							We sent a 6-letter code to <strong>{email.value}</strong>. Enter
-							it below or click the link in the email.
+							{t("theme.login.weSentA6Letter")} <strong>{email.value}</strong>
+							{t("theme.login.enterItBelowOrClick")}
 						</p>
 
 						{error.value && (
@@ -150,9 +156,9 @@ export const LoginView = component$<{
 							class="space-y-5"
 						>
 							<Input
-								label="6-letter code"
+								label={t("theme.login.n6LetterCode")}
 								type="text"
-								placeholder="XXXXXX"
+								placeholder={t("theme.login.xxxxxx")}
 								value={code.value}
 								onInput$={(e) => {
 									code.value = (
@@ -169,7 +175,9 @@ export const LoginView = component$<{
 								disabled={isLoading.value}
 								class="w-full"
 							>
-								{isLoading.value ? "Verifying..." : "Verify code"}
+								{isLoading.value
+									? t("theme.login.verifying")
+									: t("theme.login.verifyCode")}
 							</Button>
 							<button
 								type="button"
@@ -179,7 +187,7 @@ export const LoginView = component$<{
 									error.value = "";
 								}}
 							>
-								← Use a different email
+								{t("theme.login.useADifferentEmail")}
 							</button>
 						</form>
 					</>

@@ -3,6 +3,7 @@ import { Form } from "@qwik.dev/router";
 import { Alert } from "~/components/ui/Alert";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
+import { t } from "~/contracts/i18n";
 import type {
 	RequirementStepData,
 	SubmitRequirementAction,
@@ -24,7 +25,7 @@ export type RequirementStepProps = {
  * server validates it with the requirement's schema; problems come back per field.
  */
 export const RequirementStep = component$<RequirementStepProps>(
-	({ step, action, submitLabel = "Continue" }) => {
+	({ step, action, submitLabel = t("theme.requirementStep.continue") }) => {
 		const result = action.value as
 			| {
 					failed?: boolean;
@@ -92,7 +93,9 @@ export const RequirementSteps = component$<{
 	return (
 		<div class="space-y-3" data-testid="requirement-steps">
 			{steps.length > 1 && (
-				<p class="text-sm text-text-secondary">{steps.length} steps left</p>
+				<p class="text-sm text-text-secondary">
+					{t("theme.requirementStep.stepsLeft", { count: steps.length })}
+				</p>
 			)}
 			<RequirementStep key={current.id} step={current} action={action} />
 		</div>

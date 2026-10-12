@@ -2,6 +2,7 @@ import { component$, useSignal, useTask$ } from "@qwik.dev/core";
 import { Form } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
+import { t } from "~/contracts/i18n";
 import type { UpdateNameAction } from "~/contracts/profile";
 
 export interface ProfileNameEditProps {
@@ -27,7 +28,7 @@ export const ProfileNameEdit = component$<ProfileNameEditProps>((props) => {
 				<h1 class="text-3xl font-bold text-text-heading">{displayName}</h1>
 				<button
 					type="button"
-					aria-label="Edit name"
+					aria-label={t("theme.profileNameEdit.editName")}
 					onClick$={() => {
 						isEditing.value = true;
 					}}
@@ -62,7 +63,7 @@ export const ProfileNameEdit = component$<ProfileNameEditProps>((props) => {
 					name="name"
 					type="text"
 					value={name}
-					placeholder="First name"
+					placeholder={t("theme.profileNameEdit.firstName")}
 					required
 					class="w-36"
 				/>
@@ -70,14 +71,14 @@ export const ProfileNameEdit = component$<ProfileNameEditProps>((props) => {
 					name="family_name"
 					type="text"
 					value={familyName}
-					placeholder="Last name"
+					placeholder={t("theme.profileNameEdit.lastName")}
 					required
 					class="w-36"
 				/>
 			</div>
 			<div class="flex gap-2">
 				<Button type="submit" size="sm">
-					Save
+					{t("theme.profileNameEdit.save")}
 				</Button>
 				<Button
 					type="button"
@@ -87,7 +88,7 @@ export const ProfileNameEdit = component$<ProfileNameEditProps>((props) => {
 						isEditing.value = false;
 					}}
 				>
-					Cancel
+					{t("theme.profileNameEdit.cancel")}
 				</Button>
 			</div>
 		</Form>

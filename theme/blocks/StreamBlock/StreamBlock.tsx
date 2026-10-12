@@ -1,6 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { CursorPager } from "~/components/ui/CursorPager";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { t } from "~/contracts/i18n";
 import type { StreamFilter } from "~/contracts/stream";
 import { useStream } from "~/core/content/builder/blocks/useStream";
 import { StreamList } from "~theme/shared/StreamList/StreamList";
@@ -11,31 +12,34 @@ interface StreamBlockProps {
 }
 
 const EMPTY: Record<StreamFilter, string> = {
-	all: "No news yet.",
-	notes: "No notes yet.",
-	articles: "No articles yet.",
+	all: t("theme.blocks.stream.noNewsYet"),
+	notes: t("theme.blocks.stream.noNotesYet"),
+	articles: t("theme.blocks.stream.noArticlesYet"),
 };
 
 export const definition: BlockDefinition = {
-	name: "Stream",
+	name: t("theme.blocks.stream.stream"),
 	componentType: "StreamBlock",
 	category: "dynamic",
 	icon: "📰",
 	configSchema: [
 		{
 			name: "show",
-			label: "Show",
+			label: t("theme.blocks.stream.show"),
 			type: "select",
 			defaultValue: "all",
 			options: [
-				{ label: "Notes and articles", value: "all" },
-				{ label: "Notes only (short stream)", value: "notes" },
-				{ label: "Articles only", value: "articles" },
+				{ label: t("theme.blocks.stream.notesAndArticles"), value: "all" },
+				{
+					label: t("theme.blocks.stream.notesOnlyShortStream"),
+					value: "notes",
+				},
+				{ label: t("theme.blocks.stream.articlesOnly"), value: "articles" },
 			],
 		},
 		{
 			name: "limit",
-			label: "Items per page",
+			label: t("theme.blocks.stream.itemsPerPage"),
 			type: "number",
 			defaultValue: 10,
 		},
@@ -56,10 +60,12 @@ export default component$<StreamBlockProps>((props) => {
 		<div class="max-w-6xl mx-auto px-4 py-12" data-stream-show={show}>
 			{isLoading.value && items.value.length === 0 ? (
 				<div class="text-center py-12">
-					<p class="text-text-muted">Loading…</p>
+					<p class="text-text-muted">{t("theme.streamBlock.loading")}</p>
 				</div>
 			) : error.value ? (
-				<p class="text-error text-center py-8">Failed to load: {error.value}</p>
+				<p class="text-error text-center py-8">
+					{t("theme.streamBlock.failedToLoad", { value: error.value })}
+				</p>
 			) : items.value.length === 0 ? (
 				<p class="text-text-muted text-center py-8">{EMPTY[show]}</p>
 			) : (

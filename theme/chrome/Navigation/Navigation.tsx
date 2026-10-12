@@ -1,5 +1,6 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { Form, Link, useLocation } from "@qwik.dev/router";
+import { t } from "~/contracts/i18n";
 import type { LogoutAction, MainMenuItems, NavUser } from "~/contracts/layout";
 
 const Chevron = ({ open }: { open: boolean }) => (
@@ -65,7 +66,7 @@ export const Navigation = component$<{
 								height="32"
 								class="shrink-0"
 							/>
-							Community Hub
+							{t("theme.navigation.communityHub")}
 						</Link>
 					</div>
 
@@ -114,7 +115,8 @@ export const Navigation = component$<{
 									<button
 										type="button"
 										onClick$={toggleUserMenu}
-										aria-label="profile-menu"
+										aria-label={t("theme.navigation.profileMenu")}
+										data-testid="profile-menu"
 										aria-haspopup="menu"
 										aria-expanded={showUserMenu.value}
 										class="flex items-center gap-2 px-3 py-2 text-text-secondary hover:text-primary font-medium transition-colors"
@@ -155,29 +157,29 @@ export const Navigation = component$<{
 												href="/profile"
 												class="block px-4 py-2 text-text-secondary hover:bg-bg-muted"
 											>
-												My Profile
+												{t("theme.navigation.myProfile")}
 											</Link>
 											<Link
 												href="/profile/tickets"
 												class="block px-4 py-2 text-text-secondary hover:bg-bg-muted"
 											>
-												My Tickets
+												{t("theme.navigation.myTickets")}
 											</Link>
 											{user.isAdmin && (
 												<Link
 													href="/admin"
 													class="block px-4 py-2 text-text-secondary hover:bg-bg-muted"
 												>
-													Admin Area
+													{t("theme.navigation.adminArea")}
 												</Link>
 											)}
 											<Form action={logoutAction}>
 												<button
 													type="submit"
-													aria-label="logout"
+													aria-label={t("theme.navigation.logout")}
 													class="block w-full text-left px-4 py-2 text-text-secondary hover:bg-bg-muted"
 												>
-													Logout
+													{t("theme.navigation.logout")}
 												</button>
 											</Form>
 										</div>
@@ -188,7 +190,7 @@ export const Navigation = component$<{
 									href="/login"
 									class="flex items-center px-4 py-2 bg-primary text-white rounded-sm hover:bg-primary-dark font-medium transition-colors"
 								>
-									Login
+									{t("theme.navigation.login")}
 								</Link>
 							)}
 						</div>
@@ -197,7 +199,7 @@ export const Navigation = component$<{
 						<button
 							type="button"
 							onClick$={toggleMobileMenu}
-							aria-label="toggle mobile menu"
+							aria-label={t("theme.navigation.toggleMobileMenu")}
 							aria-expanded={showMobileMenu.value}
 							class="md:hidden flex items-center justify-center w-10 h-10 rounded-md text-text-secondary hover:text-primary hover:bg-bg-muted transition-colors"
 						>
@@ -273,29 +275,29 @@ export const Navigation = component$<{
 										href="/profile"
 										class="block px-4 py-3 text-text-secondary hover:bg-bg-muted"
 									>
-										My Profile
+										{t("theme.navigation.myProfile")}
 									</a>
 									<a
 										href="/profile/tickets"
 										class="block px-4 py-3 text-text-secondary hover:bg-bg-muted"
 									>
-										My Tickets
+										{t("theme.navigation.myTickets")}
 									</a>
 									{user.isAdmin && (
 										<a
 											href="/admin"
 											class="block px-4 py-3 text-text-secondary hover:bg-bg-muted"
 										>
-											Admin Area
+											{t("theme.navigation.adminArea")}
 										</a>
 									)}
 									<Form action={logoutAction}>
 										<button
 											type="submit"
-											aria-label="logout"
+											aria-label={t("theme.navigation.logout")}
 											class="block w-full text-left px-4 py-3 text-text-secondary hover:bg-bg-muted"
 										>
-											Logout
+											{t("theme.navigation.logout")}
 										</button>
 									</Form>
 								</>
@@ -307,7 +309,7 @@ export const Navigation = component$<{
 								href="/login"
 								class="flex items-center justify-center w-full px-4 py-2 bg-primary text-white rounded-sm hover:bg-primary-dark font-medium transition-colors"
 							>
-								Login
+								{t("theme.navigation.login")}
 							</a>
 						</div>
 					)}

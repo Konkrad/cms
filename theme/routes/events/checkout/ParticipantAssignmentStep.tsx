@@ -1,5 +1,6 @@
 import { $, component$ } from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
+import { t } from "~/contracts/i18n";
 import { ParticipantForm } from "~theme/shared/ParticipantForm";
 import type { GroupedAssignments, ParticipantAssignmentUnit } from "./types";
 
@@ -30,9 +31,13 @@ export const ParticipantAssignmentStep =
 			return (
 				<div class="space-y-6">
 					<div>
-						<h2 class="text-xl font-bold mb-1">Participant Assignment</h2>
+						<h2 class="text-xl font-bold mb-1">
+							{t("theme.participantAssignmentStep.participantAssignment")}
+						</h2>
 						<p class="text-sm text-text-secondary">
-							Search for participants to assign to each ticket.
+							{t(
+								"theme.participantAssignmentStep.searchForParticipantsToAssign",
+							)}
 						</p>
 					</div>
 
@@ -81,7 +86,10 @@ export const ParticipantAssignmentStep =
 										{productGroup.productName}
 									</h3>
 									<span class="text-sm text-text-muted">
-										{assignedCount}/{totalSlots} assigned
+										{t("theme.participantAssignmentStep.assigned", {
+											assignedCount,
+											totalSlots,
+										})}
 									</span>
 								</div>
 
@@ -105,10 +113,10 @@ export const ParticipantAssignmentStep =
 								class="flex-1"
 								onClick$={onBack$}
 							>
-								Back to Products
+								{t("theme.participantAssignmentStep.backToProducts")}
 							</Button>
 							<Button type="button" class="flex-1" onClick$={onContinue$}>
-								Continue to Payment
+								{t("theme.participantAssignmentStep.continueToPayment")}
 							</Button>
 						</div>
 					</div>

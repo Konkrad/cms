@@ -2,6 +2,7 @@ import { $, component$, useSignal } from "@qwik.dev/core";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
+import { t } from "~/contracts/i18n";
 
 export type ProfileFieldsProps = {
 	/** The viewer's own current profile (prefill). */
@@ -20,7 +21,7 @@ export const ProfileFields = component$<ProfileFieldsProps>(
 			<div class="space-y-4">
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<Input
-						label="First Name"
+						label={t("theme.profileFields.firstName")}
 						name="name"
 						type="text"
 						value={text(values.name)}
@@ -28,7 +29,7 @@ export const ProfileFields = component$<ProfileFieldsProps>(
 						required
 					/>
 					<Input
-						label="Last Name"
+						label={t("theme.profileFields.lastName")}
 						name="familyName"
 						type="text"
 						value={text(values.familyName)}
@@ -36,29 +37,31 @@ export const ProfileFields = component$<ProfileFieldsProps>(
 						required
 					/>
 					<Input
-						label="Year of Birth"
+						label={t("theme.profileFields.yearOfBirth")}
 						name="yearOfBirth"
 						type="number"
 						value={text(values.yearOfBirth)}
 						error={errors.yearOfBirth}
 					/>
 					<Select
-						label="Gender"
+						label={t("theme.profileFields.gender")}
 						name="sex"
 						value={text(values.sex)}
 						error={errors.sex}
 					>
-						<option value="">Select gender</option>
-						<option value="male">Male</option>
-						<option value="female">Female</option>
-						<option value="other">Other</option>
-						<option value="prefer_not_to_say">Prefer not to say</option>
+						<option value="">{t("theme.profileFields.selectGender")}</option>
+						<option value="male">{t("theme.profileFields.male")}</option>
+						<option value="female">{t("theme.profileFields.female")}</option>
+						<option value="other">{t("theme.profileFields.other")}</option>
+						<option value="prefer_not_to_say">
+							{t("theme.profileFields.preferNotToSay")}
+						</option>
 					</Select>
 				</div>
 
 				<div>
 					<p class="text-sm font-medium text-text-secondary mb-1">
-						Profile Picture
+						{t("theme.profileFields.profilePicture")}
 					</p>
 					<ImageUploader
 						name="profilePicture"

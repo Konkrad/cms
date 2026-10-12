@@ -100,7 +100,9 @@ setup("create shared test session", async ({ page }) => {
 	// auth state is reused, and every authenticated test silently runs as a guest.
 	// Use a generous timeout so a cold compile completes.
 	await page.goto("/", { waitUntil: "domcontentloaded" });
-	await page.waitForSelector('[aria-label="profile-menu"]', { timeout: 90000 });
+	await page.waitForSelector('[data-testid="profile-menu"]', {
+		timeout: 90000,
+	});
 
 	// Persist the authenticated browser state for all dependent test projects
 	await page.context().storageState({ path: AUTH_FILE });

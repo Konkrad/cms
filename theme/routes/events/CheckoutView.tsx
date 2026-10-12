@@ -11,6 +11,7 @@ import type {
 	CreateCheckoutSessionAction,
 	SubmitRequirementAction,
 } from "~/contracts/checkout";
+import { formatCurrency, t } from "~/contracts/i18n";
 import { validateParticipantSlots } from "~/modules/events/participant-validation";
 import { ParticipantAssignmentStep } from "~theme/routes/events/checkout/ParticipantAssignmentStep";
 import { ProductSelectionStep } from "~theme/routes/events/checkout/ProductSelectionStep";
@@ -165,7 +166,8 @@ export const CheckoutView = component$<{
 			items: JSON.stringify(await cartItems()),
 		});
 		if (result.value?.failed) {
-			paymentError.value = result.value.message || "Failed to prepare checkout";
+			paymentError.value =
+				result.value.message || t("theme.checkout.failedToPrepareCheckout");
 			isProcessing.value = false;
 			return;
 		}
@@ -205,13 +207,15 @@ export const CheckoutView = component$<{
 
 	return (
 		<div class="max-w-4xl mx-auto p-6">
-			<h1 class="text-3xl font-bold mb-6">Purchase Tickets</h1>
+			<h1 class="text-3xl font-bold mb-6">
+				{t("theme.checkout.purchaseTickets")}
+			</h1>
 
 			{/* What the buyer must answer first (food preference, photo consent …), one step at a time. */}
 			{data.requirements.length > 0 ? (
 				<div class="space-y-4" data-testid="checkout-requirements">
 					<p class="text-text-secondary">
-						Before you choose your tickets, please answer the following.
+						{t("theme.checkout.beforeYouChooseYourTickets")}
 					</p>
 					<RequirementSteps
 						steps={data.requirements}
@@ -262,25 +266,31 @@ export const CheckoutView = component$<{
 				<div class="space-y-6">
 					{/* Order Summary */}
 					<div class="border rounded-lg p-6 bg-white">
-						<h2 class="text-xl font-bold mb-4">Order Summary</h2>
+						<h2 class="text-xl font-bold mb-4">
+							{t("theme.checkout.orderSummary")}
+						</h2>
 						<div class="space-y-3">
 							{selectedProductDetails.value.map((item: any) => (
 								<div key={item.id} class="flex justify-between items-center">
 									<div>
 										<p class="font-medium">{item.name}</p>
 										<p class="text-sm text-text-secondary">
-											Quantity: {item.quantity}
+											{t("theme.checkout.quantity", {
+												quantity: item.quantity,
+											})}
 										</p>
 									</div>
 									<p class="font-bold">
-										€{(item.price * item.quantity).toFixed(2)}
+										{formatCurrency(item.price * item.quantity, "EUR")}
 									</p>
 								</div>
 							))}
 							<div class="border-t pt-3 mt-3 flex justify-between items-center">
-								<span class="text-lg font-bold">Total:</span>
+								<span class="text-lg font-bold">
+									{t("theme.checkout.total")}
+								</span>
 								<span class="text-2xl font-bold">
-									€{calculateTotal.value.toFixed(2)}
+									{formatCurrency(calculateTotal.value, "EUR")}
 								</span>
 							</div>
 						</div>
@@ -288,7 +298,9 @@ export const CheckoutView = component$<{
 
 					{/* Payment Form */}
 					<div class="border rounded-lg p-6 bg-white">
-						<h2 class="text-xl font-bold mb-4">Payment Details</h2>
+						<h2 class="text-xl font-bold mb-4">
+							{t("theme.checkout.paymentDetails")}
+						</h2>
 
 						{paymentError.value && (
 							<div class="p-4 bg-error-bg border border-error-border text-error rounded-sm mb-4">
@@ -299,8 +311,8 @@ export const CheckoutView = component$<{
 						<div class="space-y-4">
 							<p class="text-sm text-text-secondary">
 								{calculateTotal.value === 0
-									? "Booking your free tickets..."
-									: "You will continue to our payment provider to pay securely. Your tickets are sent by email once the payment is confirmed."}
+									? t("theme.checkout.bookingYourFreeTickets")
+									: t("theme.checkout.youWillContinueToOur")}
 							</p>
 
 							<div class="flex gap-4">
@@ -315,7 +327,7 @@ export const CheckoutView = component$<{
 										paymentError.value = "";
 									}}
 								>
-									Back
+									{t("theme.checkout.back")}
 								</Button>
 								<Button
 									type="button"
@@ -326,10 +338,10 @@ export const CheckoutView = component$<{
 									{isProcessing.value ? (
 										<span class="flex items-center justify-center gap-2">
 											<span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-											Processing...
+											{t("theme.checkout.processing")}
 										</span>
 									) : (
-										"Complete Payment"
+										t("theme.checkout.completePayment")
 									)}
 								</Button>
 							</div>
@@ -346,17 +358,20 @@ export const CheckoutView = component$<{
 				>
 					{paymentState === "processing" ? (
 						<>
-							<h2 class="text-2xl font-bold">Payment processing</h2>
+							<h2 class="text-2xl font-bold">
+								{t("theme.checkout.paymentProcessing")}
+							</h2>
 							<p class="text-text-secondary">
-								We are waiting for the confirmation of your payment. Your
-								tickets are sent by email as soon as it arrives.
+								{t("theme.checkout.weAreWaitingForThe")}
 							</p>
 						</>
 					) : (
 						<>
-							<h2 class="text-2xl font-bold">Payment not completed</h2>
+							<h2 class="text-2xl font-bold">
+								{t("theme.checkout.paymentNotCompleted")}
+							</h2>
 							<p class="text-text-secondary">
-								Your order was not paid, so no tickets were issued.
+								{t("theme.checkout.yourOrderWasNotPaid")}
 							</p>
 						</>
 					)}
@@ -365,13 +380,13 @@ export const CheckoutView = component$<{
 							href="/profile/tickets"
 							class="px-6 py-3 bg-primary text-white rounded-sm hover:bg-primary"
 						>
-							View My Tickets
+							{t("theme.checkout.viewMyTickets")}
 						</a>
 						<a
 							href={data.eventUrl}
 							class="px-6 py-3 border border-border-strong rounded-sm hover:bg-bg"
 						>
-							Back to Event
+							{t("theme.checkout.backToEvent")}
 						</a>
 					</div>
 				</div>
@@ -383,19 +398,17 @@ export const CheckoutView = component$<{
 					<div class="border rounded-lg p-6 bg-white text-center">
 						<div class="text-success text-6xl mb-4">✓</div>
 						<h2 class="text-3xl font-bold text-success mb-4">
-							Payment Successful!
+							{t("theme.checkout.paymentSuccessful")}
 						</h2>
 						<p class="text-text-secondary text-lg mb-6">
-							Thank you for your purchase. Your tickets have been generated.
+							{t("theme.checkout.thankYouForYourPurchase")}
 						</p>
 						<div class="p-6 bg-success-bg border border-success-border rounded-sm">
-							<h3 class="font-bold mb-2">What's Next?</h3>
+							<h3 class="font-bold mb-2">{t("theme.checkout.whatSNext")}</h3>
 							<ul class="text-left space-y-2 text-sm">
-								<li>📧 Check your email for your tickets with QR codes</li>
-								<li>
-									📱 Add the event to your calendar using the attached .ics file
-								</li>
-								<li>🎫 Present your QR code at the event for entry</li>
+								<li>{t("theme.checkout.checkYourEmailForYour")}</li>
+								<li>{t("theme.checkout.addTheEventToYour")}</li>
+								<li>{t("theme.checkout.presentYourQrCodeAt")}</li>
 							</ul>
 						</div>
 						<div class="flex gap-4 justify-center mt-6">
@@ -403,13 +416,13 @@ export const CheckoutView = component$<{
 								href={`/profile/tickets`}
 								class="px-6 py-3 bg-primary text-white rounded-sm hover:bg-primary"
 							>
-								View My Tickets
+								{t("theme.checkout.viewMyTickets")}
 							</a>
 							<a
 								href={data.eventUrl}
 								class="px-6 py-3 border border-border-strong rounded-sm hover:bg-bg"
 							>
-								Back to Event
+								{t("theme.checkout.backToEvent")}
 							</a>
 						</div>
 					</div>

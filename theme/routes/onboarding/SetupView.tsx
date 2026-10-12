@@ -1,4 +1,5 @@
 import { component$ } from "@qwik.dev/core";
+import { t } from "~/contracts/i18n";
 import type {
 	SetupViewData,
 	SubmitRequirementAction,
@@ -13,8 +14,8 @@ export const SetupView = component$<{
 }>(({ data, submit }) => {
 	return (
 		<SetupLayout
-			title="Complete your profile"
-			description="A few steps before you continue."
+			title={t("theme.setup.completeYourProfile")}
+			description={t("theme.setup.aFewStepsBeforeYou")}
 		>
 			<RequirementSteps steps={data.steps} action={submit} />
 		</SetupLayout>

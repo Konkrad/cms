@@ -1,7 +1,7 @@
 import { $, component$, type Signal, useSignal } from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
 import { EmptyState } from "~/components/ui/EmptyState";
-import { formatDate } from "~/contracts/i18n";
+import { formatDate, t } from "~/contracts/i18n";
 
 interface PhotoData {
 	id: string;
@@ -42,8 +42,8 @@ export const PhotoGallery = component$<PhotoGalleryProps>(
 			<div class="space-y-4">
 				{photos.length === 0 ? (
 					<EmptyState
-						message="No photos yet"
-						description="Photos will appear here once the organizer uploads them"
+						message={t("theme.photoGallery.noPhotosYet")}
+						description={t("theme.photoGallery.photosWillAppearHereOnce")}
 					>
 						<svg
 							aria-hidden="true"
@@ -75,7 +75,7 @@ export const PhotoGallery = component$<PhotoGalleryProps>(
 									{photoUrls.value[photo.id] ? (
 										<img
 											src={photoUrls.value[photo.id]}
-											alt="From the event"
+											alt={t("theme.photoGallery.fromTheEvent")}
 											width={400}
 											height={400}
 											class="w-full h-full object-cover"
@@ -91,7 +91,7 @@ export const PhotoGallery = component$<PhotoGalleryProps>(
 														await loadPhotoUrl(photo.id);
 													}}
 												>
-													Load Photo
+													{t("theme.photoGallery.loadPhoto")}
 												</Button>
 											)}
 										</div>
@@ -138,7 +138,7 @@ export const PhotoGallery = component$<PhotoGalleryProps>(
 									</button>
 									<img
 										src={photoUrls.value[selectedPhoto.value]}
-										alt="From the event, full size"
+										alt={t("theme.photoGallery.fromTheEventFullSize")}
 										width={1600}
 										height={1200}
 										class="max-w-full max-h-[90vh] object-contain"

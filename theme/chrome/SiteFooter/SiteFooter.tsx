@@ -1,4 +1,5 @@
 import { component$ } from "@qwik.dev/core";
+import { t } from "~/contracts/i18n";
 import type { FeedLinks, FooterMenuItems } from "~/contracts/layout";
 import { sanitizeSvg } from "~/core/content/svg-sanitize";
 
@@ -44,7 +45,7 @@ export const SiteFooter = component$<{
 								type={feed.type}
 								class="hover:text-primary"
 							>
-								RSS
+								{t("theme.siteFooter.rss")}
 							</a>
 						))}
 					</div>

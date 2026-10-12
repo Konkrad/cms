@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
-import { formatDate } from "~/contracts/i18n";
+import { formatDate, t } from "~/contracts/i18n";
 import type {
 	NotificationSetting,
 	SetNotificationPreferenceAction,
@@ -215,10 +215,12 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 
 			{/* Communities */}
 			<section>
-				<h2 class="text-xl font-semibold text-text mb-3">Communities</h2>
+				<h2 class="text-xl font-semibold text-text mb-3">
+					{t("theme.userProfile.communities")}
+				</h2>
 				{communities.length === 0 ? (
 					<p class="text-text-muted text-sm">
-						Not a member of any community yet.
+						{t("theme.userProfile.notAMemberOfAny")}
 					</p>
 				) : (
 					<ul class="flex flex-wrap gap-2">
@@ -238,9 +240,13 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 
 			{/* Upcoming Events */}
 			<section>
-				<h2 class="text-xl font-semibold text-text mb-3">Upcoming Events</h2>
+				<h2 class="text-xl font-semibold text-text mb-3">
+					{t("theme.userProfile.upcomingEvents")}
+				</h2>
 				{upcomingEvents.length === 0 ? (
-					<p class="text-text-muted text-sm">No upcoming events.</p>
+					<p class="text-text-muted text-sm">
+						{t("theme.userProfile.noUpcomingEvents")}
+					</p>
 				) : (
 					<ul class="space-y-2">
 						{upcomingEvents.map((e) => (
@@ -265,9 +271,13 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 
 			{/* Past Events */}
 			<section>
-				<h2 class="text-xl font-semibold text-text mb-3">Past Events</h2>
+				<h2 class="text-xl font-semibold text-text mb-3">
+					{t("theme.userProfile.pastEvents")}
+				</h2>
 				{pastEvents.length === 0 ? (
-					<p class="text-text-muted text-sm">No past events attended.</p>
+					<p class="text-text-muted text-sm">
+						{t("theme.userProfile.noPastEventsAttended")}
+					</p>
 				) : (
 					<ul class="space-y-2">
 						{pastEvents.map((e) => (
@@ -295,14 +305,14 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 				<section>
 					<div class="flex items-center justify-between mb-3">
 						<h2 class="text-xl font-semibold text-text">
-							Relations / Affiliation
+							{t("theme.userProfile.relationsAffiliation")}
 						</h2>
 						{isOwner && affiliationEditPath && (
 							<Link
 								href={affiliationEditPath}
 								class="text-sm font-medium text-primary hover:underline"
 							>
-								Edit
+								{t("theme.userProfile.edit")}
 							</Link>
 						)}
 					</div>
@@ -328,7 +338,7 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 			{hasPrivateContent && (
 				<div class="border-t-2 border-dashed border-border pt-3">
 					<p class="text-xs font-medium text-text-muted uppercase tracking-widest mb-8">
-						Only visible to you
+						{t("theme.userProfile.onlyVisibleToYou")}
 					</p>
 
 					<div class="space-y-8">
@@ -338,7 +348,10 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 						>
 							{email && (
 								<span class="text-sm text-text-secondary">
-									<span class="font-medium">Email:</span> {email}
+									<span class="font-medium">
+										{t("theme.userProfile.email")}
+									</span>{" "}
+									{email}
 								</span>
 							)}
 							{updateDetailsAction ? (
@@ -351,13 +364,18 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 								<>
 									{yearOfBirth && (
 										<span class="text-sm text-text-secondary">
-											<span class="font-medium">Year of birth:</span>{" "}
+											<span class="font-medium">
+												{t("theme.userProfile.yearOfBirth")}
+											</span>{" "}
 											{yearOfBirth}
 										</span>
 									)}
 									{sex && (
 										<span class="text-sm text-text-secondary">
-											<span class="font-medium">Gender:</span> {sex}
+											<span class="font-medium">
+												{t("theme.userProfile.gender")}
+											</span>{" "}
+											{sex}
 										</span>
 									)}
 								</>
@@ -369,7 +387,7 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 							<section class={PRIVATE_SECTION_CLASS}>
 								<div class="flex items-center gap-2 mb-3">
 									<h2 class="text-xl font-semibold text-text">
-										Election History
+										{t("theme.userProfile.electionHistory")}
 									</h2>
 									<PrivacyBadge />
 								</div>
@@ -410,7 +428,7 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 							<section class={PRIVATE_SECTION_CLASS}>
 								<div class="flex items-center gap-2 mb-3">
 									<h2 class="text-xl font-semibold text-text">
-										Submitted Forms
+										{t("theme.userProfile.submittedForms")}
 									</h2>
 									<PrivacyBadge />
 								</div>
@@ -427,8 +445,12 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 												{submission.title}
 											</a>
 											<p class="text-sm text-text-muted mt-1">
-												Submitted{" "}
-												{formatDate(submission.submittedAt, "dateTime")}
+												{t("theme.userProfile.submitted", {
+													submittedAt: formatDate(
+														submission.submittedAt,
+														"dateTime",
+													),
+												})}
 											</p>
 										</li>
 									))}
@@ -446,7 +468,7 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 								>
 									<div class="flex items-center gap-2 mb-3">
 										<h2 class="text-xl font-semibold text-text">
-											Notifications
+											{t("theme.userProfile.notifications")}
 										</h2>
 										<PrivacyBadge />
 									</div>

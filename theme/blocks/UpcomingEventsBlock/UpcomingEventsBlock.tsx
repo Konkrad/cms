@@ -1,11 +1,12 @@
 import { component$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { t } from "~/contracts/i18n";
 import { useUpcomingEvents } from "~/modules/events/useUpcomingEvents";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 import { formatEventWhen } from "~theme/shared/format-event-when";
 
 export const definition: BlockDefinition = {
-	name: "Upcoming Events",
+	name: t("theme.blocks.upcomingEvents.upcomingEvents"),
 	componentType: "UpcomingEventsBlock",
 	category: "dynamic",
 	icon: "📅",
@@ -21,14 +22,20 @@ export default component$(() => {
 		<div class="max-w-6xl mx-auto px-4 py-12">
 			{isLoading.value ? (
 				<div class="text-center py-12">
-					<p class="text-text-muted">Loading upcoming events...</p>
+					<p class="text-text-muted">
+						{t("theme.upcomingEventsBlock.loadingUpcomingEvents")}
+					</p>
 				</div>
 			) : error.value ? (
 				<p class="text-error text-center py-8">
-					Failed to load events: {error.value}
+					{t("theme.upcomingEventsBlock.failedToLoadEvents", {
+						value: error.value,
+					})}
 				</p>
 			) : events.value.length === 0 ? (
-				<p class="text-text-muted text-center py-8">No upcoming events.</p>
+				<p class="text-text-muted text-center py-8">
+					{t("theme.upcomingEventsBlock.noUpcomingEvents")}
+				</p>
 			) : (
 				<>
 					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -36,7 +43,9 @@ export default component$(() => {
 							const location =
 								event.city ||
 								event.address ||
-								(event.locationType === "online" ? "Online" : "TBA");
+								(event.locationType === "online"
+									? t("theme.upcomingEventsBlock.online")
+									: t("theme.upcomingEventsBlock.tba"));
 							return (
 								<ContentCard
 									key={event.id}
@@ -48,7 +57,7 @@ export default component$(() => {
 										?.replace(/<[^>]+>/g, "")
 										.substring(0, 180)}
 									href={event.url}
-									label="Open Tickets"
+									label={t("theme.upcomingEventsBlock.openTickets")}
 								/>
 							);
 						})}
@@ -62,7 +71,9 @@ export default component$(() => {
 								onClick$={loadMore}
 								disabled={isLoadingMore.value}
 							>
-								{isLoadingMore.value ? "Loading..." : "Load More"}
+								{isLoadingMore.value
+									? t("theme.upcomingEventsBlock.loading")
+									: t("theme.upcomingEventsBlock.loadMore")}
 							</button>
 						</div>
 					)}

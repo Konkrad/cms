@@ -1,4 +1,5 @@
 import { component$, type QRL } from "@qwik.dev/core";
+import { t } from "~/contracts/i18n";
 
 interface ParticipationToggleProps {
 	currentStatus: "yes" | "no" | "maybe" | null;
@@ -11,19 +12,19 @@ export const ParticipationToggle = component$<ParticipationToggleProps>(
 		const statuses = [
 			{
 				value: "yes" as const,
-				label: "✓ Going",
+				label: t("theme.participationToggle.going"),
 				color: "bg-success hover:bg-success text-white",
 				activeColor: "bg-success",
 			},
 			{
 				value: "maybe" as const,
-				label: "? Maybe",
+				label: t("theme.participationToggle.maybe"),
 				color: "bg-warning hover:bg-warning text-white",
 				activeColor: "bg-warning",
 			},
 			{
 				value: "no" as const,
-				label: "✗ Not Going",
+				label: t("theme.participationToggle.notGoing"),
 				color: "bg-error hover:bg-error text-white",
 				activeColor: "bg-error",
 			},

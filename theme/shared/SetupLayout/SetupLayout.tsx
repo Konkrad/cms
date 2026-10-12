@@ -1,4 +1,5 @@
 import { component$, Slot } from "@qwik.dev/core";
+import { t } from "~/contracts/i18n";
 
 type SetupLayoutProps = {
 	title: string;
@@ -21,7 +22,7 @@ export const SetupLayout = component$<SetupLayoutProps>((props) => {
 						href={props.backHref}
 						class="text-primary hover:text-primary text-sm font-medium"
 					>
-						Back
+						{t("theme.setupLayout.back")}
 					</a>
 				) : null}
 			</div>

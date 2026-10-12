@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { t } from "~/contracts/i18n";
 import { publicImageUrlFromKey } from "~/core/media/images";
 
 interface ImageBlockProps {
@@ -9,14 +10,14 @@ interface ImageBlockProps {
 }
 
 export const definition: BlockDefinition = {
-	name: "Image",
+	name: t("theme.blocks.image.image"),
 	componentType: "ImageBlock",
 	category: "content",
 	icon: "🖼️",
 	configSchema: [
 		{
 			name: "src",
-			label: "Image",
+			label: t("theme.blocks.image.image"),
 			type: "image-upload",
 			defaultValue: "public/events/seed-1.webp",
 			required: true,
@@ -28,21 +29,21 @@ export const definition: BlockDefinition = {
 		},
 		{
 			name: "alt",
-			label: "Alt Text",
+			label: t("theme.blocks.image.altText"),
 			type: "text",
-			defaultValue: "Image description",
+			defaultValue: t("theme.blocks.image.imageDescription"),
 			required: true,
 		},
 		{
 			name: "caption",
-			label: "Caption",
+			label: t("theme.blocks.image.caption"),
 			type: "text",
-			placeholder: "Optional caption",
+			placeholder: t("theme.blocks.image.optionalCaption"),
 		},
 	],
 	defaultData: {
 		src: "public/events/seed-1.webp",
-		alt: "Image description",
+		alt: t("theme.blocks.image.imageDescription"),
 		caption: "",
 	},
 };
@@ -60,7 +61,7 @@ export default component$<ImageBlockProps>((props) => {
 						publicImageUrlFromKey("public/events/seed-1.webp") ??
 						""
 					}
-					alt={alt || "Image"}
+					alt={alt || t("theme.imageBlock.image")}
 					class="w-full rounded-lg shadow-lg"
 					width={1024}
 					height={1024}

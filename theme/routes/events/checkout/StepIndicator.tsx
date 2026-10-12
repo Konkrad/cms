@@ -1,4 +1,5 @@
 import { component$ } from "@qwik.dev/core";
+import { t } from "~/contracts/i18n";
 
 type StepIndicatorProps = {
 	currentStep: 1 | 2 | 3 | 4;
@@ -21,7 +22,7 @@ export const StepIndicator = component$<StepIndicatorProps>(
 					<span
 						class={`ml-2 font-medium ${currentStep === 1 ? "text-primary" : "text-text-secondary"}`}
 					>
-						Select Products
+						{t("theme.stepIndicator.selectProducts")}
 					</span>
 				</div>
 
@@ -42,7 +43,7 @@ export const StepIndicator = component$<StepIndicatorProps>(
 					<span
 						class={`ml-2 font-medium ${currentStep === 2 ? "text-primary" : "text-text-secondary"}`}
 					>
-						Participants
+						{t("theme.stepIndicator.participants")}
 					</span>
 				</div>
 
@@ -63,7 +64,7 @@ export const StepIndicator = component$<StepIndicatorProps>(
 					<span
 						class={`ml-2 font-medium ${currentStep === 3 ? "text-primary" : "text-text-secondary"}`}
 					>
-						Payment
+						{t("theme.stepIndicator.payment")}
 					</span>
 				</div>
 			</div>

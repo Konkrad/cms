@@ -1,6 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
 import type { MyApplicationsViewData } from "~/contracts/elections";
+import { t } from "~/contracts/i18n";
 
 const statusBadge = (status: string) => {
 	const map: Record<string, string> = {
@@ -18,19 +19,19 @@ export const MyApplicationsView = component$<{ data: MyApplicationsViewData }>(
 			<div class="max-w-3xl mx-auto px-4 py-8">
 				<div class="flex items-center justify-between mb-6">
 					<h1 class="text-2xl font-bold text-text-heading">
-						My Election Applications
+						{t("theme.myApplications.myElectionApplications")}
 					</h1>
 					<Link
 						href="/elections"
 						class="text-sm text-primary hover:text-primary"
 					>
-						View elections →
+						{t("theme.myApplications.viewElections")}
 					</Link>
 				</div>
 
 				{data.groups.length === 0 ? (
 					<div class="text-center py-16 text-text-muted">
-						You haven't applied for any board positions yet.
+						{t("theme.myApplications.youHavenTAppliedFor")}
 					</div>
 				) : (
 					<div class="space-y-6">
@@ -45,7 +46,7 @@ export const MyApplicationsView = component$<{ data: MyApplicationsViewData }>(
 										href={cycleUrl}
 										class="text-xs text-primary hover:text-primary"
 									>
-										View election →
+										{t("theme.myApplications.viewElection")}
 									</Link>
 								</div>
 								<ul class="divide-y divide-gray-100">
@@ -57,7 +58,9 @@ export const MyApplicationsView = component$<{ data: MyApplicationsViewData }>(
 														{(app as any).position?.title}
 													</div>
 													<div class="text-xs text-text-muted mt-0.5">
-														Applied {app.createdAt.slice(0, 10)}
+														{t("theme.myApplications.applied", {
+															value: app.createdAt.slice(0, 10),
+														})}
 													</div>
 												</div>
 												<span class={statusBadge(app.status)}>
@@ -66,7 +69,9 @@ export const MyApplicationsView = component$<{ data: MyApplicationsViewData }>(
 											</div>
 											{app.status === "rejected" && app.adminNote && (
 												<div class="mt-2 text-sm text-text-secondary bg-error-bg border border-error-border rounded px-3 py-2">
-													<span class="font-medium">Feedback: </span>
+													<span class="font-medium">
+														{t("theme.myApplications.feedback")}{" "}
+													</span>
 													{app.adminNote}
 												</div>
 											)}

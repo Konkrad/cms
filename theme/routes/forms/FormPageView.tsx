@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { FormPageViewData } from "~/contracts/forms";
+import { t } from "~/contracts/i18n";
 import { SurveyRuntime } from "~/core/forms/SurveyRuntime";
 
 /** Themed view for the public form submission route (`/forms/[formSlug]`). */
@@ -8,7 +9,9 @@ export const FormPageView = component$<{ data: FormPageViewData }>(
 		if (!data) {
 			return (
 				<div class="container mx-auto px-4 py-12 max-w-3xl">
-					<h1 class="text-2xl font-semibold">Form not found</h1>
+					<h1 class="text-2xl font-semibold">
+						{t("theme.formPage.formNotFound")}
+					</h1>
 				</div>
 			);
 		}
@@ -26,15 +29,13 @@ export const FormPageView = component$<{ data: FormPageViewData }>(
 
 				{alreadySubmitted && !form.allowResubmission ? (
 					<div class="forms-alert forms-alert-info">
-						You already submitted this form. Multiple submissions are not
-						allowed.
+						{t("theme.formPage.youAlreadySubmittedThisForm")}
 					</div>
 				) : (
 					<>
 						{existingResult && (
 							<div class="forms-alert forms-alert-info">
-								Your previous answers are pre-filled — submit again to update
-								them.
+								{t("theme.formPage.yourPreviousAnswersArePre")}
 							</div>
 						)}
 						<SurveyRuntime

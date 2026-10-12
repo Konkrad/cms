@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
+import { t } from "~/contracts/i18n";
 import type { NoteViewData } from "~/contracts/notes";
 import { Avatar } from "~theme/shared/StreamList/Avatar";
 import { formatStreamDate } from "~theme/shared/StreamList/card-meta";
@@ -15,13 +16,13 @@ export const NoteView = component$<{ note: NoteViewData | null }>(
 			return (
 				<div class="max-w-4xl mx-auto px-4 py-16 text-center">
 					<h1 class="text-4xl font-bold text-text-heading mb-4">
-						Note Not Found
+						{t("theme.note.noteNotFound")}
 					</h1>
 					<p class="text-text-secondary mb-8">
-						The note you're looking for doesn't exist or has been removed.
+						{t("theme.note.theNoteYouReLooking")}
 					</p>
 					<Link href="/" class="text-primary hover:text-primary font-medium">
-						Go back home
+						{t("theme.note.goBackHome")}
 					</Link>
 				</div>
 			);
@@ -52,7 +53,7 @@ export const NoteView = component$<{ note: NoteViewData | null }>(
 					</header>
 					{note.subject && (
 						<p class="text-sm text-text-secondary mb-4">
-							About{" "}
+							{t("theme.note.about")}{" "}
 							<Link
 								href={note.subject.url}
 								class="text-primary hover:underline"
@@ -69,7 +70,7 @@ export const NoteView = component$<{ note: NoteViewData | null }>(
 				{note.related.length > 0 && (
 					<section class="mt-16 pt-10 border-t border-border">
 						<h2 class="text-2xl font-bold text-text-heading mb-8 text-center">
-							More news
+							{t("theme.note.moreNews")}
 						</h2>
 						<StreamList items={note.related} />
 					</section>

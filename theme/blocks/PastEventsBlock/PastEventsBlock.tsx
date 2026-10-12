@@ -1,11 +1,11 @@
 import { component$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/contracts/blocks";
-import { formatDate } from "~/contracts/i18n";
+import { formatDate, t } from "~/contracts/i18n";
 import { usePastEvents } from "~/modules/events/usePastEvents";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 
 export const definition: BlockDefinition = {
-	name: "Past Events",
+	name: t("theme.blocks.pastEvents.pastEvents"),
 	componentType: "PastEventsBlock",
 	category: "dynamic",
 	icon: "🕰️",
@@ -21,14 +21,20 @@ export default component$(() => {
 		<div class="max-w-6xl mx-auto px-4 py-12">
 			{isLoading.value ? (
 				<div class="text-center py-12">
-					<p class="text-text-muted">Loading past events...</p>
+					<p class="text-text-muted">
+						{t("theme.pastEventsBlock.loadingPastEvents")}
+					</p>
 				</div>
 			) : error.value ? (
 				<p class="text-error text-center py-8">
-					Failed to load past events: {error.value}
+					{t("theme.pastEventsBlock.failedToLoadPastEvents", {
+						value: error.value,
+					})}
 				</p>
 			) : events.value.length === 0 ? (
-				<p class="text-text-muted text-center py-8">No past events found.</p>
+				<p class="text-text-muted text-center py-8">
+					{t("theme.pastEventsBlock.noPastEventsFound")}
+				</p>
 			) : (
 				<>
 					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -36,7 +42,9 @@ export default component$(() => {
 							const location =
 								event.city ||
 								event.address ||
-								(event.locationType === "online" ? "Online" : "TBA");
+								(event.locationType === "online"
+									? t("theme.pastEventsBlock.online")
+									: t("theme.pastEventsBlock.tba"));
 							return (
 								<ContentCard
 									key={event.id}
@@ -48,7 +56,7 @@ export default component$(() => {
 										?.replace(/<[^>]+>/g, "")
 										.substring(0, 180)}
 									href={event.url}
-									label="View Details"
+									label={t("theme.pastEventsBlock.viewDetails")}
 								/>
 							);
 						})}
@@ -62,7 +70,9 @@ export default component$(() => {
 								onClick$={loadMore}
 								disabled={isLoadingMore.value}
 							>
-								{isLoadingMore.value ? "Loading..." : "Load More"}
+								{isLoadingMore.value
+									? t("theme.pastEventsBlock.loading")
+									: t("theme.pastEventsBlock.loadMore")}
 							</button>
 						</div>
 					)}

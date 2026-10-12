@@ -2,6 +2,7 @@ import { $, component$, useSignal } from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
+import { t } from "~/contracts/i18n";
 import type { JobFormAction } from "~/contracts/jobs";
 import { BlockNoteEditor } from "~/core/content/editor";
 
@@ -81,15 +82,16 @@ export const JobFormView = component$<{
 					>
 						<Input
 							name="title"
-							label="Job Title"
+							label={t("theme.jobForm.jobTitle")}
 							required
 							value={initial.title}
-							placeholder="e.g. Senior Frontend Engineer"
+							placeholder={t("theme.jobForm.eGSeniorFrontendEngineer")}
 						/>
 
 						<div>
 							<span class="block text-sm font-medium text-text-secondary mb-2">
-								Job Description <span class="text-error">*</span>
+								{t("theme.jobForm.jobDescription")}{" "}
+								<span class="text-error">*</span>
 							</span>
 							<div class="border border-border-strong rounded-lg overflow-hidden">
 								<BlockNoteEditor
@@ -105,24 +107,28 @@ export const JobFormView = component$<{
 
 						<Select
 							name="locationType"
-							label="Location"
+							label={t("theme.jobForm.location")}
 							value={initial.locationType}
 							onChange$={(e) => {
 								locationType.value = (e.target as HTMLSelectElement)
 									.value as any;
 							}}
 						>
-							<option value="on-site">On-site / Hybrid</option>
-							<option value="remote-eu">Remote — EU only</option>
-							<option value="remote-country">Remote — specific country</option>
+							<option value="on-site">{t("theme.jobForm.onSiteHybrid")}</option>
+							<option value="remote-eu">
+								{t("theme.jobForm.remoteEuOnly")}
+							</option>
+							<option value="remote-country">
+								{t("theme.jobForm.remoteSpecificCountry")}
+							</option>
 						</Select>
 
 						{locationType.value === "on-site" && (
 							<Input
 								name="city"
-								label="City"
+								label={t("theme.jobForm.city")}
 								value={initial.city}
-								placeholder="e.g. Berlin"
+								placeholder={t("theme.jobForm.eGBerlin")}
 							/>
 						)}
 
@@ -130,36 +136,42 @@ export const JobFormView = component$<{
 							locationType.value === "remote-country") && (
 							<Input
 								name="country"
-								label="Country"
+								label={t("theme.jobForm.country")}
 								value={initial.country}
-								placeholder="e.g. Germany"
+								placeholder={t("theme.jobForm.eGGermany")}
 							/>
 						)}
 
 						<Input
 							name="link"
-							label="Application link (optional)"
+							label={t("theme.jobForm.applicationLinkOptional")}
 							type="url"
 							value={initial.link}
-							placeholder="https://..."
+							placeholder={t("theme.jobForm.https")}
 						/>
 
 						<Select
 							name="posterRelation"
-							label="Your relation to this position (optional)"
+							label={t("theme.jobForm.yourRelationToThisPosition")}
 							value={initial.posterRelation}
 						>
-							<option value="">— select —</option>
-							<option value="hiring">I'm hiring for this role</option>
-							<option value="founder">I'm the founder</option>
-							<option value="direct-team">You'd be on my team</option>
-							<option value="works-there">I work there</option>
-							<option value="other">Other</option>
+							<option value="">{t("theme.jobForm.select")}</option>
+							<option value="hiring">
+								{t("theme.jobForm.iMHiringForThis")}
+							</option>
+							<option value="founder">{t("theme.jobForm.iMTheFounder")}</option>
+							<option value="direct-team">
+								{t("theme.jobForm.youDBeOnMy")}
+							</option>
+							<option value="works-there">
+								{t("theme.jobForm.iWorkThere")}
+							</option>
+							<option value="other">{t("theme.jobForm.other")}</option>
 						</Select>
 
 						<Input
 							name="expiresAt"
-							label="Listing expires on"
+							label={t("theme.jobForm.listingExpiresOn")}
 							type="date"
 							required
 							value={initial.expiresAt}
@@ -168,7 +180,7 @@ export const JobFormView = component$<{
 
 						{action.value?.failed && !action.value?.error && (
 							<div class="bg-error-bg border border-error-border text-error px-4 py-3 rounded-sm">
-								Please check the form for errors.
+								{t("theme.jobForm.pleaseCheckTheFormFor")}
 							</div>
 						)}
 
@@ -177,14 +189,14 @@ export const JobFormView = component$<{
 								{isSubmitting.value ? submittingLabel : submitLabel}
 							</Button>
 							<Button href={cancelHref} variant="secondary">
-								Cancel
+								{t("theme.jobForm.cancel")}
 							</Button>
 						</div>
 					</form>
 
 					{mode === "new" && (
 						<p class="mt-4 text-sm text-text-muted">
-							Your listing will be reviewed before it appears publicly.
+							{t("theme.jobForm.yourListingWillBeReviewed")}
 						</p>
 					)}
 				</div>

@@ -1,5 +1,6 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
+import { t } from "~/contracts/i18n";
 import type { UpdatePictureAction } from "~/contracts/profile";
 
 export interface ProfileAvatarEditProps {
@@ -33,7 +34,7 @@ export const ProfileAvatarEdit = component$<ProfileAvatarEditProps>((props) => {
 			{!isEditing.value && (
 				<button
 					type="button"
-					aria-label="Change profile picture"
+					aria-label={t("theme.profileAvatarEdit.changeProfilePicture")}
 					onClick$={() => {
 						isEditing.value = true;
 					}}
@@ -59,10 +60,12 @@ export const ProfileAvatarEdit = component$<ProfileAvatarEditProps>((props) => {
 			{isEditing.value && (
 				<div class="absolute top-0 left-[110px] w-72 bg-white border border-border rounded-lg shadow-lg p-3 z-10">
 					<div class="flex items-center justify-between mb-2">
-						<p class="text-sm font-medium text-text">Update photo</p>
+						<p class="text-sm font-medium text-text">
+							{t("theme.profileAvatarEdit.updatePhoto")}
+						</p>
 						<button
 							type="button"
-							aria-label="Close photo editor"
+							aria-label={t("theme.profileAvatarEdit.closePhotoEditor")}
 							onClick$={() => {
 								isEditing.value = false;
 							}}

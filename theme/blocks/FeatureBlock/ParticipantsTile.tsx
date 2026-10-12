@@ -1,4 +1,5 @@
 import { component$, type QRL } from "@qwik.dev/core";
+import { t } from "~/contracts/i18n";
 import { formatUserName } from "~/core/users/format";
 
 export interface ParticipantData {
@@ -37,10 +38,13 @@ export const ParticipantsTile = component$<ParticipantsTileProps>((props) => {
 	const hasEnough = count >= 5;
 	const displayParticipants = props.participants.slice(0, 5);
 
-	const title = props.title ?? "Participants";
-	const seeAllLabel = props.seeAllLabel ?? "See All Participants";
-	const emptyTitle = props.emptyTitle ?? "Be the first one!";
-	const emptyBody = props.emptyBody ?? "Join and invite your friends";
+	const title = props.title ?? t("theme.blocks.feature.participants");
+	const seeAllLabel =
+		props.seeAllLabel ?? t("theme.blocks.feature.seeAllParticipants");
+	const emptyTitle =
+		props.emptyTitle ?? t("theme.blocks.feature.beTheFirstOne");
+	const emptyBody =
+		props.emptyBody ?? t("theme.blocks.feature.joinAndInviteYourFriends");
 
 	return (
 		<div
@@ -96,10 +100,15 @@ export const ParticipantsTile = component$<ParticipantsTileProps>((props) => {
 					<div class="space-y-1 mb-2">
 						<p class="font-bold text-[16px] leading-[1.348] text-white">
 							{displayParticipants[0] && formatUserName(displayParticipants[0])}
-							<span class="font-normal"> and</span>
+							<span class="font-normal">
+								{" "}
+								{t("theme.participantsTile.and")}
+							</span>
 						</p>
 						<p class="text-[16px] leading-[1.348] text-white">
-							<span class="font-bold">{count - 1} others</span>
+							<span class="font-bold">
+								{t("theme.participantsTile.others", { count: count - 1 })}
+							</span>
 						</p>
 						{props.summaryLine && (
 							<p class="text-[16px] leading-[1.348] text-white">

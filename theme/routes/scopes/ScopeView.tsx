@@ -1,6 +1,7 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { Form } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
+import { t } from "~/contracts/i18n";
 import type { JoinScopeAction, ScopeViewData } from "~/contracts/scopes";
 import { FeatureGrid } from "~theme/blocks/FeatureBlock/FeatureGrid";
 import { ImageTile } from "~theme/blocks/FeatureBlock/ImageTile";
@@ -43,7 +44,10 @@ export const ScopeView = component$<{
 			{/* Heading */}
 			<div class="max-w-[1290px] mx-auto px-4 pt-12 pb-4 text-center">
 				{parents.length > 0 && (
-					<nav aria-label="Breadcrumb" class="text-sm text-text-muted mb-2">
+					<nav
+						aria-label={t("theme.scope.breadcrumb")}
+						class="text-sm text-text-muted mb-2"
+					>
 						{parents.map((p, i) => (
 							<span key={p.url}>
 								{i > 0 && " / "}
@@ -71,13 +75,13 @@ export const ScopeView = component$<{
 						area="left-top"
 						participants={recentMembers}
 						participantCount={memberCount}
-						title="Community Members"
-						seeAllLabel="See All Members"
+						title={t("theme.scope.communityMembers")}
+						seeAllLabel={t("theme.scope.seeAllMembers")}
 						onSeeAll$={$(() => {
 							showMembersModal.value = true;
 						})}
-						emptyTitle="No members yet"
-						emptyBody="Be the first to join this community"
+						emptyTitle={t("theme.scope.noMembersYet")}
+						emptyBody={t("theme.scope.beTheFirstToJoin")}
 						isLoggedIn={isLoggedIn}
 					/>
 
@@ -91,7 +95,9 @@ export const ScopeView = component$<{
 						area="middle"
 						image={image2 ?? FALLBACK}
 						alt={scope.name}
-						overlayText={`${pastEventCount} local meet-up${pastEventCount === 1 ? "" : "s"} and counting`}
+						overlayText={t("theme.scope.meetUpsAndCounting", {
+							count: pastEventCount,
+						})}
 					/>
 
 					<ImageTile
@@ -114,10 +120,12 @@ export const ScopeView = component$<{
 							style={{ gridArea: "right-bottom" }}
 						>
 							<h3 class="font-semibold text-[24px] text-white">
-								Join the community
+								{t("theme.scope.joinTheCommunity")}
 							</h3>
 							{isMember ? (
-								<p class="text-[16px] text-white/80 mt-4">✓ You are a member</p>
+								<p class="text-[16px] text-white/80 mt-4">
+									{t("theme.scope.youAreAMember")}
+								</p>
 							) : (
 								<Form action={joinAction} class="mt-6">
 									<Button
@@ -125,7 +133,9 @@ export const ScopeView = component$<{
 										variant="secondary"
 										disabled={joinAction.isRunning}
 									>
-										{joinAction.isRunning ? "Joining..." : "Join This Group"}
+										{joinAction.isRunning
+											? t("theme.scope.joining")
+											: t("theme.scope.joinThisGroup")}
 									</Button>
 								</Form>
 							)}
@@ -139,12 +149,14 @@ export const ScopeView = component$<{
 				<div class="max-w-[1290px] mx-auto px-4 pb-12 flex flex-col items-center gap-3">
 					{isMember ? (
 						<div class="bg-success-bg border border-success-border text-success px-6 py-3 font-medium">
-							✓ You are a member of this group
+							{t("theme.scope.youAreAMemberOf")}
 						</div>
 					) : (
 						<Form action={joinAction}>
 							<Button type="submit" size="lg" disabled={joinAction.isRunning}>
-								{joinAction.isRunning ? "Joining..." : "Join This Group"}
+								{joinAction.isRunning
+									? t("theme.scope.joining")
+									: t("theme.scope.joinThisGroup")}
 							</Button>
 						</Form>
 					)}
@@ -158,7 +170,7 @@ export const ScopeView = component$<{
 			{childScopes.length > 0 && (
 				<div class="max-w-[1290px] mx-auto px-4 py-8">
 					<h2 class="font-semibold text-[32px] text-text-heading mb-6">
-						Local Groups
+						{t("theme.scope.localGroups")}
 					</h2>
 					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 						{childScopes.map((child) => (
@@ -168,7 +180,7 @@ export const ScopeView = component$<{
 								image={child.imageUrl}
 								meta={`${child.memberCount} ${child.memberCount === 1 ? "member" : "members"}`}
 								href={child.url}
-								label="View Group"
+								label={t("theme.scope.viewGroup")}
 							/>
 						))}
 					</div>
@@ -179,14 +191,16 @@ export const ScopeView = component$<{
 			{upcomingEvents.length > 0 && (
 				<div class="max-w-[1290px] mx-auto px-4 py-8">
 					<h2 class="font-semibold text-[32px] text-text-heading mb-6">
-						Upcoming Community Events
+						{t("theme.scope.upcomingCommunityEvents")}
 					</h2>
 					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 						{upcomingEvents.map((e) => {
 							const location =
 								e.city ||
 								e.address ||
-								(e.locationType === "online" ? "Online" : "TBA");
+								(e.locationType === "online"
+									? t("theme.scope.online")
+									: t("theme.scope.tba"));
 							return (
 								<ContentCard
 									key={e.id}
@@ -196,7 +210,7 @@ export const ScopeView = component$<{
 									date={formatEventWhen(e.startDate, e.endDate)}
 									meta={location}
 									href={e.url}
-									label="Open Tickets"
+									label={t("theme.scope.openTickets")}
 								/>
 							);
 						})}
@@ -208,7 +222,7 @@ export const ScopeView = component$<{
 			{recentNews.length > 0 && (
 				<div class="max-w-[1290px] mx-auto px-4 py-8">
 					<h2 class="font-semibold text-[32px] text-text-heading mb-6">
-						Latest from the Community
+						{t("theme.scope.latestFromTheCommunity")}
 					</h2>
 					<StreamList items={recentNews} />
 				</div>
@@ -217,7 +231,7 @@ export const ScopeView = component$<{
 			{showMembersModal.value && (
 				<ParticipantsModal
 					participants={recentMembers}
-					eventName={`${scope.name} Community`}
+					eventName={t("theme.scope.community", { name: scope.name })}
 					onClose$={$(() => {
 						showMembersModal.value = false;
 					})}

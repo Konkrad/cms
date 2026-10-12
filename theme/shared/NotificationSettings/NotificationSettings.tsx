@@ -1,6 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Form } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
+import { t } from "~/contracts/i18n";
 import type {
 	NotificationSetting,
 	SetNotificationPreferenceAction,
@@ -44,10 +45,14 @@ export const NotificationSettings = component$<NotificationSettingsProps>(
 							value={setting.enabled ? "false" : "true"}
 						/>
 						<span class="text-sm text-text-muted" data-state>
-							{setting.enabled ? "On" : "Off"}
+							{setting.enabled
+								? t("theme.notificationSettings.on")
+								: t("theme.notificationSettings.off")}
 						</span>
 						<Button type="submit" size="sm" variant="secondary">
-							{setting.enabled ? "Turn off" : "Turn on"}
+							{setting.enabled
+								? t("theme.notificationSettings.turnOff")
+								: t("theme.notificationSettings.turnOn")}
 						</Button>
 					</Form>
 				</li>

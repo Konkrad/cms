@@ -5,6 +5,7 @@ import type {
 	EventPhotosEventData,
 	GenerateSecureUrlAction,
 } from "~/contracts/event-photos";
+import { t } from "~/contracts/i18n";
 import { PhotoGallery } from "~theme/routes/events/PhotoGallery";
 
 /** Themed view for the private event photo gallery (`/events/[id]/photos`). */
@@ -17,10 +18,10 @@ export const EventPhotosView = component$<{
 		<div class="container mx-auto px-4 py-8 max-w-7xl">
 			<div class="mb-6">
 				<h1 class="text-3xl font-bold text-text-heading">
-					Event Photos: {event.title}
+					{t("theme.eventPhotos.eventPhotos", { title: event.title })}
 				</h1>
 				<p class="mt-2 text-text-secondary">
-					Private photos accessible only to verified attendees
+					{t("theme.eventPhotos.privatePhotosAccessibleOnlyTo")}
 				</p>
 			</div>
 
@@ -42,11 +43,10 @@ export const EventPhotosView = component$<{
 							/>
 						</svg>
 						<p class="text-lg font-medium text-text-heading">
-							Access Restricted
+							{t("theme.eventPhotos.accessRestricted")}
 						</p>
 						<p class="text-sm text-text-secondary mt-2">
-							{photos.message ||
-								"You do not have permission to view these photos"}
+							{photos.message || t("theme.eventPhotos.youDoNotHavePermission")}
 						</p>
 					</div>
 				</Card>
@@ -73,7 +73,7 @@ export const EventPhotosView = component$<{
 
 			<div class="mt-6">
 				<a href={event.url} class="text-primary hover:text-primary font-medium">
-					← Back to Event Details
+					{t("theme.eventPhotos.backToEventDetails")}
 				</a>
 			</div>
 		</div>

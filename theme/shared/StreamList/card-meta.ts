@@ -1,9 +1,9 @@
-import { formatDate } from "~/contracts/i18n";
+import { formatDate, t } from "~/contracts/i18n";
 import type { StreamItemData } from "~/contracts/stream";
 
 const VISIBILITY_NOTE: Record<string, string | undefined> = {
-	members: "Members only",
-	representatives: "Representatives only",
+	members: t("theme.card-meta.membersOnly"),
+	representatives: t("theme.card-meta.representativesOnly"),
 };
 
 export function formatStreamDate(date: string): string {

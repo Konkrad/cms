@@ -1,5 +1,6 @@
 import { component$, useSignal } from "@qwik.dev/core";
 import { AddressAutocomplete } from "~/components/ui/AddressAutocomplete";
+import { t } from "~/contracts/i18n";
 
 export type LocationFieldsProps = {
 	/** The viewer's own city/country (prefill). */
@@ -28,8 +29,8 @@ export const LocationFields = component$<LocationFieldsProps>(({ values }) => {
 			)}
 			<AddressAutocomplete
 				name="addressSearch"
-				label="Address"
-				placeholder="Start typing your city or address..."
+				label={t("theme.locationFields.address")}
+				placeholder={t("theme.locationFields.startTypingYourCityOr")}
 				latitudeSignal={latitude}
 				longitudeSignal={longitude}
 				citySignal={city}

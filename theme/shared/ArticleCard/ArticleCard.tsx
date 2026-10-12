@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { ArticleCardData } from "~/contracts/articles";
+import { t } from "~/contracts/i18n";
 import { cardMeta } from "~theme/shared/StreamList/card-meta";
 
 /** One article in a listing: its image (if any), title and an excerpt, linking to the article. */
@@ -34,7 +35,7 @@ export const ArticleCard = component$<{ article: ArticleCardData }>(
 					</p>
 				)}
 				<span class="text-sm font-medium text-primary mt-auto pt-3">
-					Read more →
+					{t("theme.articleCard.readMore")}
 				</span>
 			</div>
 		</a>

@@ -1,6 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
 import type { ArticleViewData } from "~/contracts/articles";
+import { t } from "~/contracts/i18n";
 import { Avatar } from "~theme/shared/StreamList/Avatar";
 import { formatStreamDate } from "~theme/shared/StreamList/card-meta";
 import { StreamList } from "~theme/shared/StreamList/StreamList";
@@ -19,13 +20,13 @@ export const ArticleView = component$<{ article: ArticleViewData | null }>(
 			return (
 				<div class="max-w-4xl mx-auto px-4 py-16 text-center">
 					<h1 class="text-4xl font-bold text-text-heading mb-4">
-						Article Not Found
+						{t("theme.article.articleNotFound")}
 					</h1>
 					<p class="text-text-secondary mb-8">
-						The article you're looking for doesn't exist or has been removed.
+						{t("theme.article.theArticleYouReLooking")}
 					</p>
 					<Link href="/" class="text-primary hover:text-primary font-medium">
-						Go back home
+						{t("theme.article.goBackHome")}
 					</Link>
 				</div>
 			);
@@ -69,7 +70,7 @@ export const ArticleView = component$<{ article: ArticleViewData | null }>(
 
 						{a.subject && (
 							<p class="text-sm text-text-secondary mb-6">
-								About{" "}
+								{t("theme.article.about")}{" "}
 								<Link href={a.subject.url} class="text-primary hover:underline">
 									{a.subject.title}
 								</Link>
@@ -107,7 +108,7 @@ export const ArticleView = component$<{ article: ArticleViewData | null }>(
 				{a.related.length > 0 && (
 					<section class="mt-20 pt-12 border-t border-border">
 						<h2 class="text-2xl font-bold text-text-heading mb-8 text-center">
-							More news
+							{t("theme.article.moreNews")}
 						</h2>
 						<StreamList items={a.related} />
 					</section>
@@ -123,7 +124,7 @@ const AuthorCard = component$<{
 	profileUrl: string;
 }>((props) => (
 	<div class="bg-primary-dark p-5 text-white">
-		<h3 class="text-lg font-bold mb-3">Author</h3>
+		<h3 class="text-lg font-bold mb-3">{t("theme.article.author")}</h3>
 		<div class="flex items-center gap-3 mb-4">
 			<Avatar displayName={props.displayName} avatarUrl={props.avatarUrl} />
 			<span class="font-medium">{props.displayName}</span>
@@ -132,7 +133,7 @@ const AuthorCard = component$<{
 			href={props.profileUrl}
 			class="inline-flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white transition-colors"
 		>
-			Visit Profile →
+			{t("theme.article.visitProfile")}
 		</Link>
 	</div>
 ));

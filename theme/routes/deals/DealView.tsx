@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { DealViewData } from "~/contracts/deals";
-import { formatDate } from "~/contracts/i18n";
+import { formatDate, t } from "~/contracts/i18n";
 import { DealBox } from "./DealBox";
 
 type DealStep = DealViewData["deal"]["steps"][number];
@@ -35,14 +35,16 @@ export const DealView = component$<DealViewData>(({ deal, isLoggedIn }) => {
 			)}
 			{deal.validUntil && (
 				<p class="text-text-muted text-sm mb-8">
-					Valid until {formatDate(deal.validUntil, "dateLong")}
+					{t("theme.deal.validUntil", {
+						validUntil: formatDate(deal.validUntil, "dateLong"),
+					})}
 				</p>
 			)}
 
 			{(deal.steps ?? []).length > 0 && (
 				<div>
 					<h2 class="font-['Lato',sans-serif] font-bold text-lg text-text-secondary mb-4">
-						How to get this deal
+						{t("theme.deal.howToGetThisDeal")}
 					</h2>
 					<div class="flex flex-wrap justify-center gap-4">
 						{(deal.steps ?? []).map((step, i) => {

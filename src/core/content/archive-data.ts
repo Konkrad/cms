@@ -18,15 +18,12 @@ const href = (show: StreamFilter, page: number) =>
 
 /**
  * Server-only: one page (0-based) of an archive (`scopeContentFilter` of the request: viewer
- * and URL scope), or null (with a 404) for an unknown type or a page past the end. The old
- * `/archive/posts` answers 301 to `/archive/all`.
+ * and URL scope), or null (with a 404) for an unknown type or a page past the end.
  */
 export async function loadArchivePage(
 	event: RequestEventLoader,
 	page: number,
 ): Promise<ArchiveViewData> {
-	if (event.params.type === "posts")
-		throw event.redirect(301, href("all", page));
 	const show = archiveFilter(event.params.type);
 	if (!show || !Number.isInteger(page) || page < 0) {
 		event.status(404);

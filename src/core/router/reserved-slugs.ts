@@ -27,11 +27,8 @@ export const CORE_ROUTE_SEGMENTS: readonly string[] = [
 	"assets",
 ];
 
-/**
- * First segments of old URLs still answered: by redirect rows (`/groups/<slug>`) or by a core
- * page that redirects (`/<scope>/posts/<id>` → the note or article, `legacyPostPage`).
- */
-export const LEGACY_SEGMENTS: readonly string[] = ["groups", "posts"];
+/** First segments of old URLs still answered by redirect rows (`/groups/<slug>`). */
+export const LEGACY_SEGMENTS: readonly string[] = ["groups"];
 
 /**
  * Slugs a scope may not take at any level, so `/germany/events` is always Germany's event

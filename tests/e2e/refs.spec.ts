@@ -90,17 +90,6 @@ test.describe("canonical item URLs and references", () => {
 					`${scope.path}${path}`,
 				);
 			}
-			// Old post URLs, at the root or under the scope, lead there too.
-			for (const [from, to] of [
-				[`/posts/${articleId}`, `articles/${articleId}`],
-				[`${scope.path}posts/${noteId}`, `notes/${noteId}`],
-			]) {
-				const r = await page.request.get(from, { maxRedirects: 0 });
-				expect(r.status(), from).toBe(301);
-				expect(new URL(r.headers().location, "http://x").pathname).toBe(
-					`${scope.path}${to}`,
-				);
-			}
 			const res = await page.goto(`${scope.path}articles/${articleId}`);
 			expect(res?.status()).toBe(200);
 			await expect(page.getByRole("heading", { name: title })).toBeVisible();

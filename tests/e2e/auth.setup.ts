@@ -59,7 +59,10 @@ setup("create shared test session", async ({ page }) => {
 			db.prepare("DELETE FROM participation_status WHERE user_id = ?").run(
 				existingUser.id,
 			);
-			db.prepare("DELETE FROM posts WHERE user_id = ?").run(existingUser.id);
+			db.prepare("DELETE FROM notes WHERE author_id = ?").run(existingUser.id);
+			db.prepare("DELETE FROM articles WHERE author_id = ?").run(
+				existingUser.id,
+			);
 			db.prepare("DELETE FROM sessions WHERE user_id = ?").run(existingUser.id);
 			db.prepare("DELETE FROM users WHERE id = ?").run(existingUser.id);
 		}

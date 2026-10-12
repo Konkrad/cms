@@ -170,8 +170,6 @@ describe("resolveRef", () => {
 	it("is unavailable for deleted items, unknown types and malformed refs", async () => {
 		expect(await resolveRef(`core:article:${deletedArticleId}`)).toBeNull();
 		expect(await resolveRef(`core:article:${crypto.randomUUID()}`)).toBeNull();
-		// Posts are gone: their old references no longer resolve.
-		expect(await resolveRef(`core:post:${articleId}`)).toBeNull();
 		// A note id is not an article and vice versa.
 		expect(await resolveRef(`core:article:${noteId}`)).toBeNull();
 		expect(await resolveRef(`core:note:${articleId}`)).toBeNull();

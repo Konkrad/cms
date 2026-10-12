@@ -26,7 +26,7 @@ export const ownTicketEventColumns = {
 /** Relations of a ticket on its holder's tickets page (participants without emails). */
 export const ownTicketRelations = {
 	event: { columns: ownTicketEventColumns },
-	product: { columns: { stripeProductId: false } },
+	product: true,
 	participants: {
 		columns: { email: false },
 		orderBy: { participantOrder: "asc" },
@@ -44,7 +44,7 @@ export type OwnTicket = Ticket & {
 		typeof events.$inferSelect,
 		"id" | "title" | "startDate" | "endDate" | "city" | "country"
 	>;
-	product: Omit<typeof products.$inferSelect, "stripeProductId">;
+	product: typeof products.$inferSelect;
 	participants: OwnTicketParticipant[];
 };
 
@@ -85,6 +85,28 @@ export const ticketsService = {
 		return result;
 	},
 
+	/** The tickets issued for an order. */
+	async getByTransactionId(transactionId: string): Promise<Ticket[]> {
+		return db
+			.select()
+			.from(tickets)
+			.where(eq(tickets.transactionId, transactionId));
+	},
+
+	/** Cancels an order's tickets that were not used yet (a refund); returns how many. */
+	async deleteUnscannedByTransactionId(transactionId: string): Promise<number> {
+		const deleted = await db
+			.delete(tickets)
+			.where(
+				and(
+					eq(tickets.transactionId, transactionId),
+					isNull(tickets.scannedAt),
+				),
+			)
+			.returning({ id: tickets.id });
+		return deleted.length;
+	},
+
 	/**
 	 * Ticket ids with their QR code uuid, in the order given. Private (the uuid admits whoever
 	 * presents it): only for the buyer's own confirmation email.
@@ -114,7 +136,7 @@ export const ticketsService = {
 			where: { id },
 			with: {
 				buyer: { columns: publicUserColumns },
-				product: { columns: { stripeProductId: false } },
+				product: true,
 				event: true,
 				participants: {
 					orderBy: { participantOrder: "asc" },
@@ -145,7 +167,7 @@ export const ticketsService = {
 			where: { qrCodeUuid },
 			with: {
 				buyer: { columns: publicUserColumns },
-				product: { columns: { stripeProductId: false } },
+				product: true,
 				event: true,
 			},
 		});
@@ -168,7 +190,7 @@ export const ticketsService = {
 			where: { eventId },
 			with: {
 				buyer: { columns: publicUserColumns },
-				product: { columns: { stripeProductId: false } },
+				product: true,
 			},
 		});
 		return withBuyerEmails(results as any) as any;
@@ -267,7 +289,7 @@ export const ticketsService = {
 		const allTickets = await db.query.tickets.findMany({
 			where: { eventId },
 			with: {
-				product: { columns: { stripeProductId: false } },
+				product: true,
 			},
 		});
 
@@ -304,7 +326,7 @@ export const ticketsService = {
 			},
 			with: {
 				buyer: { columns: publicUserColumns },
-				product: { columns: { stripeProductId: false } },
+				product: true,
 				participants: {
 					orderBy: { participantOrder: "asc" },
 				},
@@ -318,15 +340,13 @@ export const ticketsService = {
 		eventId: string;
 		buyerId: string;
 	}): Promise<Ticket> {
-		// Create a dummy transaction for free tickets
+		// A free order: paid at once, without a payment.
 		const { transactionsService } = await import("./transactions");
 		const transaction = await transactionsService.create({
 			userId: data.buyerId,
 			eventId: data.eventId,
 			totalAmount: 0,
 			transactionFee: 0,
-			stripeSessionId: `free_${crypto.randomUUID()}`,
-			stripePaymentId: `free_${crypto.randomUUID()}`,
 		});
 
 		// Create the ticket

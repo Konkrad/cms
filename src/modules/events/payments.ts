@@ -1,245 +1,80 @@
-import { eq } from "drizzle-orm";
-import type Stripe from "stripe";
-import type { PaymentContext } from "~/core";
-import { db, notify, users } from "~/core";
+import type { PaymentInfo } from "~/core";
+import { notify } from "~/core";
 import {
 	type SaleAlertData,
 	saleAlertNotification,
 	type TicketConfirmationData,
 	ticketConfirmationNotification,
 } from "./emails";
-import { events } from "./schema/events";
 import { inventoryGroupsService } from "./services/inventory-groups";
 import { participantsService } from "./services/participants";
 import { productsService } from "./services/products";
 import { ticketsService } from "./services/tickets";
-import { transactionItemsService } from "./services/transaction-items";
 import { transactionsService } from "./services/transactions";
 
 /**
- * Stripe callbacks for ticket purchases (`metadata.moduleId = "events"`, `kind = "tickets"`,
- * set on the PaymentIntent by the checkout route). Server-only. Prices are re-read from the
- * products; the PaymentIntent amount is only used to derive the fee.
+ * Payment handlers for ticket orders (manifest `payments.tickets`, spec 4.7). `payment.refId`
+ * is the pending order (`transactions`) the checkout created; the order holds the line items
+ * at DB prices and who the tickets are for. Core calls each handler once per status change
+ * and retries it until it succeeds (also while the module is inactive), so every step here
+ * is safe to repeat. Server-only.
  */
-export async function onTicketsPaid({
-	paymentIntent,
-}: PaymentContext): Promise<void> {
-	await fulfilTickets(paymentIntent);
+
+async function orderOf(payment: PaymentInfo) {
+	const order = await transactionsService.getById(payment.refId);
+	if (!order) throw new Error(`Order ${payment.refId} not found`);
+	return order;
 }
 
-async function fulfilTickets(paymentIntent: Stripe.PaymentIntent) {
-	const { eventId, userId, items } = paymentIntent.metadata as {
-		eventId: string;
-		userId: string;
-		items: string;
-	};
-
-	// Idempotency: Stripe delivers at least once. A transaction keyed by the PaymentIntent id
-	// means this payment was already fulfilled; a concurrent duplicate fails on the unique
-	// `stripeSessionId` (`pi_<id>`) insert below and is retried by Stripe, then skipped here.
-	const existingTransaction = await transactionsService.findByPaymentId(
-		paymentIntent.id,
-	);
-	if (existingTransaction) {
-		console.log(
-			"Transaction already processed for payment intent:",
-			paymentIntent.id,
-		);
-		return;
-	}
-
-	// Get event and user details
-	const [event] = await db
-		.select()
-		.from(events)
-		.where(eq(events.id, eventId))
-		.limit(1);
-	const [user] = await db
-		.select()
-		.from(users)
-		.where(eq(users.id, userId))
-		.limit(1);
-	if (!event || !user) {
-		throw new Error("Event or user not found");
-	}
-
-	// Parse items
-	const purchasedItems: Array<{ productId: string; quantity: number }> =
-		JSON.parse(items);
-
-	const participantChunkCount = Number(
-		paymentIntent.metadata?.participantsChunkCount || "0",
-	);
-	const participantUnitsByProduct = new Map<
-		string,
-		Array<
-			Array<{
-				name: string;
-				email: string;
-				existingUserId?: string | null;
-			}>
-		>
-	>();
-
-	if (participantChunkCount > 0) {
-		let payload = "";
-		for (let idx = 0; idx < participantChunkCount; idx++) {
-			payload += paymentIntent.metadata?.[`participantsChunk${idx}`] || "";
-		}
-
-		if (payload) {
-			const parsed = JSON.parse(payload) as Array<{
-				productId: string;
-				participantUnits: Array<
-					Array<{
-						name: string;
-						email: string;
-						existingUserId?: string | null;
-					}>
-				>;
-			}>;
-
-			for (const entry of parsed) {
-				participantUnitsByProduct.set(
-					entry.productId,
-					entry.participantUnits || [],
-				);
-			}
-		}
-	}
-
-	// Get product details for pricing
+/** Paid: the order becomes paid, its tickets are issued and the buyer gets them by email. */
+export async function onTicketsPaid(
+	payment: PaymentInfo,
+	{ now }: { now: Date },
+): Promise<void> {
+	const order = await orderOf(payment);
+	const items = await transactionsService.itemsOf(order.id);
 	const products = await Promise.all(
-		purchasedItems.map(async (item) => {
-			const product = await productsService.getById(item.productId);
-			return { ...item, product };
-		}),
-	);
-
-	// Calculate totals (amount is in cents)
-	const totalAmount = paymentIntent.amount / 100;
-	const calculatedAmount = products.reduce(
-		(sum, item) => sum + (item.product?.price || 0) * item.quantity,
-		0,
-	);
-	const transactionFee = totalAmount - calculatedAmount;
-
-	// Create transaction
-	const transaction = await transactionsService.create({
-		eventId,
-		userId,
-		totalAmount: calculatedAmount,
-		transactionFee,
-		stripeSessionId: `pi_${paymentIntent.id}`, // Use payment intent ID prefixed for uniqueness
-		stripePaymentId: paymentIntent.id,
-	});
-
-	// Create transaction items
-	await transactionItemsService.createBulk(
-		products.map((item) => ({
-			transactionId: transaction.id,
-			productId: item.productId,
-			quantity: item.quantity,
-			unitPrice: item.product?.price || 0,
+		items.map(async (item) => ({
+			...item,
+			product: await productsService.getById(item.productId),
 		})),
 	);
 
-	// Update inventory sold quantities
-	await Promise.all(
-		products.map((item) =>
-			productsService.incrementSold(item.productId, item.quantity),
-		),
-	);
+	// A late payment of an expired (canceled) order is honoured too: the money is taken.
+	const becamePaid = await transactionsService.markPaid(order.id, now);
+	if (becamePaid)
+		for (const item of items)
+			await productsService.incrementSold(item.productId, item.quantity);
 
-	// Generate tickets for products that need them
-	const ticketsToCreate: Array<{
-		transactionId: string;
-		productId: string;
-		eventId: string;
-		buyerId: string;
-		participantSlots: Array<{
-			name: string;
-			email: string;
-			existingUserId?: string | null;
-		}>;
-	}> = [];
-	for (const item of products) {
-		const inventoryGroup = await inventoryGroupsService.getById(
-			item.product?.inventoryGroupId || "",
-		);
-		if (inventoryGroup?.needsTicket) {
-			for (let i = 0; i < item.quantity; i++) {
-				const participantUnits =
-					participantUnitsByProduct.get(item.productId) || [];
-				ticketsToCreate.push({
-					transactionId: transaction.id,
-					productId: item.productId,
-					eventId,
-					buyerId: userId,
-					participantSlots: participantUnits[i] || [],
-				});
-			}
-		}
-	}
-
-	const tickets =
-		ticketsToCreate.length > 0
-			? await ticketsService.createBulk(
-					ticketsToCreate.map((ticket) => ({
-						transactionId: ticket.transactionId,
-						productId: ticket.productId,
-						eventId: ticket.eventId,
-						buyerId: ticket.buyerId,
-					})),
-				)
-			: [];
-
-	for (let idx = 0; idx < tickets.length; idx++) {
-		const createdTicket = tickets[idx];
-		const participantSlots = ticketsToCreate[idx]?.participantSlots || [];
-		if (participantSlots.length === 0) continue;
-
-		await participantsService.createBulk(
-			participantSlots.map((slot, slotIdx) => ({
-				ticketId: createdTicket.id,
-				participantOrder: slotIdx + 1,
-				name: slot.name,
-				email: slot.email,
-				userId: slot.existingUserId ?? null,
-			})),
-		);
-	}
-
-	// Auto-upgrade participation status from "maybe" to "yes" on ticket purchase
-	if (tickets.length > 0) {
+	// Tickets once per order (a retry after a crash finds them).
+	const existing = await ticketsService.getByTransactionId(order.id);
+	const issued =
+		existing.length === 0 ? await issueTickets(order, products) : [];
+	// A ticket purchase turns a "maybe" into a "yes" (idempotent).
+	if (issued.length + existing.length > 0) {
 		const { participationService } = await import("./services/participation");
-		try {
-			await participationService.autoUpgradeToYes(userId, eventId);
-		} catch (error) {
-			console.error("Failed to auto-upgrade participation status:", error);
-			// Don't fail the transaction if participation update fails
-		}
+		await participationService.autoUpgradeToYes(order.userId, order.eventId);
 	}
+	if (!becamePaid && issued.length === 0) return;
 
-	// Confirmation email to the buyer (address looked up from the user id by notify()).
 	await notify(ticketConfirmationNotification.id, {
-		to: userId,
+		to: order.userId,
 		data: {
-			eventId,
-			transactionId: transaction.id,
+			eventId: order.eventId,
+			transactionId: order.id,
 			products: products.flatMap((p) =>
 				p.product
 					? [
 							{
 								name: p.product.name,
 								quantity: p.quantity,
-								amount: p.product.price,
+								amount: p.unitPrice,
 							},
 						]
 					: [],
 			),
-			totalAmount: calculatedAmount,
-			ticketIds: tickets.map((t) => t.id),
+			totalAmount: order.totalAmount,
+			ticketIds: (issued.length > 0 ? issued : existing).map((t) => t.id),
 		} satisfies TicketConfirmationData,
 	});
 
@@ -251,24 +86,95 @@ async function fulfilTickets(paymentIntent: Stripe.PaymentIntent) {
 			data: {
 				productName: item.product.name,
 				quantity: item.quantity,
-				amount: item.product.price * item.quantity,
-				remaining: await getRemainingInventory(item.product.inventoryGroupId),
+				amount: item.unitPrice * item.quantity,
+				remaining: (
+					await inventoryGroupsService.validatePurchase(
+						item.product.inventoryGroupId,
+						0,
+					)
+				).remainingCapacity,
 			} satisfies SaleAlertData,
 		});
 	}
-
-	console.log("Payment intent processed successfully:", {
-		transactionId: transaction.id,
-		ticketsGenerated: tickets.length,
-	});
 }
 
-async function getRemainingInventory(
-	inventoryGroupId: string,
-): Promise<number> {
-	const { remainingCapacity } = await inventoryGroupsService.validatePurchase(
-		inventoryGroupId,
-		0,
+async function issueTickets(
+	order: Awaited<ReturnType<typeof orderOf>>,
+	products: Array<{
+		productId: string;
+		quantity: number;
+		product: Awaited<ReturnType<typeof productsService.getById>>;
+	}>,
+) {
+	const unitsByProduct = new Map(
+		(order.participants ?? []).map((p) => [p.productId, p.participantUnits]),
 	);
-	return remainingCapacity;
+	const toCreate: Array<{
+		productId: string;
+		slots: Array<{
+			name: string;
+			email: string;
+			existingUserId?: string | null;
+		}>;
+	}> = [];
+	for (const item of products) {
+		const group = await inventoryGroupsService.getById(
+			item.product?.inventoryGroupId ?? "",
+		);
+		if (!group?.needsTicket) continue;
+		const units = unitsByProduct.get(item.productId) ?? [];
+		for (let i = 0; i < item.quantity; i++)
+			toCreate.push({ productId: item.productId, slots: units[i] ?? [] });
+	}
+	if (toCreate.length === 0) return [];
+
+	const created = await ticketsService.createBulk(
+		toCreate.map((t) => ({
+			transactionId: order.id,
+			productId: t.productId,
+			eventId: order.eventId,
+			buyerId: order.userId,
+		})),
+	);
+	for (let idx = 0; idx < created.length; idx++) {
+		const slots = toCreate[idx]?.slots ?? [];
+		if (slots.length === 0) continue;
+		await participantsService.createBulk(
+			slots.map((slot, slotIdx) => ({
+				ticketId: created[idx].id,
+				participantOrder: slotIdx + 1,
+				name: slot.name,
+				email: slot.email,
+				userId: slot.existingUserId ?? null,
+			})),
+		);
+	}
+	return created;
+}
+
+/**
+ * Failed or expired: the pending order is canceled. Checkouts hold no capacity (sold
+ * quantities only count paid orders), so there is nothing else to release.
+ */
+export async function onTicketsCanceled(payment: PaymentInfo): Promise<void> {
+	await transactionsService.cancelPending((await orderOf(payment)).id);
+}
+
+/** Refunded: the order is refunded, its unused tickets are canceled and their places freed. */
+export async function onTicketsRefunded(payment: PaymentInfo): Promise<void> {
+	const order = await orderOf(payment);
+	if (!(await transactionsService.markRefunded(order.id))) return;
+	const tickets = await ticketsService.getByTransactionId(order.id);
+	const scannedByProduct = new Map<string, number>();
+	for (const ticket of tickets)
+		if (ticket.scannedAt)
+			scannedByProduct.set(
+				ticket.productId,
+				(scannedByProduct.get(ticket.productId) ?? 0) + 1,
+			);
+	await ticketsService.deleteUnscannedByTransactionId(order.id);
+	for (const item of await transactionsService.itemsOf(order.id)) {
+		const freed = item.quantity - (scannedByProduct.get(item.productId) ?? 0);
+		if (freed > 0) await productsService.decrementSold(item.productId, freed);
+	}
 }

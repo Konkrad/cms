@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, like } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "~/core";
 import { products as productsTable } from "../schema/products";
 import { tickets } from "../schema/tickets";
@@ -46,7 +46,7 @@ export async function syncFreeRsvpTicketForStatus(
 		.select({
 			id: tickets.id,
 			transactionId: tickets.transactionId,
-			stripeSessionId: transactions.stripeSessionId,
+			paymentId: transactions.paymentId,
 		})
 		.from(tickets)
 		.innerJoin(transactions, eq(tickets.transactionId, transactions.id))
@@ -60,8 +60,9 @@ export async function syncFreeRsvpTicketForStatus(
 		);
 
 	if (status === "no") {
-		const freeTickets = existingTickets.filter((ticket) =>
-			ticket.stripeSessionId.startsWith("free_"),
+		// Free orders have no payment.
+		const freeTickets = existingTickets.filter(
+			(ticket) => ticket.paymentId === null,
 		);
 
 		if (freeTickets.length > 0) {
@@ -72,10 +73,7 @@ export async function syncFreeRsvpTicketForStatus(
 			await db
 				.delete(transactions)
 				.where(
-					and(
-						inArray(transactions.id, txIds),
-						like(transactions.stripeSessionId, "free_%"),
-					),
+					and(inArray(transactions.id, txIds), isNull(transactions.paymentId)),
 				);
 
 			await productsService.decrementSold(freeProduct.id, freeTickets.length);

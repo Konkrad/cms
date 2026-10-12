@@ -116,8 +116,6 @@ export const eventsModule = defineModule({
 		},
 	},
 	reevaluateUserTags: (userId) => tagRulesService.evaluateRulesForUser(userId),
-	// Lazy: the fulfilment graph (Stripe client, services) would otherwise load with the
-	// manifest and form an import cycle through ~/core (stripe.ts reads env at load time).
 	// Proposal and debrief questions are forms admins edit (spec 5.2); the active form per scope.
 	forms: [
 		{ purpose: "events.proposal", label: "Event proposal" },
@@ -132,9 +130,17 @@ export const eventsModule = defineModule({
 				(await import("./review")).onEventRejected(ctx, decision),
 		},
 	},
+	// Ticket orders (spec 4.7): `payments.create({ module: "events" }, { kind: "tickets" })` in
+	// the checkout. Lazy: the fulfilment graph (services, emails) would otherwise load with the
+	// manifest and form an import cycle through ~/core.
 	payments: {
 		tickets: {
-			onPaid: async (ctx) => (await import("./payments")).onTicketsPaid(ctx),
+			onPaid: async (p, ctx) =>
+				(await import("./payments")).onTicketsPaid(p, ctx),
+			onFailed: async (p) => (await import("./payments")).onTicketsCanceled(p),
+			onExpired: async (p) => (await import("./payments")).onTicketsCanceled(p),
+			onRefunded: async (p) =>
+				(await import("./payments")).onTicketsRefunded(p),
 		},
 	},
 });

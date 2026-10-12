@@ -16,8 +16,10 @@ export const AdminEventTransactions = component$<Props>(({ data }) => {
 		}).format(amount);
 	};
 
-	const totalRevenue = transactions.reduce((sum, t) => sum + t.totalAmount, 0);
-	const totalFees = transactions.reduce((sum, t) => sum + t.transactionFee, 0);
+	// Only completed orders count; pending, canceled and refunded ones are listed below.
+	const paid = transactions.filter((t) => t.status === "paid");
+	const totalRevenue = paid.reduce((sum, t) => sum + t.totalAmount, 0);
+	const totalFees = paid.reduce((sum, t) => sum + t.transactionFee, 0);
 	const netRevenue = totalRevenue - totalFees;
 
 	return (
@@ -36,12 +38,12 @@ export const AdminEventTransactions = component$<Props>(({ data }) => {
 						{formatCurrency(totalRevenue)}
 					</p>
 					<p class="text-sm text-gray-500 mt-1">
-						{transactions.length} transaction(s)
+						{paid.length} paid transaction(s)
 					</p>
 				</div>
 
 				<div class="bg-white rounded-lg shadow-md p-6">
-					<p class="text-sm text-gray-600 mb-1">Stripe Fees</p>
+					<p class="text-sm text-gray-600 mb-1">Fees</p>
 					<p class="text-3xl font-bold text-red-600">
 						{formatCurrency(totalFees)}
 					</p>

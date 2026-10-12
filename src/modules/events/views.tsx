@@ -10,7 +10,6 @@ import { CheckoutView } from "~theme/routes/events/CheckoutView";
 import { EventPhotosView } from "~theme/routes/events/EventPhotosView";
 import { EventView } from "~theme/routes/events/EventView";
 import {
-	useCheckPaymentStatus,
 	useCreateCheckoutSession,
 	useGenerateSecureUrl,
 	useUpdateParticipation,
@@ -30,13 +29,11 @@ const EventPage = component$<{ data: EventViewData }>(({ data }) => {
 
 const CheckoutPage = component$<{ data: CheckoutData }>(({ data }) => {
 	const createCheckoutSession = useCreateCheckoutSession();
-	const checkPaymentStatus = useCheckPaymentStatus();
 	const submitRequirement = useSubmitRequirement();
 	return (
 		<CheckoutView
 			data={data}
 			createCheckoutSession={createCheckoutSession}
-			checkPaymentStatus={checkPaymentStatus}
 			submitRequirement={submitRequirement}
 		/>
 	);

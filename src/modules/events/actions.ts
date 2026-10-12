@@ -1,5 +1,12 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { notify, requireModuleAuth, requirements, usersService } from "~/core";
+import {
+	itemUrl,
+	notify,
+	payments,
+	requireModuleAuth,
+	requirements,
+	usersService,
+} from "~/core";
 import type {
 	CheckoutItemInput,
 	ParticipantSlotInput,
@@ -15,17 +22,8 @@ import { participantsService } from "./services/participants";
 import { participationService } from "./services/participation";
 import { photosService } from "./services/photos";
 import { productsService } from "./services/products";
-import { stripeService } from "./services/stripe";
+import { startTicketPayment } from "./services/ticket-checkout";
 import { ticketsService } from "./services/tickets";
-
-function splitIntoChunks(value: string, maxChunkSize = 450): string[] {
-	if (!value) return [];
-	const chunks: string[] = [];
-	for (let i = 0; i < value.length; i += maxChunkSize) {
-		chunks.push(value.slice(i, i + maxChunkSize));
-	}
-	return chunks;
-}
 
 export const useUpdateParticipation = routeAction$(
 	async (data, event) => {
@@ -317,79 +315,28 @@ export const useCreateCheckoutSession = routeAction$(
 			};
 		}
 
-		// Build line items for Stripe
-		const participantPayload = JSON.stringify(
-			normalizedItems.map((item) => ({
-				productId: item.productId,
-				participantUnits: item.participantUnits,
-			})),
-		);
-		const participantChunks = splitIntoChunks(participantPayload);
-
-		const metadata: Record<string, string> = {
-			// Routes the Stripe webhook to the events module's `payments.tickets` handlers.
-			moduleId: "events",
-			kind: "tickets",
-			eventId,
-			userId: user.id,
-			items: JSON.stringify(
-				normalizedItems.map((item) => ({
-					productId: item.productId,
-					quantity: item.quantity,
-				})),
-			),
-			participantsChunkCount: String(participantChunks.length),
-		};
-
-		participantChunks.forEach((chunk, idx) => {
-			metadata[`participantsChunk${idx}`] = chunk;
-		});
-
-		// Create Payment Intent directly
-		const paymentIntent = await stripeService.stripe.paymentIntents.create({
-			amount: Math.round(totalAmount),
-			currency: "eur",
-			metadata,
-			automatic_payment_methods: {
-				enabled: true,
-			},
-		});
-
-		console.log("[Server] Payment Intent created:", paymentIntent.id);
-
-		return {
-			clientSecret: paymentIntent.client_secret,
-			paymentIntentId: paymentIntent.id,
-		};
-	},
-	zod$({ items: z.string() }),
-);
-
-export const useCheckPaymentStatus = routeAction$(
-	async (data, event) => {
-		await requireModuleAuth(event, "events");
-
-		console.log("[Server] useCheckPaymentStatus called");
-
-		try {
-			const paymentIntent = await stripeService.stripe.paymentIntents.retrieve(
-				data.payment_intent_id,
-			);
-
-			console.log("[Server] Payment Intent status:", paymentIntent.status);
-
-			return {
-				status: paymentIntent.status,
-				succeeded: paymentIntent.status === "succeeded",
-			};
-		} catch (error: any) {
-			console.error("[Server] Error retrieving payment intent:", error);
+		// Paid: amounts come from the DB prices only (never from the request), spec 4.7.
+		if (!payments.enabled()) {
 			return event.fail(400, {
-				message: error.message || "Failed to retrieve payment status",
+				message:
+					"Online payment is not available right now; only free tickets can be booked.",
 			});
 		}
+		const payment = await startTicketPayment({
+			eventId,
+			eventUrl: await itemUrl("events:event", eventData),
+			userId: user.id,
+			items: normalizedItems.map((item) => ({
+				productId: item.productId,
+				quantity: item.quantity,
+				participantUnits: item.participantUnits,
+			})),
+		});
+
+		// The browser goes to the provider's page; the result arrives by webhook only.
+		return { checkoutUrl: payment.url, paymentId: payment.paymentId };
 	},
-	zod$({ payment_intent_id: z.string() }),
+	zod$({ items: z.string() }),
 );
 
 export const useGenerateSecureUrl = routeAction$(

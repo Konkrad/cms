@@ -20,7 +20,6 @@ export const products = sqliteTable("products", {
 	participantCapacity: integer("participant_capacity").notNull().default(1),
 	features: text("features", { mode: "json" }).notNull().$type<string[]>(),
 	imageKey: text("image_key"),
-	stripeProductId: text("stripe_product_id"),
 	soldQuantity: integer("sold_quantity").notNull().default(0),
 	createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 	updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -46,7 +45,6 @@ export const insertProductSchema = baseInsertSchema
 		id: true,
 		participantCapacity: true,
 		imageKey: true,
-		stripeProductId: true,
 		soldQuantity: true,
 		createdAt: true,
 		updatedAt: true,
@@ -57,7 +55,6 @@ export const formProductSchema = insertProductSchema
 	.omit({
 		id: true,
 		eventId: true,
-		stripeProductId: true,
 		soldQuantity: true,
 		createdAt: true,
 		updatedAt: true,

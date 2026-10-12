@@ -72,15 +72,9 @@ function createTicketFixture(userId: string, eventOffset = 7) {
 	).run(productId, eventId, groupId, "Standard Ticket", 0, 10, 1, "[]");
 
 	db.prepare(
-		`INSERT INTO transactions (id, user_id, event_id, total_amount, transaction_fee, stripe_session_id, stripe_payment_id)
-     VALUES (?, ?, ?, 0, 0, ?, ?)`,
-	).run(
-		transactionId,
-		userId,
-		eventId,
-		`free_${crypto.randomUUID()}`,
-		`free_${crypto.randomUUID()}`,
-	);
+		`INSERT INTO transactions (id, user_id, event_id, total_amount, transaction_fee)
+     VALUES (?, ?, ?, 0, 0)`,
+	).run(transactionId, userId, eventId);
 
 	db.prepare(
 		`INSERT INTO tickets (id, qr_code_uuid, transaction_id, product_id, event_id, buyer_id)

@@ -2,7 +2,8 @@ import type { RequestEventLoader } from "@qwik.dev/router";
 import {
 	deriveThumbnailKey,
 	getServerSession,
-	getStripePublishableKey,
+	type PaymentStatus,
+	payments,
 	publicImageUrlFromKey,
 	requirements,
 } from "~/core";
@@ -25,6 +26,8 @@ export async function loadCheckoutPage(
 	const groups = await inventoryGroupsService.getByEventId(eventId);
 
 	const now = new Date();
+	// Without a payment provider only free products can be booked (spec 4.7).
+	const paymentsEnabled = payments.enabled();
 
 	// Remaining capacity, sales window and available products per group
 	const groupsWithCapacity = groups.map((group: any) => {
@@ -51,7 +54,12 @@ export async function loadCheckoutPage(
 				p.maxQuantity && p.maxQuantity > 0
 					? p.maxQuantity - (p.soldQuantity || 0)
 					: Infinity;
-			return isSalesOpen && remainingCapacity > 0 && productRemaining > 0;
+			return (
+				isSalesOpen &&
+				remainingCapacity > 0 &&
+				productRemaining > 0 &&
+				(paymentsEnabled || p.price === 0)
+			);
 		});
 
 		return {
@@ -65,13 +73,27 @@ export async function loadCheckoutPage(
 
 	const session = await getServerSession(requestEvent);
 
+	// Back from the provider (`?payment=<id>`): the payment's status as core knows it from the
+	// provider's webhook. The redirect itself proves nothing.
+	const paymentId = requestEvent.url.searchParams.get("payment");
+	const owned =
+		paymentId && session
+			? await payments.statusForOwner(paymentId, session.id)
+			: undefined;
+	const payment: { status: PaymentStatus; canceled: boolean } | null = owned
+		? {
+				status: owned.status,
+				// The buyer left the provider's page without paying (still pending until it expires).
+				canceled: requestEvent.url.searchParams.has("canceled"),
+			}
+		: null;
+
 	return {
 		eventId,
 		eventUrl: viewable.url,
-		/** Where Stripe sends the buyer back after an off-site payment step. */
-		returnPath: `${viewable.url}/checkout/success`,
 		groups: groupsWithCapacity,
-		stripePublishableKey: getStripePublishableKey(),
+		paymentsEnabled,
+		payment,
 		// What the buyer must answer first (food preference, photo consent); the checkout
 		// action checks them again on the server.
 		requirements: session

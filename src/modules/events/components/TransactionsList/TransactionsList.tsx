@@ -3,11 +3,11 @@ import type { products, transactionItems } from "../../schema";
 import type { Transaction } from "../../schema/transactions";
 import TransactionCard from "../TransactionCard/TransactionCard";
 
-interface TransactionWithDetails extends Transaction {
+interface TransactionWithDetails extends Omit<Transaction, "participants"> {
 	user: { id: string; name: string; familyName: string; email: string | null };
 	items: Array<
 		typeof transactionItems.$inferSelect & {
-			product: Omit<typeof products.$inferSelect, "stripeProductId">;
+			product: typeof products.$inferSelect;
 		}
 	>;
 }

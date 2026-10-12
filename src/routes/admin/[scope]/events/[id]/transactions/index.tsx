@@ -6,8 +6,8 @@ import { loadAdminTransactions } from "../../../../../../modules/events/admin/tr
 
 export const useTransactions = routeLoader$(async (event) =>
 	assertNoPrivateFields(await loadAdminTransactions(event), {
-		// Admin transactions: buyer email and Stripe ids for payment support/reconciliation.
-		allow: ["email", "stripeSessionId", "stripePaymentId"],
+		// Admin transactions: the buyer's email for payment support/reconciliation.
+		allow: ["email"],
 	}),
 );
 

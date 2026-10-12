@@ -30,8 +30,6 @@ export const eventCheckoutPage = definePage({
 		// bump asks again (spec 4.6).
 		"foodPreference",
 		"photoConsentGiven",
-		// Stripe's publishable key is public by design (Stripe.js needs it in the browser).
-		"stripePublishableKey",
 	],
 });
 

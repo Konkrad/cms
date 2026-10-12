@@ -8,16 +8,12 @@ import {
 	type UpdateProduct,
 	updateProductSchema,
 } from "../schema/products";
-import { stripeService } from "./stripe";
 
 export const productsService = {
-	/** An event's products (without Stripe product ids) with their inventory group. */
-	async getByEventId(
-		eventId: string,
-	): Promise<Omit<Product, "stripeProductId">[]> {
+	/** An event's products with their inventory group. */
+	async getByEventId(eventId: string): Promise<Product[]> {
 		return db.query.products.findMany({
 			where: { eventId },
-			columns: { stripeProductId: false },
 			with: { inventoryGroup: true },
 		});
 	},
@@ -37,19 +33,7 @@ export const productsService = {
 			.insert(products)
 			.values(parsed as any)
 			.returning();
-
-		const stripeProduct = await stripeService.createProduct(
-			product.name,
-			`Ticket for event ${product.eventId}`,
-		);
-
-		const [updated] = await db
-			.update(products)
-			.set({ stripeProductId: stripeProduct.id })
-			.where(eq(products.id, product.id))
-			.returning();
-
-		return updated;
+		return product;
 	},
 
 	async update(id: string, data: UpdateProduct): Promise<Product> {

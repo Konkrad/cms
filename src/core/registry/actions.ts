@@ -2,7 +2,6 @@
 // re-export via RELATIVE paths only (the production Rollup transform mis-resolves aliases).
 export { useSubmitApplication } from "../../modules/elections/actions";
 export {
-	useCheckPaymentStatus,
 	useCreateCheckoutSession,
 	useGenerateSecureUrl,
 	useUpdateParticipation,

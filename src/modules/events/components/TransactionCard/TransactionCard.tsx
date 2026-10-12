@@ -2,11 +2,11 @@ import { $, component$, useSignal } from "@qwik.dev/core";
 import type { products, transactionItems } from "../../schema";
 import type { Transaction } from "../../schema/transactions";
 
-interface TransactionWithDetails extends Transaction {
+interface TransactionWithDetails extends Omit<Transaction, "participants"> {
 	user: { id: string; name: string; familyName: string; email: string | null };
 	items: Array<
 		typeof transactionItems.$inferSelect & {
-			product: Omit<typeof products.$inferSelect, "stripeProductId">;
+			product: typeof products.$inferSelect;
 		}
 	>;
 }
@@ -106,19 +106,15 @@ export default component$<TransactionCardProps>(({ transaction }) => {
 
 					<div class="mt-4 pt-4 border-t border-gray-200">
 						<div class="flex items-center justify-between text-sm">
-							<span class="text-gray-600">Stripe Session ID:</span>
+							<span class="text-gray-600">Status:</span>
+							<span class="text-xs text-gray-500">{transaction.status}</span>
+						</div>
+						<div class="flex items-center justify-between text-sm mt-1">
+							<span class="text-gray-600">Payment:</span>
 							<span class="text-xs text-gray-500 font-mono">
-								{transaction.stripeSessionId}
+								{transaction.paymentId ?? "free"}
 							</span>
 						</div>
-						{transaction.stripePaymentId && (
-							<div class="flex items-center justify-between text-sm mt-1">
-								<span class="text-gray-600">Payment ID:</span>
-								<span class="text-xs text-gray-500 font-mono">
-									{transaction.stripePaymentId}
-								</span>
-							</div>
-						)}
 					</div>
 				</div>
 			)}

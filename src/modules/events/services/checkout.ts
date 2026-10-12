@@ -1,14 +1,5 @@
-import { getAppUrl, publicImageUrlFromKey } from "~/core";
 import { inventoryGroupsService } from "./inventory-groups";
 import { productsService } from "./products";
-import { stripeService } from "./stripe";
-
-function absoluteImageUrlFromKey(
-	value: string | null | undefined,
-): string | null {
-	const path = publicImageUrlFromKey(value);
-	return path ? new URL(path, getAppUrl()).toString() : null;
-}
 
 interface CheckoutItem {
 	productId: string;
@@ -106,70 +97,6 @@ export const checkoutService = {
 		return {
 			valid: errors.length === 0,
 			errors,
-		};
-	},
-
-	async createSession(params: {
-		eventId: string;
-		userId: string;
-		items: CheckoutItem[];
-		successUrl: string;
-		cancelUrl: string;
-	}): Promise<{ sessionId: string; url: string } | { error: string }> {
-		// Validate inventory first
-		const validation = await this.validateInventory(
-			params.eventId,
-			params.items,
-		);
-		if (!validation.valid) {
-			return { error: validation.errors.join("; ") };
-		}
-
-		// Get product details
-		const products = await Promise.all(
-			params.items.map(async (item) => {
-				const product = await productsService.getById(item.productId);
-				return { ...item, product };
-			}),
-		);
-
-		// Build line items for Stripe
-		const lineItems = products
-			.filter((p) => p.product)
-			.map((p) => ({
-				price_data: {
-					currency: "eur",
-					product_data: {
-						name: p.product!.name,
-						description: p.product!.features.join(", "),
-						images: p.product!.imageKey
-							? [absoluteImageUrlFromKey(p.product!.imageKey)].filter(
-									(x): x is string => x != null,
-								)
-							: [],
-					},
-					unit_amount: Math.round(p.product!.price * 100), // Convert to cents
-				},
-				quantity: p.quantity,
-			}));
-
-		// Create Stripe checkout session
-		const session = await stripeService.createCheckoutSession({
-			lineItems,
-			successUrl: params.successUrl,
-			cancelUrl: params.cancelUrl,
-			metadata: {
-				moduleId: "events",
-				kind: "tickets",
-				eventId: params.eventId,
-				userId: params.userId,
-				items: JSON.stringify(params.items),
-			},
-		});
-
-		return {
-			sessionId: session.id,
-			url: session.url || "",
 		};
 	},
 };

@@ -4,12 +4,13 @@
  * tests/utils/telegram-mock.ts). Test plan in notifications.spec.ts.
  */
 import crypto from "node:crypto";
-import type Stripe from "stripe";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import type { PaymentInfo } from "~/core";
 import { db } from "~/core/db/connection";
 import { notificationOutbox } from "~/core/notifications/schema";
 import { processOutboxOnce } from "~/core/notifications/worker";
 import { onTicketsPaid } from "~/modules/events/payments";
+import { transactionsService } from "~/modules/events/services/transactions";
 import {
 	getTelegramMessages,
 	startTelegramMock,
@@ -80,22 +81,30 @@ describe("events notifications after a paid ticket", () => {
 		const title = `Notify Paid Event ${Date.now()}`;
 		const { eventId, productId } = paidEventFixture(buyer.userId, title);
 
-		const paymentIntent = {
-			id: `pi_${crypto.randomUUID()}`,
-			amount: 5000,
-			metadata: {
-				moduleId: "events",
-				kind: "tickets",
-				eventId,
-				userId: buyer.userId,
-				items: JSON.stringify([{ productId, quantity: 2 }]),
-			},
-		} as unknown as Stripe.PaymentIntent;
-		await onTicketsPaid({
-			paymentIntent,
-			event: {} as Stripe.Event,
-			idempotencyKey: paymentIntent.id,
+		// The pending order the checkout created (prices from the products).
+		const order = await transactionsService.createPending({
+			eventId,
+			userId: buyer.userId,
+			items: [{ productId, quantity: 2, unitPrice: 25 }],
+			participants: [],
 		});
+		const payment = {
+			id: crypto.randomUUID(),
+			moduleId: "events",
+			kind: "tickets",
+			refId: order.id,
+			userId: buyer.userId,
+			status: "paid",
+			mode: "payment",
+			amount: 5000,
+			currency: "eur",
+			subjectRef: null,
+			change: "paid",
+		} satisfies PaymentInfo;
+		await onTicketsPaid(payment, { now: new Date() });
+		// Called again (a retried handler call): nothing new is issued or sent.
+		await onTicketsPaid(payment, { now: new Date() });
+		expect((await transactionsService.getById(order.id))?.status).toBe("paid");
 
 		const rows = await db.select().from(notificationOutbox);
 		const confirmation = rows.find(

@@ -1,10 +1,12 @@
 import crypto from "crypto";
 import { afterEach, describe, expect, it } from "vitest";
+import { paymentsService } from "~/core/payments/payments.service";
 import { checkoutService } from "~/modules/events/services/checkout";
 import { eventsService } from "~/modules/events/services/events";
 import { inventoryGroupsService } from "~/modules/events/services/inventory-groups";
 import { productsService } from "~/modules/events/services/products";
-import { stripeService } from "~/modules/events/services/stripe";
+import { startTicketPayment } from "~/modules/events/services/ticket-checkout";
+import { transactionsService } from "~/modules/events/services/transactions";
 import { createTestUser, ensureRootScope, openDb } from "./helpers";
 
 const cleanupEventIds: string[] = [];
@@ -64,34 +66,6 @@ async function createEventFixture(userId: string) {
 	return { event, group, product };
 }
 
-describe("stripeService.createCheckoutSession", () => {
-	it("creates a checkout session and returns a session id and url", async () => {
-		const { userId, cleanup } = createTestUser();
-		cleanupUserId = cleanup;
-		const { event, product } = await createEventFixture(userId);
-
-		const session = await stripeService.createCheckoutSession({
-			lineItems: [
-				{
-					price_data: {
-						currency: "eur",
-						product_data: { name: product.name },
-						unit_amount: Math.round(product.price * 100),
-					},
-					quantity: 1,
-				},
-			],
-			successUrl: "http://localhost/success",
-			cancelUrl: "http://localhost/cancel",
-			metadata: { eventId: event.id, userId, items: "[]" },
-		});
-
-		expect(session.id).toBeTruthy();
-		// stripe-mock always returns a url
-		expect(typeof session.url).toBe("string");
-	});
-});
-
 describe("checkoutService.validateInventory", () => {
 	it("returns valid:true when capacity is available", async () => {
 		const { userId, cleanup } = createTestUser();
@@ -147,41 +121,57 @@ describe("checkoutService.validateInventory", () => {
 	});
 });
 
-describe("checkoutService.createSession", () => {
-	it("returns a stripe session url on success", async () => {
+describe("startTicketPayment (spec 4.7)", () => {
+	it("creates a pending order and a payment whose amount comes from the DB price", async () => {
 		const { userId, cleanup } = createTestUser();
-		cleanupUserId = cleanup;
 		const { event, product } = await createEventFixture(userId);
 
-		const result = await checkoutService.createSession({
+		const result = await startTicketPayment({
 			eventId: event.id,
+			eventUrl: "/events/checkout-test",
 			userId,
-			items: [{ productId: product.id, quantity: 1 }],
-			successUrl: "http://localhost/success",
-			cancelUrl: "http://localhost/cancel",
+			items: [
+				// Whatever the request carried besides id and quantity is ignored.
+				{
+					productId: product.id,
+					quantity: 2,
+					participantUnits: [],
+					price: 0.01,
+					amount: 1,
+				} as never,
+			],
+		});
+		expect(result.url).toBeTruthy();
+
+		const payment = await paymentsService.getById(result.paymentId);
+		expect(payment).toMatchObject({
+			moduleId: "events",
+			kind: "tickets",
+			userId,
+			status: "pending",
+			mode: "payment",
+			amount: 3000,
+			currency: "eur",
+			subjectRef: `events:event:${event.id}`,
+		});
+		expect(payment?.lines).toEqual([
+			{ label: "Standard Ticket", amount: 1500, quantity: 2 },
+		]);
+		expect(payment?.providerRef).toBeTruthy();
+		const order = await transactionsService.getById(payment?.refId ?? "");
+		expect(order).toMatchObject({
+			status: "pending",
+			paymentId: result.paymentId,
+			totalAmount: 30,
 		});
 
-		expect("error" in result).toBe(false);
-		if (!("error" in result)) {
-			expect(result.sessionId).toBeTruthy();
-			expect(result.url).toBeTruthy();
-		}
-	});
-
-	it("returns an error object when inventory is invalid", async () => {
-		const { userId, cleanup } = createTestUser();
+		const db = openDb();
+		db.prepare("DELETE FROM transaction_items WHERE transaction_id = ?").run(
+			order?.id,
+		);
+		db.prepare("DELETE FROM transactions WHERE id = ?").run(order?.id);
+		db.prepare("DELETE FROM payments WHERE id = ?").run(result.paymentId);
+		db.close();
 		cleanupUserId = cleanup;
-		const { event, product } = await createEventFixture(userId);
-
-		const result = await checkoutService.createSession({
-			eventId: event.id,
-			userId,
-			items: [{ productId: product.id, quantity: 99 }],
-			successUrl: "http://localhost/success",
-			cancelUrl: "http://localhost/cancel",
-		});
-
-		expect("error" in result).toBe(true);
-		if ("error" in result) expect(result.error).toMatch(/maximum/i);
 	});
 });

@@ -1,4 +1,5 @@
 import { component$ } from "@qwik.dev/core";
+import { t } from "~/core/i18n";
 
 /** The result every note or article form action returns (besides zod's field errors). */
 export type ContentFormResult = {
@@ -46,7 +47,7 @@ export const FormMessages = component$<{
 				class="block bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-sm"
 				data-testid="sent-for-review"
 			>
-				Sent for review: it is published once a reviewer approves it.
+				{t("admin.formResult.sentForReviewItIs")}
 			</output>
 		)}
 		{value?.success && !value.inReview && successMessage && (

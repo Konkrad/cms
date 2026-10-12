@@ -1,9 +1,7 @@
 import { component$ } from "@qwik.dev/core";
-import {
-	VISIBILITIES,
-	VISIBILITY_LABELS,
-	type Visibility,
-} from "~/core/scopes/visibility";
+import { t } from "~/core/i18n";
+import { VISIBILITIES, type Visibility } from "~/core/scopes/visibility";
+import { VISIBILITY_LABELS } from "~/core/scopes/visibility-labels";
 
 interface VisibilitySelectorProps {
 	name?: string;
@@ -22,7 +20,9 @@ export const VisibilitySelector = component$<VisibilitySelectorProps>(
 	}) => {
 		return (
 			<div class="space-y-3">
-				<span class="block text-sm font-medium text-gray-700">Visibility</span>
+				<span class="block text-sm font-medium text-gray-700">
+					{t("admin.visibilitySelector.visibility")}
+				</span>
 				<div class="space-y-2">
 					{options.map((option) => (
 						<label

@@ -16,6 +16,7 @@ import {
 } from "~/core/auth/email-auth";
 import { db } from "~/core/db/connection";
 import { logins, sessions, users } from "~/core/db/schema";
+import { t } from "~/core/i18n";
 import { emailNotificationsService } from "~/core/notifications/email-notifications.service";
 import { env } from "~/env";
 
@@ -153,23 +154,23 @@ export const emailAuthService = {
 			.from(logins)
 			.where(eq(logins.email, normalizedEmail));
 		if (rows.length === 0) {
-			throw new Error("Invalid or expired link");
+			throw new Error(t("core.auth.linkInvalidOrExpired"));
 		}
 		const login = rows[0] as any;
 
 		// Expiry check
 		if (new Date(login.expiresAt) < new Date()) {
-			throw new Error("Link expired");
+			throw new Error(t("core.auth.linkExpired"));
 		}
 
 		// Single-use check
 		if (login.magicUsed) {
-			throw new Error("Link already used");
+			throw new Error(t("core.auth.linkUsed"));
 		}
 
 		// Verify token
 		if (!login.magicHash || !verifyMagicToken(rawToken, login.magicHash)) {
-			throw new Error("Invalid link");
+			throw new Error(t("core.auth.linkInvalid"));
 		}
 
 		// Mark magic as used
@@ -215,16 +216,16 @@ export const emailAuthService = {
 			.from(logins)
 			.where(eq(logins.email, normalizedEmail));
 		if (rows.length === 0) {
-			throw new Error("Invalid or expired code");
+			throw new Error(t("core.auth.codeInvalidOrExpired"));
 		}
 		const login = rows[0] as any;
 
 		if (new Date(login.expiresAt) < new Date()) {
-			throw new Error("Code expired");
+			throw new Error(t("core.auth.codeExpired"));
 		}
 
 		if (login.otpUsed) {
-			throw new Error("Code already used");
+			throw new Error(t("core.auth.codeUsed"));
 		}
 
 		const ok =
@@ -243,8 +244,8 @@ export const emailAuthService = {
 			const attemptsLeft = Math.max(0, OTP_ATTEMPTS_LIMIT - attempts);
 			throw new Error(
 				attemptsLeft === 0
-					? "Too many attempts"
-					: `Invalid code (${attemptsLeft} attempts left)`,
+					? t("core.auth.tooManyAttempts")
+					: t("core.auth.codeInvalidAttemptsLeft", { count: attemptsLeft }),
 			);
 		}
 

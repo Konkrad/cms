@@ -1,6 +1,7 @@
 import { answerRows } from "~/core/forms/answers";
 import { formsService } from "~/core/forms/forms.service";
 import { forms } from "~/core/forms/forms-api";
+import { t } from "~/core/i18n";
 import { notify } from "~/core/notifications/notify";
 import { locateRef } from "~/core/registry/refs";
 import type { ReviewHook } from "~/core/reviews/define";
@@ -37,7 +38,7 @@ export class ReviewError extends Error {
 /** The user may not decide this submission. */
 export class ReviewAccessError extends Error {
 	constructor() {
-		super("You cannot decide this review");
+		super(t("core.reviews.cannotDecide"));
 		this.name = "ReviewAccessError";
 	}
 }
@@ -140,10 +141,10 @@ export const reviews = {
 		input: { formId?: string | null; answers?: unknown } = {},
 	): Promise<{ required: boolean; reviewId: string | null }> {
 		const item = await locateRef(ref);
-		if (!item) throw new ReviewError("Unknown item");
+		if (!item) throw new ReviewError(t("core.reviews.unknownItem"));
 		const latest = await reviewsService.latestFor(ref);
 		if (latest?.status === "in_review")
-			throw new ReviewError("This item is already waiting for review");
+			throw new ReviewError(t("core.reviews.alreadyWaiting"));
 		const answers = input.formId
 			? (
 					await forms.submit(ctx, input.formId, {
@@ -175,7 +176,7 @@ export const reviews = {
 	 */
 	async isRequired(ctx: { userId: string }, ref: string): Promise<boolean> {
 		const item = await locateRef(ref);
-		if (!item) throw new ReviewError("Unknown item");
+		if (!item) throw new ReviewError(t("core.reviews.unknownItem"));
 		if (await reviewsService.hasApproved(ref)) return false;
 		return reviewRequired({ id: ctx.userId }, item.scopeId, item.visibility);
 	},
@@ -224,17 +225,17 @@ export async function decideReview(
 ): Promise<Review> {
 	const review = await reviewsService.getById(reviewId);
 	if (!review || review.status !== "in_review")
-		throw new ReviewError("This review is not waiting for a decision");
+		throw new ReviewError(t("core.reviews.notWaiting"));
 	if (!(await canDecide(user, review))) throw new ReviewAccessError();
 	const comment = decision.comment?.trim() || null;
 	if (!decision.approve && !comment)
-		throw new ReviewError("Say what should change when you reject");
+		throw new ReviewError(t("core.reviews.commentRequired"));
 	const decided = await reviewsService.decide(review.id, {
 		status: decision.approve ? "approved" : "rejected",
 		reviewedBy: user.id,
 		comment,
 	});
-	if (!decided) throw new ReviewError("This review was decided meanwhile");
+	if (!decided) throw new ReviewError(t("core.reviews.decidedMeanwhile"));
 	const hook: ReviewHook = decision.approve ? "onApproved" : "onRejected";
 	const { owner, type } = ownerOf(review.ref);
 	await handlerCallsService.enqueue({

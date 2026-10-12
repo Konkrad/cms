@@ -1,4 +1,5 @@
 import { createElement } from "react";
+import { t } from "~/core/i18n";
 import type { NotificationDefinition } from "~/core/notifications/define";
 import { defineNotification } from "~/core/notifications/define";
 import NoticeEmail from "~theme/emails/Notice";
@@ -32,7 +33,10 @@ async function reviewContext(reviewId: string) {
 	return {
 		review,
 		title: item?.title ?? review.ref,
-		scopeName: scope?.parentId === null ? "the site" : (scope?.name ?? ""),
+		scopeName:
+			scope?.parentId === null
+				? t("core.reviews.theSite")
+				: (scope?.name ?? ""),
 		queueUrl: scope ? adminUrl(scope.path, "reviews") : "/admin",
 		itemUrl: url,
 	};
@@ -42,24 +46,27 @@ export const reviewRequestedNotification = defineNotification<{
 	reviewId: string;
 }>({
 	id: "reviews.requested",
-	label: "Content waiting for review",
+	label: t("core.reviews.requested.label"),
 	channels: ["email"],
 	optional: false,
 	render: {
 		email: async (data, ctx) => {
 			const c = await reviewContext(data.reviewId);
 			return {
-				subject: `Review requested: ${c.title}`,
+				subject: t("core.reviews.requested.subject", { title: c.title }),
 				react: createElement(NoticeEmail, {
 					baseUrl: ctx.appUrl,
 					recipientName: ctx.recipient.name ?? "there",
-					title: "Review requested",
+					title: t("core.reviews.requested.title"),
 					subtitle: c.scopeName,
 					paragraphs: [
-						`"${c.title}" from ${c.scopeName} is waiting for your review. It is published once a reviewer approves it.`,
+						t("core.reviews.requested.body", {
+							title: c.title,
+							scopeName: c.scopeName,
+						}),
 					],
 					quote: null,
-					buttonLabel: "Open the review queue",
+					buttonLabel: t("core.reviews.requested.button"),
 					buttonUrl: new URL(c.queueUrl, ctx.appUrl).toString(),
 					unsubscribeUrl: ctx.unsubscribeUrl,
 				}),
@@ -72,7 +79,7 @@ export const reviewDecidedNotification = defineNotification<{
 	reviewId: string;
 }>({
 	id: "reviews.decided",
-	label: "Review decision",
+	label: t("core.reviews.decided.label"),
 	channels: ["email"],
 	optional: false,
 	render: {
@@ -81,20 +88,24 @@ export const reviewDecidedNotification = defineNotification<{
 			const approved = c.review.status === "approved";
 			return {
 				subject: approved
-					? `Approved: ${c.title}`
-					: `Changes requested: ${c.title}`,
+					? t("core.reviews.decided.approvedSubject", { title: c.title })
+					: t("core.reviews.decided.rejectedSubject", { title: c.title }),
 				react: createElement(NoticeEmail, {
 					baseUrl: ctx.appUrl,
 					recipientName: ctx.recipient.name ?? "there",
-					title: approved ? "Approved" : "Not approved yet",
+					title: approved
+						? t("core.reviews.decided.approvedTitle")
+						: t("core.reviews.decided.rejectedTitle"),
 					subtitle: c.scopeName,
 					paragraphs: [
 						approved
-							? `"${c.title}" was approved and is published.`
-							: `"${c.title}" was not approved. You can change it and submit it again.`,
+							? t("core.reviews.decided.approvedBody", { title: c.title })
+							: t("core.reviews.decided.rejectedBody", { title: c.title }),
 					],
 					quote: c.review.comment,
-					buttonLabel: approved ? "View it" : "Open your submissions",
+					buttonLabel: approved
+						? t("core.reviews.decided.viewIt")
+						: t("core.reviews.decided.openSubmissions"),
 					buttonUrl: new URL(
 						(approved && c.itemUrl) || c.queueUrl,
 						ctx.appUrl,

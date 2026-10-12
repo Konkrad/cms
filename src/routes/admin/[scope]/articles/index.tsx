@@ -11,7 +11,7 @@ import { Button } from "~/components/ui/Button";
 import { PAGE_SIZE, Pagination } from "~/core/admin/Pagination/Pagination";
 import { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 import { articlesService } from "~/core/content/articles.service";
-import { formatDate } from "~/core/i18n";
+import { formatDate, t } from "~/core/i18n";
 import { publicImageUrlFromKey } from "~/core/media/images";
 import { ReviewStatusBadge } from "~/core/reviews/ReviewStatusBadge";
 import { withReviewStatus } from "~/core/reviews/reviews";
@@ -80,28 +80,35 @@ export default component$(() => {
 		<div>
 			<div class="flex items-center justify-between mb-6">
 				<h2 class="text-2xl font-bold text-gray-800">
-					{data.value.isRoot ? "All Articles" : "Group Articles"}
+					{data.value.isRoot
+						? t("admin.articles.allArticles")
+						: t("admin.articles.groupArticles")}
 				</h2>
-				<Button href={`${data.value.base}/articles/new`}>New article</Button>
+				<Button href={`${data.value.base}/articles/new`}>
+					{t("admin.articles.newArticle")}
+				</Button>
 			</div>
 
-			<SearchBar value={data.value.search} placeholder="Search articles…" />
+			<SearchBar
+				value={data.value.search}
+				placeholder={t("admin.articles.searchArticles")}
+			/>
 
 			<div class="bg-white rounded-lg shadow-sm overflow-x-auto">
 				<table class="min-w-full divide-y divide-gray-200">
 					<thead class="bg-gray-50">
 						<tr>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Article
+								{t("admin.articles.article")}
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Author
+								{t("admin.articles.author")}
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Published
+								{t("admin.articles.published")}
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Actions
+								{t("admin.articles.actions")}
 							</th>
 						</tr>
 					</thead>
@@ -145,7 +152,7 @@ export default component$(() => {
 											href={`${data.value.base}/articles/${article.id}/edit`}
 											class="text-blue-600 hover:text-blue-900"
 										>
-											Edit
+											{t("admin.articles.edit")}
 										</Link>
 										<Form action={deleteArticle}>
 											<input
@@ -158,13 +165,14 @@ export default component$(() => {
 												preventdefault:click
 												class="text-red-600 hover:text-red-900"
 												onClick$={(e) => {
-													if (!confirm("Delete this article?")) return;
+													if (!confirm(t("admin.articles.confirmDelete")))
+														return;
 													(e.target as HTMLElement)
 														.closest("form")
 														?.requestSubmit();
 												}}
 											>
-												Delete
+												{t("admin.articles.delete")}
 											</button>
 										</Form>
 									</div>
@@ -176,8 +184,10 @@ export default component$(() => {
 				{data.value.articles.length === 0 && (
 					<div class="text-center py-12 text-gray-500">
 						{data.value.search
-							? `No articles matching "${data.value.search}".`
-							: "No articles yet. Write the first one!"}
+							? t("admin.articles.noArticlesMatching", {
+									search: data.value.search,
+								})
+							: t("admin.articles.noArticlesYetWriteThe")}
 					</div>
 				)}
 				<Pagination

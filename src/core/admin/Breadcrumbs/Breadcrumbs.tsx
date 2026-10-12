@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Link, useLocation } from "@qwik.dev/router";
+import { t } from "~/core/i18n";
 
 interface BreadcrumbsProps {
 	/** The scope and its ancestors, root first; `href` where the user may open that admin. */
@@ -17,36 +18,40 @@ export const Breadcrumbs = component$<BreadcrumbsProps>(({ trail }) => {
 	const breadcrumbs: Array<{ label: string; href?: string }> = [];
 
 	// Always start with Admin
-	breadcrumbs.push({ label: "Admin", href: "/admin" }, ...trail);
+	breadcrumbs.push(
+		{ label: t("admin.breadcrumbs.admin"), href: "/admin" },
+		...trail,
+	);
 
 	// Add specific section breadcrumbs
 	if (segments.includes("events")) {
-		breadcrumbs.push({ label: "Events" });
+		breadcrumbs.push({ label: t("admin.nav.events") });
 		if (segments.includes("new")) {
-			breadcrumbs.push({ label: "New Event" });
+			breadcrumbs.push({ label: t("admin.breadcrumbs.newEvent") });
 		} else if (segments.includes("edit")) {
-			breadcrumbs.push({ label: "Edit Event" });
+			breadcrumbs.push({ label: t("admin.breadcrumbs.editEvent") });
 		}
 	} else if (segments.includes("notes")) {
-		breadcrumbs.push({ label: "Notes" });
-		if (segments.includes("edit")) breadcrumbs.push({ label: "Edit Note" });
+		breadcrumbs.push({ label: t("admin.nav.notes") });
+		if (segments.includes("edit"))
+			breadcrumbs.push({ label: t("admin.breadcrumbs.editNote") });
 	} else if (segments.includes("articles")) {
-		breadcrumbs.push({ label: "Articles" });
+		breadcrumbs.push({ label: t("admin.nav.articles") });
 		if (segments.includes("new")) {
-			breadcrumbs.push({ label: "New Article" });
+			breadcrumbs.push({ label: t("admin.breadcrumbs.newArticle") });
 		} else if (segments.includes("edit")) {
-			breadcrumbs.push({ label: "Edit Article" });
+			breadcrumbs.push({ label: t("admin.breadcrumbs.editArticle") });
 		}
 	} else if (segments.includes("users")) {
-		breadcrumbs.push({ label: "Users" });
+		breadcrumbs.push({ label: t("admin.nav.users") });
 	} else if (segments.includes("pages")) {
-		breadcrumbs.push({ label: "Pages" });
+		breadcrumbs.push({ label: t("admin.nav.pages") });
 	} else if (segments.includes("notifications")) {
-		breadcrumbs.push({ label: "Notifications" });
+		breadcrumbs.push({ label: t("admin.nav.notifications") });
 	} else if (segments.includes("members")) {
-		breadcrumbs.push({ label: "Members" });
+		breadcrumbs.push({ label: t("admin.nav.members") });
 	} else if (segments[2] && segments[3] === "scope") {
-		breadcrumbs.push({ label: "Group settings" });
+		breadcrumbs.push({ label: t("admin.nav.groupSettings") });
 	}
 
 	return (

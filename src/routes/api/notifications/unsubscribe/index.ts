@@ -1,4 +1,5 @@
 import type { RequestEvent, RequestHandler } from "@qwik.dev/router";
+import { siteLocale, t } from "~/core/i18n";
 import {
 	isMutable,
 	setNotificationPreference,
@@ -26,7 +27,7 @@ function authorize(event: RequestEvent) {
 		? getNotificationDefinition(scope.notificationId)
 		: undefined;
 	if (!scope || !isMutable(def, scope.channel)) {
-		throw event.error(400, "This unsubscribe link is invalid.");
+		throw event.error(400, t("core.unsubscribe.invalidLink"));
 	}
 	return { token, scope, label: def.label };
 }
@@ -36,10 +37,13 @@ export const onGet: RequestHandler = async (event) => {
 	event.html(
 		200,
 		page(
-			"Unsubscribe",
-			`<p>Stop receiving <strong>${escapeHtml(label)}</strong> by ${escapeHtml(scope.channel)}?</p>
+			t("core.unsubscribe.title"),
+			`<p>${t("core.unsubscribe.question", {
+				label: `<strong>${escapeHtml(label)}</strong>`,
+				channel: escapeHtml(scope.channel),
+			})}</p>
 <form method="post" action="?token=${encodeURIComponent(token)}">
-<button type="submit">Unsubscribe</button>
+<button type="submit">${t("core.unsubscribe.button")}</button>
 </form>`,
 		),
 	);
@@ -51,9 +55,12 @@ export const onPost: RequestHandler = async (event) => {
 	event.html(
 		200,
 		page(
-			"Unsubscribed",
-			`<p>You will no longer receive <strong>${escapeHtml(label)}</strong> by ${escapeHtml(scope.channel)}.</p>
-<p>You can turn it back on in your <a href="/profile">profile</a>.</p>`,
+			t("core.unsubscribe.doneTitle"),
+			`<p>${t("core.unsubscribe.done", {
+				label: `<strong>${escapeHtml(label)}</strong>`,
+				channel: escapeHtml(scope.channel),
+			})}</p>
+<p>${t("core.unsubscribe.turnBackOn", { profile: `<a href="/profile">${t("core.unsubscribe.profile")}</a>` })}</p>`,
 		),
 	);
 };
@@ -76,7 +83,7 @@ const escapeHtml = (value: string) =>
 	);
 
 const page = (title: string, body: string) => `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="${siteLocale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex"><title>${title}</title></head>
 <body style="font-family: system-ui, sans-serif; max-width: 32rem; margin: 3rem auto; padding: 0 1rem;">
 <h1>${title}</h1>

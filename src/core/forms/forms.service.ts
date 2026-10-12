@@ -10,6 +10,7 @@ import {
 	formAssignments,
 	forms,
 } from "~/core/forms/schema/forms";
+import { t } from "~/core/i18n";
 import { scopesService } from "~/core/scopes/scopes.service";
 import { slugify, uniqueSlug } from "~/core/shared/slug";
 
@@ -18,9 +19,7 @@ export type { Form, FormSchema };
 /** The form has results, so its questions can no longer change (spec 4.10). */
 export class FormLockedError extends Error {
 	constructor() {
-		super(
-			"This form has answers, so its questions can no longer be edited. Duplicate it to change them.",
-		);
+		super(t("core.forms.locked"));
 		this.name = "FormLockedError";
 	}
 }
@@ -194,7 +193,7 @@ export const formsService = {
 		scopeId?: string,
 	): Promise<Form> {
 		const original = await this.getById(id);
-		if (!original) throw new FormInputError("Form not found");
+		if (!original) throw new FormInputError(t("core.forms.notFound"));
 		const targetScope = scopeId ?? original.scopeId;
 		const slug = await uniqueSlug(
 			slugify(`${original.slug}-copy`) || "form-copy",
@@ -281,11 +280,11 @@ export const formAssignmentsService = {
 			return;
 		}
 		const form = await formsService.getById(formId);
-		if (!form) throw new FormInputError("Form not found");
+		if (!form) throw new FormInputError(t("core.forms.notFound"));
 		if (form.purpose !== purpose)
-			throw new FormInputError("The form is not made for this purpose");
+			throw new FormInputError(t("core.forms.wrongPurpose"));
 		if (!(await formsService.isAvailableIn(form, scopeId)))
-			throw new FormInputError("The form does not belong to this scope");
+			throw new FormInputError(t("core.forms.wrongScope"));
 		const now = new Date().toISOString();
 		await db
 			.insert(formAssignments)

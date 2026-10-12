@@ -2,6 +2,7 @@ import type { RequestEventLoader } from "@qwik.dev/router";
 import type { ScopeViewData } from "~/contracts/scopes";
 import { stream } from "~/core/content/stream.service";
 import { toStreamCards } from "~/core/content/stream-cards";
+import { t } from "~/core/i18n";
 import { publicImageUrlFromKey } from "~/core/media/images";
 import { activeScopeExtras } from "~/core/registry/manifests";
 import { scopeUrl } from "~/core/router/scope-path";
@@ -84,7 +85,7 @@ export async function loadScopeHome(
 		rep: rep
 			? {
 					name: `${rep.name} ${rep.familyName}`,
-					subtitle: `Local Rep ${scope.name}`,
+					subtitle: t("core.scopes.localRep", { name: scope.name }),
 					profilePictureUrl: rep.profilePictureSmallUrl,
 					profileUrl: buildProfileUrl(rep),
 				}

@@ -4,6 +4,7 @@ import { Button } from "~/components/ui/Button";
 import { VisibilitySelector } from "~/core/admin/VisibilitySelector";
 import { NOTE_MAX_LENGTH, toPlainText } from "~/core/content/content-items";
 import { BlockNoteEditor } from "~/core/content/editor";
+import { t } from "~/core/i18n";
 import type { Visibility } from "~/core/scopes/visibility";
 import { type ContentFormActionValue, FormMessages } from "./form-result";
 import { SubjectPicker } from "./SubjectPicker";
@@ -40,7 +41,9 @@ export const NoteForm = component$<{
 	return (
 		<Form action={props.action} class="space-y-4" data-testid="note-form">
 			<div>
-				<p class="block text-sm font-medium text-gray-700 mb-2">Note</p>
+				<p class="block text-sm font-medium text-gray-700 mb-2">
+					{t("admin.noteForm.note")}
+				</p>
 				<div class="border border-gray-300 rounded-lg overflow-hidden">
 					<BlockNoteEditor
 						editorState={null}
@@ -57,8 +60,10 @@ export const NoteForm = component$<{
 					class={`mt-1 text-xs ${length > NOTE_MAX_LENGTH ? "text-red-600" : "text-gray-500"}`}
 					data-testid="note-length"
 				>
-					{length} / {NOTE_MAX_LENGTH} characters. Text and links only; for
-					more, write an article.
+					{t("admin.noteForm.charactersTextAndLinksOnly", {
+						length,
+						NOTE_MAX_LENGTH,
+					})}
 				</p>
 			</div>
 
@@ -81,11 +86,13 @@ export const NoteForm = component$<{
 
 			<div class="flex gap-4">
 				<Button type="submit" disabled={props.action.isRunning}>
-					{props.action.isRunning ? "Saving..." : (props.submitLabel ?? "Save")}
+					{props.action.isRunning
+						? t("admin.noteForm.saving")
+						: (props.submitLabel ?? t("admin.noteForm.save"))}
 				</Button>
 				{props.cancelHref && (
 					<Button href={props.cancelHref} variant="secondary">
-						Cancel
+						{t("admin.noteForm.cancel")}
 					</Button>
 				)}
 			</div>

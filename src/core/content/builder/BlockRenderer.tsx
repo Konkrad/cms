@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { BlockData } from "~/core/db/schema";
+import { t } from "~/core/i18n";
 import { disabledBlocks } from "~/core/registry/blocks";
 import { blockRegistry } from "~theme/blocks";
 
@@ -16,7 +17,9 @@ export const BlockRenderer = component$<BlockRendererProps>((props) => {
 	if (!BlockComponent) {
 		return (
 			<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-600 text-sm">
-				Failed to load component: {props.block.componentType}
+				{t("admin.blockRenderer.failedToLoadComponent", {
+					componentType: props.block.componentType,
+				})}
 			</div>
 		);
 	}

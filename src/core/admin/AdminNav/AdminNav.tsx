@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Link, useLocation } from "@qwik.dev/router";
+import { t } from "~/core/i18n";
 
 interface NavItem {
 	order: number;
@@ -27,15 +28,24 @@ export const AdminNav = component$<AdminNavProps>(
 		// Every entry has a fixed sort number so module sections can sit between core entries
 		// (e.g. Deals/Jobs between Groups and Qualifications). Sections without `order` go last.
 		const navItems: NavItem[] = [
-			{ order: 0, href: basePath, label: "Dashboard", exact: true },
-			{ order: 20, href: `${basePath}/notes`, label: "Notes" },
-			{ order: 21, href: `${basePath}/articles`, label: "Articles" },
-			{ order: 40, href: `${basePath}/forms`, label: "Forms" },
-			{ order: 50, href: `${basePath}/pages`, label: "Pages" },
+			{
+				order: 0,
+				href: basePath,
+				label: t("admin.nav.dashboard"),
+				exact: true,
+			},
+			{ order: 20, href: `${basePath}/notes`, label: t("admin.nav.notes") },
+			{
+				order: 21,
+				href: `${basePath}/articles`,
+				label: t("admin.nav.articles"),
+			},
+			{ order: 40, href: `${basePath}/forms`, label: t("admin.nav.forms") },
+			{ order: 50, href: `${basePath}/pages`, label: t("admin.nav.pages") },
 			{
 				order: 60,
 				href: `${basePath}/scope`,
-				label: isRoot ? "Groups" : "Group settings",
+				label: isRoot ? t("admin.nav.groups") : t("admin.nav.groupSettings"),
 			},
 		];
 		// The members of a group (public profiles); the root has the users view instead.
@@ -43,19 +53,23 @@ export const AdminNav = component$<AdminNavProps>(
 			navItems.push({
 				order: 10,
 				href: `${basePath}/members`,
-				label: "Members",
+				label: t("admin.nav.members"),
 			});
 		}
 
 		// System sections: root only
 		if (isRoot) {
 			navItems.push(
-				{ order: 10, href: `${basePath}/users`, label: "Users" },
-				{ order: 890, href: `${basePath}/payments`, label: "Payments" },
+				{ order: 10, href: `${basePath}/users`, label: t("admin.nav.users") },
+				{
+					order: 890,
+					href: `${basePath}/payments`,
+					label: t("admin.nav.payments"),
+				},
 				{
 					order: 900,
 					href: `${basePath}/notifications`,
-					label: "Notifications",
+					label: t("admin.nav.notifications"),
 				},
 			);
 		}
@@ -67,7 +81,11 @@ export const AdminNav = component$<AdminNavProps>(
 				label: section.label,
 			});
 		}
-		navItems.push({ order: 15, href: `${basePath}/reviews`, label: "Reviews" });
+		navItems.push({
+			order: 15,
+			href: `${basePath}/reviews`,
+			label: t("admin.nav.reviews"),
+		});
 		if (reviewOnly) navItems.splice(0, navItems.length - 1);
 		navItems.sort((a, b) => a.order - b.order);
 

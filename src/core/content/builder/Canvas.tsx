@@ -1,5 +1,6 @@
 import { $, component$, type QRL } from "@qwik.dev/core";
 import type { BlockData, BlockDefinition } from "~/core/db/schema";
+import { t } from "~/core/i18n";
 import { BlockWrapper } from "./BlockWrapper";
 
 interface CanvasProps {
@@ -25,10 +26,10 @@ export const Canvas = component$<CanvasProps>((props) => {
 					<div class="bg-white rounded-lg shadow-xs border-2 border-dashed border-gray-300 p-12 text-center">
 						<div class="text-6xl mb-4">🎨</div>
 						<h3 class="text-xl font-semibold text-gray-700 mb-2">
-							Start Building Your Page
+							{t("admin.canvas.startBuildingYourPage")}
 						</h3>
 						<p class="text-gray-500">
-							Select a component from the sidebar to add it to your page
+							{t("admin.canvas.selectAComponentFromThe")}
 						</p>
 					</div>
 				) : (

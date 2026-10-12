@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
+import { t } from "~/core/i18n";
 
 export interface ScopeSwitcherItem {
 	id: string;
@@ -19,7 +20,7 @@ export const ScopeSwitcher = component$<{
 	return (
 		<details class="relative" data-testid="scope-switcher">
 			<summary class="list-none cursor-pointer rounded border border-slate-500 px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-700">
-				Switch group ▾
+				{t("admin.scopeSwitcher.switchGroup")}
 			</summary>
 			<ul class="absolute right-0 z-20 mt-1 max-h-80 w-64 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 text-sm text-gray-800 shadow-lg">
 				{scopes.map((s) => (

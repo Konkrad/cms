@@ -1,4 +1,5 @@
 import { component$, type QRL, Slot } from "@qwik.dev/core";
+import { t } from "~/core/i18n";
 
 type ModalProps = {
 	open: boolean;
@@ -40,7 +41,7 @@ export const Modal = component$<ModalProps>(
 								type="button"
 								onClick$={onClose$}
 								class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-text-muted hover:text-text"
-								aria-label="Close"
+								aria-label={t("core.ui.modal.close")}
 							>
 								<svg
 									aria-hidden="true"

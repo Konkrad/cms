@@ -1,3 +1,4 @@
+import { t } from "~/core/i18n";
 /** Client-safe helpers for notes and articles (spec 4.4; no server imports). */
 
 /**
@@ -15,9 +16,9 @@ export type StreamFilter = (typeof STREAM_FILTERS)[number];
 
 /** Archive titles by filter (`/archive/all`, `/archive/notes`, `/archive/articles`). */
 export const ARCHIVE_TITLES: Record<StreamFilter, string> = {
-	all: "News Archive",
-	notes: "Notes Archive",
-	articles: "Article Archive",
+	all: t("core.archive.allTitle"),
+	notes: t("core.archive.notesTitle"),
+	articles: t("core.archive.articlesTitle"),
 };
 
 /** A URL segment or block setting as a filter, or null for an unknown one. */

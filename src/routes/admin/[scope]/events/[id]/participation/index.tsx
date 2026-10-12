@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
+import { t } from "~/core/i18n";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { AdminEventParticipation } from "../../../../../../modules/events/admin/participation";
 import { loadAdminParticipation } from "../../../../../../modules/events/admin/participation-data";
@@ -20,11 +21,13 @@ export default component$(() => {
 export const head: DocumentHead = ({ resolveValue }) => {
 	const { event } = resolveValue(useParticipation);
 	return {
-		title: `Participation Summary - ${event.title}`,
+		title: t("admin.events.participation.title", { title: event.title }),
 		meta: [
 			{
 				name: "description",
-				content: `Participation summary for ${event.title} event`,
+				content: t("admin.events.participation.description", {
+					title: event.title,
+				}),
 			},
 		],
 	};

@@ -5,6 +5,7 @@ import {
 	useSignal,
 	useVisibleTask$,
 } from "@qwik.dev/core";
+import { t } from "~/core/i18n";
 import {
 	type GeocodingResult,
 	geocodingService,
@@ -26,7 +27,7 @@ export const AddressAutocomplete = component$<AddressAutocompleteProps>(
 	({
 		name,
 		label,
-		placeholder = "Start typing an address...",
+		placeholder = t("core.ui.addressAutocomplete.placeholder"),
 		required = false,
 		value = "",
 		latitudeSignal,

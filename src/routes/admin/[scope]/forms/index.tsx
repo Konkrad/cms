@@ -17,7 +17,7 @@ import {
 	formsService,
 } from "~/core/forms/forms.service";
 import { isSurveyForm } from "~/core/forms/purposes";
-import { formatDate } from "~/core/i18n";
+import { formatDate, t } from "~/core/i18n";
 import { formPurposes, isFormPurpose } from "~/core/registry/forms";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import {
@@ -76,7 +76,7 @@ export const useSetActiveForm = routeAction$(
 	async (data, event) => {
 		const { scope } = await resolveFormsAdminScope(event);
 		if (!isFormPurpose(data.purpose))
-			return event.fail(400, { message: "Unknown purpose" });
+			return event.fail(400, { message: t("admin.forms.unknownPurpose") });
 		try {
 			await formAssignmentsService.setActive(
 				data.purpose,
@@ -98,7 +98,7 @@ export const useDuplicateForm = routeAction$(
 	async (data, event) => {
 		const { scope, userId } = await resolveFormsAdminScope(event);
 		const form = await getOwnForm(scope, data.formId);
-		if (!form) return event.fail(404, { message: "Form not found" });
+		if (!form) return event.fail(404, { message: t("admin.forms.notFound") });
 		const copy = await formsService.duplicate(form.id, userId);
 		throw event.redirect(
 			303,
@@ -119,8 +119,10 @@ export default component$(() => {
 	return (
 		<div>
 			<div class="flex justify-between items-center mb-6">
-				<h2 class="text-2xl font-bold">Manage Forms</h2>
-				<Button href={`${data.value.basePath}/new`}>Create New Form</Button>
+				<h2 class="text-2xl font-bold">{t("admin.forms.manageForms")}</h2>
+				<Button href={`${data.value.basePath}/new`}>
+					{t("admin.forms.createNewForm")}
+				</Button>
 			</div>
 
 			{data.value.purposes.length > 0 && (
@@ -128,13 +130,16 @@ export default component$(() => {
 					class="bg-white shadow-sm rounded-lg p-6 mb-8"
 					data-testid="active-forms"
 				>
-					<h3 class="text-lg font-semibold mb-1">Active forms</h3>
+					<h3 class="text-lg font-semibold mb-1">
+						{t("admin.forms.activeForms")}
+					</h3>
 					<p class="text-sm text-gray-500 mb-4">
-						The form each workflow uses in this group and below, unless a group
-						further down picks another.
+						{t("admin.forms.theFormEachWorkflowUses")}
 					</p>
 					{setActive.value?.success && (
-						<output class="block text-sm text-green-700 mb-3">Saved.</output>
+						<output class="block text-sm text-green-700 mb-3">
+							{t("admin.forms.saved")}
+						</output>
 					)}
 					{setActive.value?.failed && (
 						<p class="text-sm text-red-700 mb-3">{setActive.value.message}</p>
@@ -152,12 +157,16 @@ export default component$(() => {
 								<select
 									name="formId"
 									class="border border-gray-300 rounded-sm px-2 py-1 text-sm"
-									aria-label={`Active form for ${p.label}`}
+									aria-label={t("admin.forms.activeFormFor", {
+										label: p.label,
+									})}
 								>
 									<option value="" selected={p.inherited || !p.activeFormId}>
 										{p.inherited
-											? `Inherited: ${p.activeTitle}`
-											: "None (inherit from above)"}
+											? t("admin.forms.inherited", {
+													activeTitle: p.activeTitle ?? "",
+												})
+											: t("admin.forms.noneInheritFromAbove")}
 									</option>
 									{p.options.map((f) => (
 										<option
@@ -173,7 +182,7 @@ export default component$(() => {
 									type="submit"
 									class="text-blue-600 hover:text-blue-900 text-sm font-medium"
 								>
-									Save
+									{t("admin.forms.save")}
 								</button>
 							</Form>
 						))}
@@ -183,18 +192,18 @@ export default component$(() => {
 
 			{data.value.forms.length === 0 ? (
 				<div class="bg-white shadow-sm rounded-lg p-8 text-center">
-					<p class="text-gray-500">No forms created yet.</p>
+					<p class="text-gray-500">{t("admin.forms.noFormsCreatedYet")}</p>
 				</div>
 			) : (
 				<AdminTable>
 					<thead class="bg-gray-50">
 						<tr>
-							<th class={th}>Title</th>
-							<th class={th}>Purpose</th>
-							<th class={th}>Visibility</th>
-							<th class={th}>Updated</th>
-							<th class={th}>Responses</th>
-							<th class={th}>Actions</th>
+							<th class={th}>{t("admin.forms.edit.title")}</th>
+							<th class={th}>{t("admin.forms.edit.purpose")}</th>
+							<th class={th}>{t("admin.forms.edit.visibility")}</th>
+							<th class={th}>{t("admin.forms.updated")}</th>
+							<th class={th}>{t("admin.forms.responses.responses")}</th>
+							<th class={th}>{t("admin.forms.actions")}</th>
 						</tr>
 					</thead>
 					<tbody class="bg-white divide-y divide-gray-200">
@@ -205,9 +214,9 @@ export default component$(() => {
 									{form.responses > 0 && (
 										<span
 											class="ml-2 text-xs text-gray-500"
-											title="This form has answers: its questions can no longer be edited"
+											title={t("admin.forms.thisFormHasAnswersIts")}
 										>
-											(locked)
+											{t("admin.forms.locked")}
 										</span>
 									)}
 								</td>
@@ -234,20 +243,20 @@ export default component$(() => {
 												href={form.publicPath}
 												class="text-blue-600 hover:text-blue-900"
 											>
-												Open
+												{t("admin.forms.open")}
 											</Link>
 										)}
 										<Link
 											href={`${data.value.basePath}/${form.id}/responses`}
 											class="text-purple-600 hover:text-purple-900"
 										>
-											Responses
+											{t("admin.forms.responses.responses")}
 										</Link>
 										<Link
 											href={`${data.value.basePath}/${form.id}/edit`}
 											class="text-green-600 hover:text-green-900"
 										>
-											Edit
+											{t("admin.forms.edit")}
 										</Link>
 										<Form action={duplicate}>
 											<input type="hidden" name="formId" value={form.id} />
@@ -255,7 +264,7 @@ export default component$(() => {
 												type="submit"
 												class="text-gray-600 hover:text-gray-900"
 											>
-												Duplicate
+												{t("admin.forms.duplicate")}
 											</button>
 										</Form>
 									</div>

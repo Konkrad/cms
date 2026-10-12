@@ -9,6 +9,7 @@ import {
 	subjectFromField,
 } from "~/core/content/content-form";
 import { ContentInputError } from "~/core/content/content-items";
+import { t } from "~/core/i18n";
 import { adminUrl } from "~/core/router/scope-path";
 import {
 	ADMIN_ACCESS,
@@ -55,9 +56,11 @@ export default component$(() => {
 	return (
 		<div>
 			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-2xl font-bold text-gray-800">New article</h2>
+				<h2 class="text-2xl font-bold text-gray-800">
+					{t("admin.articles.new.newArticle")}
+				</h2>
 				<Button href={`${ctx.value.base}/articles`} variant="secondary">
-					Back to Articles
+					{t("admin.articles.new.backToArticles")}
 				</Button>
 			</div>
 			<div class="bg-white rounded-lg shadow-sm p-6">
@@ -65,7 +68,7 @@ export default component$(() => {
 					action={createArticle}
 					visibilities={ctx.value.visibilities}
 					subjectPicker
-					submitLabel="Publish"
+					submitLabel={t("admin.articles.new.publish")}
 					cancelHref={`${ctx.value.base}/articles`}
 				/>
 			</div>

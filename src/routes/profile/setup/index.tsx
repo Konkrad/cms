@@ -2,6 +2,7 @@ import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import type { SetupViewData } from "~/contracts/onboarding";
 import { requireAuth } from "~/core/auth/server-auth";
+import { t } from "~/core/i18n";
 import { requirements } from "~/core/registry/requirements";
 import { GLOBAL_CONTEXT } from "~/core/requirements/define";
 import { safeNextPath } from "~/core/requirements/next-path";
@@ -38,4 +39,4 @@ export default component$(() => {
 	return <SetupView data={data.value} submit={submit} />;
 });
 
-export const head: DocumentHead = { title: "Complete your profile" };
+export const head: DocumentHead = { title: t("core.setup.title") };

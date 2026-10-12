@@ -7,6 +7,7 @@ import {
 } from "@qwik.dev/core";
 import { componentLoaderService } from "~/core/content/component-loader.service";
 import type { BlockData, BlockDefinition } from "~/core/db/schema";
+import { t } from "~/core/i18n";
 
 interface BlockWrapperProps {
 	block: BlockData;
@@ -84,7 +85,7 @@ export const BlockWrapper = component$<BlockWrapperProps>((props) => {
 								e.stopPropagation();
 								props.onMoveUp();
 							}}
-							title="Move Up"
+							title={t("admin.blockWrapper.moveUp")}
 						>
 							↑
 						</button>
@@ -97,7 +98,7 @@ export const BlockWrapper = component$<BlockWrapperProps>((props) => {
 								e.stopPropagation();
 								props.onMoveDown();
 							}}
-							title="Move Down"
+							title={t("admin.blockWrapper.moveDown")}
 						>
 							↓
 						</button>
@@ -109,7 +110,7 @@ export const BlockWrapper = component$<BlockWrapperProps>((props) => {
 							e.stopPropagation();
 							props.onDuplicate();
 						}}
-						title="Duplicate"
+						title={t("admin.blockWrapper.duplicate")}
 					>
 						📋
 					</button>
@@ -118,11 +119,11 @@ export const BlockWrapper = component$<BlockWrapperProps>((props) => {
 						class="px-2 py-1 hover:bg-red-600 rounded-sm transition-colors"
 						onClick$={(e) => {
 							e.stopPropagation();
-							if (confirm("Delete this block?")) {
+							if (confirm(t("admin.blockWrapper.confirmDelete"))) {
 								props.onDelete();
 							}
 						}}
-						title="Delete"
+						title={t("admin.blockWrapper.delete")}
 					>
 						🗑️
 					</button>
@@ -132,14 +133,18 @@ export const BlockWrapper = component$<BlockWrapperProps>((props) => {
 			<div class="pointer-events-none">
 				{loadError.value ? (
 					<div class="p-4 text-sm text-red-600">
-						Failed to load component {props.block.componentType}:{" "}
-						{loadError.value}
+						{t("admin.blockWrapper.failedToLoadComponent", {
+							componentType: props.block.componentType,
+							value: loadError.value,
+						})}
 					</div>
 				) : BlockComponent.value ? (
 					<BlockComponent.value {...props.block.data} />
 				) : (
 					<div class="text-sm text-gray-400">
-						Loading {props.block.componentType}...
+						{t("admin.blockWrapper.loading", {
+							componentType: props.block.componentType,
+						})}
 					</div>
 				)}
 			</div>

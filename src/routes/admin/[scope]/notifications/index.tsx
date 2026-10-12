@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
-import { formatDate } from "~/core/i18n";
+import { formatDate, t } from "~/core/i18n";
 import { notificationOutboxService } from "~/core/notifications/outbox.service";
 import { handlerCallsService } from "~/core/scheduler/handler-calls.service";
 import { scheduleRunsService } from "~/core/scheduler/schedule-runs.service";
@@ -40,7 +40,8 @@ export const useRetryNotification = routeAction$(
 			data.id,
 			new Date(),
 		);
-		if (!requeued) return event.fail(404, { message: "Row not found" });
+		if (!requeued)
+			return event.fail(404, { message: t("admin.notifications.rowNotFound") });
 		return { success: true };
 	},
 	zod$({ id: z.string().uuid() }),
@@ -51,7 +52,9 @@ export const useRetryHandlerCall = routeAction$(
 	async (data, event) => {
 		await requireSystemAdmin(event);
 		if (!(await handlerCallsService.retrySoon(data.id, new Date())))
-			return event.fail(404, { message: "Call not found" });
+			return event.fail(404, {
+				message: t("admin.notifications.callNotFound"),
+			});
 		return { success: true };
 	},
 	zod$({ id: z.string().uuid() }),
@@ -62,7 +65,9 @@ export const useRunScheduleNow = routeAction$(
 	async (data, event) => {
 		await requireSystemAdmin(event);
 		if (!(await scheduleRunsService.runSoon(data.key, new Date())))
-			return event.fail(404, { message: "Schedule not found" });
+			return event.fail(404, {
+				message: t("admin.notifications.scheduleNotFound"),
+			});
 		return { success: true };
 	},
 	zod$({ key: z.string().min(1) }),
@@ -82,32 +87,32 @@ export default component$(() => {
 	return (
 		<div>
 			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-2xl font-bold text-gray-800">Notifications</h2>
+				<h2 class="text-2xl font-bold text-gray-800">
+					{t("admin.notifications.notifications")}
+				</h2>
 			</div>
 			<p class="text-sm text-gray-500 mb-6">
-				Messages that have not been delivered yet. Pending rows are retried
-				automatically with backoff; failed rows have given up and can be
-				re-queued here.
+				{t("admin.notifications.messagesThatHaveNotBeen")}
 			</p>
 
 			<div class="bg-white rounded-lg shadow-sm overflow-x-auto">
 				{rows.length === 0 ? (
 					<div class="px-5 py-8 text-center text-gray-400 text-sm">
-						Nothing failed or waiting.
+						{t("admin.notifications.nothingFailedOrWaiting")}
 					</div>
 				) : (
 					<table class="min-w-full divide-y divide-gray-200 text-sm">
 						<thead class="bg-gray-50">
 							<tr>
 								{[
-									"Status",
-									"Notification",
-									"Channel",
-									"Recipient",
-									"Attempts",
-									"Last error",
-									"Next attempt",
-									"Created",
+									t("admin.notifications.col.status"),
+									t("admin.notifications.col.notification"),
+									t("admin.notifications.col.channel"),
+									t("admin.notifications.col.recipient"),
+									t("admin.notifications.col.attempts"),
+									t("admin.notifications.col.lastError"),
+									t("admin.notifications.col.nextAttempt"),
+									t("admin.notifications.col.created"),
 									"",
 								].map((label) => (
 									<th
@@ -157,7 +162,7 @@ export default component$(() => {
 												type="submit"
 												class="text-blue-600 hover:text-blue-800 font-medium"
 											>
-												Retry
+												{t("admin.notifications.retry")}
 											</button>
 										</Form>
 									</td>
@@ -168,10 +173,11 @@ export default component$(() => {
 				)}
 			</div>
 
-			<h3 class="text-xl font-bold text-gray-800 mt-10 mb-2">Scheduled jobs</h3>
+			<h3 class="text-xl font-bold text-gray-800 mt-10 mb-2">
+				{t("admin.notifications.scheduledJobs")}
+			</h3>
 			<p class="text-sm text-gray-500 mb-4">
-				Recurring jobs whose last run failed. They are retried with backoff;
-				"Run now" runs one at the next tick.
+				{t("admin.notifications.recurringJobsWhoseLastRun")}
 			</p>
 			<div
 				class="bg-white rounded-lg shadow-sm overflow-x-auto"
@@ -179,18 +185,18 @@ export default component$(() => {
 			>
 				{schedules.length === 0 ? (
 					<div class="px-5 py-8 text-center text-gray-400 text-sm">
-						No failing scheduled jobs.
+						{t("admin.notifications.noFailingScheduledJobs")}
 					</div>
 				) : (
 					<table class="min-w-full divide-y divide-gray-200 text-sm">
 						<thead class="bg-gray-50">
 							<tr>
 								{[
-									"Job",
-									"Failures",
-									"Last error",
-									"Last run",
-									"Next run",
+									t("admin.notifications.col.job"),
+									t("admin.notifications.col.failures"),
+									t("admin.notifications.col.lastError"),
+									t("admin.notifications.col.lastRun"),
+									t("admin.notifications.col.nextRun"),
 									"",
 								].map((label) => (
 									<th
@@ -223,7 +229,7 @@ export default component$(() => {
 												type="submit"
 												class="text-blue-600 hover:text-blue-800 font-medium"
 											>
-												Run now
+												{t("admin.notifications.runNow")}
 											</button>
 										</Form>
 									</td>
@@ -234,10 +240,11 @@ export default component$(() => {
 				)}
 			</div>
 
-			<h3 class="text-xl font-bold text-gray-800 mt-10 mb-2">Handler calls</h3>
+			<h3 class="text-xl font-bold text-gray-800 mt-10 mb-2">
+				{t("admin.notifications.handlerCalls")}
+			</h3>
 			<p class="text-sm text-gray-500 mb-4">
-				Module and core handlers (review decisions, payment callbacks and
-				receipts) that failed. They are retried with backoff until they succeed.
+				{t("admin.notifications.moduleAndCoreHandlersReview")}
 			</p>
 			<div
 				class="bg-white rounded-lg shadow-sm overflow-x-auto"
@@ -245,7 +252,7 @@ export default component$(() => {
 			>
 				{handlers.length === 0 ? (
 					<div class="px-5 py-8 text-center text-gray-400 text-sm">
-						No failing handler calls.
+						{t("admin.notifications.noFailingHandlerCalls")}
 					</div>
 				) : (
 					<table class="min-w-full divide-y divide-gray-200 text-sm">
@@ -268,7 +275,7 @@ export default component$(() => {
 												type="submit"
 												class="text-blue-600 hover:text-blue-800 font-medium"
 											>
-												Retry now
+												{t("admin.notifications.retryNow")}
 											</button>
 										</Form>
 									</td>

@@ -14,6 +14,7 @@ import { notes } from "~/core/content/schema/notes";
 import { pages } from "~/core/content/schema/pages";
 import { db } from "~/core/db/connection";
 import { forms } from "~/core/forms/schema/forms";
+import { t } from "~/core/i18n";
 import { redirectsService } from "~/core/router/redirects.service";
 import { adminUrl, childPath, SCOPE_SLUG_RE } from "~/core/router/scope-path";
 import { invalidateScopePaths } from "~/core/router/scope-request";
@@ -111,13 +112,13 @@ export const scopesService = {
 		reservedSlugs: ReadonlySet<string>,
 	): Promise<Scope> {
 		if (!SCOPE_SLUG_RE.test(input.slug))
-			throw new ScopeError(`Invalid scope slug "${input.slug}"`);
+			throw new ScopeError(t("core.scopes.invalidSlug", { slug: input.slug }));
 		if (reservedSlugs.has(input.slug))
-			throw new ScopeError(`Scope slug "${input.slug}" is reserved`);
+			throw new ScopeError(t("core.scopes.reservedSlug", { slug: input.slug }));
 		if (!input.kind.trim()) throw new ScopeError("Scope kind is required");
 		if (input.kind === ROOT_KIND)
 			throw new ScopeError("Only the root has the root kind");
-		if (!input.name.trim()) throw new ScopeError("Scope name is required");
+		if (!input.name.trim()) throw new ScopeError(t("core.scopes.nameRequired"));
 
 		const parent = await this.getById(input.parentId);
 		if (!parent) throw new ScopeError("Parent scope not found");
@@ -128,7 +129,7 @@ export const scopesService = {
 		});
 		if (duplicate)
 			throw new ScopeError(
-				`Scope "${input.slug}" already exists under ${parent.path}`,
+				t("core.scopes.exists", { slug: input.slug, path: parent.path }),
 			);
 		await this.assertNoPageAt(input.parentId, input.slug);
 
@@ -158,9 +159,7 @@ export const scopesService = {
 			where: { scopeId: parentId, slug },
 		});
 		if (page) {
-			throw new ScopeError(
-				`A page with the URL segment "${slug}" already exists there`,
-			);
+			throw new ScopeError(t("core.scopes.pageExists", { slug }));
 		}
 	},
 
@@ -248,20 +247,18 @@ export const scopesService = {
 		const scope = await this.getById(scopeId);
 		if (!scope) throw new ScopeError("Scope not found");
 		if (scope.parentId === null)
-			throw new ScopeError("The root scope cannot be moved");
+			throw new ScopeError(t("core.scopes.rootCannotMove"));
 		const newParent = await this.getById(newParentId);
 		if (!newParent) throw new ScopeError("New parent scope not found");
 		if (newParent.path.startsWith(scope.path)) {
-			throw new ScopeError(
-				"A scope cannot be moved under itself or its descendants",
-			);
+			throw new ScopeError(t("core.scopes.cannotMoveUnderItself"));
 		}
 		const clash = await db.query.scopes.findFirst({
 			where: { parentId: newParentId, slug: scope.slug },
 		});
 		if (clash && clash.id !== scope.id) {
 			throw new ScopeError(
-				`Scope "${scope.slug}" already exists under ${newParent.path}`,
+				t("core.scopes.exists", { slug: scope.slug, path: newParent.path }),
 			);
 		}
 		await this.assertNoPageAt(newParentId, scope.slug);
@@ -288,16 +285,16 @@ export const scopesService = {
 			throw new ScopeError("The root scope has no slug");
 		if (slug === scope.slug) return scope;
 		if (!SCOPE_SLUG_RE.test(slug))
-			throw new ScopeError(`Invalid scope slug "${slug}"`);
+			throw new ScopeError(t("core.scopes.invalidSlug", { slug }));
 		if (reservedSlugs.has(slug))
-			throw new ScopeError(`Scope slug "${slug}" is reserved`);
+			throw new ScopeError(t("core.scopes.reservedSlug", { slug }));
 		const parent = (await this.getById(scope.parentId)) as Scope;
 		const clash = await db.query.scopes.findFirst({
 			where: { parentId: parent.id, slug },
 		});
 		if (clash)
 			throw new ScopeError(
-				`Scope "${slug}" already exists under ${parent.path}`,
+				t("core.scopes.exists", { slug, path: parent.path }),
 			);
 		await this.assertNoPageAt(parent.id, slug);
 		await this.relocate(scope, {
@@ -353,10 +350,9 @@ export const scopesService = {
 		const scope = await this.getById(scopeId);
 		if (!scope) throw new ScopeError("Scope not found");
 		if (scope.parentId === null)
-			throw new ScopeError("The root scope cannot be deleted");
+			throw new ScopeError(t("core.scopes.rootCannotDelete"));
 		const children = await this.getChildren(scopeId);
-		if (children.length > 0)
-			throw new ScopeError("Scope still has child scopes");
+		if (children.length > 0) throw new ScopeError(t("core.scopes.hasChildren"));
 		await db.delete(scopes).where(eq(scopes.id, scopeId));
 		invalidateScopePaths();
 	},
@@ -367,7 +363,7 @@ export const scopesService = {
 		input: { name: string; description: string | null },
 	): Promise<Scope> {
 		const name = input.name.trim();
-		if (!name) throw new ScopeError("Scope name is required");
+		if (!name) throw new ScopeError(t("core.scopes.nameRequired"));
 		const [updated] = await db
 			.update(scopes)
 			.set({ name, description: input.description?.trim() || null })

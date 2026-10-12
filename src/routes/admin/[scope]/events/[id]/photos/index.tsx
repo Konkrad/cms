@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
+import { t } from "~/core/i18n";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { AdminEventPhotos } from "../../../../../../modules/events/admin/photos";
 import { loadAdminPhotos } from "../../../../../../modules/events/admin/photos-data";
@@ -21,11 +22,11 @@ export default component$(() => {
 export const head: DocumentHead = ({ resolveValue }) => {
 	const { event } = resolveValue(usePhotos);
 	return {
-		title: `Manage Photos - ${event.title}`,
+		title: t("admin.events.photos.title", { title: event.title }),
 		meta: [
 			{
 				name: "description",
-				content: `Upload and manage photos for ${event.title} event`,
+				content: t("admin.events.photos.description", { title: event.title }),
 			},
 		],
 	};

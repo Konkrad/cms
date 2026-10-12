@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { useLocation } from "@qwik.dev/router";
+import { t } from "~/core/i18n";
 
 interface PaginationProps {
 	page: number;
@@ -50,7 +51,9 @@ export const Pagination = component$<PaginationProps>(
 		return (
 			<div class="flex items-center justify-between px-6 py-3 border-t border-gray-200 bg-white text-sm select-none">
 				<span class="text-gray-500">
-					{total === 0 ? "No results" : `Showing ${from}–${to} of ${total}`}
+					{total === 0
+						? t("admin.pagination.noResults")
+						: t("admin.pagination.showingOf", { from, to, total })}
 				</span>
 				{totalPages > 1 && (
 					<nav class="flex items-center gap-1">

@@ -6,19 +6,3 @@
  */
 export const VISIBILITIES = ["public", "members", "representatives"] as const;
 export type Visibility = (typeof VISIBILITIES)[number];
-
-/** Admin labels for each visibility. */
-export const VISIBILITY_LABELS: Record<
-	Visibility,
-	{ label: string; description: string }
-> = {
-	public: { label: "Public", description: "Visible to everyone" },
-	members: {
-		label: "Members",
-		description: "Members of this group and the groups below it",
-	},
-	representatives: {
-		label: "Representatives",
-		description: "Only the representatives and admins of this group",
-	},
-};

@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
-import { formatDate, formatMoney } from "~/core/i18n";
+import { formatDate, formatMoney, t } from "~/core/i18n";
 import {
 	cancelSubscription,
 	PaymentActionError,
@@ -99,18 +99,21 @@ export default component$(() => {
 	return (
 		<div>
 			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-2xl font-bold text-gray-800">Payments</h2>
+				<h2 class="text-2xl font-bold text-gray-800">
+					{t("admin.payments.payments")}
+				</h2>
 			</div>
 			<p class="text-sm text-gray-500 mb-6">
-				Payments created by modules. Their status comes from the payment
-				provider; the module is called back on every change.
+				{t("admin.payments.paymentsCreatedByModulesTheir")}
 			</p>
 
 			<form method="get" class="flex flex-wrap gap-3 items-end mb-4">
 				<label class="text-sm">
-					<span class="block text-gray-600 mb-1">Module</span>
+					<span class="block text-gray-600 mb-1">
+						{t("admin.payments.module")}
+					</span>
 					<select name="module" class="border rounded px-2 py-1">
-						<option value="">All</option>
+						<option value="">{t("admin.payments.all")}</option>
 						{data.value.modules.map((m) => (
 							<option key={m} value={m} selected={m === filter.moduleId}>
 								{m}
@@ -119,9 +122,11 @@ export default component$(() => {
 					</select>
 				</label>
 				<label class="text-sm">
-					<span class="block text-gray-600 mb-1">Status</span>
+					<span class="block text-gray-600 mb-1">
+						{t("admin.payments.status")}
+					</span>
 					<select name="status" class="border rounded px-2 py-1">
-						<option value="">All</option>
+						<option value="">{t("admin.payments.all")}</option>
 						{data.value.statuses.map((s) => (
 							<option key={s} value={s} selected={s === filter.status}>
 								{s}
@@ -133,7 +138,7 @@ export default component$(() => {
 					type="submit"
 					class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm"
 				>
-					Filter
+					{t("admin.payments.filter")}
 				</button>
 			</form>
 
@@ -149,21 +154,21 @@ export default component$(() => {
 			>
 				{payments.length === 0 ? (
 					<div class="px-5 py-8 text-center text-gray-400 text-sm">
-						No payments.
+						{t("admin.payments.noPayments")}
 					</div>
 				) : (
 					<table class="min-w-full divide-y divide-gray-200 text-sm">
 						<thead class="bg-gray-50">
 							<tr>
 								{[
-									"Status",
-									"Module",
-									"Item",
-									"Payer",
-									"Amount",
-									"Created",
-									"Paid",
-									"Provider ref",
+									t("admin.payments.col.status"),
+									t("admin.payments.col.module"),
+									t("admin.payments.col.item"),
+									t("admin.payments.col.payer"),
+									t("admin.payments.col.amount"),
+									t("admin.payments.col.created"),
+									t("admin.payments.col.paid"),
+									t("admin.payments.col.providerRef"),
 									"",
 								].map((label) => (
 									<th
@@ -221,7 +226,7 @@ export default component$(() => {
 													type="submit"
 													class="text-red-600 hover:text-red-800 font-medium"
 												>
-													Refund
+													{t("admin.payments.refund")}
 												</button>
 											</Form>
 										)}
@@ -233,7 +238,7 @@ export default component$(() => {
 														type="submit"
 														class="text-red-600 hover:text-red-800 font-medium"
 													>
-														Cancel
+														{t("admin.payments.cancel")}
 													</button>
 												</Form>
 											)}

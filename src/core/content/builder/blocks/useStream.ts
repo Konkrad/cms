@@ -3,6 +3,7 @@ import type { RequestEventCommon } from "@qwik.dev/router";
 import { server$ } from "@qwik.dev/router";
 import type { StreamFilter, StreamPage } from "~/contracts/stream";
 import { streamFilterTypes } from "~/core/content/content-items";
+import { t } from "~/core/i18n";
 
 const fetchStream = server$(async function (options: {
 	limit: number;
@@ -77,12 +78,14 @@ export function useStream(pageSize: number, show: StreamFilter = "all") {
 					return;
 				} catch (e2) {
 					error.value =
-						e2 instanceof Error ? e2.message : "Failed to load the stream";
+						e2 instanceof Error
+							? e2.message
+							: t("core.content.failedToLoadStream");
 					return;
 				}
 			}
 			error.value =
-				e instanceof Error ? e.message : "Failed to load the stream";
+				e instanceof Error ? e.message : t("core.content.failedToLoadStream");
 		} finally {
 			isLoading.value = false;
 		}
@@ -117,7 +120,7 @@ export function useStream(pageSize: number, show: StreamFilter = "all") {
 			window.history.pushState({}, "", url);
 		} catch (e) {
 			error.value =
-				e instanceof Error ? e.message : "Failed to load the stream";
+				e instanceof Error ? e.message : t("core.content.failedToLoadStream");
 		} finally {
 			isLoading.value = false;
 		}
@@ -149,7 +152,7 @@ export function useStream(pageSize: number, show: StreamFilter = "all") {
 			window.history.pushState({}, "", url);
 		} catch (e) {
 			error.value =
-				e instanceof Error ? e.message : "Failed to load the stream";
+				e instanceof Error ? e.message : t("core.content.failedToLoadStream");
 		} finally {
 			isLoading.value = false;
 		}

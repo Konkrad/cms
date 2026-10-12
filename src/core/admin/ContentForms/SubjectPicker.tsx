@@ -1,4 +1,5 @@
 import { component$, useSignal } from "@qwik.dev/core";
+import { t } from "~/core/i18n";
 import { useLinkSearch } from "~/core/refs/useLinkSearch";
 
 /** Module items (`ref:<module>:<type>:<id>`), not scopes, listings or core pages, notes and articles. */
@@ -18,7 +19,7 @@ export const SubjectPicker = component$<{
 	return (
 		<div class="space-y-2" data-testid="subject-picker">
 			<span class="block text-sm font-medium text-gray-700">
-				About (optional)
+				{t("admin.subjectPicker.aboutOptional")}
 			</span>
 			<input type="hidden" name="subject" value={selected.value?.href ?? ""} />
 			{selected.value ? (
@@ -31,7 +32,7 @@ export const SubjectPicker = component$<{
 							selected.value = null;
 						}}
 					>
-						Remove
+						{t("admin.subjectPicker.remove")}
 					</button>
 				</div>
 			) : (
@@ -39,15 +40,19 @@ export const SubjectPicker = component$<{
 					<input
 						type="search"
 						class="w-full border rounded-sm px-2 py-1 text-sm"
-						placeholder="Search an event or another item…"
-						aria-label="Find the item this is about"
+						placeholder={t("admin.subjectPicker.searchAnEventOrAnother")}
+						aria-label={t("admin.subjectPicker.findTheItemThisIs")}
 						value={query.value}
 						onInput$={async (e) => {
 							query.value = (e.target as HTMLInputElement).value;
 							await search$(query.value);
 						}}
 					/>
-					{isLoading.value && <p class="text-xs text-gray-400">Searching…</p>}
+					{isLoading.value && (
+						<p class="text-xs text-gray-400">
+							{t("admin.subjectPicker.searching")}
+						</p>
+					)}
 					{items.length > 0 && (
 						<ul class="border rounded-sm divide-y max-h-48 overflow-y-auto bg-white">
 							{items.map((r) => (

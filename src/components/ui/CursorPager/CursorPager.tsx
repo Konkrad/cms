@@ -1,4 +1,5 @@
 import { component$, type QRL } from "@qwik.dev/core";
+import { t } from "~/core/i18n";
 
 interface CursorPagerProps {
 	hasPrevious: boolean;
@@ -28,7 +29,7 @@ export const CursorPager = component$<CursorPagerProps>(
 					disabled={!hasPrevious || isLoading}
 					onClick$={onPrevious$}
 				>
-					← Previous
+					{t("core.ui.cursorPager.previous")}
 				</button>
 				<button
 					type="button"
@@ -41,7 +42,7 @@ export const CursorPager = component$<CursorPagerProps>(
 					disabled={!hasNext || isLoading}
 					onClick$={onNext$}
 				>
-					Next →
+					{t("core.ui.cursorPager.next")}
 				</button>
 			</div>
 		);

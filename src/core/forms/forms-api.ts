@@ -10,6 +10,7 @@ import {
 	formsService,
 } from "~/core/forms/forms.service";
 import type { FormSchema } from "~/core/forms/schema/forms";
+import { t } from "~/core/i18n";
 import { locateRef } from "~/core/registry/refs";
 import { ADMIN_ACCESS, canManageScope } from "~/core/scopes/access";
 
@@ -23,7 +24,7 @@ import { ADMIN_ACCESS, canManageScope } from "~/core/scopes/access";
 /** The viewer is not allowed to read the results attached to an item. */
 export class FormAccessError extends Error {
 	constructor() {
-		super("Only the managers of the item's scope can read these answers");
+		super(t("core.forms.onlyManagersReadAnswers"));
 		this.name = "FormAccessError";
 	}
 }
@@ -79,7 +80,7 @@ export const forms = {
 		input: { subjectRef?: string | null; answers: unknown },
 	): Promise<{ id: string; answers: Record<string, unknown> }> {
 		const form = await formsService.getById(formId);
-		if (!form) throw new FormAnswerError("Unknown form");
+		if (!form) throw new FormAnswerError(t("core.forms.unknownForm"));
 		const answers = formsService.validateAnswers(form, input.answers);
 		const result = await formResultsService.create({
 			formId: form.id,

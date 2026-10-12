@@ -4,6 +4,7 @@ import { DragDropProvider, useDraggable, useDroppable } from "@dnd-kit/react";
 import type React from "react";
 import { useCallback, useRef, useState } from "react";
 import { sanitizeSvg } from "~/core/content/svg-sanitize";
+import { t } from "~/core/i18n";
 
 // References (`ref:…`), their human form (`root/germany:events`) and external links are
 // kept as typed; the server turns them into what is stored (`toStoredLink`).
@@ -178,7 +179,7 @@ function SeparatorRow() {
 				<div className="flex items-center gap-3">
 					<div className="flex-1 border-t-2 border-dashed border-gray-300" />
 					<span className="text-xs text-gray-400 whitespace-nowrap">
-						hidden below
+						{t("admin.menuTableReact.hiddenBelow")}
 					</span>
 					<div className="flex-1 border-t-2 border-dashed border-gray-300" />
 				</div>
@@ -205,11 +206,11 @@ export const MenuTable = (props: MenuTableProps) => {
 		if (!item.pageId) return null;
 		return item.status === "visible" ? (
 			<span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-green-700 bg-green-100 rounded px-1 py-0.5">
-				visible
+				{t("admin.menuTableReact.visible")}
 			</span>
 		) : (
 			<span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-yellow-700 bg-yellow-100 rounded px-1 py-0.5">
-				hidden
+				{t("admin.menuTableReact.hidden")}
 			</span>
 		);
 	};
@@ -312,7 +313,8 @@ export const MenuTable = (props: MenuTableProps) => {
 					mode: "to-hidden",
 					menuName: "main",
 				});
-				if (!result.success) setMoveError(result.error ?? "Move failed");
+				if (!result.success)
+					setMoveError(result.error ?? t("admin.menuTableReact.moveFailed"));
 				return;
 			}
 
@@ -323,7 +325,8 @@ export const MenuTable = (props: MenuTableProps) => {
 					mode: "to-visible-root",
 					menuName: "main",
 				});
-				if (!result.success) setMoveError(result.error ?? "Move failed");
+				if (!result.success)
+					setMoveError(result.error ?? t("admin.menuTableReact.moveFailed"));
 				return;
 			}
 
@@ -339,7 +342,8 @@ export const MenuTable = (props: MenuTableProps) => {
 				mode: moveMode,
 				menuName,
 			});
-			if (!result.success) setMoveError(result.error ?? "Move failed");
+			if (!result.success)
+				setMoveError(result.error ?? t("admin.menuTableReact.moveFailed"));
 		},
 		[onMove, footerIdSet, setDropInfo],
 	);
@@ -369,7 +373,7 @@ export const MenuTable = (props: MenuTableProps) => {
 			if (item.menuName === "main") setMainEditingId(null);
 			else setFooterEditingId(null);
 		} else {
-			setUpdateError(result.error ?? "Update failed");
+			setUpdateError(result.error ?? t("admin.menuTableReact.updateFailed"));
 		}
 	};
 
@@ -385,7 +389,7 @@ export const MenuTable = (props: MenuTableProps) => {
 			icon: (fd.get("icon") as string) || undefined,
 		});
 		if (result.success) form.reset();
-		else setAddError(result.error ?? "Add failed");
+		else setAddError(result.error ?? t("admin.menuTableReact.addFailed"));
 	};
 
 	const handleSvgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -400,18 +404,22 @@ export const MenuTable = (props: MenuTableProps) => {
 	};
 
 	const handleDelete = async (item: MenuItem) => {
-		if (!confirm(`Remove "${item.title}" from the menu?`)) return;
+		if (
+			!confirm(t("admin.menuTableReact.confirmRemove", { title: item.title }))
+		)
+			return;
 		setDeleteError(null);
 		const result = await onDelete({ menuItemId: item.id });
-		if (!result.success) setDeleteError(result.error ?? "Delete failed");
+		if (!result.success)
+			setDeleteError(result.error ?? t("admin.menuTableReact.deleteFailed"));
 	};
 
 	return (
 		<DragDropProvider onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
 			<datalist id={LINK_TARGETS_ID}>
-				{linkTargets.map((t) => (
-					<option key={t.value} value={t.value}>
-						{t.label}
+				{linkTargets.map((target) => (
+					<option key={target.value} value={target.value}>
+						{target.label}
 					</option>
 				))}
 			</datalist>
@@ -438,10 +446,13 @@ export const MenuTable = (props: MenuTableProps) => {
 
 			{/* ── Main Menu ── */}
 			<div className="mt-6">
-				<h3 className="text-xl font-bold mb-1">Main Menu</h3>
+				<h3 className="text-xl font-bold mb-1">
+					{t("admin.menuTableReact.mainMenu")}
+				</h3>
 				<p className="text-sm text-gray-500 mb-3">
-					Drag to reorder · drop <em>onto</em> an item to nest it · drag below
-					the dashed line to hide
+					{t("admin.menuTableReact.dragToReorderDrop")}{" "}
+					<em>{t("admin.menuTableReact.onto")}</em>{" "}
+					{t("admin.menuTableReact.anItemToNestIt")}
 				</p>
 
 				<div className="bg-white shadow-sm rounded-lg overflow-hidden">
@@ -450,13 +461,13 @@ export const MenuTable = (props: MenuTableProps) => {
 							<tr>
 								<th className="px-2 py-3 w-8" />
 								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Label
+									{t("admin.menuTableReact.label")}
 								</th>
 								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									URL
+									{t("admin.menuTableReact.url")}
 								</th>
 								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Actions
+									{t("admin.menuTableReact.actions")}
 								</th>
 							</tr>
 						</thead>
@@ -477,7 +488,7 @@ export const MenuTable = (props: MenuTableProps) => {
 										{item.title}
 										{staticUrlSet.has(normalizeUrl(item.url)) && (
 											<span className="ml-2 text-xs text-gray-400">
-												[static]
+												{t("admin.menuTableReact.static")}
 											</span>
 										)}
 										{statusBadge(item)}
@@ -496,7 +507,7 @@ export const MenuTable = (props: MenuTableProps) => {
 													)
 												}
 											>
-												Rename
+												{t("admin.menuTableReact.rename")}
 											</button>
 										) : (
 											<div className="flex items-center gap-3">
@@ -506,13 +517,13 @@ export const MenuTable = (props: MenuTableProps) => {
 															href={`/admin/root/pages/${item.pageId}/edit`}
 															className="text-blue-600 hover:text-blue-900"
 														>
-															Edit
+															{t("admin.menuTableReact.edit")}
 														</a>
 														<a
 															href={`/admin/root/pages/${item.pageId}/builder`}
 															className="text-blue-600 hover:text-blue-900"
 														>
-															Builder
+															{t("admin.menuTableReact.builder")}
 														</a>
 													</>
 												) : (
@@ -525,7 +536,7 @@ export const MenuTable = (props: MenuTableProps) => {
 															)
 														}
 													>
-														Edit
+														{t("admin.menuTableReact.edit")}
 													</button>
 												)}
 												<button
@@ -533,7 +544,7 @@ export const MenuTable = (props: MenuTableProps) => {
 													className="text-red-600 hover:text-red-900"
 													onClick={() => handleDelete(item)}
 												>
-													Delete
+													{t("admin.menuTableReact.delete")}
 												</button>
 											</div>
 										)}
@@ -558,7 +569,9 @@ export const MenuTable = (props: MenuTableProps) => {
 									<td className="px-4 py-3 text-sm">
 										{item.title}
 										{staticUrlSet.has(normalizeUrl(item.url)) && (
-											<span className="ml-2 text-xs">[static]</span>
+											<span className="ml-2 text-xs">
+												{t("admin.menuTableReact.static")}
+											</span>
 										)}
 										{statusBadge(item)}
 									</td>
@@ -576,7 +589,7 @@ export const MenuTable = (props: MenuTableProps) => {
 													)
 												}
 											>
-												Rename
+												{t("admin.menuTableReact.rename")}
 											</button>
 										) : (
 											<div className="flex items-center gap-3">
@@ -586,13 +599,13 @@ export const MenuTable = (props: MenuTableProps) => {
 															href={`/admin/root/pages/${item.pageId}/edit`}
 															className="text-blue-500 hover:text-blue-700"
 														>
-															Edit
+															{t("admin.menuTableReact.edit")}
 														</a>
 														<a
 															href={`/admin/root/pages/${item.pageId}/builder`}
 															className="text-blue-500 hover:text-blue-700"
 														>
-															Builder
+															{t("admin.menuTableReact.builder")}
 														</a>
 													</>
 												) : (
@@ -605,7 +618,7 @@ export const MenuTable = (props: MenuTableProps) => {
 															)
 														}
 													>
-														Edit
+														{t("admin.menuTableReact.edit")}
 													</button>
 												)}
 												<button
@@ -613,7 +626,7 @@ export const MenuTable = (props: MenuTableProps) => {
 													className="text-red-500 hover:text-red-700"
 													onClick={() => handleDelete(item)}
 												>
-													Delete
+													{t("admin.menuTableReact.delete")}
 												</button>
 											</div>
 										)}
@@ -636,7 +649,7 @@ export const MenuTable = (props: MenuTableProps) => {
 								type="text"
 								name="title"
 								defaultValue={item.title}
-								placeholder="Title"
+								placeholder={t("admin.menuTableReact.title")}
 								className="border rounded-sm px-2 py-1 text-sm"
 								required
 							/>
@@ -652,7 +665,7 @@ export const MenuTable = (props: MenuTableProps) => {
 									name="url"
 									list={LINK_TARGETS_ID}
 									defaultValue={normalizeUrl(item.url)}
-									placeholder="URL"
+									placeholder={t("admin.menuTableReact.url")}
 									className="border rounded-sm px-2 py-1 text-sm"
 									required
 								/>
@@ -661,7 +674,7 @@ export const MenuTable = (props: MenuTableProps) => {
 								type="submit"
 								className="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700"
 							>
-								Save
+								{t("admin.menuTableReact.save")}
 							</button>
 						</form>
 					))}
@@ -669,7 +682,9 @@ export const MenuTable = (props: MenuTableProps) => {
 
 			{/* ── Footer Links ── */}
 			<div className="mt-10">
-				<h3 className="text-xl font-bold mb-3">Footer Links</h3>
+				<h3 className="text-xl font-bold mb-3">
+					{t("admin.menuTableReact.footerLinks")}
+				</h3>
 
 				<form
 					className="flex flex-wrap gap-2 mb-4 border rounded-sm p-3 bg-gray-50"
@@ -678,7 +693,7 @@ export const MenuTable = (props: MenuTableProps) => {
 					<input
 						type="text"
 						name="title"
-						placeholder="Label (also used as tooltip when an icon is set)"
+						placeholder={t("admin.menuTableReact.labelAlsoUsedAsTooltip")}
 						className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]"
 						required
 					/>
@@ -686,12 +701,12 @@ export const MenuTable = (props: MenuTableProps) => {
 						type="text"
 						name="url"
 						list={LINK_TARGETS_ID}
-						placeholder="/imprint, root/germany:events or https://..."
+						placeholder={t("admin.menuTableReact.imprintRootGermanyEventsOr")}
 						className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]"
 						required
 					/>
 					<label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer border rounded-sm px-2 py-1">
-						SVG icon (optional):
+						{t("admin.menuTableReact.svgIconOptional")}
 						<input
 							type="file"
 							accept=".svg,image/svg+xml"
@@ -704,7 +719,7 @@ export const MenuTable = (props: MenuTableProps) => {
 						type="submit"
 						className="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700"
 					>
-						Add
+						{t("admin.menuTableReact.add")}
 					</button>
 				</form>
 
@@ -714,13 +729,13 @@ export const MenuTable = (props: MenuTableProps) => {
 							<tr>
 								<th className="px-2 py-3 w-8" />
 								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Label
+									{t("admin.menuTableReact.label")}
 								</th>
 								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									URL
+									{t("admin.menuTableReact.url")}
 								</th>
 								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Actions
+									{t("admin.menuTableReact.actions")}
 								</th>
 							</tr>
 						</thead>
@@ -763,14 +778,14 @@ export const MenuTable = (props: MenuTableProps) => {
 													)
 												}
 											>
-												Edit
+												{t("admin.menuTableReact.edit")}
 											</button>
 											<button
 												type="button"
 												className="text-red-600 hover:text-red-900"
 												onClick={() => handleDelete(item)}
 											>
-												Delete
+												{t("admin.menuTableReact.delete")}
 											</button>
 										</div>
 									</td>
@@ -792,7 +807,7 @@ export const MenuTable = (props: MenuTableProps) => {
 								type="text"
 								name="title"
 								defaultValue={item.title}
-								placeholder="Label (also used as tooltip when an icon is set)"
+								placeholder={t("admin.menuTableReact.labelAlsoUsedAsTooltip")}
 								className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]"
 								required
 							/>
@@ -801,7 +816,7 @@ export const MenuTable = (props: MenuTableProps) => {
 								name="url"
 								list={LINK_TARGETS_ID}
 								defaultValue={normalizeUrl(item.url)}
-								placeholder="URL"
+								placeholder={t("admin.menuTableReact.url")}
 								className="border rounded-sm px-2 py-1 text-sm flex-1 min-w-[160px]"
 								required
 							/>
@@ -810,7 +825,7 @@ export const MenuTable = (props: MenuTableProps) => {
 									htmlFor={`menu-icon-file-${item.id}`}
 									className="text-xs text-gray-500"
 								>
-									SVG icon (replaces label visually, label becomes tooltip):
+									{t("admin.menuTableReact.svgIconReplacesLabelVisually")}
 								</label>
 								<input
 									id={`menu-icon-file-${item.id}`}
@@ -821,7 +836,7 @@ export const MenuTable = (props: MenuTableProps) => {
 								/>
 								{item.icon?.startsWith("<svg") && (
 									<span className="text-xs text-gray-400">
-										current icon set — upload to replace
+										{t("admin.menuTableReact.currentIconSetUploadTo")}
 									</span>
 								)}
 								<input
@@ -834,7 +849,7 @@ export const MenuTable = (props: MenuTableProps) => {
 								type="submit"
 								className="px-3 py-1 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700"
 							>
-								Save
+								{t("admin.menuTableReact.save")}
 							</button>
 						</form>
 					))}

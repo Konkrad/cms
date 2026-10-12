@@ -1,16 +1,18 @@
 import { component$ } from "@qwik.dev/core";
+import { t } from "~/core/i18n";
 
 /** The review state of an unpublished item, for admin lists (with the reviewer's comment). */
 export const ReviewStatusBadge = component$<{
 	review: { status: string; comment: string | null } | null;
 }>(({ review }) => {
-	if (!review) return <span>Not published</span>;
+	if (!review)
+		return <span>{t("core.reviews.reviewStatusBadge.notPublished")}</span>;
 	const label =
 		review.status === "in_review"
-			? "In review"
+			? t("core.reviews.status.inReview")
 			: review.status === "rejected"
-				? "Not approved"
-				: "Not published";
+				? t("core.reviews.status.rejected")
+				: t("core.reviews.status.notPublished");
 	return (
 		<span data-review-status={review.status}>
 			<span
@@ -24,7 +26,9 @@ export const ReviewStatusBadge = component$<{
 			</span>
 			{review.status === "rejected" && review.comment && (
 				<span class="block mt-1 text-xs text-gray-600 whitespace-pre-wrap">
-					“{review.comment}” Edit and save to submit it again.
+					{t("core.reviews.reviewStatusBadge.editAndSaveToSubmit", {
+						comment: review.comment,
+					})}
 				</span>
 			)}
 		</span>

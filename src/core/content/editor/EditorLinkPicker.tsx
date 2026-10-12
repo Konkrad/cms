@@ -1,4 +1,5 @@
 import { component$, type QRL, useSignal } from "@qwik.dev/core";
+import { t } from "~/core/i18n";
 import { useLinkSearch } from "~/core/refs/useLinkSearch";
 
 /**
@@ -15,15 +16,19 @@ export const EditorLinkPicker = component$<{
 			<input
 				type="search"
 				class="w-full border rounded-sm px-2 py-1 text-sm"
-				placeholder="Link the selected text to a page, group or item…"
-				aria-label="Find an internal link"
+				placeholder={t("admin.editorLinkPicker.linkTheSelectedTextTo")}
+				aria-label={t("admin.editorLinkPicker.findAnInternalLink")}
 				value={query.value}
 				onInput$={async (e) => {
 					query.value = (e.target as HTMLInputElement).value;
 					await search$(query.value);
 				}}
 			/>
-			{isLoading.value && <p class="text-xs text-gray-400">Searching…</p>}
+			{isLoading.value && (
+				<p class="text-xs text-gray-400">
+					{t("admin.editorLinkPicker.searching")}
+				</p>
+			)}
 			{results.value.length > 0 && (
 				<ul class="border rounded-sm divide-y max-h-48 overflow-y-auto bg-white">
 					{results.value.map((r) => (

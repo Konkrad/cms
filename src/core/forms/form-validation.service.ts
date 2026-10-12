@@ -1,5 +1,6 @@
 import { Model } from "survey-core";
 import { z } from "zod";
+import { t } from "~/core/i18n";
 
 const choiceSchema = z.object({
 	value: z.string().min(1),
@@ -10,10 +11,7 @@ const simpleFieldSchema = z.object({
 	name: z
 		.string()
 		.min(1)
-		.regex(
-			/^[a-z][a-z0-9_]*$/,
-			"ID must be lowercase alphanumeric with underscores and start with a letter.",
-		),
+		.regex(/^[a-z][a-z0-9_]*$/, t("admin.forms.idFormat")),
 	title: z.string().min(1),
 	type: z.enum(["text", "textarea", "radiogroup", "select"]),
 	required: z.boolean().default(false),

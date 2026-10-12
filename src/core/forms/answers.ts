@@ -1,5 +1,6 @@
 import { Model } from "survey-core";
 import type { FormSchema } from "~/core/forms/schema/forms";
+import { t } from "~/core/i18n";
 
 /**
  * Server-side answer validation against a form's SurveyJS schema (spec 4.10). The browser's
@@ -178,7 +179,7 @@ export function validateAnswers(
 	raw: unknown,
 ): Record<string, unknown> {
 	if (!raw || typeof raw !== "object" || Array.isArray(raw))
-		throw new FormAnswerError("Answers must be an object");
+		throw new FormAnswerError(t("core.forms.answersMustBeObject"));
 	const input = raw as Record<string, unknown>;
 	const model = new Model(schema);
 	try {
@@ -193,7 +194,7 @@ export function validateAnswers(
 			if (byName.has(key)) continue;
 			if (base && byName.has(base) && questionInfo(byName.get(base)).hasOther)
 				continue;
-			errors[key] = "Unknown question";
+			errors[key] = t("core.forms.unknownQuestion");
 		}
 
 		// First pass: coerce what was given, so visibleIf conditions see typed values.
@@ -216,7 +217,7 @@ export function validateAnswers(
 			if (!q.isVisible) continue;
 			if (!(info.name in coerced)) {
 				if (info.required && !errors[info.name])
-					errors[info.name] = `${info.title} is required`;
+					errors[info.name] = t("core.forms.isRequired", { title: info.title });
 				continue;
 			}
 			answers[info.name] = coerced[info.name];
@@ -246,7 +247,8 @@ export function formatAnswer(
 	if (value === null || value === undefined) return "";
 	if (Array.isArray(value))
 		return value.map((v) => formatAnswer(question, v)).join(", ");
-	if (typeof value === "boolean") return value ? "Yes" : "No";
+	if (typeof value === "boolean")
+		return value ? t("core.common.yes") : t("core.common.no");
 	if (typeof value === "string" || typeof value === "number") {
 		const choice = question?.choices.find(
 			(c) => String(c.value) === String(value),

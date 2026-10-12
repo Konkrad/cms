@@ -1,6 +1,7 @@
 import { articlesService } from "~/core/content/articles.service";
 import { notesService } from "~/core/content/notes.service";
 import { pagesService } from "~/core/content/pages.service";
+import { t } from "~/core/i18n";
 import type { ModuleDefinition } from "~/core/router/modules";
 import { CORE_REF_MODULE } from "./refs";
 
@@ -13,19 +14,19 @@ export const coreRefModule: Pick<ModuleDefinition, "id" | "refs"> = {
 	id: CORE_REF_MODULE,
 	refs: {
 		note: {
-			label: "Note",
+			label: t("core.refs.note"),
 			path: "/notes/:id",
 			locate: (ids) => notesService.locate(ids),
 			search: (query, limit) => notesService.searchPublic(query, limit),
 		},
 		article: {
-			label: "Article",
+			label: t("core.refs.article"),
 			path: "/articles/:id",
 			locate: (ids) => articlesService.locate(ids),
 			search: (query, limit) => articlesService.searchPublic(query, limit),
 		},
 		page: {
-			label: "Page",
+			label: t("core.refs.page"),
 			path: "/:slug",
 			locate: (ids) => pagesService.locate(ids),
 			async find(scopeId, slug) {

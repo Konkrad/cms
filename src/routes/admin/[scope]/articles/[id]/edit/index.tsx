@@ -10,6 +10,7 @@ import {
 } from "~/core/content/content-form";
 import { ContentInputError } from "~/core/content/content-items";
 import { subjectFieldValue } from "~/core/content/stream-cards";
+import { t } from "~/core/i18n";
 import { publicImageUrlFromKey } from "~/core/media/images";
 import { adminUrl } from "~/core/router/scope-path";
 import {
@@ -51,7 +52,7 @@ export const useUpdateArticle = routeAction$(
 	async (data, event): Promise<ContentFormResult> => {
 		const { user, scope } = await requireScopeRole(event, ADMIN_ACCESS);
 		const target = await articlesService.getById(event.params.id);
-		if (!target) return { success: false, error: "Article not found" };
+		if (!target) return { success: false, error: t("admin.articles.notFound") };
 		if (!(await isWithinScope(scope, target.scopeId)))
 			throw event.error(403, "Forbidden");
 		try {
@@ -82,9 +83,11 @@ export default component$(() => {
 	return (
 		<div>
 			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-2xl font-bold text-gray-800">Edit article</h2>
+				<h2 class="text-2xl font-bold text-gray-800">
+					{t("admin.articles.edit.editArticle")}
+				</h2>
 				<Button href={`${data.value.base}/articles`} variant="secondary">
-					Back to Articles
+					{t("admin.articles.edit.backToArticles")}
 				</Button>
 			</div>
 			<div class="bg-white rounded-lg shadow-sm p-6">
@@ -93,9 +96,9 @@ export default component$(() => {
 					visibilities={data.value.visibilities}
 					values={data.value.article}
 					subjectPicker
-					submitLabel="Save Changes"
+					submitLabel={t("admin.articles.edit.saveChanges")}
 					cancelHref={`${data.value.base}/articles`}
-					successMessage="Article updated."
+					successMessage={t("admin.articles.edit.articleUpdated")}
 				/>
 			</div>
 		</div>

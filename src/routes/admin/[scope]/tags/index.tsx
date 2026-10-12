@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
+import { t } from "~/core/i18n";
 import { requireSystemAdmin } from "~/core/scopes/access";
 import { userTagsService } from "~/core/tags/user-tags.service";
 
@@ -19,10 +20,7 @@ export const useCreateDefinition = routeAction$(
 		slug: z
 			.string()
 			.min(1)
-			.regex(
-				/^[a-z0-9-]+$/,
-				"Slug must be lowercase letters, numbers and hyphens only",
-			),
+			.regex(/^[a-z0-9-]+$/, t("admin.tags.slugFormat")),
 		label: z.string().min(1),
 		category: z.enum(["board", "qualification", "participation", "custom"]),
 		description: z.string().optional(),
@@ -53,17 +51,19 @@ export default component$(() => {
 	return (
 		<div>
 			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-2xl font-bold text-gray-800">Tag Definitions</h2>
+				<h2 class="text-2xl font-bold text-gray-800">
+					{t("admin.tags.tagDefinitions")}
+				</h2>
 			</div>
 			<p class="text-sm text-gray-500 mb-6">
-				Define the tags that can be assigned to members. Once created, tags
-				appear in the Members page dropdown for quick assignment.
+				{t("admin.tags.defineTheTagsThatCan")}
 			</p>
 
 			{createAction.value?.failed && (
 				<div class="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
 					{String(
-						(createAction.value as any).fieldErrors ?? "Something went wrong",
+						(createAction.value as any).fieldErrors ??
+							t("admin.tags.somethingWentWrong"),
 					)}
 				</div>
 			)}
@@ -72,11 +72,13 @@ export default component$(() => {
 				{/* Existing definitions */}
 				<div class="bg-white rounded-lg shadow-sm overflow-x-auto">
 					<div class="px-5 py-3 bg-gray-50 border-b text-sm font-medium text-gray-700">
-						Defined Tags ({data.value.definitions.length})
+						{t("admin.tags.definedTags", {
+							count: data.value.definitions.length,
+						})}
 					</div>
 					{data.value.definitions.length === 0 ? (
 						<div class="px-5 py-8 text-center text-gray-400 text-sm">
-							No tags defined yet. Add one using the form.
+							{t("admin.tags.noTagsDefinedYetAdd")}
 						</div>
 					) : (
 						<ul class="divide-y divide-gray-100">
@@ -114,7 +116,7 @@ export default component$(() => {
 											onClick$={(e) => {
 												if (
 													!confirm(
-														`Delete tag "${def.label}"? Members who already have this tag keep it.`,
+														t("admin.tags.confirmDelete", { label: def.label }),
 													)
 												)
 													return;
@@ -123,7 +125,7 @@ export default component$(() => {
 													?.requestSubmit();
 											}}
 										>
-											Delete
+											{t("admin.tags.delete")}
 										</button>
 									</Form>
 								</li>
@@ -134,21 +136,23 @@ export default component$(() => {
 
 				{/* Add new definition */}
 				<div class="bg-white rounded-lg shadow-sm p-5">
-					<h3 class="text-base font-medium text-gray-900 mb-4">Add New Tag</h3>
+					<h3 class="text-base font-medium text-gray-900 mb-4">
+						{t("admin.tags.addNewTag")}
+					</h3>
 					<Form action={createAction} class="space-y-4">
 						<div>
 							<label
 								for="tag-label"
 								class="block text-sm font-medium text-gray-700 mb-1"
 							>
-								Label
+								{t("admin.tags.label")}
 							</label>
 							<input
 								type="text"
 								id="tag-label"
 								name="label"
 								required
-								placeholder="e.g. Board Member 2026"
+								placeholder={t("admin.tags.eGBoardMember2026")}
 								class="w-full border rounded-md px-3 py-2 text-sm"
 							/>
 						</div>
@@ -157,9 +161,9 @@ export default component$(() => {
 								for="tag-slug"
 								class="block text-sm font-medium text-gray-700 mb-1"
 							>
-								Slug
+								{t("admin.tags.slug")}
 								<span class="ml-1 text-gray-400 font-normal">
-									(lowercase, hyphens only)
+									{t("admin.tags.lowercaseHyphensOnly")}
 								</span>
 							</label>
 							<input
@@ -167,7 +171,7 @@ export default component$(() => {
 								id="tag-slug"
 								name="slug"
 								required
-								placeholder="e.g. board-member-2026"
+								placeholder={t("admin.tags.eGBoardMember20262")}
 								class="w-full border rounded-md px-3 py-2 text-sm font-mono"
 							/>
 						</div>
@@ -176,17 +180,21 @@ export default component$(() => {
 								for="tag-category"
 								class="block text-sm font-medium text-gray-700 mb-1"
 							>
-								Category
+								{t("admin.tags.category")}
 							</label>
 							<select
 								id="tag-category"
 								name="category"
 								class="w-full border rounded-md px-3 py-2 text-sm"
 							>
-								<option value="board">Board</option>
-								<option value="custom">Custom</option>
-								<option value="participation">Participation</option>
-								<option value="qualification">Qualification</option>
+								<option value="board">{t("admin.tags.board")}</option>
+								<option value="custom">{t("admin.tags.custom")}</option>
+								<option value="participation">
+									{t("admin.tags.participation")}
+								</option>
+								<option value="qualification">
+									{t("admin.tags.qualification")}
+								</option>
 							</select>
 						</div>
 						<div>
@@ -194,13 +202,13 @@ export default component$(() => {
 								for="tag-description"
 								class="block text-sm font-medium text-gray-700 mb-1"
 							>
-								Description (optional)
+								{t("admin.tags.descriptionOptional")}
 							</label>
 							<input
 								type="text"
 								id="tag-description"
 								name="description"
-								placeholder="Shown on member profile"
+								placeholder={t("admin.tags.shownOnMemberProfile")}
 								class="w-full border rounded-md px-3 py-2 text-sm"
 							/>
 						</div>
@@ -208,7 +216,7 @@ export default component$(() => {
 							type="submit"
 							class="w-full bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
 						>
-							Add Tag
+							{t("admin.tags.addTag")}
 						</button>
 					</Form>
 				</div>

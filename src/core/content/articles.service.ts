@@ -18,6 +18,7 @@ import { reviewAfterEdit, submitNewItem } from "~/core/content/content-review";
 import { type Article, articles } from "~/core/content/schema/articles";
 import { tombstonesService } from "~/core/content/tombstones.service";
 import { db } from "~/core/db/connection";
+import { t } from "~/core/i18n";
 import {
 	type PublicUser,
 	publicUserColumns,
@@ -42,10 +43,10 @@ const withAuthor = { author: { columns: publicUserColumns } } as const;
 
 function cleanTitle(title: string | null | undefined): string {
 	const clean = (title ?? "").trim();
-	if (!clean) throw new ContentInputError("An article needs a title");
+	if (!clean) throw new ContentInputError(t("core.content.articleNeedsTitle"));
 	if (clean.length > ARTICLE_TITLE_MAX_LENGTH)
 		throw new ContentInputError(
-			`The title is longer than ${ARTICLE_TITLE_MAX_LENGTH} characters`,
+			t("core.content.titleTooLongMax", { ARTICLE_TITLE_MAX_LENGTH }),
 		);
 	return clean;
 }
@@ -55,7 +56,7 @@ function cleanImage(key: string | null | undefined): string | null {
 	const clean = (key ?? "").trim();
 	if (!clean) return null;
 	if (!isArticleImageKey(clean))
-		throw new ContentInputError("Invalid image for an article");
+		throw new ContentInputError(t("core.content.invalidArticleImage"));
 	return clean;
 }
 

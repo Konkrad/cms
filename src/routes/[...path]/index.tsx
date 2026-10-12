@@ -6,6 +6,7 @@ import { loadCmsPage } from "~/core/content/cms-page";
 import type { BlockData } from "~/core/content/schema/shared";
 import { canonicalUrl, htmlToDescription } from "~/core/content/seo";
 import { corePages } from "~/core/content/stream-pages";
+import { t } from "~/core/i18n";
 import { matchPage } from "~/core/router/pages";
 import {
 	currentScope,
@@ -30,7 +31,10 @@ const SCOPE_HOME = "scope";
 
 function scopeHomeHead(data: ScopeViewData, url: URL) {
 	const canonical = canonicalUrl(url.pathname, url.origin);
-	const description = `${data.scope.name} — ${data.memberCount} members. Join the local community group.`;
+	const description = t("core.scopes.metaDescription", {
+		name: data.scope.name,
+		memberCount: data.memberCount,
+	});
 	return {
 		title: data.scope.name,
 		meta: [
@@ -119,11 +123,11 @@ export const head: DocumentHead = ({ resolveValue, url }) => {
 		const page = data as PageViewData;
 		if (!page) {
 			return {
-				title: "Page Not Found",
+				title: t("core.pageNotFound"),
 			};
 		}
 
-		const title = page.title || "Community Hub";
+		const title = page.title || t("core.siteTitleFallback");
 		const description = descriptionFromBlocks(page.content);
 		const canonical = canonicalUrl(url.pathname, url.origin);
 
@@ -134,7 +138,7 @@ export const head: DocumentHead = ({ resolveValue, url }) => {
 		};
 	} catch {
 		return {
-			title: "Community Hub",
+			title: t("core.siteTitleFallback"),
 		};
 	}
 };

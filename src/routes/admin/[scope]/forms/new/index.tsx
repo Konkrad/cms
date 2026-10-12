@@ -9,6 +9,7 @@ import { formValidationService } from "~/core/forms/form-validation.service";
 import { buildFormPath } from "~/core/forms/forms";
 import { formsService } from "~/core/forms/forms.service";
 import { SimpleFormBuilder } from "~/core/forms/SimpleFormBuilder";
+import { t } from "~/core/i18n";
 import { formPurposes, isFormPurpose } from "~/core/registry/forms";
 import { buildFormsAdminBasePath, resolveFormsAdminScope } from "../_utils";
 
@@ -40,7 +41,7 @@ export const useCreateForm = routeAction$(
 			}
 
 			if (data.purpose && !isFormPurpose(data.purpose)) {
-				return { success: false, error: "Unknown purpose" };
+				return { success: false, error: t("admin.forms.unknownPurpose") };
 			}
 			const created = await formsService.create({
 				title: data.title,
@@ -64,16 +65,16 @@ export const useCreateForm = routeAction$(
 
 			return {
 				success: false,
-				error: error?.message || "Failed to create form",
+				error: error?.message || t("admin.forms.createFailed"),
 			};
 		}
 	},
 	zod$({
-		title: z.string().min(1, "Title is required"),
+		title: z.string().min(1, t("admin.forms.titleRequired")),
 		slug: z
 			.string()
-			.min(1, "Slug is required")
-			.regex(/^[a-z0-9_-]+$/, "Use lowercase letters, numbers, '_' and '-'."),
+			.min(1, t("admin.forms.slugRequired"))
+			.regex(/^[a-z0-9_-]+$/, t("admin.forms.slugFormat")),
 		description: z.string().optional(),
 		visibility: z.enum(["private", "public"]).default("private"),
 		builderMode: z.enum(["simple", "json"]).default("simple"),
@@ -102,7 +103,9 @@ export default component$(() => {
 
 	return (
 		<div class="max-w-4xl mx-auto px-4 py-8">
-			<h1 class="text-3xl font-bold text-gray-900 mb-8">Create New Form</h1>
+			<h1 class="text-3xl font-bold text-gray-900 mb-8">
+				{t("admin.forms.new.createNewForm")}
+			</h1>
 
 			{(action.value as { error?: string } | undefined)?.error && (
 				<div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
@@ -121,24 +124,24 @@ export default component$(() => {
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<Input
 							name="title"
-							label="Title"
+							label={t("admin.forms.new.title")}
 							required
 							value={action.formData?.get("title")}
 							error={action.value?.fieldErrors?.title?.[0]}
 						/>
 						<Input
 							name="slug"
-							label="Slug"
+							label={t("admin.forms.new.slug")}
 							required
 							value={action.formData?.get("slug")}
 							error={action.value?.fieldErrors?.slug?.[0]}
-							placeholder="signup-survey"
+							placeholder={t("admin.forms.new.signupSurvey")}
 						/>
 					</div>
 
 					<TextArea
 						name="description"
-						label="Description"
+						label={t("admin.forms.new.description")}
 						value={(action.formData?.get("description") as string) || ""}
 						rows={3}
 					/>
@@ -146,18 +149,20 @@ export default component$(() => {
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<Select
 							name="visibility"
-							label="Visibility"
+							label={t("admin.forms.new.visibility")}
 							value={
 								(action.formData?.get("visibility") as string) || "private"
 							}
 						>
-							<option value="private">Private (login required)</option>
-							<option value="public">Public</option>
+							<option value="private">
+								{t("admin.forms.new.privateLoginRequired")}
+							</option>
+							<option value="public">{t("admin.forms.new.public")}</option>
 						</Select>
 
 						<Select
 							name="builderMode"
-							label="Builder Mode"
+							label={t("admin.forms.new.builderMode")}
 							value={builderMode.value}
 							onChange$={(event) => {
 								builderMode.value = (event.target as HTMLSelectElement).value as
@@ -165,16 +170,19 @@ export default component$(() => {
 									| "json";
 							}}
 						>
-							<option value="simple">Simple Builder</option>
-							<option value="json">Paste SurveyJS JSON</option>
+							<option value="simple">
+								{t("admin.forms.new.simpleBuilder")}
+							</option>
+							<option value="json">
+								{t("admin.forms.new.pasteSurveyjsJson")}
+							</option>
 						</Select>
 					</div>
 
 					{builderMode.value === "simple" ? (
 						<div class="forms-builder-card">
 							<p class="text-sm text-gray-600 mb-2">
-								Build fields directly. IDs are auto-generated from question
-								titles.
+								{t("admin.forms.new.buildFieldsDirectlyIdsAre")}
 							</p>
 							<SimpleFormBuilder
 								inputName="simpleFieldsJson"
@@ -186,7 +194,7 @@ export default component$(() => {
 					) : (
 						<TextArea
 							name="schemaJson"
-							label="SurveyJS JSON"
+							label={t("admin.forms.new.surveyjsJson")}
 							value={
 								(action.formData?.get("schemaJson") as string) || '{"pages":[]}'
 							}
@@ -196,10 +204,10 @@ export default component$(() => {
 
 					<Select
 						name="purpose"
-						label="Purpose"
+						label={t("admin.forms.new.purpose")}
 						value={(action.formData?.get("purpose") as string) || ""}
 					>
-						<option value="">None (a survey)</option>
+						<option value="">{t("admin.forms.new.noneASurvey")}</option>
 						{scope.value.purposes.map((p) => (
 							<option key={p.purpose} value={p.purpose}>
 								{p.label}
@@ -208,15 +216,19 @@ export default component$(() => {
 					</Select>
 
 					<p class="text-sm text-gray-500">
-						Public URL preview: {previewPath.value}
+						{t("admin.forms.new.publicUrlPreview", {
+							value: previewPath.value,
+						})}
 					</p>
 
 					<div class="flex gap-4">
 						<Button type="submit" disabled={action.isRunning}>
-							{action.isRunning ? "Creating..." : "Create Form"}
+							{action.isRunning
+								? t("admin.forms.new.creating")
+								: t("admin.forms.new.createForm")}
 						</Button>
 						<Button href={scope.value.basePath} variant="secondary">
-							Cancel
+							{t("admin.forms.new.cancel")}
 						</Button>
 					</div>
 				</Form>

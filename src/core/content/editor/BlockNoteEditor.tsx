@@ -1,6 +1,7 @@
 import { component$, type QRL, useSignal } from "@qwik.dev/core";
 import { qwikify$ } from "@qwik.dev/react";
 import React, { Suspense } from "react";
+import { t } from "~/core/i18n";
 import type { InsertLinkRequest } from "./BlockNoteEditorReact";
 import { EditorLinkPicker } from "./EditorLinkPicker";
 
@@ -16,7 +17,7 @@ const ReactLoader = (props: any) => {
 			fallback: React.createElement(
 				"div",
 				{ style: { padding: "2rem", textAlign: "center" } },
-				"Loading editor...",
+				t("admin.editor.loading"),
 			),
 		},
 		React.createElement(LazyBlockNoteEditorReact, props),

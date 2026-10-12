@@ -1,5 +1,6 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireAuth } from "~/core/auth/server-auth";
+import { t } from "~/core/i18n";
 import {
 	isMutable,
 	setNotificationPreference,
@@ -17,7 +18,7 @@ export const useSetNotificationPreference = routeAction$(
 		if (
 			!isMutable(getNotificationDefinition(data.notificationId), data.channel)
 		) {
-			return event.fail(400, { message: "This notification cannot be muted" });
+			return event.fail(400, { message: t("core.notifications.cannotMute") });
 		}
 		await setNotificationPreference(
 			user.id,

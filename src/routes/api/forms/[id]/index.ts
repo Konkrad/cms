@@ -3,13 +3,14 @@ import { getServerSession } from "~/core/auth/server-auth";
 import { formAccessService } from "~/core/forms/form-access.service";
 import { formsService } from "~/core/forms/forms.service";
 import { isSurveyForm } from "~/core/forms/purposes";
+import { t } from "~/core/i18n";
 
 export const onGet: RequestHandler = async (event) => {
 	const { params, json } = event;
 	const form = await formsService.getById(params.id);
 	// Workflow forms (a purpose) are filled in their workflow, not as a survey.
 	if (!form || !isSurveyForm(form)) {
-		json(404, { error: "Form not found" });
+		json(404, { error: t("core.forms.notFound") });
 		return;
 	}
 
@@ -18,7 +19,7 @@ export const onGet: RequestHandler = async (event) => {
 	try {
 		formAccessService.ensureViewAccess(form, user);
 	} catch {
-		json(401, { error: "Authentication required" });
+		json(401, { error: t("core.forms.authRequired") });
 		return;
 	}
 

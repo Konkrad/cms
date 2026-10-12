@@ -7,6 +7,7 @@ import {
 } from "@qwik.dev/core";
 import flatpickr from "flatpickr";
 import type { Instance } from "flatpickr/dist/types/instance";
+import { t } from "~/core/i18n";
 
 interface SmartDatePickerProps {
 	startDateName?: string;
@@ -22,7 +23,7 @@ export const SmartDatePicker = component$<SmartDatePickerProps>(
 	({
 		startDateName = "startDate",
 		endDateName = "endDate",
-		label = "Date & Time",
+		label = t("core.ui.smartDatePicker.label"),
 		required = false,
 		startValue = "",
 		endValue = "",
@@ -220,7 +221,9 @@ export const SmartDatePicker = component$<SmartDatePickerProps>(
 							}
 							class="w-4 h-4 text-primary border-border-strong rounded-sm focus:ring-focus-ring"
 						/>
-						<span class="text-sm text-text">All day</span>
+						<span class="text-sm text-text">
+							{t("core.ui.smartDatePicker.allDay")}
+						</span>
 					</label>
 
 					<label class="flex items-center gap-2 cursor-pointer">
@@ -232,17 +235,21 @@ export const SmartDatePicker = component$<SmartDatePickerProps>(
 							}
 							class="w-4 h-4 text-primary border-border-strong rounded-sm focus:ring-focus-ring"
 						/>
-						<span class="text-sm text-text">Multi-day event</span>
+						<span class="text-sm text-text">
+							{t("core.ui.smartDatePicker.multiDayEvent")}
+						</span>
 					</label>
 				</div>
 
 				{/* Start date/time */}
 				<div class="bg-bg-muted rounded-lg p-4">
-					<div class="text-sm font-medium text-text mb-2">Start</div>
+					<div class="text-sm font-medium text-text mb-2">
+						{t("core.ui.smartDatePicker.start")}
+					</div>
 					<input
 						ref={startInputRef}
 						type="text"
-						placeholder="Select start date"
+						placeholder={t("core.ui.smartDatePicker.selectStartDate")}
 						required={required}
 						class="w-full px-3 py-2 border border-border-strong rounded-lg focus:ring-2 focus:ring-focus-ring focus:border-transparent"
 					/>
@@ -251,11 +258,13 @@ export const SmartDatePicker = component$<SmartDatePickerProps>(
 				{/* End date/time - only show if multi-day */}
 				{isMultiDay.value && (
 					<div class="bg-bg-muted rounded-lg p-4">
-						<div class="text-sm font-medium text-text mb-2">End</div>
+						<div class="text-sm font-medium text-text mb-2">
+							{t("core.ui.smartDatePicker.end")}
+						</div>
 						<input
 							ref={endInputRef}
 							type="text"
-							placeholder="Select end date"
+							placeholder={t("core.ui.smartDatePicker.selectEndDate")}
 							required={required}
 							class="w-full px-3 py-2 border border-border-strong rounded-lg focus:ring-2 focus:ring-focus-ring focus:border-transparent"
 						/>

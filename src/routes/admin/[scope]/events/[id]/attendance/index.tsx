@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
+import { t } from "~/core/i18n";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { AdminEventAttendance } from "../../../../../../modules/events/admin/attendance";
 import { loadAdminAttendance } from "../../../../../../modules/events/admin/attendance-data";
@@ -19,11 +20,13 @@ export default component$(() => {
 export const head: DocumentHead = ({ resolveValue }) => {
 	const { event } = resolveValue(useAttendance);
 	return {
-		title: `Attendance Report - ${event.title}`,
+		title: t("admin.events.attendance.title", { title: event.title }),
 		meta: [
 			{
 				name: "description",
-				content: `Attendance report for ${event.title} event`,
+				content: t("admin.events.attendance.description", {
+					title: event.title,
+				}),
 			},
 		],
 	};

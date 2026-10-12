@@ -11,6 +11,7 @@ import { buildFormPath } from "~/core/forms/forms";
 import { FormLockedError, formsService } from "~/core/forms/forms.service";
 import { isSurveyForm } from "~/core/forms/purposes";
 import { SimpleFormBuilder } from "~/core/forms/SimpleFormBuilder";
+import { t } from "~/core/i18n";
 import { formPurposes, isFormPurpose } from "~/core/registry/forms";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import {
@@ -58,10 +59,10 @@ export const useUpdateForm = routeAction$(
 		const { scope } = await resolveFormsAdminScope(event);
 		const existing = await getOwnForm(scope, event.params.id);
 		if (!existing) {
-			return { success: false, error: "Form not found" };
+			return { success: false, error: t("admin.forms.notFound") };
 		}
 		if (data.purpose && !isFormPurpose(data.purpose)) {
-			return { success: false, error: "Unknown purpose" };
+			return { success: false, error: t("admin.forms.unknownPurpose") };
 		}
 		try {
 			// A locked form's edit page sends no questions; only its settings change.
@@ -93,7 +94,7 @@ export const useUpdateForm = routeAction$(
 			if (error instanceof FormLockedError)
 				return { success: false, error: error.message };
 			if (error instanceof SyntaxError || error instanceof z.ZodError)
-				return { success: false, error: "The questions are not valid" };
+				return { success: false, error: t("admin.forms.invalidQuestions") };
 			if (error instanceof Error && !("status" in error))
 				return { success: false, error: error.message };
 			throw error;
@@ -101,11 +102,11 @@ export const useUpdateForm = routeAction$(
 		throw event.redirect(303, buildFormsAdminBasePath(event.params.scope));
 	},
 	zod$({
-		title: z.string().min(1, "Title is required"),
+		title: z.string().min(1, t("admin.forms.titleRequired")),
 		slug: z
 			.string()
-			.min(1, "Slug is required")
-			.regex(/^[a-z0-9_-]+$/, "Use lowercase letters, numbers, '_' and '-'."),
+			.min(1, t("admin.forms.slugRequired"))
+			.regex(/^[a-z0-9_-]+$/, t("admin.forms.slugFormat")),
 		description: z.string().optional(),
 		purpose: z.string().optional(),
 		visibility: z.enum(["private", "public"]).default("private"),
@@ -129,14 +130,16 @@ export default component$(() => {
 
 	return (
 		<div class="max-w-4xl mx-auto px-4 py-8">
-			<h1 class="text-3xl font-bold text-gray-900 mb-8">Edit Form</h1>
+			<h1 class="text-3xl font-bold text-gray-900 mb-8">
+				{t("admin.forms.edit.editForm")}
+			</h1>
 
 			<div class="mb-6">
 				<Button
 					href={`${loader.value.basePath}/${loader.value.form.id}/responses`}
 					variant="secondary"
 				>
-					View Responses
+					{t("admin.forms.edit.viewResponses")}
 				</Button>
 			</div>
 
@@ -157,24 +160,24 @@ export default component$(() => {
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<Input
 							name="title"
-							label="Title"
+							label={t("admin.forms.edit.title")}
 							required
 							value={action.formData?.get("title") || loader.value.form.title}
 							error={action.value?.fieldErrors?.title?.[0]}
 						/>
 						<Input
 							name="slug"
-							label="Slug"
+							label={t("admin.forms.edit.slug")}
 							required
 							value={action.formData?.get("slug") || loader.value.form.slug}
 							error={action.value?.fieldErrors?.slug?.[0]}
-							placeholder="signup-survey"
+							placeholder={t("admin.forms.edit.signupSurvey")}
 						/>
 					</div>
 
 					<TextArea
 						name="description"
-						label="Description"
+						label={t("admin.forms.edit.description")}
 						value={
 							(action.formData?.get("description") as string) ||
 							loader.value.form.description ||
@@ -186,26 +189,28 @@ export default component$(() => {
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<Select
 							name="visibility"
-							label="Visibility"
+							label={t("admin.forms.edit.visibility")}
 							value={
 								(action.formData?.get("visibility") as string) ||
 								loader.value.form.visibility
 							}
 						>
-							<option value="private">Private (login required)</option>
-							<option value="public">Public</option>
+							<option value="private">
+								{t("admin.forms.edit.privateLoginRequired")}
+							</option>
+							<option value="public">{t("admin.forms.edit.public")}</option>
 						</Select>
 
 						<Select
 							name="purpose"
-							label="Purpose"
+							label={t("admin.forms.edit.purpose")}
 							value={
 								(action.formData?.get("purpose") as string) ??
 								loader.value.form.purpose ??
 								""
 							}
 						>
-							<option value="">None (a survey)</option>
+							<option value="">{t("admin.forms.edit.noneASurvey")}</option>
 							{loader.value.purposes.map((p) => (
 								<option key={p.purpose} value={p.purpose}>
 									{p.label}
@@ -218,8 +223,7 @@ export default component$(() => {
 						<div data-testid="form-locked">
 							<input type="hidden" name="builderMode" value="locked" />
 							<div class="p-3 mb-4 rounded-sm bg-amber-50 border border-amber-300 text-amber-900 text-sm">
-								This form has answers, so its questions can no longer be edited.
-								Duplicate it from the forms list to change them.
+								{t("admin.forms.edit.thisFormHasAnswersSo")}
 							</div>
 							<ol class="list-decimal pl-6 space-y-1 text-sm text-gray-700">
 								{loader.value.questions.map((q) => (
@@ -227,7 +231,7 @@ export default component$(() => {
 										{q.title}{" "}
 										<span class="text-gray-400">
 											({q.type}
-											{q.required ? ", required" : ""})
+											{q.required ? t("admin.forms.edit.required") : ""})
 										</span>
 									</li>
 								))}
@@ -237,21 +241,24 @@ export default component$(() => {
 						<>
 							<Select
 								name="builderMode"
-								label="Builder Mode"
+								label={t("admin.forms.edit.builderMode")}
 								value={builderMode.value}
 								onChange$={(event) => {
 									builderMode.value = (event.target as HTMLSelectElement)
 										.value as "simple" | "json";
 								}}
 							>
-								<option value="simple">Simple Builder</option>
-								<option value="json">Paste SurveyJS JSON</option>
+								<option value="simple">
+									{t("admin.forms.edit.simpleBuilder")}
+								</option>
+								<option value="json">
+									{t("admin.forms.edit.pasteSurveyjsJson")}
+								</option>
 							</Select>
 							{builderMode.value === "simple" ? (
 								<div class="forms-builder-card">
 									<p class="text-sm text-gray-600 mb-2">
-										Build fields directly. IDs are auto-generated from question
-										titles.
+										{t("admin.forms.edit.buildFieldsDirectlyIdsAre")}
 									</p>
 									<SimpleFormBuilder
 										inputName="simpleFieldsJson"
@@ -264,7 +271,7 @@ export default component$(() => {
 							) : (
 								<TextArea
 									name="schemaJson"
-									label="SurveyJS JSON"
+									label={t("admin.forms.edit.surveyjsJson")}
 									value={
 										(action.formData?.get("schemaJson") as string) ||
 										JSON.stringify(loader.value.form.schema, null, 2)
@@ -277,16 +284,20 @@ export default component$(() => {
 
 					{loader.value.publicPath && (
 						<p class="text-sm text-gray-500">
-							Public URL: {loader.value.publicPath}
+							{t("admin.forms.edit.publicUrl", {
+								publicPath: loader.value.publicPath,
+							})}
 						</p>
 					)}
 
 					<div class="flex gap-4">
 						<Button type="submit" disabled={action.isRunning}>
-							{action.isRunning ? "Updating..." : "Update Form"}
+							{action.isRunning
+								? t("admin.forms.edit.updating")
+								: t("admin.forms.edit.updateForm")}
 						</Button>
 						<Button href={loader.value.basePath} variant="secondary">
-							Cancel
+							{t("admin.forms.edit.cancel")}
 						</Button>
 					</div>
 				</Form>

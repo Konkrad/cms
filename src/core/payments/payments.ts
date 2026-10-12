@@ -1,3 +1,4 @@
+import { t } from "~/core/i18n";
 import { paymentsService } from "~/core/payments/payments.service";
 import type {
 	PaymentChange,
@@ -77,7 +78,7 @@ export type PaymentHook = keyof PaymentHandlers;
 /** No payment provider is configured (spec 4.7: payments are disabled; offer a free flow). */
 export class PaymentsDisabledError extends Error {
 	constructor() {
-		super("Online payments are not available");
+		super(t("core.payments.unavailable"));
 		this.name = "PaymentsDisabledError";
 	}
 }
@@ -483,12 +484,12 @@ export async function refundPayment(
 	now: Date = new Date(),
 ): Promise<void> {
 	const payment = await paymentsService.getById(id);
-	if (!payment) throw new PaymentActionError("Payment not found");
+	if (!payment) throw new PaymentActionError(t("core.payments.notFound"));
 	if (payment.mode !== "payment" || payment.status !== "paid")
-		throw new PaymentActionError("Only paid one-off payments can be refunded");
+		throw new PaymentActionError(t("core.payments.onlyPaidRefundable"));
 	const provider = paymentProvider();
 	if (!provider || provider.id !== payment.provider)
-		throw new PaymentActionError("The payment provider is not configured");
+		throw new PaymentActionError(t("core.payments.providerNotConfigured"));
 	const { refundId } = await provider.refund(payment);
 	// The provider's refund event follows and is then a no-op.
 	await applyPaymentChange(
@@ -505,15 +506,15 @@ export async function cancelSubscription(
 	now: Date = new Date(),
 ): Promise<void> {
 	const payment = await paymentsService.getById(id);
-	if (!payment) throw new PaymentActionError("Payment not found");
+	if (!payment) throw new PaymentActionError(t("core.payments.notFound"));
 	if (
 		payment.mode !== "subscription" ||
 		!["active", "past_due"].includes(payment.status)
 	)
-		throw new PaymentActionError("Only running subscriptions can be canceled");
+		throw new PaymentActionError(t("core.payments.onlyRunningCancelable"));
 	const provider = paymentProvider();
 	if (!provider || provider.id !== payment.provider)
-		throw new PaymentActionError("The payment provider is not configured");
+		throw new PaymentActionError(t("core.payments.providerNotConfigured"));
 	await provider.cancelSubscription(payment);
 	await applyPaymentChange(payment, "canceled", { providerEventId: null }, now);
 }

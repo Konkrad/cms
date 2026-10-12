@@ -10,6 +10,7 @@ import {
 import { Button } from "~/components/ui/Button";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
+import { t } from "~/core/i18n";
 import { publicImageUrlFromKey } from "~/core/media/images";
 import { reservedSlugs, scopeHasContent } from "~/core/registry/manifests";
 import { adminUrl, scopeUrl } from "~/core/router/scope-path";
@@ -30,13 +31,12 @@ async function deleteBlocker(
 	user: { id: string },
 	scope: { id: string; parentId: string | null },
 ): Promise<string | null> {
-	if (scope.parentId === null) return "The root cannot be deleted.";
+	if (scope.parentId === null) return t("admin.scope.rootCannotDelete");
 	if (!(await canManageScope(user, scope.parentId, ADMIN_ACCESS)))
-		return "Only managers of the parent group can delete this group.";
+		return t("admin.scope.onlyParentManagersDelete");
 	if ((await scopesService.getChildren(scope.id)).length > 0)
-		return "Delete or move its groups first.";
-	if (await scopeHasContent(scope.id))
-		return "It still has notes, articles, events or forms.";
+		return t("admin.scope.moveGroupsFirst");
+	if (await scopeHasContent(scope.id)) return t("admin.scope.stillHasContent");
 	return null;
 }
 
@@ -55,7 +55,10 @@ export const useScopeSettings = routeLoader$(async (event) => {
 				.filter(
 					(s) => !s.path.startsWith(scope.path) && s.id !== scope.parentId,
 				)
-				.map((s) => ({ id: s.id, label: s.parentId ? s.path : "Root" }))
+				.map((s) => ({
+					id: s.id,
+					label: s.parentId ? s.path : t("admin.scope.root"),
+				}))
 		: [];
 	return assertNoPrivateFields({
 		scope: {
@@ -98,7 +101,7 @@ export const useUpdateScope = routeAction$(
 		return { success: true };
 	},
 	zod$({
-		name: z.string().trim().min(1, "Name is required").max(120),
+		name: z.string().trim().min(1, t("admin.scope.nameRequired")).max(120),
 		description: z.string().max(2000).optional(),
 	}),
 );
@@ -146,10 +149,10 @@ export const useCreateChildScope = routeAction$(
 	zod$({
 		// One of the configured kinds (env.SCOPE_KINDS).
 		kind: z.string().refine((kind) => env.SCOPE_KINDS.includes(kind), {
-			message: "Unknown group kind",
+			message: t("admin.scope.unknownKind"),
 		}),
 		slug: z.string().trim().toLowerCase().min(1).max(63),
-		name: z.string().trim().min(1, "Name is required").max(120),
+		name: z.string().trim().min(1, t("admin.scope.nameRequired")).max(120),
 	}),
 );
 
@@ -223,28 +226,37 @@ export default component$(() => {
 		<div class="space-y-8">
 			<div class="flex items-center justify-between">
 				<h2 class="text-2xl font-bold text-gray-800">
-					{data.value.isRoot ? "Groups" : "Group settings"}
+					{data.value.isRoot
+						? t("admin.scope.groups")
+						: t("admin.scope.groupSettings")}
 				</h2>
 				{!data.value.isRoot && (
 					<Button href={data.value.publicUrl} variant="secondary">
-						View page
+						{t("admin.scope.viewPage")}
 					</Button>
 				)}
 			</div>
 
 			<section class="bg-white rounded-lg shadow-sm p-6 space-y-4">
-				<h3 class="text-lg font-semibold text-gray-900">Profile</h3>
+				<h3 class="text-lg font-semibold text-gray-900">
+					{t("admin.scope.profile")}
+				</h3>
 				<p class="text-sm text-gray-500">
 					<span class="capitalize">{scope.kind}</span> · {scope.path}
 				</p>
 				<Form action={update} class="space-y-4">
-					<Input name="name" label="Name" value={scope.name} required />
+					<Input
+						name="name"
+						label={t("admin.scope.name")}
+						value={scope.name}
+						required
+					/>
 					<div>
 						<label
 							for="scope-description"
 							class="block text-sm font-medium text-gray-700 mb-1"
 						>
-							Description
+							{t("admin.scope.description")}
 						</label>
 						<textarea
 							id="scope-description"
@@ -255,15 +267,17 @@ export default component$(() => {
 						/>
 					</div>
 					{update.value?.success && (
-						<p class="text-sm text-green-700">Saved.</p>
+						<p class="text-sm text-green-700">{t("admin.scope.saved")}</p>
 					)}
-					<Button type="submit">Save</Button>
+					<Button type="submit">{t("admin.scope.save")}</Button>
 				</Form>
 			</section>
 
 			{!data.value.isRoot && (
 				<section class="bg-white rounded-lg shadow-sm p-6 space-y-4">
-					<h3 class="text-lg font-semibold text-gray-900">Page images</h3>
+					<h3 class="text-lg font-semibold text-gray-900">
+						{t("admin.scope.pageImages")}
+					</h3>
 					{setImage.value?.failed && (
 						<p class="text-sm text-red-600">{setImage.value.message}</p>
 					)}
@@ -272,7 +286,9 @@ export default component$(() => {
 							const current = scope.images[slot - 1];
 							return (
 								<div key={slot} class="space-y-2">
-									<p class="text-sm font-medium text-gray-700">Image {slot}</p>
+									<p class="text-sm font-medium text-gray-700">
+										{t("admin.scope.image", { slot })}
+									</p>
 									{current && (
 										<img
 											src={current}
@@ -304,7 +320,7 @@ export default component$(() => {
 												type="submit"
 												class="text-sm text-red-600 hover:underline"
 											>
-												Remove image
+												{t("admin.scope.removeImage")}
 											</button>
 										</Form>
 									)}
@@ -316,16 +332,18 @@ export default component$(() => {
 			)}
 
 			<section class="bg-white rounded-lg shadow-sm p-6 space-y-4">
-				<h3 class="text-lg font-semibold text-gray-900">Groups below</h3>
+				<h3 class="text-lg font-semibold text-gray-900">
+					{t("admin.scope.groupsBelow")}
+				</h3>
 				{data.value.children.length === 0 ? (
-					<p class="text-sm text-gray-500">No groups yet.</p>
+					<p class="text-sm text-gray-500">{t("admin.scope.noGroupsYet")}</p>
 				) : (
 					<table class="min-w-full divide-y divide-gray-200 text-sm">
 						<thead>
 							<tr class="text-left text-xs uppercase text-gray-500">
-								<th class="py-2">Name</th>
-								<th class="py-2">Kind</th>
-								<th class="py-2">Members</th>
+								<th class="py-2">{t("admin.scope.name")}</th>
+								<th class="py-2">{t("admin.scope.kind")}</th>
+								<th class="py-2">{t("admin.scope.members")}</th>
 								<th class="py-2" />
 							</tr>
 						</thead>
@@ -340,13 +358,13 @@ export default component$(() => {
 											href={child.adminHref}
 											class="text-blue-600 hover:underline"
 										>
-											Manage
+											{t("admin.scope.manage")}
 										</Link>
 										<a
 											href={child.publicHref}
 											class="text-gray-600 hover:underline"
 										>
-											View
+											{t("admin.scope.view")}
 										</a>
 									</td>
 								</tr>
@@ -364,7 +382,7 @@ export default component$(() => {
 							for="child-kind"
 							class="block text-sm font-medium text-gray-700 mb-1"
 						>
-							Kind
+							{t("admin.scope.kind")}
 						</label>
 						<select
 							id="child-kind"
@@ -378,14 +396,14 @@ export default component$(() => {
 							))}
 						</select>
 					</div>
-					<Input name="name" label="Name" required />
+					<Input name="name" label={t("admin.scope.name")} required />
 					<Input
 						name="slug"
-						label="URL slug"
-						placeholder="e.g. berlin"
+						label={t("admin.scope.urlSlug")}
+						placeholder={t("admin.scope.eGBerlin")}
 						required
 					/>
-					<Button type="submit">Create group</Button>
+					<Button type="submit">{t("admin.scope.createGroup")}</Button>
 				</Form>
 				{create.value?.failed && (
 					<p class="text-sm text-red-600" role="alert">
@@ -399,29 +417,31 @@ export default component$(() => {
 
 			{data.value.canMove && (
 				<section class="bg-white rounded-lg shadow-sm p-6 space-y-4">
-					<h3 class="text-lg font-semibold text-gray-900">Move</h3>
+					<h3 class="text-lg font-semibold text-gray-900">
+						{t("admin.scope.move")}
+					</h3>
 					<Form action={move} class="flex gap-3 items-end">
 						<div>
 							<label
 								for="move-parent"
 								class="block text-sm font-medium text-gray-700 mb-1"
 							>
-								New parent
+								{t("admin.scope.newParent")}
 							</label>
 							<select
 								id="move-parent"
 								name="parentId"
 								class="rounded border border-gray-300 px-3 py-2 text-sm"
 							>
-								{data.value.moveTargets.map((t) => (
-									<option key={t.id} value={t.id}>
-										{t.label}
+								{data.value.moveTargets.map((target) => (
+									<option key={target.id} value={target.id}>
+										{target.label}
 									</option>
 								))}
 							</select>
 						</div>
 						<Button type="submit" variant="secondary">
-							Move group
+							{t("admin.scope.moveGroup")}
 						</Button>
 					</Form>
 					{move.value?.failed && (
@@ -433,7 +453,7 @@ export default component$(() => {
 								for="rename-slug"
 								class="block text-sm font-medium text-gray-700 mb-1"
 							>
-								URL segment
+								{t("admin.scope.urlSegment")}
 							</label>
 							<input
 								id="rename-slug"
@@ -443,28 +463,29 @@ export default component$(() => {
 							/>
 						</div>
 						<Button type="submit" variant="secondary">
-							Change URL
+							{t("admin.scope.changeUrl")}
 						</Button>
 					</Form>
 					{rename.value?.failed && (
 						<p class="text-sm text-red-600">{rename.value.message}</p>
 					)}
 					<p class="text-sm text-gray-500">
-						Old URLs of this group and the groups below it redirect to the new
-						ones.
+						{t("admin.scope.oldUrlsOfThisGroup")}
 					</p>
 				</section>
 			)}
 
 			{!data.value.isRoot && (
 				<section class="bg-white rounded-lg shadow-sm p-6 space-y-3">
-					<h3 class="text-lg font-semibold text-gray-900">Delete</h3>
+					<h3 class="text-lg font-semibold text-gray-900">
+						{t("admin.scope.delete")}
+					</h3>
 					{data.value.deleteBlocker ? (
 						<p class="text-sm text-gray-500">{data.value.deleteBlocker}</p>
 					) : (
 						<Form action={remove}>
 							<Button type="submit" variant="secondary">
-								Delete this group
+								{t("admin.scope.deleteThisGroup")}
 							</Button>
 						</Form>
 					)}

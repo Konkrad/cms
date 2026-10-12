@@ -1,6 +1,7 @@
 import { useSignal, useTask$ } from "@qwik.dev/core";
 import { server$, useLocation } from "@qwik.dev/router";
 import type { ScopeListItem } from "~/contracts/scopes";
+import { t } from "~/core/i18n";
 import { splitScopePath } from "~/core/router/scope-path";
 import { getScopePaths } from "~/core/router/scope-request";
 import { toScopeListItem } from "~/core/scopes/scope-list";
@@ -31,7 +32,8 @@ export function useScopesList() {
 		try {
 			scopes.value = await fetchChildScopes(location.url.pathname);
 		} catch (e) {
-			error.value = e instanceof Error ? e.message : "Failed to load groups";
+			error.value =
+				e instanceof Error ? e.message : t("core.content.failedToLoadGroups");
 		} finally {
 			isLoading.value = false;
 		}

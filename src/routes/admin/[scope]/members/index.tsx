@@ -7,7 +7,7 @@ import {
 	z,
 	zod$,
 } from "@qwik.dev/router";
-import { formatDate } from "~/core/i18n";
+import { formatDate, t } from "~/core/i18n";
 import { adminUrl } from "~/core/router/scope-path";
 import {
 	ADMIN_ACCESS,
@@ -64,9 +64,11 @@ const userExists = async (id: string) =>
 export const useAddMember = routeAction$(async (data, event) => {
 	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
 	if (scope.parentId === null)
-		return event.fail(400, { message: "Everyone belongs to the root." });
+		return event.fail(400, {
+			message: t("admin.members.everyoneBelongsToRoot"),
+		});
 	if (!(await userExists(data.userId)))
-		return event.fail(404, { message: "User not found" });
+		return event.fail(404, { message: t("admin.members.userNotFound") });
 	await scopesService.join(data.userId, scope.id);
 	return { success: true };
 }, zod$(userSchema));
@@ -84,7 +86,7 @@ export const useGrantRole = routeAction$(async (data, event) => {
 	if (!(await canGrantRole(user, scope.id, data.role)))
 		throw event.error(403, "Forbidden");
 	if (!(await userExists(data.userId)))
-		return event.fail(404, { message: "User not found" });
+		return event.fail(404, { message: t("admin.members.userNotFound") });
 	await scopesService.grantRole(data.userId, scope.id, data.role);
 	return { success: true };
 }, zod$(roleSchema));
@@ -95,7 +97,7 @@ export const useRevokeRole = routeAction$(async (data, event) => {
 		throw event.error(403, "Forbidden");
 	// Nobody removes their own role (a root admin could lock everyone out).
 	if (data.userId === user.id)
-		return event.fail(400, { message: "You cannot revoke your own role." });
+		return event.fail(400, { message: t("admin.members.cannotRevokeOwnRole") });
 	await scopesService.revokeRole(data.userId, scope.id, data.role);
 	return { success: true };
 }, zod$(roleSchema));
@@ -110,14 +112,14 @@ export default component$(() => {
 	const errors = [addMember, removeMember, grant, revoke]
 		.map((a) => {
 			const v = a.value as { failed?: boolean; message?: string } | undefined;
-			return v?.failed ? (v.message ?? "Invalid input") : null;
+			return v?.failed ? (v.message ?? t("admin.members.invalidInput")) : null;
 		})
 		.filter(Boolean);
 
 	return (
 		<div class="space-y-8">
 			<h2 class="text-2xl font-bold text-gray-800">
-				Members of {data.value.scopeName}
+				{t("admin.members.membersOf", { scopeName: data.value.scopeName })}
 			</h2>
 			{errors.map((e) => (
 				<p key={e} class="text-sm text-red-600" role="alert">
@@ -126,10 +128,12 @@ export default component$(() => {
 			))}
 
 			<section class="bg-white rounded-lg shadow-sm p-6 space-y-4">
-				<h3 class="text-lg font-semibold text-gray-900">Roles</h3>
+				<h3 class="text-lg font-semibold text-gray-900">
+					{t("admin.members.roles")}
+				</h3>
 				{data.value.roleHolders.length === 0 ? (
 					<p class="text-sm text-gray-500">
-						Nobody holds a role on this group directly.
+						{t("admin.members.nobodyHoldsARoleOn")}
 					</p>
 				) : (
 					<ul class="divide-y divide-gray-100" data-testid="role-holders">
@@ -155,7 +159,7 @@ export default component$(() => {
 												type="submit"
 												class="text-red-600 hover:underline"
 											>
-												Revoke
+												{t("admin.members.revoke")}
 											</button>
 										</Form>
 									)}
@@ -166,28 +170,30 @@ export default component$(() => {
 			</section>
 
 			<section class="bg-white rounded-lg shadow-sm p-6 space-y-4">
-				<h3 class="text-lg font-semibold text-gray-900">Add people</h3>
+				<h3 class="text-lg font-semibold text-gray-900">
+					{t("admin.members.addPeople")}
+				</h3>
 				<form method="get" action={membersUrl} class="flex gap-2">
 					<label for="member-search" class="sr-only">
-						Search users by name
+						{t("admin.members.searchUsersByName")}
 					</label>
 					<input
 						id="member-search"
 						type="search"
 						name="q"
 						value={data.value.query}
-						placeholder="Search users by name…"
+						placeholder={t("admin.members.searchUsersByName2")}
 						class="flex-1 rounded border border-gray-300 px-3 py-2 text-sm"
 					/>
 					<button
 						type="submit"
 						class="rounded border border-gray-300 px-3 py-2 text-sm"
 					>
-						Search
+						{t("admin.members.search")}
 					</button>
 				</form>
 				{data.value.query && data.value.searchResults.length === 0 && (
-					<p class="text-sm text-gray-500">No users found.</p>
+					<p class="text-sm text-gray-500">{t("admin.members.noUsersFound")}</p>
 				)}
 				<ul class="divide-y divide-gray-100" data-testid="search-results">
 					{data.value.searchResults.map((u) => (
@@ -200,13 +206,13 @@ export default component$(() => {
 								<Form action={addMember}>
 									<input type="hidden" name="userId" value={u.id} />
 									<button type="submit" class="text-blue-600 hover:underline">
-										Add as member
+										{t("admin.members.addAsMember")}
 									</button>
 								</Form>
 								<Form action={grant} class="flex items-center gap-1">
 									<input type="hidden" name="userId" value={u.id} />
 									<label for={`role-${u.id}`} class="sr-only">
-										Role
+										{t("admin.members.role")}
 									</label>
 									<select
 										id={`role-${u.id}`}
@@ -220,7 +226,7 @@ export default component$(() => {
 										))}
 									</select>
 									<button type="submit" class="text-green-700 hover:underline">
-										Grant role
+										{t("admin.members.grantRole")}
 									</button>
 								</Form>
 							</span>
@@ -232,7 +238,7 @@ export default component$(() => {
 			<section class="bg-white rounded-lg shadow-sm p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h3 class="text-lg font-semibold text-gray-900">
-						Members ({data.value.members.length})
+						{t("admin.members.members", { count: data.value.members.length })}
 					</h3>
 					<Link
 						href={
@@ -241,12 +247,12 @@ export default component$(() => {
 						class="text-sm text-blue-600 hover:underline"
 					>
 						{data.value.includeBelow
-							? "Only this group"
-							: "Include the groups below"}
+							? t("admin.members.onlyThisGroup")
+							: t("admin.members.includeTheGroupsBelow")}
 					</Link>
 				</div>
 				{data.value.members.length === 0 ? (
-					<p class="text-sm text-gray-500">No members yet.</p>
+					<p class="text-sm text-gray-500">{t("admin.members.noMembersYet")}</p>
 				) : (
 					<ul class="divide-y divide-gray-100" data-testid="members">
 						{data.value.members.map((m) => (
@@ -266,7 +272,7 @@ export default component$(() => {
 												type="submit"
 												class="text-red-600 hover:underline"
 											>
-												Remove
+												{t("admin.members.remove")}
 											</button>
 										</Form>
 									)}

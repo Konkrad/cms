@@ -1,3 +1,4 @@
+import { t } from "~/core/i18n";
 /**
  * Form purposes (spec 4.10): workflows that use a form whose questions admins edit in the form
  * builder. Core declares its own here; modules declare theirs in the manifest
@@ -14,7 +15,7 @@ export interface FormPurpose {
 export const ONBOARDING_PURPOSE = "core.onboarding";
 
 export const coreFormPurposes: FormPurpose[] = [
-	{ purpose: ONBOARDING_PURPOSE, label: "Onboarding survey" },
+	{ purpose: ONBOARDING_PURPOSE, label: t("core.forms.onboardingSurvey") },
 ];
 
 /**

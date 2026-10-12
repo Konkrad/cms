@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { useLocation } from "@qwik.dev/router";
+import { t } from "~/core/i18n";
 
 interface SearchBarProps {
 	value: string;
@@ -7,7 +8,7 @@ interface SearchBarProps {
 }
 
 export const SearchBar = component$<SearchBarProps>(
-	({ value, placeholder = "Search…" }) => {
+	({ value, placeholder = t("admin.searchBar.placeholder") }) => {
 		const loc = useLocation();
 		const action = loc.url.pathname;
 
@@ -24,14 +25,14 @@ export const SearchBar = component$<SearchBarProps>(
 					type="submit"
 					class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
 				>
-					Search
+					{t("admin.searchBar.search")}
 				</button>
 				{value && (
 					<a
 						href={action}
 						class="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg"
 					>
-						Clear
+						{t("admin.searchBar.clear")}
 					</a>
 				)}
 			</form>

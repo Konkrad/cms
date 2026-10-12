@@ -1,5 +1,5 @@
 import { createElement } from "react";
-import { formatDate, formatMoney } from "~/core/i18n";
+import { formatDate, formatMoney, t } from "~/core/i18n";
 import { defineNotification } from "~/core/notifications/define";
 import { notify } from "~/core/notifications/notify";
 import type { PaymentInfo } from "~/core/payments/payments";
@@ -16,7 +16,7 @@ export const paymentReceiptNotification = defineNotification<{
 	renewal: boolean;
 }>({
 	id: "payments.receipt",
-	label: "Payment receipt",
+	label: t("core.payments.receipt.label"),
 	channels: ["email"],
 	optional: false,
 	render: {
@@ -25,7 +25,7 @@ export const paymentReceiptNotification = defineNotification<{
 			if (!payment) throw new Error(`Payment ${data.paymentId} not found`);
 			const total = formatMoney(payment.amount, payment.currency);
 			return {
-				subject: `Your receipt (${total})`,
+				subject: t("core.payments.receipt.subject", { total }),
 				react: createElement(PaymentReceiptEmail, {
 					baseUrl: ctx.appUrl,
 					recipientName: ctx.recipient.name ?? "there",
@@ -37,7 +37,7 @@ export const paymentReceiptNotification = defineNotification<{
 						amount: formatMoney(line.amount * line.quantity, payment.currency),
 					})),
 					total,
-					note: data.renewal ? "Your subscription was renewed" : null,
+					note: data.renewal ? t("core.payments.receipt.renewed") : null,
 				}),
 			};
 		},

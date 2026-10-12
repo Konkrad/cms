@@ -7,6 +7,7 @@ import { GridLayoutEditor } from "~/core/content/builder/GridLayoutEditor";
 import { LinkField } from "~/core/content/builder/LinkField";
 import { TileEditor } from "~/core/content/builder/TileEditor";
 import type { BlockData, BlockDefinition } from "~/core/db/schema";
+import { t } from "~/core/i18n";
 import { publicImageUrlFromKey } from "~/core/media/images";
 
 interface PropertiesPanelProps {
@@ -59,7 +60,7 @@ export const PropertiesPanel = component$<PropertiesPanelProps>((props) => {
 			<div class="w-80 bg-white border-l border-gray-200 p-6">
 				<div class="text-center text-gray-500 text-sm">
 					<div class="text-4xl mb-3">⚙️</div>
-					<p>Select a block to edit its properties</p>
+					<p>{t("admin.propertiesPanel.selectABlockToEdit")}</p>
 				</div>
 			</div>
 		);
@@ -74,7 +75,9 @@ export const PropertiesPanel = component$<PropertiesPanelProps>((props) => {
 						{props.definition.name}
 					</h2>
 				</div>
-				<p class="text-xs text-gray-500">Configure block properties</p>
+				<p class="text-xs text-gray-500">
+					{t("admin.propertiesPanel.configureBlockProperties")}
+				</p>
 			</div>
 
 			<div class="flex-1 overflow-y-auto p-4 space-y-4">

@@ -1,5 +1,6 @@
 import { component$, Slot } from "@qwik.dev/core";
 import { Link, useLocation } from "@qwik.dev/router";
+import { t } from "~/core/i18n";
 
 export default component$(() => {
 	const loc = useLocation();
@@ -7,14 +8,14 @@ export default component$(() => {
 	const scopeSegment = loc.params.scope;
 
 	const tabs = [
-		{ path: "details", label: "Details" },
-		{ path: "review", label: "Review" },
-		{ path: "products", label: "Products" },
-		{ path: "participation", label: "Participants" },
-		{ path: "transactions", label: "Transactions" },
-		{ path: "tickets", label: "Tickets" },
-		{ path: "photos", label: "Photos" },
-		{ path: "updates", label: "Updates" },
+		{ path: "details", label: t("admin.events.tabs.details") },
+		{ path: "review", label: t("admin.events.tabs.review") },
+		{ path: "products", label: t("admin.events.tabs.products") },
+		{ path: "participation", label: t("admin.events.tabs.participants") },
+		{ path: "transactions", label: t("admin.events.tabs.transactions") },
+		{ path: "tickets", label: t("admin.events.tabs.tickets") },
+		{ path: "photos", label: t("admin.events.tabs.photos") },
+		{ path: "updates", label: t("admin.events.tabs.updates") },
 	];
 
 	return (

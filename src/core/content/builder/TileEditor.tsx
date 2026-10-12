@@ -1,6 +1,7 @@
 import { $, component$, type QRL, useSignal, useTask$ } from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
 import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
+import { t } from "~/core/i18n";
 import { publicImageUrlFromKey } from "~/core/media/images";
 import {
 	GRID_AREAS,
@@ -15,8 +16,8 @@ interface TileEditorProps {
 }
 
 const TILE_TYPE_OPTIONS = [
-	{ label: "Stat Tile", value: "stat" },
-	{ label: "Image Tile", value: "image" },
+	{ label: t("admin.tileEditor.statTile"), value: "stat" },
+	{ label: t("admin.tileEditor.imageTile"), value: "image" },
 ];
 
 function parseTiles(value: string): TileConfig[] {
@@ -35,7 +36,7 @@ function createDefaultStatTile(): TileConfig {
 		type: "stat",
 		area: "left-top",
 		number: "0",
-		title: "Title",
+		title: t("admin.tileEditor.title"),
 		description: "",
 	};
 }
@@ -128,18 +129,23 @@ export const TileEditor = component$<TileEditorProps>((props) => {
 
 	return (
 		<div class="space-y-3">
-			<span class="block text-sm font-medium text-gray-700">Tiles</span>
+			<span class="block text-sm font-medium text-gray-700">
+				{t("admin.tileEditor.tiles")}
+			</span>
 
 			{/* Tile list */}
 			{tiles.value.length === 0 && (
 				<div class="text-sm text-gray-400 italic py-3 text-center border border-dashed border-gray-300 rounded-lg">
-					No tiles yet. Add one below.
+					{t("admin.tileEditor.noTilesYetAddOne")}
 				</div>
 			)}
 
 			{tiles.value.map((tile, index) => {
 				const isExpanded = expandedIndex.value === index;
-				const typeLabel = tile.type === "stat" ? "📊 Stat" : "🖼️ Image";
+				const typeLabel =
+					tile.type === "stat"
+						? t("admin.tileEditor.stat")
+						: t("admin.tileEditor.image");
 				const areaInfo = GRID_AREAS.find((a) => a.name === tile.area);
 				const areaColor = areaInfo?.color ?? "#9CA3AF";
 
@@ -182,7 +188,7 @@ export const TileEditor = component$<TileEditorProps>((props) => {
 									class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
 									disabled={index === 0}
 									onClick$={() => handleMoveTile(index, "up")}
-									title="Move up"
+									title={t("admin.tileEditor.moveUp")}
 								>
 									↑
 								</button>
@@ -191,7 +197,7 @@ export const TileEditor = component$<TileEditorProps>((props) => {
 									class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
 									disabled={index === tiles.value.length - 1}
 									onClick$={() => handleMoveTile(index, "down")}
-									title="Move down"
+									title={t("admin.tileEditor.moveDown")}
 								>
 									↓
 								</button>
@@ -199,7 +205,7 @@ export const TileEditor = component$<TileEditorProps>((props) => {
 									type="button"
 									class="p-1 text-red-400 hover:text-red-600"
 									onClick$={() => handleDeleteTile(index)}
-									title="Delete tile"
+									title={t("admin.tileEditor.deleteTile")}
 								>
 									✕
 								</button>
@@ -215,7 +221,7 @@ export const TileEditor = component$<TileEditorProps>((props) => {
 										for={`tile-${index}-1`}
 										class="block text-xs font-medium text-gray-600 mb-1"
 									>
-										Type
+										{t("admin.tileEditor.type")}
 									</label>
 									<select
 										id={`tile-${index}-1`}
@@ -251,7 +257,7 @@ export const TileEditor = component$<TileEditorProps>((props) => {
 										for={`tile-${index}-2`}
 										class="block text-xs font-medium text-gray-600 mb-1"
 									>
-										Grid Area
+										{t("admin.tileEditor.gridArea")}
 									</label>
 									<select
 										id={`tile-${index}-2`}
@@ -281,7 +287,7 @@ export const TileEditor = component$<TileEditorProps>((props) => {
 												for={`tile-${index}-3`}
 												class="block text-xs font-medium text-gray-600 mb-1"
 											>
-												Number
+												{t("admin.tileEditor.number")}
 											</label>
 											<input
 												id={`tile-${index}-3`}
@@ -303,14 +309,14 @@ export const TileEditor = component$<TileEditorProps>((props) => {
 												for={`tile-${index}-4`}
 												class="block text-xs font-medium text-gray-600 mb-1"
 											>
-												Title
+												{t("admin.tileEditor.title")}
 											</label>
 											<input
 												id={`tile-${index}-4`}
 												type="text"
 												class="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
 												value={tile.title ?? ""}
-												placeholder="e.g. Members"
+												placeholder={t("admin.tileEditor.eGMembers")}
 												onInput$={(e) =>
 													handleUpdateTile(
 														index,
@@ -325,14 +331,14 @@ export const TileEditor = component$<TileEditorProps>((props) => {
 												for={`tile-${index}-5`}
 												class="block text-xs font-medium text-gray-600 mb-1"
 											>
-												Description
+												{t("admin.tileEditor.description")}
 											</label>
 											<textarea
 												id={`tile-${index}-5`}
 												class="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
 												rows={2}
 												value={tile.description ?? ""}
-												placeholder="Optional description"
+												placeholder={t("admin.tileEditor.optionalDescription")}
 												onInput$={(e) =>
 													handleUpdateTile(
 														index,
@@ -350,7 +356,7 @@ export const TileEditor = component$<TileEditorProps>((props) => {
 									<>
 										<div>
 											<span class="block text-xs font-medium text-gray-600 mb-1">
-												Image Upload
+												{t("admin.tileEditor.imageUpload")}
 											</span>
 											<ImageUploader
 												path="public/page-blocks/feature-grid"
@@ -384,14 +390,14 @@ export const TileEditor = component$<TileEditorProps>((props) => {
 												for={`tile-${index}-6`}
 												class="block text-xs font-medium text-gray-600 mb-1"
 											>
-												Alt Text
+												{t("admin.tileEditor.altText")}
 											</label>
 											<input
 												id={`tile-${index}-6`}
 												type="text"
 												class="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
 												value={tile.alt ?? ""}
-												placeholder="Describe the image"
+												placeholder={t("admin.tileEditor.describeTheImage")}
 												onInput$={(e) =>
 													handleUpdateTile(
 														index,
@@ -406,14 +412,16 @@ export const TileEditor = component$<TileEditorProps>((props) => {
 												for={`tile-${index}-7`}
 												class="block text-xs font-medium text-gray-600 mb-1"
 											>
-												Overlay Text
+												{t("admin.tileEditor.overlayText")}
 											</label>
 											<textarea
 												id={`tile-${index}-7`}
 												class="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
 												rows={2}
 												value={tile.overlayText ?? ""}
-												placeholder="Optional text over image"
+												placeholder={t(
+													"admin.tileEditor.optionalTextOverImage",
+												)}
 												onInput$={(e) =>
 													handleUpdateTile(
 														index,
@@ -441,7 +449,7 @@ export const TileEditor = component$<TileEditorProps>((props) => {
 					onClick$={() => handleAddTile("stat")}
 				>
 					<span>📊</span>
-					<span>Add Stat</span>
+					<span>{t("admin.tileEditor.addStat")}</span>
 				</Button>
 				<Button
 					type="button"
@@ -451,7 +459,7 @@ export const TileEditor = component$<TileEditorProps>((props) => {
 					onClick$={() => handleAddTile("image")}
 				>
 					<span>🖼️</span>
-					<span>Add Image</span>
+					<span>{t("admin.tileEditor.addImage")}</span>
 				</Button>
 			</div>
 		</div>

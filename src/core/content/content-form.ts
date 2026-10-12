@@ -3,6 +3,7 @@ import {
 	ARTICLE_TITLE_MAX_LENGTH,
 	ContentInputError,
 } from "~/core/content/content-items";
+import { t } from "~/core/i18n";
 import { parseRef } from "~/core/refs/refs";
 import { VISIBILITIES } from "~/core/scopes/visibility";
 
@@ -14,7 +15,7 @@ import { VISIBILITIES } from "~/core/scopes/visibility";
  */
 export const noteFormSchema = (z: typeof RouterZod) =>
 	z.object({
-		body: z.string().min(1, "Write something first"),
+		body: z.string().min(1, t("core.content.writeSomethingFirst")),
 		visibility: z.enum(VISIBILITIES),
 		/** `ref:<module>:<type>:<id>` from the subject picker; empty = no subject. */
 		subject: z.string().optional(),
@@ -25,11 +26,11 @@ export const articleFormSchema = (z: typeof RouterZod) =>
 		title: z
 			.string()
 			.trim()
-			.min(1, "An article needs a title")
-			.max(ARTICLE_TITLE_MAX_LENGTH, "The title is too long"),
+			.min(1, t("core.content.articleNeedsTitle"))
+			.max(ARTICLE_TITLE_MAX_LENGTH, t("core.content.titleTooLong")),
 		/** The uploaded image's S3 key (`public/articles/…`); empty = none. */
 		featuredImage: z.string().optional(),
-		body: z.string().min(1, "Write something first"),
+		body: z.string().min(1, t("core.content.writeSomethingFirst")),
 		visibility: z.enum(VISIBILITIES),
 		subject: z.string().optional(),
 	});
@@ -45,6 +46,6 @@ export function subjectFromField(value: string | undefined | null): {
 	if (!value?.trim()) return { subjectType: null, subjectId: null };
 	const ref = parseRef(value);
 	if (!ref || ref.kind !== "item")
-		throw new ContentInputError("Pick an item for the subject");
+		throw new ContentInputError(t("core.content.pickSubject"));
 	return { subjectType: `${ref.module}:${ref.type}`, subjectId: ref.id };
 }

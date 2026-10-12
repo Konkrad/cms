@@ -1,5 +1,6 @@
 import { $, component$, type QRL, useSignal } from "@qwik.dev/core";
 import { Input } from "~/components/ui/Input";
+import { t } from "~/core/i18n";
 import { useLinkSearch } from "~/core/refs/useLinkSearch";
 
 /**
@@ -25,7 +26,7 @@ export const LinkField = component$<{
 				label={props.label}
 				type="text"
 				value={props.value}
-				placeholder={props.placeholder ?? "https://… or pick a page below"}
+				placeholder={props.placeholder ?? t("admin.linkField.httpsOrPickAPage")}
 				required={props.required}
 				onInput$={(e) => {
 					picked.value = null;
@@ -33,20 +34,26 @@ export const LinkField = component$<{
 				}}
 			/>
 			{picked.value && (
-				<p class="text-xs text-gray-500">Links to {picked.value}</p>
+				<p class="text-xs text-gray-500">
+					{t("admin.linkField.linksTo", { value: picked.value })}
+				</p>
 			)}
 			<input
 				type="search"
 				class="w-full border rounded-sm px-2 py-1 text-xs"
-				placeholder="Find a page, group or item…"
-				aria-label={`Find an internal link for ${props.label}`}
+				placeholder={t("admin.linkField.findAPageGroupOr")}
+				aria-label={t("admin.linkField.findAnInternalLinkFor", {
+					label: props.label,
+				})}
 				value={query.value}
 				onInput$={$(async (e: Event) => {
 					query.value = (e.target as HTMLInputElement).value;
 					await search$(query.value);
 				})}
 			/>
-			{isLoading.value && <p class="text-xs text-gray-400">Searching…</p>}
+			{isLoading.value && (
+				<p class="text-xs text-gray-400">{t("admin.linkField.searching")}</p>
+			)}
 			{results.value.length > 0 && (
 				<ul class="border rounded-sm divide-y max-h-48 overflow-y-auto text-xs">
 					{results.value.map((r) => (

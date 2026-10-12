@@ -1,3 +1,4 @@
+import { t } from "~/core/i18n";
 import type {
 	ModuleDefinition,
 	RefLocation,
@@ -196,16 +197,16 @@ export async function toStoredLinkWith(
 		if (ref && (await resolveRefWith(modules, formatRef(ref))) !== null)
 			return refHref(ref);
 		if (isRefHref(value) || ref)
-			throw new LinkError(`"${value}" does not point to anything`);
+			throw new LinkError(t("core.refs.pointsNowhere", { value }));
 	}
 	const human = parseHumanRef(value);
 	if (human) {
 		const byId = await getScopePathsById();
 		const scopeId = [...byId].find(([, p]) => p === human.scopePath)?.[0];
-		if (!scopeId) throw new LinkError(`No scope at "${value}"`);
+		if (!scopeId) throw new LinkError(t("core.refs.noScopeAt", { value }));
 		const ref = scopeRef(scopeId, human.module);
 		if ((await resolveRefWith(modules, ref)) === null)
-			throw new LinkError(`"${value}" does not point to anything`);
+			throw new LinkError(t("core.refs.pointsNowhere", { value }));
 		return refHref(ref);
 	}
 	let path: string | null = null;
@@ -217,9 +218,7 @@ export async function toStoredLinkWith(
 		return value;
 	}
 	if (path === null || !path.startsWith("/"))
-		throw new LinkError(
-			`"${value}" is not a link: use a reference, a site path or an http(s), mailto or tel URL`,
-		);
+		throw new LinkError(t("core.refs.notALink", { value }));
 	const ref = await refFromPathWith(modules, path);
 	return ref ? refHref(ref) : path;
 }

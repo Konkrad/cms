@@ -1,5 +1,6 @@
 import { component$, type QRL, useSignal } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/core/db/schema";
+import { t } from "~/core/i18n";
 
 interface ComponentsSidebarProps {
 	definitions: BlockDefinition[];
@@ -32,10 +33,12 @@ export const ComponentsSidebar = component$<ComponentsSidebarProps>((props) => {
 	return (
 		<div class="w-64 bg-white border-r border-gray-200 flex flex-col">
 			<div class="p-4 border-b border-gray-200">
-				<h2 class="text-sm font-semibold text-gray-900 mb-3">Components</h2>
+				<h2 class="text-sm font-semibold text-gray-900 mb-3">
+					{t("admin.componentsSidebar.components")}
+				</h2>
 				<input
 					type="text"
-					placeholder="Search components..."
+					placeholder={t("admin.componentsSidebar.searchComponents")}
 					class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
 					value={searchQuery.value}
 					onInput$={(e) => {
@@ -48,7 +51,7 @@ export const ComponentsSidebar = component$<ComponentsSidebarProps>((props) => {
 				{filteredContentBlocks.length > 0 && (
 					<div>
 						<h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-							Content Blocks
+							{t("admin.componentsSidebar.contentBlocks")}
 						</h3>
 						<div class="space-y-2">
 							{filteredContentBlocks.map((definition) => (
@@ -76,7 +79,7 @@ export const ComponentsSidebar = component$<ComponentsSidebarProps>((props) => {
 				{filteredDynamicBlocks.length > 0 && (
 					<div>
 						<h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-							Dynamic Blocks
+							{t("admin.componentsSidebar.dynamicBlocks")}
 						</h3>
 						<div class="space-y-2">
 							{filteredDynamicBlocks.map((definition) => (
@@ -104,7 +107,7 @@ export const ComponentsSidebar = component$<ComponentsSidebarProps>((props) => {
 				{filteredContentBlocks.length === 0 &&
 					filteredDynamicBlocks.length === 0 && (
 						<div class="text-center py-8 text-gray-500 text-sm">
-							No components found
+							{t("admin.componentsSidebar.noComponentsFound")}
 						</div>
 					)}
 			</div>

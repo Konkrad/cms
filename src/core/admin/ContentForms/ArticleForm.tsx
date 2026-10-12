@@ -6,6 +6,7 @@ import { Input } from "~/components/ui/Input";
 import { VisibilitySelector } from "~/core/admin/VisibilitySelector";
 import { ARTICLE_IMAGE_PATH } from "~/core/content/content-items";
 import { BlockNoteEditor } from "~/core/content/editor";
+import { t } from "~/core/i18n";
 import type { Visibility } from "~/core/scopes/visibility";
 import { type ContentFormActionValue, FormMessages } from "./form-result";
 import { SubjectPicker } from "./SubjectPicker";
@@ -72,15 +73,15 @@ export const ArticleForm = component$<{
 		>
 			<Input
 				name="title"
-				label="Title"
+				label={t("admin.articleForm.title")}
 				value={values?.title ?? ""}
-				placeholder="What is the article about?"
+				placeholder={t("admin.articleForm.whatIsTheArticleAbout")}
 				required
 			/>
 
 			<div>
 				<p class="text-sm font-medium text-gray-700 mb-1">
-					Featured image (optional)
+					{t("admin.articleForm.featuredImageOptional")}
 				</p>
 				{removeImage.value ? (
 					<input type="hidden" name="featuredImage" value="" />
@@ -106,13 +107,15 @@ export const ArticleForm = component$<{
 								removeImage.value = el.checked;
 							}}
 						/>
-						Remove the image
+						{t("admin.articleForm.removeTheImage")}
 					</label>
 				)}
 			</div>
 
 			<div>
-				<p class="block text-sm font-medium text-gray-700 mb-2">Text</p>
+				<p class="block text-sm font-medium text-gray-700 mb-2">
+					{t("admin.articleForm.text")}
+				</p>
 				<div class="border border-gray-300 rounded-lg overflow-hidden">
 					<BlockNoteEditor
 						editorState={null}
@@ -146,11 +149,13 @@ export const ArticleForm = component$<{
 
 			<div class="flex gap-4">
 				<Button type="submit" disabled={busy}>
-					{busy ? "Saving..." : (props.submitLabel ?? "Save")}
+					{busy
+						? t("admin.articleForm.saving")
+						: (props.submitLabel ?? t("admin.articleForm.save"))}
 				</Button>
 				{props.cancelHref && (
 					<Button href={props.cancelHref} variant="secondary">
-						Cancel
+						{t("admin.articleForm.cancel")}
 					</Button>
 				)}
 			</div>

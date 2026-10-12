@@ -4,6 +4,7 @@ import {
 	useSignal,
 	useVisibleTask$,
 } from "@qwik.dev/core";
+import { siteLocale, t } from "~/core/i18n";
 
 type SurveyRuntimeProps = {
 	surveyJson: Record<string, any>;
@@ -33,7 +34,13 @@ export const SurveyRuntime = component$<SurveyRuntimeProps>(
 				return;
 			}
 
+			// SurveyJS's own UI strings (buttons, its validation) in the site locale
+			if (siteLocale === "de") {
+				// @ts-expect-error survey-core ships no typings for its locale modules (side effect only)
+				await import("survey-core/i18n/german");
+			}
 			const survey = new Model(surveyJson as any);
+			survey.locale = siteLocale;
 			if (initialData) survey.data = initialData;
 			survey.render(containerRef.value);
 
@@ -51,13 +58,12 @@ export const SurveyRuntime = component$<SurveyRuntimeProps>(
 
 				if (requireAltcha && !altchaValue) {
 					state.value = "error";
-					message.value =
-						"ALTCHA verification is required for this public form.";
+					message.value = t("core.forms.altchaRequired");
 					return;
 				}
 
 				state.value = "submitting";
-				message.value = "Submitting...";
+				message.value = t("core.forms.submitting");
 
 				const response = await fetch(submitUrl, {
 					method: "POST",
@@ -74,16 +80,16 @@ export const SurveyRuntime = component$<SurveyRuntimeProps>(
 				if (!response.ok) {
 					const payload = (await response
 						.json()
-						.catch(() => ({ error: "Failed to submit form." }))) as {
+						.catch(() => ({ error: t("core.forms.submitFailed") }))) as {
 						error?: string;
 					};
 					state.value = "error";
-					message.value = payload.error || "Failed to submit form.";
+					message.value = payload.error || t("core.forms.submitFailed");
 					return;
 				}
 
 				state.value = "success";
-				message.value = "Form submitted successfully.";
+				message.value = t("core.forms.submitted");
 
 				if (onComplete$) {
 					await onComplete$();

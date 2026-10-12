@@ -7,6 +7,7 @@ import {
 	sanitizeNoteHtml,
 	sanitizeRichHtml,
 } from "~/core/content/sanitize-html";
+import { t } from "~/core/i18n";
 import { parseRef } from "~/core/refs/refs";
 import { internalLinksToRefs, resolveRef } from "~/core/registry/refs";
 import {
@@ -50,13 +51,11 @@ export async function validateSubject(
 	const id = subjectId?.trim() || null;
 	if (!type && !id) return { subjectType: null, subjectId: null };
 	if (!type || !id)
-		throw new ContentInputError("A subject needs both a type and an id");
+		throw new ContentInputError(t("core.content.subjectNeedsTypeAndId"));
 	if (!SUBJECT_TYPE_RE.test(type) || !parseRef(`${type}:${id}`))
-		throw new ContentInputError(`Invalid subject: ${type}:${id}`);
+		throw new ContentInputError(t("core.content.invalidSubject", { type, id }));
 	if ((await resolveRef(`${type}:${id}`)) === null)
-		throw new ContentInputError(
-			`The subject ${type}:${id} does not exist or its module is not active`,
-		);
+		throw new ContentInputError(t("core.content.subjectMissing", { type, id }));
 	return { subjectType: type, subjectId: id };
 }
 
@@ -77,7 +76,8 @@ export async function changedSubject(
 }
 
 export async function requireExistingScope(scopeId: string): Promise<void> {
-	if (!(await getScope(scopeId))) throw new ContentInputError("Unknown scope");
+	if (!(await getScope(scopeId)))
+		throw new ContentInputError(t("core.content.unknownScope"));
 }
 
 /** Throws unless `authorId` may publish with `visibility` in the scope (`allowedVisibilities`). */
@@ -87,18 +87,21 @@ export async function checkVisibility(
 	visibility: Visibility,
 ): Promise<void> {
 	if (!VISIBILITIES.includes(visibility))
-		throw new ContentInputError(`Unknown visibility: ${visibility}`);
+		throw new ContentInputError(
+			t("core.content.unknownVisibility", { visibility }),
+		);
 	if (
 		!(await allowedVisibilities({ id: authorId }, scopeId)).includes(visibility)
 	)
-		throw new ContentInputError("You cannot publish with this visibility");
+		throw new ContentInputError(t("core.content.visibilityNotAllowed"));
 }
 
 /** An article body for storage: full rich text, links to site pages as references. */
 export async function cleanArticleBody(body: string): Promise<string> {
 	// Rendered with dangerouslySetInnerHTML: links to site pages become references first.
 	const clean = sanitizeRichHtml(await internalLinksToRefs(body));
-	if (!toPlainText(clean)) throw new ContentInputError("The article is empty");
+	if (!toPlainText(clean))
+		throw new ContentInputError(t("core.content.articleEmpty"));
 	return clean;
 }
 
@@ -106,10 +109,10 @@ export async function cleanArticleBody(body: string): Promise<string> {
 export async function cleanNoteBody(body: string): Promise<string> {
 	const clean = sanitizeNoteHtml(await internalLinksToRefs(body));
 	const length = toPlainText(clean).length;
-	if (!length) throw new ContentInputError("The note is empty");
+	if (!length) throw new ContentInputError(t("core.content.noteEmpty"));
 	if (length > NOTE_MAX_LENGTH)
 		throw new ContentInputError(
-			`A note has at most ${NOTE_MAX_LENGTH} characters (this one has ${length}); write an article instead`,
+			t("core.content.noteTooLong", { NOTE_MAX_LENGTH, length }),
 		);
 	return clean;
 }

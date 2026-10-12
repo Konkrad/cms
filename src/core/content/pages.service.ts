@@ -7,6 +7,7 @@ import type { Page } from "~/core/content/schema/pages";
 import { pages } from "~/core/content/schema/pages";
 import type { BlockData } from "~/core/content/schema/shared";
 import { db } from "~/core/db/connection";
+import { t } from "~/core/i18n";
 import { blocksLinksToRefs } from "~/core/registry/refs";
 import type { ModuleDefinition } from "~/core/router/modules";
 import { redirectsService } from "~/core/router/redirects.service";
@@ -198,7 +199,7 @@ export const pagesService = {
 		if (problem) return problem;
 		const existing = await this.getBySlug(scopeId, slug);
 		if (existing && existing.id !== exceptPageId) {
-			return `A page at "${scopeUrl(scope.path, slug)}" already exists`;
+			return t("core.pages.pageExists", { path: scopeUrl(scope.path, slug) });
 		}
 		return null;
 	},

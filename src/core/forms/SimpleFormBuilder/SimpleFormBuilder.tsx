@@ -1,4 +1,5 @@
 import { component$, useSignal } from "@qwik.dev/core";
+import { t } from "~/core/i18n";
 
 type FieldType = "text" | "textarea" | "radiogroup" | "select";
 
@@ -28,7 +29,7 @@ const createField = (index = 1): FieldDraft => ({
 		{
 			uid: crypto.randomUUID(),
 			value: "option_1",
-			text: "Option 1",
+			text: t("admin.formBuilder.option1"),
 		},
 	],
 });
@@ -91,7 +92,7 @@ export const SimpleFormBuilder = component$<SimpleFormBuilderProps>(
 									{
 										uid: crypto.randomUUID(),
 										value: "option_1",
-										text: "Option 1",
+										text: t("admin.formBuilder.option1"),
 									},
 								],
 					}));
@@ -131,7 +132,7 @@ export const SimpleFormBuilder = component$<SimpleFormBuilderProps>(
 					<div key={field.uid} class="forms-simple-field-card">
 						<div class="forms-simple-field-grid">
 							<label class="forms-field-label">
-								Question
+								{t("admin.simpleFormBuilder.question")}
 								<input
 									class="forms-input"
 									value={field.title}
@@ -149,7 +150,7 @@ export const SimpleFormBuilder = component$<SimpleFormBuilderProps>(
 							</label>
 
 							<label class="forms-field-label">
-								ID
+								{t("admin.simpleFormBuilder.id")}
 								<input
 									class="forms-input"
 									value={field.name}
@@ -168,7 +169,7 @@ export const SimpleFormBuilder = component$<SimpleFormBuilderProps>(
 							</label>
 
 							<label class="forms-field-label">
-								Type
+								{t("admin.simpleFormBuilder.type")}
 								<select
 									class="forms-select"
 									value={field.type}
@@ -181,10 +182,18 @@ export const SimpleFormBuilder = component$<SimpleFormBuilderProps>(
 										fields.value = next;
 									}}
 								>
-									<option value="text">Text</option>
-									<option value="textarea">Textarea</option>
-									<option value="radiogroup">Radio Group</option>
-									<option value="select">Select Dropdown</option>
+									<option value="text">
+										{t("admin.simpleFormBuilder.text")}
+									</option>
+									<option value="textarea">
+										{t("admin.simpleFormBuilder.textarea")}
+									</option>
+									<option value="radiogroup">
+										{t("admin.simpleFormBuilder.radioGroup")}
+									</option>
+									<option value="select">
+										{t("admin.simpleFormBuilder.selectDropdown")}
+									</option>
 								</select>
 							</label>
 
@@ -201,12 +210,12 @@ export const SimpleFormBuilder = component$<SimpleFormBuilderProps>(
 										fields.value = next;
 									}}
 								/>
-								Required
+								{t("admin.simpleFormBuilder.required")}
 							</label>
 						</div>
 
 						<label class="forms-field-label">
-							Description
+							{t("admin.simpleFormBuilder.description")}
 							<input
 								class="forms-input"
 								value={field.description}
@@ -223,14 +232,14 @@ export const SimpleFormBuilder = component$<SimpleFormBuilderProps>(
 
 						{(field.type === "radiogroup" || field.type === "select") && (
 							<div class="forms-field-label">
-								Options
+								{t("admin.simpleFormBuilder.options")}
 								<div class="forms-options-list">
 									{field.options.map((option, optionIndex) => (
 										<div key={option.uid} class="forms-options-row">
 											<input
 												class="forms-input"
 												value={option.text}
-												placeholder="Option text"
+												placeholder={t("admin.simpleFormBuilder.optionText")}
 												onInput$={(ev) => {
 													const text = (ev.target as HTMLInputElement).value;
 													const next = [...fields.value];
@@ -250,7 +259,7 @@ export const SimpleFormBuilder = component$<SimpleFormBuilderProps>(
 											<input
 												class="forms-input"
 												value={option.value}
-												placeholder="Option value"
+												placeholder={t("admin.simpleFormBuilder.optionValue")}
 												onInput$={(ev) => {
 													const next = [...fields.value];
 													const nextOptions = [...next[index].options];
@@ -284,14 +293,14 @@ export const SimpleFormBuilder = component$<SimpleFormBuilderProps>(
 																		{
 																			uid: crypto.randomUUID(),
 																			value: "option_1",
-																			text: "Option 1",
+																			text: t("admin.formBuilder.option1"),
 																		},
 																	],
 													};
 													fields.value = next;
 												}}
 											>
-												Remove
+												{t("admin.simpleFormBuilder.remove")}
 											</button>
 										</div>
 									))}
@@ -308,14 +317,16 @@ export const SimpleFormBuilder = component$<SimpleFormBuilderProps>(
 												{
 													uid: crypto.randomUUID(),
 													value: `option_${next[index].options.length + 1}`,
-													text: `Option ${next[index].options.length + 1}`,
+													text: t("admin.formBuilder.optionN", {
+														value: next[index].options.length + 1,
+													}),
 												},
 											],
 										};
 										fields.value = next;
 									}}
 								>
-									Add Option
+									{t("admin.simpleFormBuilder.addOption")}
 								</button>
 							</div>
 						)}
@@ -330,7 +341,7 @@ export const SimpleFormBuilder = component$<SimpleFormBuilderProps>(
 								}
 							}}
 						>
-							Remove Field
+							{t("admin.simpleFormBuilder.removeField")}
 						</button>
 					</div>
 				))}
@@ -345,7 +356,7 @@ export const SimpleFormBuilder = component$<SimpleFormBuilderProps>(
 						];
 					}}
 				>
-					Add Field
+					{t("admin.simpleFormBuilder.addField")}
 				</button>
 			</div>
 		);

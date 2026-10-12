@@ -10,6 +10,7 @@ import {
 	pagesService,
 	slugFromPath,
 } from "~/core/content/pages.service";
+import { t } from "~/core/i18n";
 import { itemRef, refHref } from "~/core/refs/refs";
 import { allModules } from "~/core/registry/manifests";
 import { adminUrl, scopeUrl } from "~/core/router/scope-path";
@@ -76,7 +77,7 @@ export const useCreatePage = routeAction$(
 		}
 	},
 	zod$({
-		title: z.string().min(1, "Title is required"),
+		title: z.string().min(1, t("admin.pages.titleRequired")),
 		url: z.string().min(1, "URL is required"),
 		menuName: z.enum(["main", "footer"]).default("main"),
 		status: z.enum(["draft", "published"]).default("draft"),
@@ -89,7 +90,9 @@ export default component$(() => {
 
 	return (
 		<div class="max-w-2xl mx-auto px-4 py-8">
-			<h1 class="text-3xl font-bold text-gray-900 mb-8">Create New Page</h1>
+			<h1 class="text-3xl font-bold text-gray-900 mb-8">
+				{t("admin.pages.new.createNewPage")}
+			</h1>
 
 			{action.value?.error && (
 				<div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
@@ -101,61 +104,64 @@ export default component$(() => {
 				<Form action={action} class="space-y-6">
 					<Input
 						name="title"
-						label="Page Title"
+						label={t("admin.pages.new.pageTitle")}
 						required
 						value={action.formData?.get("title")}
 						error={action.value?.fieldErrors?.title?.[0]}
-						placeholder="About Us"
+						placeholder={t("admin.pages.new.aboutUs")}
 					/>
 
 					<div>
 						<Input
 							name="url"
-							label="URL"
+							label={t("admin.pages.new.url")}
 							required
 							value={action.formData?.get("url")}
 							error={action.value?.fieldErrors?.url?.[0]}
-							placeholder="/about-us"
+							placeholder={t("admin.pages.new.aboutUs2")}
 						/>
 						<p class="mt-1 text-sm text-gray-500">
-							One URL segment, served under this group's path:{" "}
-							{scope.value.scopeUrl.replace(/\/$/, "")}/about-us
+							{t("admin.pages.new.oneUrlSegmentServedUnder", {
+								value: scope.value.scopeUrl.replace(/\/$/, ""),
+							})}
 						</p>
 					</div>
 
 					{scope.value.isRoot && (
 						<Select
 							name="menuName"
-							label="Menu"
+							label={t("admin.pages.new.menu")}
 							value={(action.formData?.get("menuName") as string) || "main"}
 							error={action.value?.fieldErrors?.menuName?.[0]}
 						>
-							<option value="main">Main</option>
-							<option value="footer">Footer</option>
+							<option value="main">{t("admin.pages.new.main")}</option>
+							<option value="footer">{t("admin.pages.new.footer")}</option>
 						</Select>
 					)}
 
 					<Select
 						name="status"
-						label="Status"
+						label={t("admin.pages.new.status")}
 						required
 						value={(action.formData?.get("status") as string) || "draft"}
 						error={action.value?.fieldErrors?.status?.[0]}
 					>
-						<option value="draft">Draft</option>
-						<option value="published">Published</option>
+						<option value="draft">{t("admin.pages.new.draft")}</option>
+						<option value="published">{t("admin.pages.new.published")}</option>
 					</Select>
 
 					<div class="flex gap-4">
 						<Button type="submit" disabled={action.isRunning}>
-							{action.isRunning ? "Creating..." : "Create Page"}
+							{action.isRunning
+								? t("admin.pages.new.creating")
+								: t("admin.pages.new.createPage")}
 						</Button>
 						<Button
 							type="button"
 							variant="secondary"
 							onClick$={() => window.history.back()}
 						>
-							Cancel
+							{t("admin.pages.new.cancel")}
 						</Button>
 					</div>
 				</Form>

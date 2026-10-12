@@ -36,6 +36,6 @@ export {
 export { publicImageUrlFromKey } from "~/core/media/images";
 export {
 	VISIBILITIES,
-	VISIBILITY_LABELS,
 	type Visibility,
 } from "~/core/scopes/visibility";
+export { VISIBILITY_LABELS } from "~/core/scopes/visibility-labels";

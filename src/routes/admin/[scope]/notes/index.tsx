@@ -14,7 +14,7 @@ import { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 import { noteFormSchema } from "~/core/content/content-form";
 import { ContentInputError } from "~/core/content/content-items";
 import { notesService } from "~/core/content/notes.service";
-import { formatDate } from "~/core/i18n";
+import { formatDate, t } from "~/core/i18n";
 import { ReviewStatusBadge } from "~/core/reviews/ReviewStatusBadge";
 import { withReviewStatus } from "~/core/reviews/reviews";
 import { adminUrl } from "~/core/router/scope-path";
@@ -101,38 +101,45 @@ export default component$(() => {
 		<div>
 			<div class="flex items-center justify-between mb-6">
 				<h2 class="text-2xl font-bold text-gray-800">
-					{data.value.isRoot ? "All Notes" : "Group Notes"}
+					{data.value.isRoot
+						? t("admin.notes.allNotes")
+						: t("admin.notes.groupNotes")}
 				</h2>
 			</div>
 
 			<div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-				<h3 class="text-lg font-semibold text-gray-900 mb-3">Write a note</h3>
+				<h3 class="text-lg font-semibold text-gray-900 mb-3">
+					{t("admin.notes.writeANote")}
+				</h3>
 				{/* Re-created after each new note, so the editor starts empty again. */}
 				<NoteForm
 					key={`note-form-${data.value.total}`}
 					action={createNote}
 					visibilities={data.value.visibilities}
-					submitLabel="Publish note"
+					submitLabel={t("admin.notes.publishNote")}
 				/>
 			</div>
 
-			<SearchBar value={data.value.search} placeholder="Search notes…" />
+			<SearchBar
+				value={data.value.search}
+				placeholder={t("admin.notes.searchNotes")}
+			/>
 
 			<div class="bg-white rounded-lg shadow-sm overflow-x-auto">
 				<table class="min-w-full divide-y divide-gray-200">
 					<thead class="bg-gray-50">
 						<tr>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Note
+								{t("admin.notes.note")}
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Author
+								{t("admin.notes.author")}
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Published
+								{t("admin.notes.published")}
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Actions
+								{t("admin.notes.actions")}
 							</th>
 						</tr>
 					</thead>
@@ -158,7 +165,7 @@ export default component$(() => {
 											href={`${data.value.base}/notes/${note.id}/edit`}
 											class="text-blue-600 hover:text-blue-900"
 										>
-											Edit
+											{t("admin.notes.edit")}
 										</Link>
 										<Form action={deleteNote}>
 											<input type="hidden" name="noteId" value={note.id} />
@@ -167,13 +174,13 @@ export default component$(() => {
 												preventdefault:click
 												class="text-red-600 hover:text-red-900"
 												onClick$={(e) => {
-													if (!confirm("Delete this note?")) return;
+													if (!confirm(t("admin.notes.confirmDelete"))) return;
 													(e.target as HTMLElement)
 														.closest("form")
 														?.requestSubmit();
 												}}
 											>
-												Delete
+												{t("admin.notes.delete")}
 											</button>
 										</Form>
 									</div>
@@ -185,8 +192,8 @@ export default component$(() => {
 				{data.value.notes.length === 0 && (
 					<div class="text-center py-12 text-gray-500">
 						{data.value.search
-							? `No notes matching "${data.value.search}".`
-							: "No notes yet."}
+							? t("admin.notes.noNotesMatching", { search: data.value.search })
+							: t("admin.notes.noNotesYet")}
 					</div>
 				)}
 				<Pagination

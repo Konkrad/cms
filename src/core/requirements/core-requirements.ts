@@ -6,6 +6,7 @@ import {
 	formsService,
 } from "~/core/forms/forms.service";
 import { ONBOARDING_PURPOSE } from "~/core/forms/purposes";
+import { t } from "~/core/i18n";
 import { getRootScope } from "~/core/scopes/access";
 import { usersService } from "~/core/users/users.service";
 import {
@@ -34,20 +35,31 @@ export const profileRequirement = defineRequirement({
 	id: "core.profile",
 	version: 1,
 	contexts: [GLOBAL_CONTEXT],
-	title: "Your profile",
-	description: "Tell us who you are.",
+	title: t("core.requirements.profile.title"),
+	description: t("core.requirements.profile.description"),
 	view: "core.profile",
 	input: z.object({
-		name: z.string().trim().min(1, "First name is required").max(100),
-		familyName: z.string().trim().min(1, "Last name is required").max(100),
+		name: z
+			.string()
+			.trim()
+			.min(1, t("core.requirements.profile.firstNameRequired"))
+			.max(100),
+		familyName: z
+			.string()
+			.trim()
+			.min(1, t("core.requirements.profile.lastNameRequired"))
+			.max(100),
 		yearOfBirth: z
 			.union([
 				z.literal(""),
 				z.coerce
 					.number()
 					.int()
-					.min(1900, "Enter a valid year")
-					.max(new Date().getFullYear(), "Enter a valid year"),
+					.min(1900, t("core.requirements.profile.validYear"))
+					.max(
+						new Date().getFullYear(),
+						t("core.requirements.profile.validYear"),
+					),
 			])
 			.optional(),
 		sex: z.union([z.literal(""), z.enum(SEX_OPTIONS)]).optional(),
@@ -95,7 +107,7 @@ const coordinate = (min: number, max: number) =>
 				(Number.isFinite(Number(v)) &&
 					Math.abs(Number(v)) <= max &&
 					Number(v) >= min),
-			"Invalid coordinate",
+			t("core.requirements.location.invalidCoordinate"),
 		)
 		.optional();
 
@@ -104,8 +116,8 @@ export const locationRequirement = defineRequirement({
 	id: "core.location",
 	version: 1,
 	contexts: [GLOBAL_CONTEXT],
-	title: "Your location",
-	description: "Confirm your location so we can show you what happens nearby.",
+	title: t("core.requirements.location.title"),
+	description: t("core.requirements.location.description"),
 	view: "core.location",
 	input: z.object({
 		city: optionalText(200),
@@ -150,8 +162,8 @@ export const onboardingSurveyRequirement = defineRequirement({
 	id: "core.onboarding",
 	version: 1,
 	contexts: [GLOBAL_CONTEXT],
-	title: "A few questions",
-	description: "Help us get to know you.",
+	title: t("core.requirements.onboarding.title"),
+	description: t("core.requirements.onboarding.description"),
 	view: "core.form",
 	input: answersSchema,
 	isApplicable: async () => Boolean(await activeOnboardingForm()),
@@ -169,7 +181,8 @@ export const onboardingSurveyRequirement = defineRequirement({
 	},
 	async save(user, input) {
 		const form = await activeOnboardingForm();
-		if (!form) throw new RequirementInputError("This step does not apply");
+		if (!form)
+			throw new RequirementInputError(t("core.requirements.stepDoesNotApply"));
 		let answers: Record<string, unknown>;
 		try {
 			answers = formsService.validateAnswers(form, input.answers ?? {});

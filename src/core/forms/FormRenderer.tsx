@@ -1,5 +1,6 @@
 import { component$, type JSXOutput } from "@qwik.dev/core";
 import type { FormQuestion } from "~/core/forms/answers";
+import { t } from "~/core/i18n";
 
 export type { FormQuestion };
 
@@ -116,7 +117,9 @@ export const FormRenderer = component$<FormRendererProps>(
 									class={inputClass}
 									required={q.required}
 								>
-									<option value="">Choose…</option>
+									<option value="">
+										{t("core.forms.formRenderer.choose")}
+									</option>
 									{q.choices.map((c) => (
 										<option
 											key={String(c.value)}
@@ -133,8 +136,8 @@ export const FormRenderer = component$<FormRendererProps>(
 							field = (
 								<div class="flex gap-4" role="radiogroup">
 									{[
-										["true", "Yes"],
-										["false", "No"],
+										["true", t("core.common.yes")],
+										["false", t("core.common.no")],
 									].map(([v, text]) => (
 										<label key={v} class="flex items-center gap-2">
 											<input

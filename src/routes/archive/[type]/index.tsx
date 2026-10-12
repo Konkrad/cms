@@ -4,6 +4,7 @@ import type { ArchiveViewData } from "~/contracts/archive";
 import { loadArchivePage } from "~/core/content/archive-data";
 import { ARCHIVE_TITLES, archiveFilter } from "~/core/content/content-items";
 import { canonicalUrl } from "~/core/content/seo";
+import { t } from "~/core/i18n";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { ArchiveView } from "~theme/routes/archive/ArchiveView";
 
@@ -21,7 +22,7 @@ export const head: DocumentHead = ({ url, params }) => {
 	const show = archiveFilter(params.type) ?? "all";
 	return {
 		title: ARCHIVE_TITLES[show],
-		meta: [{ name: "description", content: "Browse past community news." }],
+		meta: [{ name: "description", content: t("core.archive.description") }],
 		links: [
 			{ rel: "canonical", href: canonicalUrl(`/archive/${show}`, url.origin) },
 		],

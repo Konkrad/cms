@@ -1,5 +1,6 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireAuth } from "~/core/auth/server-auth";
+import { t } from "~/core/i18n";
 import { usersService } from "~/core/users/users.service";
 
 /**
@@ -21,7 +22,7 @@ export const useUpdateName = routeAction$(
 		return { success: true };
 	},
 	zod$({
-		name: z.string().min(1, "Name is required"),
-		family_name: z.string().min(1, "Family name is required"),
+		name: z.string().min(1, t("core.profile.nameRequired")),
+		family_name: z.string().min(1, t("core.profile.familyNameRequired")),
 	}),
 );

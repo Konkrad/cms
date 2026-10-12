@@ -207,7 +207,7 @@ describe("emailAuthService.verifyOtp", () => {
 
 		for (let i = 0; i < 4; i++) {
 			await expect(emailAuthService.verifyOtp(email, "WRONG1")).rejects.toThrow(
-				/attempts left/,
+				/attempts? left/,
 			);
 		}
 		await expect(emailAuthService.verifyOtp(email, "WRONG1")).rejects.toThrow(

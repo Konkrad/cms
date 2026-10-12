@@ -6,20 +6,21 @@ import { formAccessService } from "~/core/forms/form-access.service";
 import { formResultsService } from "~/core/forms/form-results.service";
 import { formsService } from "~/core/forms/forms.service";
 import { isSurveyForm } from "~/core/forms/purposes";
+import { t } from "~/core/i18n";
 
 export const onPost: RequestHandler = async (event) => {
 	const { params, request, json } = event;
 	const form = await formsService.getById(params.id);
 	// Workflow forms (a purpose) are filled in their workflow, not as a survey.
 	if (!form || !isSurveyForm(form)) {
-		json(404, { error: "Form not found" });
+		json(404, { error: t("core.forms.notFound") });
 		return;
 	}
 
 	const user = await getServerSession(event as any);
 
 	if (form.visibility === "private" && !user) {
-		json(401, { error: "Authentication required" });
+		json(401, { error: t("core.forms.authRequired") });
 		return;
 	}
 
@@ -27,14 +28,14 @@ export const onPost: RequestHandler = async (event) => {
 	try {
 		payload = await request.json();
 	} catch {
-		json(400, { error: "Invalid request payload" });
+		json(400, { error: t("core.forms.invalidPayload") });
 		return;
 	}
 
 	try {
 		formAccessService.ensureViewAccess(form, user);
 	} catch {
-		json(401, { error: "Authentication required" });
+		json(401, { error: t("core.forms.authRequired") });
 		return;
 	}
 
@@ -55,7 +56,7 @@ export const onPost: RequestHandler = async (event) => {
 			payload.altcha || "",
 		);
 		if (!isValidAltcha) {
-			json(400, { error: "ALTCHA verification failed" });
+			json(400, { error: t("core.forms.altchaFailed") });
 			return;
 		}
 	}
@@ -66,7 +67,7 @@ export const onPost: RequestHandler = async (event) => {
 			user.id,
 		);
 		if (existing) {
-			json(409, { error: "You already submitted this form" });
+			json(409, { error: t("core.forms.alreadySubmitted") });
 			return;
 		}
 	}

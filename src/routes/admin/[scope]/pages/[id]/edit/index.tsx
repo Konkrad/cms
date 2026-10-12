@@ -10,6 +10,7 @@ import {
 	pagesService,
 	slugFromPath,
 } from "~/core/content/pages.service";
+import { t } from "~/core/i18n";
 import { allModules } from "~/core/registry/manifests";
 import { adminUrl } from "~/core/router/scope-path";
 import {
@@ -61,7 +62,7 @@ export const useUpdatePage = routeAction$(
 		throw event.redirect(303, adminUrl(scope.path, "/pages"));
 	},
 	zod$({
-		title: z.string().min(1, "Title is required"),
+		title: z.string().min(1, t("admin.pages.titleRequired")),
 		url: z.string().min(1, "URL is required"),
 		pageStatus: z.enum(["draft", "published"]).default("draft"),
 		visibility: z.enum(["visible", "hidden"]).default("hidden"),
@@ -83,7 +84,9 @@ export default component$(() => {
 
 	return (
 		<div class="max-w-2xl mx-auto px-4 py-8">
-			<h1 class="text-3xl font-bold text-gray-900 mb-8">Edit Page Info</h1>
+			<h1 class="text-3xl font-bold text-gray-900 mb-8">
+				{t("admin.pages.edit.editPageInfo")}
+			</h1>
 
 			{action.value?.error && (
 				<div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-sm">
@@ -95,7 +98,7 @@ export default component$(() => {
 				<Form action={action} class="space-y-6">
 					<Input
 						name="title"
-						label="Page Title"
+						label={t("admin.pages.edit.pageTitle")}
 						required
 						value={action.formData?.get("title") || page.value.title}
 						error={action.value?.fieldErrors?.title?.[0]}
@@ -104,52 +107,54 @@ export default component$(() => {
 					<div>
 						<Input
 							name="url"
-							label="URL"
+							label={t("admin.pages.edit.url")}
 							required
 							value={action.formData?.get("url") || `/${page.value.slug}`}
 							error={action.value?.fieldErrors?.url?.[0]}
 						/>
 						<p class="mt-1 text-sm text-gray-500">
-							One URL segment, served under the group's path (e.g. /about-us).
+							{t("admin.pages.edit.oneUrlSegmentServedUnder")}
 						</p>
 					</div>
 
 					<Select
 						name="pageStatus"
-						label="Page Status"
+						label={t("admin.pages.edit.pageStatus")}
 						required
 						error={action.value?.fieldErrors?.pageStatus?.[0]}
 					>
 						<option value="draft" selected={pageStatus === "draft"}>
-							Draft — page is not publicly accessible
+							{t("admin.pages.edit.draftPageIsNotPublicly")}
 						</option>
 						<option value="published" selected={pageStatus === "published"}>
-							Published — page is publicly accessible
+							{t("admin.pages.edit.publishedPageIsPubliclyAccessible")}
 						</option>
 					</Select>
 
 					{page.value.menuItem && (
 						<Select
 							name="visibility"
-							label="Menu Visibility"
+							label={t("admin.pages.edit.menuVisibility")}
 							required
 							error={action.value?.fieldErrors?.visibility?.[0]}
 						>
 							<option value="visible" selected={visibility === "visible"}>
-								Visible — shown in navigation
+								{t("admin.pages.edit.visibleShownInNavigation")}
 							</option>
 							<option value="hidden" selected={visibility === "hidden"}>
-								Hidden — not shown in navigation
+								{t("admin.pages.edit.hiddenNotShownInNavigation")}
 							</option>
 						</Select>
 					)}
 
 					<div class="flex gap-4">
 						<Button type="submit" disabled={action.isRunning}>
-							{action.isRunning ? "Updating..." : "Update Page"}
+							{action.isRunning
+								? t("admin.pages.edit.updating")
+								: t("admin.pages.edit.updatePage")}
 						</Button>
 						<Button href={`${page.value.adminBase}/pages`} variant="secondary">
-							Cancel
+							{t("admin.pages.edit.cancel")}
 						</Button>
 					</div>
 				</Form>

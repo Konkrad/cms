@@ -7,6 +7,7 @@ import { PropertiesPanel } from "~/core/content/builder/PropertiesPanel";
 import { componentLoaderService } from "~/core/content/component-loader.service";
 import { pagesService } from "~/core/content/pages.service";
 import type { BlockData, BlockDefinition } from "~/core/db/schema";
+import { t } from "~/core/i18n";
 import { adminUrl } from "~/core/router/scope-path";
 import {
 	ADMIN_ACCESS,
@@ -45,7 +46,7 @@ export const useSavePage = routeAction$(
 		} catch (error: any) {
 			return {
 				success: false,
-				error: error.message || "Failed to save page",
+				error: error.message || t("admin.pages.saveFailed"),
 			};
 		}
 	},
@@ -221,7 +222,7 @@ export default component$(() => {
 						href={`${page.value.adminBase}/pages`}
 						class="text-gray-600 hover:text-gray-900"
 					>
-						← Back to Pages
+						{t("admin.pages.builder.backToPages")}
 					</a>
 					<div class="border-l border-gray-300 h-6"></div>
 					<h1 class="text-lg font-semibold text-gray-900">
@@ -229,13 +230,15 @@ export default component$(() => {
 					</h1>
 					{hasUnsavedChanges.value && (
 						<span class="text-sm text-orange-600 font-medium">
-							• Unsaved changes
+							{t("admin.pages.builder.unsavedChanges")}
 						</span>
 					)}
 				</div>
 				<div class="flex items-center gap-3">
 					{saveAction.value?.success && (
-						<span class="text-sm text-green-600">Saved!</span>
+						<span class="text-sm text-green-600">
+							{t("admin.pages.builder.saved")}
+						</span>
 					)}
 					{saveAction.value?.error && (
 						<span class="text-sm text-red-600">{saveAction.value.error}</span>
@@ -245,7 +248,9 @@ export default component$(() => {
 						onClick$={handleSave}
 						disabled={saveAction.isRunning || !hasUnsavedChanges.value}
 					>
-						{saveAction.isRunning ? "Saving..." : "Save Page"}
+						{saveAction.isRunning
+							? t("admin.pages.builder.saving")
+							: t("admin.pages.builder.savePage")}
 					</Button>
 				</div>
 			</div>

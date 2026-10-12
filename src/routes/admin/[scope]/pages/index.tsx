@@ -7,6 +7,7 @@ import { pagesService } from "~/core/content/pages.service";
 import type { MenuItem } from "~/core/content/schema/menu-items";
 import { getStaticMenuLinks } from "~/core/content/static-menu-links";
 import { sanitizeSvg } from "~/core/content/svg-sanitize";
+import { t } from "~/core/i18n";
 import { formatHumanRef, isRefHref, refHref } from "~/core/refs/refs";
 import { activeModules } from "~/core/registry/manifests";
 import { resolveRefs, toStoredLink } from "~/core/registry/refs";
@@ -116,7 +117,7 @@ export const useMenuItems = routeLoader$(async (event) => {
 	const withLabel = (item: (typeof main)[number]) => ({
 		...item,
 		urlLabel: isRefHref(item.url)
-			? (urls.get(item.url) ?? "(unavailable: the page or group is gone)")
+			? (urls.get(item.url) ?? t("admin.pages.unavailableLink"))
 			: item.url,
 	});
 
@@ -143,15 +144,18 @@ async function menuLinkTargets(): Promise<
 	return [
 		...scopes.map((s) => ({
 			value: formatHumanRef(s.path),
-			label: `Group: ${s.name}`,
+			label: t("admin.pages.targetGroup", { name: s.name }),
 		})),
 		...activeModules.map((m) => ({
 			value: formatHumanRef("/", m.id),
-			label: `Listing: ${m.id}`,
+			label: t("admin.pages.targetListing", { id: m.id }),
 		})),
 		...pages.map((p) => ({
 			value: refHref(`core:page:${p.id}`),
-			label: `Page: ${p.title} (${pageUrls.get(`core:page:${p.id}`) ?? ""})`,
+			label: t("admin.pages.targetPage", {
+				title: p.title,
+				value: pageUrls.get(`core:page:${p.id}`) ?? "",
+			}),
 		})),
 	];
 }
@@ -209,7 +213,10 @@ export const useDeleteMenuItem = routeAction$(
 			await menuItemsService.delete(data.menuItemId);
 			return { success: true };
 		} catch (error: any) {
-			return { success: false, error: error.message ?? "Delete failed" };
+			return {
+				success: false,
+				error: error.message ?? t("admin.pages.deleteFailed"),
+			};
 		}
 	},
 	zod$({ menuItemId: z.string().min(1) }),
@@ -233,7 +240,7 @@ export const useAddToMenu = routeAction$(
 			if (duplicate) {
 				return {
 					success: false,
-					error: "This link already exists in the menu",
+					error: t("admin.pages.linkExists"),
 				};
 			}
 
@@ -259,7 +266,7 @@ export const useAddToMenu = routeAction$(
 		} catch (error: any) {
 			return {
 				success: false,
-				error: error.message || "Failed to add page to menu",
+				error: error.message || t("admin.pages.addToMenuFailed"),
 			};
 		}
 	},
@@ -282,7 +289,7 @@ export const useUpdateMenuItem = routeAction$(
 			});
 			const existing = allItems.find((item) => item.id === data.menuItemId);
 			if (!existing) {
-				return { success: false, error: "Menu item not found" };
+				return { success: false, error: t("admin.pages.menuItemNotFound") };
 			}
 
 			const normalizedUrl = await toStoredLink(normalizeUrl(data.url));
@@ -293,7 +300,7 @@ export const useUpdateMenuItem = routeAction$(
 			if (duplicate) {
 				return {
 					success: false,
-					error: "Another menu item already uses this URL",
+					error: t("admin.pages.urlInUse"),
 				};
 			}
 
@@ -306,7 +313,7 @@ export const useUpdateMenuItem = routeAction$(
 			if (nextParentId === data.menuItemId) {
 				return {
 					success: false,
-					error: "A menu item cannot be its own parent",
+					error: t("admin.pages.ownParent"),
 				};
 			}
 			if (
@@ -315,7 +322,7 @@ export const useUpdateMenuItem = routeAction$(
 			) {
 				return {
 					success: false,
-					error: "Cannot move item under one of its children",
+					error: t("admin.pages.underChild"),
 				};
 			}
 
@@ -349,7 +356,7 @@ export const useUpdateMenuItem = routeAction$(
 		} catch (error: any) {
 			return {
 				success: false,
-				error: error.message || "Failed to update menu item",
+				error: error.message || t("admin.pages.updateMenuFailed"),
 			};
 		}
 	},
@@ -374,7 +381,7 @@ export const useMoveMenuItem = routeAction$(
 			});
 			const movedItem = allItems.find((item) => item.id === data.movedItemId);
 			if (!movedItem) {
-				return { success: false, error: "Dragged menu item was not found" };
+				return { success: false, error: t("admin.pages.draggedNotFound") };
 			}
 
 			const targetItem = data.targetItemId
@@ -382,11 +389,11 @@ export const useMoveMenuItem = routeAction$(
 				: undefined;
 
 			if ((data.mode === "before" || data.mode === "as-child") && !targetItem) {
-				return { success: false, error: "Drop target is missing" };
+				return { success: false, error: t("admin.pages.dropTargetMissing") };
 			}
 
 			if (targetItem && targetItem.id === movedItem.id) {
-				return { success: false, error: "Cannot drop onto the same item" };
+				return { success: false, error: t("admin.pages.dropOntoSelf") };
 			}
 
 			if (
@@ -396,7 +403,7 @@ export const useMoveMenuItem = routeAction$(
 			) {
 				return {
 					success: false,
-					error: "Cannot move item under one of its descendants",
+					error: t("admin.pages.underDescendant"),
 				};
 			}
 
@@ -453,7 +460,7 @@ export const useMoveMenuItem = routeAction$(
 				(item) => item.id === movedItem.id,
 			);
 			if (!movedAfterUpdate) {
-				return { success: false, error: "Moved item could not be reloaded" };
+				return { success: false, error: t("admin.pages.reloadFailed") };
 			}
 
 			const targetSiblings = refreshed
@@ -502,7 +509,7 @@ export const useMoveMenuItem = routeAction$(
 		} catch (error: any) {
 			return {
 				success: false,
-				error: error.message || "Failed to move menu item",
+				error: error.message || t("admin.pages.moveFailed"),
 			};
 		}
 	},
@@ -526,9 +533,9 @@ export default component$(() => {
 	return (
 		<div>
 			<div class="flex justify-between items-center mb-6">
-				<h2 class="text-2xl font-bold">Manage Pages</h2>
+				<h2 class="text-2xl font-bold">{t("admin.pages.managePages")}</h2>
 				<Button href={`${admin.value.adminBase}/pages/new`} variant="primary">
-					Create New Page
+					{t("admin.pages.createNewPage")}
 				</Button>
 			</div>
 
@@ -538,13 +545,13 @@ export default component$(() => {
 						<thead class="bg-gray-50">
 							<tr>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Title
+									{t("admin.pages.title")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									URL
+									{t("admin.pages.edit.url")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Status
+									{t("admin.pages.status")}
 								</th>
 								<th class="px-6 py-3" />
 							</tr>
@@ -568,13 +575,13 @@ export default component$(() => {
 											href={`${admin.value.adminBase}/pages/${p.id}/edit`}
 											class="text-blue-600 hover:text-blue-900"
 										>
-											Settings
+											{t("admin.pages.settings")}
 										</a>
 										<a
 											href={`${admin.value.adminBase}/pages/${p.id}/builder`}
 											class="text-blue-600 hover:text-blue-900"
 										>
-											Edit content
+											{t("admin.pages.editContent")}
 										</a>
 										<Form action={deletePageAction} class="inline">
 											<input type="hidden" name="pageId" value={p.id} />
@@ -582,7 +589,7 @@ export default component$(() => {
 												type="submit"
 												class="text-red-600 hover:text-red-900"
 											>
-												Delete
+												{t("admin.pages.delete")}
 											</button>
 										</Form>
 									</td>
@@ -592,7 +599,7 @@ export default component$(() => {
 					</table>
 					{admin.value.pages.length === 0 && (
 						<p class="px-6 py-8 text-center text-gray-500">
-							No pages in this group yet.
+							{t("admin.pages.noPagesInThisGroup")}
 						</p>
 					)}
 				</div>

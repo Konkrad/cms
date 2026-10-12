@@ -1,3 +1,4 @@
+import { t } from "~/core/i18n";
 import type { ModuleDefinition } from "~/core/router/modules";
 import { ROOT_ADMIN_SEGMENT, SCOPE_SLUG_RE } from "~/core/router/scope-path";
 
@@ -73,23 +74,23 @@ export function pageSlugProblem(
 	},
 ): string | null {
 	if (slug === "") {
-		return ctx.isRoot ? null : "Only the root has a page at its own path";
+		return ctx.isRoot ? null : t("core.pages.onlyRootOwnPath");
 	}
 	if (!SCOPE_SLUG_RE.test(slug)) {
-		return "A page slug is one URL segment of lowercase letters, digits and dashes";
+		return t("core.pages.slugFormat");
 	}
 	if (ctx.childScopeSlugs.has(slug)) {
-		return `A group called "${slug}" already exists here`;
+		return t("core.pages.groupExists", { slug });
 	}
 	if (
 		ctx.isRoot &&
 		(CORE_ROUTE_SEGMENTS.includes(slug) || LEGACY_SEGMENTS.includes(slug))
 	) {
-		return `"${slug}" is a reserved path`;
+		return t("core.pages.reservedPath", { slug });
 	}
 	const modulePaths = new Set(
 		ctx.modules.flatMap((m) => (m.pages ?? []).map((p) => p.path)),
 	);
-	if (modulePaths.has(`/${slug}`)) return `"${slug}" is a module page`;
+	if (modulePaths.has(`/${slug}`)) return t("core.pages.modulePage", { slug });
 	return null;
 }

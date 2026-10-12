@@ -1,5 +1,6 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireAuth } from "~/core/auth/server-auth";
+import { t } from "~/core/i18n";
 import { usersService } from "~/core/users/users.service";
 
 /**
@@ -14,7 +15,7 @@ export const useUpdatePicture = routeAction$(
 		const user = await requireAuth(event);
 
 		if (!data.profilePicture && !data.profilePictureSmall) {
-			return { success: false, error: "No image provided" };
+			return { success: false, error: t("core.profile.noImage") };
 		}
 
 		// usersService.update itself re-validates these keys are under the

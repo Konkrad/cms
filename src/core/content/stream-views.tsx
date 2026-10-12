@@ -2,6 +2,7 @@ import { component$ } from "@qwik.dev/core";
 import type { ArticleViewData } from "~/contracts/articles";
 import type { NoteViewData } from "~/contracts/notes";
 import { canonicalUrl } from "~/core/content/seo";
+import { t } from "~/core/i18n";
 import type { PageViews } from "~/core/router/page-views";
 import { ArticleView } from "~theme/routes/articles/ArticleView";
 import { NoteView } from "~theme/routes/notes/NoteView";
@@ -23,7 +24,7 @@ function noteTitle(note: NoteViewData): string {
 
 function noteHead(data: unknown, url: URL) {
 	const note = data as NoteViewData | null;
-	if (!note) return { title: "Note Not Found" };
+	if (!note) return { title: t("core.content.noteNotFound") };
 	const canonical = canonicalUrl(url.pathname, url.origin);
 	const title = noteTitle(note);
 	return {
@@ -55,7 +56,7 @@ function noteHead(data: unknown, url: URL) {
 
 function articleHead(data: unknown, url: URL) {
 	const article = data as ArticleViewData | null;
-	if (!article) return { title: "Article Not Found" };
+	if (!article) return { title: t("core.content.articleNotFound") };
 	const canonical = canonicalUrl(url.pathname, url.origin);
 	return {
 		title: article.title,
@@ -94,5 +95,8 @@ const GonePage = component$(() => <PageView page={null} />);
 export const coreViews: PageViews = {
 	"core.note": { view: NotePage, head: noteHead },
 	"core.article": { view: ArticlePage, head: articleHead },
-	"core.legacy-post": { view: GonePage, head: () => ({ title: "Not Found" }) },
+	"core.legacy-post": {
+		view: GonePage,
+		head: () => ({ title: t("core.content.notFound") }),
+	},
 };

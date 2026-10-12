@@ -5,6 +5,7 @@ import { AdminNav } from "~/core/admin/AdminNav";
 import { Breadcrumbs } from "~/core/admin/Breadcrumbs";
 import { ScopeSwitcher } from "~/core/admin/ScopeSwitcher";
 import { ROOT_ONLY_SECTIONS } from "~/core/admin/sections";
+import { t } from "~/core/i18n";
 import { activeAdminSections } from "~/core/registry/manifests";
 import { sectionAllowedOn } from "~/core/router/modules";
 import { adminUrl, scopeUrl } from "~/core/router/scope-path";
@@ -46,7 +47,7 @@ export const useScopeAdmin = routeLoader$(async (event) => {
 	// Coordinators switch between the review queues of the scopes they review.
 	const switchable = await listManagedScopes(user, REVIEW_ACCESS);
 	const label = (s: { parentId: string | null; name: string }) =>
-		s.parentId === null ? "Platform" : s.name;
+		s.parentId === null ? t("admin.layout.platform") : s.name;
 	return assertNoPrivateFields({
 		isRoot,
 		scope: {
@@ -89,8 +90,8 @@ export default component$(() => {
 						<div class="min-w-0">
 							<h1 class="text-2xl sm:text-3xl font-bold truncate">
 								{admin.value.isRoot
-									? "Platform Admin"
-									: `${admin.value.scope.name} Admin`}
+									? t("admin.layout.platformAdmin")
+									: t("admin.layout.admin", { name: admin.value.scope.name })}
 							</h1>
 							{!admin.value.isRoot && (
 								<p class="text-slate-300 text-sm mt-1 capitalize">
@@ -109,11 +110,11 @@ export default component$(() => {
 									variant="secondary"
 									size="sm"
 								>
-									View Group
+									{t("admin.layout.viewGroup")}
 								</Button>
 							)}
 							<Button href="/" variant="secondary" size="sm">
-								Back to Site
+								{t("admin.layout.backToSite")}
 							</Button>
 						</div>
 					</div>

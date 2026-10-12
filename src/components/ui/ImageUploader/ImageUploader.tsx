@@ -15,6 +15,7 @@ import dashboardStyles from "@uppy/dashboard/css/style.css?inline";
 import ImageEditor from "@uppy/image-editor";
 import imageEditorStyles from "@uppy/image-editor/css/style.css?inline";
 import XHRUpload from "@uppy/xhr-upload";
+import { t } from "~/core/i18n";
 
 const uploaderOverrides = `
   .uppy-DashboardContent-title { display: none; }
@@ -101,7 +102,9 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
 				proudlyDisplayPoweredByUppy: false,
 				autoOpen: props.crop ? "imageEditor" : undefined,
 				plugins: props.crop ? ["ImageEditor"] : undefined,
-				locale: props.crop ? { strings: { save: "Confirm Crop" } } : undefined,
+				locale: props.crop
+					? { strings: { save: t("core.ui.imageUploader.confirmCrop") } }
+					: undefined,
 			})
 			.use(ImageEditor, {
 				target: Dashboard as any,
@@ -303,8 +306,8 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
 							src={selectedPreviewUrl.value ?? props.currentUrl ?? undefined}
 							alt={
 								selectedPreviewUrl.value
-									? "Selected image preview"
-									: "Current image"
+									? t("core.ui.imageUploader.selectedImagePreview")
+									: t("core.ui.imageUploader.currentImage")
 							}
 							width={640}
 							height={360}
@@ -316,7 +319,7 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
 
 			{!props.autoUpload && isImageReady.value && (
 				<p class="text-sm text-green-600 font-medium mt-2">
-					Image ready &mdash; will be uploaded on save.
+					{t("core.ui.imageUploader.imageReadyWillBeUploaded")}
 				</p>
 			)}
 

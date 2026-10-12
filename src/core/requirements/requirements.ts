@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import type { RequirementStepData } from "~/contracts/requirements";
+import { t } from "~/core/i18n";
 import {
 	isOutdated,
 	type RequirementDefinition,
@@ -122,13 +123,16 @@ export function createRequirementsApi(
 			input: unknown,
 		): Promise<void> {
 			const def = byId(requirementId);
-			if (!def) throw new RequirementInputError("Unknown step");
+			if (!def)
+				throw new RequirementInputError(t("core.requirements.unknownStep"));
 			if (def.isApplicable && !(await def.isApplicable(user)))
-				throw new RequirementInputError("This step does not apply");
+				throw new RequirementInputError(
+					t("core.requirements.stepDoesNotApply"),
+				);
 			const parsed = def.input.safeParse(input ?? {});
 			if (!parsed.success)
 				throw new RequirementInputError(
-					"Please check your answers",
+					t("core.requirements.checkAnswers"),
 					fieldErrorsOf(parsed.error),
 				);
 			const value = def.save ? await def.save(user, parsed.data) : parsed.data;

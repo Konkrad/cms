@@ -7,6 +7,7 @@ import { noteFormSchema, subjectFromField } from "~/core/content/content-form";
 import { ContentInputError } from "~/core/content/content-items";
 import { notesService } from "~/core/content/notes.service";
 import { subjectFieldValue } from "~/core/content/stream-cards";
+import { t } from "~/core/i18n";
 import { adminUrl } from "~/core/router/scope-path";
 import {
 	ADMIN_ACCESS,
@@ -40,7 +41,7 @@ export const useUpdateNote = routeAction$(
 	async (data, event): Promise<ContentFormResult> => {
 		const { user, scope } = await requireScopeRole(event, ADMIN_ACCESS);
 		const target = await notesService.getById(event.params.id);
-		if (!target) return { success: false, error: "Note not found" };
+		if (!target) return { success: false, error: t("admin.notes.notFound") };
 		if (!(await isWithinScope(scope, target.scopeId)))
 			throw event.error(403, "Forbidden");
 		try {
@@ -69,9 +70,11 @@ export default component$(() => {
 	return (
 		<div>
 			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-2xl font-bold text-gray-800">Edit note</h2>
+				<h2 class="text-2xl font-bold text-gray-800">
+					{t("admin.notes.edit.editNote")}
+				</h2>
 				<Button href={`${data.value.base}/notes`} variant="secondary">
-					Back to Notes
+					{t("admin.notes.edit.backToNotes")}
 				</Button>
 			</div>
 			<div class="bg-white rounded-lg shadow-sm p-6">
@@ -80,9 +83,9 @@ export default component$(() => {
 					visibilities={data.value.visibilities}
 					values={data.value.note}
 					subjectPicker
-					submitLabel="Save Changes"
+					submitLabel={t("admin.notes.edit.saveChanges")}
 					cancelHref={`${data.value.base}/notes`}
-					successMessage="Note updated."
+					successMessage={t("admin.notes.edit.noteUpdated")}
 				/>
 			</div>
 		</div>

@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
-import { formatDate } from "~/core/i18n";
+import { formatDate, t } from "~/core/i18n";
 import {
 	decideReview,
 	ReviewAccessError,
@@ -55,10 +55,10 @@ export const useDecideReview = routeAction$(
 );
 
 const STATUS_LABELS: Record<string, string> = {
-	draft: "Draft",
-	in_review: "In review",
-	approved: "Approved",
-	rejected: "Not approved",
+	draft: t("admin.reviews.status.draft"),
+	in_review: t("admin.reviews.status.inReview"),
+	approved: t("admin.reviews.status.approved"),
+	rejected: t("admin.reviews.status.rejected"),
 };
 
 export default component$(() => {
@@ -68,10 +68,11 @@ export default component$(() => {
 
 	return (
 		<div>
-			<h2 class="text-2xl font-bold text-gray-800 mb-2">Reviews</h2>
+			<h2 class="text-2xl font-bold text-gray-800 mb-2">
+				{t("admin.reviews.reviews")}
+			</h2>
 			<p class="text-sm text-gray-500 mb-6">
-				Public content from the groups below is published once a reviewer
-				approves it.
+				{t("admin.reviews.publicContentFromTheGroups")}
 			</p>
 			{decide.value?.failed && (
 				<p class="mb-4 text-sm text-red-700" role="alert">
@@ -80,10 +81,12 @@ export default component$(() => {
 			)}
 
 			<section class="mb-10" data-testid="review-queue">
-				<h3 class="text-lg font-semibold mb-3">Waiting for your decision</h3>
+				<h3 class="text-lg font-semibold mb-3">
+					{t("admin.reviews.waitingForYourDecision")}
+				</h3>
 				{pending.length === 0 ? (
 					<div class="bg-white rounded-lg shadow-sm px-5 py-8 text-center text-gray-400 text-sm">
-						Nothing to review.
+						{t("admin.reviews.nothingToReview")}
 					</div>
 				) : (
 					<ul class="space-y-4">
@@ -130,7 +133,7 @@ export default component$(() => {
 								<Form action={decide} class="flex flex-col gap-2">
 									<input type="hidden" name="reviewId" value={item.reviewId} />
 									<label class="text-sm text-gray-700">
-										Comment (required to reject)
+										{t("admin.reviews.commentRequiredToReject")}
 										<textarea
 											name="comment"
 											rows={2}
@@ -144,7 +147,7 @@ export default component$(() => {
 											value="approve"
 											class="px-4 py-2 rounded-sm bg-green-700 text-white text-sm font-medium"
 										>
-											Approve
+											{t("admin.reviews.approve")}
 										</button>
 										<button
 											type="submit"
@@ -152,7 +155,7 @@ export default component$(() => {
 											value="reject"
 											class="px-4 py-2 rounded-sm bg-red-700 text-white text-sm font-medium"
 										>
-											Reject
+											{t("admin.reviews.reject")}
 										</button>
 									</div>
 								</Form>
@@ -163,10 +166,12 @@ export default component$(() => {
 			</section>
 
 			<section data-testid="my-submissions">
-				<h3 class="text-lg font-semibold mb-3">Your submissions</h3>
+				<h3 class="text-lg font-semibold mb-3">
+					{t("admin.reviews.yourSubmissions")}
+				</h3>
 				{mine.length === 0 ? (
 					<div class="bg-white rounded-lg shadow-sm px-5 py-8 text-center text-gray-400 text-sm">
-						You have not submitted anything for review here.
+						{t("admin.reviews.youHaveNotSubmittedAnything")}
 					</div>
 				) : (
 					<ul class="bg-white rounded-lg shadow-sm divide-y divide-gray-200">

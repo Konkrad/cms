@@ -4,6 +4,7 @@ import { emailAuthService } from "~/core/auth/email-auth.service";
 import { RateLimiter } from "~/core/auth/rate-limit";
 // Using email-based auth (magic link + OTP) instead of the old password-based auth
 import { getServerSession } from "~/core/auth/server-auth";
+import { t } from "~/core/i18n";
 import { env } from "~/env";
 import { LoginView } from "~theme/routes/login/LoginView";
 
@@ -33,7 +34,7 @@ export const useSendAction = routeAction$(async (data: any, event: any) => {
 		.trim()
 		.toLowerCase();
 	if (!email || !/\S+@\S+\.\S+/.test(email)) {
-		return { success: false, error: "Invalid email" };
+		return { success: false, error: t("core.auth.invalidEmail") };
 	}
 
 	const ip =
@@ -62,7 +63,7 @@ export const useSendAction = routeAction$(async (data: any, event: any) => {
 		// account exists, preserving the flow's no-enumeration property.
 		return {
 			success: false,
-			error: "Too many requests. Please try again later.",
+			error: t("core.auth.tooManyRequests"),
 		};
 	}
 
@@ -79,7 +80,7 @@ export const useVerifyAction = routeAction$(async (data: any, event: any) => {
 	const code = String(data?.code || "").trim();
 
 	if (!email || !code) {
-		return { success: false, error: "Missing email or code" };
+		return { success: false, error: t("core.auth.missingEmailOrCode") };
 	}
 
 	const ip =

@@ -1,4 +1,5 @@
 import { $, component$, type QRL, useSignal, useTask$ } from "@qwik.dev/core";
+import { t } from "~/core/i18n";
 import { GRID_AREAS } from "~theme/blocks/FeatureBlock/FeatureBlock";
 
 interface GridLayoutEditorProps {
@@ -69,12 +70,14 @@ export const GridLayoutEditor = component$<GridLayoutEditorProps>((props) => {
 
 	return (
 		<div class="space-y-3">
-			<span class="block text-sm font-medium text-gray-700">Grid Layout</span>
+			<span class="block text-sm font-medium text-gray-700">
+				{t("admin.gridLayoutEditor.gridLayout")}
+			</span>
 
 			{/* Area palette - pick which area to paint */}
 			<div class="space-y-1.5">
 				<span class="text-xs text-gray-500">
-					Select an area, then click cells to assign:
+					{t("admin.gridLayoutEditor.selectAnAreaThenClick")}
 				</span>
 				<div class="flex flex-wrap gap-1.5">
 					{GRID_AREAS.map((area) => {
@@ -145,7 +148,9 @@ export const GridLayoutEditor = component$<GridLayoutEditorProps>((props) => {
 										!sameBottom && !sameRight ? "8px" : "0",
 									color: color,
 								}}
-								title={`Set to ${selectedArea.value}`}
+								title={t("admin.gridLayoutEditor.setTo", {
+									value: selectedArea.value,
+								})}
 								onClick$={() => handleCellClick(rowIdx, colIdx)}
 							>
 								{label}

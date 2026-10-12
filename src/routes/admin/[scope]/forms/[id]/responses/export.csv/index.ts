@@ -1,8 +1,8 @@
 import type { RequestHandler } from "@qwik.dev/router";
 import { formResultsService } from "~/core/forms/form-results.service";
-import { formsService } from "~/core/forms/forms.service";
 import {
 	buildFormsAdminBasePath,
+	getOwnForm,
 	resolveFormsAdminScope,
 } from "../../../_utils";
 import { buildResponseColumns, getAnswerValue } from "../_response-pivot";
@@ -16,32 +16,25 @@ function csvEscape(value: string): string {
 }
 
 export const onGet: RequestHandler = async (event) => {
-	const scope = await resolveFormsAdminScope(event);
+	const { scope } = await resolveFormsAdminScope(event);
 	const basePath = buildFormsAdminBasePath(event.params.scope);
 
-	const form = await formsService.getByIdAndScope(
-		event.params.id,
-		scope.scopeType,
-		scope.scopeId,
-	);
+	const form = await getOwnForm(scope, event.params.id);
 	if (!form) {
 		throw event.redirect(302, basePath);
 	}
 
 	const responses = await formResultsService.getByForm(form.id);
-	const questionColumns = buildResponseColumns(
-		form.schemaJson as Record<string, any>,
-		responses as any,
-	);
+	const questionColumns = buildResponseColumns(form.schema, responses as any);
 
 	const header = [
 		"submitted_at",
 		...questionColumns.map((column) => column.label),
 	];
 	const rows = responses.map((response) => [
-		response.submittedAt,
+		response.createdAt,
 		...questionColumns.map((column) =>
-			getAnswerValue(response.resultJson as Record<string, any>, column.key),
+			getAnswerValue(response.answers as Record<string, any>, column.key),
 		),
 	]);
 

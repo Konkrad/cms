@@ -6,7 +6,7 @@ import { menuItems } from "../content/schema/menu-items";
 import { notes } from "../content/schema/notes";
 import { pages } from "../content/schema/pages";
 import { formResults } from "../forms/schema/form-results";
-import { forms } from "../forms/schema/forms";
+import { formAssignments, forms } from "../forms/schema/forms";
 import { userMemberships } from "../memberships/schema";
 import {
 	notificationOutbox,
@@ -47,6 +47,7 @@ export const schemaRelations = defineRelations(
 		notes,
 		articles,
 		forms,
+		formAssignments,
 		formResults,
 		userMemberships,
 		notificationOutbox,

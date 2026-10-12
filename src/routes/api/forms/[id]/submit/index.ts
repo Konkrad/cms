@@ -1,15 +1,17 @@
 import type { RequestHandler } from "@qwik.dev/router";
 import { altchaService } from "~/core/auth/altcha.service";
 import { getServerSession } from "~/core/auth/server-auth";
+import { FormAnswerError } from "~/core/forms/answers";
 import { formAccessService } from "~/core/forms/form-access.service";
 import { formResultsService } from "~/core/forms/form-results.service";
-import { formValidationService } from "~/core/forms/form-validation.service";
 import { formsService } from "~/core/forms/forms.service";
+import { isSurveyForm } from "~/core/forms/purposes";
 
 export const onPost: RequestHandler = async (event) => {
 	const { params, request, json } = event;
 	const form = await formsService.getById(params.id);
-	if (!form) {
+	// Workflow forms (a purpose) are filled in their workflow, not as a survey.
+	if (!form || !isSurveyForm(form)) {
 		json(404, { error: "Form not found" });
 		return;
 	}
@@ -36,9 +38,17 @@ export const onPost: RequestHandler = async (event) => {
 		return;
 	}
 
-	const validatedResult = formValidationService.validateResultPayload(
-		payload.result || {},
-	);
+	let answers: Record<string, unknown>;
+	try {
+		// Validated against the form's questions on the server (spec 4.10).
+		answers = formsService.validateAnswers(form, payload.result ?? {});
+	} catch (error) {
+		if (error instanceof FormAnswerError) {
+			json(400, { error: error.message, fieldErrors: error.fieldErrors });
+			return;
+		}
+		throw error;
+	}
 
 	if (formAccessService.requiresAltcha(form)) {
 		const isValidAltcha = await altchaService.verifyPayload(
@@ -61,19 +71,18 @@ export const onPost: RequestHandler = async (event) => {
 		}
 	}
 
-	const created = await (form.allowResubmission
-		? formResultsService.upsert({
-				formId: form.id,
-				userId: user?.id || null,
-				resultJson: validatedResult,
-				altchaPayload: payload.altcha || null,
-			})
-		: formResultsService.create({
-				formId: form.id,
-				userId: user?.id || null,
-				resultJson: validatedResult,
-				altchaPayload: payload.altcha || null,
-			}));
+	const result = {
+		formId: form.id,
+		answers,
+		altchaPayload: payload.altcha || null,
+	};
+	const created =
+		user && form.allowResubmission
+			? await formResultsService.saveOwn({ ...result, userId: user.id })
+			: await formResultsService.create({
+					...result,
+					userId: user?.id ?? null,
+				});
 
 	json(200, {
 		success: true,

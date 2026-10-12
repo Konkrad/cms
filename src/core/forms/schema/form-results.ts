@@ -1,69 +1,36 @@
-import crypto from "crypto";
 import { sql } from "drizzle-orm";
-import { relations } from "drizzle-orm/_relations";
-import { index, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { z } from "zod";
+import { index, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { users } from "../../users/schema";
+import { forms } from "./forms";
 
-export type SurveyResultJson = Record<string, any>;
+/** Validated answers by question name. Free text is plain text, never rendered as HTML. */
+export type FormAnswers = Record<string, unknown>;
 
+/**
+ * One submission of a form (spec 4.10). `subjectRef` attaches the answers to an item
+ * (`events:event:<id>` for a proposal or a debrief); null for surveys and onboarding.
+ */
 export const formResults = sqliteTable(
 	"form_results",
 	{
 		id: text("id").primaryKey(),
 		formId: text("form_id")
 			.notNull()
-			.references(() => forms.id),
-		userId: text("user_id").references(() => users.id),
-		resultJson: text("result_json", { mode: "json" })
-			.$type<SurveyResultJson>()
-			.notNull(),
+			.references(() => forms.id, { onDelete: "cascade" }),
+		userId: text("user_id").references(() => users.id, {
+			onDelete: "cascade",
+		}),
+		subjectRef: text("subject_ref"),
+		answers: text("answers", { mode: "json" }).$type<FormAnswers>().notNull(),
 		altchaPayload: text("altcha_payload"),
-		submittedAt: text("submitted_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+		createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 	},
-	(table) => ({
-		formIdx: index("form_results_form_idx").on(table.formId, table.submittedAt),
-		userIdx: index("form_results_user_idx").on(table.userId, table.submittedAt),
-		onePerUserUnique: uniqueIndex("form_results_form_user_unique").on(
-			table.formId,
-			table.userId,
-		),
-	}),
+	(table) => [
+		index("form_results_form_idx").on(table.formId, table.createdAt),
+		index("form_results_user_idx").on(table.userId, table.createdAt),
+		index("form_results_subject_idx").on(table.subjectRef),
+	],
 );
 
-export const formResultsRelations = relations(formResults, ({ one }) => ({
-	form: one(forms, {
-		fields: [formResults.formId],
-		references: [forms.id],
-	}),
-	user: one(users, {
-		fields: [formResults.userId],
-		references: [users.id],
-	}),
-}));
-
-import { users } from "../../users/schema";
-import { forms } from "./forms";
-
-const baseInsertSchema = createInsertSchema(formResults);
-const baseSelectSchema = createSelectSchema(formResults);
-
-export const insertFormResultSchema = baseInsertSchema
-	.extend({
-		id: z
-			.string()
-			.uuid()
-			.default(() => crypto.randomUUID()),
-		submittedAt: z.string().default(() => new Date().toISOString()),
-	})
-	.partial({
-		id: true,
-		userId: true,
-		altchaPayload: true,
-		submittedAt: true,
-	});
-
-export const selectFormResultSchema = baseSelectSchema;
-
-export type FormResult = z.infer<typeof selectFormResultSchema>;
-export type InsertFormResult = z.infer<typeof insertFormResultSchema>;
+export type FormResult = typeof formResults.$inferSelect;
+export type NewFormResult = typeof formResults.$inferInsert;

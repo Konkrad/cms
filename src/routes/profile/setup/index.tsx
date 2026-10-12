@@ -2,8 +2,10 @@ import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
 import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
 import { formResultsService } from "~/core/forms/form-results.service";
-import { formsService } from "~/core/forms/forms.service";
+import { formAssignmentsService } from "~/core/forms/forms.service";
+import { ONBOARDING_PURPOSE } from "~/core/forms/purposes";
 import { resolvePrivateImageUrl } from "~/core/media/secure-urls";
+import { getRootScope } from "~/core/scopes/access";
 import type { UserConsent } from "~/core/users/schema";
 import { OnboardingView } from "~theme/routes/onboarding/OnboardingView";
 import { useMarkLocation } from "../../../core/users/setup/LocationStep/useMarkLocation";
@@ -28,7 +30,13 @@ export const useOnboardingLoader = routeLoader$(async (event) => {
 	const u = user as any;
 	const consent = (u.consent ?? {}) as UserConsent;
 
-	const form = await formsService.getBySystemKey("affilation");
+	const root = await getRootScope();
+	const active = root
+		? await formAssignmentsService.activeFor(ONBOARDING_PURPOSE, root.id)
+		: undefined;
+	const form = active
+		? { id: active.id, title: active.title, schemaJson: active.schema }
+		: null;
 
 	let existingFormResult: Record<string, any> | null = null;
 	if (form) {
@@ -36,8 +44,7 @@ export const useOnboardingLoader = routeLoader$(async (event) => {
 			form.id,
 			user.id,
 		);
-		if (existing)
-			existingFormResult = existing.resultJson as Record<string, any>;
+		if (existing) existingFormResult = existing.answers as Record<string, any>;
 	}
 
 	const profilePictureUrl = u.profilePicture

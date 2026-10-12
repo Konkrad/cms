@@ -37,8 +37,6 @@ const baseSurveySchema = z.object({
 		.min(1),
 });
 
-const resultPayloadSchema = z.record(z.string(), z.unknown());
-
 export type SimpleField = z.infer<typeof simpleFieldSchema>;
 
 const toFieldId = (value: string): string => {
@@ -132,10 +130,6 @@ export const formValidationService = {
 		}
 
 		return parsed as Record<string, any>;
-	},
-
-	validateResultPayload(raw: unknown): Record<string, any> {
-		return resultPayloadSchema.parse(raw);
 	},
 
 	extractSimpleFieldsFromSurvey(raw: unknown): SimpleField[] {

@@ -1,5 +1,6 @@
 import type { ProfileExtras } from "~/contracts/profile";
 import type { ScopeExtras } from "~/contracts/scopes";
+import type { FormPurpose } from "~/core/forms/purposes";
 import type { NotificationDefinition } from "~/core/notifications/define";
 import type { PaymentHandlers } from "~/core/payments/payments";
 import type { PageDefinition } from "~/core/router/pages";
@@ -159,6 +160,11 @@ export interface ModuleDefinition {
 	 * that is not active resolve to "unavailable".
 	 */
 	refs?: Record<string, RefTypeDefinition>;
+	/**
+	 * Form purposes this module uses (spec 4.10), e.g. `{ purpose: "events.proposal", label }`.
+	 * Admins pick the active form per purpose and scope; read it with `forms.active(ctx, purpose)`.
+	 */
+	forms?: FormPurpose[];
 }
 
 export function defineModule(module: ModuleDefinition): ModuleDefinition {
@@ -240,6 +246,11 @@ export const scopeContentCountOf = async (
 export const notificationsOf = (
 	modules: readonly ModuleDefinition[],
 ): NotificationDefinition[] => modules.flatMap((m) => m.notifications ?? []);
+
+/** Form purposes of the given modules, in module order. */
+export const formPurposesOf = (
+	modules: readonly ModuleDefinition[],
+): FormPurpose[] => modules.flatMap((m) => m.forms ?? []);
 
 /** Runs the `reevaluateUserTags` hook of every given module for one user. */
 export const reevaluateUserTagsOf = async (

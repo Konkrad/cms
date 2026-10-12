@@ -4,6 +4,7 @@ import type { PublicProfileViewData } from "~/contracts/users";
 import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
 import { formResultsService } from "~/core/forms/form-results.service";
 import { buildFormPath } from "~/core/forms/forms";
+import { ONBOARDING_PURPOSE } from "~/core/forms/purposes";
 import { scopeUrl } from "~/core/router/scope-path";
 import { scopesService } from "~/core/scopes/scopes.service";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
@@ -87,19 +88,19 @@ export const usePublicProfile = routeLoader$(
 				...(ownDetails ?? {}),
 				affiliationEntries: (() => {
 					const onboarding = submittedFormRows.find(
-						(s) => s.formSlug === "onboarding",
+						(s) => s.formPurpose === ONBOARDING_PURPOSE,
 					);
 					return onboarding
-						? formatAffiliationResultJson(onboarding.resultJson || {})
+						? formatAffiliationResultJson(onboarding.answers || {})
 						: [];
 				})(),
 				submittedForms: isOwner
 					? submittedFormRows.map((s) => ({
 							id: s.id,
 							title: s.formTitle,
-							submittedAt: s.submittedAt,
+							submittedAt: s.createdAt,
 							path: buildFormPath({ id: s.formId, slug: s.formSlug }),
-							responseEntries: Object.entries(s.resultJson || {}).map(
+							responseEntries: Object.entries(s.answers || {}).map(
 								([question, value]) => ({
 									question,
 									answer: formatResponseValue(value),

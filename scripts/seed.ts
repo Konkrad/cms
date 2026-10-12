@@ -28,6 +28,7 @@ import sharp from "sharp";
 import { runMigrations } from "../src/core/db/migrate.ts";
 import * as schema from "../src/core/db/schema.ts";
 import { slugify } from "../src/core/shared/slug.ts";
+import { ensureWorkflowForm, onboardingFormSeed } from "./seed-forms.ts";
 
 dotenv.config();
 
@@ -2145,37 +2146,27 @@ console.log(
 
 // ─── 13. Forms ───────────────────────────────────────────────────────────────
 
-const onboardJson = JSON.parse(
-	fs.readFileSync("surveys/onboard.json", "utf-8"),
+// Workflow forms (a purpose, active at the root) and a public survey.
+const onboardingFormId = ensureWorkflowForm(
+	sqlite,
+	rootScope!.id,
+	adminUser!.id,
+	onboardingFormSeed(),
 );
 
-const formDefs: Array<{
+const surveyDefs: Array<{
 	title: string;
 	slug: string;
 	description: string;
-	schemaJson: any;
+	schema: Record<string, unknown>;
 	visibility: "private" | "public";
-	isSystemForm: boolean;
-	allowResubmission?: boolean;
-	systemKey: string | null;
 }> = [
-	{
-		title: "Onboarding Survey",
-		slug: "onboarding",
-		description:
-			"Required during signup — captures how you know us and your academic background.",
-		schemaJson: onboardJson,
-		visibility: "private",
-		isSystemForm: true,
-		allowResubmission: true,
-		systemKey: "affilation",
-	},
 	{
 		title: "Community Feedback",
 		slug: "community-feedback",
 		description:
 			"Tell us what you think about the community and how we can improve.",
-		schemaJson: {
+		schema: {
 			pages: [
 				{
 					name: "feedback_page",
@@ -2223,52 +2214,32 @@ const formDefs: Array<{
 			],
 		},
 		visibility: "public",
-		isSystemForm: false,
-		systemKey: null,
 	},
 ];
 
-for (const f of formDefs) {
-	const existing = f.systemKey
-		? db
-				.select()
-				.from(schema.forms)
-				.all()
-				.find((r) => r.systemKey === f.systemKey)
-		: null;
-
-	if (existing) {
-		if (
-			f.allowResubmission !== undefined &&
-			existing.allowResubmission !== f.allowResubmission
-		) {
-			db.update(schema.forms)
-				.set({ allowResubmission: f.allowResubmission, updatedAt: now() })
-				.where(eq(schema.forms.id, existing.id))
-				.run();
-		}
-		continue;
-	}
-
+for (const f of surveyDefs) {
+	const existing = db
+		.select()
+		.from(schema.forms)
+		.all()
+		.find((r) => r.slug === f.slug && r.scopeId === rootScope!.id);
+	if (existing) continue;
 	db.insert(schema.forms)
 		.values({
 			id: uuid(),
+			scopeId: rootScope!.id,
 			title: f.title,
 			slug: f.slug,
 			description: f.description,
-			schemaJson: f.schemaJson,
+			schema: f.schema,
 			visibility: f.visibility,
-			scopeType: "global",
-			isSystemForm: f.isSystemForm,
-			allowResubmission: f.allowResubmission ?? false,
-			systemKey: f.systemKey,
 			createdBy: adminUser.id,
 			createdAt: now(),
 			updatedAt: now(),
 		})
 		.run();
 }
-console.log(`  forms seeded (${formDefs.length})`);
+console.log(`  forms seeded (onboarding + ${surveyDefs.length} surveys)`);
 
 // ─── 13b. Onboarding form results ─────────────────────────────────────────────
 
@@ -2276,7 +2247,7 @@ const onboardingForm = db
 	.select()
 	.from(schema.forms)
 	.all()
-	.find((f) => f.systemKey === "affilation");
+	.find((f) => f.id === onboardingFormId);
 
 if (onboardingForm) {
 	// Delete any existing form results for test users so they land on the survey fresh.
@@ -2476,7 +2447,7 @@ if (onboardingForm) {
 		if (alreadySubmitted.has(user.id)) continue;
 		if (testUserIds.has(user.id)) continue;
 
-		const resultJson =
+		const answers =
 			affiliationPool[Math.floor(Math.random() * affiliationPool.length)];
 
 		db.insert(schema.formResults)
@@ -2484,8 +2455,8 @@ if (onboardingForm) {
 				id: uuid(),
 				formId: onboardingForm.id,
 				userId: user.id,
-				resultJson,
-				submittedAt: now(),
+				answers,
+				createdAt: now(),
 			})
 			.run();
 

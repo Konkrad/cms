@@ -9,12 +9,14 @@ import { formValidationService } from "~/core/forms/form-validation.service";
 import { buildFormPath } from "~/core/forms/forms";
 import { formsService } from "~/core/forms/forms.service";
 import { SimpleFormBuilder } from "~/core/forms/SimpleFormBuilder";
+import { formPurposes, isFormPurpose } from "~/core/registry/forms";
 import { buildFormsAdminBasePath, resolveFormsAdminScope } from "../_utils";
 
 export const useScope = routeLoader$(async (event) => {
 	await resolveFormsAdminScope(event);
 	return {
 		basePath: buildFormsAdminBasePath(event.params.scope),
+		purposes: formPurposes(),
 	};
 });
 
@@ -37,16 +39,17 @@ export const useCreateForm = routeAction$(
 				);
 			}
 
+			if (data.purpose && !isFormPurpose(data.purpose)) {
+				return { success: false, error: "Unknown purpose" };
+			}
 			const created = await formsService.create({
 				title: data.title,
 				slug: data.slug,
 				description: data.description || null,
-				schemaJson,
+				schema: schemaJson,
+				purpose: data.purpose || null,
 				visibility: data.visibility,
-				scopeType: scope.scopeType,
-				scopeId: scope.scopeId,
-				isSystemForm: data.isSystemForm,
-				systemKey: data.isSystemForm ? data.systemKey || null : null,
+				scopeId: scope.scope.id,
 				createdBy: scope.userId,
 			});
 
@@ -76,11 +79,7 @@ export const useCreateForm = routeAction$(
 		builderMode: z.enum(["simple", "json"]).default("simple"),
 		simpleFieldsJson: z.string().optional(),
 		schemaJson: z.string().default('{"pages":[]}'),
-		isSystemForm: z
-			.string()
-			.optional()
-			.transform((v) => v === "on" || v === "true"),
-		systemKey: z.string().optional(),
+		purpose: z.string().optional(),
 	}),
 );
 
@@ -195,24 +194,18 @@ export default component$(() => {
 						/>
 					)}
 
-					<div class="forms-inline-checkbox">
-						<input
-							id="isSystemForm"
-							type="checkbox"
-							name="isSystemForm"
-							checked={action.formData?.get("isSystemForm") === "on"}
-						/>
-						<label for="isSystemForm" class="forms-field-label mb-0">
-							Mark as system form
-						</label>
-					</div>
-
-					<Input
-						name="systemKey"
-						label="System Key (only for system forms)"
-						value={action.formData?.get("systemKey")}
-						placeholder="onboarding"
-					/>
+					<Select
+						name="purpose"
+						label="Purpose"
+						value={(action.formData?.get("purpose") as string) || ""}
+					>
+						<option value="">None (a survey)</option>
+						{scope.value.purposes.map((p) => (
+							<option key={p.purpose} value={p.purpose}>
+								{p.label}
+							</option>
+						))}
+					</Select>
 
 					<p class="text-sm text-gray-500">
 						Public URL preview: {previewPath.value}

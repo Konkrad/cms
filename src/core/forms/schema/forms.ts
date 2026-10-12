@@ -1,116 +1,75 @@
-import crypto from "crypto";
 import { sql } from "drizzle-orm";
-import { relations } from "drizzle-orm/_relations";
 import {
 	index,
 	integer,
+	primaryKey,
 	sqliteTable,
 	text,
-	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { z } from "zod";
+import { scopes } from "../../scopes/schema/scopes";
+import { users } from "../../users/schema";
 
-export type SurveyJson = Record<string, any>;
+/** A SurveyJS form definition (`pages[].elements[]` of questions). */
+export type FormSchema = Record<string, any>;
 
+/**
+ * A form (spec 4.10), owned by a scope (site-wide forms belong to the root). The question
+ * schema is SurveyJS JSON, edited in the admin form builder. `purpose` marks a form used by a
+ * workflow (`core.onboarding`, `events.proposal`, …; declared by core or a module manifest's
+ * `forms`); the active form of a purpose is picked per scope in `form_assignments`. A form
+ * with at least one result is locked: its schema can no longer change (duplicate it instead).
+ */
 export const forms = sqliteTable(
 	"forms",
 	{
 		id: text("id").primaryKey(),
+		scopeId: text("scope_id")
+			.notNull()
+			.references(() => scopes.id, { onDelete: "cascade" }),
 		title: text("title").notNull(),
 		slug: text("slug").notNull(),
 		description: text("description"),
-		schemaJson: text("schema_json", { mode: "json" })
-			.$type<SurveyJson>()
-			.notNull(),
+		schema: text("schema", { mode: "json" }).$type<FormSchema>().notNull(),
+		purpose: text("purpose"),
+		// Public survey pages: "private" needs a login, "public" takes guest answers (ALTCHA).
 		visibility: text("visibility", { enum: ["private", "public"] })
 			.notNull()
 			.default("private"),
-		scopeType: text("scope_type", { enum: ["global", "group"] })
-			.notNull()
-			.default("global"),
-		scopeId: text("scope_id").references(() => scopes.id),
-		isSystemForm: integer("is_system_form", { mode: "boolean" })
-			.notNull()
-			.default(false),
+		// A user may change their answers (the onboarding survey); otherwise one answer per user.
 		allowResubmission: integer("allow_resubmission", { mode: "boolean" })
 			.notNull()
 			.default(false),
-		systemKey: text("system_key"),
-		createdBy: text("created_by")
-			.notNull()
-			.references(() => users.id),
+		createdBy: text("created_by").references(() => users.id, {
+			onDelete: "set null",
+		}),
 		createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 		updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 	},
-	(table) => ({
-		scopeIdx: index("forms_scope_idx").on(table.scopeType, table.scopeId),
-		systemKeyUnique: uniqueIndex("forms_system_key_unique").on(table.systemKey),
-	}),
+	(table) => [
+		index("forms_scope_idx").on(table.scopeId),
+		index("forms_purpose_idx").on(table.purpose),
+	],
 );
 
-export const formsRelations = relations(forms, ({ one, many }) => ({
-	scope: one(scopes, {
-		fields: [forms.scopeId],
-		references: [scopes.id],
-	}),
-	creator: one(users, {
-		fields: [forms.createdBy],
-		references: [users.id],
-	}),
-	results: many(formResults),
-}));
+/**
+ * The active form of a purpose in a scope; the nearest scope up the tree with an assignment
+ * wins (`formAssignmentsService.activeFor`). One row per purpose and scope.
+ */
+export const formAssignments = sqliteTable(
+	"form_assignments",
+	{
+		purpose: text("purpose").notNull(),
+		scopeId: text("scope_id")
+			.notNull()
+			.references(() => scopes.id, { onDelete: "cascade" }),
+		formId: text("form_id")
+			.notNull()
+			.references(() => forms.id, { onDelete: "cascade" }),
+		updatedAt: text("updated_at").notNull(),
+	},
+	(table) => [primaryKey({ columns: [table.purpose, table.scopeId] })],
+);
 
-import { scopes } from "../../scopes/schema/scopes";
-import { users } from "../../users/schema";
-import { formResults } from "./form-results";
-
-const baseInsertSchema = createInsertSchema(forms);
-const baseSelectSchema = createSelectSchema(forms);
-
-export const insertFormSchema = baseInsertSchema
-	.extend({
-		id: z
-			.string()
-			.uuid()
-			.default(() => crypto.randomUUID()),
-		title: z.string().min(1, "Title is required"),
-		slug: z
-			.string()
-			.min(1, "Slug is required")
-			.regex(
-				/^[a-z0-9_-]+$/,
-				"Slug must contain only lowercase letters, numbers, '_' and '-'.",
-			),
-		createdAt: z.string().default(() => new Date().toISOString()),
-		updatedAt: z.string().default(() => new Date().toISOString()),
-	})
-	.partial({
-		id: true,
-		description: true,
-		scopeId: true,
-		isSystemForm: true,
-		systemKey: true,
-		createdAt: true,
-		updatedAt: true,
-	});
-
-export const updateFormSchema = baseInsertSchema
-	.omit({
-		id: true,
-		createdBy: true,
-		createdAt: true,
-	})
-	.partial()
-	.extend({
-		updatedAt: z
-			.string()
-			.default(() => new Date().toISOString())
-			.optional(),
-	});
-
-export const selectFormSchema = baseSelectSchema;
-
-export type Form = z.infer<typeof selectFormSchema>;
-export type InsertForm = z.infer<typeof insertFormSchema>;
-export type UpdateForm = z.infer<typeof updateFormSchema>;
+export type Form = typeof forms.$inferSelect;
+export type NewForm = typeof forms.$inferInsert;
+export type FormAssignment = typeof formAssignments.$inferSelect;

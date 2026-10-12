@@ -36,6 +36,7 @@ import fs from "fs";
 import { runMigrations } from "../src/core/db/migrate.ts";
 import * as schema from "../src/core/db/schema.ts";
 import { slugify } from "../src/core/shared/slug.ts";
+import { ensureWorkflowForm, onboardingFormSeed } from "./seed-forms.ts";
 
 dotenv.config();
 
@@ -230,41 +231,11 @@ if (!homePage) {
 }
 
 // ─── Onboarding survey form ───────────────────────────────────────────────────
-// Required plumbing, not demo content: /profile/setup (theme/routes/onboarding/
-// OnboardingView.tsx) unconditionally reads `form!.schemaJson` once a user still
-// needs the survey step, with no null guard — without this system form the
-// route throws mid-render. surveys/onboard.json is a real repo file (the
-// survey's actual schema), not demo-generated content.
+// Required plumbing, not demo content: /profile/setup shows the active `core.onboarding`
+// form of the root while a user still needs the survey step.
 
-const onboardingForm = db
-	.select()
-	.from(schema.forms)
-	.all()
-	.find((f) => f.systemKey === "affilation");
-if (!onboardingForm) {
-	const onboardJson = JSON.parse(
-		fs.readFileSync("surveys/onboard.json", "utf-8"),
-	);
-	db.insert(schema.forms)
-		.values({
-			id: uuid(),
-			title: "Onboarding Survey",
-			slug: "onboarding",
-			description:
-				"Required during signup — captures how you know us and your academic background.",
-			schemaJson: onboardJson,
-			visibility: "private",
-			scopeType: "global",
-			isSystemForm: true,
-			allowResubmission: true,
-			systemKey: "affilation",
-			createdBy: adminUser!.id,
-			createdAt: now(),
-			updatedAt: now(),
-		})
-		.run();
-	console.log("  created onboarding survey form");
-}
+ensureWorkflowForm(sqlite, rootScope!.id, adminUser!.id, onboardingFormSeed());
+console.log("  onboarding survey form active at the root");
 
 // ─── QA checkout users ────────────────────────────────────────────────────────
 

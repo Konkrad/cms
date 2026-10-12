@@ -1,11 +1,16 @@
 import type { RequestHandler } from "@qwik.dev/router";
 import { requireAuth } from "~/core/auth/server-auth";
+import { FormAnswerError } from "~/core/forms/answers";
 import { formResultsService } from "~/core/forms/form-results.service";
-import { formsService } from "~/core/forms/forms.service";
+import {
+	formAssignmentsService,
+	formsService,
+} from "~/core/forms/forms.service";
+import { ONBOARDING_PURPOSE } from "~/core/forms/purposes";
+import { getRootScope } from "~/core/scopes/access";
 import { markConsentStepComplete } from "~/core/users/onboarding";
 
-const ONBOARDING_FORM_KEY = "affilation";
-
+/** Saves the user's onboarding survey: the active `core.onboarding` form of the root. */
 export const onPost: RequestHandler = async (event) => {
 	const user = await requireAuth(event);
 	const { json, error: qwikError } = event;
@@ -15,29 +20,29 @@ export const onPost: RequestHandler = async (event) => {
 		throw qwikError(400, "Invalid request payload.");
 	}
 
-	const formId = typeof body.formId === "string" ? body.formId : undefined;
-	const result = body.result ?? {};
-	const altchaPayload = body.altcha ?? null;
-
-	const form =
-		(formId && (await formsService.getById(formId))) ||
-		(await formsService.getBySystemKey(ONBOARDING_FORM_KEY));
-
+	const root = await getRootScope();
+	const form = root
+		? await formAssignmentsService.activeFor(ONBOARDING_PURPOSE, root.id)
+		: undefined;
 	if (!form) {
 		throw qwikError(500, "Onboarding form is not configured.");
 	}
 
+	let answers: Record<string, unknown>;
 	try {
-		await formResultsService.upsert({
-			formId: form.id,
-			userId: user.id,
-			resultJson: result,
-			altchaPayload,
-		});
-		await markConsentStepComplete(user.id, "survey");
-	} catch (err: any) {
-		throw qwikError(500, err?.message ?? "Database error");
+		answers = formsService.validateAnswers(form, body.result ?? {});
+	} catch (err) {
+		if (err instanceof FormAnswerError) throw qwikError(400, err.message);
+		throw err;
 	}
+
+	await formResultsService.saveOwn({
+		formId: form.id,
+		userId: user.id,
+		answers,
+		altchaPayload: typeof body.altcha === "string" ? body.altcha : null,
+	});
+	await markConsentStepComplete(user.id, "survey");
 
 	json(200, { success: true });
 };

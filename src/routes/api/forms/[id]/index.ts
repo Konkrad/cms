@@ -2,11 +2,13 @@ import type { RequestHandler } from "@qwik.dev/router";
 import { getServerSession } from "~/core/auth/server-auth";
 import { formAccessService } from "~/core/forms/form-access.service";
 import { formsService } from "~/core/forms/forms.service";
+import { isSurveyForm } from "~/core/forms/purposes";
 
 export const onGet: RequestHandler = async (event) => {
 	const { params, json } = event;
 	const form = await formsService.getById(params.id);
-	if (!form) {
+	// Workflow forms (a purpose) are filled in their workflow, not as a survey.
+	if (!form || !isSurveyForm(form)) {
 		json(404, { error: "Form not found" });
 		return;
 	}
@@ -25,7 +27,7 @@ export const onGet: RequestHandler = async (event) => {
 			id: form.id,
 			title: form.title,
 			description: form.description,
-			schemaJson: form.schemaJson,
+			schemaJson: form.schema,
 			requireAltcha: formAccessService.requiresAltcha(form),
 		},
 	});

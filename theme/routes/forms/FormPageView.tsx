@@ -38,7 +38,7 @@ export const FormPageView = component$<{ data: FormPageViewData }>(
 							</div>
 						)}
 						<SurveyRuntime
-							surveyJson={form.schemaJson as Record<string, any>}
+							surveyJson={form.schema as Record<string, any>}
 							submitUrl={`/api/forms/${form.id}/submit`}
 							requireAltcha={requireAltcha}
 							initialData={existingResult ?? undefined}

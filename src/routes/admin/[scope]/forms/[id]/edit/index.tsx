@@ -5,55 +5,78 @@ import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { TextArea } from "~/components/ui/TextArea";
+import { formQuestions } from "~/core/forms/answers";
 import { formValidationService } from "~/core/forms/form-validation.service";
 import { buildFormPath } from "~/core/forms/forms";
-import { formsService } from "~/core/forms/forms.service";
+import { FormLockedError, formsService } from "~/core/forms/forms.service";
+import { isSurveyForm } from "~/core/forms/purposes";
 import { SimpleFormBuilder } from "~/core/forms/SimpleFormBuilder";
-import { buildFormsAdminBasePath, resolveFormsAdminScope } from "../../_utils";
+import { formPurposes, isFormPurpose } from "~/core/registry/forms";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
+import {
+	buildFormsAdminBasePath,
+	getOwnForm,
+	resolveFormsAdminScope,
+} from "../../_utils";
 
 export const useForm = routeLoader$(async (event) => {
-	const scope = await resolveFormsAdminScope(event);
-	const form = await formsService.getByIdAndScope(
-		event.params.id,
-		scope.scopeType,
-		scope.scopeId,
-	);
+	const { scope } = await resolveFormsAdminScope(event);
+	const form = await getOwnForm(scope, event.params.id);
 	if (!form) {
 		throw event.redirect(302, buildFormsAdminBasePath(event.params.scope));
 	}
 
-	return {
-		form,
+	return assertNoPrivateFields({
+		form: {
+			id: form.id,
+			title: form.title,
+			slug: form.slug,
+			description: form.description,
+			purpose: form.purpose,
+			visibility: form.visibility,
+			schema: form.schema,
+		},
+		// A form with answers is locked: its questions can no longer change (spec 4.10).
+		locked: await formsService.isLocked(form.id),
+		questions: formQuestions(form.schema).map((q) => ({
+			name: q.name,
+			title: q.title,
+			type: q.type,
+			required: q.required,
+		})),
+		purposes: formPurposes(),
 		basePath: buildFormsAdminBasePath(event.params.scope),
+		publicPath: isSurveyForm(form) ? buildFormPath(form) : null,
 		simpleFields: formValidationService.extractSimpleFieldsFromSurvey(
-			form.schemaJson,
+			form.schema,
 		),
-	};
+	});
 });
 
 export const useUpdateForm = routeAction$(
 	async (data, event) => {
-		const scope = await resolveFormsAdminScope(event);
-		const existing = await formsService.getByIdAndScope(
-			event.params.id,
-			scope.scopeType,
-			scope.scopeId,
-		);
+		const { scope } = await resolveFormsAdminScope(event);
+		const existing = await getOwnForm(scope, event.params.id);
 		if (!existing) {
 			return { success: false, error: "Form not found" };
 		}
+		if (data.purpose && !isFormPurpose(data.purpose)) {
+			return { success: false, error: "Unknown purpose" };
+		}
 		try {
-			let schemaJson: Record<string, any>;
-			if (data.builderMode === "simple") {
-				const rawFields = JSON.parse(data.simpleFieldsJson || "[]");
-				const fields = formValidationService.parseSimpleFields(rawFields);
-				schemaJson = formValidationService.buildSurveyJsonFromSimpleFields(
+			// A locked form's edit page sends no questions; only its settings change.
+			let schema: Record<string, any> | undefined;
+			if (data.builderMode === "simple" && data.simpleFieldsJson) {
+				const fields = formValidationService.parseSimpleFields(
+					JSON.parse(data.simpleFieldsJson),
+				);
+				schema = formValidationService.buildSurveyJsonFromSimpleFields(
 					fields,
 					data.title,
 					data.description || undefined,
 				);
-			} else {
-				schemaJson = formValidationService.validateSurveyJson(
+			} else if (data.builderMode === "json" && data.schemaJson) {
+				schema = formValidationService.validateSurveyJson(
 					JSON.parse(data.schemaJson),
 				);
 			}
@@ -62,23 +85,20 @@ export const useUpdateForm = routeAction$(
 				title: data.title,
 				slug: data.slug,
 				description: data.description || null,
-				schemaJson,
+				purpose: data.purpose || null,
 				visibility: data.visibility,
-				isSystemForm: data.isSystemForm,
-				systemKey: data.isSystemForm ? data.systemKey || null : null,
+				...(schema ? { schema } : {}),
 			});
-
-			throw event.redirect(303, buildFormsAdminBasePath(event.params.scope));
-		} catch (error: any) {
-			if (error?.status === 303) {
-				throw error;
-			}
-
-			return {
-				success: false,
-				error: error?.message || "Failed to update form",
-			};
+		} catch (error) {
+			if (error instanceof FormLockedError)
+				return { success: false, error: error.message };
+			if (error instanceof SyntaxError || error instanceof z.ZodError)
+				return { success: false, error: "The questions are not valid" };
+			if (error instanceof Error && !("status" in error))
+				return { success: false, error: error.message };
+			throw error;
 		}
+		throw event.redirect(303, buildFormsAdminBasePath(event.params.scope));
 	},
 	zod$({
 		title: z.string().min(1, "Title is required"),
@@ -87,15 +107,11 @@ export const useUpdateForm = routeAction$(
 			.min(1, "Slug is required")
 			.regex(/^[a-z0-9_-]+$/, "Use lowercase letters, numbers, '_' and '-'."),
 		description: z.string().optional(),
+		purpose: z.string().optional(),
 		visibility: z.enum(["private", "public"]).default("private"),
-		builderMode: z.enum(["simple", "json"]).default("simple"),
+		builderMode: z.enum(["simple", "json", "locked"]).default("simple"),
 		simpleFieldsJson: z.string().optional(),
-		schemaJson: z.string().default('{"pages":[]}'),
-		isSystemForm: z
-			.string()
-			.optional()
-			.transform((v) => v === "on" || v === "true"),
-		systemKey: z.string().optional(),
+		schemaJson: z.string().optional(),
 	}),
 );
 
@@ -181,76 +197,89 @@ export default component$(() => {
 						</Select>
 
 						<Select
-							name="builderMode"
-							label="Builder Mode"
-							value={builderMode.value}
-							onChange$={(event) => {
-								builderMode.value = (event.target as HTMLSelectElement).value as
-									| "simple"
-									| "json";
-							}}
+							name="purpose"
+							label="Purpose"
+							value={
+								(action.formData?.get("purpose") as string) ??
+								loader.value.form.purpose ??
+								""
+							}
 						>
-							<option value="simple">Simple Builder</option>
-							<option value="json">Paste SurveyJS JSON</option>
+							<option value="">None (a survey)</option>
+							{loader.value.purposes.map((p) => (
+								<option key={p.purpose} value={p.purpose}>
+									{p.label}
+								</option>
+							))}
 						</Select>
 					</div>
 
-					{builderMode.value === "simple" ? (
-						<div class="forms-builder-card">
-							<p class="text-sm text-gray-600 mb-2">
-								Build fields directly. IDs are auto-generated from question
-								titles.
-							</p>
-							<SimpleFormBuilder
-								inputName="simpleFieldsJson"
-								initialValue={
-									(action.formData?.get("simpleFieldsJson") as string) ||
-									JSON.stringify(loader.value.simpleFields)
-								}
-							/>
+					{loader.value.locked ? (
+						<div data-testid="form-locked">
+							<input type="hidden" name="builderMode" value="locked" />
+							<div class="p-3 mb-4 rounded-sm bg-amber-50 border border-amber-300 text-amber-900 text-sm">
+								This form has answers, so its questions can no longer be edited.
+								Duplicate it from the forms list to change them.
+							</div>
+							<ol class="list-decimal pl-6 space-y-1 text-sm text-gray-700">
+								{loader.value.questions.map((q) => (
+									<li key={q.name}>
+										{q.title}{" "}
+										<span class="text-gray-400">
+											({q.type}
+											{q.required ? ", required" : ""})
+										</span>
+									</li>
+								))}
+							</ol>
 						</div>
 					) : (
-						<TextArea
-							name="schemaJson"
-							label="SurveyJS JSON"
-							value={
-								(action.formData?.get("schemaJson") as string) ||
-								JSON.stringify(loader.value.form.schemaJson, null, 2)
-							}
-							rows={14}
-						/>
+						<>
+							<Select
+								name="builderMode"
+								label="Builder Mode"
+								value={builderMode.value}
+								onChange$={(event) => {
+									builderMode.value = (event.target as HTMLSelectElement)
+										.value as "simple" | "json";
+								}}
+							>
+								<option value="simple">Simple Builder</option>
+								<option value="json">Paste SurveyJS JSON</option>
+							</Select>
+							{builderMode.value === "simple" ? (
+								<div class="forms-builder-card">
+									<p class="text-sm text-gray-600 mb-2">
+										Build fields directly. IDs are auto-generated from question
+										titles.
+									</p>
+									<SimpleFormBuilder
+										inputName="simpleFieldsJson"
+										initialValue={
+											(action.formData?.get("simpleFieldsJson") as string) ||
+											JSON.stringify(loader.value.simpleFields)
+										}
+									/>
+								</div>
+							) : (
+								<TextArea
+									name="schemaJson"
+									label="SurveyJS JSON"
+									value={
+										(action.formData?.get("schemaJson") as string) ||
+										JSON.stringify(loader.value.form.schema, null, 2)
+									}
+									rows={14}
+								/>
+							)}
+						</>
 					)}
 
-					<div class="forms-inline-checkbox">
-						<input
-							id="isSystemForm"
-							type="checkbox"
-							name="isSystemForm"
-							checked={
-								action.formData?.get("isSystemForm") === "on" ||
-								(action.formData?.get("isSystemForm") === null &&
-									loader.value.form.isSystemForm)
-							}
-						/>
-						<label for="isSystemForm" class="forms-field-label mb-0">
-							Mark as system form
-						</label>
-					</div>
-
-					<Input
-						name="systemKey"
-						label="System Key (only for system forms)"
-						value={
-							(action.formData?.get("systemKey") as string) ||
-							loader.value.form.systemKey ||
-							""
-						}
-						placeholder="onboarding"
-					/>
-
-					<p class="text-sm text-gray-500">
-						Public URL: {buildFormPath(loader.value.form)}
-					</p>
+					{loader.value.publicPath && (
+						<p class="text-sm text-gray-500">
+							Public URL: {loader.value.publicPath}
+						</p>
+					)}
 
 					<div class="flex gap-4">
 						<Button type="submit" disabled={action.isRunning}>

@@ -1,9 +1,12 @@
-import type { Form } from "~/core/db/schema";
+import type { Form } from "~/core/forms/schema/forms";
 
 type UserLike = { id: string } | null;
 
 export const formAccessService = {
-	ensureViewAccess(form: Form, user: UserLike): { allowed: true } {
+	ensureViewAccess(
+		form: Pick<Form, "visibility">,
+		user: UserLike,
+	): { allowed: true } {
 		if (form.visibility === "private" && !user) {
 			throw new Error("Authentication required to access this form.");
 		}
@@ -11,7 +14,7 @@ export const formAccessService = {
 		return { allowed: true };
 	},
 
-	requiresAltcha(form: Form): boolean {
+	requiresAltcha(form: Pick<Form, "visibility">): boolean {
 		return form.visibility === "public";
 	},
 };

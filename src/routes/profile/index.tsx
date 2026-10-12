@@ -3,6 +3,7 @@ import { routeLoader$ } from "@qwik.dev/router";
 import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
 import { formResultsService } from "~/core/forms/form-results.service";
 import { buildFormPath } from "~/core/forms/forms";
+import { ONBOARDING_PURPOSE } from "~/core/forms/purposes";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
 import { listNotificationSettings } from "~/core/notifications/preferences";
 import { scopeUrl } from "~/core/router/scope-path";
@@ -82,15 +83,15 @@ export const useProfile = routeLoader$(async (event) => {
 			sex: user.sex ?? null,
 			affiliationEntries: (() => {
 				const onboarding = submittedForms.find(
-					(s) => s.formSlug === "onboarding",
+					(s) => s.formPurpose === ONBOARDING_PURPOSE,
 				);
 				return onboarding
-					? formatAffiliationResultJson(onboarding.resultJson || {})
+					? formatAffiliationResultJson(onboarding.answers || {})
 					: [];
 			})(),
 			affiliationEditPath: (() => {
 				const onboarding = submittedForms.find(
-					(s) => s.formSlug === "onboarding",
+					(s) => s.formPurpose === ONBOARDING_PURPOSE,
 				);
 				return onboarding
 					? buildFormPath({ id: onboarding.formId, slug: onboarding.formSlug })
@@ -100,11 +101,11 @@ export const useProfile = routeLoader$(async (event) => {
 			// formatted, as the "Relations / Affiliation" section above (see
 			// affiliationEntries) — don't also list it as a raw generic submission.
 			submittedForms: submittedForms
-				.filter((s) => s.formSlug !== "onboarding")
+				.filter((s) => s.formPurpose !== ONBOARDING_PURPOSE)
 				.map((s) => ({
 					id: s.id,
 					title: s.formTitle,
-					submittedAt: s.submittedAt,
+					submittedAt: s.createdAt,
 					path: buildFormPath({ id: s.formId, slug: s.formSlug }),
 				})),
 		},

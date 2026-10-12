@@ -51,7 +51,7 @@ function formatAnswer(value: unknown): string {
 
 export function buildResponseColumns(
 	schemaJson: Record<string, any>,
-	responses: Array<{ resultJson: Record<string, any> }>,
+	responses: Array<{ answers: Record<string, any> }>,
 ): QuestionDefinition[] {
 	const schemaQuestions = extractQuestionsFromSurvey(schemaJson);
 	const knownKeys = new Set(schemaQuestions.map((question) => question.key));
@@ -59,7 +59,7 @@ export function buildResponseColumns(
 
 	// Keep schema order first, then append unknown keys found in stored submissions.
 	for (const response of responses) {
-		const entries = Object.entries(response.resultJson || {});
+		const entries = Object.entries(response.answers || {});
 		for (const [key] of entries) {
 			if (!knownKeys.has(key)) {
 				knownKeys.add(key);
@@ -72,8 +72,8 @@ export function buildResponseColumns(
 }
 
 export function getAnswerValue(
-	resultJson: Record<string, any>,
+	answers: Record<string, any>,
 	key: string,
 ): string {
-	return formatAnswer(resultJson?.[key]);
+	return formatAnswer(answers?.[key]);
 }

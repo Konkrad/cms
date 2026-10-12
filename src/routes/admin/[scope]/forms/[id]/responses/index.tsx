@@ -4,28 +4,24 @@ import { format } from "date-fns";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { formResultsService } from "~/core/forms/form-results.service";
-import { formsService } from "~/core/forms/forms.service";
-import { buildFormsAdminBasePath, resolveFormsAdminScope } from "../../_utils";
+import {
+	buildFormsAdminBasePath,
+	getOwnForm,
+	resolveFormsAdminScope,
+} from "../../_utils";
 import { buildResponseColumns, getAnswerValue } from "./_response-pivot";
 
 export const useResponses = routeLoader$(async (event) => {
-	const scope = await resolveFormsAdminScope(event);
+	const { scope } = await resolveFormsAdminScope(event);
 	const basePath = buildFormsAdminBasePath(event.params.scope);
 
-	const form = await formsService.getByIdAndScope(
-		event.params.id,
-		scope.scopeType,
-		scope.scopeId,
-	);
+	const form = await getOwnForm(scope, event.params.id);
 	if (!form) {
 		throw event.redirect(302, basePath);
 	}
 
 	const responses = await formResultsService.getByForm(form.id);
-	const questionColumns = buildResponseColumns(
-		form.schemaJson as Record<string, any>,
-		responses as any,
-	);
+	const questionColumns = buildResponseColumns(form.schema, responses as any);
 
 	return {
 		form,
@@ -90,7 +86,7 @@ export default component$(() => {
 									<tr key={response.id}>
 										<td class="px-6 py-4 text-sm text-gray-700">
 											{format(
-												new Date(response.submittedAt),
+												new Date(response.createdAt),
 												"MMM d, yyyy HH:mm",
 											)}
 										</td>
@@ -100,7 +96,7 @@ export default component$(() => {
 												class="px-6 py-4 text-sm text-gray-700 align-top"
 											>
 												{getAnswerValue(
-													response.resultJson as Record<string, any>,
+													response.answers as Record<string, any>,
 													column.key,
 												) || "-"}
 											</td>

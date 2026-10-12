@@ -106,6 +106,11 @@ Helpers named `create*InDb` / `create*` that return `cleanup()` should be cleane
 | `getOutboxRows({ notificationId?, recipientUserId?, channel? })` / `getOutboxRowById(id)` | Read `notification_outbox` rows |
 | `createOutboxRowInDb(opts)` | Outbox row (e.g. a `failed` one for the admin view); returns `{ id, cleanup }` |
 | `getNotificationPreference(userId, notificationId, channel)` | Stored preference (`null` = never toggled, i.e. enabled) |
+| `createScopeEventInDb({ …, status })` / `getEventStatus(id)` | Event in a review state (`draft`, `in_review`, `published`) / its state |
+| `getLatestReview(ref)` | Newest `reviews` row of an item (`{ id, status, comment }`) |
+| `createFormInDb({ title, scopeId?, purpose?, schema? })` / `createFormResultInDb(formId, answers?)` | Form (a survey unless `purpose`) / a result (locks the form) |
+| `getFormsByTitle(title)` / `deleteFormsByTitle(title)` / `getFormResultsBySubject(ref)` | Find / delete forms; answers stored by an item ref |
+| `setEventDebriefRequested(eventId, daysAgo?)` | Mark an event's debrief as requested (what the daily schedule does) |
 | `createRedirectInDb(from, to)` / `getRedirectTarget(from)` / `deleteRedirectsLike(prefix)` | `redirects` rows (old public path → new path) |
 
 `SHARED_E2E_EMAIL` is the shared login used by the auth setup project.
@@ -130,5 +135,6 @@ Projects: `setup` (shared session), `auth-flows` (`auth.spec.ts`, `profile-setup
 
 - e2e needs the Docker services from `docker-compose.yml`: Mailpit (email, `:8025`), MinIO (S3), stripe-mock. Start them with `docker compose up -d` before running; without them login, upload and checkout tests fail for environmental reasons.
 - In sandboxed environments without Docker or outbound network, Stripe.js (loaded from the Stripe CDN) and S3 uploads can fail; those failures (checkout/payment-element, image upload specs) are environmental, not regressions. Run the unaffected specs and say which were skipped.
+- The scheduler (`schedules`, review handlers) ticks every 500 ms in e2e (`SCHEDULER_POLL_INTERVAL_MS`); poll for the effect of a review decision (`expect.poll(() => getEventStatus(id))`). Unit tests call `runDueSchedules` / `processHandlerCallsOnce(resolveHandlerCall)`.
 - Emails and Telegram alerts (except the login email) are queued in `notification_outbox` and sent by the worker inside the e2e dev server (`NOTIFICATIONS_POLL_INTERVAL_MS=500` in `playwright.config.ts`), so poll Mailpit / the outbox (`getOutboxRows`) instead of expecting them right after an action. Unit tests never start the worker; call `processOutboxOnce()`.
 - Stale servers: never point e2e at an ambient dev server or the dev DB; use `E2E_PORT`/`DB_PATH` isolation. A leftover `my-database.test.db-shm/-wal` from a crashed run can be deleted along with the DB.

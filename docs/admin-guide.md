@@ -11,10 +11,12 @@ platform, regardless of the public site's branding, so this guide applies
 no matter which community or organization you're managing.
 
 ![Admin dashboard nav](./images/admin-event-create.png)
-*The admin menu of the whole site: Dashboard, Users, Notes, Articles, Events,
-Forms, Pages, Groups, Deals, Jobs, Elections, Qualifications. A chapter's admin
-shows Dashboard, Members, Notes, Articles, Events, Forms, Pages, Deals, Jobs,
-Elections and Group settings, limited to that chapter and the groups below it.*
+*The admin menu of the whole site: Dashboard, Users, Reviews, Notes, Articles,
+Events, Forms, Pages, Groups, Deals, Jobs, Elections, Qualifications and
+Notifications (failed messages, scheduled jobs and handlers). A chapter's admin
+shows Dashboard, Members, Reviews, Notes, Articles, Events, Forms, Pages, Deals,
+Jobs, Elections and Group settings, limited to that chapter and the groups below
+it.*
 
 ## Content
 
@@ -49,12 +51,24 @@ Elections and Group settings, limited to that chapter and the groups below it.*
   listing as `root/germany/berlin:events`.
 - **Visibility** — notes, articles and events are *Public* (everyone; also listed on
   every group above), *Members* (members of the group and the groups below
-  it) or *Representatives*. A group's pages list its own items, those of the
+  it) or *Representatives*. A representative's new public content is published
+  after review (see Reviews below). A group's pages list its own items, those of the
   groups above it (labelled with their source) and the public items of the
   groups below it.
 - **Deals** — member discounts and perks listings.
 - **Jobs** — the job board. Members can submit listings from the public
   site; they show up here as pending until an admin approves them.
+
+## Reviews
+
+The **Reviews** section of a group lists what waits for your decision: public
+notes, articles and event proposals from the groups below that you may decide
+(as a coordinator, an admin above them or a platform admin), with the proposal
+answers. *Approve* publishes the item (an approved event also gets its
+announcement note); *Reject* needs a comment, which the author sees. Below the
+queue, **Your submissions** shows what you submitted, its state and the
+reviewer's comment. Coordinators see only this section. See
+[Roles & Permissions](./roles-and-permissions.md#reviews) for who reviews what.
 
 ## People
 
@@ -76,6 +90,14 @@ Flow](./event-ticketing-flow.md) for a detailed, illustrated walkthrough.
 Once an event exists, its management page has tabs for:
 
 - **Details / Edit** — title, description, date & time, location, visibility
+- **Review** — the event's state (draft, in review, published) and the
+  reviewer's comment. A representative's new public event starts as a draft:
+  fill in the proposal (the active *Event proposal* form) and submit it for
+  review; "Post an announcement note" (on by default) adds a note about the event
+  once it is approved. After the event, the organiser is asked by email (once,
+  and reminded a week later) to fill in the *Event debrief* here; the reviewer is
+  told when it is in. The proposal and debrief answers are shown here only.
+  The events list shows overdue debriefs (asked a week ago or more).
 - **Products** — ticket types and how many are available (see the
   ticketing doc for how this works)
 - **Participation** — who's RSVP'd (separate from paid ticket sales)
@@ -91,11 +113,22 @@ Once an event exists, its management page has tabs for:
 
 ## Forms
 
-A generic form builder for anything that collects structured answers from
-a member — onboarding surveys, event feedback, and so on. Each form's
-responses can be viewed and exported. The built-in onboarding form is a
-form like any other; its answers also show up, nicely formatted, on a
-member's own profile.
+A form builder for anything that collects structured answers: surveys (a page
+of their own and the survey page block), the onboarding survey, event
+proposals and debriefs. Every group has its own forms; responses can be viewed
+and exported.
+
+- **Purpose** — a form used by a workflow has a purpose (*Onboarding survey*,
+  *Event proposal*, *Event debrief*, …). Under **Active forms**, each group
+  picks the form a workflow uses for it and the groups below; a group that
+  picks none uses the one of the nearest group above. A group can pick its own
+  forms or those of the groups above it.
+- **Locked forms** — once a form has an answer its questions can no longer be
+  changed (its title and settings can), so stored answers always match their
+  questions. To change the questions, **Duplicate** the form, edit the copy and
+  make it the active one.
+- Answers are checked on the server against the questions; text answers are
+  stored and shown as plain text.
 
 ## Qualifications
 

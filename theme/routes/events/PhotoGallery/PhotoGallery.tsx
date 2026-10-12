@@ -1,6 +1,7 @@
 import { $, component$, type Signal, useSignal } from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
 import { EmptyState } from "~/components/ui/EmptyState";
+import { formatDate } from "~/contracts/i18n";
 
 interface PhotoData {
 	id: string;
@@ -97,7 +98,7 @@ export const PhotoGallery = component$<PhotoGalleryProps>(
 									)}
 									<div class="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/60 to-transparent p-2">
 										<p class="text-xs text-white">
-											{new Date(photo.uploadedAt).toLocaleDateString()}
+											{formatDate(photo.uploadedAt)}
 										</p>
 									</div>
 								</div>

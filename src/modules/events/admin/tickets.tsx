@@ -1,5 +1,6 @@
 import { component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
+import { formatDate } from "~/core/ui";
 import TicketScanner from "../components/AdminTicketScanner";
 import TicketsList from "../components/TicketsList";
 import { ticketsService } from "../services/tickets";
@@ -56,7 +57,7 @@ export const useScanTicketByQr = routeAction$(
 				error: "This ticket was already scanned",
 				alreadyScanned: true,
 				scannedAt: ticket.scannedAt,
-				details: `Scanned at: ${new Date(ticket.scannedAt).toLocaleString()}`,
+				details: `Scanned at: ${formatDate(ticket.scannedAt, "dateTime")}`,
 			};
 		}
 
@@ -79,7 +80,7 @@ export const useScanTicketByQr = routeAction$(
 					error: "This ticket was already scanned (race condition)",
 					alreadyScanned: true,
 					scannedAt: latest.scannedAt,
-					details: `Scanned at: ${new Date(latest.scannedAt).toLocaleString()}`,
+					details: `Scanned at: ${formatDate(latest.scannedAt, "dateTime")}`,
 				};
 			}
 

@@ -7,6 +7,7 @@ import {
 	z,
 	zod$,
 } from "@qwik.dev/router";
+import { formatDate } from "~/core/i18n";
 import { adminUrl } from "~/core/router/scope-path";
 import {
 	ADMIN_ACCESS,
@@ -257,7 +258,7 @@ export default component$(() => {
 									{m.name}
 								</a>
 								<span class="flex items-center gap-4 text-gray-500">
-									{new Date(m.joinedAt).toLocaleDateString()}
+									{formatDate(m.joinedAt)}
 									{!data.value.includeBelow && (
 										<Form action={removeMember}>
 											<input type="hidden" name="userId" value={m.id} />

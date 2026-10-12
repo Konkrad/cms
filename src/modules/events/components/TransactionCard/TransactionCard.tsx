@@ -1,4 +1,5 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
+import { formatCurrency, formatDate } from "~/core/ui";
 import type { products, transactionItems } from "../../schema";
 import type { Transaction } from "../../schema/transactions";
 
@@ -18,25 +19,10 @@ interface TransactionCardProps {
 export default component$<TransactionCardProps>(({ transaction }) => {
 	const isExpanded = useSignal(false);
 
-	const formatDate = (dateString: string | null) => {
-		if (!dateString) return "-";
-		const date = new Date(dateString);
-		return date.toLocaleString("en-US", {
-			year: "numeric",
-			month: "short",
-			day: "numeric",
-			hour: "2-digit",
-			minute: "2-digit",
-		});
-	};
+	const formatDateTime = (dateString: string | null) =>
+		dateString ? formatDate(dateString, "dateTime") : "-";
 
-	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat("en-GB", {
-			style: "currency",
-			currency: "EUR",
-			minimumFractionDigits: 2,
-		}).format(amount);
-	};
+	const formatEuro = (amount: number) => formatCurrency(amount, "EUR");
 
 	const toggleExpanded = $(() => {
 		isExpanded.value = !isExpanded.value;
@@ -56,7 +42,7 @@ export default component$<TransactionCardProps>(({ transaction }) => {
 							</span>
 						</div>
 						<p class="text-sm text-gray-600">
-							{formatDate(transaction.paymentDate)}
+							{formatDateTime(transaction.paymentDate)}
 						</p>
 						<p class="text-xs text-gray-500 mt-1">
 							{transaction.items.length} item(s)
@@ -64,16 +50,14 @@ export default component$<TransactionCardProps>(({ transaction }) => {
 					</div>
 					<div class="text-right">
 						<p class="text-lg font-semibold text-gray-900">
-							{formatCurrency(transaction.totalAmount)}
+							{formatEuro(transaction.totalAmount)}
 						</p>
 						<p class="text-xs text-gray-500">
-							Fee: {formatCurrency(transaction.transactionFee)}
+							Fee: {formatEuro(transaction.transactionFee)}
 						</p>
 						<p class="text-xs text-gray-600 mt-1">
 							Net:{" "}
-							{formatCurrency(
-								transaction.totalAmount - transaction.transactionFee,
-							)}
+							{formatEuro(transaction.totalAmount - transaction.transactionFee)}
 						</p>
 					</div>
 				</div>
@@ -93,11 +77,9 @@ export default component$<TransactionCardProps>(({ transaction }) => {
 									<p class="text-gray-600">Quantity: {item.quantity}</p>
 								</div>
 								<div class="text-right">
-									<p class="text-gray-900">
-										{formatCurrency(item.unitPrice)} each
-									</p>
+									<p class="text-gray-900">{formatEuro(item.unitPrice)} each</p>
 									<p class="font-medium text-gray-700">
-										{formatCurrency(item.unitPrice * item.quantity)} total
+										{formatEuro(item.unitPrice * item.quantity)} total
 									</p>
 								</div>
 							</div>

@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
-import { format } from "date-fns";
+import { formatDate } from "~/contracts/i18n";
 import type { JobDetailData } from "~/contracts/jobs";
 
 function locationLabel(job: {
@@ -64,9 +64,7 @@ export const JobDetailView = component$<{ data: JobDetailData }>(({ data }) => {
 					</div>
 					<div class="flex gap-2">
 						<dt class="text-text-muted w-24 shrink-0">Listed until</dt>
-						<dd class="text-text-heading">
-							{format(new Date(job.expiresAt), "MMM d, yyyy")}
-						</dd>
+						<dd class="text-text-heading">{formatDate(job.expiresAt)}</dd>
 					</div>
 				</dl>
 

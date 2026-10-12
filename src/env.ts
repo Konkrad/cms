@@ -15,6 +15,7 @@
 
 import dotenv from "dotenv";
 import { z } from "zod";
+import { siteLocaleSchema } from "./core/i18n/locales";
 
 // Only load .env files outside production so host-provided envvars (e.g. in production) are not overwritten.
 if (process.env.NODE_ENV !== "production") {
@@ -35,6 +36,10 @@ const envSchema = z.object({
 	PORT: z.coerce.number().int().positive().default(3000),
 	APP_URL: z.string().url().default("http://localhost:5173"),
 	APP_NAME: z.string().default("Community Management System"),
+	// UI language of the whole site (spec 4.8): "en" or "de". Applied at build time (the
+	// catalog is merged into the bundle by the cms:i18n Vite plugin); missing keys fall back
+	// to English. The production server refuses to start with another value than its build's.
+	SITE_LOCALE: siteLocaleSchema,
 
 	// database
 	DB_PATH: z.string().default("my-database.db"),
@@ -193,6 +198,7 @@ export const env = {
 	PORT: _env.PORT,
 	APP_NAME: _env.APP_NAME,
 	APP_URL: _env.APP_URL,
+	SITE_LOCALE: _env.SITE_LOCALE,
 	DB_PATH: _env.DB_PATH,
 	MAGIC_LINK_SECRET: _env.MAGIC_LINK_SECRET,
 	SMTP_HOST: _env.SMTP_HOST,

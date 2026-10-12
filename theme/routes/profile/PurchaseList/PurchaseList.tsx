@@ -1,5 +1,6 @@
 import { $, component$, useStore } from "@qwik.dev/core";
 import { SectionCard } from "~/components/ui/SectionCard";
+import { formatCurrency, formatDate } from "~/contracts/i18n";
 import type {
 	TicketWithRelations,
 	TransactionWithTickets,
@@ -25,22 +26,6 @@ function buildInitialSlots(ticket: TicketWithRelations): ParticipantFormSlot[] {
 			? { name: p.name, email: "", participantId: p.id }
 			: { name: "", email: "" };
 	});
-}
-
-function formatDate(dateString: string) {
-	return new Date(dateString).toLocaleDateString("en-US", {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-	});
-}
-
-function formatCurrency(amount: number) {
-	return new Intl.NumberFormat("en-GB", {
-		style: "currency",
-		currency: "EUR",
-		minimumFractionDigits: 2,
-	}).format(amount);
 }
 
 export default component$<PurchaseListProps>(
@@ -240,7 +225,10 @@ export default component$<PurchaseListProps>(
 														{item.quantity}× {item.product.name}
 													</span>
 													<span class="tabular-nums">
-														{formatCurrency(item.unitPrice * item.quantity)}
+														{formatCurrency(
+															item.unitPrice * item.quantity,
+															"EUR",
+														)}
 													</span>
 												</div>
 											))}
@@ -250,11 +238,11 @@ export default component$<PurchaseListProps>(
 										<div class="mt-2 pt-2 border-t border-border flex items-center justify-between text-xs">
 											<span class="text-text-muted">
 												{tx.transactionFee > 0
-													? `incl. ${formatCurrency(tx.transactionFee)} fee`
+													? `incl. ${formatCurrency(tx.transactionFee, "EUR")} fee`
 													: "Free"}
 											</span>
 											<span class="font-semibold text-text-heading tabular-nums">
-												{formatCurrency(tx.totalAmount)}
+												{formatCurrency(tx.totalAmount, "EUR")}
 											</span>
 										</div>
 									</div>

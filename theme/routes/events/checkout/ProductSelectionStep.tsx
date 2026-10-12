@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
+import { formatDate } from "~/contracts/i18n";
 import { publicImageUrlFromKey } from "~/core/media/images";
 import type { ParticipantAssignmentUnit } from "./types";
 
@@ -78,9 +79,9 @@ export const ProductSelectionStep = component$<ProductSelectionStepProps>(
 								>
 									{group.salesStartDate &&
 									new Date(group.salesStartDate) > new Date()
-										? `Opens ${new Date(group.salesStartDate).toLocaleString()}`
+										? `Opens ${formatDate(group.salesStartDate, "dateTime")}`
 										: group.salesEndDate
-											? `Closed ${new Date(group.salesEndDate).toLocaleString()}`
+											? `Closed ${formatDate(group.salesEndDate, "dateTime")}`
 											: "Sales are not available for this group"}
 								</p>
 							</div>

@@ -1,7 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, Link } from "@qwik.dev/router";
-import { format } from "date-fns";
 import { Button } from "~/components/ui/Button";
+import { formatDate } from "~/contracts/i18n";
 import type { DeleteMyJobAction, MyJobsData } from "~/contracts/jobs";
 
 function locationLabel(job: {
@@ -82,7 +82,7 @@ export const MyJobsView = component$<{
 												}
 											>
 												{isExpired ? "Expired · " : ""}
-												{format(new Date(job.expiresAt), "MMM d, yyyy")}
+												{formatDate(job.expiresAt)}
 											</span>
 										</td>
 										<td class="px-6 py-4 whitespace-nowrap">

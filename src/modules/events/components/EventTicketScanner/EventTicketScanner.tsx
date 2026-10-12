@@ -6,7 +6,7 @@ import {
 	useVisibleTask$,
 } from "@qwik.dev/core";
 import { Html5Qrcode } from "html5-qrcode";
-import { Alert, Button, Card } from "~/core/ui";
+import { Alert, Button, Card, formatDate } from "~/core/ui";
 
 type ScanResult = {
 	success: boolean;
@@ -197,7 +197,7 @@ export const TicketScanner = component$<TicketScannerProps>(
 										{scanResult.value.scannedAt && (
 											<p class="mt-1 text-xs text-green-700">
 												Scanned at:{" "}
-												{new Date(scanResult.value.scannedAt).toLocaleString()}
+												{formatDate(scanResult.value.scannedAt, "dateTime")}
 											</p>
 										)}
 										{scanResult.value.participants &&

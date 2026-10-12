@@ -7,7 +7,6 @@ import {
 	z,
 	zod$,
 } from "@qwik.dev/router";
-import { format } from "date-fns";
 import type { ContentFormResult } from "~/core/admin/ContentForms/form-result";
 import { NoteForm } from "~/core/admin/ContentForms/NoteForm";
 import { PAGE_SIZE, Pagination } from "~/core/admin/Pagination/Pagination";
@@ -15,6 +14,7 @@ import { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 import { noteFormSchema } from "~/core/content/content-form";
 import { ContentInputError } from "~/core/content/content-items";
 import { notesService } from "~/core/content/notes.service";
+import { formatDate } from "~/core/i18n";
 import { ReviewStatusBadge } from "~/core/reviews/ReviewStatusBadge";
 import { withReviewStatus } from "~/core/reviews/reviews";
 import { adminUrl } from "~/core/router/scope-path";
@@ -147,7 +147,7 @@ export default component$(() => {
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
 									{note.publishedAt ? (
-										format(new Date(note.publishedAt), "MMM d, yyyy")
+										formatDate(note.publishedAt)
 									) : (
 										<ReviewStatusBadge review={note.review} />
 									)}

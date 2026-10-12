@@ -7,39 +7,13 @@ import { ImageTile } from "~theme/blocks/FeatureBlock/ImageTile";
 import { LocalRepTile } from "~theme/blocks/FeatureBlock/LocalRepTile";
 import { ParticipantsTile } from "~theme/blocks/FeatureBlock/ParticipantsTile";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
+import { formatEventWhen } from "~theme/shared/format-event-when";
 import { ParticipantsModal } from "~theme/shared/ParticipantsModal";
 import { StreamList } from "~theme/shared/StreamList/StreamList";
 
 const GRID_LAYOUT = `"left-top middle right-top" "left-bottom middle right-top" "left-bottom middle right-bottom"`;
 const FALLBACK =
 	"https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800";
-
-function formatEventDate(startDate: string, endDate?: string): string {
-	const start = new Date(startDate);
-	const day = new Intl.DateTimeFormat("en-US", { day: "numeric" }).format(
-		start,
-	);
-	const month = new Intl.DateTimeFormat("en-US", { month: "long" }).format(
-		start,
-	);
-	const startTime = new Intl.DateTimeFormat("en-US", {
-		hour: "numeric",
-		minute: "2-digit",
-		hour12: true,
-	}).format(start);
-
-	if (!endDate) {
-		return `${day} ${month} · ${startTime}`;
-	}
-
-	const endTime = new Intl.DateTimeFormat("en-US", {
-		hour: "numeric",
-		minute: "2-digit",
-		hour12: true,
-	}).format(new Date(endDate));
-
-	return `${day} ${month} · ${startTime} - ${endTime}`;
-}
 
 /** Themed view for a scope's public home page (`/germany/berlin`): a group, region or chapter. */
 export const ScopeView = component$<{
@@ -219,7 +193,7 @@ export const ScopeView = component$<{
 									category={e.source ?? undefined}
 									title={e.title}
 									image={e.image1 ?? undefined}
-									date={formatEventDate(e.startDate, e.endDate)}
+									date={formatEventWhen(e.startDate, e.endDate)}
 									meta={location}
 									href={e.url}
 									label="Open Tickets"

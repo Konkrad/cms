@@ -52,6 +52,19 @@ export {
 	publicUserThumbnailUrl,
 	toPublicUser,
 } from "~/core/users/public-user";
+// UI strings and locale formatting (spec 4.8): t("<module>.<key>") with the site locale.
+export {
+	type DateFormat,
+	formatCurrency,
+	formatDate,
+	formatMoney,
+	formatNumber,
+	intlLocale,
+	type MessageKey,
+	siteLocale,
+	type TranslateParams,
+	t,
+} from "~/core/i18n";
 export { requireActiveModule } from "~/core/registry/manifests";
 export { currentScope, currentScopeRest } from "~/core/router/scope-request";
 export { adminUrl, scopeUrl } from "~/core/router/scope-path";

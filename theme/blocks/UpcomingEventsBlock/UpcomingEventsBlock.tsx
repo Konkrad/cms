@@ -2,6 +2,7 @@ import { component$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/contracts/blocks";
 import { useUpcomingEvents } from "~/modules/events/useUpcomingEvents";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
+import { formatEventWhen } from "~theme/shared/format-event-when";
 
 export const definition: BlockDefinition = {
 	name: "Upcoming Events",
@@ -11,31 +12,6 @@ export const definition: BlockDefinition = {
 	configSchema: [],
 	defaultData: {},
 };
-
-function formatEventDate(startDate: string, endDate?: string): string {
-	const start = new Date(startDate);
-	const day = new Intl.DateTimeFormat("en-US", { day: "numeric" }).format(
-		start,
-	);
-	const month = new Intl.DateTimeFormat("en-US", { month: "long" }).format(
-		start,
-	);
-	const startTime = new Intl.DateTimeFormat("en-US", {
-		hour: "numeric",
-		minute: "2-digit",
-		hour12: true,
-	}).format(start);
-
-	if (!endDate) return `${day} ${month} · ${startTime}`;
-
-	const endTime = new Intl.DateTimeFormat("en-US", {
-		hour: "numeric",
-		minute: "2-digit",
-		hour12: true,
-	}).format(new Date(endDate));
-
-	return `${day} ${month} · ${startTime} - ${endTime}`;
-}
 
 export default component$(() => {
 	const { events, nextCursor, isLoading, isLoadingMore, error, loadMore } =
@@ -66,7 +42,7 @@ export default component$(() => {
 									key={event.id}
 									title={event.title}
 									image={event.image1}
-									date={formatEventDate(event.startDate, event.endDate)}
+									date={formatEventWhen(event.startDate, event.endDate)}
 									meta={location}
 									description={event.body
 										?.replace(/<[^>]+>/g, "")

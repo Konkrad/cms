@@ -1,7 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { FormAnswerError, forms, notify, ReviewError, reviews } from "~/core";
-import { Button, FormRenderer } from "~/core/ui";
+import { Button, FormRenderer, formatDate } from "~/core/ui";
 import { DEBRIEF_PURPOSE } from "../debrief";
 import { eventsService } from "../services/events";
 import { requireAdminEvent } from "./event-guards";
@@ -228,7 +228,7 @@ export const AdminEventReview = component$<Props>(({ data }) => {
 								<p class="font-medium">{r.formTitle}</p>
 								<p class="text-xs text-gray-500 mb-2">
 									{r.authorName ?? "Unknown"} ·{" "}
-									{new Date(r.createdAt).toLocaleString("en-GB")}
+									{formatDate(r.createdAt, "dateTime")}
 								</p>
 								<dl class="grid gap-2 text-sm">
 									{r.rows.map((row) => (

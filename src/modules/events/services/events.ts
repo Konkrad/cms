@@ -4,6 +4,7 @@ import {
 	createCursorFromItem,
 	db,
 	decodeCursor,
+	formatDate,
 	getNextCursorFromRows,
 	isMember,
 	type PublicUser,
@@ -372,7 +373,7 @@ export const eventsService = {
 		if (earliestStart) {
 			return {
 				valid: false,
-				reason: `Sales open on ${earliestStart.toLocaleDateString()} at ${earliestStart.toLocaleTimeString()}`,
+				reason: `Sales open on ${formatDate(earliestStart)} at ${formatDate(earliestStart, "time")}`,
 			};
 		}
 

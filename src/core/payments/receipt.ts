@@ -1,7 +1,7 @@
 import { createElement } from "react";
+import { formatDate, formatMoney } from "~/core/i18n";
 import { defineNotification } from "~/core/notifications/define";
 import { notify } from "~/core/notifications/notify";
-import { formatMoney } from "~/core/payments/money";
 import type { PaymentInfo } from "~/core/payments/payments";
 import { paymentsService } from "~/core/payments/payments.service";
 import PaymentReceiptEmail from "~theme/emails/PaymentReceipt";
@@ -29,13 +29,7 @@ export const paymentReceiptNotification = defineNotification<{
 				react: createElement(PaymentReceiptEmail, {
 					baseUrl: ctx.appUrl,
 					recipientName: ctx.recipient.name ?? "there",
-					date: new Date(
-						payment.paidAt ?? payment.updatedAt,
-					).toLocaleDateString("en-GB", {
-						day: "numeric",
-						month: "short",
-						year: "numeric",
-					}),
+					date: formatDate(payment.paidAt ?? payment.updatedAt),
 					reference: payment.id,
 					lines: payment.lines.map((line) => ({
 						label: line.label,

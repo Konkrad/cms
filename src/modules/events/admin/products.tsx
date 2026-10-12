@@ -1,6 +1,6 @@
 import { $, component$, useSignal, useTask$ } from "@qwik.dev/core";
 import { Form, routeAction$, z, zod$ } from "@qwik.dev/router";
-import { Button, Input } from "~/core/ui";
+import { Button, formatDate, Input } from "~/core/ui";
 import { InventoryGroupForm } from "../components/InventoryGroupForm";
 import { ProductForm } from "../components/ProductForm";
 import { inventoryGroupsService } from "../services/inventory-groups";
@@ -260,10 +260,10 @@ export const AdminEventProducts = component$<Props>(({ data }) => {
 									<p class="text-sm text-gray-600 mt-1">
 										Sales:{" "}
 										{group.salesStartDate
-											? new Date(group.salesStartDate).toLocaleString()
+											? formatDate(group.salesStartDate, "dateTime")
 											: "—"}
 										{group.salesEndDate
-											? ` - ${new Date(group.salesEndDate).toLocaleString()}`
+											? ` - ${formatDate(group.salesEndDate, "dateTime")}`
 											: ""}
 									</p>
 								)}

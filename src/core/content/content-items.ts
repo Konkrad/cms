@@ -66,14 +66,6 @@ export function isArticleImageKey(key: string): boolean {
 	);
 }
 
-export function formatContentDate(date: string): string {
-	return new Intl.DateTimeFormat("en-US", {
-		day: "numeric",
-		month: "long",
-		year: "numeric",
-	}).format(new Date(date));
-}
-
 export function toPlainText(html: string): string {
 	return html
 		.replace(/<[^>]+>/g, " ")

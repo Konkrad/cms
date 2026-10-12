@@ -1,4 +1,5 @@
 import { component$ } from "@qwik.dev/core";
+import { formatCurrency } from "~/core/ui";
 import TransactionsList from "../components/TransactionsList";
 import type { AdminTransactionsData } from "./transactions-data";
 
@@ -8,13 +9,7 @@ export const AdminEventTransactions = component$<Props>(({ data }) => {
 	const transactions = data.transactions;
 
 	// Amounts are stored in EUR (floats). Don't divide by 100 here.
-	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat("en-GB", {
-			style: "currency",
-			currency: "EUR",
-			minimumFractionDigits: 2,
-		}).format(amount);
-	};
+	const formatEuro = (amount: number) => formatCurrency(amount, "EUR");
 
 	// Only completed orders count; pending, canceled and refunded ones are listed below.
 	const paid = transactions.filter((t) => t.status === "paid");
@@ -35,7 +30,7 @@ export const AdminEventTransactions = component$<Props>(({ data }) => {
 				<div class="bg-white rounded-lg shadow-md p-6">
 					<p class="text-sm text-gray-600 mb-1">Total Revenue</p>
 					<p class="text-3xl font-bold text-gray-900">
-						{formatCurrency(totalRevenue)}
+						{formatEuro(totalRevenue)}
 					</p>
 					<p class="text-sm text-gray-500 mt-1">
 						{paid.length} paid transaction(s)
@@ -44,16 +39,14 @@ export const AdminEventTransactions = component$<Props>(({ data }) => {
 
 				<div class="bg-white rounded-lg shadow-md p-6">
 					<p class="text-sm text-gray-600 mb-1">Fees</p>
-					<p class="text-3xl font-bold text-red-600">
-						{formatCurrency(totalFees)}
-					</p>
+					<p class="text-3xl font-bold text-red-600">{formatEuro(totalFees)}</p>
 					<p class="text-sm text-gray-500 mt-1">Processing costs</p>
 				</div>
 
 				<div class="bg-white rounded-lg shadow-md p-6">
 					<p class="text-sm text-gray-600 mb-1">Net Revenue</p>
 					<p class="text-3xl font-bold text-green-600">
-						{formatCurrency(netRevenue)}
+						{formatEuro(netRevenue)}
 					</p>
 					<p class="text-sm text-gray-500 mt-1">After fees</p>
 				</div>

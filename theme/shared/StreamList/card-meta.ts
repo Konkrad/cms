@@ -1,3 +1,4 @@
+import { formatDate } from "~/contracts/i18n";
 import type { StreamItemData } from "~/contracts/stream";
 
 const VISIBILITY_NOTE: Record<string, string | undefined> = {
@@ -6,11 +7,7 @@ const VISIBILITY_NOTE: Record<string, string | undefined> = {
 };
 
 export function formatStreamDate(date: string): string {
-	return new Date(date).toLocaleDateString("en-GB", {
-		year: "numeric",
-		month: "long",
-		day: "numeric",
-	});
+	return formatDate(date, "dateLong");
 }
 
 /** "11 October 2026 · Berlin · Members only": date, source scope and visibility of a card. */

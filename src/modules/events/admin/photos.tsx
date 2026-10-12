@@ -1,7 +1,7 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { Link, routeAction$, useLocation, z, zod$ } from "@qwik.dev/router";
 import { deleteS3Objects, deriveThumbnailKey } from "~/core";
-import { Button, Card, ImageUploader } from "~/core/ui";
+import { Button, Card, formatDate, ImageUploader } from "~/core/ui";
 import { photosService } from "../services/photos";
 import { requireAdminEvent } from "./event-guards";
 import type { AdminPhotosData } from "./photos-data";
@@ -185,7 +185,7 @@ export const AdminEventPhotos = component$<Props>(({ data }) => {
 											{photo.filePath.split("/").pop()}
 										</p>
 										<p class="text-xs text-white/80">
-											{new Date(photo.uploadedAt).toLocaleDateString()}
+											{formatDate(photo.uploadedAt)}
 										</p>
 									</div>
 								</div>

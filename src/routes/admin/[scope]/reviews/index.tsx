@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
-import { format } from "date-fns";
+import { formatDate } from "~/core/i18n";
 import {
 	decideReview,
 	ReviewAccessError,
@@ -61,8 +61,6 @@ const STATUS_LABELS: Record<string, string> = {
 	rejected: "Not approved",
 };
 
-const formatDate = (iso: string) => format(new Date(iso), "MMM d, yyyy HH:mm");
-
 export default component$(() => {
 	const queue = useReviewQueue();
 	const decide = useDecideReview();
@@ -112,7 +110,8 @@ export default component$(() => {
 											)}
 										</p>
 										<p class="text-xs text-gray-500">
-											{item.submitterName} · {formatDate(item.submittedAt)}
+											{item.submitterName} ·{" "}
+											{formatDate(item.submittedAt, "dateTime")}
 										</p>
 									</div>
 								</div>
@@ -182,7 +181,7 @@ export default component$(() => {
 									<span class="font-medium">{item.title}</span>
 									<span class="text-gray-600">
 										{STATUS_LABELS[item.status]} ·{" "}
-										{formatDate(item.decidedAt ?? item.submittedAt)}
+										{formatDate(item.decidedAt ?? item.submittedAt, "dateTime")}
 									</span>
 								</div>
 								{item.comment && (

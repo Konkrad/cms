@@ -1,4 +1,5 @@
 import { $, component$ } from "@qwik.dev/core";
+import { formatDate } from "~/contracts/i18n";
 
 interface EventDateTileProps {
 	startDate: Date;
@@ -14,35 +15,13 @@ interface EventDateTileProps {
 	isPast?: boolean;
 }
 
-function formatDate(date: Date): string {
-	const day = date.getDate();
-	const suffix =
-		day === 1 || day === 21 || day === 31
-			? "st"
-			: day === 2 || day === 22
-				? "nd"
-				: day === 3 || day === 23
-					? "rd"
-					: "th";
-	const formatter = new Intl.DateTimeFormat("en-US", {
-		month: "long",
-		year: "numeric",
-	});
-	const parts = formatter.formatToParts(date);
-	const month = parts.find((p) => p.type === "month")?.value;
-	const year = parts.find((p) => p.type === "year")?.value;
-	return `${day}${suffix} ${month} ${year}`;
-}
-
 function formatTime(date: Date, timezone: string = "Europe/Paris"): string {
-	const formatter = new Intl.DateTimeFormat("en-US", {
+	return formatDate(date, {
 		hour: "2-digit",
 		minute: "2-digit",
 		timeZone: timezone,
 		timeZoneName: "short",
-		hour12: false,
 	});
-	return formatter.format(date);
 }
 
 function toICalDateString(date: Date): string {
@@ -76,9 +55,9 @@ export const EventDateTile = component$<EventDateTileProps>((props) => {
 	const tz = props.timezone ?? "Europe/Paris";
 	const isPast = props.isPast ?? false;
 
-	const formattedStartDate = formatDate(props.startDate);
+	const formattedStartDate = formatDate(props.startDate, "dateLong");
 	const formattedStartTime = formatTime(props.startDate, tz);
-	const formattedEndDate = formatDate(props.endDate);
+	const formattedEndDate = formatDate(props.endDate, "dateLong");
 	const formattedEndTime = formatTime(props.endDate, tz);
 
 	const downloadIcal = $(() => {

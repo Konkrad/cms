@@ -16,6 +16,7 @@ import {
 import "dotenv/config";
 import { createServer } from "node:http";
 import { runMigrations } from "./core/db/migrate";
+import { assertBuiltSiteLocale } from "./core/i18n/server";
 import { startOutboxWorker } from "./core/notifications/worker";
 import { prepareRawRequest } from "./core/registry/raw-request";
 import { startScheduler } from "./core/scheduler/worker";
@@ -26,6 +27,7 @@ declare global {
 	interface QwikRouterPlatform extends PlatformNode {}
 }
 
+assertBuiltSiteLocale();
 runMigrations();
 // Sends queued notifications (src/core/notifications) from this process, after migrations.
 startOutboxWorker();

@@ -1,8 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, Link, routeAction$, z, zod$ } from "@qwik.dev/router";
-import { format } from "date-fns";
 import { requireModuleAdmin, requireWithinScope } from "~/core";
-import { Pagination, SearchBar } from "~/core/ui";
+import { formatDate, Pagination, SearchBar } from "~/core/ui";
 import { notifyIfApproved } from "../notifications";
 import { jobsService } from "../service";
 import type { AdminJobsData } from "./list-data";
@@ -108,7 +107,7 @@ export const AdminJobsList = component$<{ data: AdminJobsData }>(({ data }) => {
 											}
 										>
 											{isExpired ? "Expired · " : ""}
-											{format(new Date(job.expiresAt), "MMM d, yyyy")}
+											{formatDate(job.expiresAt)}
 										</span>
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap">

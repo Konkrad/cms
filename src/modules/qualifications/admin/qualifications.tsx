@@ -1,5 +1,6 @@
 import { component$, useSignal } from "@qwik.dev/core";
 import { Form } from "@qwik.dev/router";
+import { formatDate } from "~/core/ui";
 import {
 	useApproveQualification,
 	useCreateType,
@@ -287,7 +288,7 @@ export const AdminQualifications = component$<{
 															class="mx-auto block"
 														/>
 														<div class="mt-2 text-xs text-gray-500">
-															Expires {new Date(tok.expiresAt).toLocaleString()}
+															Expires {formatDate(tok.expiresAt, "dateTime")}
 														</div>
 														<a
 															href={tok.verifyUrl}

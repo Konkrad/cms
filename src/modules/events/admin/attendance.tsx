@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { useLocation } from "@qwik.dev/router";
-import { Button, Card } from "~/core/ui";
+import { Button, Card, formatDate } from "~/core/ui";
 import type { AdminAttendanceData } from "./attendance-data";
 
 type Props = { data: AdminAttendanceData };
@@ -170,7 +170,7 @@ export const AdminEventAttendance = component$<Props>(({ data }) => {
 										</td>
 										<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
 											{ticket.scannedAt
-												? new Date(ticket.scannedAt).toLocaleString()
+												? formatDate(ticket.scannedAt, "dateTime")
 												: "-"}
 										</td>
 									</tr>

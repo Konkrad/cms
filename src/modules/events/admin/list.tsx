@@ -1,7 +1,12 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, Link, routeAction$, z, zod$ } from "@qwik.dev/router";
-import { format } from "date-fns";
-import { Button, Pagination, SearchBar, VISIBILITY_LABELS } from "~/core/ui";
+import {
+	Button,
+	formatDate,
+	Pagination,
+	SearchBar,
+	VISIBILITY_LABELS,
+} from "~/core/ui";
 import { eventsService } from "../services/events";
 import { requireAdminEventById } from "./event-guards";
 import type { AdminEventsData } from "./list-data";
@@ -45,9 +50,7 @@ export const AdminEventsList = component$<Props>(({ data }) => {
 								>
 									{e.title}
 								</Link>{" "}
-								<span class="text-gray-600">
-									ended {format(new Date(e.endDate), "MMM d, yyyy")}
-								</span>
+								<span class="text-gray-600">ended {formatDate(e.endDate)}</span>
 							</li>
 						))}
 					</ul>
@@ -87,7 +90,7 @@ export const AdminEventsList = component$<Props>(({ data }) => {
 									<div class="text-sm text-gray-500">{event.organizerName}</div>
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-									{format(new Date(event.startDate), "MMM d, yyyy")}
+									{formatDate(event.startDate)}
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap">
 									<span

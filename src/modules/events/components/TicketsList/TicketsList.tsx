@@ -1,7 +1,7 @@
 import { $, component$, type Signal, useSignal } from "@qwik.dev/core";
 import type { ActionStore } from "@qwik.dev/router";
 import Fuse from "fuse.js";
-import { Badge, SectionCard } from "~/core/ui";
+import { Badge, formatDate, SectionCard } from "~/core/ui";
 import type { products } from "../../schema";
 import type { Ticket } from "../../schema/tickets";
 
@@ -79,12 +79,7 @@ export default component$<TicketsListProps>(
 		const formatDateTime = (dateString: string | null) => {
 			if (!dateString) return "-";
 			const date = new Date(dateString);
-			return date.toLocaleString("en-US", {
-				month: "short",
-				day: "numeric",
-				hour: "2-digit",
-				minute: "2-digit",
-			});
+			return formatDate(date, "shortDateTime");
 		};
 
 		return (

@@ -1,8 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, Link, routeAction$, z, zod$ } from "@qwik.dev/router";
-import { format } from "date-fns";
 import { requireModuleAdmin, requireWithinScope } from "~/core";
-import { Button, Pagination, SearchBar } from "~/core/ui";
+import { Button, formatDate, Pagination, SearchBar } from "~/core/ui";
 import { dealsService } from "../service";
 import type { AdminDealsData } from "./list-data";
 
@@ -83,7 +82,7 @@ export const AdminDealsList = component$<{ data: AdminDealsData }>(
 													}
 												>
 													{isExpired ? "Expired · " : ""}
-													{format(new Date(deal.validUntil), "MMM d, yyyy")}
+													{formatDate(deal.validUntil)}
 												</span>
 											) : (
 												<span class="text-gray-400">No expiry</span>

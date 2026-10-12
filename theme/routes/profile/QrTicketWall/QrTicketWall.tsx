@@ -1,6 +1,7 @@
 import { $, component$, useSignal, useVisibleTask$ } from "@qwik.dev/core";
 import { Modal } from "~/components/ui/Modal";
 import { SectionCard } from "~/components/ui/SectionCard";
+import { formatDate } from "~/contracts/i18n";
 import type { TicketWithRelations } from "~/contracts/profile";
 
 interface QrTicketWallProps {
@@ -23,14 +24,6 @@ function groupByEvent(tickets: TicketWithRelations[]) {
 		}
 	}
 	return Array.from(map.values());
-}
-
-function formatEventDate(dateString: string) {
-	return new Date(dateString).toLocaleDateString("en-US", {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-	});
 }
 
 export default component$<QrTicketWallProps>(
@@ -91,7 +84,7 @@ export default component$<QrTicketWallProps>(
 								{group.event.title}
 							</span>
 							<span class="block text-sm text-text-muted mt-0.5">
-								{formatEventDate(group.event.startDate)}
+								{formatDate(group.event.startDate)}
 							</span>
 						</button>
 					))}

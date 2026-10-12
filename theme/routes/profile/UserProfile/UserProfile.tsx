@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
+import { formatDate } from "~/contracts/i18n";
 import type {
 	NotificationSetting,
 	SetNotificationPreferenceAction,
@@ -85,13 +86,6 @@ export interface UserProfileProps {
 	updateDetailsAction?: UpdateDetailsAction;
 	setNotificationPreferenceAction?: SetNotificationPreferenceAction;
 }
-
-const formatDate = (iso: string) =>
-	new Date(iso).toLocaleDateString("en-GB", {
-		day: "numeric",
-		month: "short",
-		year: "numeric",
-	});
 
 const statusCls = (status: string) => {
 	if (status === "approved") return "bg-success-bg text-success";
@@ -434,7 +428,7 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 											</a>
 											<p class="text-sm text-text-muted mt-1">
 												Submitted{" "}
-												{new Date(submission.submittedAt).toLocaleString()}
+												{formatDate(submission.submittedAt, "dateTime")}
 											</p>
 										</li>
 									))}

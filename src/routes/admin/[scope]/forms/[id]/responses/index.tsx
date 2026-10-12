@@ -1,9 +1,9 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
-import { format } from "date-fns";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { formResultsService } from "~/core/forms/form-results.service";
+import { formatDate } from "~/core/i18n";
 import {
 	buildFormsAdminBasePath,
 	getOwnForm,
@@ -85,10 +85,7 @@ export default component$(() => {
 								{data.value.responses.map((response) => (
 									<tr key={response.id}>
 										<td class="px-6 py-4 text-sm text-gray-700">
-											{format(
-												new Date(response.createdAt),
-												"MMM d, yyyy HH:mm",
-											)}
+											{formatDate(response.createdAt, "dateTime")}
 										</td>
 										{data.value.questionColumns.map((column) => (
 											<td

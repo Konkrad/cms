@@ -7,7 +7,6 @@ import {
 	z,
 	zod$,
 } from "@qwik.dev/router";
-import { format } from "date-fns";
 import { AdminTable } from "~/components/ui/AdminTable";
 import { Button } from "~/components/ui/Button";
 import { formResultsService } from "~/core/forms/form-results.service";
@@ -18,6 +17,7 @@ import {
 	formsService,
 } from "~/core/forms/forms.service";
 import { isSurveyForm } from "~/core/forms/purposes";
+import { formatDate } from "~/core/i18n";
 import { formPurposes, isFormPurpose } from "~/core/registry/forms";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import {
@@ -222,7 +222,7 @@ export default component$(() => {
 								</td>
 								<td class="px-6 py-4 capitalize">{form.visibility}</td>
 								<td class="px-6 py-4 text-sm text-gray-500">
-									{format(new Date(form.updatedAt), "MMM d, yyyy")}
+									{formatDate(form.updatedAt)}
 								</td>
 								<td class="px-6 py-4 text-sm text-gray-700">
 									{form.responses}

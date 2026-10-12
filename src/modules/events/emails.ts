@@ -1,5 +1,11 @@
 import { createElement } from "react";
-import { adminUrl, defineNotification, getScope, itemUrl } from "~/core";
+import {
+	adminUrl,
+	defineNotification,
+	formatDate,
+	getScope,
+	itemUrl,
+} from "~/core";
 import NoticeEmail from "~theme/emails/Notice";
 import TicketConfirmationEmail from "~theme/emails/TicketConfirmation";
 import { eventsService } from "./services/events";
@@ -39,7 +45,7 @@ export const ticketConfirmationNotification =
 						baseUrl: ctx.appUrl,
 						event: {
 							title: event.title,
-							date: new Date(event.startDate).toLocaleString(),
+							date: formatDate(event.startDate, "dateTime"),
 							location: event.address || event.onlineUrl || undefined,
 						},
 						transaction: {

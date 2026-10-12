@@ -1,4 +1,5 @@
 import { component$ } from "@qwik.dev/core";
+import { formatDate } from "~/core/ui";
 import { ParticipationSummary } from "../components/ParticipationSummary";
 import type { AdminParticipationData } from "./participation-data";
 
@@ -98,7 +99,7 @@ export const AdminEventParticipation = component$<Props>(({ data }) => {
 													: "No"}
 										</td>
 										<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-											{new Date(participation.updatedAt).toLocaleString()}
+											{formatDate(participation.updatedAt, "dateTime")}
 										</td>
 									</tr>
 								))}

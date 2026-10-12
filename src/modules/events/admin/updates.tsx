@@ -12,6 +12,7 @@ import {
 	Button,
 	Card,
 	type ContentFormResult,
+	formatDate,
 	NoteForm,
 	VISIBILITY_LABELS,
 } from "~/core/ui";
@@ -167,7 +168,7 @@ export const AdminEventUpdates = component$<{ data: AdminEventUpdatesData }>(
 											{item.authorName} ·{" "}
 											{VISIBILITY_LABELS[item.visibility].label}
 											{item.publishedAt
-												? ` · ${new Date(item.publishedAt).toLocaleDateString("en-GB")}`
+												? ` · ${formatDate(item.publishedAt)}`
 												: item.reviewStatus === "rejected"
 													? " · Not approved"
 													: " · In review"}

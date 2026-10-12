@@ -1,4 +1,9 @@
-import { notes, type ReviewContext, type ReviewDecision } from "~/core";
+import {
+	formatDate,
+	notes,
+	type ReviewContext,
+	type ReviewDecision,
+} from "~/core";
 import { eventsService } from "./services/events";
 
 /**
@@ -23,11 +28,7 @@ export async function onEventApproved(
 	if (!event) return;
 	await eventsService.setStatus(event.id, "published");
 	if (!event.announceOnApproval || event.announcementNoteId) return;
-	const date = new Date(event.startDate).toLocaleDateString("en-GB", {
-		day: "numeric",
-		month: "long",
-		year: "numeric",
-	});
+	const date = formatDate(event.startDate, "dateLong");
 	const note = await notes.create({
 		scopeId: event.scopeId,
 		subjectType: "events:event",

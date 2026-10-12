@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { formatDate } from "~/contracts/i18n";
 import { usePastEvents } from "~/modules/events/usePastEvents";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 
@@ -11,23 +12,6 @@ export const definition: BlockDefinition = {
 	configSchema: [],
 	defaultData: {},
 };
-
-function formatEventDate(startDate: string, endDate?: string): string {
-	const start = new Date(startDate);
-	const day = new Intl.DateTimeFormat("en-US", { day: "numeric" }).format(
-		start,
-	);
-	const month = new Intl.DateTimeFormat("en-US", { month: "long" }).format(
-		start,
-	);
-	const year = new Intl.DateTimeFormat("en-US", { year: "numeric" }).format(
-		start,
-	);
-
-	if (!endDate) return `${day} ${month} ${year}`;
-
-	return `${day} ${month} ${year}`;
-}
 
 export default component$(() => {
 	const { events, nextCursor, isLoading, isLoadingMore, error, loadMore } =
@@ -58,7 +42,7 @@ export default component$(() => {
 									key={event.id}
 									title={event.title}
 									image={event.image1}
-									date={formatEventDate(event.startDate, event.endDate)}
+									date={formatDate(event.startDate, "dateLong")}
 									meta={location}
 									description={event.body
 										?.replace(/<[^>]+>/g, "")

@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
-import { formatMoney } from "~/core/payments/money";
+import { formatDate, formatMoney } from "~/core/i18n";
 import {
 	cancelSubscription,
 	PaymentActionError,
@@ -79,8 +79,8 @@ export const useCancelSubscription = routeAction$(
 	zod$({ id: z.string().uuid() }),
 );
 
-const formatDate = (iso: string | null) =>
-	iso ? new Date(iso).toLocaleString("en-GB") : "—";
+const formatDateTime = (iso: string | null) =>
+	iso ? formatDate(iso, "dateTime") : "—";
 
 const STATUS_CLASS: Record<string, string> = {
 	paid: "bg-green-100 text-green-800",
@@ -205,10 +205,10 @@ export default component$(() => {
 									<td class="px-4 py-3">{p.payer}</td>
 									<td class="px-4 py-3 whitespace-nowrap">{p.amount}</td>
 									<td class="px-4 py-3 whitespace-nowrap">
-										{formatDate(p.createdAt)}
+										{formatDateTime(p.createdAt)}
 									</td>
 									<td class="px-4 py-3 whitespace-nowrap">
-										{formatDate(p.paidAt)}
+										{formatDateTime(p.paidAt)}
 									</td>
 									<td class="px-4 py-3 font-mono text-xs">
 										{p.provider}: {p.providerRef ?? "—"}

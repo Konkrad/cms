@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
+import { formatDate } from "~/core/i18n";
 import { notificationOutboxService } from "~/core/notifications/outbox.service";
 import { handlerCallsService } from "~/core/scheduler/handler-calls.service";
 import { scheduleRunsService } from "~/core/scheduler/schedule-runs.service";
@@ -67,7 +68,7 @@ export const useRunScheduleNow = routeAction$(
 	zod$({ key: z.string().min(1) }),
 );
 
-const formatDate = (iso: string) => new Date(iso).toLocaleString("en-GB");
+const formatDateTime = (iso: string) => formatDate(iso, "dateTime");
 
 export default component$(() => {
 	const data = useUndeliveredNotifications();
@@ -143,11 +144,11 @@ export default component$(() => {
 									</td>
 									<td class="px-4 py-3 whitespace-nowrap">
 										{row.status === "pending"
-											? formatDate(row.nextAttemptAt)
+											? formatDateTime(row.nextAttemptAt)
 											: "—"}
 									</td>
 									<td class="px-4 py-3 whitespace-nowrap">
-										{formatDate(row.createdAt)}
+										{formatDateTime(row.createdAt)}
 									</td>
 									<td class="px-4 py-3">
 										<Form action={retry}>
@@ -210,10 +211,10 @@ export default component$(() => {
 										{row.lastError ?? ""}
 									</td>
 									<td class="px-4 py-3 whitespace-nowrap">
-										{row.lastRunAt ? formatDate(row.lastRunAt) : "—"}
+										{row.lastRunAt ? formatDateTime(row.lastRunAt) : "—"}
 									</td>
 									<td class="px-4 py-3 whitespace-nowrap">
-										{formatDate(row.nextRunAt)}
+										{formatDateTime(row.nextRunAt)}
 									</td>
 									<td class="px-4 py-3">
 										<Form action={runNow}>
@@ -258,7 +259,7 @@ export default component$(() => {
 										{row.lastError ?? ""}
 									</td>
 									<td class="px-4 py-3 whitespace-nowrap">
-										{formatDate(row.nextAttemptAt)}
+										{formatDateTime(row.nextAttemptAt)}
 									</td>
 									<td class="px-4 py-3">
 										<Form action={retryHandler}>

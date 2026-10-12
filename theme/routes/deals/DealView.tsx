@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { DealViewData } from "~/contracts/deals";
+import { formatDate } from "~/contracts/i18n";
 import { DealBox } from "./DealBox";
 
 type DealStep = DealViewData["deal"]["steps"][number];
@@ -34,12 +35,7 @@ export const DealView = component$<DealViewData>(({ deal, isLoggedIn }) => {
 			)}
 			{deal.validUntil && (
 				<p class="text-text-muted text-sm mb-8">
-					Valid until{" "}
-					{new Date(deal.validUntil).toLocaleDateString("en-GB", {
-						day: "numeric",
-						month: "long",
-						year: "numeric",
-					})}
+					Valid until {formatDate(deal.validUntil, "dateLong")}
 				</p>
 			)}
 

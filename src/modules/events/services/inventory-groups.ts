@@ -1,5 +1,5 @@
 import { eq, sql } from "drizzle-orm";
-import { db } from "~/core";
+import { db, formatDate } from "~/core";
 import {
 	type InsertInventoryGroup,
 	type InventoryGroup,
@@ -73,7 +73,7 @@ export const inventoryGroupsService = {
 				return {
 					allowed: false,
 					remainingCapacity: 0,
-					reason: `Sales open on ${start.toLocaleString()}`,
+					reason: `Sales open on ${formatDate(start, "dateTime")}`,
 				};
 			}
 		}

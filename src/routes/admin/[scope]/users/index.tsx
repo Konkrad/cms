@@ -7,9 +7,9 @@ import {
 	z,
 	zod$,
 } from "@qwik.dev/router";
-import { format } from "date-fns";
 import { PAGE_SIZE, Pagination } from "~/core/admin/Pagination/Pagination";
 import { SearchBar } from "~/core/admin/SearchBar/SearchBar";
+import { formatDate } from "~/core/i18n";
 import { membershipsService } from "~/core/memberships/memberships.service";
 import { reevaluateUserTagsForUser } from "~/core/registry/manifests";
 import { adminUrl } from "~/core/router/scope-path";
@@ -210,12 +210,10 @@ export default component$(() => {
 									{[user.city, user.country].filter(Boolean).join(", ") || "—"}
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-									{format(new Date(user.createdAt), "MMM d, yyyy")}
+									{formatDate(user.createdAt)}
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-									{user.lastLogin
-										? format(new Date(user.lastLogin), "MMM d, yyyy")
-										: "—"}
+									{user.lastLogin ? formatDate(user.lastLogin) : "—"}
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-right relative">
 									<button

@@ -25,6 +25,14 @@ export { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 export { VisibilitySelector } from "~/core/admin/VisibilitySelector";
 export { BlockNoteEditor } from "~/core/content/editor";
 export { FormRenderer } from "~/core/forms/FormRenderer";
+export {
+	formatCurrency,
+	formatDate,
+	formatMoney,
+	formatNumber,
+	siteLocale,
+	t,
+} from "~/core/i18n";
 export { publicImageUrlFromKey } from "~/core/media/images";
 export {
 	VISIBILITIES,

@@ -5,6 +5,7 @@ import {
 	RouterOutlet,
 	ServiceWorkerRegister,
 } from "@qwik.dev/router";
+import { siteLocale } from "./core/i18n";
 import { RouterHead } from "./core/router/router-head";
 
 import "./global.css";
@@ -31,7 +32,7 @@ export default component$(() => {
 				<RouterHead />
 				{!isDev && <ServiceWorkerRegister />}
 			</head>
-			<body lang="en">
+			<body lang={siteLocale}>
 				<RouterOutlet />
 			</body>
 		</QwikRouterProvider>

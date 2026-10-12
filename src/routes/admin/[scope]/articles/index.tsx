@@ -7,11 +7,11 @@ import {
 	z,
 	zod$,
 } from "@qwik.dev/router";
-import { format } from "date-fns";
 import { Button } from "~/components/ui/Button";
 import { PAGE_SIZE, Pagination } from "~/core/admin/Pagination/Pagination";
 import { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 import { articlesService } from "~/core/content/articles.service";
+import { formatDate } from "~/core/i18n";
 import { publicImageUrlFromKey } from "~/core/media/images";
 import { ReviewStatusBadge } from "~/core/reviews/ReviewStatusBadge";
 import { withReviewStatus } from "~/core/reviews/reviews";
@@ -134,7 +134,7 @@ export default component$(() => {
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
 									{article.publishedAt ? (
-										format(new Date(article.publishedAt), "MMM d, yyyy")
+										formatDate(article.publishedAt)
 									) : (
 										<ReviewStatusBadge review={article.review} />
 									)}

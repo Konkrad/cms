@@ -9,6 +9,7 @@ import { qwikRouter } from "@qwik.dev/router/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, type Plugin, type UserConfig } from "vite";
 import pkg from "./package.json";
+import { i18nCatalog } from "./src/core/i18n/vite-plugin";
 import { prepareRawRequest } from "./src/core/registry/raw-request";
 
 // Absolute path to ./src for the "~" alias below.
@@ -50,6 +51,8 @@ export default defineConfig(
 			publicDir,
 			plugins: [
 				rawRequest(),
+				// The site locale's message catalog, merged at build time (src/core/i18n).
+				i18nCatalog(),
 				// Dev server only, after the migrations above (never in builds or vitest, which
 				// uses vitest.config.ts). The production server starts it in entry.node-server.tsx.
 				...(devServer ? [notificationOutboxWorker()] : []),

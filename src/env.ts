@@ -70,14 +70,28 @@ const envSchema = z.object({
 	S3_BUCKET: z.string(),
 	S3_UPLOAD_PATH: z.string().default("uploads"),
 
-	// Stripe
-	STRIPE_SECRET_KEY: z.string(),
-	STRIPE_PUBLISHABLE_KEY: z.string(),
-	STRIPE_WEBHOOK_SECRET: z.string(),
+	// Payments (spec 4.7). Stripe is the only provider: it is configured when both the secret
+	// key and the webhook signing secret are set; without them payments are disabled
+	// (`payments.enabled()` is false) and modules offer free flows only.
+	STRIPE_SECRET_KEY: z.string().min(1).optional(),
+	STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
 	// Optional: point to a local stripe-mock or other custom Stripe API host
 	STRIPE_API_BASE_URL: z.url().optional(),
 	// Optional: SOCKS5 proxy for reaching Stripe from IPv4-less hosts (e.g. socks5h://172.19.0.1:40000)
 	STRIPE_PROXY_URL: z.url().optional(),
+	// Currency of every payment (ISO 4217, lower case)
+	PAYMENTS_CURRENCY: z
+		.string()
+		.regex(/^[a-z]{3}$/)
+		.default("eur"),
+	// An unfinished checkout expires after this many minutes (Stripe allows 30 to 1440); the
+	// hourly core schedule then marks it expired and calls the module's `onExpired`.
+	PAYMENTS_CHECKOUT_EXPIRY_MINUTES: z.coerce
+		.number()
+		.int()
+		.min(30)
+		.max(1440)
+		.default(60),
 
 	// Telegram (optional: without them the telegram notification channel is unconfigured and
 	// its outbox rows are marked failed with a clear error, see src/core/notifications)
@@ -176,10 +190,11 @@ export const env = {
 	S3_BUCKET: _env.S3_BUCKET,
 	S3_UPLOAD_PATH: _env.S3_UPLOAD_PATH,
 	STRIPE_SECRET_KEY: _env.STRIPE_SECRET_KEY,
-	STRIPE_PUBLISHABLE_KEY: _env.STRIPE_PUBLISHABLE_KEY,
 	STRIPE_WEBHOOK_SECRET: _env.STRIPE_WEBHOOK_SECRET,
 	STRIPE_API_BASE_URL: _env.STRIPE_API_BASE_URL,
 	STRIPE_PROXY_URL: _env.STRIPE_PROXY_URL,
+	PAYMENTS_CURRENCY: _env.PAYMENTS_CURRENCY,
+	PAYMENTS_CHECKOUT_EXPIRY_MINUTES: _env.PAYMENTS_CHECKOUT_EXPIRY_MINUTES,
 	TELEGRAM_BOT_TOKEN: _env.TELEGRAM_BOT_TOKEN,
 	TELEGRAM_CHANNEL_ID: _env.TELEGRAM_CHANNEL_ID,
 	TELEGRAM_API_URL: _env.TELEGRAM_API_URL,

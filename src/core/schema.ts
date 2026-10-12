@@ -1,6 +1,7 @@
 /** Core tables/types a module schema may reference. Safe for drizzle-kit (no runtime deps). */
 
 export { logins } from "~/core/auth/schema/logins";
+export { payments } from "~/core/payments/schema";
 export type { Scope } from "~/core/scopes/schema/scopes";
 export {
 	scopeMemberships,

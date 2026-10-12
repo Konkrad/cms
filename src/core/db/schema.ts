@@ -12,6 +12,7 @@ import {
 	notificationOutbox,
 	notificationPreferences,
 } from "../notifications/schema";
+import { paymentEvents, payments } from "../payments/schema";
 import { moduleTables, withModuleRelations } from "../registry/schemas";
 import { userRequirements } from "../requirements/schema";
 import { reviews } from "../reviews/schema";
@@ -33,6 +34,7 @@ export * from "../forms/schema/form-results";
 export * from "../forms/schema/forms";
 export * from "../memberships/schema";
 export * from "../notifications/schema";
+export * from "../payments/schema";
 export * from "../registry/schemas";
 export * from "../requirements/schema";
 export * from "../reviews/schema";
@@ -61,6 +63,8 @@ export const schemaRelations = defineRelations(
 		redirects,
 		scheduleRuns,
 		handlerCalls,
+		payments,
+		paymentEvents,
 		reviews,
 		userRequirements,
 		tagDefinitions,

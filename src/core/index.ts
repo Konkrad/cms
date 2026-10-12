@@ -139,6 +139,21 @@ export {
 	type ItemFormResult,
 } from "~/core/forms/forms-api";
 export type { FormPurpose } from "~/core/forms/purposes";
+// Reviews (spec 4.9): submit new public items; declare `reviews` handlers in the manifest.
+export type {
+	ReviewContext,
+	ReviewDecision,
+	ReviewHandlers,
+} from "~/core/reviews/define";
+export {
+	ReviewError,
+	type ReviewStatusInfo,
+	reviews,
+} from "~/core/reviews/reviews";
+export type {
+	ScheduleContext,
+	ScheduleDefinition,
+} from "~/core/scheduler/define";
 export type { RefLocation, RefTypeDefinition } from "~/core/router/modules";
 export { requireCanonicalUrl } from "~/core/refs/canonical";
 export {

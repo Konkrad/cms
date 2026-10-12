@@ -222,10 +222,14 @@ export const eventsService = {
 	},
 
 	/** Owning scope and slug of the live events with these ids (reference resolution). */
-	async locate(
-		ids: readonly string[],
-	): Promise<
-		Array<{ id: string; scopeId: string; slug: string; title: string }>
+	async locate(ids: readonly string[]): Promise<
+		Array<{
+			id: string;
+			scopeId: string;
+			slug: string;
+			title: string;
+			visibility: string;
+		}>
 	> {
 		if (!ids.length) return [];
 		return db
@@ -234,6 +238,7 @@ export const eventsService = {
 				scopeId: events.scopeId,
 				slug: events.slug,
 				title: events.title,
+				visibility: events.visibility,
 			})
 			.from(events)
 			.where(and(inArray(events.id, [...ids]), isNull(events.deletedAt)));

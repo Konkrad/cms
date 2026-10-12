@@ -13,8 +13,9 @@ import {
 	notificationPreferences,
 } from "../notifications/schema";
 import { moduleTables, withModuleRelations } from "../registry/schemas";
+import { reviews } from "../reviews/schema";
 import { redirects } from "../router/schema";
-import { scheduleRuns } from "../scheduler/schema";
+import { handlerCalls, scheduleRuns } from "../scheduler/schema";
 import { scopeMemberships, scopeRoles, scopes } from "../scopes/schema/scopes";
 import { tagDefinitions } from "../tags/schema/tag-definitions";
 import { userTags } from "../tags/schema/user-tags";
@@ -32,6 +33,7 @@ export * from "../forms/schema/forms";
 export * from "../memberships/schema";
 export * from "../notifications/schema";
 export * from "../registry/schemas";
+export * from "../reviews/schema";
 export * from "../router/schema";
 export * from "../scheduler/schema";
 export * from "../scopes/schema/scopes";
@@ -56,6 +58,8 @@ export const schemaRelations = defineRelations(
 		notificationPreferences,
 		redirects,
 		scheduleRuns,
+		handlerCalls,
+		reviews,
 		tagDefinitions,
 		userTags,
 		scopes,

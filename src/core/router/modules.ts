@@ -3,6 +3,7 @@ import type { ScopeExtras } from "~/contracts/scopes";
 import type { FormPurpose } from "~/core/forms/purposes";
 import type { NotificationDefinition } from "~/core/notifications/define";
 import type { PaymentHandlers } from "~/core/payments/payments";
+import type { ReviewHandlers } from "~/core/reviews/define";
 import type { PageDefinition } from "~/core/router/pages";
 import type { ScheduleDefinition } from "~/core/scheduler/define";
 
@@ -88,6 +89,8 @@ export interface RefLocation {
 	slug?: string | null;
 	/** Shown in the admin link picker. */
 	title?: string;
+	/** The item's visibility, when it has one: reviews (spec 4.9) only review public items. */
+	visibility?: string;
 }
 
 /**
@@ -172,6 +175,12 @@ export interface ModuleDefinition {
 	 * backoff and listed in the admin failure view.
 	 */
 	schedules?: ScheduleDefinition[];
+	/**
+	 * Review handlers per item type (spec 4.9): `{ event: { onApproved, onRejected } }`, called
+	 * by name after a decision on `<module>:<type>:<id>`, retried until they succeed, even while
+	 * the module is inactive. Submit with `reviews.submit` from `~/core`.
+	 */
+	reviews?: Record<string, ReviewHandlers>;
 }
 
 export function defineModule(module: ModuleDefinition): ModuleDefinition {

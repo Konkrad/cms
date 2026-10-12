@@ -1,6 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, routeLoader$, z, zod$ } from "@qwik.dev/router";
 import { notificationOutboxService } from "~/core/notifications/outbox.service";
+import { handlerCallsService } from "~/core/scheduler/handler-calls.service";
 import { scheduleRunsService } from "~/core/scheduler/schedule-runs.service";
 import { requireSystemAdmin } from "~/core/scopes/access";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
@@ -11,8 +12,17 @@ export const useUndeliveredNotifications = routeLoader$(async (event) => {
 	const rows = await notificationOutboxService.listUndeliveredWithAddress();
 	// Scheduled jobs (manifest `schedules`) whose last run failed; they retry with backoff.
 	const schedules = await scheduleRunsService.listFailing();
+	// Handler calls (review decisions) that failed at least once; retried until they succeed.
+	const handlers = (await handlerCallsService.listFailing()).map((h) => ({
+		id: h.id,
+		name: `${h.owner}.${h.kind}.${h.type}.${h.hook}`,
+		target: String(h.payload.ref ?? ""),
+		attempts: h.attempts,
+		lastError: h.lastError,
+		nextAttemptAt: h.nextAttemptAt,
+	}));
 	return assertNoPrivateFields(
-		{ rows, schedules },
+		{ rows, schedules, handlers },
 		{
 			// Platform admins diagnose delivery failures: they need to see where a message
 			// was going (the email address or chat id resolved for the recipient).
@@ -35,6 +45,17 @@ export const useRetryNotification = routeAction$(
 	zod$({ id: z.string().uuid() }),
 );
 
+/** Retries a failing handler call at the next scheduler tick. */
+export const useRetryHandlerCall = routeAction$(
+	async (data, event) => {
+		await requireSystemAdmin(event);
+		if (!(await handlerCallsService.retrySoon(data.id, new Date())))
+			return event.fail(404, { message: "Call not found" });
+		return { success: true };
+	},
+	zod$({ id: z.string().uuid() }),
+);
+
 /** Runs a failing schedule again at the next scheduler tick. */
 export const useRunScheduleNow = routeAction$(
 	async (data, event) => {
@@ -52,6 +73,8 @@ export default component$(() => {
 	const data = useUndeliveredNotifications();
 	const retry = useRetryNotification();
 	const runNow = useRunScheduleNow();
+	const retryHandler = useRetryHandlerCall();
+	const handlers = data.value.handlers;
 	const rows = data.value.rows;
 	const schedules = data.value.schedules;
 
@@ -200,6 +223,51 @@ export default component$(() => {
 												class="text-blue-600 hover:text-blue-800 font-medium"
 											>
 												Run now
+											</button>
+										</Form>
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				)}
+			</div>
+
+			<h3 class="text-xl font-bold text-gray-800 mt-10 mb-2">Handler calls</h3>
+			<p class="text-sm text-gray-500 mb-4">
+				Module and core handlers (review decisions) that failed. They are
+				retried with backoff until they succeed.
+			</p>
+			<div
+				class="bg-white rounded-lg shadow-sm overflow-x-auto"
+				data-testid="failing-handlers"
+			>
+				{handlers.length === 0 ? (
+					<div class="px-5 py-8 text-center text-gray-400 text-sm">
+						No failing handler calls.
+					</div>
+				) : (
+					<table class="min-w-full divide-y divide-gray-200 text-sm">
+						<tbody class="divide-y divide-gray-200">
+							{handlers.map((row) => (
+								<tr key={row.id} data-handler-id={row.id}>
+									<td class="px-4 py-3 font-mono text-xs">{row.name}</td>
+									<td class="px-4 py-3 font-mono text-xs">{row.target}</td>
+									<td class="px-4 py-3">{row.attempts}</td>
+									<td class="px-4 py-3 text-red-700 max-w-xs break-words">
+										{row.lastError ?? ""}
+									</td>
+									<td class="px-4 py-3 whitespace-nowrap">
+										{formatDate(row.nextAttemptAt)}
+									</td>
+									<td class="px-4 py-3">
+										<Form action={retryHandler}>
+											<input type="hidden" name="id" value={row.id} />
+											<button
+												type="submit"
+												class="text-blue-600 hover:text-blue-800 font-medium"
+											>
+												Retry now
 											</button>
 										</Form>
 									</td>

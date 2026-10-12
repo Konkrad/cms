@@ -142,19 +142,27 @@ export const notesService = {
 		};
 	},
 
-	/** Owning scope and label of the notes with these ids (reference resolution). */
+	/** Owning scope, label and visibility of the notes with these ids (reference resolution). */
 	async locate(
 		ids: readonly string[],
-	): Promise<Array<{ id: string; scopeId: string; title: string }>> {
+	): Promise<
+		Array<{ id: string; scopeId: string; title: string; visibility: string }>
+	> {
 		if (!ids.length) return [];
 		const rows = await db
-			.select({ id: notes.id, scopeId: notes.scopeId, body: notes.body })
+			.select({
+				id: notes.id,
+				scopeId: notes.scopeId,
+				body: notes.body,
+				visibility: notes.visibility,
+			})
 			.from(notes)
 			.where(inArray(notes.id, [...ids]));
 		return rows.map((r) => ({
 			id: r.id,
 			scopeId: r.scopeId,
 			title: noteLabel(r.body),
+			visibility: r.visibility,
 		}));
 	},
 

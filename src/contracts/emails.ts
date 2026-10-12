@@ -40,3 +40,20 @@ export interface JobApprovedEmailProps {
 	jobUrl: string;
 	unsubscribeUrl: string | null;
 }
+
+/**
+ * A short notice with one call to action (review requested or decided, debrief requested):
+ * plain text paragraphs (never HTML), an optional quoted comment and a button.
+ */
+export interface NoticeEmailProps {
+	baseUrl: string;
+	recipientName: string;
+	title: string;
+	subtitle: string;
+	paragraphs: string[];
+	/** Quoted as written, e.g. a reviewer's comment. */
+	quote: string | null;
+	buttonLabel: string;
+	buttonUrl: string;
+	unsubscribeUrl: string | null;
+}

@@ -77,6 +77,8 @@ export async function locateRef(ref: string): Promise<{
 	id: string;
 	scopeId: string;
 	title: string | null;
+	/** Null when the type has no visibility. */
+	visibility: string | null;
 } | null> {
 	const parsed = parseRef(ref);
 	if (!parsed || parsed.kind !== "item") return null;
@@ -92,6 +94,7 @@ export async function locateRef(ref: string): Promise<{
 		id: parsed.id,
 		scopeId: located.scopeId,
 		title: located.title ?? null,
+		visibility: located.visibility ?? null,
 	};
 }
 

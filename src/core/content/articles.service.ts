@@ -175,16 +175,19 @@ export const articlesService = {
 		};
 	},
 
-	/** Owning scope and title of the articles with these ids (reference resolution). */
+	/** Owning scope, title and visibility of the articles with these ids (reference resolution). */
 	async locate(
 		ids: readonly string[],
-	): Promise<Array<{ id: string; scopeId: string; title: string }>> {
+	): Promise<
+		Array<{ id: string; scopeId: string; title: string; visibility: string }>
+	> {
 		if (!ids.length) return [];
 		return db
 			.select({
 				id: articles.id,
 				scopeId: articles.scopeId,
 				title: articles.title,
+				visibility: articles.visibility,
 			})
 			.from(articles)
 			.where(inArray(articles.id, [...ids]));

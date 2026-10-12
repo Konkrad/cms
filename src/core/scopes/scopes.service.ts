@@ -464,6 +464,17 @@ export const scopesService = {
 			);
 	},
 
+	/** Roles held directly on the scope (not inherited). */
+	async getDirectRoles(userId: string, scopeId: string): Promise<Set<Role>> {
+		const rows = await db
+			.select({ role: scopeRoles.role })
+			.from(scopeRoles)
+			.where(
+				and(eq(scopeRoles.userId, userId), eq(scopeRoles.scopeId, scopeId)),
+			);
+		return new Set(rows.map((r) => r.role));
+	},
+
 	/** Roles held on the scope or any of its ancestors. */
 	async getEffectiveRoles(userId: string, scopeId: string): Promise<Set<Role>> {
 		const ancestors = await this.getAncestors(scopeId);

@@ -1,14 +1,20 @@
+import { processHandlerCallsOnce } from "~/core/scheduler/handler-calls";
 import { runDueSchedules } from "~/core/scheduler/scheduler";
 import { env } from "~/env";
 
 const WORKER_KEY = Symbol.for("cms.scheduler.worker");
 
 /**
- * One tick of core's background work besides notifications: due schedules of core and the
- * active modules. Lazy registry import: it loads every module manifest.
+ * One tick of core's background work besides notifications: queued handler calls (review
+ * decisions), then the due schedules of core and the active modules. Lazy registry imports:
+ * they load every module manifest.
  */
 export async function schedulerTick(now: Date = new Date()): Promise<void> {
-	const { activeSchedules } = await import("~/core/registry/schedules");
+	const [{ activeSchedules }, { resolveHandlerCall }] = await Promise.all([
+		import("~/core/registry/schedules"),
+		import("~/core/registry/handlers"),
+	]);
+	await processHandlerCallsOnce(resolveHandlerCall, now);
 	await runDueSchedules(activeSchedules(), now);
 }
 

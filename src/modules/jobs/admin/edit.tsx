@@ -1,7 +1,7 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireModuleAdmin, requireWithinScope } from "~/core";
-import { BlockNoteEditor, Button, Input, Select } from "~/core/ui";
+import { BlockNoteEditor, Button, Input, Select, t } from "~/core/ui";
 import { notifyIfApproved } from "../notifications";
 import { jobsService } from "../service";
 import type { AdminJobData } from "./edit-data";
@@ -14,7 +14,8 @@ export const useUpdateJob = routeAction$(
 
 		const before = await jobsService.getById(event.params.id);
 		await requireWithinScope(event, scope, before);
-		if (!before) return event.fail(404, { message: "Job not found" });
+		if (!before)
+			return event.fail(404, { message: t("jobs.admin.edit.jobNotFound") });
 		const after = await jobsService.update(event.params.id, {
 			title: data.title,
 			body: data.body,
@@ -35,7 +36,7 @@ export const useUpdateJob = routeAction$(
 		throw event.redirect(303, `${adminBase}/jobs`);
 	},
 	zod$({
-		title: z.string().min(1, "Title is required"),
+		title: z.string().min(1, t("jobs.admin.edit.titleIsRequired")),
 		body: z.string(),
 		editorState: z.string().optional(),
 		locationType: z.enum(["on-site", "remote-eu", "remote-country"]),
@@ -45,7 +46,7 @@ export const useUpdateJob = routeAction$(
 		posterRelation: z
 			.enum(["hiring", "founder", "direct-team", "works-there", "other"])
 			.optional(),
-		expiresAt: z.string().min(1, "Expiry date is required"),
+		expiresAt: z.string().min(1, t("jobs.admin.edit.expiryDateIsRequired")),
 		status: z.enum(["pending", "approved"]),
 	}),
 );
@@ -66,9 +67,11 @@ export const AdminJobEdit = component$<{ data: AdminJobData }>(({ data }) => {
 	return (
 		<div>
 			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-2xl font-bold text-gray-800">Edit Job</h2>
+				<h2 class="text-2xl font-bold text-gray-800">
+					{t("jobs.admin.edit.editJob")}
+				</h2>
 				<Button href={`${adminBase}/jobs`} variant="secondary">
-					Back to Jobs
+					{t("jobs.admin.edit.backToJobs")}
 				</Button>
 			</div>
 
@@ -81,11 +84,16 @@ export const AdminJobEdit = component$<{ data: AdminJobData }>(({ data }) => {
 					}}
 					class="space-y-6"
 				>
-					<Input name="title" label="Title" required value={job.title} />
+					<Input
+						name="title"
+						label={t("jobs.admin.edit.title")}
+						required
+						value={job.title}
+					/>
 
 					<div>
 						<span class="block text-sm font-medium text-gray-700 mb-2">
-							Description
+							{t("jobs.admin.edit.description")}
 						</span>
 						<div class="border border-gray-300 rounded-lg overflow-hidden">
 							<BlockNoteEditor
@@ -102,70 +110,92 @@ export const AdminJobEdit = component$<{ data: AdminJobData }>(({ data }) => {
 
 					<Select
 						name="locationType"
-						label="Location Type"
+						label={t("jobs.admin.edit.locationType")}
 						value={job.locationType}
 						onChange$={(e) => {
 							locationType.value = (e.target as HTMLSelectElement).value as any;
 						}}
 					>
-						<option value="on-site">On-site / Hybrid</option>
-						<option value="remote-eu">Remote — EU</option>
-						<option value="remote-country">Remote — specific country</option>
+						<option value="on-site">{t("jobs.admin.edit.onSiteHybrid")}</option>
+						<option value="remote-eu">{t("jobs.admin.edit.remoteEu")}</option>
+						<option value="remote-country">
+							{t("jobs.admin.edit.remoteSpecificCountry")}
+						</option>
 					</Select>
 
 					{locationType.value === "on-site" && (
-						<Input name="city" label="City" value={job.city ?? ""} />
+						<Input
+							name="city"
+							label={t("jobs.admin.edit.city")}
+							value={job.city ?? ""}
+						/>
 					)}
 
 					{(locationType.value === "on-site" ||
 						locationType.value === "remote-country") && (
-						<Input name="country" label="Country" value={job.country ?? ""} />
+						<Input
+							name="country"
+							label={t("jobs.admin.edit.country")}
+							value={job.country ?? ""}
+						/>
 					)}
 
 					<Input
 						name="link"
-						label="Application link / CTA (optional)"
+						label={t("jobs.admin.edit.applicationLinkCtaOptional")}
 						type="url"
 						value={job.link ?? ""}
-						placeholder="https://..."
+						placeholder={t("jobs.admin.edit.https")}
 					/>
 
 					<Select
 						name="posterRelation"
-						label="Poster's relation to the position"
+						label={t("jobs.admin.edit.posterSRelationToThe")}
 						value={job.posterRelation ?? ""}
 					>
-						<option value="">— not specified —</option>
-						<option value="hiring">Hiring for this role</option>
-						<option value="founder">Founder</option>
-						<option value="direct-team">Direct team</option>
-						<option value="works-there">Works there</option>
-						<option value="other">Other</option>
+						<option value="">{t("jobs.admin.edit.notSpecified")}</option>
+						<option value="hiring">
+							{t("jobs.admin.edit.hiringForThisRole")}
+						</option>
+						<option value="founder">{t("jobs.admin.edit.founder")}</option>
+						<option value="direct-team">
+							{t("jobs.admin.edit.directTeam")}
+						</option>
+						<option value="works-there">
+							{t("jobs.admin.edit.worksThere")}
+						</option>
+						<option value="other">{t("jobs.admin.edit.other")}</option>
 					</Select>
 
 					<Input
 						name="expiresAt"
-						label="Expires on"
+						label={t("jobs.admin.edit.expiresOn")}
 						type="date"
 						required
 						value={job.expiresAt.slice(0, 10)}
 					/>
 
-					<Select name="status" label="Status" value={job.status}>
-						<option value="pending">Pending review</option>
-						<option value="approved">Approved</option>
+					<Select
+						name="status"
+						label={t("jobs.admin.edit.status")}
+						value={job.status}
+					>
+						<option value="pending">
+							{t("jobs.admin.edit.pendingReview")}
+						</option>
+						<option value="approved">{t("jobs.admin.edit.approved")}</option>
 					</Select>
 
 					{updateAction.value?.failed && (
 						<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm">
-							Failed to update job. Please check the form.
+							{t("jobs.admin.edit.failedToUpdateJobPlease")}
 						</div>
 					)}
 
 					<div class="flex gap-4">
-						<Button type="submit">Save Changes</Button>
+						<Button type="submit">{t("jobs.admin.edit.saveChanges")}</Button>
 						<Button href={`${adminBase}/jobs`} variant="secondary">
-							Cancel
+							{t("jobs.admin.edit.cancel")}
 						</Button>
 					</div>
 				</form>

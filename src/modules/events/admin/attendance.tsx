@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { useLocation } from "@qwik.dev/router";
-import { Button, Card, formatDate } from "~/core/ui";
+import { Button, Card, formatDate, t } from "~/core/ui";
 import type { AdminAttendanceData } from "./attendance-data";
 
 type Props = { data: AdminAttendanceData };
@@ -16,10 +16,12 @@ export const AdminEventAttendance = component$<Props>(({ data }) => {
 		<div class="container mx-auto px-4 py-8 max-w-7xl">
 			<div class="mb-6">
 				<h1 class="text-3xl font-bold text-gray-900">
-					Attendance Report: {event.title}
+					{t("events.admin.attendance.attendanceReport", {
+						title: event.title,
+					})}
 				</h1>
 				<p class="mt-2 text-gray-600">
-					Track ticket scans and attendance verification
+					{t("events.admin.attendance.trackTicketScansAndAttendance")}
 				</p>
 			</div>
 
@@ -27,7 +29,9 @@ export const AdminEventAttendance = component$<Props>(({ data }) => {
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 				<Card>
 					<div class="text-center">
-						<p class="text-sm font-medium text-gray-600">Total Tickets</p>
+						<p class="text-sm font-medium text-gray-600">
+							{t("events.admin.attendance.totalTickets")}
+						</p>
 						<p class="mt-2 text-4xl font-bold text-gray-900">
 							{stats.totalTickets}
 						</p>
@@ -36,7 +40,9 @@ export const AdminEventAttendance = component$<Props>(({ data }) => {
 
 				<Card>
 					<div class="text-center">
-						<p class="text-sm font-medium text-gray-600">Scanned</p>
+						<p class="text-sm font-medium text-gray-600">
+							{t("events.admin.attendance.scanned")}
+						</p>
 						<p class="mt-2 text-4xl font-bold text-green-600">
 							{stats.scannedTickets}
 						</p>
@@ -45,7 +51,9 @@ export const AdminEventAttendance = component$<Props>(({ data }) => {
 
 				<Card>
 					<div class="text-center">
-						<p class="text-sm font-medium text-gray-600">Attendance Rate</p>
+						<p class="text-sm font-medium text-gray-600">
+							{t("events.admin.attendance.attendanceRate")}
+						</p>
 						<p class="mt-2 text-4xl font-bold text-blue-600">
 							{stats.attendanceRate.toFixed(1)}%
 						</p>
@@ -54,7 +62,9 @@ export const AdminEventAttendance = component$<Props>(({ data }) => {
 
 				<Card>
 					<div class="text-center">
-						<p class="text-sm font-medium text-gray-600">Free / Paid</p>
+						<p class="text-sm font-medium text-gray-600">
+							{t("events.admin.attendance.freePaid")}
+						</p>
 						<p class="mt-2 text-2xl font-bold text-gray-900">
 							{stats.freeTickets} / {stats.paidTickets}
 						</p>
@@ -79,7 +89,7 @@ export const AdminEventAttendance = component$<Props>(({ data }) => {
 							d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
 						/>
 					</svg>
-					Scan Tickets
+					{t("events.admin.attendance.scanTickets")}
 				</Button>
 				<Button variant="secondary">
 					<svg
@@ -96,17 +106,19 @@ export const AdminEventAttendance = component$<Props>(({ data }) => {
 							d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
 						/>
 					</svg>
-					Export CSV
+					{t("events.admin.attendance.exportCsv")}
 				</Button>
 			</div>
 
 			{/* Attended Tickets Table */}
 			<Card>
-				<h2 class="text-xl font-bold text-gray-900 mb-4">Attended Tickets</h2>
+				<h2 class="text-xl font-bold text-gray-900 mb-4">
+					{t("events.admin.attendance.attendedTickets")}
+				</h2>
 
 				{attendedTickets.length === 0 ? (
 					<div class="text-center py-8 text-gray-500">
-						<p>No tickets have been scanned yet.</p>
+						<p>{t("events.admin.attendance.noTicketsHaveBeenScanned")}</p>
 					</div>
 				) : (
 					<div class="overflow-x-auto">
@@ -114,19 +126,19 @@ export const AdminEventAttendance = component$<Props>(({ data }) => {
 							<thead class="bg-gray-50">
 								<tr>
 									<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Ticket Holder
+										{t("events.admin.attendance.ticketHolder")}
 									</th>
 									<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Product
+										{t("events.admin.attendance.product")}
 									</th>
 									<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Participants
+										{t("events.admin.attendance.participants")}
 									</th>
 									<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Type
+										{t("events.admin.attendance.type")}
 									</th>
 									<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Scanned At
+										{t("events.admin.attendance.scannedAt")}
 									</th>
 								</tr>
 							</thead>
@@ -165,7 +177,9 @@ export const AdminEventAttendance = component$<Props>(({ data }) => {
 														: "bg-blue-100 text-blue-800"
 												}`}
 											>
-												{ticket.product.price === 0 ? "Free" : "Paid"}
+												{ticket.product.price === 0
+													? t("events.admin.attendance.free")
+													: t("events.admin.attendance.paid")}
 											</span>
 										</td>
 										<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

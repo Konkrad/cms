@@ -1,4 +1,5 @@
 import { component$ } from "@qwik.dev/core";
+import { t } from "~/core/ui";
 
 interface ParticipationSummaryProps {
 	summary: {
@@ -13,26 +14,36 @@ export const ParticipationSummary = component$<ParticipationSummaryProps>(
 	({ summary }) => {
 		return (
 			<div class="bg-white rounded-lg shadow-sm p-6">
-				<h3 class="text-lg font-semibold mb-4">Participation Summary</h3>
+				<h3 class="text-lg font-semibold mb-4">
+					{t("events.participationSummary.participationSummary")}
+				</h3>
 				<div class="grid grid-cols-3 gap-4">
 					<div class="text-center">
 						<div class="text-3xl font-bold text-green-600">{summary.yes}</div>
-						<div class="text-sm text-gray-600">Going</div>
+						<div class="text-sm text-gray-600">
+							{t("events.participationSummary.going")}
+						</div>
 					</div>
 					<div class="text-center">
 						<div class="text-3xl font-bold text-yellow-600">
 							{summary.maybe}
 						</div>
-						<div class="text-sm text-gray-600">Maybe</div>
+						<div class="text-sm text-gray-600">
+							{t("events.participationSummary.maybe")}
+						</div>
 					</div>
 					<div class="text-center">
 						<div class="text-3xl font-bold text-red-600">{summary.no}</div>
-						<div class="text-sm text-gray-600">Not Going</div>
+						<div class="text-sm text-gray-600">
+							{t("events.participationSummary.notGoing")}
+						</div>
 					</div>
 				</div>
 				<div class="mt-4 pt-4 border-t text-center">
 					<div class="text-2xl font-bold text-gray-900">{summary.total}</div>
-					<div class="text-sm text-gray-600">Total Responses</div>
+					<div class="text-sm text-gray-600">
+						{t("events.participationSummary.totalResponses")}
+					</div>
 				</div>
 			</div>
 		);

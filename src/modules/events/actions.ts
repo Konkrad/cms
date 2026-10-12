@@ -5,6 +5,7 @@ import {
 	payments,
 	requireModuleAuth,
 	requirements,
+	t,
 	usersService,
 } from "~/core";
 import type {
@@ -32,7 +33,7 @@ export const useUpdateParticipation = routeAction$(
 		const eventId = await eventIdOf(event, "/events/:slug");
 		const target = eventId ? await eventsService.getById(eventId) : undefined;
 		if (!eventId || !target || !(await canViewEvent(target, userData))) {
-			return event.fail(404, { message: "Event not found" });
+			return event.fail(404, { message: t("events.actions.eventNotFound") });
 		}
 
 		// Registering needs the event requirements (spec 4.6); never trust the page for it.
@@ -41,7 +42,7 @@ export const useUpdateParticipation = routeAction$(
 			(await requirements.pending(userData, CHECKOUT_CONTEXT)).length > 0
 		) {
 			return event.fail(400, {
-				message: "Please answer the questions above before registering.",
+				message: t("events.actions.answerQuestionsBeforeRegistering"),
 			});
 		}
 
@@ -103,14 +104,14 @@ export const useCreateCheckoutSession = routeAction$(
 			? await eventsService.getById(eventId)
 			: undefined;
 		if (!eventId || !eventData || !(await canViewEvent(eventData, user))) {
-			return event.fail(404, { message: "Event not found" });
+			return event.fail(404, { message: t("events.actions.eventNotFound") });
 		}
 
 		// The buyer's requirements (food preference, photo consent) are checked on the server,
 		// whatever the page showed (spec 4.6).
 		if ((await requirements.pending(user, CHECKOUT_CONTEXT)).length > 0) {
 			return event.fail(400, {
-				message: "Please answer the questions above before buying tickets.",
+				message: t("events.actions.answerQuestionsBeforeBuying"),
 			});
 		}
 
@@ -118,7 +119,9 @@ export const useCreateCheckoutSession = routeAction$(
 		const salesValidation = await eventsService.validateSalesPeriod(eventData);
 		if (!salesValidation.valid) {
 			return event.fail(400, {
-				message: salesValidation.reason || "Sales are not currently available",
+				message:
+					salesValidation.reason ||
+					t("events.actions.salesAreNotCurrentlyAvailable"),
 			});
 		}
 
@@ -126,10 +129,10 @@ export const useCreateCheckoutSession = routeAction$(
 		try {
 			parsedItems = JSON.parse(data.items as string) as CheckoutItemInput[];
 		} catch {
-			return event.fail(400, { message: "Invalid cart" });
+			return event.fail(400, { message: t("events.actions.invalidCart") });
 		}
 		if (!Array.isArray(parsedItems)) {
-			return event.fail(400, { message: "Invalid cart" });
+			return event.fail(400, { message: t("events.actions.invalidCart") });
 		}
 		const items = parsedItems
 			.map((item) => ({
@@ -143,7 +146,9 @@ export const useCreateCheckoutSession = routeAction$(
 			);
 
 		if (items.length === 0) {
-			return event.fail(400, { message: "Please select at least one ticket" });
+			return event.fail(400, {
+				message: t("events.actions.pleaseSelectAtLeastOne"),
+			});
 		}
 
 		// Validate inventory
@@ -189,7 +194,9 @@ export const useCreateCheckoutSession = routeAction$(
 				entry.participantUnits.length !== entry.quantity
 			) {
 				return event.fail(400, {
-					message: `Participant data is incomplete for ${entry.product.name}`,
+					message: t("events.actions.participantDataIsIncompleteFor", {
+						name: entry.product.name,
+					}),
 				});
 			}
 
@@ -201,7 +208,10 @@ export const useCreateCheckoutSession = routeAction$(
 				const unit = entry.participantUnits[unitIdx] || [];
 				if (unit.length !== expectedCapacity) {
 					return event.fail(400, {
-						message: `${entry.product.name} requires ${expectedCapacity} participant(s) per ticket`,
+						message: t("events.actions.participantsPerTicket", {
+							product: entry.product.name,
+							count: expectedCapacity,
+						}),
 					});
 				}
 
@@ -213,7 +223,10 @@ export const useCreateCheckoutSession = routeAction$(
 						const resolved = linkedEmails.get(slot.existingUserId);
 						if (!resolved) {
 							return event.fail(400, {
-								message: `Invalid participant details for ${entry.product.name}, ticket ${unitIdx + 1}`,
+								message: t(
+									"events.actions.invalidParticipantDetailsForTicket",
+									{ name: entry.product.name, value: unitIdx + 1 },
+								),
 							});
 						}
 						slot.email = resolved;
@@ -221,7 +234,10 @@ export const useCreateCheckoutSession = routeAction$(
 					const email = (slot?.email || "").trim();
 					if (!name || !email || !isValidEmail(email)) {
 						return event.fail(400, {
-							message: `Invalid participant details for ${entry.product.name}, ticket ${unitIdx + 1}`,
+							message: t("events.actions.invalidParticipantDetailsForTicket", {
+								name: entry.product.name,
+								value: unitIdx + 1,
+							}),
 						});
 					}
 				}
@@ -318,8 +334,7 @@ export const useCreateCheckoutSession = routeAction$(
 		// Paid: amounts come from the DB prices only (never from the request), spec 4.7.
 		if (!payments.enabled()) {
 			return event.fail(400, {
-				message:
-					"Online payment is not available right now; only free tickets can be booked.",
+				message: t("events.actions.onlinePaymentIsNotAvailable"),
 			});
 		}
 		const payment = await startTicketPayment({
@@ -348,7 +363,7 @@ export const useGenerateSecureUrl = routeAction$(
 
 		if (!result) {
 			return event.fail(403, {
-				message: "Cannot access this photo. You must have attended the event.",
+				message: t("events.actions.cannotAccessThisPhotoYou"),
 			});
 		}
 

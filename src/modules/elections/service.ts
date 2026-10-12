@@ -6,6 +6,7 @@ import {
 	membershipsService,
 	type PublicUser,
 	publicUserColumns,
+	t,
 } from "~/core";
 import {
 	type ElectionApplication,
@@ -257,7 +258,7 @@ export const electionsService = {
 		if (!position) return {};
 		if ((position as any).cycle?.status !== "draft") {
 			return {
-				error: "Positions can only be deleted while the cycle is in draft",
+				error: t("elections.service.positionsCanOnlyBeDeleted"),
 			};
 		}
 		await db.delete(electionPositions).where(eq(electionPositions.id, id));
@@ -318,9 +319,9 @@ export const electionsService = {
 		const cycle = await db.query.electionCycles.findFirst({
 			where: { id: data.cycleId },
 		});
-		if (!cycle) return { error: "Election cycle not found" };
+		if (!cycle) return { error: t("elections.service.electionCycleNotFound") };
 		if (cycle.status !== "open")
-			return { error: "This election is not open for applications" };
+			return { error: t("elections.service.thisElectionIsNotOpen") };
 
 		// The position id comes from the client: it must belong to the cycle whose status and
 		// tier gate were just checked, otherwise those checks could be sidestepped.
@@ -328,7 +329,7 @@ export const electionsService = {
 			where: { id: data.positionId },
 		});
 		if (!position || position.cycleId !== data.cycleId) {
-			return { error: "Position not found in this election" };
+			return { error: t("elections.service.positionNotFoundInThis") };
 		}
 
 		if (cycle.requiredMembershipTier) {
@@ -339,10 +340,10 @@ export const electionsService = {
 			if (!hasAccess) {
 				const tierLabel =
 					cycle.requiredMembershipTier === "full"
-						? "Full Member"
-						: "Associated Member";
+						? t("elections.service.fullMember")
+						: t("elections.service.associatedMember");
 				return {
-					error: `You need at least ${tierLabel} status to apply for this election`,
+					error: t("elections.service.youNeedAtLeastStatus", { tierLabel }),
 				};
 			}
 		}
@@ -358,7 +359,7 @@ export const electionsService = {
 			)
 			.limit(1);
 		if (duplicate)
-			return { error: "You have already applied for this position" };
+			return { error: t("elections.service.youHaveAlreadyAppliedFor") };
 
 		const validated = insertElectionApplicationSchema.parse({
 			id: crypto.randomUUID(),

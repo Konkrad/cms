@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Form } from "@qwik.dev/router";
+import { t } from "~/core/ui";
 import { useCreatePosition } from "./actions";
 import type { AdminNewPositionData } from "./data";
 
@@ -9,7 +10,9 @@ export const AdminNewPosition = component$<{ data: AdminNewPositionData }>(
 
 		return (
 			<div class="max-w-lg">
-				<h2 class="text-2xl font-bold text-gray-800 mb-6">Add Position</h2>
+				<h2 class="text-2xl font-bold text-gray-800 mb-6">
+					{t("elections.admin.positionNew.addPosition")}
+				</h2>
 
 				<Form
 					action={createAction}
@@ -21,14 +24,14 @@ export const AdminNewPosition = component$<{ data: AdminNewPositionData }>(
 							for="f-title"
 							class="block text-sm font-medium text-gray-700 mb-1"
 						>
-							Position Title
+							{t("elections.admin.positionNew.positionTitle")}
 						</label>
 						<input
 							id="f-title"
 							type="text"
 							name="title"
 							required
-							placeholder="e.g. Treasurer"
+							placeholder={t("elections.admin.positionNew.eGTreasurer")}
 							class="w-full border rounded-md px-3 py-2 text-sm"
 						/>
 					</div>
@@ -37,7 +40,7 @@ export const AdminNewPosition = component$<{ data: AdminNewPositionData }>(
 							for="f-description"
 							class="block text-sm font-medium text-gray-700 mb-1"
 						>
-							Description (optional)
+							{t("elections.admin.positionNew.descriptionOptional")}
 						</label>
 						<textarea
 							id="f-description"
@@ -51,7 +54,7 @@ export const AdminNewPosition = component$<{ data: AdminNewPositionData }>(
 							for="f-maxCandidates"
 							class="block text-sm font-medium text-gray-700 mb-1"
 						>
-							Max Candidates (optional)
+							{t("elections.admin.positionNew.maxCandidatesOptional")}
 						</label>
 						<input
 							id="f-maxCandidates"
@@ -66,13 +69,13 @@ export const AdminNewPosition = component$<{ data: AdminNewPositionData }>(
 							type="submit"
 							class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
 						>
-							Add Position
+							{t("elections.admin.positionNew.addPosition")}
 						</button>
 						<a
 							href={`${guard.adminBase}/elections/${guard.cycle.id}`}
 							class="text-sm text-gray-500 hover:text-gray-700 py-2"
 						>
-							Cancel
+							{t("elections.admin.positionNew.cancel")}
 						</a>
 					</div>
 				</Form>

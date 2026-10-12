@@ -1,7 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, Link, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireModuleAdmin, requireWithinScope } from "~/core";
-import { formatDate, Pagination, SearchBar } from "~/core/ui";
+import { formatDate, Pagination, SearchBar, t } from "~/core/ui";
 import { notifyIfApproved } from "../notifications";
 import { jobsService } from "../service";
 import type { AdminJobsData } from "./list-data";
@@ -11,7 +11,8 @@ export const useApproveJob = routeAction$(
 		const { scope } = await requireModuleAdmin(event, { module: "jobs" });
 		const before = await jobsService.getById(data.jobId);
 		await requireWithinScope(event, scope, before);
-		if (!before) return event.fail(404, { message: "Job not found" });
+		if (!before)
+			return event.fail(404, { message: t("jobs.admin.list.jobNotFound") });
 		const after = await jobsService.update(data.jobId, {
 			status: "approved",
 		} as any);
@@ -44,12 +45,14 @@ export const AdminJobsList = component$<{ data: AdminJobsData }>(({ data }) => {
 	return (
 		<div>
 			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-2xl font-bold text-gray-800">Jobs</h2>
+				<h2 class="text-2xl font-bold text-gray-800">
+					{t("jobs.admin.list.jobs")}
+				</h2>
 			</div>
 
 			<SearchBar
 				value={data.search}
-				placeholder="Search by title or location…"
+				placeholder={t("jobs.admin.list.searchByTitleOrLocation")}
 			/>
 
 			<div class="bg-white rounded-lg shadow-sm overflow-x-auto">
@@ -57,22 +60,22 @@ export const AdminJobsList = component$<{ data: AdminJobsData }>(({ data }) => {
 					<thead class="bg-gray-50">
 						<tr>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Job
+								{t("jobs.admin.list.job")}
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Suggested By
+								{t("jobs.admin.list.suggestedBy")}
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Location
+								{t("jobs.admin.list.location")}
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Expires
+								{t("jobs.admin.list.expires")}
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Status
+								{t("jobs.admin.list.status")}
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Actions
+								{t("jobs.admin.list.actions")}
 							</th>
 						</tr>
 					</thead>
@@ -82,10 +85,10 @@ export const AdminJobsList = component$<{ data: AdminJobsData }>(({ data }) => {
 							const locationLabel =
 								job.locationType === "on-site"
 									? [job.city, job.country].filter(Boolean).join(", ") ||
-										"On-site / Hybrid"
+										t("jobs.admin.list.onSiteHybrid")
 									: job.locationType === "remote-eu"
-										? "Remote — EU"
-										: `Remote — ${job.country ?? ""}`;
+										? t("jobs.admin.list.remoteEu")
+										: t("jobs.admin.list.remote", { value: job.country ?? "" });
 
 							return (
 								<tr key={job.id} class="hover:bg-gray-50">
@@ -106,7 +109,7 @@ export const AdminJobsList = component$<{ data: AdminJobsData }>(({ data }) => {
 												isExpired ? "text-red-600 font-medium" : "text-gray-700"
 											}
 										>
-											{isExpired ? "Expired · " : ""}
+											{isExpired ? t("jobs.admin.list.expired") : ""}
 											{formatDate(job.expiresAt)}
 										</span>
 									</td>
@@ -119,7 +122,9 @@ export const AdminJobsList = component$<{ data: AdminJobsData }>(({ data }) => {
 													: "bg-yellow-100 text-yellow-800",
 											].join(" ")}
 										>
-											{job.status === "approved" ? "Approved" : "Pending"}
+											{job.status === "approved"
+												? t("jobs.admin.list.approved")
+												: t("jobs.admin.list.pending")}
 										</span>
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -131,7 +136,7 @@ export const AdminJobsList = component$<{ data: AdminJobsData }>(({ data }) => {
 														type="submit"
 														class="text-green-600 hover:text-green-900"
 													>
-														Approve
+														{t("jobs.admin.list.approve")}
 													</button>
 												</Form>
 											)}
@@ -139,7 +144,7 @@ export const AdminJobsList = component$<{ data: AdminJobsData }>(({ data }) => {
 												href={`${data.adminBase}/jobs/${job.id}/edit`}
 												class="text-blue-600 hover:text-blue-900"
 											>
-												Edit
+												{t("jobs.admin.list.edit")}
 											</Link>
 											<Form action={deleteAction}>
 												<input type="hidden" name="jobId" value={job.id} />
@@ -148,13 +153,18 @@ export const AdminJobsList = component$<{ data: AdminJobsData }>(({ data }) => {
 													preventdefault:click
 													class="text-red-600 hover:text-red-900"
 													onClick$={(e) => {
-														if (!confirm("Delete this job posting?")) return;
+														if (
+															!confirm(
+																t("jobs.admin.list.deleteThisJobPosting"),
+															)
+														)
+															return;
 														(e.target as HTMLElement)
 															.closest("form")
 															?.requestSubmit();
 													}}
 												>
-													Delete
+													{t("jobs.admin.list.delete")}
 												</button>
 											</Form>
 										</div>
@@ -167,8 +177,8 @@ export const AdminJobsList = component$<{ data: AdminJobsData }>(({ data }) => {
 				{data.jobs.length === 0 && (
 					<div class="text-center py-12 text-gray-500">
 						{data.search
-							? `No jobs matching "${data.search}".`
-							: "No job postings yet."}
+							? t("jobs.admin.list.noJobsMatching", { search: data.search })
+							: t("jobs.admin.list.noJobPostingsYet")}
 					</div>
 				)}
 				<Pagination

@@ -4,6 +4,7 @@ import {
 	publicImageUrlFromKey,
 	scopeContentFilter,
 	scopeSourceLabels,
+	t,
 	withItemUrls,
 } from "~/core";
 import { eventsBlocks } from "./blocks";
@@ -26,7 +27,14 @@ export const eventsModule = defineModule({
 	requirements: eventsRequirements,
 	// Events are managed in every scope's admin, the root's included.
 	admin: {
-		sections: [{ path: "events", label: "Events", order: 30, scopes: "all" }],
+		sections: [
+			{
+				path: "events",
+				label: t("events.module.events"),
+				order: 30,
+				scopes: "all",
+			},
+		],
 	},
 	blocks: eventsBlocks,
 	// Detail pages of global events only; members-only events are not public.
@@ -108,7 +116,7 @@ export const eventsModule = defineModule({
 	// `events:event:<id>` → `<scope path>/events/<slug>`.
 	refs: {
 		event: {
-			label: "Event",
+			label: t("events.module.event"),
 			path: "/events/:slug",
 			locate: (ids) => eventsService.locate(ids),
 			find: (scopeId, param) => eventsService.findByParam(scopeId, param),
@@ -118,8 +126,8 @@ export const eventsModule = defineModule({
 	reevaluateUserTags: (userId) => tagRulesService.evaluateRulesForUser(userId),
 	// Proposal and debrief questions are forms admins edit (spec 5.2); the active form per scope.
 	forms: [
-		{ purpose: "events.proposal", label: "Event proposal" },
-		{ purpose: "events.debrief", label: "Event debrief" },
+		{ purpose: "events.proposal", label: t("events.module.eventProposal") },
+		{ purpose: "events.debrief", label: t("events.module.eventDebrief") },
 	],
 	// A chapter's public event is published when its proposal is approved (lazy: see payments).
 	reviews: {

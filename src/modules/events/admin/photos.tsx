@@ -1,7 +1,7 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { Link, routeAction$, useLocation, z, zod$ } from "@qwik.dev/router";
 import { deleteS3Objects, deriveThumbnailKey } from "~/core";
-import { Button, Card, formatDate, ImageUploader } from "~/core/ui";
+import { Button, Card, formatDate, ImageUploader, t } from "~/core/ui";
 import { photosService } from "../services/photos";
 import { requireAdminEvent } from "./event-guards";
 import type { AdminPhotosData } from "./photos-data";
@@ -16,7 +16,7 @@ export const useCreatePhoto = routeAction$(
 			!data.filePath.startsWith(`private/events/${params.id}/`) ||
 			data.filePath.includes("..")
 		) {
-			return fail(400, { message: "Invalid photo path" });
+			return fail(400, { message: t("events.admin.photos.invalidPhotoPath") });
 		}
 
 		// Create photo record
@@ -43,7 +43,7 @@ export const useDeletePhoto = routeAction$(
 
 		const photo = await photosService.getById(data.photoId);
 		if (!photo || photo.eventId !== params.id) {
-			return fail(404, { message: "Photo not found" });
+			return fail(404, { message: t("events.admin.photos.photoNotFound") });
 		}
 
 		// Delete from S3 (main + thumbnail)
@@ -76,10 +76,10 @@ export const AdminEventPhotos = component$<Props>(({ data }) => {
 		<div class="container mx-auto px-4 py-8 max-w-6xl">
 			<div class="mb-6">
 				<h1 class="text-3xl font-bold text-gray-900">
-					Manage Photos: {event.title}
+					{t("events.admin.photos.managePhotos", { title: event.title })}
 				</h1>
 				<p class="mt-2 text-gray-600">
-					Upload photos that will be visible to attendees who were scanned
+					{t("events.admin.photos.uploadPhotosThatWillBe")}
 				</p>
 			</div>
 
@@ -92,7 +92,9 @@ export const AdminEventPhotos = component$<Props>(({ data }) => {
 					aspectRatio="4/3"
 					onFileUploaded$={$(async (response: { filePath?: string }) => {
 						if (!response.filePath) {
-							uploadError.value = "Upload failed — no file path in response";
+							uploadError.value = t(
+								"events.admin.photos.uploadFailedNoFilePath",
+							);
 							return;
 						}
 
@@ -101,7 +103,9 @@ export const AdminEventPhotos = component$<Props>(({ data }) => {
 						});
 
 						if (result.value?.success) {
-							uploadSuccess.value = "Photo uploaded successfully!";
+							uploadSuccess.value = t(
+								"events.admin.photos.photoUploadedSuccessfully",
+							);
 							uploadError.value = null;
 							window.location.reload();
 						} else {
@@ -109,7 +113,7 @@ export const AdminEventPhotos = component$<Props>(({ data }) => {
 								result.value?.message ||
 								(result.value?.fieldErrors
 									? JSON.stringify(result.value.fieldErrors)
-									: "Failed to register photo");
+									: t("events.admin.photos.failedToRegisterPhoto"));
 							uploadError.value = errorMsg;
 							uploadSuccess.value = null;
 						}
@@ -130,7 +134,7 @@ export const AdminEventPhotos = component$<Props>(({ data }) => {
 
 				{createPhotoAction.value?.fieldErrors && (
 					<div class="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-sm">
-						<strong>Validation errors:</strong>
+						<strong>{t("events.admin.photos.validationErrors")}</strong>
 						<pre class="mt-2 text-sm">
 							{JSON.stringify(createPhotoAction.value.fieldErrors, null, 2)}
 						</pre>
@@ -141,12 +145,12 @@ export const AdminEventPhotos = component$<Props>(({ data }) => {
 			{/* Photos List */}
 			<Card>
 				<h2 class="text-xl font-bold text-gray-900 mb-4">
-					Uploaded Photos ({photos.length})
+					{t("events.admin.photos.uploadedPhotos", { count: photos.length })}
 				</h2>
 
 				{photos.length === 0 ? (
 					<div class="text-center py-8 text-gray-500">
-						<p>No photos uploaded yet. Use the uploader above to add photos.</p>
+						<p>{t("events.admin.photos.noPhotosUploadedYetUse")}</p>
 					</div>
 				) : (
 					<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -169,12 +173,13 @@ export const AdminEventPhotos = component$<Props>(({ data }) => {
 											variant="danger"
 											size="sm"
 											onClick$={async () => {
-												if (!confirm("Delete this photo?")) return;
+												if (!confirm(t("events.admin.photos.deleteThisPhoto")))
+													return;
 												await deletePhotoAction.submit({ photoId: photo.id });
 												window.location.reload();
 											}}
 										>
-											Delete
+											{t("events.admin.photos.delete")}
 										</Button>
 									</div>
 									<div class="p-2">
@@ -200,7 +205,7 @@ export const AdminEventPhotos = component$<Props>(({ data }) => {
 					href={backUrl}
 					class="text-blue-600 hover:text-blue-700 font-medium"
 				>
-					← Back to Event Dashboard
+					{t("events.admin.photos.backToEventDashboard")}
 				</Link>
 			</div>
 		</div>

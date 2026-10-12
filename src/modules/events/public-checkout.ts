@@ -6,6 +6,7 @@ import {
 	payments,
 	publicImageUrlFromKey,
 	requirements,
+	t,
 } from "~/core";
 import { getViewableEvent } from "./public-event";
 import { CHECKOUT_CONTEXT } from "./requirements";
@@ -20,7 +21,8 @@ export async function loadCheckoutPage(
 	param: string,
 ) {
 	const viewable = await getViewableEvent(requestEvent, param, "/checkout");
-	if (!viewable) throw requestEvent.error(404, "Event not found");
+	if (!viewable)
+		throw requestEvent.error(404, t("events.publicCheckout.eventNotFound"));
 	const eventId = viewable.event.id;
 
 	const groups = await inventoryGroupsService.getByEventId(eventId);
@@ -124,7 +126,8 @@ export async function loadPhotosPage(
 	param: string,
 ) {
 	const viewable = await getViewableEvent(requestEvent, param, "/photos");
-	if (!viewable) throw requestEvent.error(404, "Event not found");
+	if (!viewable)
+		throw requestEvent.error(404, t("events.publicCheckout.eventNotFound"));
 	const { event, url } = viewable;
 
 	const user = await getServerSession(requestEvent);
@@ -147,7 +150,10 @@ async function loadAttendeePhotos(
 ): Promise<AttendeePhotos> {
 	if (!userId) {
 		requestEvent.status(401);
-		return { failed: true, message: "Please log in to view photos" };
+		return {
+			failed: true,
+			message: t("events.publicCheckout.pleaseLogInToView"),
+		};
 	}
 
 	const hasAttended = await photosService.checkUserAttendance(userId, eventId);
@@ -155,8 +161,7 @@ async function loadAttendeePhotos(
 		requestEvent.status(403);
 		return {
 			failed: true,
-			message:
-				"Only attendees who were scanned can view photos. Please ensure your ticket was scanned at the event.",
+			message: t("events.publicCheckout.onlyAttendeesWhoWereScanned"),
 		};
 	}
 

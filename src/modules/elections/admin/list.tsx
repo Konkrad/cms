@@ -1,6 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
-import { Pagination, SearchBar } from "~/core/ui";
+import { Pagination, SearchBar, t } from "~/core/ui";
 import type { AdminElectionsData } from "./data";
 
 const statusBadge = (status: string) => {
@@ -20,35 +20,40 @@ export const AdminElectionsList = component$<{ data: AdminElectionsData }>(
 		return (
 			<div>
 				<div class="flex items-center justify-between mb-6">
-					<h2 class="text-2xl font-bold text-gray-800">Elections</h2>
+					<h2 class="text-2xl font-bold text-gray-800">
+						{t("elections.admin.list.elections")}
+					</h2>
 					<Link
 						href={`${loaded.adminBase}/elections/new`}
 						class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
 					>
-						New Election Cycle
+						{t("elections.admin.list.newElectionCycle")}
 					</Link>
 				</div>
 
-				<SearchBar value={data.value.search} placeholder="Search by title…" />
+				<SearchBar
+					value={data.value.search}
+					placeholder={t("elections.admin.list.searchByTitle")}
+				/>
 
 				<div class="bg-white rounded-lg shadow-sm overflow-x-auto">
 					<table class="min-w-full divide-y divide-gray-200">
 						<thead class="bg-gray-50">
 							<tr>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-									Title
+									{t("elections.admin.list.title")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-									Year
+									{t("elections.admin.list.year")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-									Status
+									{t("elections.admin.list.status")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-									Required Tier
+									{t("elections.admin.list.requiredTier")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-									Actions
+									{t("elections.admin.list.actions")}
 								</th>
 							</tr>
 						</thead>
@@ -65,14 +70,15 @@ export const AdminElectionsList = component$<{ data: AdminElectionsData }>(
 										</span>
 									</td>
 									<td class="px-6 py-4 text-sm text-gray-500 capitalize">
-										{cycle.requiredMembershipTier ?? "None"}
+										{cycle.requiredMembershipTier ??
+											t("elections.admin.list.none")}
 									</td>
 									<td class="px-6 py-4 text-sm">
 										<Link
 											href={`${loaded.adminBase}/elections/${cycle.id}`}
 											class="text-blue-600 hover:text-blue-900"
 										>
-											Manage
+											{t("elections.admin.list.manage")}
 										</Link>
 									</td>
 								</tr>
@@ -82,8 +88,10 @@ export const AdminElectionsList = component$<{ data: AdminElectionsData }>(
 					{data.value.cycles.length === 0 && (
 						<div class="text-center py-12 text-gray-500">
 							{data.value.search
-								? `No elections matching "${data.value.search}".`
-								: "No election cycles yet."}
+								? t("elections.admin.list.noElectionsMatching", {
+										search: data.value.search,
+									})
+								: t("elections.admin.list.noElectionCyclesYet")}
 						</div>
 					)}
 					<Pagination

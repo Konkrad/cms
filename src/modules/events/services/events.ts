@@ -10,6 +10,7 @@ import {
 	type PublicUser,
 	publicUserColumns,
 	slugify,
+	t,
 	uniqueSlug,
 } from "~/core";
 import { users as usersTable } from "~/core/schema";
@@ -373,12 +374,15 @@ export const eventsService = {
 		if (earliestStart) {
 			return {
 				valid: false,
-				reason: `Sales open on ${formatDate(earliestStart)} at ${formatDate(earliestStart, "time")}`,
+				reason: t("events.service.salesOpenOnAt", {
+					date: formatDate(earliestStart),
+					time: formatDate(earliestStart, "time"),
+				}),
 			};
 		}
 
 		// Otherwise, sales are considered closed for the event
-		return { valid: false, reason: "Sales have closed for this event" };
+		return { valid: false, reason: t("events.service.salesHaveClosedForThis") };
 	},
 
 	/** Admin event list (title/city search; `scopeIds` limits it to those scopes, null = all). */
@@ -583,7 +587,7 @@ export const eventsService = {
 	): Promise<{ success: boolean; error?: string }> {
 		const event = await this.getById(eventId);
 		if (!event) {
-			return { success: false, error: "Event not found" };
+			return { success: false, error: t("events.service.eventNotFound") };
 		}
 
 		if (event.scopeId) {
@@ -591,7 +595,7 @@ export const eventsService = {
 			if (!member) {
 				return {
 					success: false,
-					error: "You must be a member of this group to join this event",
+					error: t("events.service.youMustBeAMember"),
 				};
 			}
 		}

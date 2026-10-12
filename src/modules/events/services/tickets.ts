@@ -1,6 +1,12 @@
 import crypto from "crypto";
 import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
-import { db, type PublicUser, publicUserColumns, usersService } from "~/core";
+import {
+	db,
+	type PublicUser,
+	publicUserColumns,
+	t,
+	usersService,
+} from "~/core";
 import type { events } from "../schema/events";
 import type { products } from "../schema/products";
 import type { ticketParticipants } from "../schema/ticket-participants";
@@ -231,12 +237,12 @@ export const ticketsService = {
 		});
 
 		if (!currentTicket) {
-			return { success: false, error: "Invalid QR code" };
+			return { success: false, error: t("events.service.invalidQrCode") };
 		}
 
 		// Verify event ID matches
 		if (currentTicket.eventId !== eventId) {
-			return { success: false, error: "QR code is for a different event" };
+			return { success: false, error: t("events.service.qrCodeIsForA") };
 		}
 
 		// Check if already scanned
@@ -255,7 +261,7 @@ export const ticketsService = {
 			.returning();
 
 		if (!ticket) {
-			return { success: false, error: "Failed to scan ticket" };
+			return { success: false, error: t("events.service.failedToScanTicket") };
 		}
 
 		return {

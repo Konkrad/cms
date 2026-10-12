@@ -2,7 +2,7 @@ import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { format } from "date-fns";
 import { requireModuleAdmin, requireWithinScope } from "~/core";
-import { Button, ImageUploader, Input, TextArea } from "~/core/ui";
+import { Button, ImageUploader, Input, TextArea, t } from "~/core/ui";
 import { dealsService } from "../service";
 import type { AdminDealData } from "./edit-data";
 import { StepsEditor } from "./StepsEditor";
@@ -33,7 +33,7 @@ export const useUpdateDeal = routeAction$(
 		throw event.redirect(303, `${adminBase}/deals`);
 	},
 	zod$({
-		name: z.string().min(1, "Name is required"),
+		name: z.string().min(1, t("deals.admin.edit.nameIsRequired")),
 		description: z.string().optional(),
 		logo: z.string().optional(),
 		validUntil: z.string().optional(),
@@ -71,9 +71,11 @@ export const AdminDealEdit = component$<{ data: AdminDealData }>(
 		return (
 			<div>
 				<div class="flex items-center justify-between mb-6">
-					<h2 class="text-2xl font-bold text-gray-800">Edit Deal</h2>
+					<h2 class="text-2xl font-bold text-gray-800">
+						{t("deals.admin.edit.editDeal")}
+					</h2>
 					<Button href={`${loaded.adminBase}/deals`} variant="secondary">
-						Back to Deals
+						{t("deals.admin.edit.backToDeals")}
 					</Button>
 				</div>
 
@@ -83,24 +85,29 @@ export const AdminDealEdit = component$<{ data: AdminDealData }>(
 						onSubmit$={handleSubmit}
 						class="space-y-6"
 					>
-						<Input name="name" label="Name" required value={deal.name} />
+						<Input
+							name="name"
+							label={t("deals.admin.edit.name")}
+							required
+							value={deal.name}
+						/>
 
 						<TextArea
 							name="description"
-							label="Description"
+							label={t("deals.admin.edit.description")}
 							rows={3}
 							value={deal.description ?? ""}
 						/>
 
 						<div>
 							<p class="text-sm font-medium text-gray-700 mb-1">
-								Logo (SVG, optional)
+								{t("deals.admin.edit.logoSvgOptional")}
 							</p>
 							{!showLogoUploader.value && loaded.logoUrl ? (
 								<div class="flex items-center gap-4">
 									<img
 										src={loaded.logoUrl}
-										alt="Current logo"
+										alt={t("deals.admin.edit.currentLogo")}
 										width={64}
 										height={64}
 										class="w-16 h-16 object-contain border border-gray-200 rounded-lg p-1"
@@ -112,7 +119,7 @@ export const AdminDealEdit = component$<{ data: AdminDealData }>(
 											showLogoUploader.value = true;
 										}}
 									>
-										Replace logo
+										{t("deals.admin.edit.replaceLogo")}
 									</button>
 									<input type="hidden" name="logo" value={deal.logo ?? ""} />
 								</div>
@@ -130,25 +137,29 @@ export const AdminDealEdit = component$<{ data: AdminDealData }>(
 
 						<Input
 							name="validUntil"
-							label="Valid Until (optional)"
+							label={t("deals.admin.edit.validUntilOptional")}
 							type="date"
 							value={validUntilDate}
 						/>
 
 						<div>
-							<p class="text-sm font-medium text-gray-700 mb-2">Steps</p>
+							<p class="text-sm font-medium text-gray-700 mb-2">
+								{t("deals.admin.edit.steps")}
+							</p>
 							<StepsEditor initialSteps={deal.steps ?? []} />
 						</div>
 
 						{updateAction.value?.failed && (
 							<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm">
-								Failed to update deal. Please check the form.
+								{t("deals.admin.edit.failedToUpdateDealPlease")}
 							</div>
 						)}
 
 						<div class="flex gap-4">
 							<Button type="submit" disabled={isSubmitting.value}>
-								{isSubmitting.value ? "Saving…" : "Save Changes"}
+								{isSubmitting.value
+									? t("deals.admin.edit.saving")
+									: t("deals.admin.edit.saveChanges")}
 							</Button>
 						</div>
 					</form>

@@ -4,6 +4,7 @@ import type { EventsPage } from "~/contracts/events";
 import {
 	publicImageUrlFromKey,
 	requestContentFilter,
+	t,
 	withItemUrls,
 } from "~/core";
 import { eventsService } from "./services/events";
@@ -41,7 +42,9 @@ export function usePastEvents() {
 			nextCursor.value = result.nextCursor;
 		} catch (e) {
 			error.value =
-				e instanceof Error ? e.message : "Failed to load past events";
+				e instanceof Error
+					? e.message
+					: t("events.usePastEvents.failedToLoadPastEvents");
 		} finally {
 			isLoading.value = false;
 		}
@@ -56,7 +59,9 @@ export function usePastEvents() {
 			nextCursor.value = result.nextCursor;
 		} catch (e) {
 			error.value =
-				e instanceof Error ? e.message : "Failed to load more events";
+				e instanceof Error
+					? e.message
+					: t("events.usePastEvents.failedToLoadMoreEvents");
 		} finally {
 			isLoadingMore.value = false;
 		}

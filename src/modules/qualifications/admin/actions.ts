@@ -1,5 +1,5 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { requireModuleAdmin } from "~/core";
+import { requireModuleAdmin, t } from "~/core";
 import { qualificationsService } from "../service";
 
 export const useCreateType = routeAction$(
@@ -53,7 +53,9 @@ export const useRejectQualification = routeAction$(
 	},
 	zod$({
 		qualId: z.string().uuid(),
-		notes: z.string().min(1, "Please provide a reason"),
+		notes: z
+			.string()
+			.min(1, t("qualifications.admin.actions.pleaseProvideAReason")),
 	}),
 );
 

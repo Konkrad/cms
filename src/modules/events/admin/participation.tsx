@@ -1,5 +1,5 @@
 import { component$ } from "@qwik.dev/core";
-import { formatDate } from "~/core/ui";
+import { formatDate, t } from "~/core/ui";
 import { ParticipationSummary } from "../components/ParticipationSummary";
 import type { AdminParticipationData } from "./participation-data";
 
@@ -12,9 +12,13 @@ export const AdminEventParticipation = component$<Props>(({ data }) => {
 		<div class="container mx-auto px-4 py-8 max-w-7xl">
 			<div class="mb-6">
 				<h1 class="text-3xl font-bold text-gray-900">
-					Participation Summary: {event.title}
+					{t("events.admin.participation.participationSummary", {
+						title: event.title,
+					})}
 				</h1>
-				<p class="mt-2 text-gray-600">Track who plans to attend your event</p>
+				<p class="mt-2 text-gray-600">
+					{t("events.admin.participation.trackWhoPlansToAttend")}
+				</p>
 			</div>
 
 			{/* Summary Cards */}
@@ -25,12 +29,14 @@ export const AdminEventParticipation = component$<Props>(({ data }) => {
 			{/* Detailed List */}
 			<div class="bg-white rounded-lg shadow-sm overflow-x-auto">
 				<div class="px-6 py-4 border-b border-gray-200">
-					<h2 class="text-xl font-bold text-gray-900">All Responses</h2>
+					<h2 class="text-xl font-bold text-gray-900">
+						{t("events.admin.participation.allResponses")}
+					</h2>
 				</div>
 
 				{participationData.details.length === 0 ? (
 					<div class="px-6 py-8 text-center text-gray-500">
-						<p>No participation responses yet.</p>
+						<p>{t("events.admin.participation.noParticipationResponsesYet")}</p>
 					</div>
 				) : (
 					<div class="overflow-x-auto">
@@ -38,19 +44,19 @@ export const AdminEventParticipation = component$<Props>(({ data }) => {
 							<thead class="bg-gray-50">
 								<tr>
 									<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										User
+										{t("events.admin.participation.user")}
 									</th>
 									<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Status
+										{t("events.admin.participation.status")}
 									</th>
 									<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Food Preference
+										{t("events.admin.participation.foodPreference")}
 									</th>
 									<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Photo Consent
+										{t("events.admin.participation.photoConsent")}
 									</th>
 									<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Last Updated
+										{t("events.admin.participation.lastUpdated")}
 									</th>
 								</tr>
 							</thead>
@@ -76,10 +82,10 @@ export const AdminEventParticipation = component$<Props>(({ data }) => {
 												}`}
 											>
 												{participation.status === "yes"
-													? "Going"
+													? t("events.admin.participation.going")
 													: participation.status === "maybe"
-														? "Maybe"
-														: "Not Going"}
+														? t("events.admin.participation.maybe")
+														: t("events.admin.participation.notGoing")}
 											</span>
 										</td>
 										<td
@@ -95,8 +101,8 @@ export const AdminEventParticipation = component$<Props>(({ data }) => {
 											{participation.photoConsentGiven === null
 												? "—"
 												: participation.photoConsentGiven
-													? "Yes"
-													: "No"}
+													? t("events.admin.participation.yes")
+													: t("events.admin.participation.no")}
 										</td>
 										<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
 											{formatDate(participation.updatedAt, "dateTime")}

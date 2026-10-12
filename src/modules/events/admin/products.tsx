@@ -1,6 +1,6 @@
 import { $, component$, useSignal, useTask$ } from "@qwik.dev/core";
 import { Form, routeAction$, z, zod$ } from "@qwik.dev/router";
-import { Button, formatDate, Input } from "~/core/ui";
+import { Button, formatCurrency, formatDate, Input, t } from "~/core/ui";
 import { InventoryGroupForm } from "../components/InventoryGroupForm";
 import { ProductForm } from "../components/ProductForm";
 import { inventoryGroupsService } from "../services/inventory-groups";
@@ -29,20 +29,25 @@ export const useCreateInventoryGroup = routeAction$(
 			return { success: true };
 		} catch (error) {
 			console.error("Failed to create inventory group:", error);
-			return event.fail(500, { message: "Failed to create inventory group" });
+			return event.fail(500, {
+				message: t("events.admin.products.failedToCreateInventoryGroup"),
+			});
 		}
 	},
 	zod$((zod) =>
 		zod
 			.object({
-				name: z.string().min(1, "Group name is required"),
+				name: z.string().min(1, t("events.admin.products.groupNameIsRequired")),
 				maxCapacity: z
 					.union([
 						z.string().transform((val) => parseInt(val, 10)),
 						z.number().int(),
 					])
 					.pipe(
-						z.number().int().positive("Max capacity must be greater than 0"),
+						z
+							.number()
+							.int()
+							.positive(t("events.admin.products.maxCapacityMustBeGreater")),
 					),
 				needsTicket: z
 					.union([
@@ -76,7 +81,7 @@ export const useCreateInventoryGroup = routeAction$(
 					if (new Date(data.salesStartDate) > new Date(data.salesEndDate)) {
 						ctx.addIssue({
 							code: z.ZodIssueCode.custom,
-							message: "Sales start date must be before sales end date",
+							message: t("events.admin.products.salesStartDateMustBe"),
 							path: ["salesStartDate"],
 						});
 					}
@@ -100,7 +105,9 @@ export const useCreateProduct = routeAction$(
 				validatedData.inventoryGroupId,
 			);
 			if (!inventoryGroup || inventoryGroup.eventId !== eventId) {
-				return event.fail(400, { message: "Invalid inventory group" });
+				return event.fail(400, {
+					message: t("events.admin.products.invalidInventoryGroup"),
+				});
 			}
 
 			// Convert features string to array
@@ -125,30 +132,42 @@ export const useCreateProduct = routeAction$(
 		} catch (error) {
 			console.error("Failed to create product:", error);
 			return event.fail(500, {
-				message: "Failed to create product. Please try again.",
+				message: t("events.admin.products.failedToCreateProductPlease"),
 			});
 		}
 	},
 	zod$((zod) =>
 		zod.object({
-			inventoryGroupId: z.string().uuid("Invalid inventory group"),
-			name: z.string().min(1, "Product name is required"),
+			inventoryGroupId: z
+				.string()
+				.uuid(t("events.admin.products.invalidInventoryGroup")),
+			name: z.string().min(1, t("events.admin.products.productNameIsRequired")),
 			price: z
 				.union([z.string().transform((val) => parseFloat(val)), z.number()])
-				.pipe(z.number().min(0, "Price cannot be negative")),
+				.pipe(
+					z.number().min(0, t("events.admin.products.priceCannotBeNegative")),
+				),
 			maxQuantity: z
 				.union([
 					z.string().transform((val) => parseInt(val, 10)),
 					z.number().int(),
 				])
-				.pipe(z.number().int().min(0, "Max quantity cannot be negative")),
+				.pipe(
+					z
+						.number()
+						.int()
+						.min(0, t("events.admin.products.maxQuantityCannotBeNegative")),
+				),
 			participantCapacity: z
 				.union([
 					z.string().transform((val) => parseInt(val, 10)),
 					z.number().int(),
 				])
 				.pipe(
-					z.number().int().min(1, "Participant capacity must be at least 1"),
+					z
+						.number()
+						.int()
+						.min(1, t("events.admin.products.participantCapacityMustBeAt")),
 				)
 				.default(1),
 			features: z.string().default(""),
@@ -175,28 +194,34 @@ export const AdminEventProducts = component$<Props>(({ data }) => {
 		track(() => createProduct.value);
 
 		if (createGroup.value?.success) {
-			successMessage.value = "Inventory group created successfully!";
+			successMessage.value = t(
+				"events.admin.products.inventoryGroupCreatedSuccessfully",
+			);
 			showGroupForm.value = false;
 			setTimeout(() => {
 				successMessage.value = "";
 			}, 3000);
 		} else if (createGroup.value?.failed) {
 			errorMessage.value =
-				createGroup.value.message || "Failed to create inventory group";
+				createGroup.value.message ||
+				t("events.admin.products.failedToCreateInventoryGroup");
 			setTimeout(() => {
 				errorMessage.value = "";
 			}, 5000);
 		}
 
 		if (createProduct.value?.success) {
-			successMessage.value = "Product created successfully!";
+			successMessage.value = t(
+				"events.admin.products.productCreatedSuccessfully",
+			);
 			showProductForm.value = false;
 			setTimeout(() => {
 				successMessage.value = "";
 			}, 3000);
 		} else if (createProduct.value?.failed) {
 			errorMessage.value =
-				createProduct.value.message || "Failed to create product";
+				createProduct.value.message ||
+				t("events.admin.products.failedToCreateProduct");
 			setTimeout(() => {
 				errorMessage.value = "";
 			}, 5000);
@@ -219,13 +244,17 @@ export const AdminEventProducts = component$<Props>(({ data }) => {
 
 			<div>
 				<div class="flex justify-between items-center mb-4">
-					<h2 class="text-2xl font-bold">Inventory Groups & Products</h2>
+					<h2 class="text-2xl font-bold">
+						{t("events.admin.products.inventoryGroupsProducts")}
+					</h2>
 					<Button
 						onClick$={() => {
 							showGroupForm.value = !showGroupForm.value;
 						}}
 					>
-						{showGroupForm.value ? "Cancel" : "New Inventory Group"}
+						{showGroupForm.value
+							? t("events.admin.products.cancel")
+							: t("events.admin.products.newInventoryGroup")}
 					</Button>
 				</div>
 
@@ -240,9 +269,11 @@ export const AdminEventProducts = component$<Props>(({ data }) => {
 
 				{data.groups.length === 0 && !showGroupForm.value && (
 					<div class="p-8 text-center text-gray-500 border rounded-sm">
-						<p class="mb-2">No inventory groups yet.</p>
+						<p class="mb-2">
+							{t("events.admin.products.noInventoryGroupsYet")}
+						</p>
 						<p class="text-sm">
-							Create an inventory group to start adding products.
+							{t("events.admin.products.createAnInventoryGroupTo")}
 						</p>
 					</div>
 				)}
@@ -253,12 +284,16 @@ export const AdminEventProducts = component$<Props>(({ data }) => {
 							<div>
 								<h3 class="text-lg font-bold">{group.name}</h3>
 								<p class="text-sm text-gray-600">
-									Capacity: {group.maxCapacity} | Needs Ticket:{" "}
-									{group.needsTicket ? "Yes" : "No"}
+									{t("events.admin.products.capacityNeedsTicket", {
+										maxCapacity: group.maxCapacity,
+									})}{" "}
+									{group.needsTicket
+										? t("events.admin.products.yes")
+										: t("events.admin.products.no")}
 								</p>
 								{(group.salesStartDate || group.salesEndDate) && (
 									<p class="text-sm text-gray-600 mt-1">
-										Sales:{" "}
+										{t("events.admin.products.sales")}{" "}
 										{group.salesStartDate
 											? formatDate(group.salesStartDate, "dateTime")
 											: "—"}
@@ -274,13 +309,15 @@ export const AdminEventProducts = component$<Props>(({ data }) => {
 									showProductForm.value = true;
 								}}
 							>
-								Add Product
+								{t("events.admin.products.addProduct")}
 							</Button>
 						</div>
 
 						{group.products && group.products.length > 0 ? (
 							<div class="space-y-2">
-								<h4 class="font-semibold text-sm text-gray-700">Products:</h4>
+								<h4 class="font-semibold text-sm text-gray-700">
+									{t("events.admin.products.products")}
+								</h4>
 								{group.products.map((product) => (
 									<div
 										key={product.id}
@@ -298,8 +335,11 @@ export const AdminEventProducts = component$<Props>(({ data }) => {
 										<div class="flex-1">
 											<p class="font-medium">{product.name}</p>
 											<p class="text-sm text-gray-600">
-												€{product.price.toFixed(2)} | Sold:{" "}
-												{product.soldQuantity} / {product.maxQuantity || "∞"}
+												{t("events.admin.products.sold", {
+													price: formatCurrency(product.price, "EUR"),
+													soldQuantity: product.soldQuantity,
+													maxQuantity: product.maxQuantity || "∞",
+												})}
 											</p>
 											{product.features && product.features.length > 0 && (
 												<p class="text-xs text-gray-500 mt-1">
@@ -312,7 +352,7 @@ export const AdminEventProducts = component$<Props>(({ data }) => {
 							</div>
 						) : (
 							<p class="text-sm text-gray-500 italic">
-								No products yet. Add one to get started.
+								{t("events.admin.products.noProductsYetAddOne")}
 							</p>
 						)}
 					</div>

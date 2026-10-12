@@ -1,7 +1,7 @@
 import { useSignal, useTask$ } from "@qwik.dev/core";
 import { server$ } from "@qwik.dev/router";
 import type { DealListItem } from "~/contracts/deals";
-import { requestContentFilter, withItemUrls } from "~/core";
+import { requestContentFilter, t, withItemUrls } from "~/core";
 import { toDealListItem } from "./public-deal";
 import { dealsService } from "./service";
 
@@ -24,7 +24,10 @@ export function useDealsList() {
 		try {
 			deals.value = await fetchActiveDeals();
 		} catch (e) {
-			error.value = e instanceof Error ? e.message : "Failed to load deals";
+			error.value =
+				e instanceof Error
+					? e.message
+					: t("deals.useDealsList.failedToLoadDeals");
 		} finally {
 			isLoading.value = false;
 		}

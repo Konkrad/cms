@@ -1,3 +1,4 @@
+import { t } from "~/core";
 export function isValidEmail(value: string): boolean {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
@@ -36,12 +37,19 @@ export function validateParticipantSlots(
 
 			if (!name && !email && !isLinked) continue;
 
-			if (!name) return `Please enter a name for ${label}.`;
+			if (!name)
+				return t("events.participantValidation.pleaseEnterANameFor", { label });
 			// Linked users get their email server-side; only manual entries need one here.
 			if (isLinked) continue;
-			if (!email) return `Please enter an email for ${label}.`;
+			if (!email)
+				return t("events.participantValidation.pleaseEnterAnEmailFor", {
+					label,
+				});
 			if (!isValidEmail(email))
-				return `"${email}" is not a valid email address (${label}).`;
+				return t("events.participantValidation.isNotAValidEmail", {
+					email,
+					label,
+				});
 		}
 	}
 	return null;

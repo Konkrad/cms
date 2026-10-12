@@ -7,6 +7,7 @@ import {
 	Select,
 	SmartDatePicker,
 	TextArea,
+	t,
 } from "~/core/ui";
 import { eventsService } from "../services/events";
 import type { AdminEventDetailsData } from "./details-data";
@@ -14,17 +15,20 @@ import { requireAdminEvent } from "./event-guards";
 
 const eventSchema = z
 	.object({
-		title: z.string().min(1, "Title is required"),
-		body: z.string().min(1, "Description is required"),
-		startDate: z.string().min(1, "Start date is required"),
-		endDate: z.string().min(1, "End date is required"),
+		title: z.string().min(1, t("events.admin.details.titleIsRequired")),
+		body: z.string().min(1, t("events.admin.details.descriptionIsRequired")),
+		startDate: z.string().min(1, t("events.admin.details.startDateIsRequired")),
+		endDate: z.string().min(1, t("events.admin.details.endDateIsRequired")),
 		locationType: z.enum(["online", "in_person", "hybrid"]),
 		address: z.string().optional(),
 		city: z.string().optional(),
 		country: z.string().optional(),
 		latitude: z.string().optional(),
 		longitude: z.string().optional(),
-		onlineUrl: z.string().url("Please enter a valid URL").optional(),
+		onlineUrl: z
+			.string()
+			.url(t("events.admin.details.pleaseEnterAValidUrl"))
+			.optional(),
 	})
 	.superRefine((data, ctx) => {
 		// Validate address is provided for in_person or hybrid events
@@ -34,7 +38,7 @@ const eventSchema = z
 		) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Address is required for in-person and hybrid events",
+				message: t("events.admin.details.addressIsRequiredForIn"),
 				path: ["address"],
 			});
 		}
@@ -46,7 +50,7 @@ const eventSchema = z
 		) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Online URL is required for online and hybrid events",
+				message: t("events.admin.details.onlineUrlIsRequiredFor"),
 				path: ["onlineUrl"],
 			});
 		}
@@ -125,9 +129,11 @@ export const AdminEventDetails = component$<Props>(({ event }) => {
 	return (
 		<div>
 			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-2xl font-bold text-gray-800">Edit Event</h2>
+				<h2 class="text-2xl font-bold text-gray-800">
+					{t("events.admin.details.editEvent")}
+				</h2>
 				<Button href={eventsBase} variant="secondary">
-					Back to Events
+					{t("events.admin.details.backToEvents")}
 				</Button>
 			</div>
 
@@ -135,17 +141,17 @@ export const AdminEventDetails = component$<Props>(({ event }) => {
 				<Form action={updateEventAction} class="space-y-6">
 					<Input
 						name="title"
-						label="Title"
+						label={t("events.admin.details.title")}
 						value={event.title}
-						placeholder="Enter event title"
+						placeholder={t("events.admin.details.enterEventTitle")}
 						required
 					/>
 
 					<TextArea
 						name="body"
-						label="Description"
+						label={t("events.admin.details.description")}
 						value={event.body}
-						placeholder="Describe your event..."
+						placeholder={t("events.admin.details.describeYourEvent")}
 						rows={4}
 						required
 					/>
@@ -153,7 +159,7 @@ export const AdminEventDetails = component$<Props>(({ event }) => {
 					<SmartDatePicker
 						startDateName="startDate"
 						endDateName="endDate"
-						label="Date & Time"
+						label={t("events.admin.details.dateTime")}
 						required
 						startValue={event.startDate}
 						endValue={event.endDate}
@@ -161,23 +167,25 @@ export const AdminEventDetails = component$<Props>(({ event }) => {
 
 					<Select
 						name="locationType"
-						label="Location Type"
+						label={t("events.admin.details.locationType")}
 						value={event.locationType}
 						required
 						onChange$={(e) => {
 							locationType.value = (e.target as HTMLSelectElement).value as any;
 						}}
 					>
-						<option value="in_person">In Person</option>
-						<option value="online">Online</option>
-						<option value="hybrid">Hybrid</option>
+						<option value="in_person">
+							{t("events.admin.details.inPerson")}
+						</option>
+						<option value="online">{t("events.admin.details.online")}</option>
+						<option value="hybrid">{t("events.admin.details.hybrid")}</option>
 					</Select>
 
 					{showAddress.value && (
 						<AddressAutocomplete
 							name="address"
-							label="Address"
-							placeholder="Start typing an address..."
+							label={t("events.admin.details.address")}
+							placeholder={t("events.admin.details.startTypingAnAddress")}
 							required={locationType.value !== "online"}
 							value={event.address || ""}
 							latitudeSignal={latitude}
@@ -190,10 +198,10 @@ export const AdminEventDetails = component$<Props>(({ event }) => {
 					{showOnlineUrl.value && (
 						<Input
 							name="onlineUrl"
-							label="Online URL"
+							label={t("events.admin.details.onlineUrl")}
 							type="url"
 							value={event.onlineUrl || ""}
-							placeholder="https://zoom.us/j/123456789"
+							placeholder={t("events.admin.details.httpsZoomUsJ123456789")}
 							required={locationType.value !== "in_person"}
 						/>
 					)}
@@ -219,16 +227,18 @@ export const AdminEventDetails = component$<Props>(({ event }) => {
 
 					{updateEventAction.value?.success && (
 						<div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-sm">
-							Event updated successfully!
+							{t("events.admin.details.eventUpdatedSuccessfully")}
 						</div>
 					)}
 
 					<div class="flex gap-4">
 						<Button type="submit" disabled={isSubmitting.value}>
-							{isSubmitting.value ? "Saving..." : "Save Changes"}
+							{isSubmitting.value
+								? t("events.admin.details.saving")
+								: t("events.admin.details.saveChanges")}
 						</Button>
 						<Button href={eventsBase} variant="secondary">
-							Cancel
+							{t("events.admin.details.cancel")}
 						</Button>
 					</div>
 				</Form>

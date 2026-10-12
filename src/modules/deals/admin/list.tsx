@@ -1,7 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, Link, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireModuleAdmin, requireWithinScope } from "~/core";
-import { Button, formatDate, Pagination, SearchBar } from "~/core/ui";
+import { Button, formatDate, Pagination, SearchBar, t } from "~/core/ui";
 import { dealsService } from "../service";
 import type { AdminDealsData } from "./list-data";
 
@@ -28,27 +28,34 @@ export const AdminDealsList = component$<{ data: AdminDealsData }>(
 		return (
 			<div>
 				<div class="flex items-center justify-between mb-6">
-					<h2 class="text-2xl font-bold text-gray-800">Deals</h2>
-					<Button href={`${data.adminBase}/deals/new`}>Add Deal</Button>
+					<h2 class="text-2xl font-bold text-gray-800">
+						{t("deals.admin.list.deals")}
+					</h2>
+					<Button href={`${data.adminBase}/deals/new`}>
+						{t("deals.admin.list.addDeal")}
+					</Button>
 				</div>
 
-				<SearchBar value={data.search} placeholder="Search by name…" />
+				<SearchBar
+					value={data.search}
+					placeholder={t("deals.admin.list.searchByName")}
+				/>
 
 				<div class="bg-white rounded-lg shadow-sm overflow-x-auto">
 					<table class="min-w-full divide-y divide-gray-200">
 						<thead class="bg-gray-50">
 							<tr>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Name
+									{t("deals.admin.list.name")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Steps
+									{t("deals.admin.list.steps")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Valid Until
+									{t("deals.admin.list.validUntil")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Actions
+									{t("deals.admin.list.actions")}
 								</th>
 							</tr>
 						</thead>
@@ -69,8 +76,9 @@ export const AdminDealsList = component$<{ data: AdminDealsData }>(
 											)}
 										</td>
 										<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-											{(deal.steps ?? []).length} step
-											{(deal.steps ?? []).length !== 1 ? "s" : ""}
+											{t("deals.admin.list.step", {
+												count: (deal.steps ?? []).length,
+											})}
 										</td>
 										<td class="px-6 py-4 whitespace-nowrap text-sm">
 											{deal.validUntil ? (
@@ -81,11 +89,13 @@ export const AdminDealsList = component$<{ data: AdminDealsData }>(
 															: "text-gray-700"
 													}
 												>
-													{isExpired ? "Expired · " : ""}
+													{isExpired ? t("deals.admin.list.expired") : ""}
 													{formatDate(deal.validUntil)}
 												</span>
 											) : (
-												<span class="text-gray-400">No expiry</span>
+												<span class="text-gray-400">
+													{t("deals.admin.list.noExpiry")}
+												</span>
 											)}
 										</td>
 										<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -94,7 +104,7 @@ export const AdminDealsList = component$<{ data: AdminDealsData }>(
 													href={`${data.adminBase}/deals/${deal.id}/edit`}
 													class="text-blue-600 hover:text-blue-900"
 												>
-													Edit
+													{t("deals.admin.list.edit")}
 												</Link>
 												<Form action={deleteAction}>
 													<input type="hidden" name="dealId" value={deal.id} />
@@ -103,13 +113,16 @@ export const AdminDealsList = component$<{ data: AdminDealsData }>(
 														preventdefault:click
 														class="text-red-600 hover:text-red-900"
 														onClick$={(e) => {
-															if (!confirm("Delete this deal?")) return;
+															if (
+																!confirm(t("deals.admin.list.deleteThisDeal"))
+															)
+																return;
 															(e.target as HTMLElement)
 																.closest("form")
 																?.requestSubmit();
 														}}
 													>
-														Delete
+														{t("deals.admin.list.delete")}
 													</button>
 												</Form>
 											</div>
@@ -122,8 +135,8 @@ export const AdminDealsList = component$<{ data: AdminDealsData }>(
 					{data.deals.length === 0 && (
 						<div class="text-center py-12 text-gray-500">
 							{data.search
-								? `No deals matching "${data.search}".`
-								: "No deals yet. Add your first deal!"}
+								? t("deals.admin.list.noDealsMatching", { search: data.search })
+								: t("deals.admin.list.noDealsYetAddYour")}
 						</div>
 					)}
 					<Pagination

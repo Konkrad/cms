@@ -1,7 +1,7 @@
 import { $, component$, type Signal, useSignal } from "@qwik.dev/core";
 import type { ActionStore } from "@qwik.dev/router";
 import Fuse from "fuse.js";
-import { Badge, formatDate, SectionCard } from "~/core/ui";
+import { Badge, formatDate, SectionCard, t } from "~/core/ui";
 import type { products } from "../../schema";
 import type { Ticket } from "../../schema/tickets";
 
@@ -31,8 +31,8 @@ export default component$<TicketsListProps>(
 			filteredTickets = results.map((result) => result.item);
 		}
 
-		const scannedTickets = filteredTickets.filter((t) => t.scannedAt);
-		const unscannedTickets = filteredTickets.filter((t) => !t.scannedAt);
+		const scannedTickets = filteredTickets.filter((item) => item.scannedAt);
+		const unscannedTickets = filteredTickets.filter((item) => !item.scannedAt);
 
 		const handleManualScan = $(async (ticket: TicketWithRelations) => {
 			const dbTicket = ticket as any;
@@ -46,12 +46,15 @@ export default component$<TicketsListProps>(
 						window.location.reload();
 					} else {
 						console.error("Scan failed:", result.value);
-						const errorMessage = result.value?.error || "Unknown error";
+						const errorMessage =
+							result.value?.error || t("events.ticketsList.unknownError");
 						const details = result.value?.details || "";
 						const reason = result.value?.reason || "";
 						const ticketId = result.value?.ticketId || "";
 
-						let fullMessage = `Scan failed: ${errorMessage}`;
+						let fullMessage = t("events.ticketsList.scanFailed", {
+							errorMessage,
+						});
 						if (details) {
 							fullMessage += `\n\nDetails: ${details}`;
 						}
@@ -66,13 +69,13 @@ export default component$<TicketsListProps>(
 					}
 				} catch (error) {
 					console.error("Scan error:", error);
-					alert("An error occurred during scanning");
+					alert(t("events.ticketsList.anErrorOccurredDuringScanning"));
 				} finally {
 					scanningTicketId.value = null;
 				}
 			} else {
 				console.error("QR code UUID not found on ticket:", ticket);
-				alert("QR code UUID not found on ticket");
+				alert(t("events.ticketsList.qrCodeUuidNotFound"));
 			}
 		});
 
@@ -83,15 +86,19 @@ export default component$<TicketsListProps>(
 		};
 
 		return (
-			<SectionCard title="All Tickets">
+			<SectionCard title={t("events.ticketsList.allTickets")}>
 				<div q:slot="header-right" class="text-sm text-gray-600">
 					<span class="font-medium text-green-600">
-						{tickets.filter((t) => t.scannedAt).length}
+						{tickets.filter((item) => item.scannedAt).length}
 					</span>{" "}
-					scanned /<span class="font-medium"> {tickets.length}</span> total
+					{t("events.ticketsList.scanned")}
+					<span class="font-medium"> {tickets.length}</span>{" "}
+					{t("events.ticketsList.total")}
 					{searchQuery.value.trim() && (
 						<span class="ml-2 text-gray-500">
-							({filteredTickets.length} filtered)
+							{t("events.ticketsList.filtered", {
+								count: filteredTickets.length,
+							})}
 						</span>
 					)}
 				</div>
@@ -100,7 +107,9 @@ export default component$<TicketsListProps>(
 					{unscannedTickets.length > 0 && (
 						<div>
 							<h4 class="text-lg font-medium mb-3 text-gray-700">
-								Pending ({unscannedTickets.length})
+								{t("events.ticketsList.pending", {
+									count: unscannedTickets.length,
+								})}
 							</h4>
 							<div class="space-y-2">
 								{unscannedTickets.map((ticket) => (
@@ -114,11 +123,15 @@ export default component$<TicketsListProps>(
 											</p>
 											<p class="text-sm text-gray-600">{ticket.product.name}</p>
 											<p class="text-xs text-gray-500 mt-1">
-												Purchased: {formatDateTime(ticket.createdAt)}
+												{t("events.ticketsList.purchased", {
+													createdAt: formatDateTime(ticket.createdAt),
+												})}
 											</p>
 										</div>
 										<div class="flex items-center gap-3">
-											<Badge variant="warning">Not Scanned</Badge>
+											<Badge variant="warning">
+												{t("events.ticketsList.notScanned")}
+											</Badge>
 											<button
 												type="button"
 												onClick$={() => handleManualScan(ticket)}
@@ -129,8 +142,8 @@ export default component$<TicketsListProps>(
 												class="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
 											>
 												{scanningTicketId.value === ticket.id
-													? "Scanning..."
-													: "Manual Scan"}
+													? t("events.ticketsList.scanning")
+													: t("events.ticketsList.manualScan")}
 											</button>
 										</div>
 									</div>
@@ -142,7 +155,9 @@ export default component$<TicketsListProps>(
 					{scannedTickets.length > 0 && (
 						<div>
 							<h4 class="text-lg font-medium mb-3 text-gray-700">
-								Scanned ({scannedTickets.length})
+								{t("events.ticketsList.scanned2", {
+									count: scannedTickets.length,
+								})}
 							</h4>
 							<div class="space-y-2">
 								{scannedTickets.map((ticket) => (
@@ -156,10 +171,14 @@ export default component$<TicketsListProps>(
 											</p>
 											<p class="text-sm text-gray-600">{ticket.product.name}</p>
 											<p class="text-xs text-gray-500 mt-1">
-												Scanned: {formatDateTime(ticket.scannedAt)}
+												{t("events.ticketsList.scanned3", {
+													scannedAt: formatDateTime(ticket.scannedAt),
+												})}
 											</p>
 										</div>
-										<Badge variant="success">✓ Scanned</Badge>
+										<Badge variant="success">
+											{t("events.ticketsList.scanned4")}
+										</Badge>
 									</div>
 								))}
 							</div>
@@ -168,13 +187,15 @@ export default component$<TicketsListProps>(
 
 					{filteredTickets.length === 0 && searchQuery.value.trim() && (
 						<p class="text-gray-500 text-center py-8">
-							No tickets found matching "{searchQuery.value}"
+							{t("events.ticketsList.noTicketsFoundMatching", {
+								value: searchQuery.value,
+							})}
 						</p>
 					)}
 
 					{tickets.length === 0 && (
 						<p class="text-gray-500 text-center py-8">
-							No tickets have been purchased yet
+							{t("events.ticketsList.noTicketsHaveBeenPurchased")}
 						</p>
 					)}
 				</div>

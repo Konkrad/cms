@@ -1,6 +1,7 @@
 import { component$, useStore } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireModuleAuth, usersService } from "~/core";
+import { t } from "~/core/ui";
 import PurchaseList from "~theme/routes/profile/PurchaseList";
 import QrTicketWall from "~theme/routes/profile/QrTicketWall";
 import type { UserDashboardData } from "./profile-tickets-data";
@@ -25,18 +26,27 @@ export const useUpdateParticipants = routeAction$(
 		// Verify the user owns this ticket
 		const ticket = await ticketsService.getById(input.ticketId);
 		if (!ticket || ticket.buyerId !== userData.id) {
-			return { failed: true, message: "Ticket not found" };
+			return {
+				failed: true,
+				message: t("events.profileTickets.ticketNotFound"),
+			};
 		}
 
 		let parsed: unknown;
 		try {
 			parsed = JSON.parse(input.slots);
 		} catch {
-			return { failed: true, message: "Invalid participants" };
+			return {
+				failed: true,
+				message: t("events.profileTickets.invalidParticipants"),
+			};
 		}
 		const result = slotsSchema.safeParse(parsed);
 		if (!result.success) {
-			return { failed: true, message: "Invalid participants" };
+			return {
+				failed: true,
+				message: t("events.profileTickets.invalidParticipants"),
+			};
 		}
 		// Emails are not round-tripped through the page: resolve them here from the
 		// ticket's existing participants or from the picked member's id.
@@ -77,8 +87,12 @@ export const ProfileTickets = component$<Props>(({ dashboard }) => {
 	return (
 		<div class="max-w-2xl mx-auto px-4 py-8">
 			<div class="mb-8">
-				<h1 class="text-3xl font-bold mb-2">My Tickets & Purchases</h1>
-				<p class="text-gray-600">View your tickets and manage your purchases</p>
+				<h1 class="text-3xl font-bold mb-2">
+					{t("events.profileTickets.myTicketsPurchases")}
+				</h1>
+				<p class="text-gray-600">
+					{t("events.profileTickets.viewYourTicketsAndManage")}
+				</p>
 			</div>
 
 			<div class="space-y-8">

@@ -1,6 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import type { DealDetailData } from "~/contracts/deals";
 import type { PageViews } from "~/core";
+import { t } from "~/core/ui";
 import { DealView } from "~theme/routes/deals/DealView";
 
 const DealDetailPage = component$<{ data: DealDetailData }>(({ data }) => (
@@ -13,7 +14,8 @@ export const dealsViews: PageViews = {
 		head: (data, url) => {
 			const { deal, logoUrl } = data as DealDetailData;
 			const canonical = new URL(url.pathname, url.origin).toString();
-			const description = deal.description || `Member deal: ${deal.name}`;
+			const description =
+				deal.description || t("deals.views.memberDeal", { name: deal.name });
 			return {
 				title: deal.name,
 				meta: [

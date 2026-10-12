@@ -1,5 +1,5 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
-import { formatCurrency, formatDate } from "~/core/ui";
+import { formatCurrency, formatDate, t } from "~/core/ui";
 import type { products, transactionItems } from "../../schema";
 import type { Transaction } from "../../schema/transactions";
 
@@ -45,7 +45,9 @@ export default component$<TransactionCardProps>(({ transaction }) => {
 							{formatDateTime(transaction.paymentDate)}
 						</p>
 						<p class="text-xs text-gray-500 mt-1">
-							{transaction.items.length} item(s)
+							{t("events.transactionCard.items", {
+								count: transaction.items.length,
+							})}
 						</p>
 					</div>
 					<div class="text-right">
@@ -53,11 +55,16 @@ export default component$<TransactionCardProps>(({ transaction }) => {
 							{formatEuro(transaction.totalAmount)}
 						</p>
 						<p class="text-xs text-gray-500">
-							Fee: {formatEuro(transaction.transactionFee)}
+							{t("events.transactionCard.fee", {
+								transactionFee: formatEuro(transaction.transactionFee),
+							})}
 						</p>
 						<p class="text-xs text-gray-600 mt-1">
-							Net:{" "}
-							{formatEuro(transaction.totalAmount - transaction.transactionFee)}
+							{t("events.transactionCard.net", {
+								value: formatEuro(
+									transaction.totalAmount - transaction.transactionFee,
+								),
+							})}
 						</p>
 					</div>
 				</div>
@@ -65,7 +72,9 @@ export default component$<TransactionCardProps>(({ transaction }) => {
 
 			{isExpanded.value && (
 				<div class="border-t border-gray-200 bg-gray-50 p-4">
-					<h5 class="font-medium text-gray-700 mb-3">Items Purchased</h5>
+					<h5 class="font-medium text-gray-700 mb-3">
+						{t("events.transactionCard.itemsPurchased")}
+					</h5>
 					<div class="space-y-2">
 						{transaction.items.map((item) => (
 							<div
@@ -74,12 +83,22 @@ export default component$<TransactionCardProps>(({ transaction }) => {
 							>
 								<div>
 									<p class="font-medium text-gray-900">{item.product.name}</p>
-									<p class="text-gray-600">Quantity: {item.quantity}</p>
+									<p class="text-gray-600">
+										{t("events.transactionCard.quantity", {
+											quantity: item.quantity,
+										})}
+									</p>
 								</div>
 								<div class="text-right">
-									<p class="text-gray-900">{formatEuro(item.unitPrice)} each</p>
+									<p class="text-gray-900">
+										{t("events.transactionCard.each", {
+											unitPrice: formatEuro(item.unitPrice),
+										})}
+									</p>
 									<p class="font-medium text-gray-700">
-										{formatEuro(item.unitPrice * item.quantity)} total
+										{t("events.transactionCard.total", {
+											value: formatEuro(item.unitPrice * item.quantity),
+										})}
 									</p>
 								</div>
 							</div>
@@ -88,11 +107,15 @@ export default component$<TransactionCardProps>(({ transaction }) => {
 
 					<div class="mt-4 pt-4 border-t border-gray-200">
 						<div class="flex items-center justify-between text-sm">
-							<span class="text-gray-600">Status:</span>
+							<span class="text-gray-600">
+								{t("events.transactionCard.status")}
+							</span>
 							<span class="text-xs text-gray-500">{transaction.status}</span>
 						</div>
 						<div class="flex items-center justify-between text-sm mt-1">
-							<span class="text-gray-600">Payment:</span>
+							<span class="text-gray-600">
+								{t("events.transactionCard.payment")}
+							</span>
 							<span class="text-xs text-gray-500 font-mono">
 								{transaction.paymentId ?? "free"}
 							</span>

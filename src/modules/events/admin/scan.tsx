@@ -1,5 +1,6 @@
 import { $, component$ } from "@qwik.dev/core";
 import { Link, routeAction$, useLocation, z, zod$ } from "@qwik.dev/router";
+import { t } from "~/core/ui";
 import { TicketScanner } from "../components/EventTicketScanner";
 import { ticketsService } from "../services/tickets";
 import { requireAdminEvent } from "./event-guards";
@@ -22,7 +23,7 @@ export const useScanEventTicket = routeAction$(
 
 		return {
 			success: true,
-			message: "Ticket scanned successfully!",
+			message: t("events.admin.scan.ticketScannedSuccessfully"),
 			ticketId: result.ticket.id,
 			scannedAt: result.ticket.scannedAt,
 			participants: result.participants,
@@ -47,7 +48,7 @@ export const AdminEventScan = component$<Props>(({ event }) => {
 			<div class="mb-6">
 				<h1 class="text-3xl font-bold text-gray-900">{event.title}</h1>
 				<p class="mt-2 text-gray-600">
-					Scan tickets for attendance verification
+					{t("events.admin.scan.scanTicketsForAttendanceVerification")}
 				</p>
 			</div>
 
@@ -59,7 +60,8 @@ export const AdminEventScan = component$<Props>(({ event }) => {
 						return {
 							success: false,
 							message:
-								result.value?.fieldErrors?.qrData || "Failed to process scan",
+								result.value?.fieldErrors?.qrData ||
+								t("events.admin.scan.failedToProcessScan"),
 						};
 					}
 					return {
@@ -91,7 +93,7 @@ export const AdminEventScan = component$<Props>(({ event }) => {
 							d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
 						/>
 					</svg>
-					View Attendance Report
+					{t("events.admin.scan.viewAttendanceReport")}
 				</Link>
 			</div>
 		</div>

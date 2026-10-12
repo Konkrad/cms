@@ -5,6 +5,7 @@ import {
 	membershipsService,
 	type PublicUser,
 	publicUserColumns,
+	t,
 	userTagsService,
 } from "~/core";
 import {
@@ -273,11 +274,20 @@ export const qualificationsService = {
 			.limit(1);
 
 		if (!tokenRow)
-			return { success: false, error: "Invalid or unknown token." };
+			return {
+				success: false,
+				error: t("qualifications.service.invalidOrUnknownToken"),
+			};
 		if (!tokenRow.isActive)
-			return { success: false, error: "This QR code has been deactivated." };
+			return {
+				success: false,
+				error: t("qualifications.service.thisQrCodeHasBeen"),
+			};
 		if (tokenRow.expiresAt < now)
-			return { success: false, error: "This QR code has expired." };
+			return {
+				success: false,
+				error: t("qualifications.service.thisQrCodeHasExpired"),
+			};
 
 		// Check if already approved
 		const [existing] = await db

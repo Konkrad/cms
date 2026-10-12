@@ -14,6 +14,7 @@ import {
 	requirements,
 	reviews,
 	scopeLabels,
+	t,
 	toPublicUser,
 	updatesFor,
 	type Visibility,
@@ -238,7 +239,7 @@ export async function loadEventPage(
 	const locationDisplay =
 		[event.city, event.country].filter(Boolean).join(", ") ||
 		event.address ||
-		(event.locationType === "online" ? "Online" : "");
+		(event.locationType === "online" ? t("events.publicEvent.online") : "");
 
 	const organizer = toPublicUser(event.user);
 

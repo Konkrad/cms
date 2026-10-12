@@ -1,5 +1,5 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { requireModuleAdmin, requireWithinScope } from "~/core";
+import { requireModuleAdmin, requireWithinScope, t } from "~/core";
 import { electionsService } from "../service";
 
 const ELECTIONS = { module: "elections" } as const;
@@ -19,7 +19,7 @@ export const useCreateCycle = routeAction$(
 		throw event.redirect(303, `${adminBase}/elections/${cycle.id}`);
 	},
 	zod$({
-		title: z.string().min(1, "Title is required"),
+		title: z.string().min(1, t("elections.admin.actions.titleIsRequired")),
 		year: z.coerce.number().int().min(2000).max(2100),
 		description: z.string().optional(),
 		requiredMembershipTier: z.enum(["associated", "full", ""]).optional(),
@@ -39,7 +39,7 @@ export const useCreatePosition = routeAction$(
 		const cycle = await electionsService.getCycleById(data.cycleId);
 		if (!cycle || cycle.status !== "draft") {
 			return event.fail(400, {
-				message: "Positions can only be added to draft cycles",
+				message: t("elections.admin.actions.positionsCanOnlyBeAdded"),
 			});
 		}
 		await electionsService.createPosition({
@@ -52,7 +52,7 @@ export const useCreatePosition = routeAction$(
 	},
 	zod$({
 		cycleId: z.string().uuid(),
-		title: z.string().min(1, "Title is required"),
+		title: z.string().min(1, t("elections.admin.actions.titleIsRequired")),
 		description: z.string().optional(),
 		maxCandidates: z.preprocess(
 			(v) => (v === "" || v === undefined ? undefined : v),

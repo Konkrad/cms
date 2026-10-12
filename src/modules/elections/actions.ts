@@ -1,5 +1,5 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { itemUrl, requireModuleAuth } from "~/core";
+import { itemUrl, requireModuleAuth, t } from "~/core";
 import { electionsService } from "./service";
 
 export const useSubmitApplication = routeAction$(
@@ -23,12 +23,14 @@ export const useSubmitApplication = routeAction$(
 	zod$({
 		positionId: z.string().uuid(),
 		cycleId: z.string().uuid(),
-		motivationWhy: z.string().min(10, "Please write at least a few sentences"),
+		motivationWhy: z
+			.string()
+			.min(10, t("elections.actions.pleaseWriteAtLeastA")),
 		motivationExperience: z
 			.string()
-			.min(10, "Please write at least a few sentences"),
+			.min(10, t("elections.actions.pleaseWriteAtLeastA")),
 		motivationGoals: z
 			.string()
-			.min(10, "Please write at least a few sentences"),
+			.min(10, t("elections.actions.pleaseWriteAtLeastA")),
 	}),
 );

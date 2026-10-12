@@ -3,6 +3,7 @@ import {
 	notes,
 	type ReviewContext,
 	type ReviewDecision,
+	t,
 } from "~/core";
 import { eventsService } from "./services/events";
 
@@ -33,7 +34,10 @@ export async function onEventApproved(
 		scopeId: event.scopeId,
 		subjectType: "events:event",
 		subjectId: event.id,
-		body: `<p>New event: <a href="ref:events:event:${event.id}">${escapeHtml(event.title)}</a> on ${date}.</p>`,
+		body: `<p>${t("events.review.announcement", {
+			title: `<a href="ref:events:event:${event.id}">${escapeHtml(event.title)}</a>`,
+			date,
+		})}</p>`,
 		visibility: event.visibility,
 		// The organiser announces it; the note was reviewed with the event.
 		authorId: decision.submittedBy,

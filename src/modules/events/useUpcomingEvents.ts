@@ -4,6 +4,7 @@ import type { EventsPage } from "~/contracts/events";
 import {
 	publicImageUrlFromKey,
 	requestContentFilter,
+	t,
 	withItemUrls,
 } from "~/core";
 import { eventsService } from "./services/events";
@@ -54,7 +55,10 @@ export function useUpcomingEvents() {
 			events.value = result.events;
 			nextCursor.value = result.nextCursor;
 		} catch (e) {
-			error.value = e instanceof Error ? e.message : "Failed to load events";
+			error.value =
+				e instanceof Error
+					? e.message
+					: t("events.useUpcomingEvents.failedToLoadEvents");
 		} finally {
 			isLoading.value = false;
 		}
@@ -69,7 +73,9 @@ export function useUpcomingEvents() {
 			nextCursor.value = result.nextCursor;
 		} catch (e) {
 			error.value =
-				e instanceof Error ? e.message : "Failed to load more events";
+				e instanceof Error
+					? e.message
+					: t("events.useUpcomingEvents.failedToLoadMoreEvents");
 		} finally {
 			isLoadingMore.value = false;
 		}

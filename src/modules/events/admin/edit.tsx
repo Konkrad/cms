@@ -8,6 +8,7 @@ import {
 	Select,
 	SmartDatePicker,
 	TextArea,
+	t,
 	VISIBILITIES,
 	VisibilitySelector,
 } from "~/core/ui";
@@ -18,13 +19,17 @@ import type { NewEventContext } from "./new-data";
 
 const editEventSchema = z.object({
 	id: z.string(),
-	title: z.string().min(1, "Title is required"),
-	body: z.string().min(1, "Description is required"),
-	startDate: z.string().min(1, "Start date is required"),
-	endDate: z.string().min(1, "End date is required"),
-	address: z.string().min(1, "Location is required"),
+	title: z.string().min(1, t("events.admin.edit.titleIsRequired")),
+	body: z.string().min(1, t("events.admin.edit.descriptionIsRequired")),
+	startDate: z.string().min(1, t("events.admin.edit.startDateIsRequired")),
+	endDate: z.string().min(1, t("events.admin.edit.endDateIsRequired")),
+	address: z.string().min(1, t("events.admin.edit.locationIsRequired")),
 	locationType: z.enum(["in_person", "online", "hybrid"]),
-	onlineUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
+	onlineUrl: z
+		.string()
+		.url(t("events.admin.edit.invalidUrl"))
+		.optional()
+		.or(z.literal("")),
 	visibility: z.enum(VISIBILITIES),
 	image1: z.string().optional(),
 	image2: z.string().optional(),
@@ -43,7 +48,10 @@ export const useEditEvent = routeAction$(async (data, event) => {
 		data.visibility !== groupContext.event.visibility &&
 		!allowed.includes(data.visibility)
 	) {
-		return { success: false, error: "You cannot publish with this visibility" };
+		return {
+			success: false,
+			error: t("events.admin.edit.youCannotPublishWithThis"),
+		};
 	}
 
 	try {
@@ -84,7 +92,7 @@ export const useEditEvent = routeAction$(async (data, event) => {
 		if (error?.status === 303) throw error;
 		return {
 			success: false,
-			error: error?.message || "Failed to update event",
+			error: error?.message || t("events.admin.edit.failedToUpdateEvent"),
 		};
 	}
 }, zod$(editEventSchema));
@@ -121,9 +129,11 @@ export const AdminEventEdit = component$<Props>(
 		return (
 			<div>
 				<div class="flex items-center justify-between mb-6">
-					<h2 class="text-2xl font-bold text-gray-800">Edit Event</h2>
+					<h2 class="text-2xl font-bold text-gray-800">
+						{t("events.admin.edit.editEvent")}
+					</h2>
 					<Button href={`${groupContext.adminBase}/events`} variant="secondary">
-						Back to Events
+						{t("events.admin.edit.backToEvents")}
 					</Button>
 				</div>
 
@@ -136,13 +146,13 @@ export const AdminEventEdit = component$<Props>(
 						<input type="hidden" name="id" value={eventData.id} />
 						<Input
 							name="title"
-							label="Title"
+							label={t("events.admin.edit.title")}
 							value={eventData.title}
 							required
 						/>
 						<TextArea
 							name="body"
-							label="Description"
+							label={t("events.admin.edit.description")}
 							value={eventData.body}
 							required
 						/>
@@ -150,7 +160,7 @@ export const AdminEventEdit = component$<Props>(
 						<SmartDatePicker
 							startDateName="startDate"
 							endDateName="endDate"
-							label="Date & Time"
+							label={t("events.admin.edit.dateTime")}
 							startValue={eventData.startDate}
 							endValue={eventData.endDate}
 							required
@@ -159,19 +169,21 @@ export const AdminEventEdit = component$<Props>(
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<Select
 								name="locationType"
-								label="Location Type"
+								label={t("events.admin.edit.locationType")}
 								value={locationType.value}
 								onChange$={(e) => {
 									locationType.value = (e.target as HTMLSelectElement).value;
 								}}
 							>
-								<option value="in_person">In Person</option>
-								<option value="online">Online</option>
-								<option value="hybrid">Hybrid</option>
+								<option value="in_person">
+									{t("events.admin.edit.inPerson")}
+								</option>
+								<option value="online">{t("events.admin.edit.online")}</option>
+								<option value="hybrid">{t("events.admin.edit.hybrid")}</option>
 							</Select>
 							<Input
 								name="address"
-								label="Location/Address"
+								label={t("events.admin.edit.locationAddress")}
 								value={eventData.address || ""}
 								required
 							/>
@@ -181,7 +193,7 @@ export const AdminEventEdit = component$<Props>(
 							locationType.value === "hybrid") && (
 							<Input
 								name="onlineUrl"
-								label="Online Meeting URL"
+								label={t("events.admin.edit.onlineMeetingUrl")}
 								value={eventData.onlineUrl || ""}
 								required
 							/>
@@ -198,12 +210,14 @@ export const AdminEventEdit = component$<Props>(
 						/>
 
 						<hr class="border-gray-200" />
-						<p class="text-sm font-semibold text-gray-700">Event Page Images</p>
+						<p class="text-sm font-semibold text-gray-700">
+							{t("events.admin.edit.eventPageImages")}
+						</p>
 
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div>
 								<p class="text-sm font-medium text-gray-700 mb-1">
-									Image Left (square)
+									{t("events.admin.edit.imageLeftSquare")}
 								</p>
 								<ImageUploader
 									name="image1"
@@ -219,7 +233,7 @@ export const AdminEventEdit = component$<Props>(
 							</div>
 							<div>
 								<p class="text-sm font-medium text-gray-700 mb-1">
-									Image Right (square)
+									{t("events.admin.edit.imageRightSquare")}
 								</p>
 								<ImageUploader
 									name="image2"
@@ -237,13 +251,15 @@ export const AdminEventEdit = component$<Props>(
 
 						<div class="flex gap-4">
 							<Button type="submit" disabled={isSubmitting.value}>
-								{isSubmitting.value ? "Saving Changes..." : "Update Event"}
+								{isSubmitting.value
+									? t("events.admin.edit.savingChanges")
+									: t("events.admin.edit.updateEvent")}
 							</Button>
 							<Button
 								href={`${groupContext.adminBase}/events`}
 								variant="secondary"
 							>
-								Cancel
+								{t("events.admin.edit.cancel")}
 							</Button>
 						</div>
 					</form>

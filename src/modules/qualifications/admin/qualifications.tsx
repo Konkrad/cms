@@ -1,6 +1,6 @@
 import { component$, useSignal } from "@qwik.dev/core";
 import { Form } from "@qwik.dev/router";
-import { formatDate } from "~/core/ui";
+import { formatDate, t } from "~/core/ui";
 import {
 	useApproveQualification,
 	useCreateType,
@@ -35,7 +35,9 @@ export const AdminQualifications = component$<{
 	return (
 		<div>
 			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-2xl font-bold text-gray-800">Qualifications</h2>
+				<h2 class="text-2xl font-bold text-gray-800">
+					{t("qualifications.admin.qualifications.qualifications")}
+				</h2>
 			</div>
 
 			<div class="flex gap-2 mb-6 border-b">
@@ -54,10 +56,12 @@ export const AdminQualifications = component$<{
 						}}
 					>
 						{tab === "pending"
-							? `Pending (${data.value.pending.length})`
+							? t("qualifications.admin.qualifications.pending", {
+									count: data.value.pending.length,
+								})
 							: tab === "all"
-								? "All Applications"
-								: "Types"}
+								? t("qualifications.admin.qualifications.allApplications")
+								: t("qualifications.admin.qualifications.types")}
 					</button>
 				))}
 			</div>
@@ -68,16 +72,16 @@ export const AdminQualifications = component$<{
 						<thead class="bg-gray-50">
 							<tr>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-									User
+									{t("qualifications.admin.qualifications.user")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-									Type
+									{t("qualifications.admin.qualifications.type")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-									Submitted
+									{t("qualifications.admin.qualifications.submitted")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-									Actions
+									{t("qualifications.admin.qualifications.actions")}
 								</th>
 							</tr>
 						</thead>
@@ -103,14 +107,16 @@ export const AdminQualifications = component$<{
 												<input
 													type="text"
 													name="notes"
-													placeholder="Optional note"
+													placeholder={t(
+														"qualifications.admin.qualifications.optionalNote",
+													)}
 													class="text-xs border rounded px-2 py-1 w-40"
 												/>
 												<button
 													type="submit"
 													class="text-green-600 hover:text-green-900 text-sm font-medium"
 												>
-													Approve
+													{t("qualifications.admin.qualifications.approve")}
 												</button>
 											</Form>
 											<Form
@@ -121,7 +127,9 @@ export const AdminQualifications = component$<{
 												<input
 													type="text"
 													name="notes"
-													placeholder="Reason (required)"
+													placeholder={t(
+														"qualifications.admin.qualifications.reasonRequired",
+													)}
 													class="text-xs border rounded px-2 py-1 w-40"
 													required
 												/>
@@ -129,7 +137,7 @@ export const AdminQualifications = component$<{
 													type="submit"
 													class="text-red-600 hover:text-red-900 text-sm font-medium"
 												>
-													Reject
+													{t("qualifications.admin.qualifications.reject")}
 												</button>
 											</Form>
 										</div>
@@ -140,7 +148,7 @@ export const AdminQualifications = component$<{
 					</table>
 					{data.value.pending.length === 0 && (
 						<div class="text-center py-12 text-gray-500">
-							No pending qualifications.
+							{t("qualifications.admin.qualifications.noPendingQualifications")}
 						</div>
 					)}
 				</div>
@@ -152,19 +160,19 @@ export const AdminQualifications = component$<{
 						<thead class="bg-gray-50">
 							<tr>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-									User
+									{t("qualifications.admin.qualifications.user")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-									Type
+									{t("qualifications.admin.qualifications.type")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-									Status
+									{t("qualifications.admin.qualifications.status")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-									Notes
+									{t("qualifications.admin.qualifications.notes")}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-									Date
+									{t("qualifications.admin.qualifications.date")}
 								</th>
 							</tr>
 						</thead>
@@ -192,7 +200,9 @@ export const AdminQualifications = component$<{
 					</table>
 					{data.value.all.length === 0 && (
 						<div class="text-center py-12 text-gray-500">
-							No qualification applications yet.
+							{t(
+								"qualifications.admin.qualifications.noQualificationApplicationsYet",
+							)}
 						</div>
 					)}
 				</div>
@@ -201,37 +211,49 @@ export const AdminQualifications = component$<{
 			{activeTab.value === "types" && (
 				<div class="space-y-8">
 					{/* Types list with per-type QR token section */}
-					{data.value.types.map((t) => {
-						const activeTokens = data.value.tokensByType[t.id] ?? [];
+					{data.value.types.map((item) => {
+						const activeTokens = data.value.tokensByType[item.id] ?? [];
 						return (
 							<div
-								key={t.id}
+								key={item.id}
 								class="bg-white rounded-lg shadow-sm overflow-x-auto"
 							>
 								<div class="px-6 py-4 bg-gray-50 border-b flex items-center justify-between">
 									<div>
-										<span class="font-medium text-gray-900">{t.label}</span>
+										<span class="font-medium text-gray-900">{item.label}</span>
 										<span class="ml-2 text-xs text-gray-500 font-mono">
-											{t.slug}
+											{item.slug}
 										</span>
 										<span class="ml-3 text-xs text-gray-600 capitalize">
-											→ {t.grantsMembershipTier} member
+											{item.grantsMembershipTier === "full"
+												? t("qualifications.admin.qualifications.grantsFull")
+												: t(
+														"qualifications.admin.qualifications.grantsAssociated",
+													)}
 										</span>
 									</div>
 									<Form action={deleteTypeAction} class="inline">
-										<input type="hidden" name="typeId" value={t.id} />
+										<input type="hidden" name="typeId" value={item.id} />
 										<button
 											type="submit"
 											class="text-xs text-red-500 hover:text-red-700"
 											preventdefault:click
 											onClick$={(e) => {
-												if (!confirm(`Delete type "${t.label}"?`)) return;
+												if (
+													!confirm(
+														t(
+															"qualifications.admin.qualifications.confirmDeleteType",
+															{ label: item.label },
+														),
+													)
+												)
+													return;
 												(e.target as HTMLElement)
 													.closest("form")
 													?.requestSubmit();
 											}}
 										>
-											Delete type
+											{t("qualifications.admin.qualifications.deleteType")}
 										</button>
 									</Form>
 								</div>
@@ -241,13 +263,15 @@ export const AdminQualifications = component$<{
 										{/* Generate new token */}
 										<div class="shrink-0">
 											<h4 class="text-sm font-medium text-gray-700 mb-2">
-												Generate verification QR
+												{t(
+													"qualifications.admin.qualifications.generateVerificationQr",
+												)}
 											</h4>
 											<Form
 												action={generateTokenAction}
 												class="flex items-center gap-2"
 											>
-												<input type="hidden" name="typeId" value={t.id} />
+												<input type="hidden" name="typeId" value={item.id} />
 												<div class="flex items-center gap-1">
 													<input
 														type="number"
@@ -257,18 +281,21 @@ export const AdminQualifications = component$<{
 														max={72}
 														class="w-16 text-sm border rounded px-2 py-1 text-center"
 													/>
-													<span class="text-sm text-gray-500">hours</span>
+													<span class="text-sm text-gray-500">
+														{t("qualifications.admin.qualifications.hours")}
+													</span>
 												</div>
 												<button
 													type="submit"
 													class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700"
 												>
-													Generate
+													{t("qualifications.admin.qualifications.generate")}
 												</button>
 											</Form>
 											<p class="text-xs text-gray-400 mt-1">
-												Members who scan the QR code will be automatically
-												verified.
+												{t(
+													"qualifications.admin.qualifications.membersWhoScanTheQr",
+												)}
 											</p>
 										</div>
 
@@ -282,13 +309,23 @@ export const AdminQualifications = component$<{
 													>
 														<img
 															src={tok.qrDataUrl}
-															alt="Verification QR code"
+															alt={t(
+																"qualifications.admin.qualifications.verificationQrCode",
+															)}
 															width={140}
 															height={140}
 															class="mx-auto block"
 														/>
 														<div class="mt-2 text-xs text-gray-500">
-															Expires {formatDate(tok.expiresAt, "dateTime")}
+															{t(
+																"qualifications.admin.qualifications.expires",
+																{
+																	expiresAt: formatDate(
+																		tok.expiresAt,
+																		"dateTime",
+																	),
+																},
+															)}
 														</div>
 														<a
 															href={tok.verifyUrl}
@@ -311,14 +348,22 @@ export const AdminQualifications = component$<{
 																class="text-xs text-red-500 hover:text-red-700"
 																preventdefault:click
 																onClick$={(e) => {
-																	if (!confirm("Deactivate this QR code?"))
+																	if (
+																		!confirm(
+																			t(
+																				"qualifications.admin.qualifications.deactivateThisQrCode",
+																			),
+																		)
+																	)
 																		return;
 																	(e.target as HTMLElement)
 																		.closest("form")
 																		?.requestSubmit();
 																}}
 															>
-																Deactivate
+																{t(
+																	"qualifications.admin.qualifications.deactivate",
+																)}
 															</button>
 														</Form>
 													</div>
@@ -328,7 +373,9 @@ export const AdminQualifications = component$<{
 
 										{activeTokens.length === 0 && (
 											<p class="text-sm text-gray-400 self-center">
-												No active QR codes for this type.
+												{t(
+													"qualifications.admin.qualifications.noActiveQrCodesFor",
+												)}
 											</p>
 										)}
 									</div>
@@ -339,14 +386,14 @@ export const AdminQualifications = component$<{
 
 					{data.value.types.length === 0 && (
 						<div class="text-center py-8 text-gray-500 bg-white rounded-lg shadow-sm">
-							No qualification types yet.
+							{t("qualifications.admin.qualifications.noQualificationTypesYet")}
 						</div>
 					)}
 
 					{/* Add new type */}
 					<div class="bg-white rounded-lg shadow-sm p-6">
 						<h3 class="text-lg font-medium text-gray-900 mb-4">
-							Add Qualification Type
+							{t("qualifications.admin.qualifications.addQualificationType")}
 						</h3>
 						<Form action={createTypeAction} class="grid grid-cols-2 gap-4">
 							<div>
@@ -354,14 +401,16 @@ export const AdminQualifications = component$<{
 									for="qt-label"
 									class="block text-sm font-medium text-gray-700 mb-1"
 								>
-									Label
+									{t("qualifications.admin.qualifications.label")}
 								</label>
 								<input
 									id="qt-label"
 									type="text"
 									name="label"
 									required
-									placeholder="e.g. Master School Graduate"
+									placeholder={t(
+										"qualifications.admin.qualifications.eGMasterSchoolGraduate",
+									)}
 									class="w-full border rounded-md px-3 py-2 text-sm"
 								/>
 							</div>
@@ -370,14 +419,16 @@ export const AdminQualifications = component$<{
 									for="qt-slug"
 									class="block text-sm font-medium text-gray-700 mb-1"
 								>
-									Slug
+									{t("qualifications.admin.qualifications.slug")}
 								</label>
 								<input
 									id="qt-slug"
 									type="text"
 									name="slug"
 									required
-									placeholder="e.g. master-school"
+									placeholder={t(
+										"qualifications.admin.qualifications.eGMasterSchool",
+									)}
 									class="w-full border rounded-md px-3 py-2 text-sm font-mono"
 								/>
 							</div>
@@ -386,15 +437,21 @@ export const AdminQualifications = component$<{
 									for="qt-grantsMembershipTier"
 									class="block text-sm font-medium text-gray-700 mb-1"
 								>
-									Grants Membership Tier
+									{t(
+										"qualifications.admin.qualifications.grantsMembershipTier",
+									)}
 								</label>
 								<select
 									id="qt-grantsMembershipTier"
 									name="grantsMembershipTier"
 									class="w-full border rounded-md px-3 py-2 text-sm"
 								>
-									<option value="associated">Associated</option>
-									<option value="full">Full</option>
+									<option value="associated">
+										{t("qualifications.admin.qualifications.associated")}
+									</option>
+									<option value="full">
+										{t("qualifications.admin.qualifications.full")}
+									</option>
 								</select>
 							</div>
 							<div>
@@ -402,13 +459,15 @@ export const AdminQualifications = component$<{
 									for="qt-description"
 									class="block text-sm font-medium text-gray-700 mb-1"
 								>
-									Description (optional)
+									{t("qualifications.admin.qualifications.descriptionOptional")}
 								</label>
 								<input
 									id="qt-description"
 									type="text"
 									name="description"
-									placeholder="Shown on user profile"
+									placeholder={t(
+										"qualifications.admin.qualifications.shownOnUserProfile",
+									)}
 									class="w-full border rounded-md px-3 py-2 text-sm"
 								/>
 							</div>
@@ -417,7 +476,7 @@ export const AdminQualifications = component$<{
 									type="submit"
 									class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
 								>
-									Add Type
+									{t("qualifications.admin.qualifications.addType")}
 								</button>
 							</div>
 						</Form>

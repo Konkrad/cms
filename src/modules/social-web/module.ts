@@ -1,4 +1,4 @@
-import { defineModule } from "~/core";
+import { defineModule, t } from "~/core";
 import { FEED_PATH, MODULE_ID, SOCIAL_PATH } from "./urls";
 
 /**
@@ -9,5 +9,11 @@ import { FEED_PATH, MODULE_ID, SOCIAL_PATH } from "./urls";
 export const socialWebModule = defineModule({
 	id: MODULE_ID,
 	routes: [FEED_PATH.slice(1), SOCIAL_PATH.slice(1)],
-	feeds: [{ title: "News", href: FEED_PATH, type: "application/rss+xml" }],
+	feeds: [
+		{
+			title: t("social-web.module.news"),
+			href: FEED_PATH,
+			type: "application/rss+xml",
+		},
+	],
 });

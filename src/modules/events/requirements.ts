@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { defineRequirement } from "~/core";
+import { defineRequirement, t } from "~/core";
 
 /**
  * What a buyer must answer before buying a ticket or registering for an event (spec 4.6):
@@ -10,12 +10,12 @@ import { defineRequirement } from "~/core";
 export const CHECKOUT_CONTEXT = "event.checkout";
 
 export const FOOD_PREFERENCES = [
-	{ value: "none", label: "No restrictions" },
-	{ value: "vegetarian", label: "Vegetarian" },
-	{ value: "vegan", label: "Vegan" },
+	{ value: "none", label: t("events.requirements.noRestrictions") },
+	{ value: "vegetarian", label: t("events.requirements.vegetarian") },
+	{ value: "vegan", label: t("events.requirements.vegan") },
 	{ value: "gluten_free", label: "Gluten-free" },
-	{ value: "halal", label: "Halal" },
-	{ value: "kosher", label: "Kosher" },
+	{ value: "halal", label: t("events.requirements.halal") },
+	{ value: "kosher", label: t("events.requirements.kosher") },
 ] as const;
 
 const FOOD_VALUES = FOOD_PREFERENCES.map((p) => p.value) as [
@@ -27,15 +27,15 @@ export const foodPreferenceRequirement = defineRequirement({
 	id: "events.foodPreference",
 	version: 1,
 	contexts: [CHECKOUT_CONTEXT],
-	title: "Food preferences",
-	description: "Tell us about your dietary needs so we can cater for you.",
+	title: t("events.requirements.foodPreferences"),
+	description: t("events.requirements.tellUsAboutYourDietary"),
 	input: z.object({
 		foodPreference: z.enum(FOOD_VALUES, { message: "Choose an option" }),
 	}),
 	fields: [
 		{
 			name: "foodPreference",
-			label: "Food preference",
+			label: t("events.requirements.foodPreference"),
 			type: "select",
 			required: true,
 			options: FOOD_PREFERENCES.map((p) => ({ ...p })),
@@ -47,30 +47,31 @@ export const photoConsentRequirement = defineRequirement({
 	id: "events.photoConsent",
 	version: 1,
 	contexts: [CHECKOUT_CONTEXT],
-	title: "Photo consent",
-	description:
-		"We take photos at our events and may use them for promotion. Do you consent to being photographed?",
+	title: t("events.requirements.photoConsent"),
+	description: t("events.requirements.weTakePhotosAtOur"),
 	input: z.object({
 		photoConsentGiven: z
-			.enum(["true", "false"], { message: "Choose an option" })
+			.enum(["true", "false"], {
+				message: t("events.requirements.chooseAnOption"),
+			})
 			.transform((v) => v === "true"),
 	}),
 	fields: [
 		{
 			name: "photoConsentGiven",
-			label: "Photo consent",
+			label: t("events.requirements.photoConsent"),
 			type: "radio",
 			required: true,
 			options: [
 				{
 					value: "true",
-					label: "Yes, I consent",
-					description: "You may appear in event photos.",
+					label: t("events.requirements.yesIConsent"),
+					description: t("events.requirements.youMayAppearInEvent"),
 				},
 				{
 					value: "false",
-					label: "No, I do not consent",
-					description: "We will do our best to keep you out of photos.",
+					label: t("events.requirements.noIDoNotConsent"),
+					description: t("events.requirements.weWillDoOurBest"),
 				},
 			],
 		},

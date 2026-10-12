@@ -9,6 +9,7 @@ import {
 	Select,
 	SmartDatePicker,
 	TextArea,
+	t,
 	VISIBILITIES,
 	VisibilitySelector,
 } from "~/core/ui";
@@ -16,17 +17,21 @@ import { eventsService } from "../services/events";
 import type { NewEventContext } from "./new-data";
 
 const eventSchema = z.object({
-	title: z.string().min(1, "Title is required"),
-	body: z.string().min(1, "Description is required"),
-	startDate: z.string().min(1, "Start time is required"),
-	endDate: z.string().min(1, "End time is required"),
+	title: z.string().min(1, t("events.admin.new.titleIsRequired")),
+	body: z.string().min(1, t("events.admin.new.descriptionIsRequired")),
+	startDate: z.string().min(1, t("events.admin.new.startTimeIsRequired")),
+	endDate: z.string().min(1, t("events.admin.new.endTimeIsRequired")),
 	address: z.string().optional(),
 	city: z.string().optional(),
 	country: z.string().optional(),
 	latitude: z.string().optional(),
 	longitude: z.string().optional(),
 	locationType: z.enum(["in_person", "online", "hybrid"]),
-	onlineUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
+	onlineUrl: z
+		.string()
+		.url(t("events.admin.new.invalidUrl"))
+		.optional()
+		.or(z.literal("")),
 	visibility: z.enum(VISIBILITIES),
 	image1: z.string().optional(),
 	image2: z.string().optional(),
@@ -38,13 +43,16 @@ export const useCreateEvent = routeAction$(async (data, event) => {
 	});
 
 	if (!(await allowedVisibilities(user, scope.id)).includes(data.visibility)) {
-		return { success: false, error: "You cannot publish with this visibility" };
+		return {
+			success: false,
+			error: t("events.admin.new.youCannotPublishWithThis"),
+		};
 	}
 
 	if (data.locationType !== "online" && !data.address) {
 		return {
 			success: false,
-			error: "Location is required for in-person and hybrid events",
+			error: t("events.admin.new.locationIsRequiredForIn"),
 		};
 	}
 
@@ -116,9 +124,11 @@ export const AdminEventNew = component$<Props>(({ groupContext }) => {
 	return (
 		<div>
 			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-2xl font-bold text-gray-800">Create New Event</h2>
+				<h2 class="text-2xl font-bold text-gray-800">
+					{t("events.admin.new.createNewEvent")}
+				</h2>
 				<Button href={`${groupContext.adminBase}/events`} variant="secondary">
-					Back to Events
+					{t("events.admin.new.backToEvents")}
 				</Button>
 			</div>
 
@@ -126,42 +136,44 @@ export const AdminEventNew = component$<Props>(({ groupContext }) => {
 				<form preventdefault:submit onSubmit$={handleSubmit} class="space-y-6">
 					<Input
 						name="title"
-						label="Title"
-						placeholder="e.g. Monthly Community Meetup"
+						label={t("events.admin.new.title")}
+						placeholder={t("events.admin.new.eGMonthlyCommunityMeetup")}
 						required
 					/>
 					<TextArea
 						name="body"
-						label="Description"
-						placeholder="Describe the event..."
+						label={t("events.admin.new.description")}
+						placeholder={t("events.admin.new.describeTheEvent")}
 						required
 					/>
 
 					<SmartDatePicker
 						startDateName="startDate"
 						endDateName="endDate"
-						label="Date & Time"
+						label={t("events.admin.new.dateTime")}
 						required
 					/>
 
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<Select
 							name="locationType"
-							label="Location Type"
+							label={t("events.admin.new.locationType")}
 							value={locationType.value}
 							onChange$={(e) => {
 								locationType.value = (e.target as HTMLSelectElement).value;
 							}}
 						>
-							<option value="in_person">In Person</option>
-							<option value="online">Online</option>
-							<option value="hybrid">Hybrid</option>
+							<option value="in_person">
+								{t("events.admin.new.inPerson")}
+							</option>
+							<option value="online">{t("events.admin.new.online")}</option>
+							<option value="hybrid">{t("events.admin.new.hybrid")}</option>
 						</Select>
 						{locationType.value !== "online" && (
 							<AddressAutocomplete
 								name="address"
-								label="Location/Address"
-								placeholder="Start typing an address..."
+								label={t("events.admin.new.locationAddress")}
+								placeholder={t("events.admin.new.startTypingAnAddress")}
 								required={locationType.value !== "online"}
 								value=""
 								latitudeSignal={latitude}
@@ -176,8 +188,8 @@ export const AdminEventNew = component$<Props>(({ groupContext }) => {
 						locationType.value === "hybrid") && (
 						<Input
 							name="onlineUrl"
-							label="Online Meeting URL"
-							placeholder="https://zoom.us/j/..."
+							label={t("events.admin.new.onlineMeetingUrl")}
+							placeholder={t("events.admin.new.httpsZoomUsJ")}
 							required
 						/>
 					)}
@@ -189,12 +201,14 @@ export const AdminEventNew = component$<Props>(({ groupContext }) => {
 					/>
 
 					<hr class="border-gray-200" />
-					<p class="text-sm font-semibold text-gray-700">Event Page Images</p>
+					<p class="text-sm font-semibold text-gray-700">
+						{t("events.admin.new.eventPageImages")}
+					</p>
 
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<div>
 							<p class="text-sm font-medium text-gray-700 mb-1">
-								Image Left (square)
+								{t("events.admin.new.imageLeftSquare")}
 							</p>
 							<ImageUploader
 								name="image1"
@@ -208,7 +222,7 @@ export const AdminEventNew = component$<Props>(({ groupContext }) => {
 						</div>
 						<div>
 							<p class="text-sm font-medium text-gray-700 mb-1">
-								Image Right (square)
+								{t("events.admin.new.imageRightSquare")}
 							</p>
 							<ImageUploader
 								name="image2"
@@ -224,13 +238,15 @@ export const AdminEventNew = component$<Props>(({ groupContext }) => {
 
 					<div class="flex gap-4">
 						<Button type="submit" disabled={isSubmitting.value}>
-							{isSubmitting.value ? "Creating..." : "Create Event"}
+							{isSubmitting.value
+								? t("events.admin.new.creating")
+								: t("events.admin.new.createEvent")}
 						</Button>
 						<Button
 							href={`${groupContext.adminBase}/events`}
 							variant="secondary"
 						>
-							Cancel
+							{t("events.admin.new.cancel")}
 						</Button>
 					</div>
 				</form>

@@ -5,6 +5,7 @@ import {
 	formatDate,
 	Pagination,
 	SearchBar,
+	t,
 	VISIBILITY_LABELS,
 } from "~/core/ui";
 import { eventsService } from "../services/events";
@@ -30,9 +31,13 @@ export const AdminEventsList = component$<Props>(({ data }) => {
 		<div>
 			<div class="flex items-center justify-between mb-6">
 				<h2 class="text-2xl font-bold text-gray-800">
-					{data.isRoot ? "All Events" : "Group Events"}
+					{data.isRoot
+						? t("events.admin.list.allEvents")
+						: t("events.admin.list.groupEvents")}
 				</h2>
-				<Button href={`${data.adminBase}/events/new`}>Create New Event</Button>
+				<Button href={`${data.adminBase}/events/new`}>
+					{t("events.admin.list.createNewEvent")}
+				</Button>
 			</div>
 
 			{data.overdueDebriefs.length > 0 && (
@@ -40,7 +45,9 @@ export const AdminEventsList = component$<Props>(({ data }) => {
 					class="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4"
 					data-testid="overdue-debriefs"
 				>
-					<h3 class="font-semibold text-amber-900 mb-2">Overdue debriefs</h3>
+					<h3 class="font-semibold text-amber-900 mb-2">
+						{t("events.admin.list.overdueDebriefs")}
+					</h3>
 					<ul class="text-sm space-y-1">
 						{data.overdueDebriefs.map((e) => (
 							<li key={e.id}>
@@ -50,33 +57,40 @@ export const AdminEventsList = component$<Props>(({ data }) => {
 								>
 									{e.title}
 								</Link>{" "}
-								<span class="text-gray-600">ended {formatDate(e.endDate)}</span>
+								<span class="text-gray-600">
+									{t("events.admin.list.ended", {
+										endDate: formatDate(e.endDate),
+									})}
+								</span>
 							</li>
 						))}
 					</ul>
 				</section>
 			)}
 
-			<SearchBar value={data.search} placeholder="Search by title or city…" />
+			<SearchBar
+				value={data.search}
+				placeholder={t("events.admin.list.searchByTitleOrCity")}
+			/>
 
 			<div class="bg-white shadow-sm rounded-lg overflow-x-auto">
 				<table class="min-w-full divide-y divide-gray-200">
 					<thead class="bg-gray-50">
 						<tr>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Event
+								{t("events.admin.list.event")}
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Date
+								{t("events.admin.list.date")}
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Visibility
+								{t("events.admin.list.visibility")}
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Participants
+								{t("events.admin.list.participants")}
 							</th>
 							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Actions
+								{t("events.admin.list.actions")}
 							</th>
 						</tr>
 					</thead>
@@ -107,25 +121,28 @@ export const AdminEventsList = component$<Props>(({ data }) => {
 											class="ml-2 px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800"
 											data-event-status={event.status}
 										>
-											{event.status === "draft" ? "Draft" : "In review"}
+											{event.status === "draft"
+												? t("events.admin.list.draft")
+												: t("events.admin.list.inReview")}
 										</span>
 									)}
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-									{event.participationCounts.yes || 0} going
+									{event.participationCounts.yes || 0}{" "}
+									{t("events.admin.list.going")}
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
 									<Link
 										href={`${data.adminBase}/events/${event.id}/details`}
 										class="text-blue-600 hover:text-blue-900"
 									>
-										View
+										{t("events.admin.list.view")}
 									</Link>
 									<Link
 										href={`${data.adminBase}/events/${event.id}/edit`}
 										class="text-indigo-600 hover:text-indigo-900"
 									>
-										Edit
+										{t("events.admin.list.edit")}
 									</Link>
 									<Form action={deleteEventAction} class="inline">
 										<input type="hidden" name="eventId" value={event.id} />
@@ -134,18 +151,14 @@ export const AdminEventsList = component$<Props>(({ data }) => {
 											preventdefault:click
 											class="text-red-600 hover:text-red-900"
 											onClick$={(e) => {
-												if (
-													!confirm(
-														"Are you sure you want to delete this event?",
-													)
-												)
+												if (!confirm(t("events.admin.list.areYouSureYouWant")))
 													return;
 												(e.target as HTMLElement)
 													.closest("form")
 													?.requestSubmit();
 											}}
 										>
-											Delete
+											{t("events.admin.list.delete")}
 										</button>
 									</Form>
 								</td>
@@ -156,8 +169,8 @@ export const AdminEventsList = component$<Props>(({ data }) => {
 				{data.events.length === 0 && (
 					<div class="text-center py-12 text-gray-500">
 						{data.search
-							? `No events matching "${data.search}".`
-							: "No events found."}
+							? t("events.admin.list.noEventsMatching", { search: data.search })
+							: t("events.admin.list.noEventsFound")}
 					</div>
 				)}
 				<Pagination

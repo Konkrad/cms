@@ -5,6 +5,7 @@ import type {
 	MyJobsData,
 } from "~/contracts/jobs";
 import type { PageViews } from "~/core";
+import { t } from "~/core/ui";
 import { JobDetailView } from "~theme/routes/jobs/JobDetailView";
 import {
 	type JobFormInitialValues,
@@ -45,13 +46,13 @@ const NewJobPage = component$(() => {
 		<JobFormView
 			mode="new"
 			backHref="/jobs"
-			backLabel="Back to Job Board"
-			heading="Post a Job"
+			backLabel={t("jobs.views.backToJobBoard")}
+			heading={t("jobs.views.postAJob")}
 			initial={initial}
 			maxDateStr={max}
 			cancelHref="/jobs"
-			submitLabel="Submit for Review"
-			submittingLabel="Submitting…"
+			submitLabel={t("jobs.views.submitForReview")}
+			submittingLabel={t("jobs.views.submitting")}
 			action={submitAction}
 		/>
 	);
@@ -75,13 +76,13 @@ const EditMyJobPage = component$<{ data: EditMyJobData }>(({ data }) => {
 		<JobFormView
 			mode="edit"
 			backHref="/jobs/mine"
-			backLabel="Back to My Submissions"
-			heading="Edit Job Posting"
+			backLabel={t("jobs.views.backToMySubmissions")}
+			heading={t("jobs.views.editJobPosting")}
 			initial={initial}
 			maxDateStr={maxDateStr()}
 			cancelHref="/jobs/mine"
-			submitLabel="Save Changes"
-			submittingLabel="Saving…"
+			submitLabel={t("jobs.views.saveChanges")}
+			submittingLabel={t("jobs.views.saving")}
 			action={updateAction}
 		/>
 	);

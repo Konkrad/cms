@@ -4,6 +4,7 @@ import {
 	currentScopeRest,
 	matchPath,
 	requireModuleAuth,
+	t,
 } from "~/core";
 import { jobsService } from "./service";
 
@@ -20,7 +21,7 @@ export const useSubmitJob = routeAction$(
 		if (expiresAt > maxExpiry) {
 			return {
 				failed: true,
-				error: "Expiry date cannot be more than 30 days from today.",
+				error: t("jobs.actions.expiryDateCannotBeMore"),
 			};
 		}
 
@@ -46,7 +47,7 @@ export const useSubmitJob = routeAction$(
 		throw event.redirect(303, "/jobs/mine");
 	},
 	zod$({
-		title: z.string().min(1, "Title is required"),
+		title: z.string().min(1, t("jobs.actions.titleIsRequired")),
 		body: z.string(),
 		editorState: z.string().optional(),
 		locationType: z.enum(["on-site", "remote-eu", "remote-country"]),
@@ -56,7 +57,7 @@ export const useSubmitJob = routeAction$(
 		posterRelation: z
 			.enum(["hiring", "founder", "direct-team", "works-there", "other", ""])
 			.optional(),
-		expiresAt: z.string().min(1, "Expiry date is required"),
+		expiresAt: z.string().min(1, t("jobs.actions.expiryDateIsRequired")),
 	}),
 );
 
@@ -82,7 +83,7 @@ export const useUpdateMyJob = routeAction$(
 		const jobId = matchPath("/jobs/mine/:id/edit", currentScopeRest(event))?.id;
 		const job = jobId ? await jobsService.getById(jobId) : undefined;
 		if (!job || job.suggestedBy !== user.id || job.status !== "pending") {
-			return { failed: true, error: "Not allowed." };
+			return { failed: true, error: t("jobs.actions.notAllowed") };
 		}
 
 		const expiresAt = new Date(data.expiresAt);
@@ -92,7 +93,7 @@ export const useUpdateMyJob = routeAction$(
 		if (expiresAt > maxExpiry) {
 			return {
 				failed: true,
-				error: "Expiry date cannot be more than 30 days from today.",
+				error: t("jobs.actions.expiryDateCannotBeMore"),
 			};
 		}
 
@@ -114,7 +115,7 @@ export const useUpdateMyJob = routeAction$(
 		throw event.redirect(303, "/jobs/mine");
 	},
 	zod$({
-		title: z.string().min(1, "Title is required"),
+		title: z.string().min(1, t("jobs.actions.titleIsRequired")),
 		body: z.string(),
 		editorState: z.string().optional(),
 		locationType: z.enum(["on-site", "remote-eu", "remote-country"]),
@@ -127,6 +128,6 @@ export const useUpdateMyJob = routeAction$(
 				.enum(["hiring", "founder", "direct-team", "works-there", "other"])
 				.optional(),
 		),
-		expiresAt: z.string().min(1, "Expiry date is required"),
+		expiresAt: z.string().min(1, t("jobs.actions.expiryDateIsRequired")),
 	}),
 );

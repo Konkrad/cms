@@ -1,4 +1,5 @@
 import { component$ } from "@qwik.dev/core";
+import { t } from "~/core/ui";
 import type { products, transactionItems } from "../../schema";
 import type { Transaction } from "../../schema/transactions";
 import TransactionCard from "../TransactionCard/TransactionCard";
@@ -20,7 +21,9 @@ export default component$<TransactionsListProps>(({ transactions }) => {
 	if (transactions.length === 0) {
 		return (
 			<div class="bg-white rounded-lg shadow-md p-8 text-center">
-				<p class="text-gray-500">No transactions yet</p>
+				<p class="text-gray-500">
+					{t("events.transactionsList.noTransactionsYet")}
+				</p>
 			</div>
 		);
 	}

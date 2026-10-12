@@ -1,3 +1,4 @@
+import { t } from "~/core";
 import { inventoryGroupsService } from "./inventory-groups";
 import { productsService } from "./products";
 
@@ -29,14 +30,19 @@ export const checkoutService = {
 
 			// Check if product belongs to the event
 			if (product.eventId !== eventId) {
-				errors.push(`Product ${product.name} does not belong to this event`);
+				errors.push(
+					t("events.service.productDoesNotBelongTo", { name: product.name }),
+				);
 				continue;
 			}
 
 			// Check max quantity per purchase
 			if (product.maxQuantity > 0 && items[i].quantity > product.maxQuantity) {
 				errors.push(
-					`Product ${product.name} allows maximum ${product.maxQuantity} per purchase`,
+					t("events.service.productAllowsMaximumPerPurchase", {
+						name: product.name,
+						maxQuantity: product.maxQuantity,
+					}),
 				);
 			}
 
@@ -46,7 +52,10 @@ export const checkoutService = {
 					product.maxQuantity - (product.soldQuantity || 0);
 				if (items[i].quantity > remainingProductQuantity) {
 					errors.push(
-						`Product ${product.name} has only ${Math.max(0, remainingProductQuantity)} remaining`,
+						t("events.service.productHasOnlyRemaining", {
+							name: product.name,
+							value: Math.max(0, remainingProductQuantity),
+						}),
 					);
 				}
 			}
@@ -77,7 +86,7 @@ export const checkoutService = {
 			const inventoryGroup =
 				await inventoryGroupsService.getById(inventoryGroupId);
 			if (!inventoryGroup) {
-				errors.push(`Inventory group not found`);
+				errors.push(t("events.service.inventoryGroupNotFound"));
 				continue;
 			}
 
@@ -89,7 +98,10 @@ export const checkoutService = {
 			if (!validation.allowed) {
 				errors.push(
 					validation.reason ||
-						`Not enough capacity in ${inventoryGroup.name}. Only ${validation.remainingCapacity} spots remaining.`,
+						t("events.service.notEnoughCapacityInOnly", {
+							name: inventoryGroup.name,
+							remainingCapacity: validation.remainingCapacity,
+						}),
 				);
 			}
 		}

@@ -1,6 +1,6 @@
 import { component$, type QRL } from "@qwik.dev/core";
 import { type ActionStore, Form } from "@qwik.dev/router";
-import { Button, Input } from "~/core/ui";
+import { Button, Input, t } from "~/core/ui";
 
 interface InventoryGroupFormProps {
 	action: any;
@@ -11,35 +11,47 @@ export const InventoryGroupForm = component$<InventoryGroupFormProps>(
 	({ action, onCancel }) => {
 		return (
 			<Form action={action} class="p-4 border rounded-sm bg-white">
-				<h3 class="font-bold mb-4 text-lg">New Inventory Group</h3>
+				<h3 class="font-bold mb-4 text-lg">
+					{t("events.inventoryGroupForm.newInventoryGroup")}
+				</h3>
 				<div class="space-y-4">
-					<Input name="name" label="Group Name" required />
+					<Input
+						name="name"
+						label={t("events.inventoryGroupForm.groupName")}
+						required
+					/>
 					<Input
 						name="maxCapacity"
-						label="Max Capacity"
+						label={t("events.inventoryGroupForm.maxCapacity")}
 						type="number"
 						min="1"
 						required
 					/>
 					<Input
 						name="salesStartDate"
-						label="Sales Start"
+						label={t("events.inventoryGroupForm.salesStart")}
 						type="datetime-local"
 					/>
-					<Input name="salesEndDate" label="Sales End" type="datetime-local" />
+					<Input
+						name="salesEndDate"
+						label={t("events.inventoryGroupForm.salesEnd")}
+						type="datetime-local"
+					/>
 					<p class="text-sm text-gray-500">
-						Optional: limit when products in this group can be purchased
+						{t("events.inventoryGroupForm.optionalLimitWhenProductsIn")}
 					</p>
 					<label class="flex items-center gap-2">
 						<input type="checkbox" name="needsTicket" value="true" />
 						<span class="text-sm">
-							Needs Ticket (Generate QR codes for entry)
+							{t("events.inventoryGroupForm.needsTicketGenerateQrCodes")}
 						</span>
 					</label>
 					<div class="flex gap-2">
-						<Button type="submit">Create Group</Button>
+						<Button type="submit">
+							{t("events.inventoryGroupForm.createGroup")}
+						</Button>
 						<Button type="button" onClick$={onCancel}>
-							Cancel
+							{t("events.inventoryGroupForm.cancel")}
 						</Button>
 					</div>
 				</div>

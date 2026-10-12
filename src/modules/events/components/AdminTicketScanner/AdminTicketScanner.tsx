@@ -1,7 +1,7 @@
 import { $, component$, useSignal, useVisibleTask$ } from "@qwik.dev/core";
 import type { ActionStore } from "@qwik.dev/router";
 import { Html5QrcodeScanner } from "html5-qrcode";
-import { Button } from "~/core/ui";
+import { Button, t } from "~/core/ui";
 
 interface TicketScannerProps {
 	action: ActionStore<any, any, true>;
@@ -44,7 +44,7 @@ export default component$<TicketScannerProps>(({ action }) => {
 		} catch (error) {
 			scanResult.value = {
 				success: false,
-				error: "Failed to process scan",
+				error: t("events.adminTicketScanner.failedToProcessScan"),
 			};
 		}
 	});
@@ -90,13 +90,17 @@ export default component$<TicketScannerProps>(({ action }) => {
 	return (
 		<div class="bg-white rounded-lg shadow-md p-6">
 			<div class="flex items-center justify-between mb-4">
-				<h3 class="text-xl font-semibold">QR Code Scanner</h3>
+				<h3 class="text-xl font-semibold">
+					{t("events.adminTicketScanner.qrCodeScanner")}
+				</h3>
 				<Button
 					type="button"
 					variant={isScanning.value ? "danger" : "primary"}
 					onClick$={toggleScanner}
 				>
-					{isScanning.value ? "Stop Scanning" : "Start Scanning"}
+					{isScanning.value
+						? t("events.adminTicketScanner.stopScanning")
+						: t("events.adminTicketScanner.startScanning")}
 				</Button>
 			</div>
 
@@ -123,19 +127,25 @@ export default component$<TicketScannerProps>(({ action }) => {
 									{scanResult.value.alreadyScanned &&
 										scanResult.value.scannedAt && (
 											<div class="text-xs mt-1">
-												Scanned at: {scanResult.value.scannedAt}
+												{t("events.adminTicketScanner.scannedAt", {
+													scannedAt: scanResult.value.scannedAt,
+												})}
 											</div>
 										)}
 
 									{scanResult.value.reason && (
 										<div class="text-xs mt-1">
-											Reason: {scanResult.value.reason}
+											{t("events.adminTicketScanner.reason", {
+												reason: scanResult.value.reason,
+											})}
 										</div>
 									)}
 
 									{scanResult.value.ticketId && (
 										<div class="text-xs mt-1">
-											Ticket ID: {scanResult.value.ticketId}
+											{t("events.adminTicketScanner.ticketId", {
+												ticketId: scanResult.value.ticketId,
+											})}
 										</div>
 									)}
 								</div>
@@ -147,7 +157,7 @@ export default component$<TicketScannerProps>(({ action }) => {
 
 			{!isScanning.value && (
 				<p class="text-gray-600 text-center py-8">
-					Click "Start Scanning" to activate the camera and scan ticket QR codes
+					{t("events.adminTicketScanner.clickStartScanningToActivate")}
 				</p>
 			)}
 		</div>

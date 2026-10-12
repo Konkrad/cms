@@ -1,4 +1,4 @@
-import { defineModule } from "~/core";
+import { defineModule, t } from "~/core";
 import { electionsPages } from "./pages";
 import { electionsService } from "./service";
 
@@ -8,14 +8,25 @@ export const electionsModule = defineModule({
 	// Election cycles are owned by a scope; each scope's admin manages its own and its subtree's.
 	admin: {
 		sections: [
-			{ path: "elections", label: "Elections", order: 200, scopes: "all" },
+			{
+				path: "elections",
+				label: t("elections.module.elections"),
+				order: 200,
+				scopes: "all",
+			},
 		],
 	},
-	menuLinks: [{ key: "elections", label: "Elections", url: "/elections" }],
+	menuLinks: [
+		{
+			key: "elections",
+			label: t("elections.module.elections"),
+			url: "/elections",
+		},
+	],
 	// `elections:cycle:<id>` → `<scope path>/elections/<id>`.
 	refs: {
 		cycle: {
-			label: "Election",
+			label: t("elections.module.election"),
 			path: "/elections/:id",
 			locate: (ids) => electionsService.locate(ids),
 			search: (query, limit) => electionsService.searchPublished(query, limit),

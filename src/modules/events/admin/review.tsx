@@ -1,7 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { FormAnswerError, forms, notify, ReviewError, reviews } from "~/core";
-import { Button, FormRenderer, formatDate } from "~/core/ui";
+import { Button, FormRenderer, formatDate, t } from "~/core/ui";
 import { DEBRIEF_PURPOSE } from "../debrief";
 import { eventsService } from "../services/events";
 import { requireAdminEvent } from "./event-guards";
@@ -21,7 +21,7 @@ export const useSubmitProposal = routeAction$(
 		const { user, event } = await requireAdminEvent(requestEvent);
 		if (event.status !== "draft")
 			return requestEvent.fail(400, {
-				message: "Only a draft event can be submitted",
+				message: t("events.admin.review.onlyADraftEventCan"),
 				fieldErrors: {} as Record<string, string>,
 			});
 		const ref = `events:event:${event.id}`;
@@ -75,7 +75,7 @@ export const useSubmitDebrief = routeAction$(
 			(await forms.hasResult(ref, DEBRIEF_PURPOSE))
 		)
 			return requestEvent.fail(400, {
-				message: "There is no debrief to fill in for this event",
+				message: t("events.admin.review.thereIsNoDebriefTo"),
 				fieldErrors: {} as Record<string, string>,
 			});
 		try {
@@ -103,10 +103,9 @@ export const useSubmitDebrief = routeAction$(
 );
 
 const STATUS_TEXT: Record<string, string> = {
-	draft: "Draft: not visible publicly.",
-	in_review:
-		"In review: the coordinators above were asked to approve it. It is published once approved.",
-	published: "Published.",
+	draft: t("events.admin.review.draftNotVisiblePublicly"),
+	in_review: t("events.admin.review.inReviewTheCoordinatorsAbove"),
+	published: t("events.admin.review.published"),
 };
 
 type Props = { data: AdminEventReviewData };
@@ -122,13 +121,17 @@ export const AdminEventReview = component$<Props>(({ data }) => {
 				class="bg-white rounded-lg shadow-sm p-6"
 				data-testid="event-review-status"
 			>
-				<h3 class="text-lg font-semibold mb-2">Status</h3>
+				<h3 class="text-lg font-semibold mb-2">
+					{t("events.admin.review.status")}
+				</h3>
 				<p class="text-sm text-gray-700" data-event-status={data.event.status}>
 					{STATUS_TEXT[data.event.status]}
 				</p>
 				{data.review?.status === "rejected" && data.review.comment && (
 					<div class="mt-3 p-3 rounded-sm bg-red-50 border border-red-200 text-sm text-red-800">
-						<p class="font-medium">Not approved. The reviewer wrote:</p>
+						<p class="font-medium">
+							{t("events.admin.review.notApprovedTheReviewerWrote")}
+						</p>
 						<p class="whitespace-pre-wrap" data-testid="review-comment">
 							{data.review.comment}
 						</p>
@@ -136,7 +139,9 @@ export const AdminEventReview = component$<Props>(({ data }) => {
 				)}
 				{submit.value?.success && (
 					<output class="block mt-3 text-sm text-green-700">
-						{submit.value.inReview ? "Sent for review." : "Published."}
+						{submit.value.inReview
+							? t("events.admin.review.sentForReview")
+							: t("events.admin.review.published")}
 					</output>
 				)}
 			</section>
@@ -147,7 +152,8 @@ export const AdminEventReview = component$<Props>(({ data }) => {
 					data-testid="event-proposal"
 				>
 					<h3 class="text-lg font-semibold mb-1">
-						{data.proposalForm?.title ?? "Submit the event"}
+						{data.proposalForm?.title ??
+							t("events.admin.review.submitTheEvent")}
 					</h3>
 					{data.proposalForm?.description && (
 						<p class="text-sm text-gray-500 mb-4">
@@ -174,9 +180,11 @@ export const AdminEventReview = component$<Props>(({ data }) => {
 								name="announce"
 								checked={data.event.announceOnApproval}
 							/>
-							Post an announcement note when the event is published
+							{t("events.admin.review.postAnAnnouncementNoteWhen")}
 						</label>
-						<Button type="submit">Submit for review</Button>
+						<Button type="submit">
+							{t("events.admin.review.submitForReview")}
+						</Button>
 					</Form>
 				</section>
 			)}
@@ -204,13 +212,15 @@ export const AdminEventReview = component$<Props>(({ data }) => {
 								debriefFailed?.fieldErrors as Record<string, string> | undefined
 							}
 						/>
-						<Button type="submit">Submit debrief</Button>
+						<Button type="submit">
+							{t("events.admin.review.submitDebrief")}
+						</Button>
 					</Form>
 				</section>
 			)}
 			{debrief.value?.success && (
 				<output class="block text-sm text-green-700">
-					Thank you: the debrief was saved.
+					{t("events.admin.review.thankYouTheDebriefWas")}
 				</output>
 			)}
 
@@ -218,16 +228,20 @@ export const AdminEventReview = component$<Props>(({ data }) => {
 				class="bg-white rounded-lg shadow-sm p-6"
 				data-testid="event-form-results"
 			>
-				<h3 class="text-lg font-semibold mb-3">Proposal and debrief</h3>
+				<h3 class="text-lg font-semibold mb-3">
+					{t("events.admin.review.proposalAndDebrief")}
+				</h3>
 				{data.results.length === 0 ? (
-					<p class="text-sm text-gray-400">No answers yet.</p>
+					<p class="text-sm text-gray-400">
+						{t("events.admin.review.noAnswersYet")}
+					</p>
 				) : (
 					<div class="space-y-6">
 						{data.results.map((r) => (
 							<div key={r.id} data-purpose={r.purpose ?? ""}>
 								<p class="font-medium">{r.formTitle}</p>
 								<p class="text-xs text-gray-500 mb-2">
-									{r.authorName ?? "Unknown"} ·{" "}
+									{r.authorName ?? t("events.admin.review.unknown")} ·{" "}
 									{formatDate(r.createdAt, "dateTime")}
 								</p>
 								<dl class="grid gap-2 text-sm">

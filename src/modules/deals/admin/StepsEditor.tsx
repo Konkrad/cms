@@ -1,5 +1,5 @@
 import { $, component$, type QRL, useSignal } from "@qwik.dev/core";
-import { Button, Input, Select, TextArea } from "~/core/ui";
+import { Button, Input, Select, TextArea, t } from "~/core/ui";
 import type { DealStep } from "../schema";
 
 interface StepsEditorProps {
@@ -41,7 +41,9 @@ export const StepsEditor = component$<StepsEditorProps>(
 				<input type="hidden" name={name} value={JSON.stringify(steps.value)} />
 
 				{steps.value.length === 0 && (
-					<p class="text-sm text-gray-500">No steps yet. Add a step below.</p>
+					<p class="text-sm text-gray-500">
+						{t("deals.admin.stepsEditor.noStepsYetAddA")}
+					</p>
 				)}
 
 				{steps.value.map((step, index) => (
@@ -51,20 +53,20 @@ export const StepsEditor = component$<StepsEditorProps>(
 					>
 						<div class="flex items-center justify-between">
 							<span class="text-sm font-semibold text-gray-700">
-								Step {index + 1}
+								{t("deals.admin.stepsEditor.step", { value: index + 1 })}
 							</span>
 							<button
 								type="button"
 								onClick$={() => removeStep$(index)}
 								class="text-sm text-red-500 hover:text-red-700"
 							>
-								Remove
+								{t("deals.admin.stepsEditor.remove")}
 							</button>
 						</div>
 
 						<div class="grid grid-cols-2 gap-3">
 							<Select
-								label="Type"
+								label={t("deals.admin.stepsEditor.type")}
 								value={step.type}
 								onChange$={(e) =>
 									updateStep$(index, {
@@ -73,9 +75,15 @@ export const StepsEditor = component$<StepsEditorProps>(
 									})
 								}
 							>
-								<option value="text">Text</option>
-								<option value="link">Link</option>
-								<option value="promo">Promo Code</option>
+								<option value="text">
+									{t("deals.admin.stepsEditor.text")}
+								</option>
+								<option value="link">
+									{t("deals.admin.stepsEditor.link")}
+								</option>
+								<option value="promo">
+									{t("deals.admin.stepsEditor.promoCode")}
+								</option>
 							</Select>
 
 							<div class="flex items-end pb-1">
@@ -91,14 +99,14 @@ export const StepsEditor = component$<StepsEditorProps>(
 										class="rounded"
 									/>
 									<span class="text-sm font-medium text-text">
-										Requires login
+										{t("deals.admin.stepsEditor.requiresLogin")}
 									</span>
 								</label>
 							</div>
 						</div>
 
 						<Input
-							label="Title"
+							label={t("deals.admin.stepsEditor.title")}
 							value={step.title}
 							onInput$={(e) =>
 								updateStep$(index, {
@@ -109,7 +117,7 @@ export const StepsEditor = component$<StepsEditorProps>(
 						/>
 
 						<TextArea
-							label="Text"
+							label={t("deals.admin.stepsEditor.text")}
 							value={step.text}
 							rows={2}
 							onInput$={(e) =>
@@ -122,7 +130,7 @@ export const StepsEditor = component$<StepsEditorProps>(
 						{step.type === "link" && (
 							<>
 								<Input
-									label="URL"
+									label={t("deals.admin.stepsEditor.url")}
 									type="url"
 									value={step.link ?? ""}
 									onInput$={(e) =>
@@ -130,31 +138,31 @@ export const StepsEditor = component$<StepsEditorProps>(
 											link: (e.target as HTMLInputElement).value,
 										})
 									}
-									placeholder="https://example.com"
+									placeholder={t("deals.admin.stepsEditor.httpsExampleCom")}
 								/>
 								<Input
-									label="Link Text"
+									label={t("deals.admin.stepsEditor.linkText")}
 									value={step.linkText ?? ""}
 									onInput$={(e) =>
 										updateStep$(index, {
 											linkText: (e.target as HTMLInputElement).value,
 										})
 									}
-									placeholder="Go to the Website"
+									placeholder={t("deals.admin.stepsEditor.goToTheWebsite")}
 								/>
 							</>
 						)}
 
 						{step.type === "promo" && (
 							<Input
-								label="Promo Code"
+								label={t("deals.admin.stepsEditor.promoCode")}
 								value={step.promoCode ?? ""}
 								onInput$={(e) =>
 									updateStep$(index, {
 										promoCode: (e.target as HTMLInputElement).value,
 									})
 								}
-								placeholder="DISCOUNT2026"
+								placeholder={t("deals.admin.stepsEditor.discount2026")}
 							/>
 						)}
 					</div>
@@ -167,7 +175,7 @@ export const StepsEditor = component$<StepsEditorProps>(
 						size="sm"
 						onClick$={addStep$}
 					>
-						+ Add Step
+						{t("deals.admin.stepsEditor.addStep")}
 					</Button>
 				</div>
 			</div>

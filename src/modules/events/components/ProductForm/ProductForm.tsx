@@ -6,6 +6,7 @@ import {
 	Input,
 	Modal,
 	publicImageUrlFromKey,
+	t,
 } from "~/core/ui";
 
 interface ProductFormProps {
@@ -21,7 +22,12 @@ export const ProductForm = component$<ProductFormProps>(
 		const currentImageKey = useSignal("");
 
 		return (
-			<Modal open={true} onClose$={onCancel} title="New Product" size="md">
+			<Modal
+				open={true}
+				onClose$={onCancel}
+				title={t("events.productForm.newProduct")}
+				size="md"
+			>
 				<Form action={action}>
 					<div class="space-y-4">
 						<div>
@@ -29,7 +35,7 @@ export const ProductForm = component$<ProductFormProps>(
 								for="f-inventoryGroupId"
 								class="block text-sm font-medium mb-1"
 							>
-								Inventory Group *
+								{t("events.productForm.inventoryGroup")}
 							</label>
 							<select
 								id="f-inventoryGroupId"
@@ -49,11 +55,15 @@ export const ProductForm = component$<ProductFormProps>(
 							</select>
 						</div>
 
-						<Input name="name" label="Product Name" required />
+						<Input
+							name="name"
+							label={t("events.productForm.productName")}
+							required
+						/>
 
 						<Input
 							name="price"
-							label="Price (EUR)"
+							label={t("events.productForm.priceEur")}
 							type="number"
 							step="0.01"
 							min="0"
@@ -62,38 +72,42 @@ export const ProductForm = component$<ProductFormProps>(
 
 						<Input
 							name="maxQuantity"
-							label="Max Quantity per Purchase"
+							label={t("events.productForm.maxQuantityPerPurchase")}
 							type="number"
 							min="0"
-							placeholder="0 = unlimited"
+							placeholder={t("events.productForm.n0Unlimited")}
 							required
 						/>
 
 						<Input
 							name="participantCapacity"
-							label="Participant Capacity"
+							label={t("events.productForm.participantCapacity")}
 							type="number"
 							min="1"
 							value="1"
-							placeholder="Number of participants per product unit"
+							placeholder={t(
+								"events.productForm.numberOfParticipantsPerProduct",
+							)}
 							required
 						/>
 
 						<div>
 							<label for="f-features" class="block text-sm font-medium mb-1">
-								Features (comma-separated)
+								{t("events.productForm.featuresCommaSeparated")}
 							</label>
 							<textarea
 								id="f-features"
 								name="features"
 								class="w-full border rounded-sm px-3 py-2"
 								rows={3}
-								placeholder="Feature 1, Feature 2, Feature 3"
+								placeholder={t("events.productForm.feature1Feature2Feature")}
 							/>
 						</div>
 
 						<div>
-							<p class="block text-sm font-medium mb-1">Product Image</p>
+							<p class="block text-sm font-medium mb-1">
+								{t("events.productForm.productImage")}
+							</p>
 							<ImageUploader
 								path="public/products"
 								pipeline="standard"
@@ -124,10 +138,10 @@ export const ProductForm = component$<ProductFormProps>(
 									uploadTrigger.value = true;
 								}}
 							>
-								Create Product
+								{t("events.productForm.createProduct")}
 							</Button>
 							<Button type="button" onClick$={onCancel}>
-								Cancel
+								{t("events.productForm.cancel")}
 							</Button>
 						</div>
 					</div>

@@ -1,5 +1,6 @@
 import { component$, useSignal } from "@qwik.dev/core";
 import { Form, Link } from "@qwik.dev/router";
+import { t } from "~/core/ui";
 import {
 	useAdvanceStatus,
 	useApproveApplication,
@@ -17,9 +18,9 @@ const STATUS_NEXT: Record<string, string | null> = {
 };
 
 const STATUS_NEXT_LABEL: Record<string, string> = {
-	draft: "Open for Applications",
-	open: "Close Applications / Start Voting",
-	voting: "Close Election",
+	draft: t("elections.admin.cycle.openForApplications"),
+	open: t("elections.admin.cycle.closeApplicationsStartVoting"),
+	voting: t("elections.admin.cycle.closeElection"),
 };
 
 const statusBadge = (status: string) => {
@@ -61,7 +62,7 @@ export const AdminElectionCycle = component$<{ data: AdminCycleData }>(
 							href={`${data.value.adminBase}/elections`}
 							class="text-sm text-gray-500 hover:text-gray-700"
 						>
-							← Elections
+							{t("elections.admin.cycle.elections")}
 						</Link>
 						<h2 class="text-2xl font-bold text-gray-800 mt-1">{cycle.title}</h2>
 					</div>
@@ -76,11 +77,17 @@ export const AdminElectionCycle = component$<{ data: AdminCycleData }>(
 									class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700"
 									preventdefault:click
 									onClick$={(e) => {
-										if (!confirm(`Move cycle to "${nextStatus}"?`)) return;
+										if (
+											!confirm(
+												t("elections.admin.cycle.moveCycleTo", { nextStatus }),
+											)
+										)
+											return;
 										(e.target as HTMLElement).closest("form")?.requestSubmit();
 									}}
 								>
-									{STATUS_NEXT_LABEL[cycle.status] ?? `Set to ${nextStatus}`}
+									{STATUS_NEXT_LABEL[cycle.status] ??
+										t("elections.admin.cycle.setTo", { nextStatus })}
 								</button>
 							</Form>
 						)}
@@ -101,7 +108,7 @@ export const AdminElectionCycle = component$<{ data: AdminCycleData }>(
 				{(cycle.status === "voting" || cycle.status === "closed") && (
 					<div class="mb-5 p-4 bg-blue-50 border border-blue-200 rounded-lg">
 						<p class="text-sm font-medium text-blue-800 mb-2">
-							Voting Form Link
+							{t("elections.admin.cycle.votingFormLink")}
 						</p>
 						<Form action={setVotingUrlAction} class="flex gap-2 items-center">
 							<input type="hidden" name="cycleId" value={cycle.id} />
@@ -109,19 +116,21 @@ export const AdminElectionCycle = component$<{ data: AdminCycleData }>(
 								type="url"
 								name="votingUrl"
 								value={(cycle as any).votingUrl ?? ""}
-								placeholder="https://forms.example.com/vote"
+								placeholder={t(
+									"elections.admin.cycle.httpsFormsExampleComVote",
+								)}
 								class="flex-1 border rounded px-3 py-1.5 text-sm"
 							/>
 							<button
 								type="submit"
 								class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700"
 							>
-								Save
+								{t("elections.admin.cycle.save")}
 							</button>
 						</Form>
 						{(cycle as any).votingUrl && (
 							<p class="text-xs text-blue-600 mt-1">
-								Members will see a "Vote now" button linking to this URL.
+								{t("elections.admin.cycle.membersWillSeeAVote")}
 							</p>
 						)}
 					</div>
@@ -143,8 +152,12 @@ export const AdminElectionCycle = component$<{ data: AdminCycleData }>(
 							}}
 						>
 							{tab === "applications"
-								? `Applications (${applications.length})`
-								: `Positions (${cycle.positions.length})`}
+								? t("elections.admin.cycle.applications", {
+										count: applications.length,
+									})
+								: t("elections.admin.cycle.positions", {
+										count: cycle.positions.length,
+									})}
 						</button>
 					))}
 				</div>
@@ -161,23 +174,23 @@ export const AdminElectionCycle = component$<{ data: AdminCycleData }>(
 								</div>
 								{apps.length === 0 ? (
 									<div class="px-6 py-4 text-sm text-gray-500">
-										No applications yet.
+										{t("elections.admin.cycle.noApplicationsYet")}
 									</div>
 								) : (
 									<table class="min-w-full divide-y divide-gray-200">
 										<thead>
 											<tr>
 												<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-													Applicant
+													{t("elections.admin.cycle.applicant")}
 												</th>
 												<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-													Status
+													{t("elections.admin.cycle.status")}
 												</th>
 												<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-													Note
+													{t("elections.admin.cycle.note")}
 												</th>
 												<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-													Actions
+													{t("elections.admin.cycle.actions")}
 												</th>
 											</tr>
 										</thead>
@@ -212,14 +225,16 @@ export const AdminElectionCycle = component$<{ data: AdminCycleData }>(
 																<input
 																	type="text"
 																	name="notes"
-																	placeholder="Optional note"
+																	placeholder={t(
+																		"elections.admin.cycle.optionalNote",
+																	)}
 																	class="text-xs border rounded px-2 py-1 w-32"
 																/>
 																<button
 																	type="submit"
 																	class="text-green-600 hover:text-green-900 text-xs font-medium"
 																>
-																	Approve
+																	{t("elections.admin.cycle.approve")}
 																</button>
 															</Form>
 															<Form
@@ -234,14 +249,16 @@ export const AdminElectionCycle = component$<{ data: AdminCycleData }>(
 																<input
 																	type="text"
 																	name="notes"
-																	placeholder="Optional note"
+																	placeholder={t(
+																		"elections.admin.cycle.optionalNote",
+																	)}
 																	class="text-xs border rounded px-2 py-1 w-32"
 																/>
 																<button
 																	type="submit"
 																	class="text-red-600 hover:text-red-900 text-xs font-medium"
 																>
-																	Reject
+																	{t("elections.admin.cycle.reject")}
 																</button>
 															</Form>
 														</div>
@@ -255,7 +272,7 @@ export const AdminElectionCycle = component$<{ data: AdminCycleData }>(
 						))}
 						{cycle.positions.length === 0 && (
 							<div class="text-center py-12 text-gray-500 bg-white rounded-lg shadow-sm">
-								Add positions first to see applications.
+								{t("elections.admin.cycle.addPositionsFirstToSee")}
 							</div>
 						)}
 					</div>
@@ -268,16 +285,16 @@ export const AdminElectionCycle = component$<{ data: AdminCycleData }>(
 								<thead class="bg-gray-50">
 									<tr>
 										<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-											Position
+											{t("elections.admin.cycle.position")}
 										</th>
 										<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-											Description
+											{t("elections.admin.cycle.description")}
 										</th>
 										<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-											Max
+											{t("elections.admin.cycle.max")}
 										</th>
 										<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-											Actions
+											{t("elections.admin.cycle.actions")}
 										</th>
 									</tr>
 								</thead>
@@ -306,14 +323,20 @@ export const AdminElectionCycle = component$<{ data: AdminCycleData }>(
 															class="text-red-600 hover:text-red-900 text-sm"
 															preventdefault:click
 															onClick$={(e) => {
-																if (!confirm(`Delete position "${pos.title}"?`))
+																if (
+																	!confirm(
+																		t("elections.admin.cycle.deletePosition", {
+																			title: pos.title,
+																		}),
+																	)
+																)
 																	return;
 																(e.target as HTMLElement)
 																	.closest("form")
 																	?.requestSubmit();
 															}}
 														>
-															Delete
+															{t("elections.admin.cycle.delete")}
 														</button>
 													</Form>
 												)}
@@ -324,7 +347,7 @@ export const AdminElectionCycle = component$<{ data: AdminCycleData }>(
 							</table>
 							{cycle.positions.length === 0 && (
 								<div class="text-center py-8 text-gray-500">
-									No positions yet.
+									{t("elections.admin.cycle.noPositionsYet")}
 								</div>
 							)}
 						</div>
@@ -334,13 +357,12 @@ export const AdminElectionCycle = component$<{ data: AdminCycleData }>(
 								href={`${data.value.adminBase}/elections/${cycle.id}/positions/new`}
 								class="inline-block bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
 							>
-								Add Position
+								{t("elections.admin.cycle.addPosition")}
 							</Link>
 						)}
 						{cycle.status !== "draft" && (
 							<p class="text-sm text-gray-500">
-								Positions can only be added or removed while the cycle is in
-								draft.
+								{t("elections.admin.cycle.positionsCanOnlyBeAdded")}
 							</p>
 						)}
 					</div>

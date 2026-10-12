@@ -1,5 +1,5 @@
 import { eq, sql } from "drizzle-orm";
-import { db, formatDate } from "~/core";
+import { db, formatDate, t } from "~/core";
 import {
 	type InsertInventoryGroup,
 	type InventoryGroup,
@@ -61,7 +61,7 @@ export const inventoryGroupsService = {
 			return {
 				allowed: false,
 				remainingCapacity: 0,
-				reason: "Inventory group not found",
+				reason: t("events.service.inventoryGroupNotFound"),
 			};
 		}
 
@@ -73,7 +73,9 @@ export const inventoryGroupsService = {
 				return {
 					allowed: false,
 					remainingCapacity: 0,
-					reason: `Sales open on ${formatDate(start, "dateTime")}`,
+					reason: t("events.service.salesOpenOn", {
+						start: formatDate(start, "dateTime"),
+					}),
 				};
 			}
 		}
@@ -83,7 +85,7 @@ export const inventoryGroupsService = {
 				return {
 					allowed: false,
 					remainingCapacity: 0,
-					reason: "Sales have closed",
+					reason: t("events.service.salesHaveClosed"),
 				};
 			}
 		}
@@ -99,7 +101,7 @@ export const inventoryGroupsService = {
 			remainingCapacity: remaining,
 			reason:
 				remaining < additionalQuantity
-					? `Only ${remaining} spots remaining`
+					? t("events.service.onlySpotsRemaining", { remaining })
 					: undefined,
 		};
 	},

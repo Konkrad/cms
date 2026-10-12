@@ -1,6 +1,6 @@
 import { component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { formatDate } from "~/core/ui";
+import { formatDate, t } from "~/core/ui";
 import TicketScanner from "../components/AdminTicketScanner";
 import TicketsList from "../components/TicketsList";
 import { ticketsService } from "../services/tickets";
@@ -23,8 +23,8 @@ export const useScanTicketByQr = routeAction$(
 			console.error("Ticket not found for QR code:", qrCodeUuid);
 			return {
 				success: false,
-				error: "Ticket not found",
-				details: `No ticket found with QR code: ${qrCodeUuid}`,
+				error: t("events.admin.tickets.ticketNotFound"),
+				details: t("events.admin.tickets.noTicketFoundWithQr", { qrCodeUuid }),
 			};
 		}
 
@@ -42,7 +42,7 @@ export const useScanTicketByQr = routeAction$(
 			});
 			return {
 				success: false,
-				error: "This ticket is not for this event",
+				error: t("events.admin.tickets.thisTicketIsNotFor"),
 				details: `Ticket is for event ${ticket.eventId}, but you're scanning for event ${params.id}`,
 			};
 		}
@@ -54,10 +54,12 @@ export const useScanTicketByQr = routeAction$(
 			});
 			return {
 				success: false,
-				error: "This ticket was already scanned",
+				error: t("events.admin.tickets.thisTicketWasAlreadyScanned"),
 				alreadyScanned: true,
 				scannedAt: ticket.scannedAt,
-				details: `Scanned at: ${formatDate(ticket.scannedAt, "dateTime")}`,
+				details: t("events.admin.tickets.scannedAt", {
+					scannedAt: formatDate(ticket.scannedAt, "dateTime"),
+				}),
 			};
 		}
 
@@ -77,10 +79,12 @@ export const useScanTicketByQr = routeAction$(
 				console.warn("Ticket was scanned by another scanner");
 				return {
 					success: false,
-					error: "This ticket was already scanned (race condition)",
+					error: t("events.admin.tickets.thisTicketWasAlreadyScanned"),
 					alreadyScanned: true,
 					scannedAt: latest.scannedAt,
-					details: `Scanned at: ${formatDate(latest.scannedAt, "dateTime")}`,
+					details: t("events.admin.tickets.scannedAt", {
+						scannedAt: formatDate(latest.scannedAt, "dateTime"),
+					}),
 				};
 			}
 
@@ -92,7 +96,10 @@ export const useScanTicketByQr = routeAction$(
 				return {
 					success: true,
 					ticket: retryRes.ticket,
-					message: `Ticket scanned successfully for ${ticket.buyer.name} ${ticket.buyer.familyName}`,
+					message: t("events.admin.tickets.ticketScannedSuccessfullyFor", {
+						name: ticket.buyer.name,
+						familyName: ticket.buyer.familyName,
+					}),
 				};
 			}
 
@@ -107,7 +114,7 @@ export const useScanTicketByQr = routeAction$(
 
 			return {
 				success: false,
-				error: "Failed to scan ticket - database update failed",
+				error: t("events.admin.tickets.failedToScanTicketDatabase"),
 				reason: "update-no-rows-after-retry",
 				ticketId: ticket.id,
 				details: `Database update failed for ticket ${ticket.id}. This might be a database constraint issue or the ticket state changed unexpectedly.`,
@@ -124,7 +131,10 @@ export const useScanTicketByQr = routeAction$(
 		return {
 			success: true,
 			ticket: scannedTicket,
-			message: `Ticket scanned successfully for ${ticket.buyer.name} ${ticket.buyer.familyName}`,
+			message: t("events.admin.tickets.ticketScannedSuccessfullyFor", {
+				name: ticket.buyer.name,
+				familyName: ticket.buyer.familyName,
+			}),
 		};
 	},
 	zod$({
@@ -141,23 +151,27 @@ export const AdminEventTickets = component$<Props>(({ tickets }) => {
 	return (
 		<div class="space-y-6">
 			<div>
-				<h2 class="text-2xl font-bold mb-2">Tickets & Scanning</h2>
+				<h2 class="text-2xl font-bold mb-2">
+					{t("events.admin.tickets.ticketsScanning")}
+				</h2>
 				<p class="text-gray-600">
-					Scan QR codes or search for tickets by buyer name
+					{t("events.admin.tickets.scanQrCodesOrSearch")}
 				</p>
 			</div>
 
 			<TicketScanner action={scanAction} />
 
 			<div class="bg-white rounded-lg shadow-md p-6">
-				<h3 class="text-xl font-semibold mb-4">Search Tickets</h3>
+				<h3 class="text-xl font-semibold mb-4">
+					{t("events.admin.tickets.searchTickets")}
+				</h3>
 				<input
 					type="text"
 					value={searchQuery.value}
 					onInput$={(e) => {
 						searchQuery.value = (e.target as HTMLInputElement).value;
 					}}
-					placeholder="Search by buyer name, email, or product..."
+					placeholder={t("events.admin.tickets.searchByBuyerNameEmail")}
 					class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
 				/>
 			</div>

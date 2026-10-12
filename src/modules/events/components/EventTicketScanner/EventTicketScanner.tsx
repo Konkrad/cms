@@ -6,7 +6,7 @@ import {
 	useVisibleTask$,
 } from "@qwik.dev/core";
 import { Html5Qrcode } from "html5-qrcode";
-import { Alert, Button, Card, formatDate } from "~/core/ui";
+import { Alert, Button, Card, formatDate, t } from "~/core/ui";
 
 type ScanResult = {
 	success: boolean;
@@ -41,7 +41,7 @@ export const TicketScanner = component$<TicketScannerProps>(
 				if (!devices || devices.length === 0) {
 					scanResult.value = {
 						success: false,
-						message: "No cameras found on device",
+						message: t("events.eventTicketScanner.noCamerasFoundOnDevice"),
 					};
 					return;
 				}
@@ -79,7 +79,7 @@ export const TicketScanner = component$<TicketScannerProps>(
 								message:
 									error instanceof Error
 										? error.message
-										: "Failed to process scan",
+										: t("events.eventTicketScanner.failedToProcessScan"),
 							};
 						}
 					},
@@ -94,7 +94,9 @@ export const TicketScanner = component$<TicketScannerProps>(
 				scanResult.value = {
 					success: false,
 					message:
-						error instanceof Error ? error.message : "Failed to start camera",
+						error instanceof Error
+							? error.message
+							: t("events.eventTicketScanner.failedToStartCamera"),
 				};
 			}
 		});
@@ -129,16 +131,18 @@ export const TicketScanner = component$<TicketScannerProps>(
 			<div class="space-y-4">
 				<Card>
 					<div class="space-y-4">
-						<h2 class="text-2xl font-bold text-gray-900">Scan Ticket</h2>
+						<h2 class="text-2xl font-bold text-gray-900">
+							{t("events.eventTicketScanner.scanTicket")}
+						</h2>
 
 						<div class="space-y-2">
 							{!isScanning.value ? (
 								<Button onClick$={startScanner} class="w-full">
-									Start Camera
+									{t("events.eventTicketScanner.startCamera")}
 								</Button>
 							) : (
 								<Button onClick$={stopScanner} variant="danger" class="w-full">
-									Stop Camera
+									{t("events.eventTicketScanner.stopCamera")}
 								</Button>
 							)}
 						</div>
@@ -196,15 +200,19 @@ export const TicketScanner = component$<TicketScannerProps>(
 										</p>
 										{scanResult.value.scannedAt && (
 											<p class="mt-1 text-xs text-green-700">
-												Scanned at:{" "}
-												{formatDate(scanResult.value.scannedAt, "dateTime")}
+												{t("events.eventTicketScanner.scannedAt", {
+													scannedAt: formatDate(
+														scanResult.value.scannedAt,
+														"dateTime",
+													),
+												})}
 											</p>
 										)}
 										{scanResult.value.participants &&
 											scanResult.value.participants.length > 0 && (
 												<div class="mt-2 space-y-1">
 													<p class="text-xs font-semibold text-green-800">
-														Participants:
+														{t("events.eventTicketScanner.participants")}
 													</p>
 													{scanResult.value.participants.map((p) => (
 														<div
@@ -222,12 +230,18 @@ export const TicketScanner = component$<TicketScannerProps>(
 						)}
 
 						<div class="text-sm text-gray-600">
-							<p class="font-medium">Instructions:</p>
+							<p class="font-medium">
+								{t("events.eventTicketScanner.instructions")}
+							</p>
 							<ul class="mt-2 space-y-1 list-disc list-inside">
-								<li>Point camera at QR code on ticket</li>
-								<li>Hold steady until code is detected</li>
-								<li>Valid tickets will show success message</li>
-								<li>Camera will resume scanning after 2 seconds</li>
+								<li>{t("events.eventTicketScanner.pointCameraAtQrCode")}</li>
+								<li>{t("events.eventTicketScanner.holdSteadyUntilCodeIs")}</li>
+								<li>
+									{t("events.eventTicketScanner.validTicketsWillShowSuccess")}
+								</li>
+								<li>
+									{t("events.eventTicketScanner.cameraWillResumeScanningAfter")}
+								</li>
 							</ul>
 						</div>
 					</div>

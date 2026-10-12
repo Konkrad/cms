@@ -14,6 +14,7 @@ import {
 	type ContentFormResult,
 	formatDate,
 	NoteForm,
+	t,
 	VISIBILITY_LABELS,
 } from "~/core/ui";
 import { requireAdminEvent } from "./event-guards";
@@ -96,14 +97,14 @@ export const AdminEventUpdates = component$<{ data: AdminEventUpdatesData }>(
 			<div class="space-y-6">
 				<Card>
 					<h2 class="text-lg font-semibold text-gray-900 mb-1">
-						Updates about this event
+						{t("events.admin.updates.updatesAboutThisEvent")}
 					</h2>
 					<p class="text-sm text-gray-500 mb-4">
-						Notes and articles appear under the event on{" "}
+						{t("events.admin.updates.notesAndArticlesAppearUnder")}{" "}
 						<a href={data.event.url} class="text-blue-600 hover:underline">
-							its page
+							{t("events.admin.updates.itsPage")}
 						</a>{" "}
-						and in the news.
+						{t("events.admin.updates.andInTheNews")}
 					</p>
 					<div class="flex gap-3 mb-4">
 						<Button
@@ -113,7 +114,7 @@ export const AdminEventUpdates = component$<{ data: AdminEventUpdatesData }>(
 								writing.value = "note";
 							}}
 						>
-							Write note
+							{t("events.admin.updates.writeNote")}
 						</Button>
 						<Button
 							type="button"
@@ -122,7 +123,7 @@ export const AdminEventUpdates = component$<{ data: AdminEventUpdatesData }>(
 								writing.value = "article";
 							}}
 						>
-							Write article
+							{t("events.admin.updates.writeArticle")}
 						</Button>
 					</div>
 					{/* Re-created after each new item, so the editor starts empty again. */}
@@ -131,7 +132,7 @@ export const AdminEventUpdates = component$<{ data: AdminEventUpdatesData }>(
 							key={`note-${count}`}
 							action={createNote}
 							visibilities={data.visibilities}
-							submitLabel="Publish note"
+							submitLabel={t("events.admin.updates.publishNote")}
 						/>
 					)}
 					{writing.value === "article" && (
@@ -139,14 +140,16 @@ export const AdminEventUpdates = component$<{ data: AdminEventUpdatesData }>(
 							key={`article-${count}`}
 							action={createArticle}
 							visibilities={data.visibilities}
-							submitLabel="Publish article"
+							submitLabel={t("events.admin.updates.publishArticle")}
 						/>
 					)}
 				</Card>
 
 				<Card>
 					{count === 0 ? (
-						<p class="text-sm text-gray-500">No updates yet.</p>
+						<p class="text-sm text-gray-500">
+							{t("events.admin.updates.noUpdatesYet")}
+						</p>
 					) : (
 						<ul
 							class="divide-y divide-gray-200"
@@ -159,7 +162,11 @@ export const AdminEventUpdates = component$<{ data: AdminEventUpdatesData }>(
 								>
 									<div class="min-w-0">
 										<p class="text-sm font-medium text-gray-900">
-											{item.title ?? <span class="italic">Note</span>}
+											{item.title ?? (
+												<span class="italic">
+													{t("events.admin.updates.note")}
+												</span>
+											)}
 										</p>
 										<p class="text-sm text-gray-500 line-clamp-2">
 											{item.excerpt}
@@ -170,8 +177,8 @@ export const AdminEventUpdates = component$<{ data: AdminEventUpdatesData }>(
 											{item.publishedAt
 												? ` · ${formatDate(item.publishedAt)}`
 												: item.reviewStatus === "rejected"
-													? " · Not approved"
-													: " · In review"}
+													? t("events.admin.updates.notApproved")
+													: t("events.admin.updates.inReview")}
 										</p>
 										{!item.publishedAt && item.reviewComment && (
 											<p class="text-xs text-red-700 mt-1 whitespace-pre-wrap">
@@ -186,7 +193,7 @@ export const AdminEventUpdates = component$<{ data: AdminEventUpdatesData }>(
 											type="submit"
 											class="text-sm text-red-600 hover:text-red-800"
 										>
-											Delete
+											{t("events.admin.updates.delete")}
 										</button>
 									</Form>
 								</li>

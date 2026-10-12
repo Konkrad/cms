@@ -1,7 +1,7 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireModuleAdmin } from "~/core";
-import { Button, ImageUploader, Input, TextArea } from "~/core/ui";
+import { Button, ImageUploader, Input, TextArea, t } from "~/core/ui";
 import { dealsService } from "../service";
 import type { AdminDealNewData } from "./new-data";
 import { StepsEditor } from "./StepsEditor";
@@ -28,7 +28,7 @@ export const useCreateDeal = routeAction$(
 		throw event.redirect(303, `${adminBase}/deals`);
 	},
 	zod$({
-		name: z.string().min(1, "Name is required"),
+		name: z.string().min(1, t("deals.admin.new.nameIsRequired")),
 		description: z.string().optional(),
 		logo: z.string().optional(),
 		validUntil: z.string().optional(),
@@ -55,9 +55,11 @@ export const AdminDealNew = component$<{ data: AdminDealNewData }>(
 		return (
 			<div>
 				<div class="flex items-center justify-between mb-6">
-					<h2 class="text-2xl font-bold text-gray-800">Add Deal</h2>
+					<h2 class="text-2xl font-bold text-gray-800">
+						{t("deals.admin.new.addDeal")}
+					</h2>
 					<Button href={`${data.adminBase}/deals`} variant="secondary">
-						Back to Deals
+						{t("deals.admin.new.backToDeals")}
 					</Button>
 				</div>
 
@@ -67,18 +69,23 @@ export const AdminDealNew = component$<{ data: AdminDealNewData }>(
 						onSubmit$={handleSubmit}
 						class="space-y-6"
 					>
-						<Input name="name" label="Name" required placeholder="Deal name" />
+						<Input
+							name="name"
+							label={t("deals.admin.new.name")}
+							required
+							placeholder={t("deals.admin.new.dealName")}
+						/>
 
 						<TextArea
 							name="description"
-							label="Description"
+							label={t("deals.admin.new.description")}
 							rows={3}
-							placeholder="Brief description of this deal"
+							placeholder={t("deals.admin.new.briefDescriptionOfThisDeal")}
 						/>
 
 						<div>
 							<p class="text-sm font-medium text-gray-700 mb-1">
-								Logo (SVG, optional)
+								{t("deals.admin.new.logoSvgOptional")}
 							</p>
 							<ImageUploader
 								name="logo"
@@ -92,24 +99,28 @@ export const AdminDealNew = component$<{ data: AdminDealNewData }>(
 
 						<Input
 							name="validUntil"
-							label="Valid Until (optional)"
+							label={t("deals.admin.new.validUntilOptional")}
 							type="date"
 						/>
 
 						<div>
-							<p class="text-sm font-medium text-gray-700 mb-2">Steps</p>
+							<p class="text-sm font-medium text-gray-700 mb-2">
+								{t("deals.admin.new.steps")}
+							</p>
 							<StepsEditor />
 						</div>
 
 						{createAction.value?.failed && (
 							<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm">
-								Failed to create deal. Please check the form.
+								{t("deals.admin.new.failedToCreateDealPlease")}
 							</div>
 						)}
 
 						<div class="flex gap-4">
 							<Button type="submit" disabled={isSubmitting.value}>
-								{isSubmitting.value ? "Saving…" : "Create Deal"}
+								{isSubmitting.value
+									? t("deals.admin.new.saving")
+									: t("deals.admin.new.createDeal")}
 							</Button>
 						</div>
 					</form>

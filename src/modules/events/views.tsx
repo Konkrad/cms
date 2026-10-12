@@ -6,6 +6,7 @@ import type { EventViewData } from "~/contracts/events";
 import type { PageViews } from "~/core";
 import { canonicalUrl, htmlToDescription } from "~/core/seo";
 import { useSubmitRequirement } from "~/core/setup-actions";
+import { t } from "~/core/ui";
 import { CheckoutView } from "~theme/routes/events/CheckoutView";
 import { EventPhotosView } from "~theme/routes/events/EventPhotosView";
 import { EventView } from "~theme/routes/events/EventView";
@@ -52,11 +53,13 @@ const PhotosPage = component$<{ data: EventPhotosPageData }>(({ data }) => {
 
 function eventHead(data: EventViewData, url: URL): DocumentHeadValue {
 	if (!data) {
-		return { title: "Event Not Found" };
+		return { title: t("events.views.eventNotFound") };
 	}
 	const event = data;
 	const canonical = canonicalUrl(url.pathname, url.origin);
-	const description = htmlToDescription(event.body) || `Event: ${event.title}`;
+	const description =
+		htmlToDescription(event.body) ||
+		t("events.views.event", { title: event.title });
 
 	return {
 		title: `${event.title} - Event`,
@@ -114,11 +117,13 @@ export const eventsViews: PageViews = {
 		head: (data) => {
 			const { event } = data as EventPhotosPageData;
 			return {
-				title: `Photos - ${event.title}`,
+				title: t("events.views.photos", { title: event.title }),
 				meta: [
 					{
 						name: "description",
-						content: `View photos from ${event.title} event`,
+						content: t("events.views.viewPhotosFromEvent", {
+							title: event.title,
+						}),
 					},
 				],
 			};

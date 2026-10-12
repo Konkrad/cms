@@ -23,3 +23,11 @@ export type NavUser = {
 	isAdmin: boolean;
 	profilePictureSmallUrl: string | null;
 } | null;
+
+/** Feeds the site serves (active modules' `feeds`, e.g. the RSS feed): head links and footer. */
+export type FeedLinks = Array<{
+	title: string;
+	/** Site path, e.g. "/feed.xml". */
+	href: string;
+	type: string;
+}>;

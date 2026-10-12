@@ -1,7 +1,7 @@
 import { component$, Slot } from "@qwik.dev/core";
-import type { RequestHandler } from "@qwik.dev/router";
+import type { DocumentHead, RequestHandler } from "@qwik.dev/router";
 import { routeAction$, routeLoader$ } from "@qwik.dev/router";
-import type { NavUser } from "~/contracts/layout";
+import type { FeedLinks, NavUser } from "~/contracts/layout";
 import {
 	deleteSession,
 	getCurrentUserData,
@@ -10,6 +10,7 @@ import {
 import { menuItemsService } from "~/core/content/menu-items.service";
 import { resolveMenuUrls } from "~/core/content/menu-links";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
+import { activeFeeds } from "~/core/registry/manifests";
 import { requirements } from "~/core/registry/requirements";
 import { GLOBAL_CONTEXT } from "~/core/requirements/define";
 import { currentScopePath } from "~/core/router/scope-request";
@@ -83,6 +84,12 @@ export const useUserSession = routeLoader$(async (event): Promise<NavUser> => {
 
 export const useScopePath = routeLoader$((event) => currentScopePath(event));
 
+/** Feeds of the active modules (the social web's RSS), announced in the head and footer. */
+export const useFeedLinks = routeLoader$(
+	(): FeedLinks =>
+		activeFeeds.map(({ title, href, type }) => ({ title, href, type })),
+);
+
 export const useMenuItems = routeLoader$(async () => {
 	console.log("[Layout] useMenuItems - starting");
 	try {
@@ -143,6 +150,7 @@ export default component$(() => {
 	const footer = useFooterMenuItems();
 	const logoutAction = useLogoutAction();
 	const scopePath = useScopePath();
+	const feeds = useFeedLinks();
 
 	return (
 		<>
@@ -154,7 +162,17 @@ export default component$(() => {
 			<main class="min-h-screen" data-scope={scopePath.value}>
 				<Slot />
 			</main>
-			<SiteFooter footerItems={footer.value} />
+			<SiteFooter footerItems={footer.value} feeds={feeds.value} />
 		</>
 	);
+});
+
+/** `<link rel="alternate">` for every feed, on every page (merged with the page's head). */
+export const head: DocumentHead = ({ resolveValue }) => ({
+	links: resolveValue(useFeedLinks).map((feed) => ({
+		rel: "alternate",
+		type: feed.type,
+		title: feed.title,
+		href: feed.href,
+	})),
 });

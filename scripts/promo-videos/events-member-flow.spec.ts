@@ -305,11 +305,17 @@ test("member buys tickets and brings a friend to the reunion", async ({
 			payload: payloadString,
 			secret: process.env.STRIPE_WEBHOOK_SECRET || "",
 		});
-		await fetch(new URL("/api/webhooks/stripe", page.url()).toString(), {
-			method: "POST",
-			headers: { "Content-Type": "application/json", "Stripe-Signature": sig },
-			body: payloadString,
-		});
+		await fetch(
+			new URL("/api/payments/webhook/stripe", page.url()).toString(),
+			{
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"Stripe-Signature": sig,
+				},
+				body: payloadString,
+			},
+		);
 
 		await page.waitForSelector("text=Payment Successful!", { timeout: 15_000 });
 		await beat(page, 2000);

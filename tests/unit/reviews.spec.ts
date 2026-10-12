@@ -268,7 +268,7 @@ describe("submit, decide and handlers", () => {
 		).rejects.toBeInstanceOf(ReviewError);
 		const queue = await reviewQueue({ id: u.coordRegion }, region);
 		const row = queue.pending.find((p) => p.ref === ref);
-		expect(row?.data).toEqual({ why: "Because" });
+		expect(row?.answers).toEqual([{ question: "Why", answer: "Because" }]);
 		const ctx = {
 			recipient: { userId: u.coordRegion, name: "C", address: "c@example.com" },
 			appUrl: "http://localhost",

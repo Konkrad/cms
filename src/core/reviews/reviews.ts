@@ -1,3 +1,5 @@
+import { answerRows } from "~/core/forms/answers";
+import { formsService } from "~/core/forms/forms.service";
 import { forms } from "~/core/forms/forms-api";
 import { notify } from "~/core/notifications/notify";
 import { locateRef } from "~/core/registry/refs";
@@ -229,6 +231,19 @@ export async function decideReview(
 	return decided;
 }
 
+/** The answers stored with a submission as text rows (in the form's question order). */
+async function answersOf(
+	review: Pick<Review, "data" | "formId">,
+): Promise<Array<{ question: string; answer: string }>> {
+	if (!review.data) return [];
+	const form = review.formId
+		? await formsService.getById(review.formId)
+		: undefined;
+	return answerRows(form?.schema ?? { pages: [] }, review.data).map(
+		({ question, answer }) => ({ question, answer }),
+	);
+}
+
 /** A row of the admin review queue. */
 export interface ReviewQueueItem {
 	reviewId: string;
@@ -242,8 +257,8 @@ export interface ReviewQueueItem {
 	comment: string | null;
 	decidedAt: string | null;
 	canDecide: boolean;
-	data: Record<string, unknown> | null;
-	formId: string | null;
+	/** The answers submitted with it (an event proposal), as plain-text rows. */
+	answers: Array<{ question: string; answer: string }>;
 }
 
 /**
@@ -279,8 +294,7 @@ export async function reviewQueue(
 			comment: r.comment,
 			decidedAt: r.decidedAt,
 			canDecide: decidable,
-			data: r.data ?? null,
-			formId: r.formId,
+			answers: await answersOf(r),
 		};
 	};
 	const decidable = await Promise.all(

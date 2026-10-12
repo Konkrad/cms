@@ -13,12 +13,14 @@ interface AdminNavProps {
 	basePath: string;
 	/** The current scope is the root: show the system sections. */
 	isRoot: boolean;
+	/** The user only reviews here (a coordinator): show the review queue only. */
+	reviewOnly?: boolean;
 	/** Admin sections contributed by active modules and visible in this scope. */
 	sections?: { path: string; label: string; order?: number }[];
 }
 
 export const AdminNav = component$<AdminNavProps>(
-	({ basePath, isRoot, sections = [] }) => {
+	({ basePath, isRoot, reviewOnly = false, sections = [] }) => {
 		const location = useLocation();
 		const currentPath = location.url.pathname;
 
@@ -64,6 +66,8 @@ export const AdminNav = component$<AdminNavProps>(
 				label: section.label,
 			});
 		}
+		navItems.push({ order: 15, href: `${basePath}/reviews`, label: "Reviews" });
+		if (reviewOnly) navItems.splice(0, navItems.length - 1);
 		navItems.sort((a, b) => a.order - b.order);
 
 		return (

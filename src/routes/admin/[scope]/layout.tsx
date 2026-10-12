@@ -10,7 +10,9 @@ import { sectionAllowedOn } from "~/core/router/modules";
 import { adminUrl, scopeUrl } from "~/core/router/scope-path";
 import {
 	ADMIN_ACCESS,
+	canManageScope,
 	listManagedScopes,
+	REVIEW_ACCESS,
 	requireScopeRole,
 } from "~/core/scopes/access";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
@@ -23,12 +25,14 @@ import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
  * and the scope trail for the breadcrumbs.
  */
 export const useScopeAdmin = routeLoader$(async (event) => {
+	const section = event.url.pathname.split("/")[3] ?? "";
+	// The review queue is also open to coordinators, who have no other admin section.
 	const { user, scope, ancestors } = await requireScopeRole(
 		event,
-		ADMIN_ACCESS,
+		section === "reviews" ? REVIEW_ACCESS : ADMIN_ACCESS,
 	);
 	const isRoot = scope.parentId === null;
-	const section = event.url.pathname.split("/")[3] ?? "";
+	const reviewOnly = !(await canManageScope(user, scope.id, ADMIN_ACCESS));
 	const moduleSection = activeAdminSections.find((s) => s.path === section);
 	if (
 		(!isRoot && ROOT_ONLY_SECTIONS.includes(section)) ||
@@ -39,6 +43,8 @@ export const useScopeAdmin = routeLoader$(async (event) => {
 
 	const managed = await listManagedScopes(user);
 	const managedIds = new Set(managed.map((s) => s.id));
+	// Coordinators switch between the review queues of the scopes they review.
+	const switchable = await listManagedScopes(user, REVIEW_ACCESS);
 	const label = (s: { parentId: string | null; name: string }) =>
 		s.parentId === null ? "Platform" : s.name;
 	return assertNoPrivateFields({
@@ -55,13 +61,16 @@ export const useScopeAdmin = routeLoader$(async (event) => {
 			label: label(s),
 			href: managedIds.has(s.id) ? adminUrl(s.path) : undefined,
 		})),
-		switcher: managed.map((s) => ({
+		switcher: switchable.map((s) => ({
 			id: s.id,
 			label: label(s),
 			kind: s.kind,
 			depth: s.path.split("/").filter(Boolean).length,
-			href: adminUrl(s.path),
+			href: managedIds.has(s.id)
+				? adminUrl(s.path)
+				: adminUrl(s.path, "reviews"),
 		})),
+		reviewOnly,
 		// Module sections that exist on this scope (manifest `scopes`: root, all or kinds).
 		adminSections: activeAdminSections
 			.filter((s) => sectionAllowedOn(s, scope))
@@ -111,6 +120,7 @@ export default component$(() => {
 					<AdminNav
 						basePath={admin.value.adminBase}
 						isRoot={admin.value.isRoot}
+						reviewOnly={admin.value.reviewOnly}
 						sections={admin.value.adminSections}
 					/>
 				</div>

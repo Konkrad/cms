@@ -50,6 +50,13 @@ export function rolesSatisfying(minRole: MinRole): Role[] {
 /** Roles that may open a scope's admin: managers, i.e. not coordinators. */
 export const ADMIN_ACCESS: MinRole = "representative";
 
+/**
+ * Roles that may open a scope's review queue (`/admin/<scope>/reviews`): managers (their own
+ * submissions, and decisions where they are reviewers) and coordinators, who have no other
+ * admin section.
+ */
+export const REVIEW_ACCESS: MinRole = ["representative", "coordinator"];
+
 /** The logged-in user (full row, server-only) or null. */
 export async function currentUser(event: RequestEvent) {
 	return getCurrentUserData(event);

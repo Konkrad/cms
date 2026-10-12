@@ -433,15 +433,19 @@ describe("admin URL segment", () => {
 });
 
 describe("reserved scope slugs", () => {
-	it("lists every static top-level route segment", () => {
+	it("lists every static top-level route segment (core's, or a module's `routes`)", async () => {
+		const { allModules } = await import("~/core/registry/manifests");
+		const known = new Set([
+			...CORE_ROUTE_SEGMENTS,
+			...allModules.flatMap((m) => m.routes ?? []),
+		]);
 		const routesDir = path.resolve(__dirname, "../../src/routes");
 		const segments = fs
 			.readdirSync(routesDir, { withFileTypes: true })
 			.filter((d) => d.isDirectory())
 			.map((d) => d.name)
 			.filter((n) => !n.startsWith("[") && !n.startsWith("("));
-		for (const segment of segments)
-			expect(CORE_ROUTE_SEGMENTS).toContain(segment);
+		for (const segment of segments) expect([...known]).toContain(segment);
 	});
 
 	it("reserves core routes, every module route and the root admin segment", async () => {
@@ -461,6 +465,9 @@ describe("reserved scope slugs", () => {
 			"deals",
 			"elections",
 			"qualifications",
+			// social-web's own route files (`routes`)
+			"feed.xml",
+			"social",
 		]) {
 			expect(reservedSlugs.has(slug)).toBe(true);
 		}

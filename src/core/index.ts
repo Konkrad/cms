@@ -209,3 +209,15 @@ export {
 // Env-derived values (server-only). Modules must not import `~/env`; add a getter here instead.
 /** Public base URL of this site (no trailing-slash guarantee). */
 export const getAppUrl = (): string => env.APP_URL;
+/** The site's name and public base URL (feeds, the social web). */
+export const getSiteInfo = (): { name: string; url: string } => ({
+	name: env.APP_NAME,
+	url: env.APP_URL,
+});
+/** Deployment settings of the social-web module (spec 5.3; `SOCIAL_WEB_*` in src/env.ts). */
+export const getSocialWebSettings = () => ({
+	account: env.SOCIAL_WEB_ACCOUNT,
+	summary: env.SOCIAL_WEB_SUMMARY,
+	updateInterval: env.SOCIAL_WEB_UPDATE_INTERVAL,
+	icon: env.SOCIAL_WEB_ICON,
+});

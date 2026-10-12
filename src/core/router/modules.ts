@@ -60,6 +60,17 @@ export interface MenuLink {
 	url: string;
 }
 
+/** A feed a module serves, announced in every page's head (`<link rel="alternate">`) and footer. */
+export interface FeedLink {
+	title: string;
+	/** Site path of the feed, e.g. "/feed.xml". */
+	href: string;
+	type:
+		| "application/rss+xml"
+		| "application/atom+xml"
+		| "application/feed+json";
+}
+
 export interface SitemapEntry {
 	/** Path with leading slash, e.g. "/deals/123". The sitemap route resolves it against APP_URL. */
 	path: string;
@@ -118,6 +129,15 @@ export interface RefTypeDefinition {
 export interface ModuleDefinition {
 	id: string;
 	pages?: PageDefinition<unknown>[];
+	/**
+	 * First segments of the module's own route files in `src/routes` (machine endpoints such as
+	 * feeds: `["feed.xml", "social"]`), outside the catch-all. They are reserved as scope slugs
+	 * (like page paths); their handlers call `requireActiveModule` first, so they answer 404
+	 * while the module is inactive.
+	 */
+	routes?: string[];
+	/** Feeds announced in the head of every page and linked in the footer while active. */
+	feeds?: FeedLink[];
 	admin?: { sections: AdminSection[] };
 	menuLinks?: MenuLink[];
 	/**
@@ -223,6 +243,9 @@ export const pagesOf = (modules: readonly ModuleDefinition[]) =>
 
 export const menuLinksOf = (modules: readonly ModuleDefinition[]): MenuLink[] =>
 	modules.flatMap((m) => m.menuLinks ?? []);
+
+export const feedsOf = (modules: readonly ModuleDefinition[]): FeedLink[] =>
+	modules.flatMap((m) => m.feeds ?? []);
 
 /** Admin nav sections of the given modules, sorted by `order` (stable). */
 export const adminSectionsOf = (

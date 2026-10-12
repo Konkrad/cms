@@ -1,6 +1,7 @@
 import type { RequestEventCommon } from "@qwik.dev/router";
 import {
 	adminSectionsOf,
+	feedsOf,
 	type ModuleDefinition,
 	menuLinksOf,
 	type ProfileContext,
@@ -20,6 +21,7 @@ import { electionsModule } from "../../modules/elections/module";
 import { eventsModule } from "../../modules/events/module";
 import { jobsModule } from "../../modules/jobs/module";
 import { qualificationsModule } from "../../modules/qualifications/module";
+import { socialWebModule } from "../../modules/social-web/module";
 
 /** Every module that exists in the codebase; `modules.config.ts` picks the active ones. */
 export const allModules: ModuleDefinition[] = [
@@ -28,6 +30,7 @@ export const allModules: ModuleDefinition[] = [
 	eventsModule,
 	jobsModule,
 	qualificationsModule,
+	socialWebModule,
 ];
 
 export const activeModules = selectActive(allModules, config.active);
@@ -36,6 +39,8 @@ export const activeModules = selectActive(allModules, config.active);
 export const modulePages = pagesOf(activeModules);
 export const activeAdminSections = adminSectionsOf(activeModules);
 export const activeMenuLinks = menuLinksOf(activeModules);
+/** Feeds of active modules (head `<link rel="alternate">`, footer). */
+export const activeFeeds = feedsOf(activeModules);
 
 /** Profile sections contributed by active modules for this viewer/profile pair. */
 export const activeProfileExtras = (ctx: ProfileContext) =>

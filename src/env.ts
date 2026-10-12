@@ -124,6 +124,23 @@ const envSchema = z.object({
 	LOGIN_IP_MAX_PER_WINDOW: z.coerce.number().int().positive().default(10),
 	LOGIN_IP_WINDOW_MINUTES: z.coerce.number().int().positive().default(60),
 
+	// Social web module (spec 5.3): one site-wide, pull-only account `<account>@<APP_URL host>`
+	// (WebFinger, ActivityPoll actor) and the RSS feed. Summary: actor summary and RSS channel
+	// description (empty = the site name). Update interval: typical time between new posts, an
+	// xsd:duration for the actor's `updateInterval` (FEP-b06c). Icon: path or URL of the image.
+	SOCIAL_WEB_ACCOUNT: z
+		.string()
+		.regex(/^[a-z0-9][a-z0-9._-]*$/i)
+		.default("news"),
+	SOCIAL_WEB_SUMMARY: z.string().default(""),
+	SOCIAL_WEB_UPDATE_INTERVAL: z
+		.string()
+		.regex(
+			/^P(?!$)(\d+Y)?(\d+M)?(\d+W)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+S)?)?$/,
+		)
+		.default("P1D"),
+	SOCIAL_WEB_ICON: z.string().default("/favicon.svg"),
+
 	// Scope tree: the kinds a group below the root can have (deployment configuration, spec
 	// 4.2), comma-separated, in the order the admin offers them. The root's kind is "root".
 	// Module admin sections may be limited to some of these kinds (`scopes` in the manifest).
@@ -207,6 +224,10 @@ export const env = {
 	LOGIN_IP_MAX_PER_WINDOW: _env.LOGIN_IP_MAX_PER_WINDOW,
 	LOGIN_IP_WINDOW_MINUTES: _env.LOGIN_IP_WINDOW_MINUTES,
 	SCOPE_KINDS: _env.SCOPE_KINDS as readonly string[],
+	SOCIAL_WEB_ACCOUNT: _env.SOCIAL_WEB_ACCOUNT,
+	SOCIAL_WEB_SUMMARY: _env.SOCIAL_WEB_SUMMARY,
+	SOCIAL_WEB_UPDATE_INTERVAL: _env.SOCIAL_WEB_UPDATE_INTERVAL,
+	SOCIAL_WEB_ICON: _env.SOCIAL_WEB_ICON,
 
 	// helpful booleans
 	isProduction: _env.NODE_ENV === "production",

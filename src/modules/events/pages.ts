@@ -9,7 +9,14 @@ export const eventDetailPage = definePage({
 	// Group-only events are limited to the group's members (see `canViewEvent`).
 	load: (event, { params }) => loadEventPage(event, params.slug),
 	// The event venue's coordinates (the page draws the map); not a person's location.
-	allowPrivateFields: ["latitude", "longitude"],
+	allowPrivateFields: [
+		"latitude",
+		"longitude",
+		// The viewer's OWN previous answers, prefilled into the requirement steps after a
+		// version bump asks again (spec 4.6).
+		"foodPreference",
+		"photoConsentGiven",
+	],
 });
 
 export const eventCheckoutPage = definePage({
@@ -17,8 +24,10 @@ export const eventCheckoutPage = definePage({
 	path: "/events/:slug/checkout",
 	load: (event, { params }) => loadCheckoutPage(event, params.slug),
 	allowPrivateFields: [
-		// The logged-in buyer's OWN email and consent answers, prefilled into checkout.
+		// The logged-in buyer's OWN email, prefilled into checkout.
 		"email",
+		// The buyer's OWN previous answers, prefilled into the requirement steps after a version
+		// bump asks again (spec 4.6).
 		"foodPreference",
 		"photoConsentGiven",
 		// Stripe's publishable key is public by design (Stripe.js needs it in the browser).

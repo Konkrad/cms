@@ -11,12 +11,14 @@ import {
 	matchPath,
 	publicImageUrlFromKey,
 	requireCanonicalUrl,
+	requirements,
 	reviews,
 	scopeLabels,
 	toPublicUser,
 	updatesFor,
 	type Visibility,
 } from "~/core";
+import { CHECKOUT_CONTEXT } from "./requirements";
 import { eventsService } from "./services/events";
 import { inventoryGroupsService } from "./services/inventory-groups";
 import { participationService } from "./services/participation";
@@ -287,6 +289,11 @@ export async function loadEventPage(
 		image2: publicImageUrlFromKey(event.image2),
 		// The event page is the hub: notes and articles about the event underneath (spec 5.2).
 		updates: await updatesFor("events:event", event.id, userData),
+		// What the viewer must answer before registering (spec 4.6); the RSVP action checks again.
+		requirements:
+			userData && !isEventPast
+				? await requirements.steps(userData, CHECKOUT_CONTEXT)
+				: [],
 	};
 }
 

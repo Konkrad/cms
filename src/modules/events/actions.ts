@@ -1,5 +1,5 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { notify, requireModuleAuth, usersService } from "~/core";
+import { notify, requireModuleAuth, requirements, usersService } from "~/core";
 import type {
 	CheckoutItemInput,
 	ParticipantSlotInput,
@@ -7,6 +7,7 @@ import type {
 import type { TicketConfirmationData } from "./emails";
 import { isValidEmail } from "./participant-validation";
 import { canViewEvent, eventIdOf } from "./public-event";
+import { CHECKOUT_CONTEXT } from "./requirements";
 import { checkoutService } from "./services/checkout";
 import { eventsService } from "./services/events";
 import { syncFreeRsvpTicketForStatus } from "./services/free-rsvp";
@@ -34,6 +35,16 @@ export const useUpdateParticipation = routeAction$(
 		const target = eventId ? await eventsService.getById(eventId) : undefined;
 		if (!eventId || !target || !(await canViewEvent(target, userData))) {
 			return event.fail(404, { message: "Event not found" });
+		}
+
+		// Registering needs the event requirements (spec 4.6); never trust the page for it.
+		if (
+			data.status === "yes" &&
+			(await requirements.pending(userData, CHECKOUT_CONTEXT)).length > 0
+		) {
+			return event.fail(400, {
+				message: "Please answer the questions above before registering.",
+			});
 		}
 
 		await participationService.upsert(userData.id, eventId, data.status);
@@ -95,6 +106,14 @@ export const useCreateCheckoutSession = routeAction$(
 			: undefined;
 		if (!eventId || !eventData || !(await canViewEvent(eventData, user))) {
 			return event.fail(404, { message: "Event not found" });
+		}
+
+		// The buyer's requirements (food preference, photo consent) are checked on the server,
+		// whatever the page showed (spec 4.6).
+		if ((await requirements.pending(user, CHECKOUT_CONTEXT)).length > 0) {
+			return event.fail(400, {
+				message: "Please answer the questions above before buying tickets.",
+			});
 		}
 
 		// Validate sales period

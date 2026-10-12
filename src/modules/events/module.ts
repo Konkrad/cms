@@ -14,6 +14,7 @@ import {
 	ticketConfirmationNotification,
 } from "./emails";
 import { eventsPages } from "./pages";
+import { eventsRequirements } from "./requirements";
 import { eventsService } from "./services/events";
 import { participationService } from "./services/participation";
 import { tagRulesService } from "./services/tag-rules";
@@ -21,6 +22,8 @@ import { tagRulesService } from "./services/tag-rules";
 export const eventsModule = defineModule({
 	id: "events",
 	pages: eventsPages,
+	// Food preference and photo consent, asked before checkout/registration (spec 4.6).
+	requirements: eventsRequirements,
 	// Events are managed in every scope's admin, the root's included.
 	admin: {
 		sections: [{ path: "events", label: "Events", order: 30, scopes: "all" }],

@@ -5,7 +5,7 @@ import {
 	formsService,
 } from "~/core/forms/forms.service";
 import { ONBOARDING_PURPOSE } from "~/core/forms/purposes";
-import { activeModules } from "~/core/registry/manifests";
+import { activeModules, allModules } from "~/core/registry/manifests";
 import {
 	buildRequirementList,
 	requirements,
@@ -149,6 +149,52 @@ describe("requirement registry", () => {
 			"core.location",
 			"core.onboarding",
 		]);
+	});
+});
+
+describe("events requirements", () => {
+	it("apply while the events module is active, not when it is inactive", () => {
+		expect(requirements.ids()).toEqual(
+			expect.arrayContaining(["events.foodPreference", "events.photoConsent"]),
+		);
+		const withoutEvents = selectActive(
+			allModules,
+			allModules.map((m) => m.id).filter((id) => id !== "events"),
+		);
+		expect(
+			buildRequirementList(coreRequirements, withoutEvents).map((d) => d.id),
+		).toEqual(["core.profile", "core.location", "core.onboarding"]);
+	});
+
+	it("checkout asks food preference then photo consent, once", async () => {
+		const user = newUser();
+		expect(
+			(await requirements.pending(user, "event.checkout")).map((p) => p.id),
+		).toEqual(["events.foodPreference", "events.photoConsent"]);
+		await expect(
+			requirements.submit(user, "events.foodPreference", {
+				foodPreference: "pizza",
+			}),
+		).rejects.toBeInstanceOf(RequirementInputError);
+		await requirements.submit(user, "events.foodPreference", {
+			foodPreference: "vegan",
+		});
+		await requirements.submit(user, "events.photoConsent", {
+			photoConsentGiven: "false",
+		});
+		expect(await requirements.pending(user, "event.checkout")).toEqual([]);
+		// The checkout context never gates the whole site.
+		expect(
+			(await requirements.pending(user, GLOBAL_CONTEXT)).map((p) => p.id),
+		).not.toContain("events.photoConsent");
+		const values = await requirementsService.valuesByUser(
+			["events.foodPreference", "events.photoConsent"],
+			[user.id],
+		);
+		expect(values.get(user.id)).toEqual({
+			"events.foodPreference": { foodPreference: "vegan" },
+			"events.photoConsent": { photoConsentGiven: false },
+		});
 	});
 });
 

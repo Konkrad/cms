@@ -5,10 +5,7 @@ import type { EventPhotosPageData } from "~/contracts/event-photos";
 import type { EventViewData } from "~/contracts/events";
 import type { PageViews } from "~/core";
 import { canonicalUrl, htmlToDescription } from "~/core/seo";
-import {
-	useSaveFoodPreference,
-	useSavePhotoConsent,
-} from "~/core/setup-actions";
+import { useSubmitRequirement } from "~/core/setup-actions";
 import { CheckoutView } from "~theme/routes/events/CheckoutView";
 import { EventPhotosView } from "~theme/routes/events/EventPhotosView";
 import { EventView } from "~theme/routes/events/EventView";
@@ -21,21 +18,26 @@ import {
 
 const EventPage = component$<{ data: EventViewData }>(({ data }) => {
 	const updateParticipation = useUpdateParticipation();
-	return <EventView event={data} updateParticipation={updateParticipation} />;
+	const submitRequirement = useSubmitRequirement();
+	return (
+		<EventView
+			event={data}
+			updateParticipation={updateParticipation}
+			submitRequirement={submitRequirement}
+		/>
+	);
 });
 
 const CheckoutPage = component$<{ data: CheckoutData }>(({ data }) => {
 	const createCheckoutSession = useCreateCheckoutSession();
 	const checkPaymentStatus = useCheckPaymentStatus();
-	const saveFood = useSaveFoodPreference();
-	const savePhoto = useSavePhotoConsent();
+	const submitRequirement = useSubmitRequirement();
 	return (
 		<CheckoutView
 			data={data}
 			createCheckoutSession={createCheckoutSession}
 			checkPaymentStatus={checkPaymentStatus}
-			saveFood={saveFood}
-			savePhoto={savePhoto}
+			submitRequirement={submitRequirement}
 		/>
 	);
 });

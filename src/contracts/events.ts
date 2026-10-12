@@ -3,6 +3,7 @@
  * and for the events-block composables (`~/modules/events/useUpcomingEvents`, `usePastEvents`).
  */
 
+import type { RequirementStepData } from "~/contracts/requirements";
 import type { StreamItemData } from "~/contracts/stream";
 import type { useUpdateParticipation } from "~/modules/events/actions";
 import type { Event } from "~/modules/events/schema/events";
@@ -88,6 +89,8 @@ export type EventPageData =
 			image2: string | null;
 			/** Notes and articles about the event (announcement, updates, recap) the viewer may see, newest first. */
 			updates: StreamItemData[];
+			/** Steps the viewer must complete before registering (their OWN data only). */
+			requirements: RequirementStepData[];
 	  })
 	| null;
 
@@ -95,6 +98,7 @@ export type EventViewData = EventPageData;
 export type UpdateParticipationAction = ReturnType<
 	typeof useUpdateParticipation
 >;
+export type { SubmitRequirementAction } from "~/contracts/requirements";
 
 /** Event shape returned by the events-block composables — `image1` resolved to a public URL. */
 export type BlockEvent = Omit<Event, "image1"> & {

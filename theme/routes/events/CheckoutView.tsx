@@ -10,8 +10,7 @@ import type {
 	CheckoutData,
 	CheckPaymentStatusAction,
 	CreateCheckoutSessionAction,
-	SaveFoodPreferenceAction,
-	SavePhotoConsentAction,
+	SubmitRequirementAction,
 } from "~/contracts/checkout";
 import { validateParticipantSlots } from "~/modules/events/participant-validation";
 import { ParticipantAssignmentStep } from "~theme/routes/events/checkout/ParticipantAssignmentStep";
@@ -22,23 +21,20 @@ import type {
 	ParticipantAssignmentUnit,
 	ParticipantSlotInput,
 } from "~theme/routes/events/checkout/types";
-import { FoodPreferenceStep } from "~theme/shared/FoodPreferenceStep/FoodPreferenceStep";
-import { PhotoConsentStep } from "~theme/shared/PhotoConsentStep/PhotoConsentStep";
+import { RequirementSteps } from "~theme/shared/RequirementStep/RequirementStep";
 
 /** Themed view for the ticket purchase / Stripe checkout flow (`/events/[id]/checkout`). */
 export const CheckoutView = component$<{
 	data: CheckoutData;
 	createCheckoutSession: CreateCheckoutSessionAction;
 	checkPaymentStatus: CheckPaymentStatusAction;
-	saveFood: SaveFoodPreferenceAction;
-	savePhoto: SavePhotoConsentAction;
+	submitRequirement: SubmitRequirementAction;
 }>(
 	({
 		data: dataValue,
 		createCheckoutSession,
 		checkPaymentStatus,
-		saveFood,
-		savePhoto,
+		submitRequirement,
 	}) => {
 		const data = dataValue;
 
@@ -51,8 +47,6 @@ export const CheckoutView = component$<{
 		const checkoutMounted = useSignal(false);
 		const isProcessing = useSignal(false);
 		const paymentError = useSignal<string>("");
-		const foodConsentReady = useSignal(data.foodPreference !== null);
-		const photoConsentReady = useSignal(data.photoConsentGiven !== null);
 
 		const calculateTotal = useComputed$(() => {
 			let total = 0;
@@ -306,10 +300,23 @@ export const CheckoutView = component$<{
 			<div class="max-w-4xl mx-auto p-6">
 				<h1 class="text-3xl font-bold mb-6">Purchase Tickets</h1>
 
-				<StepIndicator currentStep={currentStep.value} />
+				{/* What the buyer must answer first (food preference, photo consent …), one step at a time. */}
+				{data.requirements.length > 0 ? (
+					<div class="space-y-4" data-testid="checkout-requirements">
+						<p class="text-text-secondary">
+							Before you choose your tickets, please answer the following.
+						</p>
+						<RequirementSteps
+							steps={data.requirements}
+							action={submitRequirement}
+						/>
+					</div>
+				) : (
+					<StepIndicator currentStep={currentStep.value} />
+				)}
 
 				{/* Step 1: Product Selection */}
-				{currentStep.value === 1 && (
+				{data.requirements.length === 0 && currentStep.value === 1 && (
 					<ProductSelectionStep
 						groups={data.groups as any[]}
 						selectedProducts={selectedProducts.value}
@@ -372,27 +379,6 @@ export const CheckoutView = component$<{
 							</div>
 						</div>
 
-						{/* Consent sections required before payment */}
-						{data.foodPreference === null && (
-							<FoodPreferenceStep
-								initialPreference={null}
-								updateAction={saveFood}
-								onComplete$={$(() => {
-									foodConsentReady.value = true;
-								})}
-							/>
-						)}
-
-						{data.photoConsentGiven === null && (
-							<PhotoConsentStep
-								initialValue={null}
-								updateAction={savePhoto}
-								onComplete$={$(() => {
-									photoConsentReady.value = true;
-								})}
-							/>
-						)}
-
 						{/* Payment Form */}
 						<div class="border rounded-lg p-6 bg-white">
 							<h2 class="text-xl font-bold mb-4">Payment Details</h2>
@@ -441,12 +427,7 @@ export const CheckoutView = component$<{
 									<Button
 										type="button"
 										class="flex-1"
-										disabled={
-											!clientSecret.value ||
-											isProcessing.value ||
-											!foodConsentReady.value ||
-											!photoConsentReady.value
-										}
+										disabled={!clientSecret.value || isProcessing.value}
 										onClick$={handlePaymentSubmit}
 									>
 										{isProcessing.value ? (

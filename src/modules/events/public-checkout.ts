@@ -4,8 +4,10 @@ import {
 	getServerSession,
 	getStripePublishableKey,
 	publicImageUrlFromKey,
+	requirements,
 } from "~/core";
 import { getViewableEvent } from "./public-event";
+import { CHECKOUT_CONTEXT } from "./requirements";
 import { inventoryGroupsService } from "./services/inventory-groups";
 import { photosService } from "./services/photos";
 
@@ -70,8 +72,11 @@ export async function loadCheckoutPage(
 		returnPath: `${viewable.url}/checkout/success`,
 		groups: groupsWithCapacity,
 		stripePublishableKey: getStripePublishableKey(),
-		foodPreference: (session as any)?.foodPreference ?? null,
-		photoConsentGiven: (session as any)?.photoConsentGiven ?? null,
+		// What the buyer must answer first (food preference, photo consent); the checkout
+		// action checks them again on the server.
+		requirements: session
+			? await requirements.steps(session, CHECKOUT_CONTEXT)
+			: [],
 		buyer: {
 			id: (session as any)?.id ?? "",
 			name: [(session as any)?.name, (session as any)?.familyName]

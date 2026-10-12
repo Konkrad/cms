@@ -3,6 +3,7 @@ import { Form, Link } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import type {
 	EventViewData,
+	SubmitRequirementAction,
 	UpdateParticipationAction,
 } from "~/contracts/events";
 import { EventDateTile } from "~theme/blocks/FeatureBlock/EventDateTile";
@@ -12,13 +13,15 @@ import { LocationTile } from "~theme/blocks/FeatureBlock/LocationTile";
 import { ParticipantsTile } from "~theme/blocks/FeatureBlock/ParticipantsTile";
 import { ParticipantsModal } from "~theme/shared/ParticipantsModal";
 import { ParticipationToggle } from "~theme/shared/ParticipationToggle/ParticipationToggle";
+import { RequirementSteps } from "~theme/shared/RequirementStep/RequirementStep";
 import { StreamCard } from "~theme/shared/StreamList/StreamList";
 
 /** Themed view for the public event detail route (`/events/[id]`). */
 export const EventView = component$<{
 	event: EventViewData;
 	updateParticipation: UpdateParticipationAction;
-}>(({ event: eventData, updateParticipation }) => {
+	submitRequirement: SubmitRequirementAction;
+}>(({ event: eventData, updateParticipation, submitRequirement }) => {
 	if (!eventData) {
 		return (
 			<div class="max-w-4xl mx-auto px-4 py-16 text-center">
@@ -154,6 +157,20 @@ export const EventView = component$<{
 							<span class="inline-block px-10 py-3 bg-orange-500 text-white font-['Lato',sans-serif] font-bold text-sm rounded-full cursor-not-allowed">
 								Sold Out
 							</span>
+						) : event.requirements.length > 0 ? (
+							// Answer the event requirements (food preference, photo consent …) before RSVPing.
+							<div
+								class="w-full max-w-xl space-y-3"
+								data-testid="rsvp-requirements"
+							>
+								<p class="text-center text-text-secondary">
+									Before you register, please answer the following.
+								</p>
+								<RequirementSteps
+									steps={event.requirements}
+									action={submitRequirement}
+								/>
+							</div>
 						) : (
 							<Form action={updateParticipation}>
 								{event.isFreeEvent &&

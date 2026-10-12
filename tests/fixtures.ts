@@ -131,6 +131,10 @@ function deleteUserCascade(
 	db.prepare("DELETE FROM scope_memberships WHERE user_id = ?").run(userId);
 	// Misc user-linked data
 	db.prepare("DELETE FROM form_results WHERE user_id = ?").run(userId);
+	db.prepare("DELETE FROM reviews WHERE submitted_by = ?").run(userId);
+	db.prepare("UPDATE reviews SET reviewed_by = NULL WHERE reviewed_by = ?").run(
+		userId,
+	);
 	db.prepare("DELETE FROM participation_status WHERE user_id = ?").run(userId);
 	db.prepare("DELETE FROM notes WHERE author_id = ?").run(userId);
 	db.prepare("DELETE FROM articles WHERE author_id = ?").run(userId);
@@ -461,6 +465,8 @@ export function createScopeEventInDb(opts: {
 	scopeId?: string;
 	visibility?: "public" | "members" | "representatives";
 	past?: boolean;
+	/** Review state (spec 5.2); published by default. */
+	status?: "draft" | "in_review" | "published";
 }): { eventId: string; cleanup(): void } {
 	const db = openDb();
 	const eventId = crypto.randomUUID();
@@ -469,8 +475,8 @@ export function createScopeEventInDb(opts: {
 	const end = new Date(Date.now() + offset + 7200000).toISOString();
 
 	db.prepare(
-		`INSERT INTO events (id, slug, title, body, start_date, end_date, location_type, user_id, scope_id, visibility)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO events (id, slug, title, body, start_date, end_date, location_type, user_id, scope_id, visibility, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		eventId,
 		opts.slug ?? eventId,
@@ -482,6 +488,7 @@ export function createScopeEventInDb(opts: {
 		opts.organizerId,
 		opts.scopeId ?? rootScopeId(db),
 		opts.visibility ?? "public",
+		opts.status ?? "published",
 	);
 	db.close();
 
@@ -491,6 +498,14 @@ export function createScopeEventInDb(opts: {
 			const db2 = openDb();
 			db2
 				.prepare("DELETE FROM participation_status WHERE event_id = ?")
+				.run(eventId);
+			const ref = `events:event:${eventId}`;
+			db2.prepare("DELETE FROM reviews WHERE ref = ?").run(ref);
+			db2.prepare("DELETE FROM form_results WHERE subject_ref = ?").run(ref);
+			db2
+				.prepare(
+					"DELETE FROM notes WHERE subject_type = 'events:event' AND subject_id = ?",
+				)
 				.run(eventId);
 			db2.prepare("DELETE FROM events WHERE id = ?").run(eventId);
 			db2.close();
@@ -963,7 +978,7 @@ export function deleteScopeById(id: string): void {
 			db.prepare("DELETE FROM scope_memberships WHERE scope_id = ?").run(
 				scopeId,
 			);
-			for (const table of ["pages", "jobs", "deals"]) {
+			for (const table of ["pages", "jobs", "deals", "reviews"]) {
 				db.prepare(`DELETE FROM ${table} WHERE scope_id = ?`).run(scopeId);
 			}
 			const rootId = rootScopeId(db);
@@ -1765,5 +1780,149 @@ export function deleteRedirectsLike(prefix: string): void {
 	db.prepare(
 		"DELETE FROM redirects WHERE from_path LIKE ? OR to_path LIKE ?",
 	).run(`${prefix}%`, `${prefix}%`);
+	db.close();
+}
+
+// ── Reviews and forms (spec 4.9, 4.10) ──────────────────────────────────────────
+
+/** An event's review state (`draft`, `in_review`, `published`). */
+export function getEventStatus(eventId: string): string | undefined {
+	const db = openDb();
+	const row = db
+		.prepare("SELECT status FROM events WHERE id = ?")
+		.get(eventId) as { status: string } | undefined;
+	db.close();
+	return row?.status;
+}
+
+/** The newest review row of an item (`events:event:<id>`, `core:article:<id>`). */
+export function getLatestReview(
+	ref: string,
+): { id: string; status: string; comment: string | null } | undefined {
+	const db = openDb();
+	const row = db
+		.prepare(
+			"SELECT id, status, comment FROM reviews WHERE ref = ? ORDER BY created_at DESC LIMIT 1",
+		)
+		.get(ref) as
+		| { id: string; status: string; comment: string | null }
+		| undefined;
+	db.close();
+	return row;
+}
+
+/** Marks an event's debrief as requested (what the daily schedule does), `daysAgo` days ago. */
+export function setEventDebriefRequested(eventId: string, daysAgo = 0): void {
+	const db = openDb();
+	db.prepare("UPDATE events SET debrief_requested_at = ? WHERE id = ?").run(
+		new Date(Date.now() - daysAgo * 86400000).toISOString(),
+		eventId,
+	);
+	db.close();
+}
+
+/** Stored answers attached to an item, newest first (parsed). */
+export function getFormResultsBySubject(
+	ref: string,
+): Array<{ formId: string; answers: Record<string, unknown> }> {
+	const db = openDb();
+	const rows = db
+		.prepare(
+			"SELECT form_id AS formId, answers FROM form_results WHERE subject_ref = ? ORDER BY created_at DESC",
+		)
+		.all(ref) as Array<{ formId: string; answers: string }>;
+	db.close();
+	return rows.map((r) => ({
+		formId: r.formId,
+		answers: JSON.parse(r.answers),
+	}));
+}
+
+/** A form owned by a scope (the root by default); a survey unless `purpose` is set. */
+export function createFormInDb(opts: {
+	title: string;
+	scopeId?: string;
+	purpose?: string | null;
+	schema?: Record<string, unknown>;
+}): { formId: string; cleanup(): void } {
+	const db = openDb();
+	const formId = crypto.randomUUID();
+	const now = new Date().toISOString();
+	db.prepare(
+		`INSERT INTO forms (id, scope_id, title, slug, schema, purpose, visibility, allow_resubmission, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, 'private', 0, ?, ?)`,
+	).run(
+		formId,
+		opts.scopeId ?? rootScopeId(db),
+		opts.title,
+		opts.title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+		JSON.stringify(
+			opts.schema ?? {
+				pages: [
+					{
+						name: "p",
+						elements: [{ type: "text", name: "q1", title: "Question one" }],
+					},
+				],
+			},
+		),
+		opts.purpose ?? null,
+		now,
+		now,
+	);
+	db.close();
+	return {
+		formId,
+		cleanup() {
+			const db2 = openDb();
+			db2.prepare("DELETE FROM form_assignments WHERE form_id = ?").run(formId);
+			db2.prepare("DELETE FROM form_results WHERE form_id = ?").run(formId);
+			db2.prepare("DELETE FROM forms WHERE id = ?").run(formId);
+			db2.close();
+		},
+	};
+}
+
+/** A result for a form (which locks it). */
+export function createFormResultInDb(
+	formId: string,
+	answers: Record<string, unknown> = { q1: "answer" },
+): void {
+	const db = openDb();
+	db.prepare(
+		"INSERT INTO form_results (id, form_id, answers, created_at) VALUES (?, ?, ?, ?)",
+	).run(
+		crypto.randomUUID(),
+		formId,
+		JSON.stringify(answers),
+		new Date().toISOString(),
+	);
+	db.close();
+}
+
+/** Forms of a scope with this title (e.g. the copy a Duplicate made), newest first. */
+export function getFormsByTitle(
+	title: string,
+): Array<{ id: string; purpose: string | null }> {
+	const db = openDb();
+	const rows = db
+		.prepare(
+			"SELECT id, purpose FROM forms WHERE title = ? ORDER BY created_at DESC",
+		)
+		.all(title) as Array<{ id: string; purpose: string | null }>;
+	db.close();
+	return rows;
+}
+
+/** Deletes forms with this title (and their results and assignments). */
+export function deleteFormsByTitle(title: string): void {
+	const db = openDb();
+	for (const { id } of db
+		.prepare("SELECT id FROM forms WHERE title = ?")
+		.all(title) as Array<{ id: string }>) {
+		db.prepare("DELETE FROM form_assignments WHERE form_id = ?").run(id);
+		db.prepare("DELETE FROM form_results WHERE form_id = ?").run(id);
+		db.prepare("DELETE FROM forms WHERE id = ?").run(id);
+	}
 	db.close();
 }

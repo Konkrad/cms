@@ -133,6 +133,9 @@ export default component$(() => {
 						The form each workflow uses in this group and below, unless a group
 						further down picks another.
 					</p>
+					{setActive.value?.success && (
+						<output class="block text-sm text-green-700 mb-3">Saved.</output>
+					)}
 					{setActive.value?.failed && (
 						<p class="text-sm text-red-700 mb-3">{setActive.value.message}</p>
 					)}

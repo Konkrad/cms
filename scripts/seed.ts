@@ -28,7 +28,12 @@ import sharp from "sharp";
 import { runMigrations } from "../src/core/db/migrate.ts";
 import * as schema from "../src/core/db/schema.ts";
 import { slugify } from "../src/core/shared/slug.ts";
-import { ensureWorkflowForm, onboardingFormSeed } from "./seed-forms.ts";
+import {
+	ensureWorkflowForm,
+	eventDebriefFormSeed,
+	eventProposalFormSeed,
+	onboardingFormSeed,
+} from "./seed-forms.ts";
 
 dotenv.config();
 
@@ -2153,6 +2158,9 @@ const onboardingFormId = ensureWorkflowForm(
 	adminUser!.id,
 	onboardingFormSeed(),
 );
+// Event proposals and debriefs (spec 5.2), active at the root.
+for (const seed of [eventProposalFormSeed(), eventDebriefFormSeed()])
+	ensureWorkflowForm(sqlite, rootScope!.id, adminUser!.id, seed);
 
 const surveyDefs: Array<{
 	title: string;

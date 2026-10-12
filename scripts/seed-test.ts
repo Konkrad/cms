@@ -36,7 +36,12 @@ import fs from "fs";
 import { runMigrations } from "../src/core/db/migrate.ts";
 import * as schema from "../src/core/db/schema.ts";
 import { slugify } from "../src/core/shared/slug.ts";
-import { ensureWorkflowForm, onboardingFormSeed } from "./seed-forms.ts";
+import {
+	ensureWorkflowForm,
+	eventDebriefFormSeed,
+	eventProposalFormSeed,
+	onboardingFormSeed,
+} from "./seed-forms.ts";
 
 dotenv.config();
 
@@ -234,8 +239,15 @@ if (!homePage) {
 // Required plumbing, not demo content: /profile/setup shows the active `core.onboarding`
 // form of the root while a user still needs the survey step.
 
-ensureWorkflowForm(sqlite, rootScope!.id, adminUser!.id, onboardingFormSeed());
-console.log("  onboarding survey form active at the root");
+for (const seed of [
+	onboardingFormSeed(),
+	eventProposalFormSeed(),
+	eventDebriefFormSeed(),
+])
+	ensureWorkflowForm(sqlite, rootScope!.id, adminUser!.id, seed);
+console.log(
+	"  onboarding survey, event proposal and debrief forms active at the root",
+);
 
 // ─── QA checkout users ────────────────────────────────────────────────────────
 

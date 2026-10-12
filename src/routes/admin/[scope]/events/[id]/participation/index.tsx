@@ -6,8 +6,9 @@ import { loadAdminParticipation } from "../../../../../../modules/events/admin/p
 
 export const useParticipation = routeLoader$(async (event) =>
 	assertNoPrivateFields(await loadAdminParticipation(event), {
-		// Admin RSVP list shows each participant's email.
-		allow: ["email"],
+		// Admin RSVP list for the event's organisers: each participant's email, and their food
+		// preference and photo consent (event requirement answers) for catering and photography.
+		allow: ["email", "foodPreference", "photoConsentGiven"],
 	}),
 );
 

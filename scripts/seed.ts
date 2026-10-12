@@ -34,6 +34,7 @@ import {
 	eventProposalFormSeed,
 	onboardingFormSeed,
 } from "./seed-forms.ts";
+import { completeRequirements } from "./seed-requirements.ts";
 
 dotenv.config();
 
@@ -363,23 +364,6 @@ let testUsers = db
 	.all()
 	.filter((u) => testLoginIds.has(u.loginId ?? ""));
 
-// Ensure existing test users have the consent fields needed to reach the survey phase.
-for (const u of testUsers) {
-	const consent = (u.consent ?? {}) as Record<string, string | null>;
-	if (!consent.lastProfileUpdate || !consent.locationVerification) {
-		db.update(schema.users)
-			.set({
-				consent: {
-					...consent,
-					lastProfileUpdate: now(),
-					locationVerification: now(),
-				},
-			})
-			.where(eq(schema.users.id, u.id))
-			.run();
-	}
-}
-
 if (testUsers.length < 10) {
 	for (let i = testUsers.length; i < 10; i++) {
 		const loginId = uuid();
@@ -394,7 +378,6 @@ if (testUsers.length < 10) {
 				name: faker.person.firstName(),
 				familyName: faker.person.lastName(),
 				loginId,
-				consent: { lastProfileUpdate: now(), locationVerification: now() },
 				createdAt: now(),
 				updatedAt: now(),
 			})
@@ -3730,6 +3713,20 @@ const tagCount = db.select().from(schema.userTags).all().length;
 console.log(`  user qualifications seeded (${qualCount})`);
 console.log(`  user memberships seeded (${membershipCount})`);
 console.log(`  user tags seeded (${tagCount})`);
+
+// ─── User requirements ───────────────────────────────────────────────────────
+// Every seeded user has completed profile basics, location, the onboarding survey and the
+// event checkout questions (spec 4.6), so logging in as any of them is not gated.
+
+completeRequirements(
+	sqlite,
+	db
+		.select({ id: schema.users.id })
+		.from(schema.users)
+		.all()
+		.map((u) => u.id),
+);
+console.log("  user requirements completed for every seeded user");
 
 // ─── Done ────────────────────────────────────────────────────────────────────
 

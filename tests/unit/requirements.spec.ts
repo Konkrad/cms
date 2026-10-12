@@ -21,7 +21,9 @@ import { requirementsService } from "~/core/requirements/requirements.service";
 import { defineModule, selectActive } from "~/core/router/modules";
 import { scopesService } from "~/core/scopes/scopes.service";
 import { findPrivateFields } from "~/core/shared/no-private-fields";
-import { createTestUser, openDb } from "./helpers";
+import { participationService } from "~/modules/events/services/participation";
+import { REQUIREMENT_VERSIONS } from "../../scripts/seed-requirements";
+import { createTestEvent, createTestUser, openDb } from "./helpers";
 
 const tag = Date.now().toString(36);
 const cleanups: Array<() => void> = [];
@@ -152,6 +154,18 @@ describe("requirement registry", () => {
 	});
 });
 
+describe("seeded completions", () => {
+	it("seeds and e2e fixtures complete every requirement at its current version", () => {
+		const live = Object.fromEntries(
+			buildRequirementList(coreRequirements, allModules).map((d) => [
+				d.id,
+				d.version,
+			]),
+		);
+		expect(REQUIREMENT_VERSIONS).toEqual(live);
+	});
+});
+
 describe("events requirements", () => {
 	it("apply while the events module is active, not when it is inactive", () => {
 		expect(requirements.ids()).toEqual(
@@ -194,6 +208,37 @@ describe("events requirements", () => {
 		expect(values.get(user.id)).toEqual({
 			"events.foodPreference": { foodPreference: "vegan" },
 			"events.photoConsent": { photoConsentGiven: false },
+		});
+	});
+});
+
+describe("admin participant list", () => {
+	it("reads food preference and photo consent from requirement values", async () => {
+		const organiser = newUser();
+		const answered = newUser();
+		const silent = newUser();
+		const { eventId, cleanup } = createTestEvent(organiser.id);
+		cleanups.push(cleanup);
+		await participationService.upsert(answered.id, eventId, "yes");
+		await participationService.upsert(silent.id, eventId, "maybe");
+		await requirements.submit(answered, "events.foodPreference", {
+			foodPreference: "gluten_free",
+		});
+		await requirements.submit(answered, "events.photoConsent", {
+			photoConsentGiven: "true",
+		});
+		const rows =
+			await participationService.getByEventIdWithEmailsAndRequirementValues(
+				eventId,
+			);
+		const byUser = new Map(rows.map((r) => [r.userId, r]));
+		expect(byUser.get(answered.id)).toMatchObject({
+			foodPreference: "Gluten-free",
+			photoConsentGiven: true,
+		});
+		expect(byUser.get(silent.id)).toMatchObject({
+			foodPreference: null,
+			photoConsentGiven: null,
 		});
 	});
 });

@@ -42,6 +42,7 @@ import {
 	eventProposalFormSeed,
 	onboardingFormSeed,
 } from "./seed-forms.ts";
+import { completeRequirements } from "./seed-requirements.ts";
 
 dotenv.config();
 
@@ -306,29 +307,6 @@ for (const qaUser of qaCheckoutUserDefs) {
 			.find((u) => u.id === id)!;
 	}
 
-	// Ensure consent is set so QA users can reach checkout
-	const consent = (user.consent ?? {}) as Record<string, string | null>;
-	if (!consent.lastProfileUpdate || !consent.locationVerification) {
-		db.update(schema.users)
-			.set({
-				consent: {
-					...consent,
-					lastProfileUpdate: now(),
-					locationVerification: now(),
-					photoConsent: "yes",
-					foodPreference: "none",
-				},
-				updatedAt: now(),
-			})
-			.where(eq(schema.users.id, user.id))
-			.run();
-		user = db
-			.select()
-			.from(schema.users)
-			.all()
-			.find((u) => u.id === user!.id)!;
-	}
-
 	qaCheckoutUsers.push(user);
 }
 console.log(`  QA checkout users ensured (${qaCheckoutUsers.length})`);
@@ -367,7 +345,6 @@ if (testUsers.length < 10) {
 				name: faker.person.firstName(),
 				familyName: faker.person.lastName(),
 				loginId,
-				consent: { lastProfileUpdate: now(), locationVerification: now() },
 				createdAt: now(),
 				updatedAt: now(),
 			})
@@ -1558,6 +1535,20 @@ const appCount = db.select().from(schema.electionApplications).all().length;
 console.log(
 	`  elections seeded (${cycleCount} cycles, ${posCount} positions, ${appCount} applications)`,
 );
+
+// ─── User requirements ────────────────────────────────────────────────────────
+// Seeded users (admin, QA checkout users, user1–10, …) have completed every requirement
+// (spec 4.6), so e2e logins are not sent to /profile/setup or asked at checkout.
+
+completeRequirements(
+	sqlite,
+	db
+		.select({ id: schema.users.id })
+		.from(schema.users)
+		.all()
+		.map((u) => u.id),
+);
+console.log("  user requirements completed for every seeded user");
 
 // ─── Done ─────────────────────────────────────────────────────────────────────
 

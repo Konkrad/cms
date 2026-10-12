@@ -15,7 +15,7 @@ import {
 
 export const usersService = {
 	/**
-	 * The full users row, private fields included (consent, location, birth year, role,
+	 * The full users row, private fields included (location, birth year, role,
 	 * private S3 keys). Server-side logic and the user's own data only; never hand it
 	 * to a page about another user — use `getPublicProfile` for that.
 	 */

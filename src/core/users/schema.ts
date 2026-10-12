@@ -5,16 +5,6 @@ import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export type ConsentStep =
-	| "profile"
-	| "locationVerification"
-	| "foodPreference"
-	| "lastProfileUpdate"
-	| "photoConsent"
-	| "survey";
-
-export type UserConsent = Partial<Record<ConsentStep, string | null>>;
-
 export const users = sqliteTable("users", {
 	id: text("id").primaryKey(),
 	name: text("name").notNull(),
@@ -27,14 +17,8 @@ export const users = sqliteTable("users", {
 	latitude: text("latitude"),
 	yearOfBirth: integer("year_of_birth"),
 	sex: text("sex"),
-	foodPreference: text("food_preference"),
-	photoConsentGiven: integer("photo_consent_given", { mode: "boolean" }),
 	profilePicture: text("profile_picture"),
 	profilePictureSmall: text("profile_picture_small"),
-	consent: text("consent", { mode: "json" })
-		.$type<UserConsent>()
-		.notNull()
-		.default(sql`'{}'`),
 	createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 	updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });

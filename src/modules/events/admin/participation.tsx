@@ -43,12 +43,18 @@ export const AdminEventParticipation = component$<Props>(({ data }) => {
 										Status
 									</th>
 									<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+										Food Preference
+									</th>
+									<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+										Photo Consent
+									</th>
+									<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 										Last Updated
 									</th>
 								</tr>
 							</thead>
 							<tbody class="bg-white divide-y divide-gray-200">
-								{participationData.details.map((participation: any) => (
+								{participationData.details.map((participation) => (
 									<tr key={participation.id} class="hover:bg-gray-50">
 										<td class="px-6 py-4 whitespace-nowrap">
 											<div class="text-sm font-medium text-gray-900">
@@ -74,6 +80,22 @@ export const AdminEventParticipation = component$<Props>(({ data }) => {
 														? "Maybe"
 														: "Not Going"}
 											</span>
+										</td>
+										<td
+											class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"
+											data-testid="participant-food"
+										>
+											{participation.foodPreference ?? "—"}
+										</td>
+										<td
+											class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"
+											data-testid="participant-photo"
+										>
+											{participation.photoConsentGiven === null
+												? "—"
+												: participation.photoConsentGiven
+													? "Yes"
+													: "No"}
 										</td>
 										<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
 											{new Date(participation.updatedAt).toLocaleString()}

@@ -94,11 +94,8 @@ export async function getCurrentUserData(
 			latitude: u.latitude,
 			yearOfBirth: u.yearOfBirth,
 			sex: u.sex,
-			foodPreference: u.foodPreference ?? null,
-			photoConsentGiven: u.photoConsentGiven ?? null,
 			profilePicture: u.profilePicture,
 			profilePictureSmall: u.profilePictureSmall,
-			consent: u.consent ?? {},
 			createdAt: u.createdAt,
 			updatedAt: u.updatedAt,
 		} as any;

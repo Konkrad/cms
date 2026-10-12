@@ -40,14 +40,13 @@ export function createTestUser(overrides: Record<string, unknown> = {}): {
 	);
 
 	db.prepare(
-		`INSERT INTO users (id, name, family_name, login_id, consent)
-     VALUES (?, ?, ?, ?, ?)`,
+		`INSERT INTO users (id, name, family_name, login_id)
+     VALUES (?, ?, ?, ?)`,
 	).run(
 		userId,
 		(overrides.name as string) ?? "Test",
 		(overrides.familyName as string) ?? "User",
 		loginId,
-		"{}",
 	);
 
 	db.close();

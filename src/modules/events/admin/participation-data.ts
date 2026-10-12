@@ -7,7 +7,7 @@ export async function loadAdminParticipation(event: RequestEventLoader) {
 	const { event: target } = await requireAdminEvent(event);
 	const [summary, details] = await Promise.all([
 		participationService.getSummary(target.id),
-		participationService.getByEventIdWithEmails(target.id),
+		participationService.getByEventIdWithEmailsAndRequirementValues(target.id),
 	]);
 	return {
 		event: { id: target.id, title: target.title },

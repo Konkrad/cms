@@ -37,7 +37,7 @@ const BACKGROUND_ATTENDEE_EMAILS = [
 // Records: a member opens the reunion dinner (created live by
 // events-admin-flow.spec.ts — run that one first), sees who's already going,
 // buys 2 tickets, searches for and adds a friend as her second participant,
-// completes her food preference and photo consent live (first time through
+// answers her food preference and photo consent live (first time through
 // checkout), and pays via the real Stripe checkout flow (stripe-mock in test
 // mode — see tests/e2e/tickets.spec.ts for the same pattern this is adapted
 // from).
@@ -163,6 +163,25 @@ test("member buys tickets and brings a friend to the reunion", async ({
 		await page.waitForURL(/\/events\/.+\/checkout/, { timeout: 15_000 });
 		await beat(page);
 
+		// Event requirements before ticket selection (spec 4.6) — Maya's food preference and
+		// photo consent are pending in the seed, so both steps render live here, one at a time.
+		// Each is saved through core's step action; the page then shows the next step.
+		await page.waitForSelector("text=Food preferences", { timeout: 10_000 });
+		await beat(page, 600);
+		await page
+			.locator('select[name="foodPreference"]')
+			.selectOption("vegetarian");
+		await glideClick(page, page.locator('button:has-text("Continue")'));
+		await page.waitForSelector("text=Photo consent", { timeout: 8_000 });
+		await beat(page, 800);
+		await glideClick(page, page.locator('label:has-text("Yes, I consent")'));
+		await glideClick(page, page.locator('button:has-text("Continue")'));
+		await page.waitForSelector("text=Photo consent", {
+			state: "detached",
+			timeout: 8_000,
+		});
+		await beat(page, 1000);
+
 		await glideCheck(
 			page,
 			page
@@ -199,9 +218,7 @@ test("member buys tickets and brings a friend to the reunion", async ({
 
 		// Reaching step 3 fires createCheckoutSession immediately (a
 		// useVisibleTask$ tracking currentStep) — register the listener right
-		// now, before the food/photo interactions below, which submit their own
-		// POSTs to this same route and would otherwise be mistaken for it if we
-		// started listening later.
+		// now, before clicking through.
 		const createRespPromise = page.waitForResponse(
 			(r) =>
 				r.url().includes(`/events/${event.id}/checkout`) &&
@@ -213,29 +230,6 @@ test("member buys tickets and brings a friend to the reunion", async ({
 			page,
 			page.locator('button:has-text("Continue to Payment")'),
 		);
-		await beat(page, 1000);
-
-		// Consent sections required before payment — Maya's food preference and
-		// photo consent are unset in the seed, so both render live here. Each
-		// step's server action revalidates the checkout loader on success, which
-		// flips data.foodPreference/data.photoConsentGiven away from null — that
-		// immediately unmounts the whole step (its own "saved" alert never gets
-		// a chance to sit on screen), so wait for the section to disappear
-		// rather than for a persistent success message.
-		await page.waitForSelector("text=Food preferences", { timeout: 10_000 });
-		await beat(page, 600);
-		await page.locator("select").selectOption("vegetarian");
-		await page.waitForSelector("text=Food preferences", {
-			state: "detached",
-			timeout: 8_000,
-		});
-		await beat(page, 800);
-
-		await glideClick(page, page.locator('label:has-text("Yes, I consent")'));
-		await page.waitForSelector("text=Photo consent", {
-			state: "detached",
-			timeout: 8_000,
-		});
 		await beat(page, 1000);
 
 		const createResp = await createRespPromise;

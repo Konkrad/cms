@@ -1,6 +1,16 @@
 import { and, eq } from "drizzle-orm";
-import { db, publicUserColumns, publicUserThumbnailUrl } from "~/core";
+import {
+	db,
+	publicUserColumns,
+	publicUserThumbnailUrl,
+	requirementValuesByUser,
+} from "~/core";
 import { logins, users } from "~/core/schema";
+import {
+	foodPreferenceLabel,
+	foodPreferenceRequirement,
+	photoConsentRequirement,
+} from "../requirements";
 import { events } from "../schema/events";
 import {
 	type InsertParticipationStatus,
@@ -125,6 +135,36 @@ export const participationService = {
 				email: r.email,
 			},
 		}));
+	},
+
+	/**
+	 * ADMIN ONLY: `getByEventIdWithEmails` plus each user's food preference (label) and photo
+	 * consent, read from their event requirement answers (spec 4.6). Private answers: for the
+	 * organisers' participant list only; null = not answered.
+	 */
+	async getByEventIdWithEmailsAndRequirementValues(eventId: string) {
+		const rows = await participationService.getByEventIdWithEmails(eventId);
+		const values = await requirementValuesByUser(
+			[foodPreferenceRequirement.id, photoConsentRequirement.id],
+			rows.map((r) => r.userId),
+		);
+		return rows.map((row) => {
+			const answers = values.get(row.userId) ?? {};
+			const food = answers[foodPreferenceRequirement.id] as
+				| { foodPreference?: unknown }
+				| undefined;
+			const photo = answers[photoConsentRequirement.id] as
+				| { photoConsentGiven?: unknown }
+				| undefined;
+			return {
+				...row,
+				foodPreference: foodPreferenceLabel(food?.foodPreference),
+				photoConsentGiven:
+					typeof photo?.photoConsentGiven === "boolean"
+						? photo.photoConsentGiven
+						: null,
+			};
+		});
 	},
 
 	/**

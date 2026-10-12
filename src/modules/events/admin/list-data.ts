@@ -1,6 +1,7 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
 import { getSubtreeIds, requireModuleAdmin } from "~/core";
 import { PAGE_SIZE } from "~/core/ui";
+import { listOverdueDebriefs } from "../debrief";
 import { eventsService } from "../services/events";
 import { participationService } from "../services/participation";
 
@@ -17,9 +18,10 @@ export async function loadAdminEvents(event: RequestEventLoader) {
 	);
 	const offset = (page - 1) * PAGE_SIZE;
 
+	// The root lists every event; other scopes their own and their subtree's.
+	const scopeIds = isRoot ? null : await getSubtreeIds(scope.id);
 	const { total, items } = await eventsService.adminList({
-		// The root lists every event; other scopes their own and their subtree's.
-		scopeIds: isRoot ? null : await getSubtreeIds(scope.id),
+		scopeIds,
 		search,
 		limit: PAGE_SIZE,
 		offset,
@@ -32,8 +34,17 @@ export async function loadAdminEvents(event: RequestEventLoader) {
 		})),
 	);
 
+	// Debriefs asked for a week ago or more and still missing (spec 5.2); nothing is blocked.
+	const overdueDebriefs = (await listOverdueDebriefs(scopeIds)).map((e) => ({
+		id: e.id,
+		title: e.title,
+		endDate: e.endDate,
+		debriefRequestedAt: e.debriefRequestedAt,
+	}));
+
 	return {
 		events: eventsWithParticipation,
+		overdueDebriefs,
 		total,
 		page,
 		pageSize: PAGE_SIZE,

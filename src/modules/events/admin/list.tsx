@@ -30,6 +30,30 @@ export const AdminEventsList = component$<Props>(({ data }) => {
 				<Button href={`${data.adminBase}/events/new`}>Create New Event</Button>
 			</div>
 
+			{data.overdueDebriefs.length > 0 && (
+				<section
+					class="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4"
+					data-testid="overdue-debriefs"
+				>
+					<h3 class="font-semibold text-amber-900 mb-2">Overdue debriefs</h3>
+					<ul class="text-sm space-y-1">
+						{data.overdueDebriefs.map((e) => (
+							<li key={e.id}>
+								<Link
+									href={`${data.adminBase}/events/${e.id}/review`}
+									class="text-blue-700 hover:underline"
+								>
+									{e.title}
+								</Link>{" "}
+								<span class="text-gray-600">
+									ended {format(new Date(e.endDate), "MMM d, yyyy")}
+								</span>
+							</li>
+						))}
+					</ul>
+				</section>
+			)}
+
 			<SearchBar value={data.search} placeholder="Search by title or city…" />
 
 			<div class="bg-white shadow-sm rounded-lg overflow-x-auto">

@@ -462,6 +462,82 @@ export const eventsService = {
 		return updated.length === 1;
 	},
 
+	/**
+	 * Published events that ended and may need a debrief request (spec 5.2): not asked yet and
+	 * ended after `since`, or asked before `remindBefore` and not reminded yet.
+	 */
+	async listDebriefCandidates(now: Date, since: Date, remindBefore: Date) {
+		return db
+			.select({
+				id: events.id,
+				scopeId: events.scopeId,
+				userId: events.userId,
+				title: events.title,
+				endDate: events.endDate,
+				debriefRequestedAt: events.debriefRequestedAt,
+				debriefRemindedAt: events.debriefRemindedAt,
+			})
+			.from(events)
+			.where(
+				and(
+					isNull(events.deletedAt),
+					eq(events.status, "published"),
+					lt(events.endDate, now.toISOString()),
+					or(
+						and(
+							isNull(events.debriefRequestedAt),
+							sql`${events.endDate} >= ${since.toISOString()}`,
+						),
+						and(
+							lt(events.debriefRequestedAt, remindBefore.toISOString()),
+							isNull(events.debriefRemindedAt),
+						),
+					),
+				),
+			);
+	},
+
+	/** Marks the debrief as requested; false when it already was (another run got there first). */
+	async claimDebriefRequest(id: string, now: Date): Promise<boolean> {
+		const updated = await db
+			.update(events)
+			.set({ debriefRequestedAt: now.toISOString() })
+			.where(and(eq(events.id, id), isNull(events.debriefRequestedAt)))
+			.returning({ id: events.id });
+		return updated.length === 1;
+	},
+
+	/** Marks the one debrief reminder as sent; false when it already was. */
+	async claimDebriefReminder(id: string, now: Date): Promise<boolean> {
+		const updated = await db
+			.update(events)
+			.set({ debriefRemindedAt: now.toISOString() })
+			.where(and(eq(events.id, id), isNull(events.debriefRemindedAt)))
+			.returning({ id: events.id });
+		return updated.length === 1;
+	},
+
+	/** Events whose debrief was requested before `before` (in these scopes, null = all). */
+	async listDebriefsRequestedBefore(scopeIds: string[] | null, before: Date) {
+		return db
+			.select({
+				id: events.id,
+				scopeId: events.scopeId,
+				title: events.title,
+				endDate: events.endDate,
+				debriefRequestedAt: events.debriefRequestedAt,
+			})
+			.from(events)
+			.where(
+				and(
+					isNull(events.deletedAt),
+					scopeIds ? inArray(events.scopeId, scopeIds) : undefined,
+					lt(events.debriefRequestedAt, before.toISOString()),
+				),
+			)
+			.orderBy(events.endDate);
+	},
+
 	async softDelete(id: string, deletedBy: string): Promise<Event | undefined> {
 		const [result] = await db
 			.update(events)

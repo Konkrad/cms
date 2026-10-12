@@ -126,6 +126,22 @@ export const formResultsService = {
 		}));
 	},
 
+	/** Whether an item has a result of a form with this purpose (a debrief was filled in). */
+	async existsForSubject(
+		subjectRef: string,
+		purpose: string,
+	): Promise<boolean> {
+		const [row] = await db
+			.select({ id: formResults.id })
+			.from(formResults)
+			.innerJoin(forms, eq(forms.id, formResults.formId))
+			.where(
+				and(eq(formResults.subjectRef, subjectRef), eq(forms.purpose, purpose)),
+			)
+			.limit(1);
+		return !!row;
+	},
+
 	async create(data: NewResult): Promise<FormResult> {
 		const [created] = await db
 			.insert(formResults)

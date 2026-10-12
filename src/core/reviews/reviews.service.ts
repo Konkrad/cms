@@ -55,6 +55,17 @@ export const reviewsService = {
 		return latest;
 	},
 
+	/** The newest approved submission of an item. */
+	async latestApproved(ref: string): Promise<Review | undefined> {
+		const [row] = await db
+			.select()
+			.from(reviews)
+			.where(and(eq(reviews.ref, ref), eq(reviews.status, "approved")))
+			.orderBy(desc(reviews.decidedAt))
+			.limit(1);
+		return row;
+	},
+
 	async hasApproved(ref: string): Promise<boolean> {
 		const [row] = await db
 			.select({ id: reviews.id })

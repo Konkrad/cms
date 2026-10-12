@@ -4,7 +4,10 @@ import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { AdminEventReview } from "../../../../../../modules/events/admin/review";
 import { loadAdminEventReview } from "../../../../../../modules/events/admin/review-data";
 
-export { useSubmitProposal } from "../../../../../../modules/events/admin/review";
+export {
+	useSubmitDebrief,
+	useSubmitProposal,
+} from "../../../../../../modules/events/admin/review";
 
 export const useEventReview = routeLoader$(async (event) =>
 	assertNoPrivateFields(await loadAdminEventReview(event)),

@@ -1,5 +1,6 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
 import { forms, itemUrl, reviews } from "~/core";
+import { DEBRIEF_PURPOSE } from "../debrief";
 import { requireAdminEvent } from "./event-guards";
 
 /**
@@ -13,13 +14,21 @@ export async function loadAdminEventReview(event: RequestEventLoader) {
 		onMissing: "redirect",
 	});
 	const ref = `events:event:${target.id}`;
-	const [review, proposal, results] = await Promise.all([
+	const ended = new Date(target.endDate).getTime() < Date.now();
+	const [review, proposal, results, debriefDone] = await Promise.all([
 		reviews.statusOf(ref),
 		target.status === "draft"
 			? forms.active({ scopeId: target.scopeId }, "events.proposal")
 			: null,
 		forms.resultsFor({ userId: user.id }, ref),
+		forms.hasResult(ref, DEBRIEF_PURPOSE),
 	]);
+	// The debrief can be filled in once the published event has ended (asked by the daily
+	// schedule, but nothing stops an organiser from doing it earlier).
+	const debrief =
+		target.status === "published" && ended && !debriefDone
+			? await forms.active({ scopeId: target.scopeId }, DEBRIEF_PURPOSE)
+			: null;
 	return {
 		event: {
 			id: target.id,
@@ -27,6 +36,7 @@ export async function loadAdminEventReview(event: RequestEventLoader) {
 			status: target.status,
 			visibility: target.visibility,
 			announceOnApproval: target.announceOnApproval,
+			debriefRequestedAt: target.debriefRequestedAt,
 			url: await itemUrl("events:event", target),
 		},
 		review,
@@ -36,6 +46,14 @@ export async function loadAdminEventReview(event: RequestEventLoader) {
 					title: proposal.title,
 					description: proposal.description,
 					questions: proposal.questions,
+				}
+			: null,
+		debriefForm: debrief
+			? {
+					id: debrief.id,
+					title: debrief.title,
+					description: debrief.description,
+					questions: debrief.questions,
 				}
 			: null,
 		results: results.map((r) => ({

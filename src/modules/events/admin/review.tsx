@@ -1,7 +1,8 @@
 import { component$ } from "@qwik.dev/core";
 import { Form, routeAction$, z, zod$ } from "@qwik.dev/router";
-import { FormAnswerError, forms, ReviewError, reviews } from "~/core";
+import { FormAnswerError, forms, notify, ReviewError, reviews } from "~/core";
 import { Button, FormRenderer } from "~/core/ui";
+import { DEBRIEF_PURPOSE } from "../debrief";
 import { eventsService } from "../services/events";
 import { requireAdminEvent } from "./event-guards";
 import type { AdminEventReviewData } from "./review-data";
@@ -58,6 +59,49 @@ export const useSubmitProposal = routeAction$(
 	zod$({ answers: answersSchema, announce: z.string().optional() }),
 );
 
+/** Stores the organiser's debrief (the active `events.debrief` form) and tells the reviewer. */
+export const useSubmitDebrief = routeAction$(
+	async (data, requestEvent) => {
+		const { user, event } = await requireAdminEvent(requestEvent);
+		const ref = `events:event:${event.id}`;
+		const form = await forms.active(
+			{ scopeId: event.scopeId },
+			DEBRIEF_PURPOSE,
+		);
+		if (
+			!form ||
+			event.status !== "published" ||
+			new Date(event.endDate).getTime() > Date.now() ||
+			(await forms.hasResult(ref, DEBRIEF_PURPOSE))
+		)
+			return requestEvent.fail(400, {
+				message: "There is no debrief to fill in for this event",
+				fieldErrors: {} as Record<string, string>,
+			});
+		try {
+			await forms.submit({ userId: user.id }, form.id, {
+				subjectRef: ref,
+				answers: data.answers ?? {},
+			});
+		} catch (error) {
+			if (error instanceof FormAnswerError)
+				return requestEvent.fail(400, {
+					message: error.message,
+					fieldErrors: error.fieldErrors,
+				});
+			throw error;
+		}
+		const to = await reviews.reviewersOf(ref, user.id);
+		if (to.length)
+			await notify("events.debrief-submitted", {
+				to,
+				data: { eventId: event.id },
+			});
+		return { success: true };
+	},
+	zod$({ answers: answersSchema }),
+);
+
 const STATUS_TEXT: Record<string, string> = {
 	draft: "Draft: not visible publicly.",
 	in_review:
@@ -69,6 +113,8 @@ type Props = { data: AdminEventReviewData };
 
 export const AdminEventReview = component$<Props>(({ data }) => {
 	const submit = useSubmitProposal();
+	const debrief = useSubmitDebrief();
+	const debriefFailed = debrief.value?.failed ? debrief.value : null;
 	const failed = submit.value?.failed ? submit.value : null;
 	return (
 		<div class="space-y-6">
@@ -133,6 +179,39 @@ export const AdminEventReview = component$<Props>(({ data }) => {
 						<Button type="submit">Submit for review</Button>
 					</Form>
 				</section>
+			)}
+
+			{data.debriefForm && !debrief.value?.success && (
+				<section
+					class="bg-white rounded-lg shadow-sm p-6"
+					data-testid="event-debrief"
+				>
+					<h3 class="text-lg font-semibold mb-1">{data.debriefForm.title}</h3>
+					{data.debriefForm.description && (
+						<p class="text-sm text-gray-500 mb-4">
+							{data.debriefForm.description}
+						</p>
+					)}
+					{debriefFailed?.message && (
+						<p class="mb-4 text-sm text-red-700" role="alert">
+							{debriefFailed.message}
+						</p>
+					)}
+					<Form action={debrief} class="space-y-5">
+						<FormRenderer
+							questions={data.debriefForm.questions}
+							errors={
+								debriefFailed?.fieldErrors as Record<string, string> | undefined
+							}
+						/>
+						<Button type="submit">Submit debrief</Button>
+					</Form>
+				</section>
+			)}
+			{debrief.value?.success && (
+				<output class="block text-sm text-green-700">
+					Thank you: the debrief was saved.
+				</output>
 			)}
 
 			<section

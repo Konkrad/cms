@@ -54,6 +54,9 @@ export const events = sqliteTable(
 			.default(true),
 		// The announcement note, once posted (so a retried handler posts it once).
 		announcementNoteId: text("announcement_note_id"),
+		// Debrief (spec 5.2): when the organiser was asked for it, and reminded once.
+		debriefRequestedAt: text("debrief_requested_at"),
+		debriefRemindedAt: text("debrief_reminded_at"),
 		image1: text("image1"),
 		image2: text("image2"),
 		deletedAt: text("deleted_at"),

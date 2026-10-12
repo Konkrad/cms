@@ -186,6 +186,18 @@ export const reviews = {
 		return latest?.status === "in_review" && canDecide(user, latest);
 	},
 
+	/**
+	 * Who reviews an item's follow-ups (its debrief): the coordinator who approved it, or, for an
+	 * item that was never reviewed, the reviewers a new submission would go to. Never `exceptUserId`.
+	 */
+	async reviewersOf(ref: string, exceptUserId: string): Promise<string[]> {
+		const approved = await reviewsService.latestApproved(ref);
+		if (approved?.reviewedBy && approved.reviewedBy !== exceptUserId)
+			return [approved.reviewedBy];
+		const item = await locateRef(ref);
+		return item ? reviewRecipients(item.scopeId, exceptUserId) : [];
+	},
+
 	/** The latest submission of an item (null when it was never submitted). */
 	async statusOf(ref: string): Promise<ReviewStatusInfo | null> {
 		const latest = await reviewsService.latestFor(ref);

@@ -8,6 +8,8 @@ import {
 } from "~/core";
 import { eventsBlocks } from "./blocks";
 import {
+	debriefRequestedNotification,
+	debriefSubmittedNotification,
 	saleAlertNotification,
 	ticketConfirmationNotification,
 } from "./emails";
@@ -84,7 +86,22 @@ export const eventsModule = defineModule({
 		};
 	},
 	scopeContentCount: (scopeId) => eventsService.countByScopeId(scopeId),
-	notifications: [ticketConfirmationNotification, saleAlertNotification],
+	notifications: [
+		ticketConfirmationNotification,
+		saleAlertNotification,
+		debriefRequestedNotification,
+		debriefSubmittedNotification,
+	],
+	// Asks organisers of ended events for their debrief (spec 5.2); lazy like the handlers below.
+	schedules: [
+		{
+			id: "debrief-requests",
+			every: "1d",
+			run: async (ctx) => {
+				await (await import("./debrief")).runDebriefRequests(ctx);
+			},
+		},
+	],
 	// `events:event:<id>` → `<scope path>/events/<slug>`.
 	refs: {
 		event: {

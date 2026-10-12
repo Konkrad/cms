@@ -1,5 +1,6 @@
 import { createElement } from "react";
-import { defineNotification, itemUrl } from "~/core";
+import { adminUrl, defineNotification, getScope, itemUrl } from "~/core";
+import NoticeEmail from "~theme/emails/Notice";
 import TicketConfirmationEmail from "~theme/emails/TicketConfirmation";
 import { eventsService } from "./services/events";
 import { icalService } from "./services/ical";
@@ -87,5 +88,86 @@ export const saleAlertNotification = defineNotification<SaleAlertData>({
 		telegram: (data) =>
 			`🎫 New sale: ${data.quantity}x ${data.productName} (€${data.amount.toFixed(2)})\n` +
 			`📊 Remaining: ${data.remaining} spots`,
+	},
+});
+
+/** Where an organiser fills in, and reviewers read, an event's debrief: its admin Review tab. */
+async function eventReviewTab(event: { id: string; scopeId: string }) {
+	const scope = await getScope(event.scopeId);
+	return scope ? adminUrl(scope.path, `events/${event.id}/review`) : "/admin";
+}
+
+/** Asks the organiser of an event that ended for its debrief (once, plus one reminder). */
+export const debriefRequestedNotification = defineNotification<{
+	eventId: string;
+	reminder: boolean;
+}>({
+	id: "events.debrief-requested",
+	label: "Event debrief",
+	channels: ["email"],
+	optional: false,
+	render: {
+		async email(data, ctx) {
+			const event = await eventsService.getById(data.eventId);
+			if (!event) throw new Error(`Event ${data.eventId} not found`);
+			return {
+				subject: data.reminder
+					? `Reminder: debrief for ${event.title}`
+					: `How did ${event.title} go?`,
+				react: createElement(NoticeEmail, {
+					baseUrl: ctx.appUrl,
+					recipientName: ctx.recipient.name ?? "there",
+					title: data.reminder ? "Debrief reminder" : "Event debrief",
+					subtitle: event.title,
+					paragraphs: [
+						data.reminder
+							? `A week ago we asked how "${event.title}" went. Please take a few minutes for the debrief.`
+							: `"${event.title}" has ended. Please tell us how it went in a short debrief.`,
+					],
+					quote: null,
+					buttonLabel: "Fill in the debrief",
+					buttonUrl: new URL(
+						await eventReviewTab(event),
+						ctx.appUrl,
+					).toString(),
+					unsubscribeUrl: ctx.unsubscribeUrl,
+				}),
+			};
+		},
+	},
+});
+
+/** Tells the event's reviewing coordinator that its debrief was filled in. */
+export const debriefSubmittedNotification = defineNotification<{
+	eventId: string;
+}>({
+	id: "events.debrief-submitted",
+	label: "Event debrief submitted",
+	channels: ["email"],
+	optional: false,
+	render: {
+		async email(data, ctx) {
+			const event = await eventsService.getById(data.eventId);
+			if (!event) throw new Error(`Event ${data.eventId} not found`);
+			return {
+				subject: `Debrief: ${event.title}`,
+				react: createElement(NoticeEmail, {
+					baseUrl: ctx.appUrl,
+					recipientName: ctx.recipient.name ?? "there",
+					title: "Debrief submitted",
+					subtitle: event.title,
+					paragraphs: [
+						`The organiser of "${event.title}" filled in the debrief.`,
+					],
+					quote: null,
+					buttonLabel: "Read the debrief",
+					buttonUrl: new URL(
+						await eventReviewTab(event),
+						ctx.appUrl,
+					).toString(),
+					unsubscribeUrl: ctx.unsubscribeUrl,
+				}),
+			};
+		},
 	},
 });

@@ -90,6 +90,10 @@ export const forms = {
 		return { id: result.id, answers };
 	},
 
+	/** Whether an item has answers to a form of `purpose` (e.g. its debrief was filled in). */
+	hasResult: (subjectRef: string, purpose: string): Promise<boolean> =>
+		formResultsService.existsForSubject(subjectRef, purpose),
+
 	/**
 	 * The results attached to an item, newest first, as question/answer text rows. Only for
 	 * managers of the item's scope (roles inherit downward, so platform admins too); throws

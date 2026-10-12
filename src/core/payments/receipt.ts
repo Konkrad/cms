@@ -1,0 +1,59 @@
+import { createElement } from "react";
+import { defineNotification } from "~/core/notifications/define";
+import { notify } from "~/core/notifications/notify";
+import { formatMoney } from "~/core/payments/money";
+import type { PaymentInfo } from "~/core/payments/payments";
+import { paymentsService } from "~/core/payments/payments.service";
+import PaymentReceiptEmail from "~theme/emails/PaymentReceipt";
+
+/**
+ * The generic receipt core sends when a payment or a renewal is paid (spec 4.7). Modules send
+ * their own domain mail (tickets with QR codes) besides it. Required: a receipt cannot be muted.
+ */
+
+export const paymentReceiptNotification = defineNotification<{
+	paymentId: string;
+	renewal: boolean;
+}>({
+	id: "payments.receipt",
+	label: "Payment receipt",
+	channels: ["email"],
+	optional: false,
+	render: {
+		email: async (data, ctx) => {
+			const payment = await paymentsService.getById(data.paymentId);
+			if (!payment) throw new Error(`Payment ${data.paymentId} not found`);
+			const total = formatMoney(payment.amount, payment.currency);
+			return {
+				subject: `Your receipt (${total})`,
+				react: createElement(PaymentReceiptEmail, {
+					baseUrl: ctx.appUrl,
+					recipientName: ctx.recipient.name ?? "there",
+					date: new Date(
+						payment.paidAt ?? payment.updatedAt,
+					).toLocaleDateString("en-GB", {
+						day: "numeric",
+						month: "short",
+						year: "numeric",
+					}),
+					reference: payment.id,
+					lines: payment.lines.map((line) => ({
+						label: line.label,
+						quantity: line.quantity,
+						amount: formatMoney(line.amount * line.quantity, payment.currency),
+					})),
+					total,
+					note: data.renewal ? "Your subscription was renewed" : null,
+				}),
+			};
+		},
+	},
+});
+
+/** Core's receipt handler (queued with the module's `onPaid` / `onRenewed`). */
+export async function sendReceipt(payment: PaymentInfo): Promise<void> {
+	await notify(paymentReceiptNotification.id, {
+		to: payment.userId,
+		data: { paymentId: payment.id, renewal: payment.change === "renewed" },
+	});
+}

@@ -57,3 +57,18 @@ export interface NoticeEmailProps {
 	buttonUrl: string;
 	unsubscribeUrl: string | null;
 }
+
+/** The generic payment receipt core sends when a payment (or a renewal) is paid (spec 4.7). */
+export interface PaymentReceiptEmailProps {
+	baseUrl: string;
+	recipientName: string;
+	/** Formatted, e.g. "12 Oct 2026". */
+	date: string;
+	/** Core's payment id, as the receipt number. */
+	reference: string;
+	/** Amounts formatted with their currency ("€12.50"). */
+	lines: { label: string; quantity: number; amount: string }[];
+	total: string;
+	/** "Subscription renewed" for a renewal. */
+	note: string | null;
+}

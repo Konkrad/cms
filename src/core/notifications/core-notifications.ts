@@ -1,4 +1,5 @@
 import type { NotificationDefinition } from "~/core/notifications/define";
+import { paymentReceiptNotification } from "~/core/payments/receipt";
 import { reviewNotifications } from "~/core/reviews/notifications";
 
 /**
@@ -8,4 +9,5 @@ import { reviewNotifications } from "~/core/reviews/notifications";
  */
 export const coreNotifications: NotificationDefinition[] = [
 	...reviewNotifications,
+	paymentReceiptNotification,
 ];

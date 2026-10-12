@@ -74,10 +74,14 @@ ticket is issued immediately with no payment step needed.
 
 ![Checkout step 3](./images/checkout-3-payment.png)
 
-For a paid order, ticket creation is confirmed by the payment provider
+For a paid order, "Complete Payment" takes the member to the payment
+provider's checkout page. Ticket creation is confirmed by the payment provider
 after the charge goes through — so there can be a brief moment between
-paying and the ticket actually appearing. If a member says they paid but
-don't see a ticket after a minute or two, that's the first thing to check.
+paying and the ticket actually appearing ("Payment processing" on the page
+they return to). Besides the ticket email they get a payment receipt. If a
+member says they paid but don't see a ticket after a minute or two, check the
+payment under **Payments** in the site admin, and failed handlers under
+**Notifications**. A checkout that is not paid within an hour expires.
 
 ## 5. Tickets, QR codes, and checking people in
 

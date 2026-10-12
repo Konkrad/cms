@@ -68,10 +68,10 @@ flowchart TD
   E -->|No| E1[Product hidden from selectable list]
   E -->|Yes| F[Select one product per inventory group]
   F --> G[Proceed to participants and payment step]
-  G --> L[Create Stripe PaymentIntent: requirements checked again on the server]
+  G --> L[Complete Payment: requirements checked again; pending order + core payment from DB prices]
 
-  L --> M[Confirm payment in Stripe]
-  M --> N[Stripe webhook receives payment_intent.succeeded]
+  L --> M[Pay on the provider's checkout page (Stripe Checkout)]
+  M --> N[Signed webhook /api/payments/webhook/stripe marks the payment paid; the events onPaid handler runs]
   N --> O[Create tickets for purchased products]
   O --> P[Increment soldQuantity for purchased products]
   P --> Q[Auto-upgrade participation maybe → yes if tickets were created]
@@ -87,6 +87,8 @@ flowchart TD
 - Availability is filtered twice: first by inventory group (sales window + group capacity), then by product quantity.
 - Checkout currently allows one selected product per inventory group.
 - Food preference and photo consent are user requirements of the `event.checkout` context: the checkout and the RSVP ask them first, once per user (again only when their version is bumped), and the checkout/RSVP actions refuse while they are pending.
-- Checkout validates inventory again on submit before creating a payment intent.
-- The Stripe webhook is what finalizes paid ticket creation.
+- Checkout validates inventory again on submit before creating the payment; amounts come from the product prices only.
+- The provider's signed webhook is what finalizes paid ticket creation (core payments, `payments.tickets` handlers in `src/modules/events/payments.ts`); the buyer's return to the checkout page only shows the status core already has.
+- A checkout not completed within `PAYMENTS_CHECKOUT_EXPIRY_MINUTES` expires (hourly core schedule) and its pending order is canceled. Checkouts hold no capacity.
+- Without a payment provider configured, only free products are offered.
 - Confirmation email sending happens after ticket creation and should not fail the purchase if email delivery fails.

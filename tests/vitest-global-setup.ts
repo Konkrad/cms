@@ -90,7 +90,6 @@ export async function setup() {
 
 	process.env.STRIPE_API_BASE_URL = `http://localhost:${stripePort}`;
 	process.env.STRIPE_SECRET_KEY = "sk_test_dummy";
-	process.env.STRIPE_PUBLISHABLE_KEY = "pk_test_dummy";
 	process.env.STRIPE_WEBHOOK_SECRET = "whsec_dummy";
 }
 

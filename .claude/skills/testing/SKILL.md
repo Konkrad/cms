@@ -82,7 +82,9 @@ Helpers named `create*InDb` / `create*` that return `cleanup()` should be cleane
 | `createScopeEventInDb({ organizerId, title, slug?, scopeId?, visibility?, past? })` | Event owned by a scope (`public` / `members` / `representatives`), optionally past; served at `<scope path>events/<slug>` (slug = id by default) |
 | `createTestEventWithProduct({ ownerId, isFuture?, participantCapacity?, title? })` | Event + product; returns `{ eventId, productId, cleanup }` |
 | `setParticipationInDb(...)` | Set a user's RSVP for an event (yes/no/maybe) |
-| `createTicketInDb({ buyerId, eventId, productId })` | Ticket (with transaction); returns the ticket id |
+| `createTicketInDb({ buyerId, eventId, productId })` | Ticket (with a free transaction); returns the ticket id |
+| `createPendingTicketPaymentInDb({ buyerId, eventId, productId, unitPrice, quantity? })` | Pending ticket order + pending Stripe payment, as the checkout creates them; returns `{ paymentId, transactionId, cleanup }` |
+| `getPaymentById(id)` / `getPaymentsBySubject(ref)` / `getTransactionStatus(paymentId)` | Payment rows (`subject_ref` = `events:event:<id>`) / the order's status |
 | `addParticipantToTicket(...)` | Add a participant row to an existing ticket |
 | `createNoteInDb({ body, userId, scopeId?, visibility?, subject?, publishedAt? })` | Published note (no title, no image); `subject: { type: "events:event", id }` attaches it to an item; returns the id |
 | `createArticleInDb({ title, body, userId, scopeId?, visibility?, featuredImage?, subject?, publishedAt? })` | Published article (`featuredImage` = a public S3 key); returns the id |
@@ -136,7 +138,8 @@ Projects: `setup` (shared session), `auth-flows` (`auth.spec.ts`, `profile-setup
 ## Environment pitfalls
 
 - e2e needs the Docker services from `docker-compose.yml`: Mailpit (email, `:8025`), MinIO (S3), stripe-mock. Start them with `docker compose up -d` before running; without them login, upload and checkout tests fail for environmental reasons.
-- In sandboxed environments without Docker or outbound network, Stripe.js (loaded from the Stripe CDN) and S3 uploads can fail; those failures (checkout/payment-element, image upload specs) are environmental, not regressions. Run the unaffected specs and say which were skipped.
+- In sandboxed environments without Docker or outbound network, S3 uploads can fail; those failures (image upload specs) are environmental, not regressions. Run the unaffected specs and say which were skipped.
+- Payments (spec 4.7): the checkout redirects to the provider (stripe-mock answers with a `checkout.stripe.com` URL; intercept it with `page.route`). Simulate the result with a signed webhook: `page.request.post("/api/payments/webhook/stripe", signedCheckoutEvent(paymentId))` (`tests/utils/stripe-webhook.ts`), then poll for the module's handler effect (it runs from `handler_calls` on the scheduler tick). Unit tests use `setPaymentProvider(fake | null)` and `applyPaymentChange` / `expireStalePayments` / `handlePaymentWebhook` from `~/core/payments/payments`.
 - The scheduler (`schedules`, review handlers) ticks every 500 ms in e2e (`SCHEDULER_POLL_INTERVAL_MS`); poll for the effect of a review decision (`expect.poll(() => getEventStatus(id))`). Unit tests call `runDueSchedules` / `processHandlerCallsOnce(resolveHandlerCall)`.
 - Emails and Telegram alerts (except the login email) are queued in `notification_outbox` and sent by the worker inside the e2e dev server (`NOTIFICATIONS_POLL_INTERVAL_MS=500` in `playwright.config.ts`), so poll Mailpit / the outbox (`getOutboxRows`) instead of expecting them right after an action. Unit tests never start the worker; call `processOutboxOnce()`.
 - Stale servers: never point e2e at an ambient dev server or the dev DB; use `E2E_PORT`/`DB_PATH` isolation. A leftover `my-database.test.db-shm/-wal` from a crashed run can be deleted along with the DB.

@@ -80,7 +80,6 @@ jobs:
       AWS_SECRET_ACCESS_KEY: testtest
       S3_BUCKET: test
       STRIPE_SECRET_KEY: sk_test_123
-      STRIPE_PUBLISHABLE_KEY: pk_test_123
       STRIPE_WEBHOOK_SECRET: whsec_test
       STRIPE_API_BASE_URL: http://localhost:12111
       TELEGRAM_BOT_TOKEN: test

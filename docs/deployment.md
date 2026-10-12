@@ -33,6 +33,13 @@ below are the same regardless of the tool driving them.
   one exception — it's a *build-time* value baked into the client bundle
   (`import.meta.env`), so it must be passed as a Docker build arg, not a runtime
   env var; changing it requires a rebuild.
+- **Payments are optional.** Set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`
+  to enable them; without both, only free flows are offered. Point the Stripe
+  webhook endpoint at `<APP_URL>/api/payments/webhook/stripe` with the events
+  `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+  `checkout.session.async_payment_failed`, `checkout.session.expired`,
+  `charge.refunded`, and for subscriptions `invoice.paid`, `invoice.payment_failed`,
+  `customer.subscription.deleted`. The old `/api/webhooks/stripe` URL still works.
 - **Litestream is optional.** If you want continuous SQLite → S3 replication for
   disaster recovery, set `DB_PATH`/`S3_BUCKET`/`AWS_*` and run the container as
   written (`entrypoint.sh` wraps the server in `litestream replicate -exec`). If

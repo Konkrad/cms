@@ -12,8 +12,9 @@ no matter which community or organization you're managing.
 
 ![Admin dashboard nav](./images/admin-event-create.png)
 *The admin menu of the whole site: Dashboard, Users, Reviews, Notes, Articles,
-Events, Forms, Pages, Groups, Deals, Jobs, Elections, Qualifications and
-Notifications (failed messages, scheduled jobs and handlers). A chapter's admin
+Events, Forms, Pages, Groups, Deals, Jobs, Elections, Qualifications, Payments
+(every payment with its status, filtered by module and status, linked to its item,
+with Refund) and Notifications (failed messages, scheduled jobs and handlers). A chapter's admin
 shows Dashboard, Members, Reviews, Notes, Articles, Events, Forms, Pages, Deals,
 Jobs, Elections and Group settings, limited to that chapter and the groups below
 it.*
@@ -103,7 +104,8 @@ Once an event exists, its management page has tabs for:
 - **Participation** — who's RSVP'd (separate from paid ticket sales), with each person's food preference and photo consent
 - **Tickets / Scan** — issued tickets, and the QR check-in scanner for the door
 - **Comp Tickets** — issue free tickets directly, without going through checkout
-- **Transactions** — payment records
+- **Transactions** — the event's orders (paid, pending, canceled, refunded);
+  the payments themselves are under **Payments** in the site admin
 - **Photos** — the event's photo gallery
 
 ## Governance

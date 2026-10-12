@@ -16,6 +16,7 @@ import {
 } from "~/core/content/content-items";
 import { reviewAfterEdit, submitNewItem } from "~/core/content/content-review";
 import { type Article, articles } from "~/core/content/schema/articles";
+import { tombstonesService } from "~/core/content/tombstones.service";
 import { db } from "~/core/db/connection";
 import {
 	type PublicUser,
@@ -292,16 +293,18 @@ export const articlesService = {
 			.returning();
 		if (!row) return row;
 		const next = await reviewAfterEdit("article", current, row, editorId);
-		if (next === "publish") return (await this.publish(row.id)) ?? row;
+		let result = row;
+		if (next === "publish") result = (await this.publish(row.id)) ?? row;
 		if (next === "unpublish") {
-			const [hidden] = await db
+			[result] = await db
 				.update(articles)
 				.set({ publishedAt: null })
 				.where(eq(articles.id, row.id))
 				.returning();
-			return hidden;
 		}
-		return row;
+		// Made members-only (or back to public): the public feeds follow (spec 5.3).
+		await tombstonesService.sync("article", current, result);
+		return result;
 	},
 
 	/** Publishes an unpublished item now (review approved, or no review needed). */
@@ -311,10 +314,16 @@ export const articlesService = {
 			.set({ publishedAt: new Date().toISOString() })
 			.where(and(eq(articles.id, id), isNull(articles.publishedAt)))
 			.returning();
+		if (row) await tombstonesService.sync("article", null, row);
 		return row;
 	},
 
+	/** Deletes the article; a public, published one leaves a tombstone in the public feeds. */
 	async delete(id: string): Promise<void> {
-		await db.delete(articles).where(eq(articles.id, id));
+		const [row] = await db
+			.delete(articles)
+			.where(eq(articles.id, id))
+			.returning();
+		await tombstonesService.sync("article", row, null);
 	},
 };

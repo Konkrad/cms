@@ -5,6 +5,7 @@ import { articles } from "../content/schema/articles";
 import { menuItems } from "../content/schema/menu-items";
 import { notes } from "../content/schema/notes";
 import { pages } from "../content/schema/pages";
+import { contentTombstones } from "../content/schema/tombstones";
 import { formResults } from "../forms/schema/form-results";
 import { formAssignments, forms } from "../forms/schema/forms";
 import { userMemberships } from "../memberships/schema";
@@ -30,6 +31,7 @@ export * from "../content/schema/menu-items";
 export * from "../content/schema/notes";
 export * from "../content/schema/pages";
 export * from "../content/schema/shared";
+export * from "../content/schema/tombstones";
 export * from "../forms/schema/form-results";
 export * from "../forms/schema/forms";
 export * from "../memberships/schema";
@@ -54,6 +56,7 @@ export const schemaRelations = defineRelations(
 		users,
 		notes,
 		articles,
+		contentTombstones,
 		forms,
 		formAssignments,
 		formResults,

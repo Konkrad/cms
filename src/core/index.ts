@@ -160,6 +160,16 @@ export {
 	ARTICLE_IMAGE_PATH,
 	NOTE_MAX_LENGTH,
 } from "~/core/content/content-items";
+// Public feeds (spec 5.3): the site's public, approved notes and articles as an anonymous
+// visitor sees them, and tombstones of the ones that left (read-only).
+export {
+	type ContentTombstone,
+	type PublicFeedEntry,
+	type PublicFeedVersion,
+	publicFeed,
+} from "~/core/content/public-feed.service";
+export type { StreamRow } from "~/core/content/stream.service";
+export { type StreamType, textExcerpt } from "~/core/content/content-items";
 // Forms (spec 4.10): the active form of a purpose you declare, answers stored by reference.
 export {
 	type ActiveForm,

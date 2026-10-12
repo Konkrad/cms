@@ -7,4 +7,5 @@ export const ROOT_ONLY_SECTIONS: readonly string[] = [
 	"users",
 	"tags",
 	"notifications",
+	"payments",
 ];

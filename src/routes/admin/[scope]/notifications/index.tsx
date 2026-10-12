@@ -235,8 +235,8 @@ export default component$(() => {
 
 			<h3 class="text-xl font-bold text-gray-800 mt-10 mb-2">Handler calls</h3>
 			<p class="text-sm text-gray-500 mb-4">
-				Module and core handlers (review decisions) that failed. They are
-				retried with backoff until they succeed.
+				Module and core handlers (review decisions, payment callbacks and
+				receipts) that failed. They are retried with backoff until they succeed.
 			</p>
 			<div
 				class="bg-white rounded-lg shadow-sm overflow-x-auto"

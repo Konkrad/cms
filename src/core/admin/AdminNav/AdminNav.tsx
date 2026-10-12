@@ -51,6 +51,7 @@ export const AdminNav = component$<AdminNavProps>(
 		if (isRoot) {
 			navItems.push(
 				{ order: 10, href: `${basePath}/users`, label: "Users" },
+				{ order: 890, href: `${basePath}/payments`, label: "Payments" },
 				{
 					order: 900,
 					href: `${basePath}/notifications`,

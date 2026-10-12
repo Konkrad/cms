@@ -6,7 +6,6 @@
  */
 import type { Page } from "@playwright/test";
 import {
-	completeRequirementsByEmail,
 	createTestUser,
 	deleteUserByEmail,
 	expect,
@@ -72,16 +71,15 @@ test.describe("global gate", () => {
 	test("a user who completed every global requirement is not gated", async ({
 		page,
 	}) => {
-		const email = uniqueEmail("complete");
+		const session = createTestUser({ completed: GLOBAL_REQUIREMENTS });
 		try {
-			await signInViaMagicLink(page, email);
-			completeRequirementsByEmail(email, { only: GLOBAL_REQUIREMENTS });
+			await loginAs(page, session.sessionToken);
 			await page.goto("/");
 			await expect(page).toHaveURL("/");
 			await page.goto("/jobs");
 			await expect(page).toHaveURL(/\/jobs/);
 		} finally {
-			deleteUserByEmail(email);
+			session.cleanup();
 		}
 	});
 

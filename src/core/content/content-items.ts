@@ -49,19 +49,10 @@ export const ARTICLE_TITLE_MAX_LENGTH = 200;
 /** Where article images are uploaded (`/api/images` `x-upload-path`, public S3 objects). */
 export const ARTICLE_IMAGE_PATH = "public/articles";
 
-/**
- * Key prefixes a stored article image may have: new uploads, and images of posts from before
- * notes and articles (uploaded to `public/posts/` and kept by the migration).
- */
-export const ARTICLE_IMAGE_PREFIXES: readonly string[] = [
-	`${ARTICLE_IMAGE_PATH}/`,
-	"public/posts/",
-];
-
 /** Whether `key` may be stored as an article's featured image (a public article image key). */
 export function isArticleImageKey(key: string): boolean {
 	return (
-		ARTICLE_IMAGE_PREFIXES.some((prefix) => key.startsWith(prefix)) &&
+		key.startsWith(`${ARTICLE_IMAGE_PATH}/`) &&
 		!key.includes("..") &&
 		/^[A-Za-z0-9._/-]+$/.test(key)
 	);

@@ -270,11 +270,7 @@ export const articlesService = {
 		if (!current) return undefined;
 		const changes: Partial<Article> = { updatedAt: new Date().toISOString() };
 		if (input.title !== undefined) changes.title = cleanTitle(input.title);
-		// An unchanged image is kept (migrated posts may have keys of other prefixes).
-		if (
-			input.featuredImage !== undefined &&
-			(input.featuredImage?.trim() || null) !== current.featuredImage
-		)
+		if (input.featuredImage !== undefined)
 			changes.featuredImage = cleanImage(input.featuredImage);
 		if (input.body !== undefined)
 			changes.body = await cleanArticleBody(input.body);

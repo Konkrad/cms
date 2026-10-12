@@ -263,8 +263,6 @@ describe("articles", () => {
 
 	it.each([
 		"public/articles/a.webp",
-		// Images of posts from before notes and articles keep working.
-		"public/posts/b.webp",
 	])("accepts the image key %s", async (key) => {
 		expect(isArticleImageKey(key)).toBe(true);
 		const row = await article({
@@ -279,6 +277,7 @@ describe("articles", () => {
 	it.each([
 		"private/profile-pictures/x.webp",
 		"public/events/x.webp",
+		"public/posts/x.webp",
 		"public/articles/../../private/x.webp",
 		"/public/articles/x.webp",
 		"https://evil.example/public/articles/x.webp",

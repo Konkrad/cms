@@ -1,128 +1,123 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
-import { eq } from "drizzle-orm";
-import { db } from "~/db/connection";
-import { logins } from "~/db/schemas/logins";
-import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
-import { usersService } from "~/services/users.service";
-import { groupMembershipsService } from "~/services/group-memberships.service";
-import { participationService } from "~/services/participation.service";
-import { formResultsService } from "~/services/form-results.service";
-import { electionsService } from "~/services/elections.service";
-import { buildFormPath } from "~/utils/forms";
-import { formatAffiliationResultJson } from "~/utils/affiliation";
-import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
+import type { PublicProfileViewData } from "~/contracts/users";
+import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
+import { formResultsService } from "~/core/forms/form-results.service";
+import { buildFormPath } from "~/core/forms/forms";
+import { ONBOARDING_PURPOSE } from "~/core/forms/purposes";
+import { scopeUrl } from "~/core/router/scope-path";
+import { scopesService } from "~/core/scopes/scopes.service";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
+import { formatAffiliationResultJson } from "~/core/users/affiliation";
+import { usersService } from "~/core/users/users.service";
 import { PublicProfileView } from "~theme/routes/users/PublicProfileView";
+import { activeProfileExtras } from "../../../core/registry/manifests";
 
-export const usePublicProfile = routeLoader$(async (event) => {
-  await requireAuth(event);
+export const usePublicProfile = routeLoader$(
+	async (event): Promise<PublicProfileViewData> => {
+		await requireAuth(event);
 
-  const uuid = event.params.userId.substring(0, 36);
-  const user = await usersService.getById(uuid);
+		const uuid = event.params.userId.substring(0, 36);
+		const user = await usersService.getPublicProfile(uuid);
 
-  if (!user) {
-    event.status(404);
-    return null;
-  }
+		if (!user) {
+			event.status(404);
+			return null;
+		}
 
-  const currentUser = await getCurrentUserData(event);
-  const isOwner = currentUser?.id === user.id;
+		const currentUser = await getCurrentUserData(event);
+		const isOwner = currentUser?.id === user.id;
 
-  let email: string | null = null;
-  if (isOwner && user.loginId) {
-    const [row] = await db.select().from(logins).where(eq(logins.id, user.loginId));
-    if (row?.email) email = row.email;
-  }
+		// The owner's own private details; never loaded for another viewer.
+		const ownDetails = isOwner
+			? await usersService.getOwnPrivateDetails(user.id)
+			: null;
 
-  const buildPicUrl = (key: string | null) => publicImageUrlFromKey(key);
+		const { userTagsService } = await import("~/core/tags/user-tags.service");
+		const [groups, tags, submittedFormRows, extras] = await Promise.all([
+			scopesService.listUserScopes(user.id),
+			userTagsService.getByUser(user.id),
+			formResultsService.getByUser(user.id),
+			activeProfileExtras({
+				userId: user.id,
+				viewerId: currentUser?.id ?? null,
+				isOwnProfile: isOwner,
+			}),
+		]);
 
-  const isAdmin = currentUser?.role === "admin";
+		const formatResponseValue = (value: unknown): string => {
+			if (value === null || value === undefined) return "-";
+			if (typeof value === "string") return value.trim() || "-";
+			if (typeof value === "number" || typeof value === "boolean")
+				return String(value);
+			if (Array.isArray(value)) {
+				const parts = value
+					.map((item) => {
+						if (typeof item === "string") return item.trim();
+						if (typeof item === "object" && item !== null) {
+							return Object.entries(item as Record<string, unknown>)
+								.filter(([, v]) => v !== null && v !== undefined && v !== "")
+								.map(([k, v]) => `${k}: ${String(v)}`)
+								.join(", ");
+						}
+						return String(item);
+					})
+					.filter(Boolean);
+				return parts.length > 0 ? parts.join("; ") : "-";
+			}
+			return JSON.stringify(value);
+		};
 
-  const { userTagsService } = await import("~/services/user-tags.service");
-  const [groups, participation, tags, submittedFormRows, electionApplications] = await Promise.all([
-    groupMembershipsService.getUserGroups(user.id),
-    participationService.getByUserId(user.id),
-    userTagsService.getByUser(user.id),
-    formResultsService.getByUser(user.id),
-    isOwner ? electionsService.getApplicationsByUser(user.id) : Promise.resolve([]),
-  ]);
-
-  const formatResponseValue = (value: unknown): string => {
-    if (value === null || value === undefined) return "-";
-    if (typeof value === "string") return value.trim() || "-";
-    if (typeof value === "number" || typeof value === "boolean") return String(value);
-    if (Array.isArray(value)) {
-      const parts = value.map((item) => {
-        if (typeof item === "string") return item.trim();
-        if (typeof item === "object" && item !== null) {
-          return Object.entries(item as Record<string, unknown>)
-            .filter(([, v]) => v !== null && v !== undefined && v !== "")
-            .map(([k, v]) => `${k}: ${String(v)}`)
-            .join(", ");
-        }
-        return String(item);
-      }).filter(Boolean);
-      return parts.length > 0 ? parts.join("; ") : "-";
-    }
-    return JSON.stringify(value);
-  };
-
-  const electionsByCycle = new Map<string, { title: string; year: number; apps: typeof electionApplications }>();
-  for (const app of electionApplications) {
-    if (!electionsByCycle.has(app.cycleId)) {
-      electionsByCycle.set(app.cycleId, { title: app.cycle.title, year: app.cycle.year, apps: [] });
-    }
-    electionsByCycle.get(app.cycleId)!.apps.push(app);
-  }
-
-  return {
-    name: user.name,
-    familyName: user.familyName,
-    role: user.role,
-    city: user.city ?? null,
-    country: user.country ?? null,
-    profilePictureUrl: buildPicUrl(user.profilePicture ? ((user as any).profilePictureSmall ?? deriveThumbnailKey(user.profilePicture)) : null),
-    tags: tags.map((t) => ({ id: t.id, label: t.label })),
-    communities: groups.map((g) => ({ name: g.name, slug: g.slug })),
-    upcomingEvents: participation.upcoming,
-    pastEvents: participation.past,
-    isOwner,
-    email: isOwner ? email : null,
-    yearOfBirth: isOwner ? (user.yearOfBirth ?? null) : null,
-    sex: isOwner ? (user.sex ?? null) : null,
-    electionGroups: isOwner
-      ? [...electionsByCycle.values()]
-          .sort((a, b) => b.year - a.year)
-          .map((g) => ({
-            ...g,
-            apps: g.apps.map((a) => ({
-              id: a.id,
-              status: a.status,
-              position: (a as any).position ?? null,
-            })),
-          }))
-      : undefined,
-    affiliationEntries: (() => {
-      const onboarding = submittedFormRows.find((s) => s.formSlug === "onboarding");
-      return onboarding ? formatAffiliationResultJson(onboarding.resultJson || {}) : [];
-    })(),
-    submittedForms: isOwner
-      ? submittedFormRows
-          .map((s) => ({
-            id: s.id,
-            title: s.formTitle,
-            submittedAt: s.submittedAt,
-            path: buildFormPath({ id: s.formId, slug: s.formSlug }),
-            responseEntries: Object.entries(s.resultJson || {}).map(([question, value]) => ({
-              question,
-              answer: formatResponseValue(value),
-            })),
-          }))
-      : undefined,
-  };
-});
+		return assertNoPrivateFields(
+			{
+				...extras,
+				name: user.name,
+				familyName: user.familyName,
+				city: user.city,
+				country: user.country,
+				profilePictureUrl: user.profilePictureSmallUrl,
+				tags: tags.map((t) => ({ id: t.id, label: t.label })),
+				communities: groups.map((g) => ({
+					name: g.name,
+					url: scopeUrl(g.path),
+				})),
+				// Sections of modules that are not active fall back to empty.
+				upcomingEvents: extras.upcomingEvents ?? [],
+				pastEvents: extras.pastEvents ?? [],
+				isOwner,
+				...(ownDetails ?? {}),
+				affiliationEntries: (() => {
+					const onboarding = submittedFormRows.find(
+						(s) => s.formPurpose === ONBOARDING_PURPOSE,
+					);
+					return onboarding
+						? formatAffiliationResultJson(onboarding.answers || {})
+						: [];
+				})(),
+				submittedForms: isOwner
+					? submittedFormRows.map((s) => ({
+							id: s.id,
+							title: s.formTitle,
+							submittedAt: s.createdAt,
+							path: buildFormPath({ id: s.formId, slug: s.formSlug }),
+							responseEntries: Object.entries(s.answers || {}).map(
+								([question, value]) => ({
+									question,
+									answer: formatResponseValue(value),
+								}),
+							),
+						}))
+					: undefined,
+			},
+			{
+				// Owner only: the viewer's own email, birth year and gender (never another user's).
+				allow: isOwner ? ["email", "yearOfBirth", "sex"] : [],
+			},
+		);
+	},
+);
 
 export default component$(() => {
-  const data = usePublicProfile();
-  return <PublicProfileView data={data.value} />;
+	const data = usePublicProfile();
+	return <PublicProfileView data={data.value} />;
 });

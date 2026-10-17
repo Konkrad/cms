@@ -3,8 +3,8 @@
  *
  * Fixtures:
  *  - `guestPage`  – unauthenticated page (no session cookie)
- *  - `memberPage` – authenticated as a regular user (role: "user")
- *  - `adminPage`  – authenticated as an admin       (role: "admin")
+ *  - `memberPage` – authenticated as a regular user (no scope role)
+ *  - `adminPage`  – authenticated as a platform admin (admin of the root scope)
  *
  * Each authenticated fixture creates a temporary user+login+session in the DB
  * and removes all three rows automatically after the test.
@@ -16,6 +16,11 @@ import { execSync } from "child_process";
 import crypto from "crypto";
 import path from "path";
 import { fileURLToPath } from "url";
+import {
+	type CompleteRequirementsOptions,
+	completeRequirements,
+	REQUIREMENT_VERSIONS,
+} from "../scripts/seed-requirements";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DB_PATH = process.env.DB_PATH ?? path.join(ROOT, "my-database.db");
@@ -24,7 +29,7 @@ const DB_PATH = process.env.DB_PATH ?? path.join(ROOT, "my-database.db");
 
 export function openDb() {
 	const db = new Database(DB_PATH);
-	// Mirror the app's connection (src/db/connection.ts): wait on a held lock
+	// Mirror the app's connection (src/core/db/connection.ts): wait on a held lock
 	// instead of erroring immediately. Tests open many short-lived connections
 	// that contend with the dev server's writer; without this they fail with
 	// "database is locked" / "locking protocol" under load.
@@ -80,7 +85,21 @@ export function getPageBySlug(
 
 // ── Auth session helpers ──────────────────────────────────────────────────────
 
+/** "admin" = platform admin (admin role on the root scope); "user" = no scope role. */
 export type UserRole = "user" | "admin";
+
+/** Id of the root scope (the seed creates it; created here when missing). */
+export function rootScopeId(db: ReturnType<typeof openDb>): string {
+	const row = db
+		.prepare("SELECT id FROM scopes WHERE parent_id IS NULL")
+		.get() as { id: string } | undefined;
+	if (row) return row.id;
+	const id = crypto.randomUUID();
+	db.prepare(
+		"INSERT INTO scopes (id, parent_id, kind, slug, name, path) VALUES (?, NULL, 'root', '', 'Community', '/')",
+	).run(id);
+	return id;
+}
 
 export interface CreatedSession {
 	userId: string;
@@ -112,19 +131,31 @@ function deleteUserCascade(
 		"DELETE FROM tickets WHERE transaction_id IN (SELECT id FROM transactions WHERE user_id = ?)",
 	).run(userId);
 	db.prepare("DELETE FROM transactions WHERE user_id = ?").run(userId);
-	// Group membership and representatives
-	db.prepare("DELETE FROM group_representatives WHERE user_id = ?").run(userId);
-	db.prepare("DELETE FROM group_memberships WHERE user_id = ?").run(userId);
+	// Scope roles and memberships
+	db.prepare("DELETE FROM scope_roles WHERE user_id = ?").run(userId);
+	db.prepare("DELETE FROM scope_memberships WHERE user_id = ?").run(userId);
 	// Misc user-linked data
 	db.prepare("DELETE FROM form_results WHERE user_id = ?").run(userId);
+	db.prepare("DELETE FROM user_requirements WHERE user_id = ?").run(userId);
+	db.prepare("DELETE FROM reviews WHERE submitted_by = ?").run(userId);
+	db.prepare("UPDATE reviews SET reviewed_by = NULL WHERE reviewed_by = ?").run(
+		userId,
+	);
 	db.prepare("DELETE FROM participation_status WHERE user_id = ?").run(userId);
-	db.prepare("DELETE FROM posts WHERE user_id = ?").run(userId);
+	db.prepare("DELETE FROM notes WHERE author_id = ?").run(userId);
+	db.prepare("DELETE FROM articles WHERE author_id = ?").run(userId);
 	db.prepare("DELETE FROM jobs WHERE suggested_by = ?").run(userId);
 	// New feature tables
 	db.prepare("DELETE FROM election_applications WHERE user_id = ?").run(userId);
 	db.prepare("DELETE FROM user_qualifications WHERE user_id = ?").run(userId);
 	db.prepare("DELETE FROM user_memberships WHERE user_id = ?").run(userId);
 	db.prepare("DELETE FROM user_tags WHERE user_id = ?").run(userId);
+	db.prepare("DELETE FROM notification_outbox WHERE recipient_user_id = ?").run(
+		userId,
+	);
+	db.prepare("DELETE FROM notification_preferences WHERE user_id = ?").run(
+		userId,
+	);
 	// Sessions and user/login rows
 	db.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
 	db.prepare("DELETE FROM users WHERE id = ?").run(userId);
@@ -138,6 +169,12 @@ function deleteUserCascade(
 export function createUserSession(
 	role: UserRole,
 	prefix = "e2e",
+	name: { name: string; familyName: string } = {
+		name: "Test",
+		familyName: "User",
+	},
+	/** Which requirements are completed (default: all). */
+	completed: CompleteRequirementsOptions = {},
 ): CreatedSession {
 	const db = openDb();
 	const userId = crypto.randomUUID();
@@ -147,22 +184,23 @@ export function createUserSession(
 	const sessionToken = crypto.randomBytes(48).toString("hex");
 	const expiresAt = new Date(Date.now() + 3_600_000).toISOString();
 
-	const now = new Date().toISOString();
-	const consent = JSON.stringify({
-		lastProfileUpdate: now,
-		locationVerification: now,
-		foodPreference: now,
-		photoConsent: now,
-	});
-
 	db.prepare("INSERT INTO logins (id, email, expires_at) VALUES (?, ?, ?)").run(
 		loginId,
 		email,
 		expiresAt,
 	);
 	db.prepare(
-		"INSERT INTO users (id, name, family_name, login_id, role, consent, food_preference, photo_consent_given) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-	).run(userId, "Test", "User", loginId, role, consent, "none", 1);
+		"INSERT INTO users (id, name, family_name, login_id) VALUES (?, ?, ?, ?)",
+	).run(userId, name.name, name.familyName, loginId);
+	// Role fixtures have completed every user requirement (spec 4.6), so they are not sent to
+	// /profile/setup or asked at checkout. Use `createTestUser` for a user with pending ones.
+	completeRequirements(db, [userId], completed);
+	// A platform admin is an admin of the root scope.
+	if (role === "admin") {
+		db.prepare(
+			"INSERT INTO scope_roles (user_id, scope_id, role) VALUES (?, ?, 'admin')",
+		).run(userId, rootScopeId(db));
+	}
 	db.prepare(
 		"INSERT INTO sessions (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)",
 	).run(sessionId, userId, sessionToken, expiresAt);
@@ -226,135 +264,190 @@ export function deleteUserByEmail(email: string): void {
 	db.close();
 }
 
-/** Update the consent JSON for the user identified by their login email. */
-export function setUserConsentByEmail(
+/** Mark user requirements completed for the user with this login email (default: all). */
+export function completeRequirementsByEmail(
 	email: string,
-	consent: Record<string, string>,
+	options: CompleteRequirementsOptions = {},
 ): void {
+	const userId = getUserIdByEmail(email);
+	if (!userId) return;
 	const db = openDb();
-	const login = db
-		.prepare("SELECT id FROM logins WHERE email = ?")
-		.get(email) as { id: string } | undefined;
-	if (!login) {
-		db.close();
-		return;
-	}
-	const user = db
-		.prepare("SELECT id FROM users WHERE login_id = ?")
-		.get(login.id) as { id: string } | undefined;
-	if (!user) {
-		db.close();
-		return;
-	}
-	db.prepare("UPDATE users SET consent = ? WHERE id = ?").run(
-		JSON.stringify(consent),
-		user.id,
-	);
+	completeRequirements(db, [userId], options);
 	db.close();
 }
 
-/** Create a user with specific consent/food/photo fields (for profile-setup tests). */
-export function createTestUser(opts: {
-	consent: Record<string, string>;
-	foodPreference?: string | null;
-	photoConsentGiven?: boolean | null;
-}): CreatedSession {
-	const session = createUserSession("user");
-	const db = openDb();
-	db.prepare(
-		"UPDATE users SET consent = ?, food_preference = ?, photo_consent_given = ? WHERE id = ?",
-	).run(
-		JSON.stringify(opts.consent),
-		opts.foodPreference ?? null,
-		opts.photoConsentGiven == null ? null : opts.photoConsentGiven ? 1 : 0,
-		session.userId,
+/**
+ * A logged-in user with only the listed requirements completed (default: none, so the global
+ * gate sends them to /profile/setup and checkout asks the event questions).
+ */
+export function createTestUser(
+	opts: {
+		completed?: readonly string[];
+		values?: Readonly<Record<string, unknown>>;
+	} = {},
+): CreatedSession {
+	return createUserSession(
+		"user",
+		"req",
+		{ name: "Test", familyName: "User" },
+		{ only: opts.completed ?? [], values: opts.values },
 	);
-	db.close();
-	return session;
 }
 
-// ── Group helpers ─────────────────────────────────────────────────────────────
+/** Ids of the global requirements (profile, location, onboarding survey). */
+export const GLOBAL_REQUIREMENTS = [
+	"core.profile",
+	"core.location",
+	"core.onboarding",
+];
 
-export function getGroupBySlug(
-	slug: string,
-): { id: string; name: string; slug: string } | undefined {
+/** A user's stored completion of a requirement (`value` parsed), or undefined. */
+export function getUserRequirement(
+	userId: string,
+	requirementId: string,
+): { version: number; completedAt: string; value: unknown } | undefined {
 	const db = openDb();
 	const row = db
-		.prepare("SELECT id, name, slug FROM groups WHERE slug = ? LIMIT 1")
-		.get(slug) as { id: string; name: string; slug: string } | undefined;
+		.prepare(
+			"SELECT version, completed_at AS completedAt, value FROM user_requirements WHERE user_id = ? AND requirement_id = ?",
+		)
+		.get(userId, requirementId) as
+		| { version: number; completedAt: string; value: string | null }
+		| undefined;
+	db.close();
+	return row
+		? { ...row, value: row.value == null ? null : JSON.parse(row.value) }
+		: undefined;
+}
+
+/** Store a completion at an older version (as if the requirement's version was bumped since). */
+export function setRequirementVersion(
+	userId: string,
+	requirementId: string,
+	version: number,
+): void {
+	const db = openDb();
+	db.prepare(
+		"UPDATE user_requirements SET version = ? WHERE user_id = ? AND requirement_id = ?",
+	).run(version, userId, requirementId);
+	db.close();
+}
+
+/**
+ * Sets (or clears, with null) the root's active onboarding form (`core.onboarding`); returns
+ * the previously active form id so the test can restore it.
+ */
+export function setActiveOnboardingForm(formId: string | null): string | null {
+	const db = openDb();
+	const rootId = rootScopeId(db);
+	const previous = db
+		.prepare(
+			"SELECT form_id AS formId FROM form_assignments WHERE purpose = 'core.onboarding' AND scope_id = ?",
+		)
+		.get(rootId) as { formId: string } | undefined;
+	db.prepare(
+		"DELETE FROM form_assignments WHERE purpose = 'core.onboarding' AND scope_id = ?",
+	).run(rootId);
+	if (formId)
+		db.prepare(
+			"INSERT INTO form_assignments (purpose, scope_id, form_id, updated_at) VALUES ('core.onboarding', ?, ?, ?)",
+		).run(rootId, formId, new Date().toISOString());
+	db.close();
+	return previous?.formId ?? null;
+}
+
+export { REQUIREMENT_VERSIONS };
+
+// ── Scope helpers (groups are scopes: regions, chapters) ──────────────────────
+
+export type ScopeRole =
+	| "admin"
+	| "moderator"
+	| "coordinator"
+	| "representative";
+
+/** The `[scope]` segment of an admin URL: "/" -> "root", "/a/b/" -> "a.b". */
+export function adminSegmentOf(path: string): string {
+	const slugs = path.split("/").filter(Boolean);
+	return slugs.length ? slugs.join(".") : "root";
+}
+
+export function getScopeByPath(
+	path: string,
+): { id: string; name: string; slug: string; path: string } | undefined {
+	const db = openDb();
+	const row = db
+		.prepare("SELECT id, name, slug, path FROM scopes WHERE path = ? LIMIT 1")
+		.get(path) as
+		| { id: string; name: string; slug: string; path: string }
+		| undefined;
 	db.close();
 	return row;
 }
 
-/** Create a minimal group fixture. Returns the new group's id. */
-export function createGroupInDb(opts: {
-	name: string;
-	slug: string;
-	latitude?: string;
-	longitude?: string;
-}): string {
-	const db = openDb();
-	const id = crypto.randomUUID();
-	const now = new Date().toISOString();
-	db.prepare(
-		"INSERT INTO groups (id, name, slug, latitude, longitude, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-	).run(
-		id,
-		opts.name,
-		opts.slug,
-		opts.latitude ?? "0",
-		opts.longitude ?? "0",
-		now,
-		now,
-	);
-	db.close();
-	return id;
-}
-
-/** Delete a group fixture (memberships/representatives must be removed separately). */
-export function deleteGroupInDb(groupId: string): void {
-	const db = openDb();
-	db.prepare("DELETE FROM groups WHERE id = ?").run(groupId);
-	db.close();
-}
-
-/** Add a user to a group. Returns the new membership id. */
-export function addGroupMember(userId: string, groupId: string): string {
-	const db = openDb();
-	const id = crypto.randomUUID();
-	db.prepare(
-		"INSERT OR IGNORE INTO group_memberships (id, user_id, group_id) VALUES (?, ?, ?)",
-	).run(id, userId, groupId);
-	db.close();
-	return id;
-}
-
-export function deleteGroupMember(userId: string, groupId: string): void {
+/** Add a user to a scope (explicit membership). */
+export function addScopeMember(userId: string, scopeId: string): void {
 	const db = openDb();
 	db.prepare(
-		"DELETE FROM group_memberships WHERE user_id = ? AND group_id = ?",
-	).run(userId, groupId);
+		"INSERT OR IGNORE INTO scope_memberships (user_id, scope_id) VALUES (?, ?)",
+	).run(userId, scopeId);
 	db.close();
 }
 
-/** Insert a group representative row directly (bypasses the promote action). */
-export function addGroupRepresentative(userId: string, groupId: string): void {
+export function removeScopeMember(userId: string, scopeId: string): void {
 	const db = openDb();
 	db.prepare(
-		"INSERT OR IGNORE INTO group_representatives (id, user_id, group_id, promoted_by, promoted_at) VALUES (?, ?, ?, ?, ?)",
-	).run(crypto.randomUUID(), userId, groupId, userId, new Date().toISOString());
+		"DELETE FROM scope_memberships WHERE user_id = ? AND scope_id = ?",
+	).run(userId, scopeId);
 	db.close();
 }
 
-export function deleteGroupRepresentative(
+/** Grant a scope role directly (bypasses the members page). */
+export function grantScopeRole(
 	userId: string,
-	groupId: string,
+	scopeId: string,
+	role: ScopeRole,
 ): void {
 	const db = openDb();
 	db.prepare(
-		"DELETE FROM group_representatives WHERE user_id = ? AND group_id = ?",
-	).run(userId, groupId);
+		"INSERT OR IGNORE INTO scope_roles (user_id, scope_id, role) VALUES (?, ?, ?)",
+	).run(userId, scopeId, role);
 	db.close();
+}
+
+export function revokeScopeRole(
+	userId: string,
+	scopeId: string,
+	role: ScopeRole,
+): void {
+	const db = openDb();
+	db.prepare(
+		"DELETE FROM scope_roles WHERE user_id = ? AND scope_id = ? AND role = ?",
+	).run(userId, scopeId, role);
+	db.close();
+}
+
+export function isScopeMember(userId: string, scopeId: string): boolean {
+	const db = openDb();
+	const row = db
+		.prepare(
+			"SELECT 1 FROM scope_memberships WHERE user_id = ? AND scope_id = ?",
+		)
+		.get(userId, scopeId);
+	db.close();
+	return !!row;
+}
+
+/** Role rows a user holds on a scope (e.g. to verify a grant made through the UI). */
+export function getScopeRoles(userId: string, scopeId: string): string[] {
+	const db = openDb();
+	const rows = db
+		.prepare(
+			"SELECT role FROM scope_roles WHERE user_id = ? AND scope_id = ? ORDER BY role",
+		)
+		.all(userId, scopeId) as { role: string }[];
+	db.close();
+	return rows.map((r) => r.role);
 }
 
 // ── Event helpers ─────────────────────────────────────────────────────────────
@@ -372,9 +465,10 @@ export function createTestEvent(userId: string): {
 	const end = new Date(Date.now() + 14 * 86400000 + 7200000).toISOString();
 
 	db.prepare(
-		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, visibility)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO events (id, slug, title, body, start_date, end_date, location_type, user_id, scope_id, visibility)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
+		eventId,
 		eventId,
 		"Consent Test Event",
 		"<p>test</p>",
@@ -382,7 +476,8 @@ export function createTestEvent(userId: string): {
 		end,
 		"online",
 		userId,
-		"global",
+		rootScopeId(db),
+		"public",
 	);
 	db.prepare(
 		`INSERT INTO inventory_groups (id, event_id, name, max_capacity, needs_ticket)
@@ -406,6 +501,79 @@ export function createTestEvent(userId: string): {
 			db2.close();
 		},
 	};
+}
+
+/**
+ * Create an event owned by `organizerId`, optionally owned by a scope and/or members-only, with no
+ * products. `past` makes it already finished. `cleanup()` removes it and its participation rows.
+ */
+export function createScopeEventInDb(opts: {
+	organizerId: string;
+	title: string;
+	/** URL slug in the scope; the event id by default. */
+	slug?: string;
+	scopeId?: string;
+	visibility?: "public" | "members" | "representatives";
+	past?: boolean;
+	/** Review state (spec 5.2); published by default. */
+	status?: "draft" | "in_review" | "published";
+}): { eventId: string; cleanup(): void } {
+	const db = openDb();
+	const eventId = crypto.randomUUID();
+	const offset = (opts.past ? -14 : 14) * 86400000;
+	const start = new Date(Date.now() + offset).toISOString();
+	const end = new Date(Date.now() + offset + 7200000).toISOString();
+
+	db.prepare(
+		`INSERT INTO events (id, slug, title, body, start_date, end_date, location_type, user_id, scope_id, visibility, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+	).run(
+		eventId,
+		opts.slug ?? eventId,
+		opts.title,
+		"<p>e2e group event</p>",
+		start,
+		end,
+		"online",
+		opts.organizerId,
+		opts.scopeId ?? rootScopeId(db),
+		opts.visibility ?? "public",
+		opts.status ?? "published",
+	);
+	db.close();
+
+	return {
+		eventId,
+		cleanup() {
+			const db2 = openDb();
+			db2
+				.prepare("DELETE FROM participation_status WHERE event_id = ?")
+				.run(eventId);
+			const ref = `events:event:${eventId}`;
+			db2.prepare("DELETE FROM reviews WHERE ref = ?").run(ref);
+			db2.prepare("DELETE FROM form_results WHERE subject_ref = ?").run(ref);
+			db2
+				.prepare(
+					"DELETE FROM notes WHERE subject_type = 'events:event' AND subject_id = ?",
+				)
+				.run(eventId);
+			db2.prepare("DELETE FROM events WHERE id = ?").run(eventId);
+			db2.close();
+		},
+	};
+}
+
+/** Set a user's RSVP for an event directly (status yes/no/maybe). */
+export function setParticipationInDb(
+	userId: string,
+	eventId: string,
+	status: "yes" | "no" | "maybe",
+): void {
+	const db = openDb();
+	db.prepare(
+		"INSERT OR REPLACE INTO participation_status (id, user_id, event_id, status, updated_at) VALUES (?, ?, ?, ?, ?)",
+	).run(crypto.randomUUID(), userId, eventId, status, new Date().toISOString());
+	db.close();
 }
 
 // ── Ticket helpers ────────────────────────────────────────────────────────────
@@ -446,9 +614,10 @@ export function createTestEventWithProduct(opts: {
 	const end = new Date(Date.now() + offset + 7200000).toISOString();
 
 	db.prepare(
-		`INSERT INTO events (id, title, body, start_date, end_date, location_type, user_id, visibility)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO events (id, slug, title, body, start_date, end_date, location_type, user_id, scope_id, visibility)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
+		eventId,
 		eventId,
 		opts.title ?? "Ticket Test Event",
 		"<p>test</p>",
@@ -456,7 +625,8 @@ export function createTestEventWithProduct(opts: {
 		end,
 		"online",
 		opts.ownerId,
-		"global",
+		rootScopeId(db),
+		"public",
 	);
 	db.prepare(
 		`INSERT INTO inventory_groups (id, event_id, name, max_capacity, needs_ticket)
@@ -513,15 +683,9 @@ export function createTicketInDb(opts: {
 	const ticketId = crypto.randomUUID();
 	const qrCodeUuid = crypto.randomUUID();
 	db.prepare(
-		`INSERT INTO transactions (id, user_id, event_id, total_amount, transaction_fee, stripe_session_id, stripe_payment_id)
-     VALUES (?, ?, ?, 0, 0, ?, ?)`,
-	).run(
-		transactionId,
-		opts.buyerId,
-		opts.eventId,
-		`free_${crypto.randomUUID()}`,
-		`free_${crypto.randomUUID()}`,
-	);
+		`INSERT INTO transactions (id, user_id, event_id, total_amount, transaction_fee)
+     VALUES (?, ?, ?, 0, 0)`,
+	).run(transactionId, opts.buyerId, opts.eventId);
 	db.prepare(
 		`INSERT INTO tickets (id, qr_code_uuid, transaction_id, product_id, event_id, buyer_id)
      VALUES (?, ?, ?, ?, ?, ?)`,
@@ -564,14 +728,16 @@ export function createJobInDb(opts: {
 	title?: string;
 	status?: "pending" | "approved";
 	expiresAt?: string;
+	/** Owning scope (default: the root). */
+	scopeId?: string;
 }): { jobId: string; cleanup(): void } {
 	const db = openDb();
 	const jobId = crypto.randomUUID();
 	const expiresAt =
 		opts.expiresAt ?? new Date(Date.now() + 30 * 86400000).toISOString();
 	db.prepare(
-		`INSERT INTO jobs (id, title, body, location_type, expires_at, status, suggested_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO jobs (id, title, body, location_type, expires_at, status, suggested_by, scope_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		jobId,
 		opts.title ?? "Test Job",
@@ -580,6 +746,7 @@ export function createJobInDb(opts: {
 		expiresAt,
 		opts.status ?? "pending",
 		opts.suggestedBy,
+		opts.scopeId ?? rootScopeId(db),
 	);
 	db.close();
 
@@ -616,44 +783,338 @@ export function deleteJobById(id: string): void {
 	db.close();
 }
 
-// ── Post helpers ──────────────────────────────────────────────────────────────
+// ── Notification helpers ──────────────────────────────────────────────────────
 
-export function getPostByTitle(
-	title: string,
-): { id: string; title: string; featured_image: string | null } | null {
+export interface OutboxRow {
+	id: string;
+	notification_id: string;
+	channel: string;
+	recipient_user_id: string | null;
+	recipient_address: string | null;
+	data: string;
+	status: "pending" | "sent" | "failed";
+	attempts: number;
+	last_error: string | null;
+}
+
+/** Outbox rows matching all given filters, oldest first. */
+export function getOutboxRows(filter: {
+	notificationId?: string;
+	recipientUserId?: string;
+	channel?: string;
+}): OutboxRow[] {
+	const where: string[] = [];
+	const args: string[] = [];
+	if (filter.notificationId) {
+		where.push("notification_id = ?");
+		args.push(filter.notificationId);
+	}
+	if (filter.recipientUserId) {
+		where.push("recipient_user_id = ?");
+		args.push(filter.recipientUserId);
+	}
+	if (filter.channel) {
+		where.push("channel = ?");
+		args.push(filter.channel);
+	}
+	const db = openDb();
+	const rows = db
+		.prepare(
+			`SELECT * FROM notification_outbox ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY created_at`,
+		)
+		.all(...args) as OutboxRow[];
+	db.close();
+	return rows;
+}
+
+export function getOutboxRowById(id: string): OutboxRow | undefined {
+	const db = openDb();
+	const row = db
+		.prepare("SELECT * FROM notification_outbox WHERE id = ?")
+		.get(id) as OutboxRow | undefined;
+	db.close();
+	return row;
+}
+
+/** Inserts an outbox row directly (e.g. a failed one for the admin view). */
+export function createOutboxRowInDb(opts: {
+	notificationId: string;
+	channel: string;
+	recipientUserId?: string | null;
+	recipientAddress?: string | null;
+	data?: Record<string, unknown>;
+	status?: "pending" | "sent" | "failed";
+	attempts?: number;
+	lastError?: string | null;
+}): { id: string; cleanup(): void } {
+	const db = openDb();
+	const id = crypto.randomUUID();
+	const now = new Date().toISOString();
+	db.prepare(
+		`INSERT INTO notification_outbox (id, notification_id, channel, recipient_user_id,
+       recipient_address, data, status, attempts, last_error, next_attempt_at, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+	).run(
+		id,
+		opts.notificationId,
+		opts.channel,
+		opts.recipientUserId ?? null,
+		opts.recipientAddress ?? null,
+		JSON.stringify(opts.data ?? {}),
+		opts.status ?? "pending",
+		opts.attempts ?? 0,
+		opts.lastError ?? null,
+		now,
+		now,
+	);
+	db.close();
+	return {
+		id,
+		cleanup() {
+			const db2 = openDb();
+			db2.prepare("DELETE FROM notification_outbox WHERE id = ?").run(id);
+			db2.close();
+		},
+	};
+}
+
+/** The stored preference (null when the user never toggled it, i.e. enabled). */
+export function getNotificationPreference(
+	userId: string,
+	notificationId: string,
+	channel: string,
+): boolean | null {
 	const db = openDb();
 	const row = db
 		.prepare(
-			"SELECT id, title, featured_image FROM posts WHERE title = ? ORDER BY created_at DESC LIMIT 1",
+			"SELECT enabled FROM notification_preferences WHERE user_id = ? AND notification_id = ? AND channel = ?",
 		)
-		.get(title) as
-		| { id: string; title: string; featured_image: string | null }
+		.get(userId, notificationId, channel) as { enabled: number } | undefined;
+	db.close();
+	return row ? row.enabled === 1 : null;
+}
+
+// ── Deal helpers ──────────────────────────────────────────────────────────────
+
+export function createDealInDb(opts: {
+	name?: string;
+	description?: string;
+	logo?: string | null;
+	validUntil?: string | null;
+	steps?: unknown[];
+	/** Owning scope (default: the root). */
+	scopeId?: string;
+}): { dealId: string; cleanup(): void } {
+	const db = openDb();
+	const dealId = crypto.randomUUID();
+	db.prepare(
+		`INSERT INTO deals (id, name, description, logo, valid_until, steps, scope_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+	).run(
+		dealId,
+		opts.name ?? "Test Deal",
+		opts.description ?? "Test deal description",
+		opts.logo ?? null,
+		opts.validUntil ?? null,
+		JSON.stringify(opts.steps ?? []),
+		opts.scopeId ?? rootScopeId(db),
+	);
+	db.close();
+	return { dealId, cleanup: () => deleteDealById(dealId) };
+}
+
+export function getDealByName(
+	name: string,
+): { id: string; name: string; valid_until: string | null } | undefined {
+	const db = openDb();
+	const row = db
+		.prepare("SELECT id, name, valid_until FROM deals WHERE name = ? LIMIT 1")
+		.get(name) as
+		| { id: string; name: string; valid_until: string | null }
 		| undefined;
+	db.close();
+	return row;
+}
+
+export function deleteDealById(id: string): void {
+	const db = openDb();
+	db.prepare("DELETE FROM deals WHERE id = ?").run(id);
+	db.close();
+}
+
+// ── Scope helpers ─────────────────────────────────────────────────────────────
+
+/**
+ * Insert a scope under `parentPath` (the root scope "/" is created if missing).
+ * Returns the new scope's id, path (e.g. "/e2e-region/") and admin URL segment.
+ */
+export function createScopeInDb(opts: {
+	parentPath: string;
+	slug: string;
+	name?: string;
+	kind?: string;
+}): { id: string; path: string; segment: string } {
+	const db = openDb();
+	let parent = db
+		.prepare("SELECT id FROM scopes WHERE path = ?")
+		.get(opts.parentPath) as { id: string } | undefined;
+	if (!parent && opts.parentPath === "/") {
+		parent = { id: rootScopeId(db) };
+	}
+	if (!parent) {
+		db.close();
+		throw new Error(`Parent scope ${opts.parentPath} not found`);
+	}
+	const id = crypto.randomUUID();
+	const path = `${opts.parentPath}${opts.slug}/`;
+	db.prepare(
+		"INSERT INTO scopes (id, parent_id, kind, slug, name, path) VALUES (?, ?, ?, ?, ?, ?)",
+	).run(
+		id,
+		parent.id,
+		opts.kind ?? "region",
+		opts.slug,
+		opts.name ?? opts.slug,
+		path,
+	);
+	db.close();
+	return { id, path, segment: adminSegmentOf(path) };
+}
+
+/**
+ * Delete a scope and everything below it, with their roles, memberships and redirects. Their
+ * pages, jobs and deals are deleted; other content rows (notes, articles, events, forms, election cycles,
+ * qualification types) are handed to the root rather than deleted.
+ */
+/**
+ * Give a scope a new slug, rewriting the paths of its subtree like a rename in the admin
+ * (without the redirect rows). References to the scope and its content need no change.
+ */
+export function renameScopeInDb(id: string, slug: string): { path: string } {
+	const db = openDb();
+	const scope = db.prepare("SELECT path FROM scopes WHERE id = ?").get(id) as {
+		path: string;
+	};
+	const newPath = scope.path.replace(/[^/]+\/$/, `${slug}/`);
+	db.prepare("UPDATE scopes SET slug = ? WHERE id = ?").run(slug, id);
+	db.prepare(
+		"UPDATE scopes SET path = ? || substr(path, ?) WHERE path LIKE ?",
+	).run(newPath, scope.path.length + 1, `${scope.path}%`);
+	db.close();
+	return { path: newPath };
+}
+
+export function deleteScopeById(id: string): void {
+	const db = openDb();
+	const scope = db.prepare("SELECT path FROM scopes WHERE id = ?").get(id) as
+		| { path: string }
+		| undefined;
+	if (scope) {
+		const ids = (
+			db
+				.prepare(
+					"SELECT id FROM scopes WHERE path LIKE ? ORDER BY length(path) DESC",
+				)
+				.all(`${scope.path}%`) as { id: string }[]
+		).map((r) => r.id);
+		for (const scopeId of ids) {
+			db.prepare("DELETE FROM scope_roles WHERE scope_id = ?").run(scopeId);
+			db.prepare("DELETE FROM scope_memberships WHERE scope_id = ?").run(
+				scopeId,
+			);
+			for (const table of ["pages", "jobs", "deals", "reviews"]) {
+				db.prepare(`DELETE FROM ${table} WHERE scope_id = ?`).run(scopeId);
+			}
+			const rootId = rootScopeId(db);
+			for (const table of [
+				"notes",
+				"articles",
+				"events",
+				"forms",
+				"election_cycles",
+				"qualification_types",
+			]) {
+				db.prepare(`UPDATE ${table} SET scope_id = ? WHERE scope_id = ?`).run(
+					rootId,
+					scopeId,
+				);
+			}
+			db.prepare("DELETE FROM scopes WHERE id = ?").run(scopeId);
+		}
+		const prefix = scope.path.replace(/\/$/, "");
+		db.prepare(
+			"DELETE FROM redirects WHERE from_path = ? OR from_path LIKE ? OR to_path = ? OR to_path LIKE ?",
+		).run(prefix, `${prefix}/%`, prefix, `${prefix}/%`);
+	}
+	db.close();
+}
+
+// ── Note and article helpers ──────────────────────────────────────────────────
+
+type Visibility = "public" | "members" | "representatives";
+
+/** The newest article with this title. */
+export function getArticleByTitle(title: string): {
+	id: string;
+	title: string;
+	featured_image: string | null;
+	subject_type: string | null;
+	subject_id: string | null;
+	visibility: string;
+} | null {
+	const db = openDb();
+	const row = db
+		.prepare(
+			"SELECT id, title, featured_image, subject_type, subject_id, visibility FROM articles WHERE title = ? ORDER BY published_at DESC LIMIT 1",
+		)
+		.get(title) as ReturnType<typeof getArticleByTitle> | undefined;
 	db.close();
 	return row ?? null;
 }
 
-/** Create a minimal post fixture. Returns the new post's id. */
-export function createPostInDb(opts: {
-	title: string;
+/** Notes whose body contains `text` (notes have no title), newest first. */
+export function getNotesByBodyText(text: string): Array<{
+	id: string;
+	body: string;
+	subject_type: string | null;
+	subject_id: string | null;
+	visibility: string;
+}> {
+	const db = openDb();
+	const rows = db
+		.prepare(
+			"SELECT id, body, subject_type, subject_id, visibility FROM notes WHERE body LIKE ? ORDER BY published_at DESC",
+		)
+		.all(`%${text}%`) as ReturnType<typeof getNotesByBodyText>;
+	db.close();
+	return rows;
+}
+
+/**
+ * Create a published note (spec 4.4: short, no title, no image); `subject` attaches it to an
+ * item (`{ type: "events:event", id }`). Returns the new note's id.
+ */
+export function createNoteInDb(opts: {
 	body: string;
 	userId: string;
-	groupId?: string | null;
-	visibility?: "global" | "group-only";
-	createdAt?: string;
+	scopeId?: string;
+	visibility?: Visibility;
+	subject?: { type: string; id: string };
+	publishedAt?: string;
 }): string {
 	const db = openDb();
 	const id = crypto.randomUUID();
-	const now = opts.createdAt ?? new Date().toISOString();
+	const now = opts.publishedAt ?? new Date().toISOString();
 	db.prepare(
-		"INSERT INTO posts (id, title, body, user_id, group_id, visibility, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO notes (id, body, author_id, scope_id, visibility, subject_type, subject_id, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
 	).run(
 		id,
-		opts.title,
 		opts.body,
 		opts.userId,
-		opts.groupId ?? null,
-		opts.visibility ?? "global",
+		opts.scopeId ?? rootScopeId(db),
+		opts.visibility ?? "public",
+		opts.subject?.type ?? null,
+		opts.subject?.id ?? null,
 		now,
 		now,
 	);
@@ -661,30 +1122,76 @@ export function createPostInDb(opts: {
 	return id;
 }
 
-export function deletePostByTitle(title: string): void {
+/**
+ * Create a published article (title required, `featuredImage` an optional public S3 key);
+ * `subject` attaches it to an item. Returns the new article's id.
+ */
+export function createArticleInDb(opts: {
+	title: string;
+	body: string;
+	userId: string;
+	scopeId?: string;
+	visibility?: Visibility;
+	featuredImage?: string | null;
+	subject?: { type: string; id: string };
+	publishedAt?: string;
+}): string {
 	const db = openDb();
-	db.prepare("DELETE FROM posts WHERE title = ?").run(title);
+	const id = crypto.randomUUID();
+	const now = opts.publishedAt ?? new Date().toISOString();
+	db.prepare(
+		"INSERT INTO articles (id, title, featured_image, body, author_id, scope_id, visibility, subject_type, subject_id, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+	).run(
+		id,
+		opts.title,
+		opts.featuredImage ?? null,
+		opts.body,
+		opts.userId,
+		opts.scopeId ?? rootScopeId(db),
+		opts.visibility ?? "public",
+		opts.subject?.type ?? null,
+		opts.subject?.id ?? null,
+		now,
+		now,
+	);
+	db.close();
+	return id;
+}
+
+export function deleteNoteById(id: string): void {
+	const db = openDb();
+	db.prepare("DELETE FROM notes WHERE id = ?").run(id);
+	db.close();
+}
+
+export function deleteArticleById(id: string): void {
+	const db = openDb();
+	db.prepare("DELETE FROM articles WHERE id = ?").run(id);
+	db.close();
+}
+
+export function deleteArticleByTitle(title: string): void {
+	const db = openDb();
+	db.prepare("DELETE FROM articles WHERE title = ?").run(title);
 	db.close();
 }
 
 // ── Page / menu helpers ───────────────────────────────────────────────────────
 
 /**
- * Idempotently ensure a published `/news` page with a PostsListBlock exists
- * (page-builder infrastructure the News specs render posts through) — a no-op
+ * Idempotently ensure a published `/news` page with a Stream block (notes and articles) exists
+ * (page-builder infrastructure the News specs render the stream through) — a no-op
  * if it already exists. Never deleted by tests: it's reusable plumbing, not
- * per-test data, so specs only need to manage the posts they create.
+ * per-test data, so specs only need to manage the notes and articles they create.
  */
 export function ensureNewsPage(): { pageId: string } {
 	const db = openDb();
 	const existing = db
-		.prepare(
-			"SELECT page_id FROM menu_items WHERE url = '/news' AND page_id IS NOT NULL LIMIT 1",
-		)
-		.get() as { page_id: string } | undefined;
+		.prepare("SELECT id FROM pages WHERE scope_id = ? AND slug = 'news'")
+		.get(rootScopeId(db)) as { id: string } | undefined;
 	if (existing) {
 		db.close();
-		return { pageId: existing.page_id };
+		return { pageId: existing.id };
 	}
 
 	const pageId = crypto.randomUUID();
@@ -693,27 +1200,34 @@ export function ensureNewsPage(): { pageId: string } {
 	const content = JSON.stringify([
 		{
 			id: crypto.randomUUID(),
-			componentType: "PostsListBlock",
+			componentType: "StreamBlock",
 			order: 0,
-			data: { limit: 10 },
+			data: { show: "all", limit: 10 },
 		},
 	]);
 
 	db.prepare(
-		"INSERT INTO pages (id, content, status, created_at, updated_at) VALUES (?, ?, 'published', ?, ?)",
-	).run(pageId, content, now, now);
+		"INSERT INTO pages (id, scope_id, slug, title, content, status, created_at, updated_at) VALUES (?, ?, 'news', 'News', ?, 'published', ?, ?)",
+	).run(pageId, rootScopeId(db), content, now, now);
 	db.prepare(
-		"INSERT INTO menu_items (id, menu_name, title, url, page_id, parent_id, position, status, icon, target, created_at, updated_at) VALUES (?, 'main', 'News', '/news', ?, null, 999, 'hidden', null, '_self', ?, ?)",
-	).run(menuItemId, pageId, now, now);
+		"INSERT INTO menu_items (id, menu_name, title, url, page_id, parent_id, position, status, icon, target, created_at, updated_at) VALUES (?, 'main', 'News', ?, ?, null, 999, 'hidden', null, '_self', ?, ?)",
+	).run(menuItemId, `ref:core:page:${pageId}`, pageId, now, now);
 	db.close();
 	return { pageId };
 }
 
+/**
+ * A page at `url` ("/<slug>") with a (hidden) menu item linking to it by reference
+ * (`ref:core:page:<id>`), owned by the root. With `scopeId` the page belongs to that scope
+ * instead (served at "<scope path><slug>") and gets no menu item (`menuItemId` is then empty).
+ */
 export function createPageInDb(opts: {
 	title: string;
 	url: string;
 	menuName: "main" | "footer";
 	status: "draft" | "published";
+	scopeId?: string;
+	content?: unknown[];
 }): { pageId: string; menuItemId: string } {
 	const db = openDb();
 	const pageId = crypto.randomUUID();
@@ -721,8 +1235,21 @@ export function createPageInDb(opts: {
 	const now = new Date().toISOString();
 
 	db.prepare(
-		"INSERT INTO pages (id, content, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-	).run(pageId, JSON.stringify([]), opts.status, now, now);
+		"INSERT INTO pages (id, scope_id, slug, title, content, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+	).run(
+		pageId,
+		opts.scopeId ?? rootScopeId(db),
+		opts.url.replace(/^\/+|\/+$/g, ""),
+		opts.title,
+		JSON.stringify(opts.content ?? []),
+		opts.status,
+		now,
+		now,
+	);
+	if (opts.scopeId) {
+		db.close();
+		return { pageId, menuItemId: "" };
+	}
 
 	const maxPosRow = db
 		.prepare("SELECT MAX(position) as pos FROM menu_items WHERE menu_name = ?")
@@ -735,7 +1262,7 @@ export function createPageInDb(opts: {
 		menuItemId,
 		opts.menuName,
 		opts.title,
-		opts.url,
+		`ref:core:page:${pageId}`,
 		pageId,
 		position,
 		now,
@@ -795,6 +1322,20 @@ export function getMenuItemByUrl(
 			"SELECT id, title, url, status FROM menu_items WHERE url = ? LIMIT 1",
 		)
 		.get(url) as
+		| { id: string; title: string; url: string; status: string }
+		| undefined;
+	db.close();
+	return row;
+}
+
+/** A menu item row by id (its stored `url` may be a `ref:` reference). */
+export function getMenuItemById(
+	id: string,
+): { id: string; title: string; url: string; status: string } | undefined {
+	const db = openDb();
+	const row = db
+		.prepare("SELECT id, title, url, status FROM menu_items WHERE id = ?")
+		.get(id) as
 		| { id: string; title: string; url: string; status: string }
 		| undefined;
 	db.close();
@@ -1014,13 +1555,14 @@ export function createQualificationTypeInDb(
 	const db = openDb();
 	const typeId = crypto.randomUUID();
 	db.prepare(
-		`INSERT INTO qualification_types (id, slug, label, grants_membership_tier, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO qualification_types (id, slug, label, grants_membership_tier, scope_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		typeId,
 		(overrides.slug as string) ?? `e2e-type-${typeId.slice(0, 8)}`,
 		(overrides.label as string) ?? "E2E Test Type",
 		(overrides.grantsMembershipTier as string) ?? "associated",
+		(overrides.scopeId as string) ?? rootScopeId(db),
 		new Date().toISOString(),
 		new Date().toISOString(),
 	);
@@ -1062,6 +1604,36 @@ export function createQualificationInDb(
 		cleanup() {
 			const db2 = openDb();
 			db2.prepare("DELETE FROM user_qualifications WHERE id = ?").run(qualId);
+			db2.close();
+		},
+	};
+}
+
+export function createQualificationTokenInDb(
+	typeId: string,
+	createdBy: string,
+): { token: string; cleanup: () => void } {
+	const db = openDb();
+	const token = crypto.randomBytes(16).toString("hex");
+	db.prepare(
+		`INSERT INTO qualification_tokens (id, token, type_id, created_by, expires_at, is_active, created_at)
+     VALUES (?, ?, ?, ?, ?, 1, ?)`,
+	).run(
+		crypto.randomUUID(),
+		token,
+		typeId,
+		createdBy,
+		new Date(Date.now() + 3600_000).toISOString(),
+		new Date().toISOString(),
+	);
+	db.close();
+	return {
+		token,
+		cleanup() {
+			const db2 = openDb();
+			db2
+				.prepare("DELETE FROM qualification_tokens WHERE token = ?")
+				.run(token);
 			db2.close();
 		},
 	};
@@ -1121,13 +1693,14 @@ export function createElectionCycleInDb(
 	const db = openDb();
 	const cycleId = crypto.randomUUID();
 	db.prepare(
-		`INSERT INTO election_cycles (id, title, year, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO election_cycles (id, title, year, status, scope_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		cycleId,
 		(overrides.title as string) ?? "E2E Test Elections",
 		(overrides.year as number) ?? 2026,
 		(overrides.status as string) ?? "draft",
+		(overrides.scopeId as string) ?? rootScopeId(db),
 		new Date().toISOString(),
 		new Date().toISOString(),
 	);
@@ -1214,4 +1787,288 @@ export function createElectionApplicationInDb(
 			db2.close();
 		},
 	};
+}
+
+// ── Redirect helpers ──────────────────────────────────────────────────────────
+
+/** Where a redirects row sends `fromPath`, or null. */
+export function getRedirectTarget(fromPath: string): string | null {
+	const db = openDb();
+	const row = db
+		.prepare("SELECT to_path FROM redirects WHERE from_path = ?")
+		.get(fromPath) as { to_path: string } | undefined;
+	db.close();
+	return row?.to_path ?? null;
+}
+
+/** Delete the redirects rows from or into paths starting with `prefix` (test cleanup). */
+export function deleteRedirectsLike(prefix: string): void {
+	const db = openDb();
+	db.prepare(
+		"DELETE FROM redirects WHERE from_path LIKE ? OR to_path LIKE ?",
+	).run(`${prefix}%`, `${prefix}%`);
+	db.close();
+}
+
+// ── Reviews and forms (spec 4.9, 4.10) ──────────────────────────────────────────
+
+/** An event's review state (`draft`, `in_review`, `published`). */
+export function getEventStatus(eventId: string): string | undefined {
+	const db = openDb();
+	const row = db
+		.prepare("SELECT status FROM events WHERE id = ?")
+		.get(eventId) as { status: string } | undefined;
+	db.close();
+	return row?.status;
+}
+
+/** The newest review row of an item (`events:event:<id>`, `core:article:<id>`). */
+export function getLatestReview(
+	ref: string,
+): { id: string; status: string; comment: string | null } | undefined {
+	const db = openDb();
+	const row = db
+		.prepare(
+			"SELECT id, status, comment FROM reviews WHERE ref = ? ORDER BY created_at DESC LIMIT 1",
+		)
+		.get(ref) as
+		| { id: string; status: string; comment: string | null }
+		| undefined;
+	db.close();
+	return row;
+}
+
+/** Marks an event's debrief as requested (what the daily schedule does), `daysAgo` days ago. */
+export function setEventDebriefRequested(eventId: string, daysAgo = 0): void {
+	const db = openDb();
+	db.prepare("UPDATE events SET debrief_requested_at = ? WHERE id = ?").run(
+		new Date(Date.now() - daysAgo * 86400000).toISOString(),
+		eventId,
+	);
+	db.close();
+}
+
+/** Stored answers attached to an item, newest first (parsed). */
+export function getFormResultsBySubject(
+	ref: string,
+): Array<{ formId: string; answers: Record<string, unknown> }> {
+	const db = openDb();
+	const rows = db
+		.prepare(
+			"SELECT form_id AS formId, answers FROM form_results WHERE subject_ref = ? ORDER BY created_at DESC",
+		)
+		.all(ref) as Array<{ formId: string; answers: string }>;
+	db.close();
+	return rows.map((r) => ({
+		formId: r.formId,
+		answers: JSON.parse(r.answers),
+	}));
+}
+
+/** A form owned by a scope (the root by default); a survey unless `purpose` is set. */
+export function createFormInDb(opts: {
+	title: string;
+	scopeId?: string;
+	purpose?: string | null;
+	schema?: Record<string, unknown>;
+}): { formId: string; cleanup(): void } {
+	const db = openDb();
+	const formId = crypto.randomUUID();
+	const now = new Date().toISOString();
+	db.prepare(
+		`INSERT INTO forms (id, scope_id, title, slug, schema, purpose, visibility, allow_resubmission, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, 'private', 0, ?, ?)`,
+	).run(
+		formId,
+		opts.scopeId ?? rootScopeId(db),
+		opts.title,
+		opts.title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+		JSON.stringify(
+			opts.schema ?? {
+				pages: [
+					{
+						name: "p",
+						elements: [{ type: "text", name: "q1", title: "Question one" }],
+					},
+				],
+			},
+		),
+		opts.purpose ?? null,
+		now,
+		now,
+	);
+	db.close();
+	return {
+		formId,
+		cleanup() {
+			const db2 = openDb();
+			db2.prepare("DELETE FROM form_assignments WHERE form_id = ?").run(formId);
+			db2.prepare("DELETE FROM form_results WHERE form_id = ?").run(formId);
+			db2.prepare("DELETE FROM forms WHERE id = ?").run(formId);
+			db2.close();
+		},
+	};
+}
+
+/** A result for a form (which locks it). */
+export function createFormResultInDb(
+	formId: string,
+	answers: Record<string, unknown> = { q1: "answer" },
+): void {
+	const db = openDb();
+	db.prepare(
+		"INSERT INTO form_results (id, form_id, answers, created_at) VALUES (?, ?, ?, ?)",
+	).run(
+		crypto.randomUUID(),
+		formId,
+		JSON.stringify(answers),
+		new Date().toISOString(),
+	);
+	db.close();
+}
+
+/** Forms of a scope with this title (e.g. the copy a Duplicate made), newest first. */
+export function getFormsByTitle(
+	title: string,
+): Array<{ id: string; purpose: string | null }> {
+	const db = openDb();
+	const rows = db
+		.prepare(
+			"SELECT id, purpose FROM forms WHERE title = ? ORDER BY created_at DESC",
+		)
+		.all(title) as Array<{ id: string; purpose: string | null }>;
+	db.close();
+	return rows;
+}
+
+/** Deletes forms with this title (and their results and assignments). */
+export function deleteFormsByTitle(title: string): void {
+	const db = openDb();
+	for (const { id } of db
+		.prepare("SELECT id FROM forms WHERE title = ?")
+		.all(title) as Array<{ id: string }>) {
+		db.prepare("DELETE FROM form_assignments WHERE form_id = ?").run(id);
+		db.prepare("DELETE FROM form_results WHERE form_id = ?").run(id);
+		db.prepare("DELETE FROM forms WHERE id = ?").run(id);
+	}
+	db.close();
+}
+
+// ── Payments (spec 4.7) ──────────────────────────────────────────────────────────────────
+
+export interface PaymentRow {
+	id: string;
+	module_id: string;
+	kind: string;
+	ref_id: string;
+	user_id: string;
+	status: string;
+	amount: number;
+	currency: string;
+	provider_ref: string | null;
+	subject_ref: string | null;
+}
+
+/**
+ * A pending ticket order with its pending Stripe payment, as the checkout creates them (for
+ * webhook tests that skip the checkout UI). Prices in euros; returns the ids and a cleanup.
+ */
+export function createPendingTicketPaymentInDb(opts: {
+	buyerId: string;
+	eventId: string;
+	productId: string;
+	unitPrice: number;
+	quantity?: number;
+}): { paymentId: string; transactionId: string; cleanup: () => void } {
+	const db = openDb();
+	const paymentId = crypto.randomUUID();
+	const transactionId = crypto.randomUUID();
+	const quantity = opts.quantity ?? 1;
+	const now = new Date().toISOString();
+	const amount = Math.round(opts.unitPrice * 100);
+	db.prepare(
+		`INSERT INTO payments (id, module_id, kind, ref_id, user_id, status, mode, provider, provider_ref, amount, currency, lines, subject_ref, created_at, updated_at, expires_at)
+     VALUES (?, 'events', 'tickets', ?, ?, 'pending', 'payment', 'stripe', ?, ?, 'eur', ?, ?, ?, ?, ?)`,
+	).run(
+		paymentId,
+		transactionId,
+		opts.buyerId,
+		`cs_e2e_${paymentId.replaceAll("-", "")}`,
+		amount * quantity,
+		JSON.stringify([{ label: "Ticket", amount, quantity }]),
+		`events:event:${opts.eventId}`,
+		now,
+		now,
+		new Date(Date.now() + 3600_000).toISOString(),
+	);
+	db.prepare(
+		`INSERT INTO transactions (id, user_id, event_id, total_amount, transaction_fee, status, payment_id, participants)
+     VALUES (?, ?, ?, ?, 0, 'pending', ?, '[]')`,
+	).run(
+		transactionId,
+		opts.buyerId,
+		opts.eventId,
+		opts.unitPrice * quantity,
+		paymentId,
+	);
+	db.prepare(
+		`INSERT INTO transaction_items (id, transaction_id, product_id, quantity, unit_price)
+     VALUES (?, ?, ?, ?, ?)`,
+	).run(
+		crypto.randomUUID(),
+		transactionId,
+		opts.productId,
+		quantity,
+		opts.unitPrice,
+	);
+	db.close();
+	return {
+		paymentId,
+		transactionId,
+		cleanup() {
+			const d = openDb();
+			d.prepare("DELETE FROM tickets WHERE transaction_id = ?").run(
+				transactionId,
+			);
+			d.prepare("DELETE FROM transaction_items WHERE transaction_id = ?").run(
+				transactionId,
+			);
+			d.prepare("DELETE FROM transactions WHERE id = ?").run(transactionId);
+			d.prepare("DELETE FROM payment_events WHERE payment_id = ?").run(
+				paymentId,
+			);
+			d.prepare("DELETE FROM payments WHERE id = ?").run(paymentId);
+			d.close();
+		},
+	};
+}
+
+export function getPaymentById(id: string): PaymentRow | undefined {
+	const db = openDb();
+	const row = db.prepare("SELECT * FROM payments WHERE id = ?").get(id) as
+		| PaymentRow
+		| undefined;
+	db.close();
+	return row;
+}
+
+/** Payments for an item (`events:event:<id>`), newest first. */
+export function getPaymentsBySubject(subjectRef: string): PaymentRow[] {
+	const db = openDb();
+	const rows = db
+		.prepare(
+			"SELECT * FROM payments WHERE subject_ref = ? ORDER BY created_at DESC",
+		)
+		.all(subjectRef) as PaymentRow[];
+	db.close();
+	return rows;
+}
+
+export function getTransactionStatus(paymentId: string): string | undefined {
+	const db = openDb();
+	const row = db
+		.prepare("SELECT status FROM transactions WHERE payment_id = ?")
+		.get(paymentId) as { status: string } | undefined;
+	db.close();
+	return row?.status;
 }

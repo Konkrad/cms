@@ -1,150 +1,171 @@
 import { component$, Slot } from "@qwik.dev/core";
-import type { RequestHandler } from "@qwik.dev/router";
+import type { DocumentHead, RequestHandler } from "@qwik.dev/router";
 import { routeAction$, routeLoader$ } from "@qwik.dev/router";
+import type { FeedLinks, NavUser } from "~/contracts/layout";
+import {
+	deleteSession,
+	getCurrentUserData,
+	getServerSession,
+} from "~/core/auth/server-auth";
+import { menuItemsService } from "~/core/content/menu-items.service";
+import { resolveMenuUrls } from "~/core/content/menu-links";
+import { t } from "~/core/i18n";
+import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
+import { activeFeeds } from "~/core/registry/manifests";
+import { requirements } from "~/core/registry/requirements";
+import { GLOBAL_CONTEXT } from "~/core/requirements/define";
+import { currentScopePath } from "~/core/router/scope-request";
+import { listManagedScopes } from "~/core/scopes/access";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
+import { formatUser } from "~/core/users/format";
+import { env } from "~/env";
 import { Navigation } from "~theme/chrome/Navigation/Navigation";
 import { SiteFooter } from "~theme/chrome/SiteFooter/SiteFooter";
-import { menuItemsService } from "~/services/menu-items.service";
-import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
-import { getCurrentUserData } from "~/utils/server-auth";
-import { formatUser } from "~/utils/users";
-import type { NavUser } from "~/contracts/layout";
-import { eq } from "drizzle-orm";
-import { db } from "~/db/connection";
-import { sessions } from "~/db/schema";
-import { env } from "~/env";
 
-const ONBOARDING_EXEMPT = ["/profile/setup", "/login", "/auth/", "/api/"];
+/** Paths a user with pending `global` requirements may still open (setup itself, auth, APIs). */
+const SETUP_EXEMPT = ["/profile/setup", "/login", "/auth/", "/api/"];
 
+/**
+ * The global gate (spec 4.6): while a requirement of the `global` context is pending (profile
+ * basics, location, the onboarding survey, or a module's), every page sends a logged-in user to
+ * the setup flow, which brings them back to the page afterwards.
+ */
 export const onRequest: RequestHandler = async (event) => {
-  const { pathname } = new URL(event.request.url);
-  const isExempt = ONBOARDING_EXEMPT.some((prefix) => pathname.startsWith(prefix));
-  if (!isExempt) {
-    const user = await getCurrentUserData(event);
-    if (user) {
-      const consent = (user as any).consent ?? {};
-      if (!consent.lastProfileUpdate || !consent.locationVerification) {
-        throw event.redirect(302, "/profile/setup");
-      }
-    }
-  }
-  await event.next();
+	const { pathname, search } = event.url;
+	const isExempt = SETUP_EXEMPT.some((prefix) => pathname.startsWith(prefix));
+	if (!isExempt) {
+		const user = await getServerSession(event);
+		if (user && (await requirements.pending(user, GLOBAL_CONTEXT)).length > 0) {
+			const next = encodeURIComponent(`${pathname}${search}`);
+			throw event.redirect(302, `/profile/setup?next=${next}`);
+		}
+	}
+	await event.next();
 };
 
 export const onGet: RequestHandler = async ({ cacheControl }) => {
-  // Every page renders through useUserSession below, so a shared/stale
-  // cache here can serve one visitor's logged-in (or logged-out) nav state
-  // to another, or serve a pre-login page after the visitor just logged in
-  // until they force a refresh. Same noCache pattern already used for
-  // admin/layout.tsx and events/[id]/index.tsx.
-  cacheControl({ noCache: true });
+	// Every page renders through useUserSession below, so a shared/stale
+	// cache here can serve one visitor's logged-in (or logged-out) nav state
+	// to another, or serve a pre-login page after the visitor just logged in
+	// until they force a refresh. Same noCache pattern already used for
+	// admin/layout.tsx and events/[id]/index.tsx.
+	cacheControl({ noCache: true });
 };
 
 export const useServerTimeLoader = routeLoader$(() => {
-  console.log("[Layout] useServerTimeLoader - loading");
-  return {
-    date: new Date().toISOString(),
-  };
+	console.log("[Layout] useServerTimeLoader - loading");
+	return {
+		date: new Date().toISOString(),
+	};
 });
 
-export const useUserSession = routeLoader$(async (event) => {
-  console.log("[Layout] useUserSession - starting");
-  const userData = await getCurrentUserData(event);
-  console.log("[Layout] useUserSession - completed, has user:", !!userData);
-
-  if (!userData) return userData;
-
-  let profilePictureSmallUrl: string | null = null;
-  const u = userData as any;
-  if (u.profilePicture) {
-    const thumbKey = u.profilePictureSmall ?? deriveThumbnailKey(u.profilePicture);
-    profilePictureSmallUrl = publicImageUrlFromKey(thumbKey);
-  }
-
-  return { ...userData, profilePictureSmallUrl };
+/**
+ * The logged-in user as the nav needs it (see ~/contracts/layout#NavUser). Built here
+ * so the full user row (email, location...) never reaches the page.
+ */
+export const useUserSession = routeLoader$(async (event): Promise<NavUser> => {
+	const u = await getCurrentUserData(event);
+	if (!u) return null;
+	const thumbKey = u.profilePicture
+		? (u.profilePictureSmall ?? deriveThumbnailKey(u.profilePicture))
+		: null;
+	return assertNoPrivateFields({
+		id: u.id,
+		displayName: u.name
+			? formatUser(u, true).displayName
+			: t("core.layout.userFallbackName"),
+		isAdmin: (await listManagedScopes(u)).length > 0,
+		profilePictureSmallUrl: publicImageUrlFromKey(thumbKey),
+	});
 });
+
+export const useScopePath = routeLoader$((event) => currentScopePath(event));
+
+/** Feeds of the active modules (the social web's RSS), announced in the head and footer. */
+export const useFeedLinks = routeLoader$(
+	(): FeedLinks =>
+		activeFeeds.map(({ title, href, type }) => ({ title, href, type })),
+);
 
 export const useMenuItems = routeLoader$(async () => {
-  console.log("[Layout] useMenuItems - starting");
-  try {
-    const menuTree = await menuItemsService.getMenuTree("main");
-    console.log(
-      "[Layout] useMenuItems - completed, items count:",
-      menuTree.length,
-    );
-    return menuTree;
-  } catch (error) {
-    console.error("[Layout] Failed to load menu items:", error);
-    return [];
-  }
+	console.log("[Layout] useMenuItems - starting");
+	try {
+		const menuTree = await resolveMenuUrls(
+			await menuItemsService.getMenuTree("main"),
+		);
+		console.log(
+			"[Layout] useMenuItems - completed, items count:",
+			menuTree.length,
+		);
+		return menuTree;
+	} catch (error) {
+		console.error("[Layout] Failed to load menu items:", error);
+		return [];
+	}
 });
 
 export const useFooterMenuItems = routeLoader$(async () => {
-  try {
-    const items = await menuItemsService.getAll("footer");
-    return items;
-  } catch (error) {
-    console.error("[Layout] Failed to load footer items:", error);
-    return [];
-  }
+	try {
+		return await resolveMenuUrls(await menuItemsService.getAll("footer"));
+	} catch (error) {
+		console.error("[Layout] Failed to load footer items:", error);
+		return [];
+	}
 });
 
 export const useLogoutAction = routeAction$(async (_, { cookie, redirect }) => {
-  const token = cookie.get("session")?.value;
+	const token = cookie.get("session")?.value;
 
-  if (token) {
-    try {
-      await db.delete(sessions).where(eq(sessions.token, token));
-    } catch (err) {
-      // Log but continue to clear cookie regardless
-      console.error("[useLogoutAction] failed to delete session row", err);
-    }
-  }
+	if (token) {
+		try {
+			await deleteSession(token);
+		} catch (err) {
+			// Log but continue to clear cookie regardless
+			console.error("[useLogoutAction] failed to delete session row", err);
+		}
+	}
 
-  // Clear the cookie (set to expired)
-  cookie.set("session", "", {
-    httpOnly: true,
-    secure: env.isProduction,
-    sameSite: "Strict",
-    path: "/",
-    expires: new Date(0),
-  });
+	// Clear the cookie (set to expired)
+	cookie.set("session", "", {
+		httpOnly: true,
+		secure: env.isProduction,
+		sameSite: "Strict",
+		path: "/",
+		expires: new Date(0),
+	});
 
-  // Also clear legacy supabase cookies (if present) to be safe
-  cookie.delete("sb-access-token", { path: "/" });
-  cookie.delete("sb-refresh-token", { path: "/" });
-
-  throw redirect(302, "/");
+	throw redirect(302, "/");
 });
 
 export default component$(() => {
-  const user = useUserSession();
-  const menu = useMenuItems();
-  const footer = useFooterMenuItems();
-  const logoutAction = useLogoutAction();
+	const user = useUserSession();
+	const menu = useMenuItems();
+	const footer = useFooterMenuItems();
+	const logoutAction = useLogoutAction();
+	const scopePath = useScopePath();
+	const feeds = useFeedLinks();
 
-  // Secret-stripped snapshot handed to the theme — see ~/contracts/layout#NavUser.
-  // The theme never sees the raw user row (email, tokens, etc.).
-  const navUser: NavUser = (() => {
-    const u = user.value as any;
-    if (!u || typeof u !== "object") return null;
-    const isAdmin = u.role === "admin";
-    const displayName = u.name ? formatUser(u, true).displayName : u.email ?? u.id ?? "User";
-    return {
-      id: u.id,
-      role: u.role ?? null,
-      displayName,
-      isAdmin,
-      profilePictureSmallUrl: u.profilePictureSmallUrl ?? null,
-    };
-  })();
+	return (
+		<>
+			<Navigation
+				user={user.value}
+				menuItems={menu.value}
+				logoutAction={logoutAction}
+			/>
+			<main class="min-h-screen" data-scope={scopePath.value}>
+				<Slot />
+			</main>
+			<SiteFooter footerItems={footer.value} feeds={feeds.value} />
+		</>
+	);
+});
 
-  return (
-    <>
-      <Navigation user={navUser} menuItems={menu.value} logoutAction={logoutAction} />
-      <main class="min-h-screen">
-        <Slot />
-      </main>
-      <SiteFooter footerItems={footer.value} />
-    </>
-  );
+/** `<link rel="alternate">` for every feed, on every page (merged with the page's head). */
+export const head: DocumentHead = ({ resolveValue }) => ({
+	links: resolveValue(useFeedLinks).map((feed) => ({
+		rel: "alternate",
+		type: feed.type,
+		title: feed.title,
+		href: feed.href,
+	})),
 });

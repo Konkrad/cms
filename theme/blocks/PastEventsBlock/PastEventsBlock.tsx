@@ -1,33 +1,17 @@
 import { component$ } from "@qwik.dev/core";
-import { usePastEvents } from "~/components/builder/blocks/usePastEvents";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { formatDate, t } from "~/contracts/i18n";
+import { usePastEvents } from "~/modules/events/usePastEvents";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 
 export const definition: BlockDefinition = {
-	name: "Past Events",
+	name: t("theme.blocks.pastEvents.pastEvents"),
 	componentType: "PastEventsBlock",
 	category: "dynamic",
 	icon: "🕰️",
 	configSchema: [],
 	defaultData: {},
 };
-
-function formatEventDate(startDate: string, endDate?: string): string {
-	const start = new Date(startDate);
-	const day = new Intl.DateTimeFormat("en-US", { day: "numeric" }).format(
-		start,
-	);
-	const month = new Intl.DateTimeFormat("en-US", { month: "long" }).format(
-		start,
-	);
-	const year = new Intl.DateTimeFormat("en-US", { year: "numeric" }).format(
-		start,
-	);
-
-	if (!endDate) return `${day} ${month} ${year}`;
-
-	return `${day} ${month} ${year}`;
-}
 
 export default component$(() => {
 	const { events, nextCursor, isLoading, isLoadingMore, error, loadMore } =
@@ -37,14 +21,20 @@ export default component$(() => {
 		<div class="max-w-6xl mx-auto px-4 py-12">
 			{isLoading.value ? (
 				<div class="text-center py-12">
-					<p class="text-text-muted">Loading past events...</p>
+					<p class="text-text-muted">
+						{t("theme.pastEventsBlock.loadingPastEvents")}
+					</p>
 				</div>
 			) : error.value ? (
 				<p class="text-error text-center py-8">
-					Failed to load past events: {error.value}
+					{t("theme.pastEventsBlock.failedToLoadPastEvents", {
+						value: error.value,
+					})}
 				</p>
 			) : events.value.length === 0 ? (
-				<p class="text-text-muted text-center py-8">No past events found.</p>
+				<p class="text-text-muted text-center py-8">
+					{t("theme.pastEventsBlock.noPastEventsFound")}
+				</p>
 			) : (
 				<>
 					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -52,19 +42,21 @@ export default component$(() => {
 							const location =
 								event.city ||
 								event.address ||
-								(event.locationType === "online" ? "Online" : "TBA");
+								(event.locationType === "online"
+									? t("theme.pastEventsBlock.online")
+									: t("theme.pastEventsBlock.tba"));
 							return (
 								<ContentCard
 									key={event.id}
 									title={event.title}
 									image={event.image1}
-									date={formatEventDate(event.startDate, event.endDate)}
+									date={formatDate(event.startDate, "dateLong")}
 									meta={location}
 									description={event.body
 										?.replace(/<[^>]+>/g, "")
 										.substring(0, 180)}
-									href={`/events/${event.id}`}
-									label="View Details"
+									href={event.url}
+									label={t("theme.pastEventsBlock.viewDetails")}
 								/>
 							);
 						})}
@@ -78,7 +70,9 @@ export default component$(() => {
 								onClick$={loadMore}
 								disabled={isLoadingMore.value}
 							>
-								{isLoadingMore.value ? "Loading..." : "Load More"}
+								{isLoadingMore.value
+									? t("theme.pastEventsBlock.loading")
+									: t("theme.pastEventsBlock.loadMore")}
 							</button>
 						</div>
 					)}

@@ -6,11 +6,11 @@
  * admin picker — so adding or removing a block here is the only change needed.
  *
  * The "dynamic" blocks (DealsListBlock, GroupsListBlock, HeroSectionBlock,
- * PastEventsBlock, PostsListBlock, UpcomingEventsBlock) have no route loader
+ * PastEventsBlock, StreamBlock, UpcomingEventsBlock) have no route loader
  * to supply them data, so each delegates its data-fetching/pagination to a
- * core-owned headless composable under `~/components/builder/blocks/*`
- * (`useDealsList`, `useGroupsList`, etc.) — the block itself only renders.
- * Never call `~/services/*`/`~/db/*`/`~/utils/server-auth` directly from a
+ * core-owned headless composable under `~/core/content/builder/blocks/*`
+ * (`useDealsList`, `useScopesList`, etc.) — the block itself only renders.
+ * Never call a core service, `~/core/db` or `~/core/auth` module directly from a
  * block; add a new composable in core instead.
  */
 import type { BlockDefinition } from "~/contracts/blocks";
@@ -40,13 +40,11 @@ import ImageBlock, { definition as ImageBlockDef } from "./ImageBlock";
 import PastEventsBlock, {
 	definition as PastEventsBlockDef,
 } from "./PastEventsBlock";
-import PostsListBlock, {
-	definition as PostsListBlockDef,
-} from "./PostsListBlock";
 import QuoteBlock, {
 	definition as QuoteBlockDef,
 } from "./QuoteBlock/QuoteBlock";
 import SpacerBlock, { definition as SpacerBlockDef } from "./SpacerBlock";
+import StreamBlock, { definition as StreamBlockDef } from "./StreamBlock";
 import SurveyFormBlock, {
 	definition as SurveyFormBlockDef,
 } from "./SurveyFormBlock";
@@ -69,7 +67,7 @@ export const blockDefinitions: BlockDefinition[] = [
 	HeroSectionBlockDef,
 	UpcomingEventsBlockDef,
 	PastEventsBlockDef,
-	PostsListBlockDef,
+	StreamBlockDef,
 	GroupsListBlockDef,
 	DealsListBlockDef,
 	SurveyFormBlockDef,
@@ -87,7 +85,7 @@ export const blockRegistry: Record<string, any> = {
 	ImageBlock,
 	UpcomingEventsBlock,
 	PastEventsBlock,
-	PostsListBlock,
+	StreamBlock,
 	SpacerBlock,
 	FeatureBlock,
 	ActionButtonBlock,

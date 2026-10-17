@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { t } from "~/contracts/i18n";
 
 interface TitleBlockProps {
 	text?: string;
@@ -8,21 +9,21 @@ interface TitleBlockProps {
 }
 
 export const definition: BlockDefinition = {
-	name: "Title",
+	name: t("theme.blocks.title.title"),
 	componentType: "TitleBlock",
 	category: "content",
 	icon: "🏷️",
 	configSchema: [
 		{
 			name: "text",
-			label: "Text",
+			label: t("theme.blocks.title.text"),
 			type: "text",
-			defaultValue: "Section Title",
+			defaultValue: t("theme.blocks.title.sectionTitle"),
 			required: true,
 		},
 		{
 			name: "level",
-			label: "Heading Level",
+			label: t("theme.blocks.title.headingLevel"),
 			type: "select",
 			defaultValue: "2",
 			options: [
@@ -36,25 +37,25 @@ export const definition: BlockDefinition = {
 		},
 		{
 			name: "align",
-			label: "Alignment",
+			label: t("theme.blocks.title.alignment"),
 			type: "select",
 			defaultValue: "left",
 			options: [
-				{ label: "Left", value: "left" },
-				{ label: "Center", value: "center" },
-				{ label: "Right", value: "right" },
+				{ label: t("theme.blocks.title.left"), value: "left" },
+				{ label: t("theme.blocks.title.center"), value: "center" },
+				{ label: t("theme.blocks.title.right"), value: "right" },
 			],
 		},
 	],
 	defaultData: {
-		text: "Section Title",
+		text: t("theme.blocks.title.sectionTitle"),
 		level: "2",
 		align: "left",
 	},
 };
 
 export default component$<TitleBlockProps>((props) => {
-	const text = props.text ?? "Section Title";
+	const text = props.text ?? t("theme.blocks.title.sectionTitle");
 	const levelNum = Math.min(Math.max(Number(props.level ?? 2), 1), 6);
 	const Tag = `h${levelNum}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
 

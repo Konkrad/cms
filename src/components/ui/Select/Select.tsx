@@ -10,7 +10,7 @@ export const Select = component$<SelectProps>(
 		return (
 			<div class="flex flex-col gap-1">
 				{label && (
-					<label class="text-sm font-medium text-text">
+					<label for={props.id} class="text-sm font-medium text-text">
 						{label}
 						{props.required && <span class="text-error ml-1">*</span>}
 					</label>
@@ -25,8 +25,20 @@ export const Select = component$<SelectProps>(
 						<Slot />
 					</select>
 					<div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-						<svg class="h-4 w-4 text-text-secondary" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+						<svg
+							aria-hidden="true"
+							class="h-4 w-4 text-text-secondary"
+							viewBox="0 0 16 16"
+							fill="none"
+							xmlns="http://www.w3.org/2000/svg"
+						>
+							<path
+								d="M4 6l4 4 4-4"
+								stroke="currentColor"
+								stroke-width="1.5"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							/>
 						</svg>
 					</div>
 				</div>

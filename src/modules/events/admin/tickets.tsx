@@ -1,0 +1,186 @@
+import { component$, useSignal } from "@qwik.dev/core";
+import { routeAction$, z, zod$ } from "@qwik.dev/router";
+import { formatDate, t } from "~/core/ui";
+import TicketScanner from "../components/AdminTicketScanner";
+import TicketsList from "../components/TicketsList";
+import { ticketsService } from "../services/tickets";
+import { requireAdminEvent } from "./event-guards";
+import type { AdminTicketsData } from "./tickets-data";
+
+export const useScanTicketByQr = routeAction$(
+	async (data, event) => {
+		await requireAdminEvent(event);
+		const { params } = event;
+		const { qrCodeUuid } = data;
+
+		console.log("=== SCAN TICKET DEBUG ===");
+		console.log("QR Code UUID:", qrCodeUuid);
+		console.log("Event ID:", params.id);
+
+		const ticket = await ticketsService.getByQrCodeUuid(qrCodeUuid);
+
+		if (!ticket) {
+			console.error("Ticket not found for QR code:", qrCodeUuid);
+			return {
+				success: false,
+				error: t("events.admin.tickets.ticketNotFound"),
+				details: t("events.admin.tickets.noTicketFoundWithQr", { qrCodeUuid }),
+			};
+		}
+
+		console.log("Ticket found:", {
+			ticketId: ticket.id,
+			eventId: ticket.eventId,
+			scannedAt: ticket.scannedAt,
+			buyer: `${ticket.buyer.name} ${ticket.buyer.familyName}`,
+		});
+
+		if (ticket.eventId !== params.id) {
+			console.error("Event mismatch:", {
+				ticketEventId: ticket.eventId,
+				requestedEventId: params.id,
+			});
+			return {
+				success: false,
+				error: t("events.admin.tickets.thisTicketIsNotFor"),
+				details: `Ticket is for event ${ticket.eventId}, but you're scanning for event ${params.id}`,
+			};
+		}
+
+		if (ticket.scannedAt) {
+			console.warn("Ticket already scanned:", {
+				ticketId: ticket.id,
+				scannedAt: ticket.scannedAt,
+			});
+			return {
+				success: false,
+				error: t("events.admin.tickets.thisTicketWasAlreadyScanned"),
+				alreadyScanned: true,
+				scannedAt: ticket.scannedAt,
+				details: t("events.admin.tickets.scannedAt", {
+					scannedAt: formatDate(ticket.scannedAt, "dateTime"),
+				}),
+			};
+		}
+
+		console.log("Attempting to scan ticket...");
+		const scanRes = await ticketsService.scanTicket(qrCodeUuid, params.id);
+
+		if (!scanRes.success) {
+			console.error("scanTicket returned failure - checking current state");
+
+			const latest = await ticketsService.getByQrCodeUuid(qrCodeUuid);
+			console.log("Latest ticket state:", {
+				found: !!latest,
+				scannedAt: latest?.scannedAt,
+			});
+
+			if (latest?.scannedAt) {
+				console.warn("Ticket was scanned by another scanner");
+				return {
+					success: false,
+					error: t("events.admin.tickets.thisTicketWasAlreadyScanned"),
+					alreadyScanned: true,
+					scannedAt: latest.scannedAt,
+					details: t("events.admin.tickets.scannedAt", {
+						scannedAt: formatDate(latest.scannedAt, "dateTime"),
+					}),
+				};
+			}
+
+			// Retry once (in case of transient DB glitch)
+			console.log("Retrying scan...");
+			const retryRes = await ticketsService.scanTicket(qrCodeUuid, params.id);
+			if (retryRes.success) {
+				console.log("Retry successful!");
+				return {
+					success: true,
+					ticket: retryRes.ticket,
+					message: t("events.admin.tickets.ticketScannedSuccessfullyFor", {
+						name: ticket.buyer.name,
+						familyName: ticket.buyer.familyName,
+					}),
+				};
+			}
+
+			console.error(
+				"scanTicket failed to update and ticket remains unscanned",
+				{
+					ticketId: ticket.id,
+					qrCodeUuid,
+					ticketData: ticket,
+				},
+			);
+
+			return {
+				success: false,
+				error: t("events.admin.tickets.failedToScanTicketDatabase"),
+				reason: "update-no-rows-after-retry",
+				ticketId: ticket.id,
+				details: `Database update failed for ticket ${ticket.id}. This might be a database constraint issue or the ticket state changed unexpectedly.`,
+			};
+		}
+
+		const scannedTicket = scanRes.ticket;
+
+		console.log("Scan successful!", {
+			ticketId: scannedTicket.id,
+			scannedAt: scannedTicket.scannedAt,
+		});
+
+		return {
+			success: true,
+			ticket: scannedTicket,
+			message: t("events.admin.tickets.ticketScannedSuccessfullyFor", {
+				name: ticket.buyer.name,
+				familyName: ticket.buyer.familyName,
+			}),
+		};
+	},
+	zod$({
+		qrCodeUuid: z.string().uuid(),
+	}),
+);
+
+type Props = { tickets: AdminTicketsData };
+
+export const AdminEventTickets = component$<Props>(({ tickets }) => {
+	const scanAction = useScanTicketByQr();
+	const searchQuery = useSignal("");
+
+	return (
+		<div class="space-y-6">
+			<div>
+				<h2 class="text-2xl font-bold mb-2">
+					{t("events.admin.tickets.ticketsScanning")}
+				</h2>
+				<p class="text-gray-600">
+					{t("events.admin.tickets.scanQrCodesOrSearch")}
+				</p>
+			</div>
+
+			<TicketScanner action={scanAction} />
+
+			<div class="bg-white rounded-lg shadow-md p-6">
+				<h3 class="text-xl font-semibold mb-4">
+					{t("events.admin.tickets.searchTickets")}
+				</h3>
+				<input
+					type="text"
+					value={searchQuery.value}
+					onInput$={(e) => {
+						searchQuery.value = (e.target as HTMLInputElement).value;
+					}}
+					placeholder={t("events.admin.tickets.searchByBuyerNameEmail")}
+					class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+				/>
+			</div>
+
+			<TicketsList
+				tickets={tickets.tickets}
+				scanAction={scanAction}
+				searchQuery={searchQuery}
+			/>
+		</div>
+	);
+});

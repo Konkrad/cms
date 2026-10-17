@@ -2,8 +2,9 @@ import { $, component$, useOnWindow, useVisibleTask$ } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { CursorPager } from "~/components/ui/CursorPager";
+import { t } from "~/contracts/i18n";
 import type { JobsListData } from "~/contracts/jobs";
-import { useJobsPagination } from "~/routes/jobs/useJobsPagination";
+import { useJobsPagination } from "~/modules/jobs/useJobsPagination";
 
 function locationLabel(job: {
 	locationType: string;
@@ -15,8 +16,8 @@ function locationLabel(job: {
 			[job.city, job.country].filter(Boolean).join(", ") || "On-site / Hybrid"
 		);
 	}
-	if (job.locationType === "remote-eu") return "Remote — EU";
-	return `Remote — ${job.country ?? ""}`;
+	if (job.locationType === "remote-eu") return t("theme.jobsList.remoteEu");
+	return t("theme.jobsList.remote", { value: job.country ?? "" });
 }
 
 /** Themed view for the job board list (`/jobs`). */
@@ -55,8 +56,10 @@ export const JobsListView = component$<{ data: JobsListData }>(({ data }) => {
 	return (
 		<div class="max-w-3xl mx-auto px-4 py-8">
 			<div class="flex items-center justify-between mb-8">
-				<h1 class="text-3xl font-bold text-text-heading">Job Board</h1>
-				<Button href="/jobs/new">Post a Job</Button>
+				<h1 class="text-3xl font-bold text-text-heading">
+					{t("theme.jobsList.jobBoard")}
+				</h1>
+				<Button href="/jobs/new">{t("theme.jobsList.postAJob")}</Button>
 			</div>
 
 			<div class="space-y-4">
@@ -68,7 +71,7 @@ export const JobsListView = component$<{ data: JobsListData }>(({ data }) => {
 						<div class="flex items-start justify-between gap-4">
 							<div class="flex-1 min-w-0">
 								<Link
-									href={`/jobs/${job.id}`}
+									href={job.url}
 									class="text-lg font-semibold text-text-heading hover:text-primary"
 								>
 									{job.title}
@@ -84,7 +87,7 @@ export const JobsListView = component$<{ data: JobsListData }>(({ data }) => {
 									rel="noopener noreferrer"
 									class="shrink-0 inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary"
 								>
-									Apply
+									{t("theme.jobsList.apply")}
 								</a>
 							)}
 						</div>
@@ -94,7 +97,7 @@ export const JobsListView = component$<{ data: JobsListData }>(({ data }) => {
 
 			{jobs.length === 0 && (
 				<div class="text-center py-16 text-text-muted">
-					No job postings at the moment. Check back soon!
+					{t("theme.jobsList.noJobPostingsAtThe")}
 				</div>
 			)}
 
@@ -108,7 +111,7 @@ export const JobsListView = component$<{ data: JobsListData }>(({ data }) => {
 
 			<div class="mt-8 pt-8 border-t border-border text-center">
 				<Link href="/jobs/mine" class="text-sm text-primary hover:text-primary">
-					View my submissions →
+					{t("theme.jobsList.viewMySubmissions")}
 				</Link>
 			</div>
 		</div>

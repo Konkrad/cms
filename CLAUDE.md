@@ -8,40 +8,43 @@
 6. Do not create ad hoc types if a package already provides them; install the existing package types instead.
 7. Do not wrap everything in `try/catch`. Catch only expected errors and let unexpected failures bubble up.
 8. Do not create README or other documentation unless asked.
-9. Migrations use one mechanism everywhere, local dev included: after changing a schema file, run `npm run db:generate` once to write the migration file, then commit it under `drizzle/`. Applying migrations is fully automatic and built into the app itself, not an external script or npm hook — `runMigrations()` in `src/db/migrate.ts` is called directly from `src/entry.node-server.tsx` before it starts listening (prod) and from `vite.config.ts` on dev-server boot (`command === "serve"`, dynamically imported so `vite build` never eagerly loads `src/env.ts`'s validation). It runs whenever the server process starts, regardless of how it's launched — no manual init/migrate step, no shell wrapper. Never apply schema changes with `drizzle-kit push` — a DB it creates has no `__drizzle_migrations` tracking row, so the migration runner will later try to recreate tables that already exist and fail. If a local `my-database.db` predates this (was built via `push`), delete it (and its `-shm`/`-wal` files) and let `npm start` recreate it from `drizzle/`.
+9. Migrations: after changing a schema file run `npm run db:generate` and commit the file under `drizzle/`; never `drizzle-kit push`. Details in the `database` skill.
+10. Use Qwik patterns consistently: `component$()`, `routeLoader$()`, `routeAction$()`, `useSignal()`, and `$()` where serialization requires it.
+11. Notifications (email, Telegram) go only through `notify(id, { to, data })` with a `defineNotification` declaration (module manifest or `src/core/notifications/core-notifications.ts`); the outbox worker sends them. Never call `sendEmail`/Telegram directly; the login OTP/magic-link email (`sendLoginEmail`) is the only synchronous exception. Details in the `add-module` skill.
+12. UI strings (spec 4.8): no hard-coded user-facing text. Put it in a catalog and render it with `t("<ns>.<key>", params?)`: core `src/core/i18n/<locale>.json` (`core.*`, `admin.*`, import from `~/core/i18n`), theme `theme/i18n/` (`theme.*`, via `~/contracts/i18n`), module `src/modules/<id>/i18n/` (`<id>.*`, via `~/core` / `~/core/ui`). Format dates, numbers and money with `formatDate` / `formatNumber` / `formatCurrency` / `formatMoney` (never `toLocale*` or a fixed `Intl` locale). Details in the `add-module` and `theme` skills.
 
-## Qwik And Data Flow
+## Architecture map
 
-- Use Qwik patterns consistently: `component$()`, `routeLoader$()`, `routeAction$()`, `useSignal()`, and `$()` where serialization requires it.
-- Keep route-specific one-off joins in route loaders when abstraction would not be reused; use services for reusable operations.
-- Strip sensitive data server-side in loaders before Qwik serializes state. Do not rely on client-side hiding for privacy.
+- `src/core/<area>/` — core internals: `admin`, `auth`, `content`, `db`, `forms`, `media`, `memberships`, `notifications`, `payments`, `refs`, `registry`, `reviews`, `router`, `scheduler`, `scopes`, `shared`, `tags`, `users`. Each area owns its services, schema (`schema.ts` or `schema/`) and helpers. `src/core/db/schema.ts` merges all schemas.
+- `src/core/notifications/` — `notify()` writes `notification_outbox` rows; `worker.ts` (started in `entry.node-server.tsx` and by a dev-server plugin in `vite.config.ts`) sends them through channel adapters (`channels/`); preferences, signed unsubscribe (`/api/notifications/unsubscribe`), admin failure view at `/admin/root/notifications`.
+- Root files of `src/core` are the only core surface modules may import: `~/core` (`index.ts`, server+client API), `~/core/ui` (UI primitives), `~/core/schema` (core table references), `~/core/seo` (client-safe SEO helpers), `~/core/setup-actions` (onboarding step actions); plus `~/core/i18n` (`t` and the locale formatters, client-safe and light).
+- `src/modules/<id>/` — feature modules (deals, elections, events, jobs, qualifications, social-web), first-party app code under the same license as core, imported as `~/modules/*`; one `schema.ts` per module (a `schema/` folder only for many tables). `modules.config.ts` at the repo root lists the active ones; `src/core/registry/*` registers them (via relative paths).
+- Scoped content (spec 4.2/4.3): every content row (notes, articles, pages, events, jobs, deals, election cycles, qualification types) has a NOT NULL `scope_id` (site-wide = the root); visibility is `public` / `members` / `representatives` (`VISIBILITIES`, `src/core/scopes/visibility.ts`; `allowedVisibilities` decides what an author may pick). Every listing goes through `scopeContentFilter(viewer, scope)` / `requestContentFilter(event)` (`~/core`): own and ancestors' items by visibility, public items from below, never members-only items upward. CMS pages are per scope (`<scope path>/<slug>`); page slugs and scope slugs never collide (`pageSlugProblem`). Moving or renaming a scope (its public and `/admin/<segment>` URLs) and renaming a page write `redirects` rows; `plugin@scope` answers 301.
+- URLs and references (spec 4.3, `src/core/refs/`, bound in `src/core/registry/refs.ts`, exported via `~/core`): every item has one canonical URL under its owning scope (`/germany/berlin/events/<slug>`, `/<scope>/notes/<id>`, `/<scope>/articles/<id>`); its page calls `requireCanonicalUrl(event, await itemUrl(...))` after the auth/visibility checks, so other prefixes answer 301. Never build item URLs by hand: loaders use `itemUrl("events:event", item)` / `withItemUrls(kind, rows)` / `scopeUrl(scope, "/events")` and contracts carry `url` fields (`tests/unit/no-hand-built-item-links.spec.ts`). Never store internal URLs: store references (`scope:<id>`, `scope:<id>/<module>`, `<module>:<type>:<id>`, as `ref:<reference>` in link fields and hrefs; human input form `root/germany/berlin:events`) and resolve them when rendering (`resolveRef(s)`, `renderRichHtml`, `renderBlockRefs`, `resolveMenuUrls`). Menu items, page-builder link fields, rich-text links and notification links are references; `sanitizeRichHtml` keeps only `ref:` and http(s)/mailto/tel links, so services run `internalLinksToRefs` first. Modules declare `refs` in their manifest (`add-module` skill).
+- Notes and articles (spec 4.4, `src/core/content/`): two core types (not modules: events, reviews and social web use them). `notes(id, scopeId, subjectType?, subjectId?, body, visibility, authorId, publishedAt?, updatedAt)` = short text with links only (`sanitizeNoteHtml`, at most `NOTE_MAX_LENGTH` = 1000 characters of text), no title, no image; `articles(…, title NOT NULL, featuredImage?, body, …)` = long form, full rich text, featured image a public S3 key under `public/articles/` (`isArticleImageKey`). Services `notesService` / `articlesService` validate scope, visibility (`allowedVisibilities`), subject (a reference, `subjectType` = `<module>:<type>`) and image key, and sanitize on write (`internalLinksToRefs` first); `publishedAt` null = unpublished (reviews). Refs `core:note:<id>` / `core:article:<id>`, URLs `<scope>/notes/<id>` / `<scope>/articles/<id>`. Listings that mix both (news, scope home, related, archives, updates about an item) read the stream (`stream.list/recent/page/forSubject`, `stream.service.ts`, `types` filter) and render `StreamItemData` (`type` = note | article). Modules use `notes.*` / `articles.*` (`create/update/delete/forSubject`) and `updatesFor(subjectType, id, viewer)` from `~/core`, `NoteForm` / `ArticleForm` from `~/core/ui`; never an updates table of their own.
+- Social web (spec 5.3, `src/modules/social-web/`): RSS 2.0 at `/feed.xml` (`?kind=short` notes, `?kind=long` articles; a note has no `<title>`) and one pull-only ActivityPoll actor (FEP-b06c): `/.well-known/webfinger` (Qwik never routes `/.well-known`; `prepareRawRequest` rewrites it to `/api/well-known/*`), `/social/actor`, `/social/outbox` (Create/Delete activities, `Note` / `Article` with a `preview` per FEP-b2b8), `/social/objects/<type>/<id>`, `/social/inbox` (405 to every write). Built on request from core's read-only `publicFeed` (`~/core`: public, published items of the whole site as a guest sees them, plus `content_tombstones`, written by `notesService` / `articlesService` when a public, published item is deleted or made non-public). Settings `SOCIAL_WEB_*` in `src/env.ts` (`getSocialWebSettings`). Manifest `routes` (own route folders, reserved as scope slugs) and `feeds` (head `<link rel="alternate">` + footer link).
+- Forms (spec 4.10, `src/core/forms/`): `forms(id, scopeId, title, schema (SurveyJS), purpose?)`, `form_results(id, formId, userId, subjectRef?, answers)`, `form_assignments(purpose, scopeId, formId)`. A purpose marks a workflow form (`core.onboarding`, module manifests' `forms: [{ purpose, label }]`); the active form of a purpose is the nearest scope's assignment up the tree. Answers are validated on the server (`validateAnswers`, `answers.ts`) and free text stays plain text (render it as text, never HTML). A form with a result is locked (`FormLockedError`); `formsService.duplicate` makes an editable copy. Surveys and the onboarding survey are filled on `/forms/<id>-<slug>`, the survey block and `/api/forms` (`isSurveyForm`); other purposes only in their workflow. Modules: `forms.active/submit/hasResult/resultsFor` (`~/core`), `FormRenderer` (`~/core/ui`).
+- Reviews (spec 4.9, `src/core/reviews/`): `reviews(id, ref, scopeId, status, submittedBy, reviewedBy, comment, data, formId, createdAt, decidedAt)`, one row per submission. `reviews.submit(ctx, ref, { formId?, answers? })` decides `{ required }` (public, author below coordinator of the owning scope, never approved before), stores answers as a form result by ref and emails `reviews.requested` to the coordinators of the nearest scope above with any (root admins otherwise). Deciders (`canDecide`): coordinators/admins above the item's scope and root admins, never the submitter or the item's own representatives; queue at `/admin/<scope>/reviews` (`REVIEW_ACCESS` lets coordinators in). A decision queues the owner's `reviews: { [type]: { onApproved, onRejected } }` handler in `handler_calls` (named, retried until it succeeds). Core notes and articles use it (`content-review.ts`: created unpublished, published on approval, resubmitted when a rejected item is saved, previewable by author and reviewers); events use it for proposals (`events.status` draft/in_review/published). Never decide whether review is needed yourself (`reviews.isRequired`).
+- Scheduler (`src/core/scheduler/`): manifest `schedules: [{ id, every, run(ctx) }]` of core (`core-schedules.ts`) and ACTIVE modules run from `startScheduler` (entry.node-server + the dev plugin, like the outbox worker); `schedule_runs` holds the next run and a lease, so no double runs across restarts/instances. The same tick runs due `handler_calls`. Failing schedules and handler calls are listed (with Run now / Retry now) in `/admin/root/notifications`. Unit tests call `runDueSchedules` / `processHandlerCallsOnce` directly.
+- Payments (spec 4.7, `src/core/payments/`): `payments(id, moduleId, kind, refId, userId, status, mode, provider, providerRef, providerPaymentRef, amount (cents), currency, lines, subjectRef, …, expiresAt, paidAt)` + `payment_events(paymentId, change, providerEventId)` (unique per change). A module computes the lines from its DB prices and calls `payments.create({ module }, { kind, refId, userId, mode, lines, successPath, cancelPath, subjectRef })` → `{ id, url }` (redirect the buyer); `payments.enabled()` is false without a provider (`PaymentsDisabledError`; offer free flows). One `PaymentProvider` adapter (Stripe Checkout, `stripe-provider.ts`; configured by `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET`). `/api/payments/webhook/[provider]` verifies the signature first, then `applyPaymentChange` queues the module's manifest `payments[kind]` hook (`onPaid/onFailed/onExpired/onRefunded`, subscriptions `onRenewed/onPaymentFailed/onCanceled`) in `handler_calls` once per change, from every registered module (inactive too), plus core's `payments.receipt` email. The hourly `core.payments-expiry` schedule expires abandoned checkouts. Never treat the return to `successPath` as proof of payment (`payments.statusForOwner`). Root admin list at `/admin/root/payments` (filter, item link, refund). Events: a pending `transactions` order per checkout (`services/ticket-checkout.ts`, handlers in `payments.ts`).
+- User requirements (spec 4.6, `src/core/requirements/`): what a user must complete or agree to, never a column on `users`. `user_requirements(userId, requirementId, version, completedAt, value)`; `defineRequirement({ id, version, contexts, title, input (zod, required), fields | view, isApplicable?, prepare?, save? })`. Core's `core.profile`, `core.location` and `core.onboarding` (only while an onboarding form is active) are `global`: the root layout sends a user with a pending one to `/profile/setup?next=…`. Modules list theirs in the manifest (`requirements`, ids `<module>.<name>`, only while the module is active; events: `events.foodPreference`, `events.photoConsent` in `event.checkout`). Loaders return `requirements.steps(user, context)` (theme `RequirementSteps`); every step posts to core's ONE action `useSubmitRequirement` (validates with the requirement's schema, stores the current version; bumping `version` asks everyone again); the page's own actions re-check `requirements.pending(user, context)`. Values are private: admins read them only through named methods (`requirementValuesByUser`, `participationService.getByEventIdWithEmailsAndRequirementValues`). Seeds/fixtures complete them via `scripts/seed-requirements.ts`.
+- i18n (spec 4.8, `src/core/i18n/`): one UI language per site, `SITE_LOCALE` (`en` default, `de`) in `src/env.ts`. The `cms:i18n` Vite plugin (`vite-plugin.ts`, in vite.config.ts) replaces `catalog.ts` at build/dev-server time with the merged catalog of that locale (core + theme + ACTIVE modules, English underneath), so the browser gets one locale; the production server refuses to start with another `SITE_LOCALE` than its build (`assertBuiltSiteLocale`). Without Vite (tsx scripts, vitest) the catalog is English. `t(key, params)` interpolates `{name}`; `params.count` picks `<key>_one` / `<key>_other` (`Intl.PluralRules`); missing keys fall back to English (the build warns). Validation: the router's zod 3 default messages go through the catalog (`zod-errors.ts`, imported by entry.ssr.tsx); zod 4 schemas use zod's own locale. `<html lang>` = `siteLocale`. Every non-English catalog must have exactly the English keys (`tests/unit/i18n-catalogs.spec.ts`, which also checks namespaces, placeholders and that every `t("…")` key exists); `tests/unit/no-hardcoded-jsx-text.spec.ts` flags JSX text in `theme/` and `src/modules/`.
+- `src/core/scopes/` — the scope tree (`scopes`, `scope_roles`, `scope_memberships`); groups, regions and chapters are scopes. `access.ts` is the access layer (roles inherit downward, membership counts upward). A scope's home page is its path (`/germany/berlin`), served by the catch-all.
+- `src/routes/**` — Qwik City routes (loaders, actions, auth). Public module pages are `definePage` entries served by the catch-all `src/routes/[...path]`. Admin lives in `src/routes/admin/[scope]/**` (`[scope]` = dotted slug path: `root`, `germany.berlin`) and is core, not themeable; users, tags, notifications, the site menus and module sections with `scopes: "root"` (the default) exist on the root only; a module section may also be `"all"` or a list of scope kinds (`SCOPE_KINDS` in `src/env.ts`).
+- `theme/` — separately licensed presentation layer for public routes (`blocks`, `chrome`, `emails`, `routes`, `shared`, `tokens`), imported via the `~theme/*` alias. It reaches core data only through `src/contracts/*` types and headless composables.
+- `src/contracts/*.ts` — typed payloads shared between core and theme/modules.
+- `src/components/ui` (UI primitives, see `src/design/DESIGN.md`), `src/design` (tokens fallback), `tests/` (unit, e2e, `fixtures.ts`), `scripts/` (seeds), `drizzle/` (migrations).
 
-## Component And UI Rules
+## Skills
 
-- React components used through `qwikify$()` must be self-contained: keep their CSS alongside the component.
-- Before creating any shared UI primitive or form element, read [src/design/DESIGN.md](src/design/DESIGN.md) and import primitives from `~/components/ui` only.
+Load the matching skill (`.claude/skills/<name>/SKILL.md`) before working in its area:
 
-## Theme vs Core
-
-The presentational layer for public-facing routes lives in `theme/` and is licensed separately from core (`theme/LICENSE`). The admin panel is core and is **not** themeable — see [theme/README.md](theme/README.md) for the folder layout.
-
-- **Qwik City forces route files to stay in `src/routes/**`.** A route file keeps its `routeLoader$`/`routeAction$`/`onRequest`/`head`/auth, strips secrets in the loader, then delegates rendering to a theme `*View` component, passing loader data as typed props.
-- **The props type is the contract.** Derive it from the loader (`NonNullable<ReturnType<typeof useX>["value"]>`) and re-export it from `src/contracts/*.ts`. Theme components import only from `~/contracts/*` and, where a block/view needs live data after SSR (pagination, "Load More"), a core-owned **headless composable** — never `db`, `env`, services, or `~/utils/server-auth` directly.
-- **Page-builder blocks have no route loader**, so each "dynamic" block delegates its data-fetching/pagination to a composable under `src/components/builder/blocks/*.ts` (e.g. `useUpcomingEvents`, `useDealsList`) — plain functions using `useSignal`/`useTask$`/`server$()`, Qwik's native "custom hook" pattern. The composable owns the service/db/auth calls and any `server$()` RPC boundary; the theme block (`theme/blocks/**`) only calls the composable and renders the returned signals. Same split for the `/jobs` list's pagination (`src/routes/jobs/useJobsPagination.ts`). `BlockDefinition`/`FieldDefinition`/`BlockData` (needed by every block for registration) are re-exported type-only from `src/contracts/blocks.ts` rather than `~/db/schema`, so blocks never import `~/db/*` either.
-- **The boundary is enforced, not just documented**: `biome.json` has a `noRestrictedImports` override scoped to `theme/**` that fails the build on any `~/services/*`, `~/db/*`, `~/utils/server-auth`, or `~/env` import from theme. Run `npx biome lint theme` to check. When adding a new dynamic block or new live data need, add a composable in core first — do not import a service directly from `theme/**` to work around the rule.
-- **Import theme code via the `~theme/*` alias** (`~theme/chrome`, `~theme/blocks`, `~theme/routes/**`, `~theme/shared/**`). Never import theme code from a route file via a relative path.
-- **Qwik production-build footgun:** a re-exported `routeAction$`/`routeLoader$` is only resolved correctly by the production Rollup transform when re-exported via a **relative** import path — never `~` or `~theme`. When a step/widget bundles an action with JSX (see `src/components/setup/README.md`), split it: the action stays in core (`src/components/**/useXxx.ts`, re-exported relatively from the route), the JSX moves to `theme/shared/**` (imported via `~theme` alias — only the action re-export hits the broken transform).
-- **Check usage per exported component, not per file.** A single file can export multiple components where only some are theme-exclusive — grepping the file/folder name as "shared" is not enough; check what each consuming route actually imports before moving or splitting (e.g. `ParticipationToggle` vs `ParticipationSummary`, originally one file, split because only the public route used the toggle and only the admin route used the summary).
-- Admin stays un-themeable via the `.admin-shell` scope in `src/global.css`, which re-pins brand token values; `src/routes/admin/layout.tsx` wraps admin in it. Never let an admin-only component read brand tokens (`--color-primary*`, `--color-accent*`) expecting theme values to apply.
-- Design tokens (colors, fonts, radii, shadows) are defined once in `theme/tokens/theme.css` (Tailwind `@theme {}` block) and `theme/tokens/tokens.ts` (TS constants for emails/inline styles), with a core fallback set in `src/design/tokens.css`. Never hardcode hex colors or font stacks in components or emails — reference a token. See [src/design/DESIGN.md](src/design/DESIGN.md) for the full palette and `theme/emails/brand.ts` for email-specific brand strings.
-
-## Database And Auth
-
-- Keep schema files in `src/db/schemas/` and use `better-sqlite3` with Drizzle.
-- Authentication is magic-link plus OTP email-based; follow the helpers in `src/utils/server-auth.ts` and the existing login flow.
-- Public images (events, posts, groups): store the S3 key in the DB; call `publicImageUrlFromKey(key)` from `~/utils/images` to build a direct browser URL using `VITE_S3_BASE_URL`. Thumbnails are derived with `deriveThumbnailKey(key)`.
-- Profile pictures are split: the full-size image (`private/profile-pictures/`) is stored in `users.profilePicture` and must be presigned server-side via `resolvePrivateImageUrl(key)` from `~/utils/secure-urls`; the thumbnail (`public/profile-pictures/`) is stored separately in `users.profilePictureSmall` and served as a direct public URL via `publicImageUrlFromKey`.
-- `VITE_S3_BASE_URL` (e.g. `http://localhost:9000/data` locally, `https://<bucket>.s3.<region>.amazonaws.com` in prod) is the base URL for all public S3 objects. It is a Vite env var accessed via `import.meta.env.VITE_S3_BASE_URL`, not through `src/env.ts`.
+- `testing` — writing or running tests, test plans, e2e fixtures, the pre-commit test run, verifying behavior at runtime.
+- `add-module` — creating or changing a feature module in `src/modules/`, its registration, pages, admin sections, actions, hooks, import boundary.
+- `theme` — anything in `theme/`, contracts, headless composables, design tokens, UI components, `qwikify$`, the theme/core license boundary.
+- `database` — schema changes, migrations, the migration runner, resetting a local DB.
+- `images` — S3 images, public vs private keys, profile pictures, `VITE_S3_BASE_URL`.
+- `job-portal` — the jobs module (`/jobs`, `/admin/root/jobs`).
 
 ## Security
 
@@ -53,174 +56,50 @@ These rules encode mistakes that have actually shipped in this codebase. Treat e
 - Every mutating action and every API route handler must perform its own authorization as its **first statement**, before any `try` block (the auth helpers throw a `redirect`/`error`, and a `try/catch` would swallow it).
 - Use the shared helpers — do not hand-roll checks:
   - `requireAuth(event)` — any logged-in user (returns the user).
-  - `requireAdmin(event)` — platform admin or moderator.
-  - `requireGroupAdmin(event)` (in `~/utils/access-control`) — resolves the `[group_slug]` scope: platform admin for `global`, or a representative of that group. Use this for every action under `admin/[group_slug]/**`.
-  - `requireMembership(event, tier)` — membership-gated routes.
+  - `requireScopeRole(event, minRole)` (`~/core`, `~/core/scopes/access`) — resolves the scope from the `[scope]` admin segment or the public URL prefix, checks the role (inherited downward; admin = moderator; a coordinator is never a manager) and returns `{ user, scope, ancestors }`; 404 for an unknown scope, 403 without the role. Every action under `admin/[scope]/**` uses it (`ADMIN_ACCESS` = any managing role), then limits data to the scope's subtree (`isWithinScope`, `getSubtreeIds`).
+  - `requireSystemAdmin(event)` — root-only system sections (admin/moderator of the root, on `/admin/root`). `requireAdmin(event)` — platform admin (admin/moderator of the root) whatever the URL. There is no `users.role`.
+  - Modules: `requireModuleAdmin(event, { module, section? })` (the section's `scopes` rule comes from the manifest) and `requireModuleAuth(event, module)` (wrappers over the above).
+  - Admin actions that take an item id re-check it with `requireWithinScope(event, scope, item)` (404 outside the URL scope's subtree).
+- `tests/unit/action-auth.spec.ts` enforces this: every `routeAction$`/`globalAction$` and API `onPost/onPut/onPatch/onDelete` in `src/routes`, `src/modules` and `src/core` must start with an auth helper (or a function that starts with one); deliberately public handlers are allow-listed there with the reason.
 - **Never read auth state from `sharedMap.get("session")`** — nothing populates it; it is always `undefined`. Resolve the user via `getCurrentUserData(event)` / `getServerSession(event)`.
 - After adding any action, grep the file: every `export const useX = routeAction$` must have a matching auth call in its body.
 
 ### Don't trust the client for identity, price, or ownership
 
-- Re-resolve sensitive values server-side from an id; never accept them from the request body. Examples in this repo: participant emails are looked up via `usersService.getEmailsByIds()` from `existingUserId` (the search API deliberately never returns emails); checkout recomputes totals from `product.price`; the Stripe webhook verifies the signature before trusting any payload.
+- Re-resolve sensitive values server-side from an id; never accept them from the request body. Examples in this repo: participant emails are looked up via `usersService.getEmailsByIds()` from `existingUserId` (the search API deliberately never returns emails); checkout recomputes totals from `product.price` (modules pass `payments.create` amounts computed from DB prices, never from the request); the payment webhook verifies the signature before trusting any payload or touching the DB.
 - For owner-scoped resources, re-check ownership in **both** the loader and the action (e.g. jobs check `suggestedBy === user.id && status === "pending"` in each).
 - Validate every action input with `zod$`. Whitelist updatable columns explicitly — never spread raw form data into a DB `update`/`insert`, and never let a client set `role`, `status`, ownership, or other privilege fields.
 
+### Services are the privacy boundary (private by default)
+
+- **Services return public shapes by default.** A list/detail method that returns other users returns them as public shapes: relational queries load users with `with: { user: { columns: publicUserColumns } }` (core selects use `publicUserSelect`; both from `src/core/users/public-user.ts`, exported via `~/core` for modules), or an explicit column list. Never `user: true` — `tests/unit/public-user-columns.spec.ts` fails on any `with:` user relation without a column list. Profile pictures go out as the public thumbnail URL (`publicUserThumbnailUrl`), never the private `profilePicture` key.
+- **Private fields only via explicitly named methods** whose name says what they add (e.g. `usersService.getEmailsByIds`, `usersService.getOwnPrivateDetails`, `ticketsService.getByEventIdWithBuyerEmail`, `transactionsService.getByEventIdWithBuyerEmail`, `participationService.getByEventIdWithEmails`, `groupMembershipsService.getMembersWithEmailAndRole`, `adminUsersService.listWithEmailAndRole`, `usersService.getPrivateById`). Call them from admin loaders (or for the viewer's own data) only.
+- **Only services use the db** (`db`, `~/core/db/*` queries): route files, loaders, actions, pages, components and module `*-data.ts` / `public-*.ts` / `actions.ts` files call services. Allowed: `services/`, `service.ts`, `*.service.ts`, and module `payments.ts` handlers. `tests/unit/no-db-outside-services.spec.ts` enforces this.
+- **Visibility decisions are made in the loader/service** (login-only, members-only, role, owner-only): load or return only what the viewer may see (e.g. `notesService.canView` / `articlesService.canView`, the viewer of `stream` listings, `canViewEvent`, owner-only fields added only for the owner). The theme only renders what it gets and never hides data with conditionals.
+- **Page payloads are declared types.** Pages that show another user's data return a payload type declared in `src/contracts/*` (`satisfies` or an explicit return type), not one derived from `ReturnType<typeof useX>`; adding a field to such a page means adding it to the contract.
+- **Leak check (dev/test safety net).** `assertNoPrivateFields(value, { allow })` (`src/core/shared/no-private-fields.ts`, also exported via `~/core`) deep-scans a payload and throws (when `NODE_ENV !== "production"`) on private keys — email, loginId, consent, yearOfBirth, sex, latitude/longitude, foodPreference, photoConsentGiven, profilePicture, phone, login/session secrets, qrCodeUuid, adminNote, any `stripe*` key; see `PRIVATE_FIELD_KEYS`. It runs on every catch-all page result, every admin `*-data.ts` loader result (wrapped in the admin route: `routeLoader$(async (event) => assertNoPrivateFields(await loadX(event)))`) and the core loaders with user data. When a page legitimately shows such a field (admin pages listing emails, the viewer's own profile/checkout/tickets, an event venue's coordinates), allow it explicitly next to the check with a comment saying why: `assertNoPrivateFields(data, { allow: ["email"] })`, or `allowPrivateFields: [...]` on a `definePage`. New loaders that return user data must call it too; never widen an allow list to silence an e2e failure without that justification.
+
 ### Strip secrets before serialization
 
-- Qwik serializes loader/action return values into the HTML sent to the browser. Strip private fields (emails, tokens, raw private S3 keys, other users' PII) in the loader **before** returning. Do not rely on client-side hiding.
+- Qwik serializes loader/action return values into the HTML sent to the browser. Private fields (emails, tokens, raw private S3 keys, other users' PII) must never be in them: strip them in the service (see above), not the theme. Do not rely on client-side hiding.
 
 ### Sanitize stored HTML; never render raw user input
 
-- Any value rendered with `dangerouslySetInnerHTML` must be sanitized server-side **on write** with `sanitizeRichHtml()` from `~/utils/sanitize-html` (do this in the service `create`/`update`, so every write path is covered). BlockNote `body`/`content` is submitted through a hidden input and is fully attacker-controlled — the editor is not a security boundary.
-- Inline SVG must go through `sanitizeSvg()` from `~/utils/svg-sanitize` on write. Keep the sanitizer imports server-only (services / route handlers) so they are not bundled to the client.
+- Any value rendered with `dangerouslySetInnerHTML` must be sanitized server-side **on write** with `sanitizeRichHtml()` from `~/core/content/sanitize-html` (do this in the service `create`/`update`, so every write path is covered). BlockNote `body`/`content` is submitted through a hidden input and is fully attacker-controlled — the editor is not a security boundary.
+- Inline SVG must go through `sanitizeSvg()` from `~/core/content/svg-sanitize` on write. Keep the sanitizer imports server-only (services / route handlers) so they are not bundled to the client.
 
 ### S3 key handling — validate prefixes, presign privately
 
-- Any S3 key supplied by the client and later stored or presigned must be prefix-validated. Profile-picture keys are checked against `private/profile-pictures/` and `public/profile-pictures/` in `usersService.update`; the upload endpoint (`/api/images`) allowlists `x-upload-path` via `sanitizeUploadPrefix` (rejects `..`/absolute/odd charset) and authorizes the destination per prefix via `isUploadAuthorized` (profile-pictures → any user; `private/events/` → staff; other `public/*` → staff or representative). A key alone must never grant a presigned read of an arbitrary private object.
+- Any S3 key supplied by the client and later stored or presigned must be prefix-validated. Profile-picture keys are checked against `private/profile-pictures/` and `public/profile-pictures/` in `usersService.update`, scope home page images against `public/scopes/` in `scopesService.setImage`, article images against `public/articles/` in `articlesService` (`isArticleImageKey`); the upload endpoint (`/api/images`) allowlists `x-upload-path` via `sanitizeUploadPrefix` (rejects `..`/absolute/odd charset) and authorizes the destination per prefix via `isUploadAuthorized` (profile-pictures → any user; `private/events/` → platform admins; other `public/*` → anyone with a managing role on a scope). A key alone must never grant a presigned read of an arbitrary private object.
 - Private objects are served only through `resolvePrivateImageUrl(key)` (short-lived presigned URL); public objects through `publicImageUrlFromKey(key)`. Never expose a private key as if it were a public URL.
 
 ### Auth/session invariants (don't regress these)
 
-- Session cookies are always `httpOnly`, `secure: env.isProduction`, `sameSite: "Strict"`, with an explicit expiry. Tokens come from `randomBytes` (see `~/utils/email-auth`). OTPs are bcrypt-hashed, single-use, expiring, and capped at 5 attempts. Preserve all of these when touching the login flow.
+- Authentication is magic-link plus OTP email-based; follow the helpers in `src/core/auth/server-auth.ts` and the existing login flow.
+- Session cookies are always `httpOnly`, `secure: env.isProduction`, `sameSite: "Strict"`, with an explicit expiry. Tokens come from `randomBytes` (see `~/core/auth/email-auth`). OTPs are bcrypt-hashed, single-use, expiring, and capped at 5 attempts. Preserve all of these when touching the login flow.
 
 ## Linting
 
-- This repo uses Biome (`biome.json`), not eslint. Run `npx biome check .` (or `npm run biome` to auto-fix) after implementing changes, before considering the work complete — the same "run before done" discipline as the Testing section below.
-- A pre-commit hook enforces this automatically: `.githooks/pre-commit` runs Biome against **staged files only** (activated via `git config core.hooksPath .githooks`, wired up on `npm install` through the `prepare` script) and blocks the commit on errors. It's scoped to staged files, not the whole repo, because the repo has pre-existing lint debt that predates this hook — fix what you touch, don't try to clear unrelated debt to get a commit through. The same hook also runs the full Vitest unit suite (fast, no external services) on every commit — e2e (Playwright) is deliberately excluded from the hook since it needs Docker services (MinIO, Mailpit, stripe-mock) and a seeded DB; that still runs in CI. Fix the underlying issue rather than bypassing with `git commit --no-verify` unless explicitly instructed to.
-- `theme/**` has an extra enforced rule: `noRestrictedImports` blocks `~/services/*`, `~/db/*`, `~/utils/server-auth`, `~/env` (see Theme vs Core) — this is the actual enforcement of the theme/core license boundary, not just a style preference.
-
-## Testing
-
-- Every new feature requires a test plan before implementation begins. The plan must identify: what to test (happy path, edge cases, error states), which test type to use (unit, integration, or e2e), and where the test files live.
-- Unit tests go in `tests/unit/` and use Vitest. Use them for pure functions, service logic, and utilities.
-- E2E tests go in `tests/e2e/` and use Playwright (`testDir: "./tests/e2e"`). Use them for user-facing flows, form submissions, and anything requiring a real browser or server.
-- Do not ship a feature without at least one automated test covering the primary happy path.
-- Run `npm test` (unit) and `npx playwright test` (e2e) before considering a feature complete.
-
-### E2E fixtures — always import from `tests/fixtures.ts`
-
-All e2e tests import `{ test, expect }` from `"../fixtures"` (relative to `tests/e2e/`). The `test` object provides four role-based page fixtures:
-
-| Fixture | Auth state |
-|---|---|
-| `guestPage` | No session cookie (unauthenticated) |
-| `memberPage` | Logged in as role `"user"` |
-| `moderatorPage` | Logged in as role `"moderator"` |
-| `adminPage` | Logged in as role `"admin"` |
-
-Use the fixture that matches the access level the test needs:
-
-```typescript
-import { test, expect } from "../fixtures";
-
-test("admin can see the dashboard", async ({ adminPage: page }) => {
-  await page.goto("/admin");
-  await expect(page.locator("h1")).toBeVisible();
-});
-```
-
-When a test needs the `userId` (e.g. to verify a DB column after form submit), call `createUserSession(role)` directly and inject the cookie manually. Use the named DB helpers from `tests/fixtures.ts` — **never call `openDb()` or `new Database()` directly in a test file**:
-
-```typescript
-import { test, expect, createUserSession, getUserById } from "../fixtures";
-
-test("saves profile picture", async ({ browser }) => {
-  const session = createUserSession("admin");
-  const ctx = await browser.newContext();
-  await ctx.addCookies([{ name: "session", value: session.sessionToken, domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Strict" }]);
-  const page = await ctx.newPage();
-  try {
-    // ... test ...
-    const user = getUserById(session.userId);
-    expect(user?.profile_picture as string).toMatch(/^https?:\/\//);
-  } finally {
-    await ctx.close();
-    session.cleanup();
-  }
-});
-```
-
-All DB helpers live in `tests/fixtures.ts`. Available helpers include:
-
-| Helper | Purpose |
-|---|---|
-| `getUserById(id)` | Fetch a full user row |
-| `deleteUserByEmail(email)` | Delete user + login by email (mailpit test cleanup) |
-| `setUserConsentByEmail(email, consent)` | Update consent JSON for a user |
-| `createTestUser(opts)` | Create user with preset consent/food/photo fields |
-| `getGroupBySlug(slug)` | Look up a group by slug |
-| `addGroupMember(userId, groupId)` | Add user to a group |
-| `deleteGroupMember(userId, groupId)` | Remove user from a group |
-| `deleteGroupRepresentative(userId, groupId)` | Remove a group representative |
-| `createTestEvent(userId)` | Create a minimal event with one product |
-| `getPostByTitle(title)` | Fetch a post row by title |
-| `deletePostByTitle(title)` | Delete posts by title |
-| `createPageInDb(opts)` | Insert a page + menu item |
-| `createMenuItemInDb(opts)` | Insert a standalone menu item |
-| `deletePageAndMenuItems(pageId)` | Delete a page and its linked menu items |
-| `deleteMenuItemById(id)` | Delete a single menu item |
-| `getMenuItemByUrl(url)` | Fetch a menu item by URL |
-| `getMenuItemPosition(id)` | Get the position of a menu item |
-| `getPageContent(pageId)` | Get the parsed content blocks of a page |
-
-| `createJobInDb(opts)` | Insert a job row (suggestedBy, title?, status?, expiresAt?) |
-| `getJobById(id)` | Fetch id/title/status/suggested_by for a job |
-| `deleteJobById(id)` | Delete a job row by id |
-
-If you need DB access that none of the above covers, **add a new named helper to `tests/fixtures.ts`** rather than calling `openDb()` in the test.
-
-### Auth flows (login tests)
-
-For tests that exercise the login flow itself, use `guestPage` and the mailpit helpers in `tests/utils/mailpit-client.ts`. Mailpit API runs at `http://localhost:8025`.
-
-### Running e2e tests
-
-```bash
-# All e2e tests
-npx playwright test
-
-# Single file, skip auth setup
-npx playwright test tests/e2e/pages.spec.ts --project chromium --no-deps
-
-# Auth flow tests (no stored session)
-npx playwright test --project auth-flows
-```
-
-## Verification
-
-- Use Playwright to verify behavior when the user wants runtime confirmation or mentions endpoint behavior.
-- For login tests, use the mailpit flow in `tests/utils/mailpit-client.ts` or the magic-link flow through `/login`.
-
-## Job Portal
-
-The job portal lets authenticated members post job listings that go live only after admin approval.
-
-### Routes
-
-| Path | Who | What |
-|---|---|---|
-| `/jobs` | authenticated users | approved, non-expired job listings |
-| `/jobs/[id]` | authenticated users | single job detail |
-| `/jobs/new` | authenticated users | submission form |
-| `/jobs/mine` | authenticated users | own submissions with status |
-| `/jobs/mine/[id]/edit` | owner, pending only | edit a pending submission |
-| `/admin/global/jobs` | admin/moderator | list all jobs, approve, delete |
-| `/admin/global/jobs/[id]/edit` | admin/moderator | full edit + status toggle |
-
-### Key rules
-
-- All public-facing job routes call `requireAuth` — unauthenticated visitors are redirected to `/login`.
-- `status` is `pending` on creation; admin sets it to `approved` to make it visible.
-- `expiresAt` is capped at 30 days from today, enforced server-side in both the submit and user-edit actions.
-- Editing is blocked once a job is approved — the loader redirects away and the action re-checks ownership + `status === "pending"`.
-- The body field uses BlockNote with `textOnly={true}`, which removes image/file/audio/video block types from the editor. The HTML `body` is rendered with `dangerouslySetInnerHTML`, so it is sanitized server-side in `jobsService.create`/`update` via `sanitizeRichHtml()` — the editor is not a security boundary (see Security § Sanitize stored HTML).
-
-### Schema & service
-
-- Schema: `src/db/schemas/jobs.ts` — fields: `id`, `title`, `body`, `editorState`, `locationType`, `city`, `country`, `link`, `expiresAt`, `status`, `suggestedBy`, `createdAt`, `updatedAt`
-- Service: `src/services/jobs.service.ts` — exports `jobsService` and the `JobWithUser` type
-- Relations: `jobs.suggestedBy → users.id` (defined in `src/db/schema.ts`)
-
-### Seed
-
-The seed (`scripts/seed.ts`) inserts 7 jobs: 4 approved (visible), 2 pending (admin queue), 1 expired (filtered out). Jobs appear in both the main and footer menus at `/jobs`.
+- This repo uses Biome (`biome.json`), not eslint. Run `npx biome check .` (or `npm run biome` to auto-fix) after implementing changes, before considering the work complete.
+- `.githooks/pre-commit` (activated by the `prepare` script via `git config core.hooksPath .githooks`) runs Biome on **staged files only** and blocks the commit on errors; it also runs the Vitest unit suite. The repo has pre-existing lint debt: fix what you touch, do not clear unrelated debt. Fix the underlying issue rather than `git commit --no-verify` unless explicitly instructed.
+- Import boundaries are enforced by `noRestrictedImports` overrides in `biome.json` for `theme/**` and `src/modules/**` (check with `npx biome lint theme` / `npx biome lint src/modules`); see the `theme` and `add-module` skills.

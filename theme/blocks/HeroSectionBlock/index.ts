@@ -1,2 +1,1 @@
-export { default } from "./HeroSectionBlock";
-export { definition } from "./HeroSectionBlock";
+export { default, definition } from "./HeroSectionBlock";

@@ -15,6 +15,8 @@
  * command uses instead of scripts/seed.ts to get a clean e2e DB each run.
  *
  * Adds:
+ *  - Root scope with Admin and Host as root admins (platform admins), and a sample
+ *    tree: region "germany" with the chapters "berlin" and "hamburg"
  *  - Admin and Host base users (if not already present)
  *  - QA checkout users (qa.marta, qa.jonas, qa.leonie, qa.tariq)
  *  - user1–user10 test fixture users
@@ -31,8 +33,16 @@ import dotenv from "dotenv";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import fs from "fs";
-import { runMigrations } from "../src/db/migrate.ts";
-import * as schema from "../src/db/schema.ts";
+import { runMigrations } from "../src/core/db/migrate.ts";
+import * as schema from "../src/core/db/schema.ts";
+import { slugify } from "../src/core/shared/slug.ts";
+import {
+	ensureWorkflowForm,
+	eventDebriefFormSeed,
+	eventProposalFormSeed,
+	onboardingFormSeed,
+} from "./seed-forms.ts";
+import { completeRequirements } from "./seed-requirements.ts";
 
 dotenv.config();
 
@@ -50,6 +60,22 @@ runMigrations();
 
 const sqlite = new Database(DB_PATH);
 const db = drizzle({ client: sqlite, relations: schema.schemaRelations });
+
+/** A free event slug in a scope (the events service's rule: the title's slug, then -2, -3, …). */
+function seedEventSlug(scopeId: string, title: string): string {
+	const taken = new Set(
+		db
+			.select({ slug: schema.events.slug })
+			.from(schema.events)
+			.where(eq(schema.events.scopeId, scopeId))
+			.all()
+			.map((r) => r.slug),
+	);
+	const base = slugify(title) || "event";
+	let slug = base;
+	for (let n = 2; taken.has(slug); n++) slug = `${base}-${n}`;
+	return slug;
+}
 
 function uuid() {
 	return crypto.randomUUID();
@@ -71,7 +97,7 @@ let adminUser = db
 	.select()
 	.from(schema.users)
 	.all()
-	.find((u) => u.role === "admin" && u.name === "Admin");
+	.find((u) => u.name === "Admin");
 let hostUser = db
 	.select()
 	.from(schema.users)
@@ -93,7 +119,6 @@ if (!adminUser) {
 			id,
 			name: "Admin",
 			familyName: "User",
-			role: "admin",
 			loginId,
 			createdAt: now(),
 			updatedAt: now(),
@@ -122,7 +147,6 @@ if (!hostUser) {
 			id,
 			name: "Host",
 			familyName: "User",
-			role: "admin",
 			loginId,
 			createdAt: now(),
 			updatedAt: now(),
@@ -136,6 +160,39 @@ if (!hostUser) {
 	console.log("  created host user 'Host' (host@example.com)");
 }
 
+// ─── Scope tree root and platform admins ─────────────────────────────────────
+// A platform admin is an admin of the root scope (there is no users.role).
+
+let rootScope = db
+	.select()
+	.from(schema.scopes)
+	.all()
+	.find((s) => s.parentId === null);
+if (!rootScope) {
+	const id = uuid();
+	db.insert(schema.scopes)
+		.values({
+			id,
+			parentId: null,
+			kind: "root",
+			slug: "",
+			name: "Community",
+			path: "/",
+		})
+		.run();
+	rootScope = db
+		.select()
+		.from(schema.scopes)
+		.all()
+		.find((s) => s.id === id)!;
+}
+for (const admin of [adminUser!, hostUser!]) {
+	db.insert(schema.scopeRoles)
+		.values({ userId: admin.id, scopeId: rootScope.id, role: "admin" })
+		.onConflictDoNothing()
+		.run();
+}
+
 // ─── Home page ("/") ──────────────────────────────────────────────────────────
 // Required plumbing, not demo content: "/" has no dedicated route file — it's
 // resolved by the page-builder catch-all (src/routes/[...slug]) same as
@@ -143,16 +200,19 @@ if (!hostUser) {
 // server 404s at "/", which breaks Playwright's webServer readiness probe
 // (it polls this exact URL) and auth.setup.ts's post-login navigation.
 
-const homeMenuItem = db
+const homePage = db
 	.select()
-	.from(schema.menuItems)
+	.from(schema.pages)
 	.all()
-	.find((m) => m.url === "/");
-if (!homeMenuItem) {
+	.find((p) => p.slug === "" && p.scopeId === rootScope!.id);
+if (!homePage) {
 	const pageId = uuid();
 	db.insert(schema.pages)
 		.values({
 			id: pageId,
+			scopeId: rootScope!.id,
+			slug: "",
+			title: "Home",
 			content: [],
 			status: "published",
 			createdAt: now(),
@@ -164,7 +224,7 @@ if (!homeMenuItem) {
 			id: uuid(),
 			menuName: "main",
 			title: "Home",
-			url: "/",
+			url: `ref:core:page:${pageId}`,
 			pageId,
 			position: 0,
 			status: "visible",
@@ -177,41 +237,18 @@ if (!homeMenuItem) {
 }
 
 // ─── Onboarding survey form ───────────────────────────────────────────────────
-// Required plumbing, not demo content: /profile/setup (theme/routes/onboarding/
-// OnboardingView.tsx) unconditionally reads `form!.schemaJson` once a user still
-// needs the survey step, with no null guard — without this system form the
-// route throws mid-render. surveys/onboard.json is a real repo file (the
-// survey's actual schema), not demo-generated content.
+// Required plumbing, not demo content: /profile/setup shows the active `core.onboarding`
+// form of the root while a user still needs the survey step.
 
-const onboardingForm = db
-	.select()
-	.from(schema.forms)
-	.all()
-	.find((f) => f.systemKey === "affilation");
-if (!onboardingForm) {
-	const onboardJson = JSON.parse(
-		fs.readFileSync("surveys/onboard.json", "utf-8"),
-	);
-	db.insert(schema.forms)
-		.values({
-			id: uuid(),
-			title: "Onboarding Survey",
-			slug: "onboarding",
-			description:
-				"Required during signup — captures how you know us and your academic background.",
-			schemaJson: onboardJson,
-			visibility: "private",
-			scopeType: "global",
-			isSystemForm: true,
-			allowResubmission: true,
-			systemKey: "affilation",
-			createdBy: adminUser!.id,
-			createdAt: now(),
-			updatedAt: now(),
-		})
-		.run();
-	console.log("  created onboarding survey form");
-}
+for (const seed of [
+	onboardingFormSeed(),
+	eventProposalFormSeed(),
+	eventDebriefFormSeed(),
+])
+	ensureWorkflowForm(sqlite, rootScope!.id, adminUser!.id, seed);
+console.log(
+	"  onboarding survey, event proposal and debrief forms active at the root",
+);
 
 // ─── QA checkout users ────────────────────────────────────────────────────────
 
@@ -258,7 +295,6 @@ for (const qaUser of qaCheckoutUserDefs) {
 				id,
 				name: qaUser.name,
 				familyName: qaUser.familyName,
-				role: "user",
 				loginId: login.id,
 				createdAt: now(),
 				updatedAt: now(),
@@ -269,29 +305,6 @@ for (const qaUser of qaCheckoutUserDefs) {
 			.from(schema.users)
 			.all()
 			.find((u) => u.id === id)!;
-	}
-
-	// Ensure consent is set so QA users can reach checkout
-	const consent = (user.consent ?? {}) as Record<string, string | null>;
-	if (!consent.lastProfileUpdate || !consent.locationVerification) {
-		db.update(schema.users)
-			.set({
-				consent: {
-					...consent,
-					lastProfileUpdate: now(),
-					locationVerification: now(),
-					photoConsent: "yes",
-					foodPreference: "none",
-				},
-				updatedAt: now(),
-			})
-			.where(eq(schema.users.id, user.id))
-			.run();
-		user = db
-			.select()
-			.from(schema.users)
-			.all()
-			.find((u) => u.id === user!.id)!;
 	}
 
 	qaCheckoutUsers.push(user);
@@ -316,7 +329,7 @@ let testUsers = db
 	.select()
 	.from(schema.users)
 	.all()
-	.filter((u) => u.role === "user" && testLoginIds.has(u.loginId ?? ""));
+	.filter((u) => testLoginIds.has(u.loginId ?? ""));
 
 if (testUsers.length < 10) {
 	for (let i = testUsers.length; i < 10; i++) {
@@ -331,9 +344,7 @@ if (testUsers.length < 10) {
 				id: uuid(),
 				name: faker.person.firstName(),
 				familyName: faker.person.lastName(),
-				role: "user",
 				loginId,
-				consent: { lastProfileUpdate: now(), locationVerification: now() },
 				createdAt: now(),
 				updatedAt: now(),
 			})
@@ -343,15 +354,51 @@ if (testUsers.length < 10) {
 		.select()
 		.from(schema.users)
 		.all()
-		.filter((u) => u.role === "user" && testLoginIds.has(u.loginId ?? ""));
+		.filter((u) => testLoginIds.has(u.loginId ?? ""));
 }
 console.log(`  test users: ${testUsers.length}`);
 
-// ─── Resolve group IDs ────────────────────────────────────────────────────────
+// ─── Sample scope tree: root → region "Germany" → chapters Berlin, Hamburg ────
 
-const allGroups = db.select().from(schema.groups).all();
+function ensureScope(
+	parent: { id: string; path: string },
+	def: { name: string; slug: string; kind: string },
+) {
+	const path = `${parent.path}${def.slug}/`;
+	const existing = db
+		.select()
+		.from(schema.scopes)
+		.all()
+		.find((s) => s.path === path);
+	if (existing) return existing;
+	const id = uuid();
+	db.insert(schema.scopes)
+		.values({ id, parentId: parent.id, path, ...def })
+		.run();
+	return db
+		.select()
+		.from(schema.scopes)
+		.all()
+		.find((s) => s.id === id)!;
+}
+const sampleRegion = ensureScope(rootScope, {
+	name: "Germany",
+	slug: "germany",
+	kind: "region",
+});
+for (const chapter of [
+	{ name: "Berlin", slug: "berlin" },
+	{ name: "Hamburg", slug: "hamburg" },
+]) {
+	ensureScope(sampleRegion, { ...chapter, kind: "chapter" });
+}
+console.log("  scope tree: root → germany → berlin, hamburg");
+
+// ─── Resolve group (chapter scope) IDs by slug ───────────────────────────────
+
+const allScopes = db.select().from(schema.scopes).all();
 const groupIds: Record<string, string> = Object.fromEntries(
-	allGroups.map((g) => [g.slug, g.id]),
+	allScopes.filter((g) => g.parentId !== null).map((g) => [g.slug, g.id]),
 );
 
 // ─── QA Events ───────────────────────────────────────────────────────────────
@@ -366,7 +413,7 @@ const qaEventDefs: Array<{
 	title: string;
 	body: string;
 	groupSlug: string | null;
-	visibility: "global" | "group-only";
+	visibility: "public" | "members";
 	authorIdx: number;
 	startOffsetDays: number;
 	durationHours: number;
@@ -380,7 +427,7 @@ const qaEventDefs: Array<{
 		title: "Past Meetup (E2E)",
 		body: "<p>Past event used for E2E tests.</p>",
 		groupSlug: "berlin",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: -1,
 		startOffsetDays: -30,
 		durationHours: 2,
@@ -394,7 +441,7 @@ const qaEventDefs: Array<{
 		title: "Checkout QA – Multi-Ticket & Capacity",
 		body: "<p>QA event for checkout validation: quantity controls, participant assignment, and capacity limits.</p>",
 		groupSlug: "berlin",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: -1,
 		startOffsetDays: 16,
 		durationHours: 4,
@@ -421,6 +468,10 @@ for (const e of qaEventDefs) {
 		.values({
 			id: uuid(),
 			title: e.title,
+			slug: seedEventSlug(
+				e.groupSlug ? (groupIds[e.groupSlug] ?? rootScope!.id) : rootScope!.id,
+				e.title,
+			),
 			body: e.body,
 			startDate: start,
 			endDate: end,
@@ -432,7 +483,9 @@ for (const e of qaEventDefs) {
 			latitude: e.latitude,
 			onlineUrl: null,
 			userId: resolveAuthor(e.authorIdx),
-			groupId: e.groupSlug ? (groupIds[e.groupSlug] ?? null) : null,
+			scopeId: e.groupSlug
+				? (groupIds[e.groupSlug] ?? rootScope!.id)
+				: rootScope!.id,
 			visibility: e.visibility,
 			createdAt: now(),
 			updatedAt: now(),
@@ -508,7 +561,6 @@ function seedInventory(opts: {
 				participantCapacity: p.participantCapacity ?? 1,
 				features: [],
 				imageKey: null,
-				stripeProductId: null,
 				soldQuantity: p.soldQuantity ?? 0,
 				createdAt: now(),
 				updatedAt: now(),
@@ -700,6 +752,35 @@ function seedTransaction(opts: {
 	const purchaseDate = new Date();
 	purchaseDate.setDate(purchaseDate.getDate() - opts.daysAgo);
 
+	// A paid order has its core payment (spec 4.7); free ones have none.
+	const paymentId = totalAmount > 0 ? uuid() : null;
+	if (paymentId)
+		db.insert(schema.payments)
+			.values({
+				id: paymentId,
+				moduleId: "events",
+				kind: "tickets",
+				refId: txId,
+				userId: buyer.id,
+				status: "paid",
+				mode: "payment",
+				provider: "stripe",
+				providerRef: `cs_seed_${uuid().slice(0, 8)}`,
+				providerPaymentRef: `pi_seed_${uuid().slice(0, 8)}`,
+				amount: Math.round(totalAmount * 100),
+				currency: "eur",
+				lines: itemValues.map((iv) => ({
+					label:
+						eventProducts.find((p) => p.id === iv.productId)?.name ?? "Ticket",
+					amount: Math.round(iv.unitPrice * 100),
+					quantity: iv.quantity,
+				})),
+				subjectRef: `events:event:${event.id}`,
+				createdAt: purchaseDate.toISOString(),
+				updatedAt: purchaseDate.toISOString(),
+				paidAt: purchaseDate.toISOString(),
+			})
+			.run();
 	db.insert(schema.transactions)
 		.values({
 			id: txId,
@@ -707,8 +788,8 @@ function seedTransaction(opts: {
 			userId: buyer.id,
 			totalAmount,
 			transactionFee: fee,
-			stripeSessionId: `cs_seed_${uuid().slice(0, 8)}`,
-			stripePaymentId: totalAmount > 0 ? `pi_seed_${uuid().slice(0, 8)}` : null,
+			status: "paid",
+			paymentId,
 			paymentDate: purchaseDate.toISOString(),
 			createdAt: purchaseDate.toISOString(),
 		})
@@ -1302,6 +1383,7 @@ for (const c of electionCycleDefs) {
 		db.insert(schema.electionCycles)
 			.values({
 				id,
+				scopeId: rootScope!.id,
 				title: c.title,
 				year: c.year,
 				description: c.description,
@@ -1474,6 +1556,20 @@ const appCount = db.select().from(schema.electionApplications).all().length;
 console.log(
 	`  elections seeded (${cycleCount} cycles, ${posCount} positions, ${appCount} applications)`,
 );
+
+// ─── User requirements ────────────────────────────────────────────────────────
+// Seeded users (admin, QA checkout users, user1–10, …) have completed every requirement
+// (spec 4.6), so e2e logins are not sent to /profile/setup or asked at checkout.
+
+completeRequirements(
+	sqlite,
+	db
+		.select({ id: schema.users.id })
+		.from(schema.users)
+		.all()
+		.map((u) => u.id),
+);
+console.log("  user requirements completed for every seeded user");
 
 // ─── Done ─────────────────────────────────────────────────────────────────────
 

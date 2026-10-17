@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { t } from "~/contracts/i18n";
 
 interface QuoteBlockProps {
 	quote?: string;
@@ -8,26 +9,35 @@ interface QuoteBlockProps {
 }
 
 export const definition: BlockDefinition = {
-	name: "Quote",
+	name: t("theme.blocks.quote.quote"),
 	componentType: "QuoteBlock",
 	category: "content",
 	icon: "💬",
 	configSchema: [
 		{
 			name: "quote",
-			label: "Quote",
+			label: t("theme.blocks.quote.quote"),
 			type: "textarea",
-			defaultValue: "Your quote goes here.",
+			defaultValue: t("theme.blocks.quote.yourQuoteGoesHere"),
 		},
-		{ name: "attribution", label: "Name", type: "text", required: false },
+		{
+			name: "attribution",
+			label: t("theme.blocks.quote.name"),
+			type: "text",
+			required: false,
+		},
 		{
 			name: "role",
-			label: "Role / Organisation",
+			label: t("theme.blocks.quote.roleOrganisation"),
 			type: "text",
 			required: false,
 		},
 	],
-	defaultData: { quote: "Your quote goes here.", attribution: "", role: "" },
+	defaultData: {
+		quote: t("theme.blocks.quote.yourQuoteGoesHere"),
+		attribution: "",
+		role: "",
+	},
 };
 
 export default component$<QuoteBlockProps>((props) => {

@@ -15,7 +15,11 @@ import {
 } from "@qwik.dev/router/middleware/node";
 import "dotenv/config";
 import { createServer } from "node:http";
-import { runMigrations } from "./db/migrate";
+import { runMigrations } from "./core/db/migrate";
+import { assertBuiltSiteLocale } from "./core/i18n/server";
+import { startOutboxWorker } from "./core/notifications/worker";
+import { prepareRawRequest } from "./core/registry/raw-request";
+import { startScheduler } from "./core/scheduler/worker";
 import render from "./entry.ssr";
 import { env } from "./env";
 
@@ -23,11 +27,17 @@ declare global {
 	interface QwikRouterPlatform extends PlatformNode {}
 }
 
+assertBuiltSiteLocale();
 runMigrations();
+// Sends queued notifications (src/core/notifications) from this process, after migrations.
+startOutboxWorker();
+// Runs the schedules of core and the active modules (and retried review handlers).
+startScheduler();
 
 const { router, notFound, staticFile } = createQwikRouter({ render });
 
 const server = createServer((req, res) => {
+	prepareRawRequest(req);
 	staticFile(req, res, () => {
 		router(req, res, () => {
 			notFound(req, res, () => {});

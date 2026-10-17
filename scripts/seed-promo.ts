@@ -27,7 +27,8 @@ import {
 import Database from "better-sqlite3";
 import dotenv from "dotenv";
 import sharp from "sharp";
-import { runMigrations } from "../src/db/migrate.ts";
+import { runMigrations } from "../src/core/db/migrate.ts";
+import { completeRequirements } from "./seed-requirements.ts";
 
 dotenv.config();
 
@@ -167,9 +168,9 @@ type CastMember = {
 	name: string;
 	familyName: string;
 	role: "user" | "admin";
-	/** null = leave unset so the checkout flow's FoodPreferenceStep prompts live. */
+	/** null = leave the `events.foodPreference` requirement pending so checkout asks live. */
 	foodPreference: string | null;
-	/** null = leave unset so the checkout flow's PhotoConsentStep prompts live. */
+	/** null = leave the `events.photoConsent` requirement pending so checkout asks live. */
 	photoConsentGiven: boolean | null;
 };
 
@@ -183,7 +184,7 @@ const CAST: CastMember[] = [
 		name: "Priya",
 		familyName: "Kapoor",
 		role: "admin",
-		foodPreference: "No restrictions",
+		foodPreference: "none",
 		photoConsentGiven: true,
 	},
 	{
@@ -199,7 +200,7 @@ const CAST: CastMember[] = [
 		name: "Jordan",
 		familyName: "Alvarez",
 		role: "user",
-		foodPreference: "Vegetarian",
+		foodPreference: "vegetarian",
 		photoConsentGiven: true,
 	},
 	{
@@ -207,7 +208,7 @@ const CAST: CastMember[] = [
 		name: "Elena",
 		familyName: "Ruiz",
 		role: "user",
-		foodPreference: "Vegan",
+		foodPreference: "vegan",
 		photoConsentGiven: true,
 	},
 	{
@@ -215,7 +216,7 @@ const CAST: CastMember[] = [
 		name: "Marcus",
 		familyName: "Webb",
 		role: "user",
-		foodPreference: "No restrictions",
+		foodPreference: "none",
 		photoConsentGiven: true,
 	},
 	{
@@ -223,7 +224,7 @@ const CAST: CastMember[] = [
 		name: "Sofia",
 		familyName: "Novak",
 		role: "user",
-		foodPreference: "Gluten-free",
+		foodPreference: "gluten_free",
 		photoConsentGiven: false,
 	},
 	{
@@ -231,7 +232,7 @@ const CAST: CastMember[] = [
 		name: "Tariq",
 		familyName: "Hassan",
 		role: "user",
-		foodPreference: "No restrictions",
+		foodPreference: "none",
 		photoConsentGiven: true,
 	},
 	{
@@ -239,7 +240,7 @@ const CAST: CastMember[] = [
 		name: "Noah",
 		familyName: "Bergman",
 		role: "user",
-		foodPreference: "No restrictions",
+		foodPreference: "none",
 		photoConsentGiven: true,
 	},
 ];
@@ -280,14 +281,6 @@ for (const person of CAST) {
 		"2099-01-01T00:00:00.000Z",
 	);
 
-	const consent: Record<string, string> = {
-		profile: now(),
-		lastProfileUpdate: now(),
-		locationVerification: now(),
-	};
-	if (person.foodPreference !== null) consent.foodPreference = now();
-	if (person.photoConsentGiven !== null) consent.photoConsent = now();
-
 	const slug = `${person.name}-${person.familyName}`
 		.toLowerCase()
 		.replace(/\s+/g, "-");
@@ -300,22 +293,46 @@ for (const person of CAST) {
 	const userId = uuid();
 	db.prepare(
 		`INSERT INTO users
-			(id, name, family_name, login_id, role, consent, food_preference, photo_consent_given, profile_picture, profile_picture_small, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			(id, name, family_name, login_id, profile_picture, profile_picture_small, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		userId,
 		person.name,
 		person.familyName,
 		loginId,
-		person.role,
-		JSON.stringify(consent),
-		person.foodPreference,
-		person.photoConsentGiven === null ? null : person.photoConsentGiven ? 1 : 0,
 		profilePicture,
 		profilePictureSmall,
 		now(),
 		now(),
 	);
+
+	// Profile, location and onboarding done; the checkout answers only where the cast has them.
+	completeRequirements(db, [userId], {
+		except: [
+			...(person.foodPreference === null ? ["events.foodPreference"] : []),
+			...(person.photoConsentGiven === null ? ["events.photoConsent"] : []),
+		],
+		values: {
+			"events.foodPreference": { foodPreference: person.foodPreference },
+			"events.photoConsent": { photoConsentGiven: person.photoConsentGiven },
+		},
+	});
+
+	// A platform admin is an admin of the root scope (there is no users.role).
+	if (person.role === "admin") {
+		let root = db
+			.prepare("SELECT id FROM scopes WHERE parent_id IS NULL")
+			.get() as { id: string } | undefined;
+		if (!root) {
+			root = { id: uuid() };
+			db.prepare(
+				"INSERT INTO scopes (id, parent_id, kind, slug, name, path) VALUES (?, NULL, 'root', '', 'Community', '/')",
+			).run(root.id);
+		}
+		db.prepare(
+			"INSERT OR IGNORE INTO scope_roles (user_id, scope_id, role) VALUES (?, ?, 'admin')",
+		).run(userId, root.id);
+	}
 
 	console.log(
 		`  created ${person.role} '${person.name} ${person.familyName}' (${person.email})`,

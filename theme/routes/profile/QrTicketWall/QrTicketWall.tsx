@@ -1,6 +1,7 @@
 import { $, component$, useSignal, useVisibleTask$ } from "@qwik.dev/core";
 import { Modal } from "~/components/ui/Modal";
 import { SectionCard } from "~/components/ui/SectionCard";
+import { formatDate, t } from "~/contracts/i18n";
 import type { TicketWithRelations } from "~/contracts/profile";
 
 interface QrTicketWallProps {
@@ -23,14 +24,6 @@ function groupByEvent(tickets: TicketWithRelations[]) {
 		}
 	}
 	return Array.from(map.values());
-}
-
-function formatEventDate(dateString: string) {
-	return new Date(dateString).toLocaleDateString("en-US", {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-	});
 }
 
 export default component$<QrTicketWallProps>(
@@ -69,7 +62,7 @@ export default component$<QrTicketWallProps>(
 		if (tickets.length === 0) return null;
 
 		return (
-			<SectionCard title="My Tickets">
+			<SectionCard title={t("theme.qrTicketWall.myTickets")}>
 				<div class="space-y-3">
 					{eventGroups.map((group) => (
 						<button
@@ -91,7 +84,7 @@ export default component$<QrTicketWallProps>(
 								{group.event.title}
 							</span>
 							<span class="block text-sm text-text-muted mt-0.5">
-								{formatEventDate(group.event.startDate)}
+								{formatDate(group.event.startDate)}
 							</span>
 						</button>
 					))}
@@ -128,7 +121,7 @@ export default component$<QrTicketWallProps>(
 								<div class="inline-block bg-white border border-border rounded-xl p-3 shadow-sm">
 									<img
 										src={`/profile/tickets/${currentTicket.id}_${qrBust[currentTicket.id] ?? currentTicket.qrCodeUuid}`}
-										alt="Ticket QR Code"
+										alt={t("theme.qrTicketWall.ticketQrCode")}
 										width={256}
 										height={256}
 										class="w-64 h-64 block"
@@ -143,13 +136,13 @@ export default component$<QrTicketWallProps>(
 									{currentTicket.participants[0] && (
 										<p class="text-sm text-text-muted mt-0.5">
 											{currentTicket.participants[0].userId === buyerUserId
-												? "You"
+												? t("theme.qrTicketWall.you")
 												: currentTicket.participants[0].name}
 										</p>
 									)}
 									{currentTicket.scannedAt && (
 										<span class="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full bg-success-bg border border-success-border text-xs text-success font-medium">
-											✓ Already scanned
+											{t("theme.qrTicketWall.alreadyScanned")}
 										</span>
 									)}
 								</div>
@@ -167,7 +160,7 @@ export default component$<QrTicketWallProps>(
 												);
 											}}
 											class="p-2 rounded-full border border-border hover:bg-bg disabled:opacity-30 transition-colors"
-											aria-label="Previous ticket"
+											aria-label={t("theme.qrTicketWall.previousTicket")}
 										>
 											<svg
 												class="w-5 h-5"
@@ -201,7 +194,7 @@ export default component$<QrTicketWallProps>(
 												);
 											}}
 											class="p-2 rounded-full border border-border hover:bg-bg disabled:opacity-30 transition-colors"
-											aria-label="Next ticket"
+											aria-label={t("theme.qrTicketWall.nextTicket")}
 										>
 											<svg
 												class="w-5 h-5"

@@ -1,333 +1,352 @@
 import {
-  component$,
-  useSignal,
-  useVisibleTask$,
-  useStyles$,
-  type QRL,
-  type Signal,
-  noSerialize,
-  type NoSerialize,
+	component$,
+	type NoSerialize,
+	noSerialize,
+	type QRL,
+	type Signal,
+	useSignal,
+	useStyles$,
+	useVisibleTask$,
 } from "@qwik.dev/core";
 import Uppy from "@uppy/core";
-import Dashboard from "@uppy/dashboard";
-import ImageEditor from "@uppy/image-editor";
-import XHRUpload from "@uppy/xhr-upload";
-
-import dashboardStyles from "@uppy/dashboard/css/style.css?inline";
 import coreStyles from "@uppy/core/css/style.css?inline";
+import Dashboard from "@uppy/dashboard";
+import dashboardStyles from "@uppy/dashboard/css/style.css?inline";
+import ImageEditor from "@uppy/image-editor";
 import imageEditorStyles from "@uppy/image-editor/css/style.css?inline";
+import XHRUpload from "@uppy/xhr-upload";
+import { t } from "~/core/i18n";
 
 const uploaderOverrides = `
   .uppy-DashboardContent-title { display: none; }
 `;
 
 interface UploadedFileResponse {
-  url?: string;
-  filePath?: string;
-  thumbnailPath?: string;
+	url?: string;
+	filePath?: string;
+	thumbnailPath?: string;
 }
 
 interface ImageUploaderProps {
-  /** Storage path prefix in S3 (e.g. 'public/events', 'public/profiles') */
-  path: string;
-  /** Processing pipeline — determines resize logic on the backend. Defaults to 'standard'. */
-  pipeline?: "standard" | "gallery" | "thumbnail" | "profile-picture" | "svg";
-  /** Set to true to trigger the upload (e.g. on form submit). Required unless autoUpload is true. */
-  triggerSignal?: Signal<boolean>;
-  /** When true, shows the Uppy upload button and uploads immediately. No triggerSignal needed. */
-  autoUpload?: boolean;
-  /** Called when upload finishes (success or failure) or when there are no files to upload. Used with triggerSignal. */
-  onSettled$?: QRL<() => void>;
-  /** When true, opens a crop editor for selected images before upload. */
-  crop?: boolean;
-  /** Fixed crop ratio expressed as width/height, e.g. "3/4" for portrait. */
-  cropAspectRatio?: string;
-  /** Called immediately when a file is selected, with its blob URL for preview. */
-  onFileSelected$?: QRL<(blobUrl: string) => void>;
-  /** Called for each successfully uploaded file with the API response. Useful in autoUpload mode. */
-  onFileUploaded$?: QRL<(response: UploadedFileResponse) => void>;
-  /** CSS aspect-ratio value for the widget (e.g. "16/9", "1/1", "4/3"). Defaults to "16/9". */
-  aspectRatio?: string;
-  /** HTML input name — emits hidden inputs so the form can read uploaded URLs */
-  name?: string;
-  /** Existing image URL for preview in edit forms. */
-  currentUrl?: string;
-  /** Existing stored key/value to keep when no new upload is selected. */
-  currentValue?: string;
+	/** Storage path prefix in S3 (e.g. 'public/events', 'public/profiles') */
+	path: string;
+	/** Processing pipeline — determines resize logic on the backend. Defaults to 'standard'. */
+	pipeline?: "standard" | "gallery" | "thumbnail" | "profile-picture" | "svg";
+	/** Set to true to trigger the upload (e.g. on form submit). Required unless autoUpload is true. */
+	triggerSignal?: Signal<boolean>;
+	/** When true, shows the Uppy upload button and uploads immediately. No triggerSignal needed. */
+	autoUpload?: boolean;
+	/** Called when upload finishes (success or failure) or when there are no files to upload. Used with triggerSignal. */
+	onSettled$?: QRL<() => void>;
+	/** When true, opens a crop editor for selected images before upload. */
+	crop?: boolean;
+	/** Fixed crop ratio expressed as width/height, e.g. "3/4" for portrait. */
+	cropAspectRatio?: string;
+	/** Called immediately when a file is selected, with its blob URL for preview. */
+	onFileSelected$?: QRL<(blobUrl: string) => void>;
+	/** Called for each successfully uploaded file with the API response. Useful in autoUpload mode. */
+	onFileUploaded$?: QRL<(response: UploadedFileResponse) => void>;
+	/** CSS aspect-ratio value for the widget (e.g. "16/9", "1/1", "4/3"). Defaults to "16/9". */
+	aspectRatio?: string;
+	/** HTML input name — emits hidden inputs so the form can read uploaded URLs */
+	name?: string;
+	/** Existing image URL for preview in edit forms. */
+	currentUrl?: string;
+	/** Existing stored key/value to keep when no new upload is selected. */
+	currentValue?: string;
 }
 
 export const ImageUploader = component$((props: ImageUploaderProps) => {
-  useStyles$(coreStyles);
-  useStyles$(dashboardStyles);
-  useStyles$(imageEditorStyles);
-  useStyles$(uploaderOverrides);
+	useStyles$(coreStyles);
+	useStyles$(dashboardStyles);
+	useStyles$(imageEditorStyles);
+	useStyles$(uploaderOverrides);
 
-  const containerRef = useSignal<Element>();
-  const uppyRef = useSignal<NoSerialize<Uppy>>();
-  const uploadedValues = useSignal<string[]>([]);
-  const selectedPreviewUrl = useSignal<string | null>(null);
-  const isImageReady = useSignal(false);
+	const containerRef = useSignal<Element>();
+	const uppyRef = useSignal<NoSerialize<Uppy>>();
+	const uploadedValues = useSignal<string[]>([]);
+	const selectedPreviewUrl = useSignal<string | null>(null);
+	const isImageReady = useSignal(false);
 
-  const cropAspectRatio = props.cropAspectRatio
-    ? (() => {
-        const [width, height] = props.cropAspectRatio.split("/").map(Number);
-        return width > 0 && height > 0 ? width / height : undefined;
-      })()
-    : undefined;
+	const cropAspectRatio = props.cropAspectRatio
+		? (() => {
+				const [width, height] = props.cropAspectRatio.split("/").map(Number);
+				return width > 0 && height > 0 ? width / height : undefined;
+			})()
+		: undefined;
 
-  // Initialise Uppy once the widget container is visible in the DOM.
-  useVisibleTask$(({ cleanup }) => {
-    // Compute pixel height from the container's current width + aspectRatio
-    const [aw, ah] = (props.aspectRatio ?? "16/9").split("/").map(Number);
-    const containerWidth = (containerRef.value as HTMLElement)?.clientWidth ?? 600;
-    const computedHeight = Math.round(containerWidth * (ah / aw));
+	// Initialise Uppy once the widget container is visible in the DOM.
+	// biome-ignore lint/correctness/noQwikUseVisibleTask: Uppy needs the DOM container in the browser
+	useVisibleTask$(({ cleanup }) => {
+		// Compute pixel height from the container's current width + aspectRatio
+		const [aw, ah] = (props.aspectRatio ?? "16/9").split("/").map(Number);
+		const containerWidth =
+			(containerRef.value as HTMLElement)?.clientWidth ?? 600;
+		const computedHeight = Math.round(containerWidth * (ah / aw));
 
-    const uppy = new Uppy({
-      debug: false,
-      autoProceed: false,
-      restrictions: {
-        maxNumberOfFiles: props.pipeline === "gallery" ? 20 : 1,
-        allowedFileTypes: ["image/*"],
-      },
-    })
-      .use(Dashboard, {
-        inline: true,
-        target: containerRef.value as HTMLElement,
-        width: "100%",
-        height: computedHeight,
-        hideProgressDetails: false,
-        hideUploadButton: !props.autoUpload,
-        proudlyDisplayPoweredByUppy: false,
-        autoOpen: props.crop ? "imageEditor" : undefined,
-        plugins: props.crop ? ["ImageEditor"] : undefined,
-        locale: props.crop
-          ? { strings: { save: "Confirm Crop" } }
-          : undefined,
-      })
-      .use(ImageEditor, {
-        target: Dashboard as any,
-        quality: 1,
-        cropperOptions: {
-          aspectRatio: cropAspectRatio,
-          viewMode: 1,
-          background: false,
-          autoCropArea: 1,
-          responsive: true,
-        },
-        actions: {
-          revert: true,
-          rotate: false,
-          granularRotate: false,
-          flip: false,
-          zoomIn: true,
-          zoomOut: true,
-          cropSquare: false,
-          cropWidescreen: false,
-          cropWidescreenVertical: false,
-        },
-      })
-      .use(XHRUpload, {
-        endpoint: "/api/images",
-        formData: false,
-        headers: {
-          "x-upload-path": props.path,
-          "x-pipeline": props.pipeline ?? "standard",
-        },
-      });
+		const uppy = new Uppy({
+			debug: false,
+			autoProceed: false,
+			restrictions: {
+				maxNumberOfFiles: props.pipeline === "gallery" ? 20 : 1,
+				allowedFileTypes: ["image/*"],
+			},
+		})
+			.use(Dashboard, {
+				inline: true,
+				target: containerRef.value as HTMLElement,
+				width: "100%",
+				height: computedHeight,
+				hideProgressDetails: false,
+				hideUploadButton: !props.autoUpload,
+				proudlyDisplayPoweredByUppy: false,
+				autoOpen: props.crop ? "imageEditor" : undefined,
+				plugins: props.crop ? ["ImageEditor"] : undefined,
+				locale: props.crop
+					? { strings: { save: t("core.ui.imageUploader.confirmCrop") } }
+					: undefined,
+			})
+			.use(ImageEditor, {
+				target: Dashboard as any,
+				quality: 1,
+				cropperOptions: {
+					aspectRatio: cropAspectRatio,
+					viewMode: 1,
+					background: false,
+					autoCropArea: 1,
+					responsive: true,
+				},
+				actions: {
+					revert: true,
+					rotate: false,
+					granularRotate: false,
+					flip: false,
+					zoomIn: true,
+					zoomOut: true,
+					cropSquare: false,
+					cropWidescreen: false,
+					cropWidescreenVertical: false,
+				},
+			})
+			.use(XHRUpload, {
+				endpoint: "/api/images",
+				formData: false,
+				headers: {
+					"x-upload-path": props.path,
+					"x-pipeline": props.pipeline ?? "standard",
+				},
+			});
 
-    const updatePreview = (blob: Blob) => {
-      if (selectedPreviewUrl.value) {
-        URL.revokeObjectURL(selectedPreviewUrl.value);
-      }
-      selectedPreviewUrl.value = URL.createObjectURL(blob);
-      props.onFileSelected$?.(selectedPreviewUrl.value);
-    };
+		const updatePreview = (blob: Blob) => {
+			if (selectedPreviewUrl.value) {
+				URL.revokeObjectURL(selectedPreviewUrl.value);
+			}
+			selectedPreviewUrl.value = URL.createObjectURL(blob);
+			props.onFileSelected$?.(selectedPreviewUrl.value);
+		};
 
-    let cropMoveCleanup: (() => void) | null = null;
+		let cropMoveCleanup: (() => void) | null = null;
 
-    const attachCropMoveListener = () => {
-      const imageEditorPlugin = uppy.getPlugin("ImageEditor") as any;
-      if (!imageEditorPlugin?.cropper || !imageEditorPlugin?.imgElement) return;
+		const attachCropMoveListener = () => {
+			const imageEditorPlugin = uppy.getPlugin("ImageEditor") as any;
+			if (!imageEditorPlugin?.cropper || !imageEditorPlugin?.imgElement) return;
 
-      const { cropper, imgElement } = imageEditorPlugin;
+			const { cropper, imgElement } = imageEditorPlugin;
 
-      const onCropChange = () => {
-        try {
-          const canvas = cropper.getCroppedCanvas();
-          canvas.toBlob((blob: Blob | null) => {
-            if (blob) updatePreview(blob);
-          }, "image/webp", 0.95);
-        } catch (_err) {
-          // ignore
-        }
-      };
+			const onCropChange = () => {
+				try {
+					const canvas = cropper.getCroppedCanvas();
+					canvas.toBlob(
+						(blob: Blob | null) => {
+							if (blob) updatePreview(blob);
+						},
+						"image/webp",
+						0.95,
+					);
+				} catch (_err) {
+					// ignore
+				}
+			};
 
-      imgElement.addEventListener("cropmove", onCropChange);
-      imgElement.addEventListener("cropend", onCropChange);
-      imgElement.addEventListener("zoom", onCropChange);
+			imgElement.addEventListener("cropmove", onCropChange);
+			imgElement.addEventListener("cropend", onCropChange);
+			imgElement.addEventListener("zoom", onCropChange);
 
-      cropMoveCleanup = () => {
-        imgElement.removeEventListener("cropmove", onCropChange);
-        imgElement.removeEventListener("cropend", onCropChange);
-        imgElement.removeEventListener("zoom", onCropChange);
-      };
-    };
+			cropMoveCleanup = () => {
+				imgElement.removeEventListener("cropmove", onCropChange);
+				imgElement.removeEventListener("cropend", onCropChange);
+				imgElement.removeEventListener("zoom", onCropChange);
+			};
+		};
 
-    uppy.on("file-added", (file) => {
-      const data = file.data;
-      if (data instanceof Blob) {
-        updatePreview(data);
-      }
+		uppy.on("file-added", (file) => {
+			const data = file.data;
+			if (data instanceof Blob) {
+				updatePreview(data);
+			}
 
-      // In auto-upload mode without crop editor, upload immediately.
-      if (props.autoUpload && !props.crop) {
-        void uppy.upload();
-      }
+			// In auto-upload mode without crop editor, upload immediately.
+			if (props.autoUpload && !props.crop) {
+				void uppy.upload();
+			}
 
-      // Wait for ImageEditor to initialise the cropper, then attach live listeners
-      if (props.crop) {
-        // Retry a few times as the cropper may initialise lazily (on first edit action)
-        let attempts = 0;
-        const tryAttach = () => {
-          attachCropMoveListener();
-          const imageEditorPlugin = uppy.getPlugin("ImageEditor") as any;
-          if (!imageEditorPlugin?.cropper && attempts++ < 10) {
-            setTimeout(tryAttach, 200);
-          }
-        };
-        setTimeout(tryAttach, 200);
-      }
-    });
+			// Wait for ImageEditor to initialise the cropper, then attach live listeners
+			if (props.crop) {
+				// Retry a few times as the cropper may initialise lazily (on first edit action)
+				let attempts = 0;
+				const tryAttach = () => {
+					attachCropMoveListener();
+					const imageEditorPlugin = uppy.getPlugin("ImageEditor") as any;
+					if (!imageEditorPlugin?.cropper && attempts++ < 10) {
+						setTimeout(tryAttach, 200);
+					}
+				};
+				setTimeout(tryAttach, 200);
+			}
+		});
 
-    uppy.on("file-editor:complete", (updatedFile) => {
-      cropMoveCleanup?.();
-      cropMoveCleanup = null;
-      const data = updatedFile.data;
-      if (data instanceof Blob) {
-        updatePreview(data);
-        // Update the file in Uppy's queue so it uploads the cropped version
-        const fileId = updatedFile.id;
-        if (fileId) {
-          uppy.setFileState(fileId, { data });
-        }
-      }
+		uppy.on("file-editor:complete", (updatedFile) => {
+			cropMoveCleanup?.();
+			cropMoveCleanup = null;
+			const data = updatedFile.data;
+			if (data instanceof Blob) {
+				updatePreview(data);
+				// Update the file in Uppy's queue so it uploads the cropped version
+				const fileId = updatedFile.id;
+				if (fileId) {
+					uppy.setFileState(fileId, { data });
+				}
+			}
 
-      // In auto-upload mode with crop enabled, upload right after crop confirm.
-      if (props.autoUpload) {
-        void uppy.upload();
-      } else if (props.crop) {
-        isImageReady.value = true;
-      }
-    });
+			// In auto-upload mode with crop enabled, upload right after crop confirm.
+			if (props.autoUpload) {
+				void uppy.upload();
+			} else if (props.crop) {
+				isImageReady.value = true;
+			}
+		});
 
-    uppy.on("file-removed", () => {
-      if (selectedPreviewUrl.value) {
-        URL.revokeObjectURL(selectedPreviewUrl.value);
-        selectedPreviewUrl.value = null;
-      }
-    });
+		uppy.on("file-removed", () => {
+			if (selectedPreviewUrl.value) {
+				URL.revokeObjectURL(selectedPreviewUrl.value);
+				selectedPreviewUrl.value = null;
+			}
+		});
 
-    // Handle completion inline — avoids QRL-as-callback issues
-    uppy.on("complete", async (result) => {
-      const successful = Array.isArray(result.successful) ? result.successful : [];
+		// Handle completion inline — avoids QRL-as-callback issues
+		uppy.on("complete", async (result) => {
+			const successful = Array.isArray(result.successful)
+				? result.successful
+				: [];
 
-      const values = successful
-        // Persist object keys in forms; URLs may be presigned/temporary.
-        .map((f: any) => f.response?.body?.filePath || f.response?.body?.url)
-        .filter(Boolean) as string[];
+			const values = successful
+				// Persist object keys in forms; URLs may be presigned/temporary.
+				.map((f: any) => f.response?.body?.filePath || f.response?.body?.url)
+				.filter(Boolean) as string[];
 
-      if (values.length > 0) {
-        const existingValues = Array.isArray(uploadedValues.value)
-          ? uploadedValues.value
-          : [];
-        uploadedValues.value = [...existingValues, ...values];
-      }
+			if (values.length > 0) {
+				const existingValues = Array.isArray(uploadedValues.value)
+					? uploadedValues.value
+					: [];
+				uploadedValues.value = [...existingValues, ...values];
+			}
 
-      // Notify per-file callbacks and wait for signal updates to propagate
-      // (must happen before onSettled$ so callers see the updated URLs)
-      for (const f of successful) {
-        const body = (f as any).response?.body ?? {};
-        if (body.url || body.filePath) {
-          await props.onFileUploaded$?.({
-            url: body.url,
-            filePath: body.filePath,
-            thumbnailPath: body.thumbnailPath,
-          });
-        }
-      }
+			// Notify per-file callbacks and wait for signal updates to propagate
+			// (must happen before onSettled$ so callers see the updated URLs)
+			for (const f of successful) {
+				const body = (f as any).response?.body ?? {};
+				if (body.url || body.filePath) {
+					await props.onFileUploaded$?.({
+						url: body.url,
+						filePath: body.filePath,
+						thumbnailPath: body.thumbnailPath,
+					});
+				}
+			}
 
-      // Wait for Qwik to reconcile the DOM (hidden inputs) before notifying
-      await new Promise((r) => requestAnimationFrame(r));
-      await props.onSettled$?.();
-    });
+			// Wait for Qwik to reconcile the DOM (hidden inputs) before notifying
+			await new Promise((r) => requestAnimationFrame(r));
+			await props.onSettled$?.();
+		});
 
-    uppyRef.value = noSerialize(uppy);
+		uppyRef.value = noSerialize(uppy);
 
-    cleanup(() => {
-      cropMoveCleanup?.();
-      if (selectedPreviewUrl.value) {
-        URL.revokeObjectURL(selectedPreviewUrl.value);
-      }
-      uppy.destroy();
-    });
-  });
+		cleanup(() => {
+			cropMoveCleanup?.();
+			if (selectedPreviewUrl.value) {
+				URL.revokeObjectURL(selectedPreviewUrl.value);
+			}
+			uppy.destroy();
+		});
+	});
 
-  // Watch the trigger signal and kick off the upload when it flips to true.
-  useVisibleTask$(({ track }) => {
-    if (!props.triggerSignal) return;
-    const shouldTrigger = track(() => props.triggerSignal!.value);
-    if (shouldTrigger && uppyRef.value) {
-      const uppy = uppyRef.value;
-      const fileCount = uppy.getFiles().length;
-      if (fileCount === 0) {
-        // No files selected — treat as settled so the form can still submit
-        void props.onSettled$?.();
-      } else {
-        uppy.upload();
-      }
-    }
-  });
+	// Watch the trigger signal and kick off the upload when it flips to true.
+	// biome-ignore lint/correctness/noQwikUseVisibleTask: drives the browser-side Uppy instance
+	useVisibleTask$(({ track }) => {
+		if (!props.triggerSignal) return;
+		const shouldTrigger = track(() => props.triggerSignal!.value);
+		if (shouldTrigger && uppyRef.value) {
+			const uppy = uppyRef.value;
+			const fileCount = uppy.getFiles().length;
+			if (fileCount === 0) {
+				// No files selected — treat as settled so the form can still submit
+				void props.onSettled$?.();
+			} else {
+				uppy.upload();
+			}
+		}
+	});
 
-  return (
-    <div class="w-full">
-      {(selectedPreviewUrl.value || props.currentUrl) && (uploadedValues.value?.length ?? 0) === 0 && (
-        <div class="mb-3 rounded-sm border border-gray-200 overflow-hidden">
-          <img
-            src={selectedPreviewUrl.value ?? props.currentUrl ?? undefined}
-            alt={selectedPreviewUrl.value ? "Selected image preview" : "Current image"}
-            class="w-full h-auto object-cover"
-            loading="lazy"
-          />
-        </div>
-      )}
+	return (
+		<div class="w-full">
+			{(selectedPreviewUrl.value || props.currentUrl) &&
+				(uploadedValues.value?.length ?? 0) === 0 && (
+					<div class="mb-3 rounded-sm border border-gray-200 overflow-hidden">
+						<img
+							src={selectedPreviewUrl.value ?? props.currentUrl ?? undefined}
+							alt={
+								selectedPreviewUrl.value
+									? t("core.ui.imageUploader.selectedImagePreview")
+									: t("core.ui.imageUploader.currentImage")
+							}
+							width={640}
+							height={360}
+							class="w-full h-auto object-cover"
+							loading="lazy"
+						/>
+					</div>
+				)}
 
-      {!props.autoUpload && isImageReady.value && (
-        <p class="text-sm text-green-600 font-medium mt-2">
-          Image ready &mdash; will be uploaded on save.
-        </p>
-      )}
+			{!props.autoUpload && isImageReady.value && (
+				<p class="text-sm text-green-600 font-medium mt-2">
+					{t("core.ui.imageUploader.imageReadyWillBeUploaded")}
+				</p>
+			)}
 
-      <div
-        ref={containerRef}
-        style={{
-          aspectRatio: props.aspectRatio ?? "16/9",
-          width: "100%",
-        }}
-      />
-      {/* Hidden inputs so the surrounding form can read uploaded keys */}
-      {props.name && (uploadedValues.value?.length ?? 0) > 0 &&
-        (uploadedValues.value ?? []).map((value, idx) => (
-          <input
-            key={String(idx)}
-            type="hidden"
-            name={props.name}
-            value={value}
-          />
-        ))}
+			<div
+				ref={containerRef}
+				style={{
+					aspectRatio: props.aspectRatio ?? "16/9",
+					width: "100%",
+				}}
+			/>
+			{/* Hidden inputs so the surrounding form can read uploaded keys */}
+			{props.name &&
+				(uploadedValues.value?.length ?? 0) > 0 &&
+				(uploadedValues.value ?? []).map((value, idx) => (
+					<input
+						key={String(idx)}
+						type="hidden"
+						name={props.name}
+						value={value}
+					/>
+				))}
 
-      {props.name && (uploadedValues.value?.length ?? 0) === 0 && props.currentValue && (
-        <input type="hidden" name={props.name} value={props.currentValue} />
-      )}
-    </div>
-  );
+			{props.name &&
+				(uploadedValues.value?.length ?? 0) === 0 &&
+				props.currentValue && (
+					<input type="hidden" name={props.name} value={props.currentValue} />
+				)}
+		</div>
+	);
 });

@@ -1,125 +1,136 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
-import { deriveThumbnailKey, publicImageUrlFromKey } from "~/utils/images";
-import { formResultsService } from "~/services/form-results.service";
-import { userTagsService } from "~/services/user-tags.service";
-import { electionsService } from "~/services/elections.service";
-import { buildFormPath } from "~/utils/forms";
-import { formatAffiliationResultJson } from "~/utils/affiliation";
-import { getCurrentUserData, requireAuth } from "~/utils/server-auth";
-import { db } from "~/db/connection";
-import { groupMemberships } from "~/db/schemas/group-memberships";
-import { groups } from "~/db/schemas/groups";
-import { eq } from "drizzle-orm";
+import { getCurrentUserData, requireAuth } from "~/core/auth/server-auth";
+import { formResultsService } from "~/core/forms/form-results.service";
+import { buildFormPath } from "~/core/forms/forms";
+import { ONBOARDING_PURPOSE } from "~/core/forms/purposes";
+import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
+import { listNotificationSettings } from "~/core/notifications/preferences";
+import { scopeUrl } from "~/core/router/scope-path";
+import { scopesService } from "~/core/scopes/scopes.service";
+import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
+import { userTagsService } from "~/core/tags/user-tags.service";
+import { formatAffiliationResultJson } from "~/core/users/affiliation";
 import { UserProfile } from "~theme/routes/profile/UserProfile/UserProfile";
+import { useSetNotificationPreference } from "../../core/notifications/profile/useSetNotificationPreference";
+import { activeProfileExtras } from "../../core/registry/manifests";
+import { useUpdateDetails } from "../../core/users/profile/useUpdateDetails";
+import { useUpdateLocation } from "../../core/users/profile/useUpdateLocation";
 // Import via a RELATIVE path, not "~" — qwikRouter's production transform
 // for re-exported routeAction$/routeLoader$ does not resolve either tsconfig
 // alias, so the Rollup build fails to find the module. See useUpdateName.ts.
-import { useUpdateName } from "../../components/profile/useUpdateName";
-import { useUpdateLocation } from "../../components/profile/useUpdateLocation";
-import { useUpdatePicture } from "../../components/profile/useUpdatePicture";
-import { useUpdateDetails } from "../../components/profile/useUpdateDetails";
+import { useUpdateName } from "../../core/users/profile/useUpdateName";
+import { useUpdatePicture } from "../../core/users/profile/useUpdatePicture";
 
 // Re-export so Qwik City registers the actions for this route.
-export { useUpdateName, useUpdateLocation, useUpdatePicture, useUpdateDetails };
+export {
+	useUpdateName,
+	useUpdateLocation,
+	useUpdatePicture,
+	useUpdateDetails,
+	useSetNotificationPreference,
+};
 
 export const useProfile = routeLoader$(async (event) => {
-  await requireAuth(event);
-  const userData = await getCurrentUserData(event);
+	await requireAuth(event);
+	const userData = await getCurrentUserData(event);
 
-  if (!userData) {
-    throw event.redirect(302, "/login");
-  }
+	if (!userData) {
+		throw event.redirect(302, "/login");
+	}
 
-  const user = userData as any;
+	const user = userData as any;
 
-  const profilePictureUrl = user.profilePicture
-    ? publicImageUrlFromKey(user.profilePictureSmall ?? deriveThumbnailKey(user.profilePicture))
-    : null;
+	const profilePictureUrl = user.profilePicture
+		? publicImageUrlFromKey(
+				user.profilePictureSmall ?? deriveThumbnailKey(user.profilePicture),
+			)
+		: null;
 
-  const { participationService } = await import("~/services/participation.service");
+	const [submittedForms, tags, extras, userGroups, notificationSettings] =
+		await Promise.all([
+			formResultsService.getByUser(user.id),
+			userTagsService.getByUser(user.id),
+			activeProfileExtras({
+				userId: user.id,
+				viewerId: user.id,
+				isOwnProfile: true,
+			}),
+			scopesService.listUserScopes(user.id),
+			listNotificationSettings(user.id),
+		]);
 
-  const [submittedForms, tags, electionApplications, communityRows, events] =
-    await Promise.all([
-      formResultsService.getByUser(user.id),
-      userTagsService.getByUser(user.id),
-      electionsService.getApplicationsByUser(user.id),
-      db
-        .select({ name: groups.name, slug: groups.slug })
-        .from(groupMemberships)
-        .innerJoin(groups, eq(groupMemberships.groupId, groups.id))
-        .where(eq(groupMemberships.userId, user.id)),
-      participationService.getByUserId(user.id),
-    ]);
-
-  const electionsByCycle = new Map<string, { title: string; year: number; apps: typeof electionApplications }>();
-  for (const app of electionApplications) {
-    if (!electionsByCycle.has(app.cycleId)) {
-      electionsByCycle.set(app.cycleId, { title: app.cycle.title, year: app.cycle.year, apps: [] });
-    }
-    electionsByCycle.get(app.cycleId)!.apps.push(app);
-  }
-
-  return {
-    name: user.name as string,
-    familyName: user.familyName as string,
-    role: user.role as string,
-    city: user.city ?? null,
-    country: user.country ?? null,
-    profilePictureUrl,
-    tags: tags.map((t) => ({ id: t.id, label: t.label })),
-    communities: communityRows,
-    upcomingEvents: events.upcoming,
-    pastEvents: events.past,
-    isOwner: true,
-    email: (user.email as string | null) ?? null,
-    yearOfBirth: user.yearOfBirth ?? null,
-    sex: user.sex ?? null,
-    electionGroups: [...electionsByCycle.values()]
-      .sort((a, b) => b.year - a.year)
-      .map((g) => ({
-        ...g,
-        apps: g.apps.map((a) => ({
-          id: a.id,
-          status: a.status,
-          position: (a as any).position ?? null,
-        })),
-      })),
-    affiliationEntries: (() => {
-      const onboarding = submittedForms.find((s) => s.formSlug === "onboarding");
-      return onboarding ? formatAffiliationResultJson(onboarding.resultJson || {}) : [];
-    })(),
-    affiliationEditPath: (() => {
-      const onboarding = submittedForms.find((s) => s.formSlug === "onboarding");
-      return onboarding ? buildFormPath({ id: onboarding.formId, slug: onboarding.formSlug }) : null;
-    })(),
-    // The onboarding form's academic-path data is already shown, nicely
-    // formatted, as the "Relations / Affiliation" section above (see
-    // affiliationEntries) — don't also list it as a raw generic submission.
-    submittedForms: submittedForms
-      .filter((s) => s.formSlug !== "onboarding")
-      .map((s) => ({
-        id: s.id,
-        title: s.formTitle,
-        submittedAt: s.submittedAt,
-        path: buildFormPath({ id: s.formId, slug: s.formSlug }),
-      })),
-  };
+	return assertNoPrivateFields(
+		{
+			...extras,
+			name: user.name as string,
+			familyName: user.familyName as string,
+			city: user.city ?? null,
+			country: user.country ?? null,
+			profilePictureUrl,
+			tags: tags.map((t) => ({ id: t.id, label: t.label })),
+			communities: userGroups.map((g) => ({
+				name: g.name,
+				url: scopeUrl(g.path),
+			})),
+			// Sections of modules that are not active fall back to empty.
+			upcomingEvents: extras.upcomingEvents ?? [],
+			pastEvents: extras.pastEvents ?? [],
+			isOwner: true,
+			notificationSettings,
+			email: (user.email as string | null) ?? null,
+			yearOfBirth: user.yearOfBirth ?? null,
+			sex: user.sex ?? null,
+			affiliationEntries: (() => {
+				const onboarding = submittedForms.find(
+					(s) => s.formPurpose === ONBOARDING_PURPOSE,
+				);
+				return onboarding
+					? formatAffiliationResultJson(onboarding.answers || {})
+					: [];
+			})(),
+			affiliationEditPath: (() => {
+				const onboarding = submittedForms.find(
+					(s) => s.formPurpose === ONBOARDING_PURPOSE,
+				);
+				return onboarding
+					? buildFormPath({ id: onboarding.formId, slug: onboarding.formSlug })
+					: null;
+			})(),
+			// The onboarding form's academic-path data is already shown, nicely
+			// formatted, as the "Relations / Affiliation" section above (see
+			// affiliationEntries) — don't also list it as a raw generic submission.
+			submittedForms: submittedForms
+				.filter((s) => s.formPurpose !== ONBOARDING_PURPOSE)
+				.map((s) => ({
+					id: s.id,
+					title: s.formTitle,
+					submittedAt: s.createdAt,
+					path: buildFormPath({ id: s.formId, slug: s.formSlug }),
+				})),
+		},
+		{
+			// The viewer's OWN profile: their login email, birth year and gender are theirs to see.
+			allow: ["email", "yearOfBirth", "sex"],
+		},
+	);
 });
 
 export default component$(() => {
-  const profile = useProfile();
-  const updateNameAction = useUpdateName();
-  const updateLocationAction = useUpdateLocation();
-  const updatePictureAction = useUpdatePicture();
-  const updateDetailsAction = useUpdateDetails();
-  return (
-    <UserProfile
-      {...profile.value}
-      updateNameAction={updateNameAction}
-      updateLocationAction={updateLocationAction}
-      updatePictureAction={updatePictureAction}
-      updateDetailsAction={updateDetailsAction}
-    />
-  );
+	const profile = useProfile();
+	const updateNameAction = useUpdateName();
+	const updateLocationAction = useUpdateLocation();
+	const updatePictureAction = useUpdatePicture();
+	const updateDetailsAction = useUpdateDetails();
+	const setNotificationPreferenceAction = useSetNotificationPreference();
+	return (
+		<UserProfile
+			{...profile.value}
+			updateNameAction={updateNameAction}
+			updateLocationAction={updateLocationAction}
+			updatePictureAction={updatePictureAction}
+			updateDetailsAction={updateDetailsAction}
+			setNotificationPreferenceAction={setNotificationPreferenceAction}
+		/>
+	);
 });

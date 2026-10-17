@@ -1,2 +1,1 @@
-export { default } from "./UpcomingEventsBlock";
-export { definition } from "./UpcomingEventsBlock";
+export { default, definition } from "./UpcomingEventsBlock";

@@ -1,5 +1,6 @@
 import { $, component$, useStore } from "@qwik.dev/core";
 import { SectionCard } from "~/components/ui/SectionCard";
+import { formatCurrency, formatDate, t } from "~/contracts/i18n";
 import type {
 	TicketWithRelations,
 	TransactionWithTickets,
@@ -20,24 +21,11 @@ function buildInitialSlots(ticket: TicketWithRelations): ParticipantFormSlot[] {
 	const capacity = ticket.product.participantCapacity;
 	return Array.from({ length: capacity }, (_, i) => {
 		const p = ticket.participants[i];
-		return p ? { name: p.name, email: p.email } : { name: "", email: "" };
+		// Participant emails are never sent to the page: an existing participant is kept by id.
+		return p
+			? { name: p.name, email: "", participantId: p.id }
+			: { name: "", email: "" };
 	});
-}
-
-function formatDate(dateString: string) {
-	return new Date(dateString).toLocaleDateString("en-US", {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-	});
-}
-
-function formatCurrency(amount: number) {
-	return new Intl.NumberFormat("en-GB", {
-		style: "currency",
-		currency: "EUR",
-		minimumFractionDigits: 2,
-	}).format(amount);
 }
 
 export default component$<PurchaseListProps>(
@@ -76,12 +64,14 @@ export default component$<PurchaseListProps>(
 								<span
 									class={`inline-flex items-center gap-1 mt-0.5 text-xs ${isAssignedAway ? "text-warning" : "text-text-muted"}`}
 								>
-									{isAssignedAway ? `→ ${p0.name}` : "You"}
+									{isAssignedAway
+										? `→ ${p0.name}`
+										: t("theme.purchaseList.you")}
 								</span>
 							)}
 							{ticket.scannedAt && (
 								<span class="inline-flex items-center gap-1 mt-0.5 text-xs text-success">
-									✓ Scanned
+									{t("theme.purchaseList.scanned")}
 								</span>
 							)}
 						</div>
@@ -96,7 +86,9 @@ export default component$<PurchaseListProps>(
 								}}
 								class="shrink-0 px-2.5 py-1 text-xs font-medium rounded-md border border-border text-text-secondary hover:bg-white transition-colors"
 							>
-								{isExpanded ? "Close" : "Reassign"}
+								{isExpanded
+									? t("theme.purchaseList.close")
+									: t("theme.purchaseList.reassign")}
 							</button>
 						)}
 					</div>
@@ -124,7 +116,7 @@ export default component$<PurchaseListProps>(
 										saveError[ticket.id] = "";
 									}}
 								>
-									Reset
+									{t("theme.purchaseList.reset")}
 								</button>
 								<button
 									type="button"
@@ -139,13 +131,16 @@ export default component$<PurchaseListProps>(
 												(pendingSlots[ticket.id] ?? []).map((s) => ({
 													name: s.name,
 													email: s.email,
+													participantId: s.participantId ?? null,
+													existingUserId: s.existingUserId ?? null,
 												})),
 											),
 										});
 										saving[ticket.id] = false;
 										if (result.value?.failed) {
 											saveError[ticket.id] =
-												result.value.message ?? "Save failed";
+												result.value.message ??
+												t("theme.purchaseList.saveFailed");
 										} else {
 											if (result.value?.newQrCodeUuid) {
 												qrBust[ticket.id] = result.value.newQrCodeUuid;
@@ -154,7 +149,9 @@ export default component$<PurchaseListProps>(
 										}
 									}}
 								>
-									{saving[ticket.id] ? "Saving…" : "Save"}
+									{saving[ticket.id]
+										? t("theme.purchaseList.saving")
+										: t("theme.purchaseList.save")}
 								</button>
 							</div>
 						</div>
@@ -235,7 +232,10 @@ export default component$<PurchaseListProps>(
 														{item.quantity}× {item.product.name}
 													</span>
 													<span class="tabular-nums">
-														{formatCurrency(item.unitPrice * item.quantity)}
+														{formatCurrency(
+															item.unitPrice * item.quantity,
+															"EUR",
+														)}
 													</span>
 												</div>
 											))}
@@ -245,11 +245,16 @@ export default component$<PurchaseListProps>(
 										<div class="mt-2 pt-2 border-t border-border flex items-center justify-between text-xs">
 											<span class="text-text-muted">
 												{tx.transactionFee > 0
-													? `incl. ${formatCurrency(tx.transactionFee)} fee`
-													: "Free"}
+													? t("theme.purchaseList.inclFee", {
+															transactionFee: formatCurrency(
+																tx.transactionFee,
+																"EUR",
+															),
+														})
+													: t("theme.purchaseList.free")}
 											</span>
 											<span class="font-semibold text-text-heading tabular-nums">
-												{formatCurrency(tx.totalAmount)}
+												{formatCurrency(tx.totalAmount, "EUR")}
 											</span>
 										</div>
 									</div>
@@ -272,17 +277,27 @@ export default component$<PurchaseListProps>(
 
 		if (transactions.length === 0) {
 			return (
-				<SectionCard title="Purchases">
-					<p class="text-text-muted text-center py-8">No purchases yet</p>
+				<SectionCard title={t("theme.purchaseList.purchases")}>
+					<p class="text-text-muted text-center py-8">
+						{t("theme.purchaseList.noPurchasesYet")}
+					</p>
 				</SectionCard>
 			);
 		}
 
 		return (
-			<SectionCard title="Purchases">
+			<SectionCard title={t("theme.purchaseList.purchases")}>
 				<div class="space-y-6">
-					{renderGroup(upcoming, `Upcoming · ${upcoming.length}`, true)}
-					{renderGroup(past, `Past · ${past.length}`, false)}
+					{renderGroup(
+						upcoming,
+						t("theme.purchaseList.upcoming", { count: upcoming.length }),
+						true,
+					)}
+					{renderGroup(
+						past,
+						t("theme.purchaseList.past", { count: past.length }),
+						false,
+					)}
 				</div>
 			</SectionCard>
 		);

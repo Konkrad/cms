@@ -2,6 +2,8 @@
  * Core → theme data contract for the profile page (`/profile`) and its
  * in-place editing actions.
  */
+
+import type { ticketsService } from "~/modules/events/services/tickets";
 import type {
 	useUpdateDetails,
 	useUpdateLocation,
@@ -12,7 +14,6 @@ import type {
 	useUpdateParticipants,
 	useUserDashboard,
 } from "~/routes/profile/tickets";
-import type { ticketsService } from "~/services/tickets.service";
 
 export type UpdateNameAction = ReturnType<typeof useUpdateName>;
 export type UpdateLocationAction = ReturnType<typeof useUpdateLocation>;
@@ -30,3 +31,41 @@ export type TicketWithRelations = Awaited<
 
 /** Transaction with its event, line items, and attached tickets — shape built by the `/profile/tickets` loader. */
 export type TransactionWithTickets = UserDashboardData["transactions"][number];
+
+/** One application inside an election-history group on a profile. */
+export interface ProfileElectionApplication {
+	id: string;
+	status: string;
+	position: { title: string };
+}
+
+/** One event a profile owner takes part in. */
+export interface ProfileEventEntry {
+	id: string;
+	/** Canonical URL under the owning scope. */
+	url: string;
+	title: string;
+	startDate: string;
+	endDate: string;
+	city: string | null;
+	country: string | null;
+}
+
+/**
+ * Sections that active modules add to the profile pages (`/profile`, `/users/[userId]`).
+ * One optional field per contributed section, named after what the theme renders; the pages
+ * merge the `profile` hook results of all active modules into their loader output. Contribute
+ * only what the viewer may see: the hook gets `isOwnProfile` and must strip anything private.
+ */
+export interface ProfileExtras {
+	/** Events the user said "yes" to that have not ended yet, soonest first. */
+	upcomingEvents?: ProfileEventEntry[];
+	/** Events the user said "yes" to that have ended, latest first. */
+	pastEvents?: ProfileEventEntry[];
+	/** Election applications grouped by cycle, newest year first (own profile only). */
+	electionGroups?: {
+		title: string;
+		year: number;
+		apps: ProfileElectionApplication[];
+	}[];
+}

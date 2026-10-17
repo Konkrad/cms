@@ -25,8 +25,16 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
-import { runMigrations } from "../src/db/migrate.ts";
-import * as schema from "../src/db/schema.ts";
+import { runMigrations } from "../src/core/db/migrate.ts";
+import * as schema from "../src/core/db/schema.ts";
+import { slugify } from "../src/core/shared/slug.ts";
+import {
+	ensureWorkflowForm,
+	eventDebriefFormSeed,
+	eventProposalFormSeed,
+	onboardingFormSeed,
+} from "./seed-forms.ts";
+import { completeRequirements } from "./seed-requirements.ts";
 
 dotenv.config();
 
@@ -54,6 +62,22 @@ const db = drizzle({
 	client: sqlite,
 	relations: schema.schemaRelations,
 });
+
+/** A free event slug in a scope (the events service's rule: the title's slug, then -2, -3, …). */
+function seedEventSlug(scopeId: string, title: string): string {
+	const taken = new Set(
+		db
+			.select({ slug: schema.events.slug })
+			.from(schema.events)
+			.where(eq(schema.events.scopeId, scopeId))
+			.all()
+			.map((r) => r.slug),
+	);
+	const base = slugify(title) || "event";
+	let slug = base;
+	for (let n = 2; taken.has(slug); n++) slug = `${base}-${n}`;
+	return slug;
+}
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -132,7 +156,10 @@ async function ensureBucketAndPublicReadPolicy(s3: S3Client): Promise<void> {
 	);
 }
 
-async function downloadAndUploadSeedImages(): Promise<string[]> {
+async function downloadAndUploadSeedImages(): Promise<{
+	keys: string[];
+	articleKeys: string[];
+}> {
 	const s3 = new S3Client({
 		region: seedStorageConfig.region,
 		endpoint: seedStorageConfig.endpoint,
@@ -146,6 +173,8 @@ async function downloadAndUploadSeedImages(): Promise<string[]> {
 	await ensureBucketAndPublicReadPolicy(s3);
 
 	const uploadedKeys: string[] = [];
+	// Article images live under their own public prefix (validated by the articles service).
+	const articleKeys: string[] = [];
 
 	for (let i = 0; i < seedImageSources.length; i++) {
 		const sourceUrl = seedImageSources[i];
@@ -200,10 +229,22 @@ async function downloadAndUploadSeedImages(): Promise<string[]> {
 			}),
 		);
 
+		const articleKey = `public/articles/seed-${i + 1}.webp`;
+		await s3.send(
+			new PutObjectCommand({
+				Bucket: seedStorageConfig.bucket,
+				Key: articleKey,
+				Body: mainBuffer,
+				ContentType: "image/webp",
+				CacheControl: "public, max-age=86400",
+			}),
+		);
+
 		uploadedKeys.push(objectKey);
+		articleKeys.push(articleKey);
 	}
 
-	return uploadedKeys;
+	return { keys: uploadedKeys, articleKeys };
 }
 
 // ─── 4. Base users ───────────────────────────────────────────────────────────
@@ -212,9 +253,7 @@ const ADMIN_EMAIL = "admin@example.com";
 
 const existingUsers = db.select().from(schema.users).all();
 
-let adminUser = existingUsers.find(
-	(u) => u.role === "admin" && u.name === "Admin",
-);
+let adminUser = existingUsers.find((u) => u.name === "Admin");
 let hostUser = existingUsers.find((u) => u.name === "Host");
 
 if (!adminUser) {
@@ -233,7 +272,6 @@ if (!adminUser) {
 			id,
 			name: "Admin",
 			familyName: "User",
-			role: "admin",
 			loginId,
 			createdAt: now(),
 			updatedAt: now(),
@@ -262,7 +300,6 @@ if (!hostUser) {
 			id,
 			name: "Host",
 			familyName: "User",
-			role: "admin",
 			loginId,
 			createdAt: now(),
 			updatedAt: now(),
@@ -274,6 +311,39 @@ if (!hostUser) {
 		.all()
 		.find((u) => u.id === id)!;
 	console.log("  created host user 'Host' (host@example.com)");
+}
+
+// ─── Scope tree root and platform admins ─────────────────────────────────────
+// A platform admin is an admin of the root scope (there is no users.role).
+
+let rootScope = db
+	.select()
+	.from(schema.scopes)
+	.all()
+	.find((s) => s.parentId === null);
+if (!rootScope) {
+	const id = uuid();
+	db.insert(schema.scopes)
+		.values({
+			id,
+			parentId: null,
+			kind: "root",
+			slug: "",
+			name: "Community",
+			path: "/",
+		})
+		.run();
+	rootScope = db
+		.select()
+		.from(schema.scopes)
+		.all()
+		.find((s) => s.id === id)!;
+}
+for (const admin of [adminUser!, hostUser!]) {
+	db.insert(schema.scopeRoles)
+		.values({ userId: admin.id, scopeId: rootScope.id, role: "admin" })
+		.onConflictDoNothing()
+		.run();
 }
 
 const TEST_USER_EMAILS = new Set(
@@ -292,24 +362,7 @@ let testUsers = db
 	.select()
 	.from(schema.users)
 	.all()
-	.filter((u) => u.role === "user" && testLoginIds.has(u.loginId ?? ""));
-
-// Ensure existing test users have the consent fields needed to reach the survey phase.
-for (const u of testUsers) {
-	const consent = (u.consent ?? {}) as Record<string, string | null>;
-	if (!consent.lastProfileUpdate || !consent.locationVerification) {
-		db.update(schema.users)
-			.set({
-				consent: {
-					...consent,
-					lastProfileUpdate: now(),
-					locationVerification: now(),
-				},
-			})
-			.where(eq(schema.users.id, u.id))
-			.run();
-	}
-}
+	.filter((u) => testLoginIds.has(u.loginId ?? ""));
 
 if (testUsers.length < 10) {
 	for (let i = testUsers.length; i < 10; i++) {
@@ -324,9 +377,7 @@ if (testUsers.length < 10) {
 				id: uuid(),
 				name: faker.person.firstName(),
 				familyName: faker.person.lastName(),
-				role: "user",
 				loginId,
-				consent: { lastProfileUpdate: now(), locationVerification: now() },
 				createdAt: now(),
 				updatedAt: now(),
 			})
@@ -336,7 +387,7 @@ if (testUsers.length < 10) {
 		.select()
 		.from(schema.users)
 		.all()
-		.filter((u) => u.role === "user" && testLoginIds.has(u.loginId ?? ""));
+		.filter((u) => testLoginIds.has(u.loginId ?? ""));
 	console.log(`  ensured 10 test users exist (now ${testUsers.length})`);
 }
 
@@ -354,7 +405,12 @@ const allBulkUsers = db
 	.select()
 	.from(schema.users)
 	.all()
-	.filter((u) => u.role === "user" && !testLoginIds.has(u.loginId ?? ""));
+	.filter(
+		(u) =>
+			u.id !== adminUser!.id &&
+			u.id !== hostUser!.id &&
+			!testLoginIds.has(u.loginId ?? ""),
+	);
 
 // All users missing a city (includes admin, host, test, QA users)
 const allUsersWithoutCity = db
@@ -416,7 +472,6 @@ if (neededNew > 0 || bulkUsersWithoutCity.length > 0) {
 				id: uuid(),
 				name: faker.person.firstName(),
 				familyName: faker.person.lastName(),
-				role: "user",
 				loginId,
 				city,
 				country,
@@ -443,50 +498,62 @@ const groupDefs = [
 	{
 		name: "North Chapter",
 		slug: "berlin",
-		latitude: "59.3293",
-		longitude: "18.0686",
-	}, // Stockholm
+	},
 	{
 		name: "South Chapter",
 		slug: "munich",
-		latitude: "41.3851",
-		longitude: "2.1734",
-	}, // Barcelona
+	},
 	{
 		name: "Coast Chapter",
 		slug: "hamburg",
-		latitude: "51.5074",
-		longitude: "-0.1278",
-	}, // London
+	},
 	{
 		name: "Central Chapter",
 		slug: "frankfurt",
-		latitude: "48.2082",
-		longitude: "16.3738",
-	}, // Vienna
+	},
 	{
 		name: "West Chapter",
 		slug: "cologne",
-		latitude: "48.8566",
-		longitude: "2.3522",
-	}, // Paris
+	},
 ];
 
-const existingGroups = db.select().from(schema.groups).all();
-const groupIds: Record<string, string> = {};
+// Groups are chapters in the scope tree: root → region "Germany" → the chapters below.
+// (Slugs are city names; display names are generic.)
+function ensureScope(
+	parent: { id: string; path: string },
+	def: { name: string; slug: string; kind: string },
+) {
+	const path = `${parent.path}${def.slug}/`;
+	const existing = db
+		.select()
+		.from(schema.scopes)
+		.all()
+		.find((s) => s.path === path);
+	if (existing) return existing;
+	const id = uuid();
+	db.insert(schema.scopes)
+		.values({ id, parentId: parent.id, path, createdAt: now(), ...def })
+		.run();
+	console.log(`  created ${def.kind} '${def.name}' (${path})`);
+	return db
+		.select()
+		.from(schema.scopes)
+		.all()
+		.find((s) => s.id === id)!;
+}
 
+const regionScope = ensureScope(rootScope, {
+	name: "Germany",
+	slug: "germany",
+	kind: "region",
+});
+const groupIds: Record<string, string> = {};
 for (const def of groupDefs) {
-	const existing = existingGroups.find((g) => g.slug === def.slug);
-	if (existing) {
-		groupIds[def.slug] = existing.id;
-	} else {
-		const id = uuid();
-		db.insert(schema.groups)
-			.values({ id, ...def, createdAt: now(), updatedAt: now() })
-			.run();
-		groupIds[def.slug] = id;
-		console.log(`  created group '${def.name}'`);
-	}
+	groupIds[def.slug] = ensureScope(regionScope, {
+		name: def.name,
+		slug: def.slug,
+		kind: "chapter",
+	}).id;
 }
 
 // ─── 6. Memberships ──────────────────────────────────────────────────────────
@@ -523,20 +590,14 @@ const membershipPlan: Array<{ userId: string; groupSlug: string }> = [
 	{ userId: hostUser.id, groupSlug: "frankfurt" },
 ].filter((m) => m.userId);
 
-const existingMemberships = db.select().from(schema.groupMemberships).all();
-
 for (const m of membershipPlan) {
-	const already = existingMemberships.some(
-		(em) => em.userId === m.userId && em.groupId === groupIds[m.groupSlug],
-	);
-	if (already) continue;
-	db.insert(schema.groupMemberships)
+	db.insert(schema.scopeMemberships)
 		.values({
-			id: uuid(),
 			userId: m.userId,
-			groupId: groupIds[m.groupSlug],
-			joinedAt: now(),
+			scopeId: groupIds[m.groupSlug],
+			createdAt: now(),
 		})
+		.onConflictDoNothing()
 		.run();
 }
 console.log("  memberships seeded");
@@ -546,9 +607,9 @@ console.log("  memberships seeded");
 	const assignedSet = new Set(
 		db
 			.select()
-			.from(schema.groupMemberships)
+			.from(schema.scopeMemberships)
 			.all()
-			.map((m) => `${m.userId}::${m.groupId}`),
+			.map((m) => `${m.userId}::${m.scopeId}`),
 	);
 	const groupSlugList = Object.keys(groupIds);
 	const bulkUserIds = db
@@ -571,12 +632,11 @@ console.log("  memberships seeded");
 			const key = `${userId}::${groupId}`;
 			if (assignedSet.has(key)) continue;
 			assignedSet.add(key);
-			db.insert(schema.groupMemberships)
+			db.insert(schema.scopeMemberships)
 				.values({
-					id: uuid(),
 					userId,
-					groupId,
-					joinedAt: faker.date
+					scopeId: groupId,
+					createdAt: faker.date
 						.between({ from: "2020-01-01", to: new Date() })
 						.toISOString(),
 				})
@@ -590,30 +650,34 @@ console.log("  memberships seeded");
 }
 
 // ─── 7. Representatives ──────────────────────────────────────────────────────
-// Ensure every group has at least one rep. Pick one from the group's bulk members.
+// Ensure every chapter has at least one rep (scope role "representative"). Pick one from
+// the chapter's bulk members.
 {
-	const existingReps = db.select().from(schema.groupRepresentatives).all();
-	const groupsWithRep = new Set(existingReps.map((r) => r.groupId));
-	const allMemberships = db.select().from(schema.groupMemberships).all();
+	const existingReps = db
+		.select()
+		.from(schema.scopeRoles)
+		.all()
+		.filter((r) => r.role === "representative");
+	const groupsWithRep = new Set(existingReps.map((r) => r.scopeId));
+	const allMemberships = db.select().from(schema.scopeMemberships).all();
 
 	for (const [, groupId] of Object.entries(groupIds)) {
 		if (groupsWithRep.has(groupId)) continue;
 		// Pick a random member who is not admin/host
 		const candidates = allMemberships.filter(
 			(m) =>
-				m.groupId === groupId &&
+				m.scopeId === groupId &&
 				m.userId !== adminUser.id &&
 				m.userId !== hostUser.id,
 		);
 		if (candidates.length === 0) continue;
 		const pick = candidates[Math.floor(Math.random() * candidates.length)];
-		db.insert(schema.groupRepresentatives)
+		db.insert(schema.scopeRoles)
 			.values({
-				id: uuid(),
 				userId: pick.userId,
-				groupId,
-				promotedBy: adminUser.id,
-				promotedAt: now(),
+				scopeId: groupId,
+				role: "representative",
+				createdAt: now(),
 			})
 			.run();
 		groupsWithRep.add(groupId);
@@ -621,104 +685,119 @@ console.log("  memberships seeded");
 	console.log("  representatives seeded");
 }
 
-// ─── 8. Posts ────────────────────────────────────────────────────────────────
+// ─── 8. Notes and articles ───────────────────────────────────────────────────
 
+// Two core types (spec 4.4): entries with a title are seeded as articles, without as notes.
 const postDefs: Array<{
-	title: string;
+	title: string | null;
 	body: string;
 	groupSlug: string | null;
-	visibility: "global" | "group-only";
+	visibility: "public" | "members";
 	authorIdx: number;
 }> = [
 	{
 		title: "Welcome to the North Chapter!",
 		body: "<p>Hey everyone, great to have you here. This is the official group for all North Chapter members. Introduce yourself and say hello!</p>",
 		groupSlug: "berlin",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: 0,
 	},
 	{
 		title: "Spring Meetup Recap",
 		body: "<p>What a fantastic evening! We had over 30 people join us for our spring gathering. Thanks to everyone who came out — see you at the next one.</p>",
 		groupSlug: "berlin",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: 0,
 	},
 	{
 		title: "New Members – Introduce Yourself!",
 		body: "<p>We've had a wave of new sign-ups recently. Drop a reply below and tell the group a bit about yourself — where you're based, what you do, and what you're hoping to get from the community.</p>",
 		groupSlug: "berlin",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: 5,
 	},
 	{
 		title: "South Chapter Is Here",
 		body: "<p>Welcome to the South Chapter! We're just getting started but already have some exciting events in the pipeline. Watch this space.</p>",
 		groupSlug: "munich",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: 2,
 	},
 	{
 		title: "Summer Networking Evening – Interested?",
 		body: "<p>We're thinking of organising a casual networking evening this summer. Reply below if you'd be up for it and we'll lock in a date.</p>",
 		groupSlug: "munich",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: 7,
 	},
 	{
 		title: "Coast Chapter – Now Open",
 		body: "<p>The Coast Chapter is officially open. Whether you're a long-time member or just joined, you're welcome here. Looking forward to building something great together.</p>",
 		groupSlug: "hamburg",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: 6,
 	},
 	{
 		title: "Morning Walk – Members Only",
 		body: "<p>We're organising a guided walk along the waterfront on Saturday morning. Limited spots — reply to join. Details will be shared with confirmed attendees.</p>",
 		groupSlug: "hamburg",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: 3,
 	},
 	{
 		title: "Central Chapter Launches",
 		body: "<p>Central Chapter is now live! We're excited to build a local community here. If you're in the area, join the group and say hello.</p>",
 		groupSlug: "frankfurt",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: 4,
 	},
 	{
 		title: "Networking Night – Save the Date",
 		body: "<p>We're hosting a networking evening for members next month. More details to follow — mark your calendars and spread the word.</p>",
 		groupSlug: "frankfurt",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: 8,
 	},
 	{
 		title: "West Chapter – Welcome",
 		body: "<p>We're thrilled to open the West Chapter. A space for local members to connect, share, and organise events together.</p>",
 		groupSlug: "cologne",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: -2,
 	},
 	{
 		title: "Members-Only Gathering – Limited Spots",
 		body: "<p>We're organising a private members-only get-together. Spots are limited so reply early to secure yours. Location shared with confirmed attendees.</p>",
 		groupSlug: "cologne",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: 3,
+	},
+	{
+		title: null,
+		body: "<p>Reminder: the North Chapter board meets on Thursday at 19:00. Agenda items welcome until Wednesday.</p>",
+		groupSlug: "berlin",
+		visibility: "public",
+		authorIdx: 0,
+	},
+	{
+		title: null,
+		body: "<p>Thanks to everyone who helped set up the new chapter pages this week!</p>",
+		groupSlug: null,
+		visibility: "public",
+		authorIdx: -1,
 	},
 	{
 		title: "New Features Live on the Platform",
 		body: "<p>We've just rolled out a set of improvements including updated group pages, better event management, and a cleaner profile experience. Let us know what you think.</p>",
 		groupSlug: null,
-		visibility: "global",
+		visibility: "public",
 		authorIdx: -1,
 	},
 	{
 		title: "Community Guidelines — Updated",
 		body: "<p>We've refreshed our community guidelines to keep things clear and respectful for everyone. Please take a moment to read through them.</p>",
 		groupSlug: null,
-		visibility: "global",
+		visibility: "public",
 		authorIdx: -1,
 	},
 ];
@@ -730,30 +809,31 @@ function resolveAuthor(idx: number) {
 }
 
 postDefs.forEach((p, i) => {
-	// Stagger createdAt by one minute per post so timestamps are strictly
-	// distinct and descending. Cursor pagination keys on createdAt, so a batch
+	// Stagger publishedAt by one minute per item so timestamps are strictly
+	// distinct and descending. Cursor pagination keys on publishedAt, so a batch
 	// sharing the same millisecond would break page boundaries at the ties.
-	const createdAt = new Date(Date.now() - i * 60_000).toISOString();
-	db.insert(schema.posts)
-		.values({
-			id: uuid(),
-			title: p.title,
-			body: p.body,
-			editorState: null,
-			userId: resolveAuthor(p.authorIdx),
-			groupId: p.groupSlug ? groupIds[p.groupSlug] : null,
-			visibility: p.visibility,
-			createdAt,
-			updatedAt: createdAt,
-		})
-		.run();
+	const publishedAt = new Date(Date.now() - i * 60_000).toISOString();
+	const common = {
+		id: uuid(),
+		body: p.body,
+		authorId: resolveAuthor(p.authorIdx),
+		scopeId: p.groupSlug ? groupIds[p.groupSlug] : rootScope!.id,
+		visibility: p.visibility,
+		publishedAt,
+		updatedAt: publishedAt,
+	};
+	if (p.title)
+		db.insert(schema.articles)
+			.values({ ...common, title: p.title })
+			.run();
+	else db.insert(schema.notes).values(common).run();
 });
-console.log(`  posts seeded (${postDefs.length})`);
+console.log(`  notes and articles seeded (${postDefs.length})`);
 
-// Add faker-generated posts for each group (3 per group)
+// Add faker-generated articles for each group (3 per group)
 {
 	const groupSlugsForPosts = Object.entries(groupIds); // [slug, id][]
-	const allGroupPosts = db.select().from(schema.posts).all();
+	const allGroupPosts = db.select().from(schema.articles).all();
 	const fakerPostTopics = [
 		() => ({
 			title: faker.company.catchPhrase(),
@@ -779,30 +859,29 @@ console.log(`  posts seeded (${postDefs.length})`);
 
 	for (const [, groupId] of groupSlugsForPosts) {
 		const existingCount = allGroupPosts.filter(
-			(p) => p.groupId === groupId,
+			(p) => p.scopeId === groupId,
 		).length;
 		const toAdd = Math.max(0, 3 - existingCount);
 		for (let i = 0; i < toAdd; i++) {
 			const { title, body } = fakerPostTopics[i % fakerPostTopics.length]();
-			const createdAt = faker.date
+			const publishedAt = faker.date
 				.between({ from: "2023-01-01", to: new Date() })
 				.toISOString();
-			db.insert(schema.posts)
+			db.insert(schema.articles)
 				.values({
 					id: uuid(),
 					title,
 					body,
-					editorState: null,
-					userId: adminUser.id,
-					groupId,
-					visibility: "global",
-					createdAt,
-					updatedAt: createdAt,
+					authorId: adminUser.id,
+					scopeId: groupId,
+					visibility: "public",
+					publishedAt,
+					updatedAt: publishedAt,
 				})
 				.run();
 		}
 	}
-	console.log(`  faker posts added per group`);
+	console.log(`  faker articles added per group`);
 }
 
 // ─── 9. Events ───────────────────────────────────────────────────────────────
@@ -811,7 +890,7 @@ const eventDefs: Array<{
 	title: string;
 	body: string;
 	groupSlug: string | null;
-	visibility: "global" | "group-only";
+	visibility: "public" | "members";
 	authorIdx: number;
 	startOffsetDays: number;
 	durationHours: number;
@@ -825,7 +904,7 @@ const eventDefs: Array<{
 		title: "Evening Social — Tickets Available",
 		body: "<p>A relaxed evening gathering for all community members. Light refreshments included. A great opportunity to meet people and enjoy the community in a social setting.</p>",
 		groupSlug: null,
-		visibility: "global",
+		visibility: "public",
 		authorIdx: -1,
 		startOffsetDays: 5,
 		durationHours: 3,
@@ -839,7 +918,7 @@ const eventDefs: Array<{
 		title: "North Chapter – Summer Social",
 		body: "<p>A free, informal gathering for all North Chapter members. Bring friends, enjoy the weather, and meet your local community.</p>",
 		groupSlug: "berlin",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: 0,
 		startOffsetDays: 14,
 		durationHours: 4,
@@ -853,7 +932,7 @@ const eventDefs: Array<{
 		title: "Tech Talk: AI & Automation",
 		body: "<p>A members-only evening of short talks on artificial intelligence and workflow automation. All skill levels welcome.</p>",
 		groupSlug: "berlin",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: 5,
 		startOffsetDays: 21,
 		durationHours: 3,
@@ -867,7 +946,7 @@ const eventDefs: Array<{
 		title: "New Members Welcome Night",
 		body: "<p>Just joined? Come along to our relaxed welcome evening and meet other members over drinks.</p>",
 		groupSlug: "berlin",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: -2,
 		startOffsetDays: 7,
 		durationHours: 2,
@@ -881,7 +960,7 @@ const eventDefs: Array<{
 		title: "South Chapter – Community Hike",
 		body: "<p>A group hike through the local park. All fitness levels welcome — we'll keep a comfortable pace.</p>",
 		groupSlug: "munich",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: 2,
 		startOffsetDays: 10,
 		durationHours: 3,
@@ -895,7 +974,7 @@ const eventDefs: Array<{
 		title: "Workshop: Public Speaking Skills",
 		body: "<p>A practical workshop on public speaking. Limited to 15 participants for a hands-on experience.</p>",
 		groupSlug: "munich",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: 7,
 		startOffsetDays: 30,
 		durationHours: 2,
@@ -909,7 +988,7 @@ const eventDefs: Array<{
 		title: "Coast Chapter – Morning Walk",
 		body: "<p>Start your Saturday right with a 90-minute walk along the waterfront. Relaxed pace, great views.</p>",
 		groupSlug: "hamburg",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: 6,
 		startOffsetDays: 6,
 		durationHours: 2,
@@ -923,7 +1002,7 @@ const eventDefs: Array<{
 		title: "Coast Chapter – Open Meetup",
 		body: "<p>An open-door meetup. No agenda, no pressure — just a chance to connect with fellow members.</p>",
 		groupSlug: "hamburg",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: 3,
 		startOffsetDays: 18,
 		durationHours: 3,
@@ -937,7 +1016,7 @@ const eventDefs: Array<{
 		title: "Networking Breakfast",
 		body: "<p>An early-morning networking session over coffee and pastries. Central Chapter members only.</p>",
 		groupSlug: "frankfurt",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: 4,
 		startOffsetDays: 12,
 		durationHours: 2,
@@ -951,7 +1030,7 @@ const eventDefs: Array<{
 		title: "Startup Pitch Night",
 		body: "<p>Five members pitch their ideas to the group. Attendees vote for their favourite. Light drinks provided.</p>",
 		groupSlug: "frankfurt",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: 8,
 		startOffsetDays: 25,
 		durationHours: 3,
@@ -965,7 +1044,7 @@ const eventDefs: Array<{
 		title: "West Chapter Members Dinner",
 		body: "<p>A sit-down dinner for West Chapter members. Tickets include a three-course meal.</p>",
 		groupSlug: "cologne",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: -2,
 		startOffsetDays: 9,
 		durationHours: 3,
@@ -979,7 +1058,7 @@ const eventDefs: Array<{
 		title: "West Chapter – Public Meet & Greet",
 		body: "<p>Come and meet the West Chapter! Open to everyone — bring a friend along.</p>",
 		groupSlug: "cologne",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: 3,
 		startOffsetDays: 35,
 		durationHours: 4,
@@ -993,7 +1072,7 @@ const eventDefs: Array<{
 		title: "Checkout Demo Event",
 		body: "<p>Demo event for testing checkout with multiple ticket types and paid product choices.</p>",
 		groupSlug: "berlin",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: -1,
 		startOffsetDays: 20,
 		durationHours: 3,
@@ -1007,7 +1086,7 @@ const eventDefs: Array<{
 		title: "Photography Workshop — Sold Out",
 		body: "<p>A hands-on photography workshop. This event is fully booked — join the waitlist to be notified if spots open up.</p>",
 		groupSlug: null,
-		visibility: "global",
+		visibility: "public",
 		authorIdx: -1,
 		startOffsetDays: 22,
 		durationHours: 3,
@@ -1021,7 +1100,7 @@ const eventDefs: Array<{
 		title: "Annual Community Conference",
 		body: "<p>Our biggest event of the year. Ticket sales will open 30 days before the event. Mark your calendar!</p>",
 		groupSlug: null,
-		visibility: "global",
+		visibility: "public",
 		authorIdx: -1,
 		startOffsetDays: 90,
 		durationHours: 8,
@@ -1035,7 +1114,7 @@ const eventDefs: Array<{
 		title: "All-Groups Online Town Hall",
 		body: "<p>Quarterly online town hall open to all groups. Platform updates, Q&A, and upcoming features.</p>",
 		groupSlug: null,
-		visibility: "global",
+		visibility: "public",
 		authorIdx: -1,
 		startOffsetDays: 45,
 		durationHours: 1,
@@ -1057,6 +1136,10 @@ for (const e of eventDefs) {
 		.values({
 			id: uuid(),
 			title: e.title,
+			slug: seedEventSlug(
+				e.groupSlug ? groupIds[e.groupSlug] : rootScope!.id,
+				e.title,
+			),
 			body: e.body,
 			startDate: start,
 			endDate: end,
@@ -1069,7 +1152,7 @@ for (const e of eventDefs) {
 			onlineUrl:
 				e.city === "Online" ? "https://meet.example.com/town-hall" : null,
 			userId: resolveAuthor(e.authorIdx),
-			groupId: e.groupSlug ? groupIds[e.groupSlug] : null,
+			scopeId: e.groupSlug ? groupIds[e.groupSlug] : rootScope!.id,
 			visibility: e.visibility,
 			createdAt: now(),
 			updatedAt: now(),
@@ -1077,6 +1160,49 @@ for (const e of eventDefs) {
 		.run();
 }
 console.log(`  events seeded (${eventDefs.length})`);
+
+// Updates about events (spec 5.2): an announcement (article) and a short update (note) under the
+// first upcoming events; they show on the event pages and in the news.
+{
+	const seededEvents = db
+		.select()
+		.from(schema.events)
+		.all()
+		.filter((e) => new Date(e.startDate) > new Date())
+		.slice(0, 3);
+	for (const [i, evt] of seededEvents.entries()) {
+		const at = (minutesAgo: number) =>
+			new Date(Date.now() - (i * 10 + minutesAgo) * 60_000).toISOString();
+		db.insert(schema.articles)
+			.values({
+				id: uuid(),
+				scopeId: evt.scopeId,
+				subjectType: "events:event",
+				subjectId: evt.id,
+				title: `Announcing: ${evt.title}`,
+				body: `<p>${evt.title} is on! Save the date and bring a friend.</p>`,
+				visibility: evt.visibility,
+				authorId: evt.userId,
+				publishedAt: at(5),
+				updatedAt: at(5),
+			})
+			.run();
+		db.insert(schema.notes)
+			.values({
+				id: uuid(),
+				scopeId: evt.scopeId,
+				subjectType: "events:event",
+				subjectId: evt.id,
+				body: "<p>Doors open 30 minutes before the start. See you there!</p>",
+				visibility: evt.visibility,
+				authorId: evt.userId,
+				publishedAt: at(2),
+				updatedAt: at(2),
+			})
+			.run();
+	}
+	console.log(`  event updates seeded (${seededEvents.length * 2})`);
+}
 
 // ─── 10. Participation statuses ──────────────────────────────────────────────
 
@@ -1194,7 +1320,6 @@ function seedInventory(opts: {
 				participantCapacity: p.participantCapacity ?? 1,
 				features: [],
 				imageKey: null,
-				stripeProductId: null,
 				soldQuantity: p.soldQuantity ?? 0,
 				createdAt: now(),
 				updatedAt: now(),
@@ -1507,6 +1632,10 @@ console.log("  inventory & products seeded");
 			.values({
 				id: eventId,
 				title: opts.title,
+				slug: seedEventSlug(
+					opts.groupSlug ? groupIds[opts.groupSlug] : rootScope!.id,
+					opts.title,
+				),
 				body: opts.body,
 				startDate: opts.startDate,
 				endDate,
@@ -1518,8 +1647,8 @@ console.log("  inventory & products seeded");
 				latitude: opts.latitude,
 				onlineUrl: opts.onlineUrl ?? null,
 				userId: adminUser!.id,
-				groupId: opts.groupSlug ? groupIds[opts.groupSlug] : null,
-				visibility: "global",
+				scopeId: opts.groupSlug ? groupIds[opts.groupSlug] : rootScope!.id,
+				visibility: "public",
 				createdAt,
 				updatedAt: createdAt,
 			})
@@ -1557,7 +1686,6 @@ console.log("  inventory & products seeded");
 					participantCapacity: 1,
 					features: [],
 					imageKey: null,
-					stripeProductId: null,
 					createdAt,
 					updatedAt: createdAt,
 				})
@@ -1572,6 +1700,36 @@ console.log("  inventory & products seeded");
 					new Date(opts.startDate).getTime() - Math.random() * 25 * 86_400_000,
 				).toISOString();
 				const txId = uuid();
+				// A paid order has its core payment (spec 4.7); free ones have none.
+				const paymentId = product.price > 0 ? uuid() : null;
+				if (paymentId)
+					db.insert(schema.payments)
+						.values({
+							id: paymentId,
+							moduleId: "events",
+							kind: "tickets",
+							refId: txId,
+							userId: buyerId,
+							status: "paid",
+							mode: "payment",
+							provider: "stripe",
+							providerRef: `cs_hist_${uuid().slice(0, 8)}`,
+							providerPaymentRef: `pi_hist_${uuid().slice(0, 8)}`,
+							amount: Math.round(product.price * 100),
+							currency: "eur",
+							lines: [
+								{
+									label: product.name,
+									amount: Math.round(product.price * 100),
+									quantity: 1,
+								},
+							],
+							subjectRef: `events:event:${eventId}`,
+							createdAt: purchaseDate,
+							updatedAt: purchaseDate,
+							paidAt: purchaseDate,
+						})
+						.run();
 				db.insert(schema.transactions)
 					.values({
 						id: txId,
@@ -1582,9 +1740,8 @@ console.log("  inventory & products seeded");
 							product.price > 0
 								? Math.round(product.price * 0.029 * 100) / 100
 								: 0,
-						stripeSessionId: `cs_hist_${uuid().slice(0, 8)}`,
-						stripePaymentId:
-							product.price > 0 ? `pi_hist_${uuid().slice(0, 8)}` : null,
+						status: "paid",
+						paymentId,
 						paymentDate: purchaseDate,
 						createdAt: purchaseDate,
 					})
@@ -1927,7 +2084,7 @@ console.log("  inventory & products seeded");
 
 // ─── 12. Placeholder images ──────────────────────────────────────────────────
 
-const imageKeys = await downloadAndUploadSeedImages();
+const { keys: imageKeys, articleKeys } = await downloadAndUploadSeedImages();
 
 const usersWithoutProfile = db
 	.select()
@@ -1961,25 +2118,13 @@ for (let i = 0; i < eventsNoImg.length; i++) {
 	);
 }
 
-const postsNoImg = sqlite
-	.prepare(
-		"SELECT id FROM posts WHERE deleted_at IS NULL AND (featured_image IS NULL OR featured_image LIKE '%picsum.photos%')",
-	)
-	.all() as Array<{ id: string }>;
-const updatePost = sqlite.prepare(
-	"UPDATE posts SET featured_image = ? WHERE id = ?",
-);
-for (let i = 0; i < postsNoImg.length; i++) {
-	updatePost.run(imageKeys[i % imageKeys.length], postsNoImg[i].id);
-}
-
 const groupsNoImg = sqlite
 	.prepare(
-		"SELECT id FROM groups WHERE (image1 IS NULL OR image1 LIKE '%picsum.photos%' OR image2 IS NULL OR image2 LIKE '%picsum.photos%' OR image3 IS NULL OR image3 LIKE '%picsum.photos%')",
+		"SELECT id FROM scopes WHERE (image1 IS NULL OR image1 LIKE '%picsum.photos%' OR image2 IS NULL OR image2 LIKE '%picsum.photos%' OR image3 IS NULL OR image3 LIKE '%picsum.photos%')",
 	)
 	.all() as Array<{ id: string }>;
 const updateGroup = sqlite.prepare(
-	"UPDATE groups SET image1 = ?, image2 = ?, image3 = ? WHERE id = ?",
+	"UPDATE scopes SET image1 = ?, image2 = ?, image3 = ? WHERE id = ?",
 );
 for (let i = 0; i < groupsNoImg.length; i++) {
 	updateGroup.run(
@@ -1990,8 +2135,18 @@ for (let i = 0; i < groupsNoImg.length; i++) {
 	);
 }
 
+// Every other article gets a featured image (spec 4.4: optional, articles only).
+const seededArticles = db.select().from(schema.articles).all();
+for (const [i, a] of seededArticles.entries()) {
+	if (i % 2 === 1 || a.featuredImage) continue;
+	db.update(schema.articles)
+		.set({ featuredImage: articleKeys[i % articleKeys.length] })
+		.where(eq(schema.articles.id, a.id))
+		.run();
+}
+
 console.log(
-	`  images downloaded/uploaded and linked (${eventsNoImg.length} events, ${postsNoImg.length} posts, ${groupsNoImg.length} groups)`,
+	`  images downloaded/uploaded and linked (${eventsNoImg.length} events, ${groupsNoImg.length} groups, ${Math.ceil(seededArticles.length / 2)} articles)`,
 );
 console.log(
 	`  user profile pictures assigned (${usersWithoutProfile.length} users)`,
@@ -1999,37 +2154,30 @@ console.log(
 
 // ─── 13. Forms ───────────────────────────────────────────────────────────────
 
-const onboardJson = JSON.parse(
-	fs.readFileSync("surveys/onboard.json", "utf-8"),
+// Workflow forms (a purpose, active at the root) and a public survey.
+const onboardingFormId = ensureWorkflowForm(
+	sqlite,
+	rootScope!.id,
+	adminUser!.id,
+	onboardingFormSeed(),
 );
+// Event proposals and debriefs (spec 5.2), active at the root.
+for (const seed of [eventProposalFormSeed(), eventDebriefFormSeed()])
+	ensureWorkflowForm(sqlite, rootScope!.id, adminUser!.id, seed);
 
-const formDefs: Array<{
+const surveyDefs: Array<{
 	title: string;
 	slug: string;
 	description: string;
-	schemaJson: any;
+	schema: Record<string, unknown>;
 	visibility: "private" | "public";
-	isSystemForm: boolean;
-	allowResubmission?: boolean;
-	systemKey: string | null;
 }> = [
-	{
-		title: "Onboarding Survey",
-		slug: "onboarding",
-		description:
-			"Required during signup — captures how you know us and your academic background.",
-		schemaJson: onboardJson,
-		visibility: "private",
-		isSystemForm: true,
-		allowResubmission: true,
-		systemKey: "affilation",
-	},
 	{
 		title: "Community Feedback",
 		slug: "community-feedback",
 		description:
 			"Tell us what you think about the community and how we can improve.",
-		schemaJson: {
+		schema: {
 			pages: [
 				{
 					name: "feedback_page",
@@ -2077,52 +2225,32 @@ const formDefs: Array<{
 			],
 		},
 		visibility: "public",
-		isSystemForm: false,
-		systemKey: null,
 	},
 ];
 
-for (const f of formDefs) {
-	const existing = f.systemKey
-		? db
-				.select()
-				.from(schema.forms)
-				.all()
-				.find((r) => r.systemKey === f.systemKey)
-		: null;
-
-	if (existing) {
-		if (
-			f.allowResubmission !== undefined &&
-			existing.allowResubmission !== f.allowResubmission
-		) {
-			db.update(schema.forms)
-				.set({ allowResubmission: f.allowResubmission, updatedAt: now() })
-				.where(eq(schema.forms.id, existing.id))
-				.run();
-		}
-		continue;
-	}
-
+for (const f of surveyDefs) {
+	const existing = db
+		.select()
+		.from(schema.forms)
+		.all()
+		.find((r) => r.slug === f.slug && r.scopeId === rootScope!.id);
+	if (existing) continue;
 	db.insert(schema.forms)
 		.values({
 			id: uuid(),
+			scopeId: rootScope!.id,
 			title: f.title,
 			slug: f.slug,
 			description: f.description,
-			schemaJson: f.schemaJson,
+			schema: f.schema,
 			visibility: f.visibility,
-			scopeType: "global",
-			isSystemForm: f.isSystemForm,
-			allowResubmission: f.allowResubmission ?? false,
-			systemKey: f.systemKey,
 			createdBy: adminUser.id,
 			createdAt: now(),
 			updatedAt: now(),
 		})
 		.run();
 }
-console.log(`  forms seeded (${formDefs.length})`);
+console.log(`  forms seeded (onboarding + ${surveyDefs.length} surveys)`);
 
 // ─── 13b. Onboarding form results ─────────────────────────────────────────────
 
@@ -2130,7 +2258,7 @@ const onboardingForm = db
 	.select()
 	.from(schema.forms)
 	.all()
-	.find((f) => f.systemKey === "affilation");
+	.find((f) => f.id === onboardingFormId);
 
 if (onboardingForm) {
 	// Delete any existing form results for test users so they land on the survey fresh.
@@ -2330,7 +2458,7 @@ if (onboardingForm) {
 		if (alreadySubmitted.has(user.id)) continue;
 		if (testUserIds.has(user.id)) continue;
 
-		const resultJson =
+		const answers =
 			affiliationPool[Math.floor(Math.random() * affiliationPool.length)];
 
 		db.insert(schema.formResults)
@@ -2338,8 +2466,8 @@ if (onboardingForm) {
 				id: uuid(),
 				formId: onboardingForm.id,
 				userId: user.id,
-				resultJson,
-				submittedAt: now(),
+				answers,
+				createdAt: now(),
 			})
 			.run();
 
@@ -2439,13 +2567,13 @@ const pageDefs: Array<{
 				id: uuid(),
 				componentType: "TitleBlock",
 				order: 8,
-				data: { text: "Latest Posts", level: "2", align: "center" },
+				data: { text: "Latest News", level: "2", align: "center" },
 			},
 			{
 				id: uuid(),
-				componentType: "PostsListBlock",
+				componentType: "StreamBlock",
 				order: 9,
-				data: { limit: 6 },
+				data: { show: "all", limit: 6 },
 			},
 		],
 	},
@@ -2703,7 +2831,7 @@ const pageDefs: Array<{
 				order: 20,
 				data: {
 					text: "Go to Admin Panel",
-					href: "/admin/global",
+					href: "/admin/root",
 					align: "left",
 				},
 			},
@@ -2727,7 +2855,7 @@ const pageDefs: Array<{
 				data: {
 					type: "info",
 					title: "Self-fetching blocks",
-					body: "The blocks below (Upcoming Events, Groups List, Posts List) fetch their own data from the database. Drop them on any page and they update automatically.",
+					body: "The blocks below (Upcoming Events, Groups List, Stream) fetch their own data from the database. Drop them on any page and they update automatically.",
 				},
 			},
 			{
@@ -2867,9 +2995,9 @@ const pageDefs: Array<{
 			},
 			{
 				id: uuid(),
-				componentType: "PostsListBlock",
+				componentType: "StreamBlock",
 				order: 2,
-				data: { limit: 10 },
+				data: { show: "all", limit: 10 },
 			},
 		],
 	},
@@ -2883,6 +3011,9 @@ for (const p of pageDefs) {
 	db.insert(schema.pages)
 		.values({
 			id: pageId,
+			scopeId: rootScope!.id,
+			slug: p.slug.replace(/^\/+/, ""),
+			title: p.title,
 			content: p.content,
 			status: p.status,
 			createdAt: now(),
@@ -2975,13 +3106,15 @@ const menuDefs: Array<{
 ];
 
 for (const m of menuDefs) {
+	const pageId = m.hasPage ? (pageIdByUrl.get(m.url) ?? null) : null;
 	db.insert(schema.menuItems)
 		.values({
 			id: uuid(),
 			menuName: m.menuName,
 			title: m.title,
-			url: m.url,
-			pageId: m.hasPage ? (pageIdByUrl.get(m.url) ?? null) : null,
+			// Internal links are stored as references (spec 4.3); the rest are fixed paths.
+			url: pageId ? `ref:core:page:${pageId}` : m.url,
+			pageId,
 			position: m.position,
 			status: "visible",
 			target: "_self",
@@ -3157,6 +3290,7 @@ for (const d of dealDefs) {
 	db.insert(schema.deals)
 		.values({
 			id: uuid(),
+			scopeId: rootScope!.id,
 			name: d.name,
 			description: d.description,
 			logo: logoKey,
@@ -3268,6 +3402,7 @@ for (const j of jobDefs) {
 	db.insert(schema.jobs)
 		.values({
 			id: uuid(),
+			scopeId: rootScope!.id,
 			title: j.title,
 			body: j.body,
 			editorState: null,
@@ -3430,6 +3565,7 @@ for (const qt of qualTypeDefs) {
 		db.insert(schema.qualificationTypes)
 			.values({
 				id,
+				scopeId: rootScope!.id,
 				slug: qt.slug,
 				label: qt.label,
 				description: qt.description,
@@ -3598,14 +3734,29 @@ console.log(`  user qualifications seeded (${qualCount})`);
 console.log(`  user memberships seeded (${membershipCount})`);
 console.log(`  user tags seeded (${tagCount})`);
 
+// ─── User requirements ───────────────────────────────────────────────────────
+// Every seeded user has completed profile basics, location, the onboarding survey and the
+// event checkout questions (spec 4.6), so logging in as any of them is not gated.
+
+completeRequirements(
+	sqlite,
+	db
+		.select({ id: schema.users.id })
+		.from(schema.users)
+		.all()
+		.map((u) => u.id),
+);
+console.log("  user requirements completed for every seeded user");
+
 // ─── Done ────────────────────────────────────────────────────────────────────
 
 const counts = {
 	users: db.select().from(schema.users).all().length,
-	groups: db.select().from(schema.groups).all().length,
-	memberships: db.select().from(schema.groupMemberships).all().length,
-	reps: db.select().from(schema.groupRepresentatives).all().length,
-	posts: db.select().from(schema.posts).all().length,
+	scopes: db.select().from(schema.scopes).all().length,
+	memberships: db.select().from(schema.scopeMemberships).all().length,
+	scopeRoles: db.select().from(schema.scopeRoles).all().length,
+	notes: db.select().from(schema.notes).all().length,
+	articles: db.select().from(schema.articles).all().length,
 	events: db.select().from(schema.events).all().length,
 	inventoryGroups: db.select().from(schema.inventoryGroups).all().length,
 	products: db.select().from(schema.products).all().length,

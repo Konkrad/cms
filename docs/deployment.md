@@ -14,7 +14,7 @@ below are the same regardless of the tool driving them.
 | `docker/entrypoint.sh` | Boot sequence: restore DB if missing → start server (optionally under Litestream) |
 | `litestream.yml` | Optional: continuously replicates the SQLite DB to S3-compatible object storage under the `db-backups/` prefix |
 | `src/routes/up/index.ts` | Health check endpoint (`/up`) — wire it into whatever proxy/load balancer you use |
-| `src/db/migrate.ts` | Programmatic Drizzle migration runner (idempotent), called directly by the server on every start |
+| `src/core/db/migrate.ts` | Programmatic Drizzle migration runner (idempotent), called directly by the server on every start |
 | `src/entry.node-server.tsx` | Production Node server entry, built to `server/entry.node-server.js`; runs migrations before it starts listening |
 
 ## The container's expectations
@@ -22,17 +22,32 @@ below are the same regardless of the tool driving them.
 - **Persistent storage for SQLite.** The DB file lives at `DB_PATH` (e.g.
   `/data/db.sqlite`) — mount a volume there so it survives restarts/redeploys.
 - **Migrations run automatically at boot, built into the app itself.**
-  `entry.node-server.tsx` calls `runMigrations()` (`src/db/migrate.ts`) before it
+  `entry.node-server.tsx` calls `runMigrations()` (`src/core/db/migrate.ts`) before it
   starts listening, so a normal redeploy applies any new committed migration in
   `drizzle/` — there's no separate migrate step or script in `docker/entrypoint.sh`.
   Keep migrations in sync with the schema via `npm run db:generate` (see CLAUDE.md
   § Core Rules).
+- **Recreate the production DB once for the migration baseline.** The migration history
+  was replaced by one fresh baseline, so a DB built from the old history cannot be upgraded:
+  stop the app, delete the DB file at `DB_PATH` (and its Litestream replica, or the entrypoint
+  restores it), then start the app (it migrates an empty DB) and seed it.
 - **`/up` only proves the process serves HTTP** — it deliberately checks no
   downstream services (DB, S3, SMTP). Point your platform's health check at it.
 - **Env vars**: everything in `src/env.ts` must be set. `VITE_S3_BASE_URL` is the
   one exception — it's a *build-time* value baked into the client bundle
   (`import.meta.env`), so it must be passed as a Docker build arg, not a runtime
   env var; changing it requires a rebuild.
+- **Payments are optional.** Set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`
+  to enable them; without both, only free flows are offered. Point the Stripe
+  webhook endpoint at `<APP_URL>/api/payments/webhook/stripe` with the events
+  `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+  `checkout.session.async_payment_failed`, `checkout.session.expired`,
+  `charge.refunded`, and for subscriptions `invoice.paid`, `invoice.payment_failed`,
+  `customer.subscription.deleted`.
+- **Social web (if the `social-web` module is active).** `/.well-known/*` reaches the app
+  (it is rewritten to `/api/well-known/*` inside the server), so let the reverse proxy pass
+  it through. The account is `<SOCIAL_WEB_ACCOUNT>@<APP_URL host>` (default `news`), the RSS
+  feed `/feed.xml`; both are pull-only and the server never sends anything out.
 - **Litestream is optional.** If you want continuous SQLite → S3 replication for
   disaster recovery, set `DB_PATH`/`S3_BUCKET`/`AWS_*` and run the container as
   written (`entrypoint.sh` wraps the server in `litestream replicate -exec`). If

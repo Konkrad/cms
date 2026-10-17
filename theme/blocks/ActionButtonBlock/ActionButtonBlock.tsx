@@ -1,6 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { Button } from "~/components/ui/Button";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { t } from "~/contracts/i18n";
 
 interface ActionButtonBlockProps {
 	text?: string;
@@ -9,47 +10,48 @@ interface ActionButtonBlockProps {
 }
 
 export const definition: BlockDefinition = {
-	name: "Action Button",
+	name: t("theme.blocks.actionButton.actionButton"),
 	componentType: "ActionButtonBlock",
 	category: "content",
 	icon: "🟢",
 	configSchema: [
 		{
 			name: "text",
-			label: "Button Text",
+			label: t("theme.blocks.actionButton.buttonText"),
 			type: "text",
-			defaultValue: "Learn More",
+			defaultValue: t("theme.blocks.actionButton.learnMore"),
 			required: true,
 		},
 		{
 			name: "href",
-			label: "Link Target",
-			type: "url",
+			label: t("theme.blocks.actionButton.linkTarget"),
+			// A page, group or item picked as a reference (follows renames), or an external URL.
+			type: "link",
 			defaultValue: "/",
 			required: true,
-			placeholder: "/your-target",
+			placeholder: t("theme.blocks.actionButton.httpsOrPickAPage"),
 		},
 		{
 			name: "align",
-			label: "Alignment",
+			label: t("theme.blocks.actionButton.alignment"),
 			type: "select",
 			defaultValue: "left",
 			options: [
-				{ label: "Left", value: "left" },
-				{ label: "Center", value: "center" },
-				{ label: "Right", value: "right" },
+				{ label: t("theme.blocks.actionButton.left"), value: "left" },
+				{ label: t("theme.blocks.actionButton.center"), value: "center" },
+				{ label: t("theme.blocks.actionButton.right"), value: "right" },
 			],
 		},
 	],
 	defaultData: {
-		text: "Learn More",
+		text: t("theme.blocks.actionButton.learnMore"),
 		href: "/",
 		align: "left",
 	},
 };
 
 export default component$<ActionButtonBlockProps>((props) => {
-	const text = props.text ?? "Learn More";
+	const text = props.text ?? t("theme.blocks.actionButton.learnMore");
 	const href = props.href ?? "/";
 	const alignClass =
 		props.align === "center"

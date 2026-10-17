@@ -3,8 +3,10 @@ import { Form, Link } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import type {
 	EventViewData,
+	SubmitRequirementAction,
 	UpdateParticipationAction,
 } from "~/contracts/events";
+import { formatCurrency, t } from "~/contracts/i18n";
 import { EventDateTile } from "~theme/blocks/FeatureBlock/EventDateTile";
 import { FeatureGrid } from "~theme/blocks/FeatureBlock/FeatureGrid";
 import { ImageTile } from "~theme/blocks/FeatureBlock/ImageTile";
@@ -12,26 +14,29 @@ import { LocationTile } from "~theme/blocks/FeatureBlock/LocationTile";
 import { ParticipantsTile } from "~theme/blocks/FeatureBlock/ParticipantsTile";
 import { ParticipantsModal } from "~theme/shared/ParticipantsModal";
 import { ParticipationToggle } from "~theme/shared/ParticipationToggle/ParticipationToggle";
+import { RequirementSteps } from "~theme/shared/RequirementStep/RequirementStep";
+import { StreamCard } from "~theme/shared/StreamList/StreamList";
 
 /** Themed view for the public event detail route (`/events/[id]`). */
 export const EventView = component$<{
 	event: EventViewData;
 	updateParticipation: UpdateParticipationAction;
-}>(({ event: eventData, updateParticipation }) => {
+	submitRequirement: SubmitRequirementAction;
+}>(({ event: eventData, updateParticipation, submitRequirement }) => {
 	if (!eventData) {
 		return (
 			<div class="max-w-4xl mx-auto px-4 py-16 text-center">
 				<h1 class="text-4xl font-bold text-text-heading mb-4">
-					Event Not Found
+					{t("theme.event.eventNotFound")}
 				</h1>
 				<p class="text-text-secondary mb-8">
-					The event you're looking for doesn't exist or has been removed.
+					{t("theme.event.theEventYouReLooking")}
 				</p>
 				<Link
 					href="/events"
 					class="text-primary hover:text-primary font-medium"
 				>
-					Back to Events
+					{t("theme.event.backToEvents")}
 				</Link>
 			</div>
 		);
@@ -112,14 +117,14 @@ export const EventView = component$<{
 								href="/login"
 								class="inline-block px-10 py-3 bg-[#0e1148] hover:bg-[#1a1d5e] text-white font-['Lato',sans-serif] font-bold text-sm rounded-full transition-colors"
 							>
-								Log In to RSVP
+								{t("theme.event.logInToRsvp")}
 							</a>
 						) : showBuyTickets ? (
 							<Link
-								href={`/events/${event.id}/checkout`}
+								href={event.checkoutUrl}
 								class="inline-block px-10 py-3 bg-[#0e1148] hover:bg-[#1a1d5e] text-white font-['Lato',sans-serif] font-bold text-sm rounded-full transition-colors"
 							>
-								Buy Your Tickets
+								{t("theme.event.buyYourTickets")}
 							</Link>
 						) : showWaitlist ? (
 							<Form action={updateParticipation}>
@@ -140,19 +145,33 @@ export const EventView = component$<{
 									disabled={updateParticipation.isRunning}
 								>
 									{effectiveParticipationStatus === "maybe"
-										? "✓ On Waitlist"
-										: "Join Waitlist"}
+										? t("theme.event.onWaitlist")
+										: t("theme.event.joinWaitlist")}
 								</Button>
 							</Form>
 						) : showSalesClosed ? (
 							<span class="inline-block px-10 py-3 bg-bg-muted text-white font-['Lato',sans-serif] font-bold text-sm rounded-full cursor-not-allowed">
-								Sales Closed
+								{t("theme.event.salesClosed")}
 							</span>
 						) : event.soldOut ? (
 							// bg-orange-500: "Sold Out" visual indicator; no orange token in current palette, would need --color-orange-* added to theme.css if themes want different highlight
 							<span class="inline-block px-10 py-3 bg-orange-500 text-white font-['Lato',sans-serif] font-bold text-sm rounded-full cursor-not-allowed">
-								Sold Out
+								{t("theme.event.soldOut")}
 							</span>
+						) : event.requirements.length > 0 ? (
+							// Answer the event requirements (food preference, photo consent …) before RSVPing.
+							<div
+								class="w-full max-w-xl space-y-3"
+								data-testid="rsvp-requirements"
+							>
+								<p class="text-center text-text-secondary">
+									{t("theme.event.beforeYouRegisterPleaseAnswer")}
+								</p>
+								<RequirementSteps
+									steps={event.requirements}
+									action={submitRequirement}
+								/>
+							</div>
 						) : (
 							<Form action={updateParticipation}>
 								{event.isFreeEvent &&
@@ -186,12 +205,12 @@ export const EventView = component$<{
 				{/* RSVP confirmation messages */}
 				{effectiveParticipationStatus === "yes" && showFreeRSVP && (
 					<div class="max-w-xl mx-auto mb-8 p-3 bg-success-bg border border-success-border rounded-lg text-success text-center text-sm">
-						✓ You're attending! Your free ticket has been created.
+						{t("theme.event.youReAttendingYourFree")}
 					</div>
 				)}
 				{effectiveParticipationStatus === "maybe" && showWaitlist && (
 					<div class="max-w-xl mx-auto mb-8 p-3 bg-info-bg border border-info-border rounded-lg text-primary text-center text-sm">
-						✓ You're on the waitlist!
+						{t("theme.event.youReOnTheWaitlist")}
 					</div>
 				)}
 
@@ -206,6 +225,7 @@ export const EventView = component$<{
 						title={event.title}
 						location={event.locationDisplay}
 						description={event.body || undefined}
+						url={event.url}
 						isPast={event.isEventPast}
 					/>
 
@@ -230,7 +250,7 @@ export const EventView = component$<{
 						<ImageTile
 							area="middle"
 							image="https://picsum.photos/600/700"
-							alt="Event"
+							alt={t("theme.event.event")}
 						/>
 					)}
 
@@ -257,8 +277,10 @@ export const EventView = component$<{
 						area="right-bottom"
 						participants={event.participants}
 						participantCount={participantCount}
-						summaryLine={`are going to ${event.title}`}
-						emptyBody={`Join ${event.title} and invite your friends`}
+						summaryLine={t("theme.event.areGoingTo", { title: event.title })}
+						emptyBody={t("theme.event.joinAndInviteYourFriends", {
+							title: event.title,
+						})}
 						isLoggedIn={event.isLoggedIn}
 						onSeeAll$={$(() => {
 							showParticipantsModal.value = true;
@@ -282,10 +304,10 @@ export const EventView = component$<{
 				{hasProducts && !event.isEventPast && (
 					<div class="max-w-4xl mx-auto mt-16">
 						<h2 class="font-['Rubik',sans-serif] font-bold text-[32px] leading-[1.3] text-black mb-6">
-							Tickets
+							{t("theme.event.tickets")}
 						</h2>
 						<p class="text-text-secondary text-base leading-relaxed mb-4">
-							What is included in your tickets:
+							{t("theme.event.whatIsIncludedInYour")}
 						</p>
 						<div class="space-y-4">
 							{event.products.map((product) => (
@@ -297,7 +319,7 @@ export const EventView = component$<{
 										</span>
 										{product.price > 0 && (
 											<span class="text-text-muted ml-2">
-												— €{product.price.toFixed(2)}
+												— {formatCurrency(product.price, "EUR")}
 											</span>
 										)}
 										{product.features &&
@@ -328,25 +350,38 @@ export const EventView = component$<{
 					// Purple color palette for photo gallery feature highlight; no purple token in current palette, intentional visual distinction
 					<div class="max-w-4xl mx-auto mt-16 bg-purple-50 border border-purple-200 rounded-[25px] p-8">
 						<h3 class="font-['Rubik',sans-serif] font-semibold text-[24px] text-purple-900 mb-3">
-							📸 Event Photos
+							{t("theme.event.eventPhotos")}
 						</h3>
 						<p class="text-purple-800 mb-6">
-							You attended this event! View the photo gallery with all the
-							memories.
+							{t("theme.event.youAttendedThisEventView")}
 						</p>
 						<Link
-							href={`/events/${event.id}/photos`}
+							href={event.photosUrl}
 							class="inline-block bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-3 rounded-full transition-colors"
 						>
-							View Photo Gallery
+							{t("theme.event.viewPhotoGallery")}
 						</Link>
 					</div>
+				)}
+
+				{/* ── Notes and articles about the event: announcement, updates, recap (newest first) ── */}
+				{event.updates.length > 0 && (
+					<section class="max-w-4xl mx-auto mt-16" data-testid="event-updates">
+						<h2 class="font-['Rubik',sans-serif] font-bold text-[24px] leading-[1.3] text-black mb-4">
+							{t("theme.event.updates")}
+						</h2>
+						<div class="space-y-4">
+							{event.updates.map((item) => (
+								<StreamCard key={`${item.type}:${item.id}`} item={item} />
+							))}
+						</div>
+					</section>
 				)}
 
 				{/* ── Organizer ── */}
 				<div class="max-w-4xl mx-auto mt-16">
 					<h2 class="font-['Rubik',sans-serif] font-bold text-[24px] leading-[1.3] text-black mb-4">
-						Organized by
+						{t("theme.event.organizedBy")}
 					</h2>
 					<div class="flex items-center gap-4">
 						<div class="w-12 h-12 bg-[#034ea2] text-white rounded-full flex items-center justify-center font-semibold text-lg">

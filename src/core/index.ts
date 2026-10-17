@@ -1,0 +1,236 @@
+/**
+ * Module API: the root files of `src/core` (this file, `schema`, `ui`, `seo`, `setup-actions`)
+ * are the only core surface feature modules (`src/modules/**`) may import, besides `~/contracts/*`.
+ * Enforced by the `src/modules/**` override in biome.json. Add an export here only when a module needs it.
+ */
+
+// biome-ignore-all assist/source/organizeImports: export order matters. The definePage/defineModule re-exports must come before ~/core/registry/manifests, which imports the modules, which import this file (import cycle).
+
+import { requirementsService } from "~/core/requirements/requirements.service";
+import { env } from "~/env";
+
+// Module/page definition (client-safe)
+export { defineModule } from "~/core/router/modules";
+export type { PageViews } from "~/core/router/page-views";
+export { definePage, matchPath } from "~/core/router/pages";
+export type {
+	ChannelId,
+	EmailContent,
+	NotificationDefinition,
+	RenderContext,
+} from "~/core/notifications/define";
+export { defineNotification } from "~/core/notifications/define";
+export type {
+	RequirementDefinition,
+	RequirementPrefill,
+	RequirementUser,
+} from "~/core/requirements/define";
+export {
+	defineRequirement,
+	GLOBAL_CONTEXT,
+	RequirementInputError,
+} from "~/core/requirements/define";
+
+// Server-only: do not call from client code (reference only inside loaders/actions/server$).
+export { db } from "~/core/db/connection";
+export type {
+	CreatePaymentInput,
+	PaymentHandler,
+	PaymentHandlerContext,
+	PaymentHandlers,
+	PaymentInfo,
+} from "~/core/payments/payments";
+export {
+	PaymentsDisabledError,
+	payments,
+} from "~/core/payments/payments";
+export type { PaymentLine, PaymentStatus } from "~/core/payments/schema";
+export type { PublicUser } from "~/core/users/public-user";
+export {
+	publicUserColumns,
+	publicUserSelect,
+	publicUserThumbnailUrl,
+	toPublicUser,
+} from "~/core/users/public-user";
+// UI strings and locale formatting (spec 4.8): t("<module>.<key>") with the site locale.
+export {
+	type DateFormat,
+	formatCurrency,
+	formatDate,
+	formatMoney,
+	formatNumber,
+	intlLocale,
+	type MessageKey,
+	siteLocale,
+	type TranslateParams,
+	t,
+} from "~/core/i18n";
+export { requireActiveModule } from "~/core/registry/manifests";
+export { currentScope, currentScopeRest } from "~/core/router/scope-request";
+export { adminUrl, scopeUrl } from "~/core/router/scope-path";
+// Access layer: scope roles (inherited downward) and memberships (counting upward).
+export type { MinRole, ScopeAccess, ScopeMember } from "~/core/scopes/access";
+export {
+	allowedVisibilities,
+	canManageScope,
+	canViewScope,
+	currentUser,
+	getAncestors,
+	getDescendants,
+	getRootScope,
+	getScope,
+	getSubtreeIds,
+	isMember,
+	isPlatformAdmin,
+	isWithinScope,
+	listManagedScopes,
+	listMembers,
+	requireScopeRole,
+	requireWithinScope,
+	scopeLabels,
+} from "~/core/scopes/access";
+// Listings of scoped content (spec 4.3): own + ancestors by visibility, public items from below.
+export {
+	type ContentFilter,
+	localFirst,
+	requestContentFilter,
+	scopeContentFilter,
+	scopeSourceLabels,
+} from "~/core/scopes/content-filter";
+export type { Scope } from "~/core/scopes/schema/scopes";
+export { VISIBILITIES, type Visibility } from "~/core/scopes/visibility";
+// Server-only core services for modules (memberships tiers, user tags). Tag *rule evaluation*
+// is not core; it lives in the events module (`src/modules/events/services/tag-rules.ts`).
+export { deleteS3Objects } from "~/core/media/image-processing.service";
+export { membershipsService } from "~/core/memberships/memberships.service";
+export { assertNoPrivateFields } from "~/core/shared/no-private-fields";
+export { slugify, uniqueSlug } from "~/core/shared/slug";
+export type { PageDirection } from "~/core/shared/pagination";
+export {
+	createCursorFromItem,
+	decodeCursor,
+	getNextCursorFromRows,
+	paginateRows,
+} from "~/core/shared/pagination";
+export type { NotifyInput, NotifyRecipient } from "~/core/notifications/notify";
+export { notify } from "~/core/notifications/notify";
+export { userTagsService } from "~/core/tags/user-tags.service";
+export { usersService } from "~/core/users/users.service";
+export { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
+export { sanitizeRichHtml } from "~/core/content/sanitize-html";
+export {
+	generatePresignedGetUrl,
+	generateSecurePhotoUrl,
+} from "~/core/media/secure-urls";
+export {
+	getCurrentUserData,
+	getServerSession,
+	requireAuth,
+} from "~/core/auth/server-auth";
+export { buildProfileUrl } from "~/core/users/format";
+// Schema references modules need to relate to core tables (also in ./schema).
+export * from "./schema";
+// Module guards. They load the registry, which imports the modules, which import this file
+// back, so they must stay after the definitions above.
+export { requireModuleAdmin } from "~/core/registry/module-admin";
+export { requireModuleAuth } from "~/core/registry/module-auth";
+// User requirements (spec 4.6): `requirements.pending(user, context)` in a loader and again in the
+// action (never trust the client); steps are submitted through core's single step action.
+export type { PendingRequirement } from "~/core/requirements/requirements";
+export { requirements } from "~/core/registry/requirements";
+/** ADMIN ONLY: stored requirement values (private answers) by user id, then requirement id. */
+export const requirementValuesByUser = (
+	requirementIds: readonly string[],
+	userIds: readonly string[],
+) => requirementsService.valuesByUser(requirementIds, userIds);
+// Internal references (spec 4.3): never build or store item URLs by hand.
+export {
+	internalLinksToRefs,
+	itemUrl,
+	renderRichHtml,
+	resolveRef,
+	resolveRefs,
+	withItemUrls,
+} from "~/core/registry/refs";
+// Notes and articles (spec 4.4): attach them to your items with a subject instead of an
+// updates table; `updatesFor` lists both, merged.
+export {
+	type AdminUpdate,
+	type ArticleInput,
+	adminUpdatesFor,
+	articles,
+	ContentInputError,
+	type NoteInput,
+	notes,
+	updatesFor,
+} from "~/core/content/content-api";
+export {
+	articleFormSchema,
+	noteFormSchema,
+	subjectFromField,
+} from "~/core/content/content-form";
+export {
+	ARTICLE_IMAGE_PATH,
+	NOTE_MAX_LENGTH,
+} from "~/core/content/content-items";
+// Public feeds (spec 5.3): the site's public, approved notes and articles as an anonymous
+// visitor sees them, and tombstones of the ones that left (read-only).
+export {
+	type ContentTombstone,
+	type PublicFeedEntry,
+	type PublicFeedVersion,
+	publicFeed,
+} from "~/core/content/public-feed.service";
+export type { StreamRow } from "~/core/content/stream.service";
+export { type StreamType, textExcerpt } from "~/core/content/content-items";
+// Forms (spec 4.10): the active form of a purpose you declare, answers stored by reference.
+export {
+	type ActiveForm,
+	FormAccessError,
+	FormAnswerError,
+	type FormQuestion,
+	forms,
+	type ItemFormResult,
+} from "~/core/forms/forms-api";
+export type { FormPurpose } from "~/core/forms/purposes";
+// Reviews (spec 4.9): submit new public items; declare `reviews` handlers in the manifest.
+export type {
+	ReviewContext,
+	ReviewDecision,
+	ReviewHandlers,
+} from "~/core/reviews/define";
+export {
+	ReviewError,
+	type ReviewStatusInfo,
+	reviews,
+} from "~/core/reviews/reviews";
+export type {
+	ScheduleContext,
+	ScheduleDefinition,
+} from "~/core/scheduler/define";
+export type { RefLocation, RefTypeDefinition } from "~/core/router/modules";
+export { requireCanonicalUrl } from "~/core/refs/canonical";
+export {
+	formatRef,
+	itemRef,
+	parseHumanRef,
+	parseRef,
+	refHref,
+	scopeRef,
+} from "~/core/refs/refs";
+
+// Env-derived values (server-only). Modules must not import `~/env`; add a getter here instead.
+/** Public base URL of this site (no trailing-slash guarantee). */
+export const getAppUrl = (): string => env.APP_URL;
+/** The site's name and public base URL (feeds, the social web). */
+export const getSiteInfo = (): { name: string; url: string } => ({
+	name: env.APP_NAME,
+	url: env.APP_URL,
+});
+/** Deployment settings of the social-web module (spec 5.3; `SOCIAL_WEB_*` in src/env.ts). */
+export const getSocialWebSettings = () => ({
+	account: env.SOCIAL_WEB_ACCOUNT,
+	summary: env.SOCIAL_WEB_SUMMARY,
+	updateInterval: env.SOCIAL_WEB_UPDATE_INTERVAL,
+	icon: env.SOCIAL_WEB_ICON,
+});

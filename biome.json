@@ -6,7 +6,12 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"ignoreUnknown": false
+		"ignoreUnknown": false,
+		"includes": [
+			"**",
+			"!drizzle",
+			"!src/core/content/editor/koenig-lexical.css"
+		]
 	},
 	"formatter": {
 		"enabled": true,
@@ -36,6 +41,16 @@
 	},
 	"overrides": [
 		{
+			"includes": ["**/*React.tsx", "theme/emails/**"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noReactSpecificProps": "off"
+					}
+				}
+			}
+		},
+		{
 			"includes": ["theme/**"],
 			"linter": {
 				"rules": {
@@ -45,20 +60,62 @@
 							"options": {
 								"patterns": [
 									{
-										"group": ["~/services/**"],
-										"message": "theme must not import core services directly — add or use a headless composable in ~/components/builder/blocks/* instead."
+										"group": ["~/core/*/*.service"],
+										"message": "theme must not import core services directly — add or use a headless composable in ~/core/content/builder/blocks/* instead."
 									},
 									{
-										"group": ["~/db/**"],
-										"message": "theme must not import core db/schema directly — use a type from ~/contracts/* instead."
+										"group": [
+											"~/core",
+											"~/core/schema",
+											"~/core/db/**",
+											"~/core/*/schema/**",
+											"~/core/*/schema"
+										],
+										"message": "theme must not import core db/schema (or the module API root ~/core) directly — use a type from ~/contracts/* instead."
 									},
 									{
-										"group": ["~/utils/server-auth"],
+										"group": ["~/core/auth/**"],
 										"message": "theme must not import server-auth directly — auth checks belong in a core-owned composable or route loader/action."
 									},
 									{
 										"group": ["~/env"],
 										"message": "theme must not import ~/env directly."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/modules/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": ["~/core/*/**"],
+										"message": "modules may only import the root files of src/core (~/core, ~/core/ui, ~/core/schema, ~/core/seo, ~/core/setup-actions), never an area folder (~/core/<area>/**)."
+									},
+									{
+										"group": ["~/core-api", "~/core-api/**", "~/ui", "~/ui/**"],
+										"message": "~/core-api and ~/ui were replaced by ~/core and ~/core/ui."
+									},
+									{
+										"group": ["~/env"],
+										"message": "modules must not import ~/env directly — add a getter to ~/core instead."
+									},
+									{
+										"group": ["~/components/**"],
+										"message": "modules must not import core components — use ~/core/ui."
+									},
+									{
+										"group": ["~/modules/**"],
+										"message": "modules never import another module; import files of your own folder via relative paths."
 									}
 								]
 							}

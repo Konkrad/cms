@@ -2,9 +2,9 @@ import { component$, Slot } from "@qwik.dev/core";
 import "./FeatureGrid.css";
 
 interface FeatureGridProps {
-  layout?: string;
-  gap?: number;
-  class?: string;
+	layout?: string;
+	gap?: number;
+	class?: string;
 }
 
 const DEFAULT_LAYOUT = `
@@ -14,18 +14,18 @@ const DEFAULT_LAYOUT = `
 `;
 
 export const FeatureGrid = component$<FeatureGridProps>((props) => {
-  const layout = props.layout || DEFAULT_LAYOUT;
-  const gap = props.gap ?? 24;
+	const layout = props.layout || DEFAULT_LAYOUT;
+	const gap = props.gap ?? 24;
 
-  return (
-    <div
-      class={`feature-grid ${props.class ?? ""}`}
-      style={{
-        gridTemplateAreas: layout,
-        gap: `${gap}px`,
-      }}
-    >
-      <Slot />
-    </div>
-  );
+	return (
+		<div
+			class={`feature-grid ${props.class ?? ""}`}
+			style={{
+				gridTemplateAreas: layout,
+				gap: `${gap}px`,
+			}}
+		>
+			<Slot />
+		</div>
+	);
 });

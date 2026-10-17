@@ -1,12 +1,13 @@
 import type { RequestHandler } from "@qwik.dev/router";
-import { and, eq } from "drizzle-orm";
-import { db } from "~/db/connection";
-import { menuItems, pages } from "~/db/schema";
+import { pagesService } from "~/core/content/pages.service";
+import { stream } from "~/core/content/stream.service";
+import { activeModules } from "~/core/registry/manifests";
+import { withItemUrls } from "~/core/registry/refs";
+import { sitemapEntriesOf } from "~/core/router/modules";
+import { scopeUrl } from "~/core/router/scope-path";
+import { scopeContentFilter } from "~/core/scopes/content-filter";
+import { scopesService } from "~/core/scopes/scopes.service";
 import { env } from "~/env";
-import { dealsService } from "~/services/deals.service";
-import { eventsService } from "~/services/events.service";
-import { groupsService } from "~/services/groups.service";
-import { postsService } from "~/services/posts.service";
 
 interface SitemapEntry {
 	loc: string;
@@ -45,11 +46,7 @@ export const onGet: RequestHandler = async ({
 
 	const entries: SitemapEntry[] = [{ loc: env.APP_URL }];
 
-	const publishedPages = await db
-		.select({ url: menuItems.url, updatedAt: pages.updatedAt })
-		.from(pages)
-		.innerJoin(menuItems, eq(menuItems.pageId, pages.id))
-		.where(and(eq(pages.status, "published"), eq(menuItems.status, "visible")));
+	const publishedPages = await pagesService.getPublishedUrls();
 	for (const page of publishedPages) {
 		entries.push({
 			loc: new URL(page.url, env.APP_URL).toString(),
@@ -57,45 +54,46 @@ export const onGet: RequestHandler = async ({
 		});
 	}
 
-	let postsCursor: string | null | undefined = null;
+	let cursor: string | null = null;
 	do {
-		const result = await postsService.getAll(100, postsCursor, "forward");
-		for (const post of result.items) {
-			if (post.visibility !== "global") continue;
+		// The root listing for a guest: every public note and article.
+		const result = await stream.list(await scopeContentFilter(null), {
+			limit: 100,
+			cursor,
+		});
+		const visible = result.items.filter((i) => i.visibility === "public");
+		const urls = await Promise.all([
+			withItemUrls(
+				"core:note",
+				visible.filter((i) => i.type === "note"),
+			),
+			withItemUrls(
+				"core:article",
+				visible.filter((i) => i.type === "article"),
+			),
+		]);
+		for (const item of urls.flat()) {
 			entries.push({
-				loc: new URL(`/posts/${post.id}`, env.APP_URL).toString(),
-				lastmod: post.updatedAt,
+				loc: new URL(item.url, env.APP_URL).toString(),
+				lastmod: item.updatedAt,
 			});
 		}
-		postsCursor = result.nextCursor;
-	} while (postsCursor);
+		cursor = result.nextCursor;
+	} while (cursor);
 
-	let eventsCursor: string | null | undefined = null;
-	do {
-		const result = await eventsService.getAll(100, eventsCursor);
-		for (const evt of result.items) {
-			if (evt.visibility !== "global") continue;
-			entries.push({
-				loc: new URL(`/events/${evt.id}`, env.APP_URL).toString(),
-				lastmod: evt.updatedAt,
-			});
-		}
-		eventsCursor = result.nextCursor;
-	} while (eventsCursor);
-
-	const groups = await groupsService.getAll();
-	for (const group of groups) {
+	// Scope home pages (groups, regions, chapters); the root is the home page above.
+	const root = await scopesService.getRoot();
+	for (const scope of root ? await scopesService.getDescendants(root.id) : []) {
 		entries.push({
-			loc: new URL(`/groups/${group.slug}`, env.APP_URL).toString(),
-			lastmod: group.updatedAt,
+			loc: new URL(scopeUrl(scope.path), env.APP_URL).toString(),
+			lastmod: scope.createdAt,
 		});
 	}
 
-	const deals = await dealsService.getActive();
-	for (const deal of deals) {
+	for (const entry of await sitemapEntriesOf(activeModules)) {
 		entries.push({
-			loc: new URL(`/deals/${deal.id}`, env.APP_URL).toString(),
-			lastmod: deal.updatedAt,
+			loc: new URL(entry.path, env.APP_URL).toString(),
+			lastmod: entry.lastmod ?? undefined,
 		});
 	}
 

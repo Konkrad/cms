@@ -1,0 +1,128 @@
+import { $, component$, useSignal } from "@qwik.dev/core";
+import { formatCurrency, formatDate, t } from "~/core/ui";
+import type { products, transactionItems } from "../../schema";
+import type { Transaction } from "../../schema/transactions";
+
+interface TransactionWithDetails extends Omit<Transaction, "participants"> {
+	user: { id: string; name: string; familyName: string; email: string | null };
+	items: Array<
+		typeof transactionItems.$inferSelect & {
+			product: typeof products.$inferSelect;
+		}
+	>;
+}
+
+interface TransactionCardProps {
+	transaction: TransactionWithDetails;
+}
+
+export default component$<TransactionCardProps>(({ transaction }) => {
+	const isExpanded = useSignal(false);
+
+	const formatDateTime = (dateString: string | null) =>
+		dateString ? formatDate(dateString, "dateTime") : "-";
+
+	const formatEuro = (amount: number) => formatCurrency(amount, "EUR");
+
+	const toggleExpanded = $(() => {
+		isExpanded.value = !isExpanded.value;
+	});
+
+	return (
+		<div class="border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+			<div class="p-4 cursor-pointer" onClick$={toggleExpanded}>
+				<div class="flex items-start justify-between">
+					<div class="flex-1">
+						<div class="flex items-center gap-3 mb-2">
+							<h4 class="font-semibold text-gray-900">
+								{transaction.user.name} {transaction.user.familyName}
+							</h4>
+							<span class="text-sm text-gray-500">
+								{transaction.user.email}
+							</span>
+						</div>
+						<p class="text-sm text-gray-600">
+							{formatDateTime(transaction.paymentDate)}
+						</p>
+						<p class="text-xs text-gray-500 mt-1">
+							{t("events.transactionCard.items", {
+								count: transaction.items.length,
+							})}
+						</p>
+					</div>
+					<div class="text-right">
+						<p class="text-lg font-semibold text-gray-900">
+							{formatEuro(transaction.totalAmount)}
+						</p>
+						<p class="text-xs text-gray-500">
+							{t("events.transactionCard.fee", {
+								transactionFee: formatEuro(transaction.transactionFee),
+							})}
+						</p>
+						<p class="text-xs text-gray-600 mt-1">
+							{t("events.transactionCard.net", {
+								value: formatEuro(
+									transaction.totalAmount - transaction.transactionFee,
+								),
+							})}
+						</p>
+					</div>
+				</div>
+			</div>
+
+			{isExpanded.value && (
+				<div class="border-t border-gray-200 bg-gray-50 p-4">
+					<h5 class="font-medium text-gray-700 mb-3">
+						{t("events.transactionCard.itemsPurchased")}
+					</h5>
+					<div class="space-y-2">
+						{transaction.items.map((item) => (
+							<div
+								key={item.id}
+								class="flex items-center justify-between text-sm"
+							>
+								<div>
+									<p class="font-medium text-gray-900">{item.product.name}</p>
+									<p class="text-gray-600">
+										{t("events.transactionCard.quantity", {
+											quantity: item.quantity,
+										})}
+									</p>
+								</div>
+								<div class="text-right">
+									<p class="text-gray-900">
+										{t("events.transactionCard.each", {
+											unitPrice: formatEuro(item.unitPrice),
+										})}
+									</p>
+									<p class="font-medium text-gray-700">
+										{t("events.transactionCard.total", {
+											value: formatEuro(item.unitPrice * item.quantity),
+										})}
+									</p>
+								</div>
+							</div>
+						))}
+					</div>
+
+					<div class="mt-4 pt-4 border-t border-gray-200">
+						<div class="flex items-center justify-between text-sm">
+							<span class="text-gray-600">
+								{t("events.transactionCard.status")}
+							</span>
+							<span class="text-xs text-gray-500">{transaction.status}</span>
+						</div>
+						<div class="flex items-center justify-between text-sm mt-1">
+							<span class="text-gray-600">
+								{t("events.transactionCard.payment")}
+							</span>
+							<span class="text-xs text-gray-500 font-mono">
+								{transaction.paymentId ?? "free"}
+							</span>
+						</div>
+					</div>
+				</div>
+			)}
+		</div>
+	);
+});

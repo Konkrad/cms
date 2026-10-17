@@ -57,6 +57,10 @@ export default defineConfig({
 			APP_URL: BASE_URL,
 			// Route Telegram calls to the in-process mock server started by tests.
 			TELEGRAM_API_URL: "http://localhost:8099",
+			// Drain the notification outbox quickly so emails/alerts arrive within test timeouts.
+			NOTIFICATIONS_POLL_INTERVAL_MS: "500",
+			// Run due schedules and review handlers quickly too.
+			SCHEDULER_POLL_INTERVAL_MS: "500",
 		},
 	},
 	use: {

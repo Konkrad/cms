@@ -1,21 +1,38 @@
 /**
- * Core → theme data contracts for the public jobs routes.
+ * Core → theme data contracts for the public jobs pages (src/modules/jobs).
  */
-import type { useJobs } from "~/routes/jobs";
-import type { useJob } from "~/routes/jobs/[id]";
-import type { useDeleteMyJob, useMyJobs } from "~/routes/jobs/mine";
+
+import type { PublicUser } from "~/core/users/public-user";
 import type {
-	useJob as useEditMyJob,
+	useDeleteMyJob,
+	useSubmitJob,
 	useUpdateMyJob,
-} from "~/routes/jobs/mine/[id]/edit";
-import type { useSubmitJob } from "~/routes/jobs/new";
+} from "~/modules/jobs/actions";
+import type { editMyJobPage, myJobsPage } from "~/modules/jobs/pages";
+import type { Job } from "~/modules/jobs/schema";
 
-export type JobsListData = ReturnType<typeof useJobs>["value"];
+type PageData<P extends { load: (...args: never[]) => Promise<unknown> }> =
+	Awaited<ReturnType<P["load"]>>;
 
-/** Single job list item — replaces importing `JobWithUser` from `~/services/jobs.service` in theme. */
-export type JobListItem = JobsListData["items"][number];
-export type JobDetailData = ReturnType<typeof useJob>["value"];
-export type MyJobsData = ReturnType<typeof useMyJobs>["value"];
+/** The member who posted a job: public identity only. */
+export type JobAuthor = PublicUser;
+
+/** A job as shown to other members (list, detail, admin): the author is public only. */
+export type PublicJob = Job & { user: JobAuthor | null };
+
+/** Payload of `/jobs` (declared, not derived: it shows other members' jobs). */
+export type JobsListData = {
+	items: JobListItem[];
+	nextCursor: string | null;
+	prevCursor: string | null;
+};
+
+/** Single job list item, with its canonical URL. */
+export type JobListItem = PublicJob & { url: string };
+
+/** Payload of `/jobs/:id`. */
+export type JobDetailData = { job: PublicJob };
+export type MyJobsData = PageData<typeof myJobsPage>;
 export type DeleteMyJobAction = ReturnType<typeof useDeleteMyJob>;
 
 /** Loose action-store shape shared by the new/edit job forms (different zod$ shapes per action). */
@@ -26,4 +43,4 @@ export type JobFormAction = {
 export type SubmitJobAction = ReturnType<typeof useSubmitJob> & JobFormAction;
 export type UpdateMyJobAction = ReturnType<typeof useUpdateMyJob> &
 	JobFormAction;
-export type EditMyJobData = ReturnType<typeof useEditMyJob>["value"];
+export type EditMyJobData = PageData<typeof editMyJobPage>;

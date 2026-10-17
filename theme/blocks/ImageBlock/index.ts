@@ -1,2 +1,1 @@
-export { default } from "./ImageBlock";
-export { definition } from "./ImageBlock";
+export { default, definition } from "./ImageBlock";

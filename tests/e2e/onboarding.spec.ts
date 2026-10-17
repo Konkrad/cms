@@ -1,6 +1,6 @@
 import { createTestUser, expect, test } from "../fixtures";
 
-test("/onboarding leads a user with pending steps to the setup flow", async ({
+test("a user with pending steps is sent to the setup flow", async ({
 	browser,
 }) => {
 	const session = createTestUser();
@@ -18,7 +18,7 @@ test("/onboarding leads a user with pending steps to the setup flow", async ({
 	]);
 	const page = await ctx.newPage();
 	try {
-		await page.goto("/onboarding/", { waitUntil: "networkidle" });
+		await page.goto("/", { waitUntil: "networkidle" });
 		await expect(page).toHaveURL(/\/profile\/setup/);
 		await expect(page.locator("h1")).toContainText("Complete your profile");
 	} finally {

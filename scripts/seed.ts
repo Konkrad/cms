@@ -2831,7 +2831,7 @@ const pageDefs: Array<{
 				order: 20,
 				data: {
 					text: "Go to Admin Panel",
-					href: "/admin/global",
+					href: "/admin/root",
 					align: "left",
 				},
 			},

@@ -88,7 +88,6 @@ export interface MenuTableProps {
 		title: string;
 		url: string;
 		icon?: string;
-		hidden?: boolean; // kept for legacy onAdd calls; use status instead
 		status?: "visible" | "hidden";
 	}) => Promise<ActionResult>;
 	onDelete: (params: { menuItemId: string }) => Promise<ActionResult>;

@@ -80,7 +80,7 @@ export const photosService = {
 		const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 		const expUnix = Math.floor(Date.parse(expiresAt) / 1000);
 
-		const url = await generateSecurePhotoUrl(photo.filePath, userId, expUnix);
+		const url = await generateSecurePhotoUrl(photo.filePath, expUnix);
 
 		return {
 			url,

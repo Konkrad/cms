@@ -4,14 +4,12 @@
  * Replaces HMAC/signed-URL approach with AWS S3 presigned GET URLs.
  *
  * Usage:
- *  - Call `generateSecurePhotoUrl(filePath, userId, expUnix)` to get a presigned GET URL
+ *  - Call `generateSecurePhotoUrl(filePath, expUnix)` to get a presigned GET URL
  *    for the S3 object corresponding to `filePath` (e.g. `/private/events/{id}/photos/{photo}.webp`).
  *
  * Notes:
- *  - `userId` is accepted for compatibility with the previous signature API but is NOT used
- *    inside this function. Authorization checks (e.g., verifying the user is allowed to
- *    access the photo) must be performed by the caller (e.g., `photosService`) before
- *    requesting the presigned URL.
+ *  - Authorization checks (e.g., verifying the user is allowed to access the photo) must be
+ *    performed by the caller (e.g., `photosService`) before requesting the presigned URL.
  *  - `expUnix` should be a UNIX timestamp in seconds. The function computes TTL as
  *    `expUnix - now` and uses it as `expiresIn` (in seconds) for the presigned URL.
  */
@@ -62,14 +60,12 @@ export async function generatePresignedGetUrl(
  * Generate a secure (presigned) URL for a photo file path.
  *
  * @param filePath - stored logical file path, e.g. "/private/events/{eventId}/photos/{uuid}.webp"
- * @param _userId - (kept for compatibility) caller should verify user access before calling
  * @param expUnix - unix timestamp (seconds) when the URL should expire
  *
  * Returns a presigned S3 GET URL valid until `expUnix`.
  */
 export async function generateSecurePhotoUrl(
 	filePath: string,
-	_userId: string,
 	expUnix: number,
 ): Promise<string> {
 	if (!filePath) {

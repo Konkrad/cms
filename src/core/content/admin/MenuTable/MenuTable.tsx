@@ -44,7 +44,6 @@ interface MenuTableProps {
 			title: string;
 			url: string;
 			icon?: string;
-			hidden?: boolean; // legacy; prefer status
 			status?: "visible" | "hidden";
 		}) => Promise<ActionResult>
 	>;

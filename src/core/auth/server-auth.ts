@@ -38,7 +38,7 @@ export async function getServerSession(event: RequestEvent) {
 					.where(eq(users.id, sess.userId));
 				if (userRows.length > 0) {
 					const user = userRows[0] as any;
-					// Optionally attach email from linked login record for backwards compatibility
+					// Attach the email of the linked login record (the viewer's own).
 					let email: string | null = null;
 					if (user.loginId) {
 						const loginRows = await db
@@ -104,8 +104,6 @@ export async function getCurrentUserData(
 	// No local profile found
 	return null;
 }
-
-/* pending login helpers removed - legacy details flow no longer used */
 
 export async function requireAuth(event: RequestEvent) {
 	const user = await getServerSession(event);

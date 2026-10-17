@@ -538,7 +538,6 @@
 	"core.content.failedToLoadStream": "Der Stream konnte nicht geladen werden",
 	"core.content.invalidArticleImage": "Ungültiges Bild für einen Artikel",
 	"core.content.invalidSubject": "Ungültiger Bezug: {type}:{id}",
-	"core.content.notFound": "Nicht gefunden",
 	"core.content.noteEmpty": "Die Notiz ist leer",
 	"core.content.noteNotFound": "Notiz nicht gefunden",
 	"core.content.noteTooLong": "Eine Notiz hat höchstens {NOTE_MAX_LENGTH} Zeichen (diese hat {length}); schreib stattdessen einen Artikel",

@@ -6,7 +6,6 @@ import { t } from "~/core/i18n";
 import type { PageViews } from "~/core/router/page-views";
 import { ArticleView } from "~theme/routes/articles/ArticleView";
 import { NoteView } from "~theme/routes/notes/NoteView";
-import { PageView } from "~theme/routes/page/PageView";
 
 const NotePage = component$<{ data: NoteViewData | null }>(({ data }) => (
 	<NoteView note={data} />
@@ -88,15 +87,8 @@ function articleHead(data: unknown, url: URL) {
 	};
 }
 
-/** An old post URL that leads nowhere (others answer 301 before rendering). */
-const GonePage = component$(() => <PageView page={null} />);
-
 /** Views of the core pages served by the catch-all (client-safe). */
 export const coreViews: PageViews = {
 	"core.note": { view: NotePage, head: noteHead },
 	"core.article": { view: ArticlePage, head: articleHead },
-	"core.legacy-post": {
-		view: GonePage,
-		head: () => ({ title: t("core.content.notFound") }),
-	},
 };

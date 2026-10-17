@@ -538,7 +538,6 @@
 	"core.content.failedToLoadStream": "Failed to load the stream",
 	"core.content.invalidArticleImage": "Invalid image for an article",
 	"core.content.invalidSubject": "Invalid subject: {type}:{id}",
-	"core.content.notFound": "Not Found",
 	"core.content.noteEmpty": "The note is empty",
 	"core.content.noteNotFound": "Note Not Found",
 	"core.content.noteTooLong": "A note has at most {NOTE_MAX_LENGTH} characters (this one has {length}); write an article instead",

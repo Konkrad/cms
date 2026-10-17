@@ -23,13 +23,7 @@ import { Navigation } from "~theme/chrome/Navigation/Navigation";
 import { SiteFooter } from "~theme/chrome/SiteFooter/SiteFooter";
 
 /** Paths a user with pending `global` requirements may still open (setup itself, auth, APIs). */
-const SETUP_EXEMPT = [
-	"/profile/setup",
-	"/onboarding",
-	"/login",
-	"/auth/",
-	"/api/",
-];
+const SETUP_EXEMPT = ["/profile/setup", "/login", "/auth/", "/api/"];
 
 /**
  * The global gate (spec 4.6): while a requirement of the `global` context is pending (profile
@@ -139,10 +133,6 @@ export const useLogoutAction = routeAction$(async (_, { cookie, redirect }) => {
 		path: "/",
 		expires: new Date(0),
 	});
-
-	// Also clear legacy supabase cookies (if present) to be safe
-	cookie.delete("sb-access-token", { path: "/" });
-	cookie.delete("sb-refresh-token", { path: "/" });
 
 	throw redirect(302, "/");
 });

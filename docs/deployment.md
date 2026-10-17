@@ -27,6 +27,10 @@ below are the same regardless of the tool driving them.
   `drizzle/` — there's no separate migrate step or script in `docker/entrypoint.sh`.
   Keep migrations in sync with the schema via `npm run db:generate` (see CLAUDE.md
   § Core Rules).
+- **Recreate the production DB once for the migration baseline.** The migration history
+  was replaced by one fresh baseline, so a DB built from the old history cannot be upgraded:
+  stop the app, delete the DB file at `DB_PATH` (and its Litestream replica, or the entrypoint
+  restores it), then start the app (it migrates an empty DB) and seed it.
 - **`/up` only proves the process serves HTTP** — it deliberately checks no
   downstream services (DB, S3, SMTP). Point your platform's health check at it.
 - **Env vars**: everything in `src/env.ts` must be set. `VITE_S3_BASE_URL` is the

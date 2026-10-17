@@ -130,7 +130,7 @@ export async function itemUrlsWith(
 /**
  * The reference for a site path, or null when the path is not a scope, a module listing of a
  * scope or an item page (for example `/login`). Old paths are followed through the redirects
- * table first. Used to turn pasted URLs into references and by the link migration.
+ * table first. Used to turn pasted URLs into references.
  */
 export async function refFromPathWith(
 	modules: RefModules,

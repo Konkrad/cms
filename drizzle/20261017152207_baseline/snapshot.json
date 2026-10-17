@@ -1,9 +1,9 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "11a76f4b-cbb0-400b-ae71-c48271be0d25",
+  "id": "a41dba1d-ffb9-4b46-bb76-96f4c0247bfa",
   "prevIds": [
-    "353a3b34-6b9d-4f25-a6a5-a3f75d4ceb0f"
+    "00000000-0000-0000-0000-000000000000"
   ],
   "ddl": [
     {
@@ -31,6 +31,10 @@
       "entityType": "tables"
     },
     {
+      "name": "content_tombstones",
+      "entityType": "tables"
+    },
+    {
       "name": "form_results",
       "entityType": "tables"
     },
@@ -52,6 +56,14 @@
     },
     {
       "name": "notification_preferences",
+      "entityType": "tables"
+    },
+    {
+      "name": "payment_events",
+      "entityType": "tables"
+    },
+    {
+      "name": "payments",
       "entityType": "tables"
     },
     {
@@ -120,6 +132,10 @@
     },
     {
       "name": "user_qualifications",
+      "entityType": "tables"
+    },
+    {
+      "name": "user_requirements",
       "entityType": "tables"
     },
     {
@@ -738,6 +754,66 @@
       "autoincrement": false,
       "default": null,
       "generated": null,
+      "name": "ref",
+      "entityType": "columns",
+      "table": "content_tombstones"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "type",
+      "entityType": "columns",
+      "table": "content_tombstones"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "item_id",
+      "entityType": "columns",
+      "table": "content_tombstones"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "scope_id",
+      "entityType": "columns",
+      "table": "content_tombstones"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "published_at",
+      "entityType": "columns",
+      "table": "content_tombstones"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "table": "content_tombstones"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
       "name": "id",
       "entityType": "columns",
       "table": "form_results"
@@ -1221,6 +1297,236 @@
       "name": "updated_at",
       "entityType": "columns",
       "table": "notification_preferences"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "payment_events"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "payment_id",
+      "entityType": "columns",
+      "table": "payment_events"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "change",
+      "entityType": "columns",
+      "table": "payment_events"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "provider_event_id",
+      "entityType": "columns",
+      "table": "payment_events"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "CURRENT_TIMESTAMP",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "payment_events"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "payments"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "module_id",
+      "entityType": "columns",
+      "table": "payments"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "kind",
+      "entityType": "columns",
+      "table": "payments"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "ref_id",
+      "entityType": "columns",
+      "table": "payments"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "table": "payments"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'pending'",
+      "generated": null,
+      "name": "status",
+      "entityType": "columns",
+      "table": "payments"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'payment'",
+      "generated": null,
+      "name": "mode",
+      "entityType": "columns",
+      "table": "payments"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "provider",
+      "entityType": "columns",
+      "table": "payments"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "provider_ref",
+      "entityType": "columns",
+      "table": "payments"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "provider_payment_ref",
+      "entityType": "columns",
+      "table": "payments"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "amount",
+      "entityType": "columns",
+      "table": "payments"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "currency",
+      "entityType": "columns",
+      "table": "payments"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "lines",
+      "entityType": "columns",
+      "table": "payments"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "subject_ref",
+      "entityType": "columns",
+      "table": "payments"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "CURRENT_TIMESTAMP",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "payments"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "CURRENT_TIMESTAMP",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "payments"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "expires_at",
+      "entityType": "columns",
+      "table": "payments"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "paid_at",
+      "entityType": "columns",
+      "table": "payments"
     },
     {
       "type": "text",
@@ -1828,6 +2134,26 @@
       "autoincrement": false,
       "default": null,
       "generated": null,
+      "name": "debrief_requested_at",
+      "entityType": "columns",
+      "table": "events"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "debrief_reminded_at",
+      "entityType": "columns",
+      "table": "events"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
       "name": "image1",
       "entityType": "columns",
       "table": "events"
@@ -2099,16 +2425,6 @@
       "default": null,
       "generated": null,
       "name": "image_key",
-      "entityType": "columns",
-      "table": "products"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "stripe_product_id",
       "entityType": "columns",
       "table": "products"
     },
@@ -2406,9 +2722,9 @@
       "type": "text",
       "notNull": true,
       "autoincrement": false,
-      "default": null,
+      "default": "'paid'",
       "generated": null,
-      "name": "stripe_session_id",
+      "name": "status",
       "entityType": "columns",
       "table": "transactions"
     },
@@ -2418,7 +2734,17 @@
       "autoincrement": false,
       "default": null,
       "generated": null,
-      "name": "stripe_payment_id",
+      "name": "payment_id",
+      "entityType": "columns",
+      "table": "transactions"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "participants",
       "entityType": "columns",
       "table": "transactions"
     },
@@ -2831,6 +3157,56 @@
       "name": "updated_at",
       "entityType": "columns",
       "table": "user_qualifications"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "table": "user_requirements"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "requirement_id",
+      "entityType": "columns",
+      "table": "user_requirements"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "version",
+      "entityType": "columns",
+      "table": "user_requirements"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "completed_at",
+      "entityType": "columns",
+      "table": "user_requirements"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "value",
+      "entityType": "columns",
+      "table": "user_requirements"
     },
     {
       "type": "text",
@@ -3628,26 +4004,6 @@
       "autoincrement": false,
       "default": null,
       "generated": null,
-      "name": "food_preference",
-      "entityType": "columns",
-      "table": "users"
-    },
-    {
-      "type": "integer",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "photo_consent_given",
-      "entityType": "columns",
-      "table": "users"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
       "name": "profile_picture",
       "entityType": "columns",
       "table": "users"
@@ -3659,16 +4015,6 @@
       "default": null,
       "generated": null,
       "name": "profile_picture_small",
-      "entityType": "columns",
-      "table": "users"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": "'{}'",
-      "generated": null,
-      "name": "consent",
       "entityType": "columns",
       "table": "users"
     },
@@ -3781,6 +4127,21 @@
       "name": "fk_pages_scope_id_scopes_id_fk",
       "entityType": "fks",
       "table": "pages"
+    },
+    {
+      "columns": [
+        "scope_id"
+      ],
+      "tableTo": "scopes",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_content_tombstones_scope_id_scopes_id_fk",
+      "entityType": "fks",
+      "table": "content_tombstones"
     },
     {
       "columns": [
@@ -3931,6 +4292,36 @@
       "name": "fk_notification_preferences_user_id_users_id_fk",
       "entityType": "fks",
       "table": "notification_preferences"
+    },
+    {
+      "columns": [
+        "payment_id"
+      ],
+      "tableTo": "payments",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_payment_events_payment_id_payments_id_fk",
+      "entityType": "fks",
+      "table": "payment_events"
+    },
+    {
+      "columns": [
+        "user_id"
+      ],
+      "tableTo": "users",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_payments_user_id_users_id_fk",
+      "entityType": "fks",
+      "table": "payments"
     },
     {
       "columns": [
@@ -4324,6 +4715,21 @@
     },
     {
       "columns": [
+        "payment_id"
+      ],
+      "tableTo": "payments",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_transactions_payment_id_payments_id_fk",
+      "entityType": "fks",
+      "table": "transactions"
+    },
+    {
+      "columns": [
         "suggested_by"
       ],
       "tableTo": "users",
@@ -4441,6 +4847,21 @@
       "name": "fk_user_qualifications_verified_by_users_id_fk",
       "entityType": "fks",
       "table": "user_qualifications"
+    },
+    {
+      "columns": [
+        "user_id"
+      ],
+      "tableTo": "users",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_user_requirements_user_id_users_id_fk",
+      "entityType": "fks",
+      "table": "user_requirements"
     },
     {
       "columns": [
@@ -4616,6 +5037,16 @@
     {
       "columns": [
         "user_id",
+        "requirement_id"
+      ],
+      "nameExplicit": false,
+      "name": "user_requirements_pk",
+      "entityType": "pks",
+      "table": "user_requirements"
+    },
+    {
+      "columns": [
+        "user_id",
         "scope_id"
       ],
       "nameExplicit": false,
@@ -4690,6 +5121,15 @@
     },
     {
       "columns": [
+        "ref"
+      ],
+      "nameExplicit": false,
+      "name": "content_tombstones_pk",
+      "table": "content_tombstones",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
         "id"
       ],
       "nameExplicit": false,
@@ -4722,6 +5162,24 @@
       "nameExplicit": false,
       "name": "notification_outbox_pk",
       "table": "notification_outbox",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "payment_events_pk",
+      "table": "payment_events",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "payments_pk",
+      "table": "payments",
       "entityType": "pks"
     },
     {
@@ -5034,6 +5492,20 @@
     {
       "columns": [
         {
+          "value": "deleted_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "content_tombstones_deleted_at_idx",
+      "entityType": "indexes",
+      "table": "content_tombstones"
+    },
+    {
+      "columns": [
+        {
           "value": "form_id",
           "isExpression": false
         },
@@ -5126,6 +5598,92 @@
       "name": "notification_outbox_due_idx",
       "entityType": "indexes",
       "table": "notification_outbox"
+    },
+    {
+      "columns": [
+        {
+          "value": "payment_id",
+          "isExpression": false
+        },
+        {
+          "value": "change",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "payment_events_change_unique",
+      "entityType": "indexes",
+      "table": "payment_events"
+    },
+    {
+      "columns": [
+        {
+          "value": "status",
+          "isExpression": false
+        },
+        {
+          "value": "expires_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "payments_status_expires_idx",
+      "entityType": "indexes",
+      "table": "payments"
+    },
+    {
+      "columns": [
+        {
+          "value": "module_id",
+          "isExpression": false
+        },
+        {
+          "value": "kind",
+          "isExpression": false
+        },
+        {
+          "value": "ref_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "payments_module_idx",
+      "entityType": "indexes",
+      "table": "payments"
+    },
+    {
+      "columns": [
+        {
+          "value": "provider_ref",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "payments_provider_ref_idx",
+      "entityType": "indexes",
+      "table": "payments"
+    },
+    {
+      "columns": [
+        {
+          "value": "provider_payment_ref",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "payments_provider_payment_ref_idx",
+      "entityType": "indexes",
+      "table": "payments"
     },
     {
       "columns": [
@@ -5473,10 +6031,10 @@
     },
     {
       "columns": [
-        "stripe_session_id"
+        "payment_id"
       ],
       "nameExplicit": false,
-      "name": "transactions_stripe_session_id_unique",
+      "name": "transactions_payment_id_unique",
       "entityType": "uniques",
       "table": "transactions"
     },

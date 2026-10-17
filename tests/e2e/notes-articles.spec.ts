@@ -96,6 +96,8 @@ test.describe("Note and article pages", () => {
 	test("an article renders its title, text and image, with og:image", async ({
 		guestPage: page,
 	}) => {
+		const errors: string[] = [];
+		page.on("pageerror", (e) => errors.push(e.message));
 		await page.goto(`/articles/${articleId}`);
 		const article = page.locator('[data-layout="article"]');
 		await expect(article).toBeVisible({ timeout: 10_000 });
@@ -108,6 +110,13 @@ test.describe("Note and article pages", () => {
 		await expect(
 			article.locator('img[src$="public/articles/e2e-spring.webp"]').first(),
 		).toBeAttached();
+		// The JSON-LD is data, not a script the browser runs.
+		const jsonLd = page.locator('script[type="application/ld+json"]');
+		expect(JSON.parse((await jsonLd.textContent()) ?? "")).toMatchObject({
+			"@type": "Article",
+			headline: ARTICLE_TITLE,
+		});
+		expect(errors).toEqual([]);
 	});
 
 	test("missing items show the not-found state", async ({

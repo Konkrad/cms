@@ -1,7 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import type { ArticleViewData } from "~/contracts/articles";
 import type { NoteViewData } from "~/contracts/notes";
-import { canonicalUrl } from "~/core/content/seo";
+import { canonicalUrl, jsonLdScript } from "~/core/content/seo";
 import { t } from "~/core/i18n";
 import type { PageViews } from "~/core/router/page-views";
 import { ArticleView } from "~theme/routes/articles/ArticleView";
@@ -37,18 +37,15 @@ function noteHead(data: unknown, url: URL) {
 		],
 		links: [{ rel: "canonical", href: canonical }],
 		scripts: [
-			{
-				type: "application/ld+json",
-				script: JSON.stringify({
-					"@context": "https://schema.org",
-					// A note is a short social post.
-					"@type": "SocialMediaPosting",
-					articleBody: note.excerpt,
-					datePublished: note.publishedAt,
-					dateModified: note.updatedAt,
-					author: { "@type": "Person", name: note.author.displayName },
-				}),
-			},
+			jsonLdScript({
+				"@context": "https://schema.org",
+				// A note is a short social post.
+				"@type": "SocialMediaPosting",
+				articleBody: note.excerpt,
+				datePublished: note.publishedAt,
+				dateModified: note.updatedAt,
+				author: { "@type": "Person", name: note.author.displayName },
+			}),
 		],
 	};
 }
@@ -71,18 +68,15 @@ function articleHead(data: unknown, url: URL) {
 		],
 		links: [{ rel: "canonical", href: canonical }],
 		scripts: [
-			{
-				type: "application/ld+json",
-				script: JSON.stringify({
-					"@context": "https://schema.org",
-					"@type": "Article",
-					headline: article.title,
-					image: article.imageUrl ?? undefined,
-					datePublished: article.publishedAt,
-					dateModified: article.updatedAt,
-					author: { "@type": "Person", name: article.author.displayName },
-				}),
-			},
+			jsonLdScript({
+				"@context": "https://schema.org",
+				"@type": "Article",
+				headline: article.title,
+				image: article.imageUrl ?? undefined,
+				datePublished: article.publishedAt,
+				dateModified: article.updatedAt,
+				author: { "@type": "Person", name: article.author.displayName },
+			}),
 		],
 	};
 }

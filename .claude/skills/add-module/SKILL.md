@@ -125,7 +125,7 @@ await notify("events.sale", { to: { channel: "telegram", target: "ops" }, data: 
 ## Server/client split
 
 - Keep server-only loader logic in `*-data.ts` files imported only inside `routeLoader$` (e.g. `loadAdminJobs`), so it never reaches the client bundle. No server code (services, `db`, `~/core` server exports) in components or `views.tsx`; view maps are bundled for the browser.
-- `~/core/seo` and `~/core/ui` are client-safe; `~/core` is server+client but its server exports must only be referenced inside loaders/actions/`server$`. `~/core/setup-actions` is separate because importing a `routeAction$` needs the router runtime.
+- `~/core/seo` (`canonicalUrl`, `htmlToDescription`, `jsonLdScript(data)` for a `head`'s JSON-LD `scripts` entry, `<` escaped) and `~/core/ui` are client-safe; `~/core` is server+client but its server exports must only be referenced inside loaders/actions/`server$`. `~/core/setup-actions` is separate because importing a `routeAction$` needs the router runtime.
 
 ## Privacy
 

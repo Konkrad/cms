@@ -4,7 +4,7 @@ import type { CheckoutData } from "~/contracts/checkout";
 import type { EventPhotosPageData } from "~/contracts/event-photos";
 import type { EventViewData } from "~/contracts/events";
 import type { PageViews } from "~/core";
-import { canonicalUrl, htmlToDescription } from "~/core/seo";
+import { canonicalUrl, htmlToDescription, jsonLdScript } from "~/core/seo";
 import { useSubmitRequirement } from "~/core/setup-actions";
 import { t } from "~/core/ui";
 import { CheckoutView } from "~theme/routes/events/CheckoutView";
@@ -75,33 +75,30 @@ function eventHead(data: EventViewData, url: URL): DocumentHeadValue {
 		],
 		links: [{ rel: "canonical", href: canonical }],
 		scripts: [
-			{
-				type: "application/ld+json",
-				script: JSON.stringify({
-					"@context": "https://schema.org",
-					"@type": "Event",
-					name: event.title,
-					startDate: event.startDate,
-					endDate: event.endDate,
-					eventAttendanceMode:
-						event.locationType === "online"
-							? "https://schema.org/OnlineEventAttendanceMode"
-							: "https://schema.org/OfflineEventAttendanceMode",
-					location:
-						event.locationType === "online"
-							? {
-									"@type": "VirtualLocation",
-									url: event.onlineUrl ?? canonical,
-								}
-							: {
-									"@type": "Place",
-									name: event.locationDisplay || event.title,
-									address: event.address ?? event.locationDisplay ?? undefined,
-								},
-					image: event.image1 ?? undefined,
-					description,
-				}),
-			},
+			jsonLdScript({
+				"@context": "https://schema.org",
+				"@type": "Event",
+				name: event.title,
+				startDate: event.startDate,
+				endDate: event.endDate,
+				eventAttendanceMode:
+					event.locationType === "online"
+						? "https://schema.org/OnlineEventAttendanceMode"
+						: "https://schema.org/OfflineEventAttendanceMode",
+				location:
+					event.locationType === "online"
+						? {
+								"@type": "VirtualLocation",
+								url: event.onlineUrl ?? canonical,
+							}
+						: {
+								"@type": "Place",
+								name: event.locationDisplay || event.title,
+								address: event.address ?? event.locationDisplay ?? undefined,
+							},
+				image: event.image1 ?? undefined,
+				description,
+			}),
 		],
 	};
 }

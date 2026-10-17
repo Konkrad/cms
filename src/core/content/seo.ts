@@ -25,3 +25,17 @@ export function htmlToDescription(
 	if (text.length <= maxLength) return text;
 	return `${text.slice(0, maxLength - 1).trimEnd()}…`;
 }
+
+/**
+ * A JSON-LD `<script type="application/ld+json">` for a `head`'s `scripts`. `<` is escaped so
+ * user text (a title with `</script>`) cannot end the element early.
+ */
+export function jsonLdScript(data: Record<string, unknown>): {
+	type: "application/ld+json";
+	script: string;
+} {
+	return {
+		type: "application/ld+json",
+		script: JSON.stringify(data).replace(/</g, "\\u003c"),
+	};
+}

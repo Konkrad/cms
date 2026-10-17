@@ -24,23 +24,26 @@ export const RouterHead = component$(() => {
 				<link key={l.key} {...l} />
 			))}
 
-			{head.styles.map((s) => (
+			{/* Attributes come at the top level (`{ type, script }`) or, deprecated, in `props`. */}
+			{head.styles.map(({ key, props, style, ...attrs }) => (
 				<style
-					key={s.key}
-					{...s.props}
-					{...(s.props?.dangerouslySetInnerHTML
+					key={key}
+					{...attrs}
+					{...props}
+					{...(props?.dangerouslySetInnerHTML
 						? {}
-						: { dangerouslySetInnerHTML: s.style })}
+						: { dangerouslySetInnerHTML: style })}
 				/>
 			))}
 
-			{head.scripts.map((s) => (
+			{head.scripts.map(({ key, props, script, ...attrs }) => (
 				<script
-					key={s.key}
-					{...s.props}
-					{...(s.props?.dangerouslySetInnerHTML
+					key={key}
+					{...attrs}
+					{...props}
+					{...(props?.dangerouslySetInnerHTML
 						? {}
-						: { dangerouslySetInnerHTML: s.script })}
+						: { dangerouslySetInnerHTML: script })}
 				/>
 			))}
 		</>

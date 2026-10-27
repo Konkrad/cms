@@ -5,7 +5,6 @@ import {
 	disabledBlockTypes,
 	menuLinksOf,
 	pagesOf,
-	reevaluateUserTagsOf,
 	selectActive,
 	sitemapEntriesOf,
 	slotContributionsOf,
@@ -124,50 +123,6 @@ describe("slotContributionsOf", () => {
 	});
 });
 
-describe("reevaluateUserTagsOf", () => {
-	it("calls the hook of every given module that has one, with the user id", async () => {
-		const seen: string[] = [];
-		const a = defineModule({
-			id: "ra",
-			reevaluateUserTags: async (userId) => {
-				seen.push(`a:${userId}`);
-			},
-		});
-		const b = defineModule({
-			id: "rb",
-			reevaluateUserTags: async (userId) => {
-				seen.push(`b:${userId}`);
-			},
-		});
-		await reevaluateUserTagsOf([a, alpha, b], "u9");
-		expect(seen.sort()).toEqual(["a:u9", "b:u9"]);
-	});
-
-	it("skips modules that are not active", async () => {
-		const hook = vi.fn(async () => {});
-		const withHook = defineModule({ id: "rc", reevaluateUserTags: hook });
-		await reevaluateUserTagsOf(
-			selectActive([alpha, withHook], ["alpha"]),
-			"u1",
-		);
-		expect(hook).not.toHaveBeenCalled();
-	});
-
-	it("propagates a failing hook", async () => {
-		const bad = defineModule({
-			id: "rd",
-			reevaluateUserTags: async () => {
-				throw new Error("boom");
-			},
-		});
-		await expect(reevaluateUserTagsOf([bad], "u1")).rejects.toThrow("boom");
-	});
-
-	it("does nothing for no modules", async () => {
-		await expect(reevaluateUserTagsOf([], "u1")).resolves.toBeUndefined();
-	});
-});
-
 describe("disabledBlockTypes", () => {
 	const moduleBlocks = {
 		alpha: ["AlphaBlock"],
@@ -202,6 +157,21 @@ describe("block gating with the checked-in config", () => {
 			for (const m of allModules) {
 				expect(moduleBlocks[m.id] ?? []).toEqual(m.blocks ?? []);
 			}
+		},
+	);
+
+	it(
+		"the drizzle-kit schema registry lists exactly the manifests' schemas",
+		{ timeout: 30_000 },
+		async () => {
+			const { allModules } = await import("~/core/registry/manifests");
+			const { moduleSchemas } = await import("~/core/registry/schemas");
+			const fromManifests = allModules.flatMap((m) =>
+				m.schema ? [m.schema] : [],
+			);
+			expect(fromManifests).toEqual([...moduleSchemas]);
+			for (const [i, schema] of fromManifests.entries())
+				expect(schema).toBe(moduleSchemas[i]);
 		},
 	);
 

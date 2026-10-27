@@ -584,15 +584,6 @@ export const eventsService = {
 		return Number(row?.count ?? 0);
 	},
 
-	/** Events (deleted ones included: their rows still reference the scope) owned by a scope. */
-	async countByScopeId(scopeId: string): Promise<number> {
-		const [row] = await db
-			.select({ count: sql<number>`COUNT(*)` })
-			.from(events)
-			.where(eq(events.scopeId, scopeId));
-		return Number(row?.count ?? 0);
-	},
-
 	async joinEvent(
 		userId: string,
 		eventId: string,

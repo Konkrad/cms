@@ -6,7 +6,6 @@ export type StaticMenuLink = MenuLink;
 
 // Curated list of global static routes that do not come from the pages table.
 const CORE_MENU_LINKS: StaticMenuLink[] = [
-	{ key: "events", label: t("core.menu.events"), url: "/events" },
 	{
 		key: "communities",
 		label: t("core.menu.communities"),

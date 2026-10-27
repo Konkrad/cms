@@ -159,12 +159,15 @@ export const Navigation = component$<{
 											>
 												{t("theme.navigation.myProfile")}
 											</Link>
-											<Link
-												href="/profile/tickets"
-												class="block px-4 py-2 text-text-secondary hover:bg-bg-muted"
-											>
-												{t("theme.navigation.myTickets")}
-											</Link>
+											{user.links.map((link) => (
+												<Link
+													key={link.url}
+													href={link.url}
+													class="block px-4 py-2 text-text-secondary hover:bg-bg-muted"
+												>
+													{link.label}
+												</Link>
+											))}
 											{user.isAdmin && (
 												<Link
 													href="/admin"
@@ -277,12 +280,15 @@ export const Navigation = component$<{
 									>
 										{t("theme.navigation.myProfile")}
 									</a>
-									<a
-										href="/profile/tickets"
-										class="block px-4 py-3 text-text-secondary hover:bg-bg-muted"
-									>
-										{t("theme.navigation.myTickets")}
-									</a>
+									{user.links.map((link) => (
+										<a
+											key={link.url}
+											href={link.url}
+											class="block px-4 py-3 text-text-secondary hover:bg-bg-muted"
+										>
+											{link.label}
+										</a>
+									))}
 									{user.isAdmin && (
 										<a
 											href="/admin"

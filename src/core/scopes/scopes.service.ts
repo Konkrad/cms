@@ -9,11 +9,7 @@ import {
 	or,
 	sql,
 } from "drizzle-orm";
-import { articles } from "~/core/content/schema/articles";
-import { notes } from "~/core/content/schema/notes";
-import { pages } from "~/core/content/schema/pages";
 import { db } from "~/core/db/connection";
-import { forms } from "~/core/forms/schema/forms";
 import { t } from "~/core/i18n";
 import { redirectsService } from "~/core/router/redirects.service";
 import { adminUrl, childPath, SCOPE_SLUG_RE } from "~/core/router/scope-path";
@@ -83,6 +79,43 @@ function pathPrefixes(path: string): string[] {
 
 // LIKE treats % and _ as wildcards; slugs never contain them, but escape for safety.
 const likePrefix = (path: string) => `${path.replace(/[\\%_]/g, "\\$&")}%`;
+
+/** Tables that reference a scope without owning content of it (the tree's bookkeeping). */
+const SCOPE_BOOKKEEPING_TABLES = new Set([
+	"scopes",
+	"scope_roles",
+	"scope_memberships",
+	"form_assignments",
+	"reviews",
+	"content_tombstones",
+]);
+
+let ownedColumns: Array<{ table: string; column: string }> | undefined;
+
+/** Every `<table>.<column>` with a foreign key to `scopes`, bookkeeping tables left out. */
+function scopeOwnedColumns(): Array<{ table: string; column: string }> {
+	if (ownedColumns) return ownedColumns;
+	const tables = db.$client
+		.prepare(
+			"SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__drizzle%'",
+		)
+		.all() as Array<{ name: string }>;
+	ownedColumns = tables
+		.filter((t) => !SCOPE_BOOKKEEPING_TABLES.has(t.name))
+		.flatMap(({ name }) =>
+			(
+				db.$client
+					.prepare(`PRAGMA foreign_key_list("${name}")`)
+					.all() as Array<{
+					table: string;
+					from: string;
+				}>
+			)
+				.filter((fk) => fk.table === "scopes")
+				.map((fk) => ({ table: name, column: fk.from })),
+		);
+	return ownedColumns;
+}
 
 export const scopesService = {
 	async getRoot(): Promise<Scope | undefined> {
@@ -426,17 +459,24 @@ export const scopesService = {
 		);
 	},
 
-	/** Number of notes, articles, pages and forms owned by the scope (core content; modules report their own). */
-	async countCoreContent(scopeId: string): Promise<number> {
-		const counts = await Promise.all(
-			[notes, articles, pages, forms].map((table) =>
-				db
-					.select({ count: sql<number>`COUNT(*)` })
-					.from(table)
-					.where(eq(table.scopeId, scopeId)),
-			),
-		);
-		return counts.reduce((sum, [row]) => sum + Number(row?.count ?? 0), 0);
+	/**
+	 * Rows owned by the scope in any table that references `scopes` (core content such as notes,
+	 * articles, pages and forms, and every module's items, active or not: their rows stay), except
+	 * the tree's own bookkeeping (roles, memberships, child scopes, form assignments, reviews,
+	 * tombstones). A scope can only be deleted while this is 0. Found from the schema's foreign
+	 * keys, so a module needs no hook for it.
+	 */
+	async countContent(scopeId: string): Promise<number> {
+		let total = 0;
+		for (const { table, column } of scopeOwnedColumns()) {
+			const row = db.$client
+				.prepare(
+					`SELECT COUNT(*) AS count FROM "${table}" WHERE "${column}" = ?`,
+				)
+				.get(scopeId) as { count: number };
+			total += Number(row.count);
+		}
+		return total;
 	},
 
 	// ── Roles (inherit downward) ───────────────────────────────────────────────

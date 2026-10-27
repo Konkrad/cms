@@ -311,13 +311,16 @@ describe("granting roles", () => {
 });
 
 describe("scope content and images", () => {
-	it("reports content owned by a scope (core notes and articles)", async () => {
-		const { scopeHasContent } = await import("~/core/registry/manifests");
+	it("reports content owned by a scope (core notes and articles, module items)", async () => {
+		const scopeHasContent = async (id: string) =>
+			(await scopesService.countContent(id)) > 0;
 		expect(await scopeHasContent(chapterB.id)).toBe(false);
 		const now = new Date().toISOString();
 		for (const insert of [
 			"INSERT INTO notes (id, body, author_id, scope_id, updated_at) VALUES (?, 'b', ?, ?, ?)",
 			"INSERT INTO articles (id, title, body, author_id, scope_id, updated_at) VALUES (?, 't', 'b', ?, ?, ?)",
+			// A module's item counts too, whether or not the module is active (found by foreign key).
+			"INSERT INTO jobs (id, title, body, location_type, expires_at, suggested_by, scope_id, updated_at) VALUES (?, 't', 'b', 'on-site', '2099-01-01', ?, ?, ?)",
 		]) {
 			const table = insert.split(" ")[2];
 			const id = crypto.randomUUID();

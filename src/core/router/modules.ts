@@ -61,6 +61,11 @@ export interface MenuLink {
 	key: string;
 	label: string;
 	url: string;
+	/**
+	 * Where the link goes: offered for the site menus (default, the admin picks it in the menu
+	 * editor), or "user": in the logged-in user's menu of the navigation (e.g. "My tickets").
+	 */
+	menu?: "site" | "user";
 }
 
 /** A feed a module serves, announced in every page's head (`<link rel="alternate">`) and footer. */
@@ -115,6 +120,12 @@ export interface RefTypeDefinition {
 
 export interface ModuleDefinition {
 	id: string;
+	/**
+	 * The module's tables and relations, its `schema.ts` default export (`defineModuleSchema`).
+	 * Listed in `src/core/registry/schemas.ts` too, which drizzle-kit loads without the app (a
+	 * unit test checks both match); one migration history for core and every module.
+	 */
+	schema?: { tables: Record<string, unknown> };
 	pages?: PageDefinition<unknown>[];
 	/**
 	 * First segments of the module's own route files in `src/routes` (machine endpoints such as
@@ -153,15 +164,6 @@ export interface ModuleDefinition {
 	 * viewer may see.
 	 */
 	slots?: SlotName[];
-	/**
-	 * Number of this module's items owned by a scope. Server-only. A scope can only be deleted
-	 * while every module (active or not) reports 0 and it has no core content or children.
-	 */
-	scopeContentCount?: (scopeId: string) => Promise<number>;
-	/**
-	 * Re-run the module's user-tag rules for one user (admin "Re-evaluate badges"). Server-only.
-	 */
-	reevaluateUserTags?: (userId: string) => Promise<void>;
 	/**
 	 * Payment handlers by payment kind (spec 4.7), named so core can call them hours later and
 	 * after a restart: core queues `payments[kind][hook]` of the module that created the payment
@@ -251,8 +253,15 @@ export function selectActive(
 export const pagesOf = (modules: readonly ModuleDefinition[]) =>
 	modules.flatMap((m) => m.pages ?? []);
 
+/** Links of the given modules offered for the site menus. */
 export const menuLinksOf = (modules: readonly ModuleDefinition[]): MenuLink[] =>
-	modules.flatMap((m) => m.menuLinks ?? []);
+	modules.flatMap((m) => m.menuLinks ?? []).filter((l) => l.menu !== "user");
+
+/** Links of the given modules for the logged-in user's menu ("My tickets"). */
+export const userMenuLinksOf = (
+	modules: readonly ModuleDefinition[],
+): MenuLink[] =>
+	modules.flatMap((m) => m.menuLinks ?? []).filter((l) => l.menu === "user");
 
 export const feedsOf = (modules: readonly ModuleDefinition[]): FeedLink[] =>
 	modules.flatMap((m) => m.feeds ?? []);
@@ -288,15 +297,6 @@ export function slotContributionsOf<Name extends SlotName>(
 	});
 }
 
-/** Items the given modules own in a scope (summed `scopeContentCount`). */
-export const scopeContentCountOf = async (
-	modules: readonly ModuleDefinition[],
-	scopeId: string,
-): Promise<number> =>
-	(
-		await Promise.all(modules.map((m) => m.scopeContentCount?.(scopeId) ?? 0))
-	).reduce((a, b) => a + b, 0);
-
 /** Notification definitions of the given modules, in module order. */
 export const notificationsOf = (
 	modules: readonly ModuleDefinition[],
@@ -323,14 +323,6 @@ export const requirementsOf = (
 export const formPurposesOf = (
 	modules: readonly ModuleDefinition[],
 ): FormPurpose[] => modules.flatMap((m) => m.forms ?? []);
-
-/** Runs the `reevaluateUserTags` hook of every given module for one user. */
-export const reevaluateUserTagsOf = async (
-	modules: readonly ModuleDefinition[],
-	userId: string,
-): Promise<void> => {
-	await Promise.all(modules.map((m) => m.reevaluateUserTags?.(userId)));
-};
 
 /**
  * Block types owned by a module that is not active. `moduleBlocks` maps module id to its

@@ -1,10 +1,12 @@
 import { defineModule, t } from "~/core";
 import { jobApprovedNotification } from "./notifications";
 import { jobsPages } from "./pages";
+import jobsSchema from "./schema";
 import { jobsService } from "./service";
 
 export const jobsModule = defineModule({
 	id: "jobs",
+	schema: jobsSchema,
 	pages: jobsPages,
 	// Jobs are owned by a scope; each scope's admin manages its own and its subtree's.
 	admin: {

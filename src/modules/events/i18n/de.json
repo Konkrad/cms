@@ -286,6 +286,7 @@
 	"events.module.eventDebrief": "Nachbericht zur Veranstaltung",
 	"events.module.eventProposal": "Veranstaltungsvorschlag",
 	"events.module.events": "Veranstaltungen",
+	"events.module.myTickets": "Meine Tickets",
 	"events.notifications.debriefRequested.body": "„{title}“ ist vorbei. Bitte erzähl uns in einem kurzen Nachbericht, wie es lief.",
 	"events.notifications.debriefRequested.button": "Nachbericht ausfüllen",
 	"events.notifications.debriefRequested.label": "Nachbericht zur Veranstaltung",

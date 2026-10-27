@@ -11,7 +11,7 @@ import { menuItemsService } from "~/core/content/menu-items.service";
 import { resolveMenuUrls } from "~/core/content/menu-links";
 import { t } from "~/core/i18n";
 import { deriveThumbnailKey, publicImageUrlFromKey } from "~/core/media/images";
-import { activeFeeds } from "~/core/registry/manifests";
+import { activeFeeds, activeUserMenuLinks } from "~/core/registry/manifests";
 import { requirements } from "~/core/registry/requirements";
 import { GLOBAL_CONTEXT } from "~/core/requirements/define";
 import { currentScopePath } from "~/core/router/scope-request";
@@ -76,6 +76,7 @@ export const useUserSession = routeLoader$(async (event): Promise<NavUser> => {
 			: t("core.layout.userFallbackName"),
 		isAdmin: (await listManagedScopes(u)).length > 0,
 		profilePictureSmallUrl: publicImageUrlFromKey(thumbKey),
+		links: activeUserMenuLinks.map(({ label, url }) => ({ label, url })),
 	});
 });
 

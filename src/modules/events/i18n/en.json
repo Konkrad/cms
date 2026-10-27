@@ -286,6 +286,7 @@
 	"events.module.eventDebrief": "Event debrief",
 	"events.module.eventProposal": "Event proposal",
 	"events.module.events": "Events",
+	"events.module.myTickets": "My Tickets",
 	"events.notifications.debriefRequested.body": "\"{title}\" has ended. Please tell us how it went in a short debrief.",
 	"events.notifications.debriefRequested.button": "Fill in the debrief",
 	"events.notifications.debriefRequested.label": "Event debrief",

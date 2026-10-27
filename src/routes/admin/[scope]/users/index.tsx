@@ -11,7 +11,6 @@ import { PAGE_SIZE, Pagination } from "~/core/admin/Pagination/Pagination";
 import { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 import { formatDate, t } from "~/core/i18n";
 import { membershipsService } from "~/core/memberships/memberships.service";
-import { reevaluateUserTagsForUser } from "~/core/registry/manifests";
 import { adminUrl } from "~/core/router/scope-path";
 import { requireSystemAdmin } from "~/core/scopes/access";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
@@ -99,22 +98,12 @@ export const useRevokeTag = routeAction$(
 	zod$({ userId: z.string().uuid(), slug: z.string().min(1) }),
 );
 
-export const useReevaluateBadges = routeAction$(async (_data, event) => {
-	await requireSystemAdmin(event);
-	const memberships = await membershipsService.getAll();
-	await Promise.all(
-		memberships.map((m) => reevaluateUserTagsForUser(m.userId)),
-	);
-	return { success: true };
-}, zod$({}));
-
 export default component$(() => {
 	const data = useUsers();
 	const setTierAction = useSetTier();
 	const removeAction = useRemoveMembership();
 	const grantTagAction = useGrantTag();
 	const revokeTagAction = useRevokeTag();
-	const reevalAction = useReevaluateBadges();
 	const openUserId = useSignal<string | null>(null);
 
 	const totalPages = Math.ceil(data.value.total / data.value.pageSize);
@@ -132,14 +121,6 @@ export default component$(() => {
 					>
 						{t("admin.users.manageTags")}
 					</Link>
-					<Form action={reevalAction}>
-						<button
-							type="submit"
-							class="text-sm text-blue-600 hover:text-blue-800 border border-blue-300 rounded px-3 py-1.5"
-						>
-							{t("admin.users.reEvaluateBadgeRules")}
-						</button>
-					</Form>
 				</div>
 			</div>
 

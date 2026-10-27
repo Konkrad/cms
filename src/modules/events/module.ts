@@ -8,11 +8,13 @@ import {
 } from "./emails";
 import { eventsPages } from "./pages";
 import { eventsRequirements } from "./requirements";
+import eventsSchema from "./schema";
 import { eventsService } from "./services/events";
 import { tagRulesService } from "./services/tag-rules";
 
 export const eventsModule = defineModule({
 	id: "events",
+	schema: eventsSchema,
 	pages: eventsPages,
 	// Food preference and photo consent, asked before checkout/registration (spec 4.6).
 	requirements: eventsRequirements,
@@ -28,6 +30,15 @@ export const eventsModule = defineModule({
 		],
 	},
 	blocks: eventsBlocks,
+	menuLinks: [
+		{ key: "events", label: t("events.module.events"), url: "/events" },
+		{
+			key: "tickets",
+			label: t("events.module.myTickets"),
+			url: "/profile/tickets",
+			menu: "user",
+		},
+	],
 	// Detail pages of global events only; members-only events are not public.
 	sitemap: async () => {
 		const entries: { path: string; lastmod: string }[] = [];
@@ -51,15 +62,22 @@ export const eventsModule = defineModule({
 		"scopePage.sections",
 		"admin.dashboard.widgets",
 	],
-	scopeContentCount: (scopeId) => eventsService.countByScopeId(scopeId),
 	notifications: [
 		ticketConfirmationNotification,
 		saleAlertNotification,
 		debriefRequestedNotification,
 		debriefSubmittedNotification,
 	],
-	// Asks organisers of ended events for their debrief (spec 5.2); lazy like the handlers below.
+	// Participation badges (tag rules) for events that have ended since (also run on each RSVP),
+	// and the debrief requests to organisers of ended events (spec 5.2; lazy like the handlers).
 	schedules: [
+		{
+			id: "tag-rules",
+			every: "1d",
+			run: async () => {
+				await tagRulesService.evaluateRulesForAll();
+			},
+		},
 		{
 			id: "debrief-requests",
 			every: "1d",
@@ -85,7 +103,6 @@ export const eventsModule = defineModule({
 	],
 	// Demo events (tickets, history, the Events page) and the e2e fixtures; lazy (dev deps).
 	seed: async (ctx) => (await import("./seed")).seedEvents(ctx),
-	reevaluateUserTags: (userId) => tagRulesService.evaluateRulesForUser(userId),
 	// Proposal and debrief questions are forms admins edit (spec 5.2); the active form per scope.
 	forms: [
 		{ purpose: "events.proposal", label: t("events.module.eventProposal") },

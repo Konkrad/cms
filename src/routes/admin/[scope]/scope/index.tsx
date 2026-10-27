@@ -12,7 +12,7 @@ import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
 import { t } from "~/core/i18n";
 import { publicImageUrlFromKey } from "~/core/media/images";
-import { reservedSlugs, scopeHasContent } from "~/core/registry/manifests";
+import { reservedSlugs } from "~/core/registry/manifests";
 import { adminUrl, scopeUrl } from "~/core/router/scope-path";
 import {
 	ADMIN_ACCESS,
@@ -36,7 +36,8 @@ async function deleteBlocker(
 		return t("admin.scope.onlyParentManagersDelete");
 	if ((await scopesService.getChildren(scope.id)).length > 0)
 		return t("admin.scope.moveGroupsFirst");
-	if (await scopeHasContent(scope.id)) return t("admin.scope.stillHasContent");
+	if ((await scopesService.countContent(scope.id)) > 0)
+		return t("admin.scope.stillHasContent");
 	return null;
 }
 

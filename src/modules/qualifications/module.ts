@@ -1,8 +1,10 @@
 import { defineModule, t } from "~/core";
 import { qualificationsPages } from "./pages";
+import qualificationsSchema from "./schema";
 
 export const qualificationsModule = defineModule({
 	id: "qualifications",
+	schema: qualificationsSchema,
 	pages: qualificationsPages,
 	admin: {
 		sections: [

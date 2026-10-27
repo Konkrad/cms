@@ -22,6 +22,8 @@ export type NavUser = {
 	/** May open the admin: holds a managing role (admin, moderator, representative) on a scope. */
 	isAdmin: boolean;
 	profilePictureSmallUrl: string | null;
+	/** Links of active modules for the user's menu (e.g. "My tickets"), after "My profile". */
+	links: Array<{ label: string; url: string }>;
 } | null;
 
 /** Feeds the site serves (active modules' `feeds`, e.g. the RSS feed): head links and footer. */

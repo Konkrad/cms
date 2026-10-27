@@ -57,4 +57,18 @@ async function evaluateRulesForUser(userId: string): Promise<void> {
 	}
 }
 
-export const tagRulesService = { evaluateRulesForUser };
+/**
+ * Re-runs the rules for every user who said "yes" to an event (the daily `tag-rules` schedule:
+ * an event's end turns a "yes" into a past participation the rules count). Returns how many
+ * users were evaluated.
+ */
+async function evaluateRulesForAll(): Promise<number> {
+	const rows = await db
+		.selectDistinct({ userId: participationStatus.userId })
+		.from(participationStatus)
+		.where(eq(participationStatus.status, "yes"));
+	for (const { userId } of rows) await evaluateRulesForUser(userId);
+	return rows.length;
+}
+
+export const tagRulesService = { evaluateRulesForUser, evaluateRulesForAll };

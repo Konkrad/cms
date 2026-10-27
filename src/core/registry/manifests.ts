@@ -5,12 +5,10 @@ import {
 	type ModuleDefinition,
 	menuLinksOf,
 	pagesOf,
-	reevaluateUserTagsOf,
-	scopeContentCountOf,
 	selectActive,
+	userMenuLinksOf,
 } from "~/core/router/modules";
 import { reservedScopeSlugs } from "~/core/router/reserved-slugs";
-import { scopesService } from "~/core/scopes/scopes.service";
 import config from "../../../modules.config";
 import { dealsModule } from "../../modules/deals/module";
 import { electionsModule } from "../../modules/elections/module";
@@ -35,25 +33,10 @@ export const activeModules = selectActive(allModules, config.active);
 export const modulePages = pagesOf(activeModules);
 export const activeAdminSections = adminSectionsOf(activeModules);
 export const activeMenuLinks = menuLinksOf(activeModules);
+/** Links active modules add to the logged-in user's menu (navigation). */
+export const activeUserMenuLinks = userMenuLinksOf(activeModules);
 /** Feeds of active modules (head `<link rel="alternate">`, footer). */
 export const activeFeeds = feedsOf(activeModules);
-
-/** Items every module (active or not: their rows stay) owns in a scope. */
-export const moduleScopeContentCount = (scopeId: string) =>
-	scopeContentCountOf(allModules, scopeId);
-
-/** Whether a scope owns any content (core notes, articles, pages, forms or any module's items). */
-export async function scopeHasContent(scopeId: string): Promise<boolean> {
-	const [core, modules] = await Promise.all([
-		scopesService.countCoreContent(scopeId),
-		moduleScopeContentCount(scopeId),
-	]);
-	return core + modules > 0;
-}
-
-/** Re-runs the tag rules of every active module for one user. */
-export const reevaluateUserTagsForUser = (userId: string) =>
-	reevaluateUserTagsOf(activeModules, userId);
 
 /** Answers 404 unless the module is active. Call right after the auth check. */
 export function requireActiveModule(

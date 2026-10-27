@@ -1,9 +1,11 @@
 import { defineModule, t } from "~/core";
 import { electionsPages } from "./pages";
+import electionsSchema from "./schema";
 import { electionsService } from "./service";
 
 export const electionsModule = defineModule({
 	id: "elections",
+	schema: electionsSchema,
 	pages: electionsPages,
 	// Election cycles are owned by a scope; each scope's admin manages its own and its subtree's.
 	admin: {

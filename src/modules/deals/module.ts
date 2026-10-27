@@ -1,10 +1,12 @@
 import { defineModule, scopeContentFilter, t, withItemUrls } from "~/core";
 import { dealsBlocks } from "./blocks";
 import { dealsPages } from "./pages";
+import dealsSchema from "./schema";
 import { dealsService } from "./service";
 
 export const dealsModule = defineModule({
 	id: "deals",
+	schema: dealsSchema,
 	pages: dealsPages,
 	// Deals are owned by a scope; each scope's admin manages its own and its subtree's.
 	admin: {

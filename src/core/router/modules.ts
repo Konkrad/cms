@@ -1,3 +1,4 @@
+import type { ZodObject } from "zod";
 import type { ProfileExtras } from "~/contracts/profile";
 import type { ScopeExtras } from "~/contracts/scopes";
 import type { FormPurpose } from "~/core/forms/purposes";
@@ -136,6 +137,14 @@ export interface ModuleDefinition {
 	 * while the module is inactive.
 	 */
 	routes?: string[];
+	/**
+	 * Deployment settings (spec 4.1): a zod object whose keys are read from the environment
+	 * variables `<MODULE_ID>_<KEY>` (`updateInterval` of social-web = `SOCIAL_WEB_UPDATE_INTERVAL`)
+	 * and validated by src/env.ts at startup while the module is active (the server refuses to
+	 * start on an invalid value). Keep it in a pure `settings.ts` (zod only) and list it in
+	 * `src/core/registry/settings.ts`; read it with `moduleSettings("<id>")` from `~/core`.
+	 */
+	settings?: ZodObject;
 	/** Feeds announced in the head of every page and linked in the footer while active. */
 	feeds?: FeedLink[];
 	admin?: { sections: AdminSection[] };

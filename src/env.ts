@@ -15,7 +15,10 @@
 
 import dotenv from "dotenv";
 import { z } from "zod";
+import modulesConfig from "../modules.config";
 import { siteLocaleSchema } from "./core/i18n/locales";
+import { moduleSettingsSchemas } from "./core/registry/settings";
+import { parseModuleSettings } from "./core/router/module-settings";
 
 // Only load .env files outside production so host-provided envvars (e.g. in production) are not overwritten.
 if (process.env.NODE_ENV !== "production") {
@@ -129,23 +132,6 @@ const envSchema = z.object({
 	LOGIN_IP_MAX_PER_WINDOW: z.coerce.number().int().positive().default(10),
 	LOGIN_IP_WINDOW_MINUTES: z.coerce.number().int().positive().default(60),
 
-	// Social web module (spec 5.3): one site-wide, pull-only account `<account>@<APP_URL host>`
-	// (WebFinger, ActivityPoll actor) and the RSS feed. Summary: actor summary and RSS channel
-	// description (empty = the site name). Update interval: typical time between new posts, an
-	// xsd:duration for the actor's `updateInterval` (FEP-b06c). Icon: path or URL of the image.
-	SOCIAL_WEB_ACCOUNT: z
-		.string()
-		.regex(/^[a-z0-9][a-z0-9._-]*$/i)
-		.default("news"),
-	SOCIAL_WEB_SUMMARY: z.string().default(""),
-	SOCIAL_WEB_UPDATE_INTERVAL: z
-		.string()
-		.regex(
-			/^P(?!$)(\d+Y)?(\d+M)?(\d+W)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+S)?)?$/,
-		)
-		.default("P1D"),
-	SOCIAL_WEB_ICON: z.string().default("/favicon.svg"),
-
 	// Scope tree: the kinds a group below the root can have (deployment configuration, spec
 	// 4.2), comma-separated, in the order the admin offers them. The root's kind is "root".
 	// Module admin sections may be limited to some of these kinds (`scopes` in the manifest).
@@ -189,6 +175,24 @@ if (!parsed.success) {
 
 const _env = parsed.data;
 
+/** Ids of the active modules (`modules.config.ts`). */
+const activeModuleIds: readonly string[] = modulesConfig.active;
+
+// Deployment settings of the ACTIVE modules (manifest `settings`, env `<MODULE_ID>_<KEY>`);
+// an inactive module's settings are neither required nor validated.
+const moduleSettings = parseModuleSettings(
+	moduleSettingsSchemas,
+	activeModuleIds,
+	process.env,
+);
+if (moduleSettings.issues.length > 0) {
+	// eslint-disable-next-line no-console
+	console.error("Invalid module settings:");
+	// eslint-disable-next-line no-console
+	console.error(moduleSettings.issues.join("\n"));
+	throw new Error("Invalid module settings. See stderr for details.");
+}
+
 /**
  * Compute derived values and sensible defaults that depend on multiple env vars.
  */
@@ -230,10 +234,10 @@ export const env = {
 	LOGIN_IP_MAX_PER_WINDOW: _env.LOGIN_IP_MAX_PER_WINDOW,
 	LOGIN_IP_WINDOW_MINUTES: _env.LOGIN_IP_WINDOW_MINUTES,
 	SCOPE_KINDS: _env.SCOPE_KINDS as readonly string[],
-	SOCIAL_WEB_ACCOUNT: _env.SOCIAL_WEB_ACCOUNT,
-	SOCIAL_WEB_SUMMARY: _env.SOCIAL_WEB_SUMMARY,
-	SOCIAL_WEB_UPDATE_INTERVAL: _env.SOCIAL_WEB_UPDATE_INTERVAL,
-	SOCIAL_WEB_ICON: _env.SOCIAL_WEB_ICON,
+	/** Validated settings of the active modules, by module id (read via `moduleSettings`). */
+	MODULE_SETTINGS: moduleSettings.values as Readonly<
+		Record<string, Readonly<Record<string, unknown>> | undefined>
+	>,
 
 	// helpful booleans
 	isProduction: _env.NODE_ENV === "production",

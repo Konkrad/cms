@@ -134,6 +134,7 @@ export * from "./schema";
 // back, so they must stay after the definitions above.
 export { requireModuleAdmin } from "~/core/registry/module-admin";
 export { requireModuleAuth } from "~/core/registry/module-auth";
+export { moduleSettings } from "~/core/registry/module-settings";
 // User requirements (spec 4.6): `requirements.pending(user, context)` in a loader and again in the
 // action (never trust the client); steps are submitted through core's single step action.
 export type { PendingRequirement } from "~/core/requirements/requirements";
@@ -226,11 +227,4 @@ export const getAppUrl = (): string => env.APP_URL;
 export const getSiteInfo = (): { name: string; url: string } => ({
 	name: env.APP_NAME,
 	url: env.APP_URL,
-});
-/** Deployment settings of the social-web module (spec 5.3; `SOCIAL_WEB_*` in src/env.ts). */
-export const getSocialWebSettings = () => ({
-	account: env.SOCIAL_WEB_ACCOUNT,
-	summary: env.SOCIAL_WEB_SUMMARY,
-	updateInterval: env.SOCIAL_WEB_UPDATE_INTERVAL,
-	icon: env.SOCIAL_WEB_ICON,
 });

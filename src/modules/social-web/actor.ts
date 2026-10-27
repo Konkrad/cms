@@ -2,7 +2,7 @@ import type { RequestEvent } from "@qwik.dev/router";
 import {
 	assertNoPrivateFields,
 	getSiteInfo,
-	getSocialWebSettings,
+	moduleSettings,
 	requireActiveModule,
 } from "~/core";
 import { type ActorInfo, AS_CONTEXT, actorDocument } from "./activitystreams";
@@ -12,7 +12,7 @@ import { absoluteUrl, MODULE_ID, siteBase, socialUrls } from "./urls";
 
 /** The actor's data from the deployment settings (`SOCIAL_WEB_*`) and the site. */
 export function actorInfo(): ActorInfo {
-	const settings = getSocialWebSettings();
+	const settings = moduleSettings(MODULE_ID);
 	const iconUrl = absoluteUrl(settings.icon);
 	return {
 		account: settings.account,
@@ -40,7 +40,7 @@ export function isOwnResource(resource: string): boolean {
 	if (at < 1) return false;
 	return (
 		address.slice(0, at).toLowerCase() ===
-			getSocialWebSettings().account.toLowerCase() &&
+			moduleSettings(MODULE_ID).account.toLowerCase() &&
 		address.slice(at + 1).toLowerCase() === accountHost().toLowerCase()
 	);
 }
@@ -56,7 +56,7 @@ export async function handleWebfingerGet(event: RequestEvent): Promise<void> {
 	if (!resource) throw event.error(400, "Missing resource");
 	if (!isOwnResource(resource)) throw event.error(404, "Unknown resource");
 	const urls = socialUrls();
-	const subject = `acct:${getSocialWebSettings().account}@${accountHost()}`;
+	const subject = `acct:${moduleSettings(MODULE_ID).account}@${accountHost()}`;
 	await sendJsonDocument(
 		event,
 		assertNoPrivateFields({

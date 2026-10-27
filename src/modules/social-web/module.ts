@@ -1,4 +1,5 @@
 import { defineModule, t } from "~/core";
+import { socialWebSettings } from "./settings";
 import { FEED_PATH, MODULE_ID, SOCIAL_PATH } from "./urls";
 
 /**
@@ -9,6 +10,8 @@ import { FEED_PATH, MODULE_ID, SOCIAL_PATH } from "./urls";
 export const socialWebModule = defineModule({
 	id: MODULE_ID,
 	routes: [FEED_PATH.slice(1), SOCIAL_PATH.slice(1)],
+	// SOCIAL_WEB_ACCOUNT, SOCIAL_WEB_SUMMARY, SOCIAL_WEB_UPDATE_INTERVAL, SOCIAL_WEB_ICON
+	settings: socialWebSettings,
 	feeds: [
 		{
 			title: t("social-web.module.news"),

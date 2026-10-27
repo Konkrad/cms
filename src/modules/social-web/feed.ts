@@ -2,7 +2,7 @@ import type { RequestEvent } from "@qwik.dev/router";
 import {
 	assertNoPrivateFields,
 	getSiteInfo,
-	getSocialWebSettings,
+	moduleSettings,
 	publicFeed,
 	requireActiveModule,
 	type StreamType,
@@ -72,7 +72,7 @@ export async function handleFeedGet(event: RequestEvent): Promise<void> {
 				{
 					title: site.name,
 					link: `${siteBase()}/`,
-					description: getSocialWebSettings().summary || site.name,
+					description: moduleSettings(MODULE_ID).summary || site.name,
 					selfUrl,
 					lastBuildDate: version.lastModified,
 					language: "en",

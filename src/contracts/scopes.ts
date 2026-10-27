@@ -37,16 +37,12 @@ export interface ScopeUpcomingEvent {
 	source: string | null;
 }
 
-/**
- * Sections that active modules add to a scope home page. One optional field per contributed
- * section, named after what the theme renders; the page merges the `scopePage` hook results of
- * all active modules into its loader output. Contribute only what the viewer may see.
- */
-export interface ScopeExtras {
+/** The events section of a scope home page (events module, `scopePage.sections` slot). */
+export interface ScopeEventsData {
 	/** Number of finished events of the scope. */
-	pastEventCount?: number;
+	pastEventCount: number;
 	/** The scope's next events (max 3), soonest first. */
-	upcomingEvents?: ScopeUpcomingEvent[];
+	upcomingEvents: ScopeUpcomingEvent[];
 }
 
 /** A scope member as other visitors see them. */
@@ -60,7 +56,7 @@ export interface ScopeMemberCard {
 }
 
 /** Payload of a scope home page (declared, not derived: it shows members and authors). */
-export type ScopeViewData = ScopeExtras & {
+export type ScopeViewData = {
 	scope: { id: string; name: string; kind: string; description: string | null };
 	/** Ancestors below the root, root first, for the breadcrumb. */
 	parents: Array<{ name: string; url: string }>;
@@ -68,8 +64,6 @@ export type ScopeViewData = ScopeExtras & {
 	childScopes: ScopeListItem[];
 	/** Members of the scope and of every scope below it. */
 	memberCount: number;
-	pastEventCount: number;
-	upcomingEvents: ScopeUpcomingEvent[];
 	recentMembers: ScopeMemberCard[];
 	/** The scope's (first) representative. */
 	rep: {

@@ -1,6 +1,6 @@
+import type { Component } from "@qwik.dev/core";
 import type { ZodObject } from "zod";
-import type { ProfileExtras } from "~/contracts/profile";
-import type { ScopeExtras } from "~/contracts/scopes";
+import type { SlotComponents, SlotName, SlotProps } from "~/contracts/slots";
 import type { FormPurpose } from "~/core/forms/purposes";
 import type { NotificationDefinition } from "~/core/notifications/define";
 import type { PaymentHandlers } from "~/core/payments/payments";
@@ -78,22 +78,6 @@ export interface SitemapEntry {
 	lastmod?: string | null;
 }
 
-/** Who is looking at which profile; passed to every module's `profile` hook. */
-export interface ProfileContext {
-	/** The user whose profile is rendered. */
-	userId: string;
-	/** The logged-in viewer, null when anonymous. */
-	viewerId: string | null;
-	isOwnProfile: boolean;
-}
-
-/** Which scope home page is rendered and who looks at it; passed to every module's `scopePage` hook. */
-export interface ScopePageContext {
-	scopeId: string;
-	/** The logged-in viewer, null when anonymous. */
-	viewerId: string | null;
-}
-
 /** Where one item lives: its owning scope and, when its URL uses one, its slug. */
 export interface RefLocation {
 	id: string;
@@ -158,15 +142,15 @@ export interface ModuleDefinition {
 	/** Public URLs for /sitemap.xml. Server-only. Omit for login-gated modules. */
 	sitemap?: () => Promise<SitemapEntry[]>;
 	/**
-	 * Extra sections for the profile pages. Server-only. Return only what `ctx.viewerId` may see
-	 * (e.g. nothing private unless `ctx.isOwnProfile`); the result is serialized to the browser.
+	 * Slots this module contributes to (spec 4.1, guide 5.9): components for screens it does not
+	 * own, e.g. `["profile.sections"]` (names and props in `~/contracts/slots`). Rendered only
+	 * while the module is active. Like `blocks`, the manifest (server code) lists the names; the
+	 * components live in the module's client-safe `slots.tsx` (`{ [name]: Component }`), listed
+	 * in `src/core/registry/slots.ts` (a unit test checks both match). Each component loads its
+	 * data through a `server$()` composable that authorizes first and returns only what the
+	 * viewer may see.
 	 */
-	profile?: (ctx: ProfileContext) => Promise<Partial<ProfileExtras>>;
-	/**
-	 * Extra sections for a scope's public home page (`/germany/berlin`). Server-only. Return
-	 * only what `ctx.viewerId` may see; the result is serialized to the browser.
-	 */
-	scopePage?: (ctx: ScopePageContext) => Promise<Partial<ScopeExtras>>;
+	slots?: SlotName[];
 	/**
 	 * Number of this module's items owned by a scope. Server-only. A scope can only be deleted
 	 * while every module (active or not) reports 0 and it has no core content or children.
@@ -270,25 +254,22 @@ export const sitemapEntriesOf = async (
 ): Promise<SitemapEntry[]> =>
 	(await Promise.all(modules.map((m) => m.sitemap?.() ?? []))).flat();
 
-/** Profile sections contributed by the given modules, merged in module order (later wins per key). */
-export const profileExtrasOf = async (
-	modules: readonly ModuleDefinition[],
-	ctx: ProfileContext,
-): Promise<Partial<ProfileExtras>> =>
-	Object.assign(
-		{},
-		...(await Promise.all(modules.map((m) => m.profile?.(ctx) ?? {}))),
-	);
-
-/** Scope page sections contributed by the given modules, merged in module order (later wins per key). */
-export const scopeExtrasOf = async (
-	modules: readonly ModuleDefinition[],
-	ctx: ScopePageContext,
-): Promise<Partial<ScopeExtras>> =>
-	Object.assign(
-		{},
-		...(await Promise.all(modules.map((m) => m.scopePage?.(ctx) ?? {}))),
-	);
+/**
+ * The components the active modules contribute to one slot, in `activeIds` order. `slots` maps
+ * module id to its slot components (client-safe registry); inactive modules contribute nothing.
+ */
+export function slotContributionsOf<Name extends SlotName>(
+	slots: Readonly<Record<string, SlotComponents>>,
+	name: Name,
+	activeIds: readonly string[],
+): Component<SlotProps[Name]>[] {
+	return activeIds.flatMap((id) => {
+		const component = slots[id]?.[name] as
+			| Component<SlotProps[Name]>
+			| undefined;
+		return component ? [component] : [];
+	});
+}
 
 /** Items the given modules own in a scope (summed `scopeContentCount`). */
 export const scopeContentCountOf = async (

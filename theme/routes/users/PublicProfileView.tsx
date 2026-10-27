@@ -1,9 +1,9 @@
-import { component$ } from "@qwik.dev/core";
+import { component$, Slot } from "@qwik.dev/core";
 import { t } from "~/contracts/i18n";
 import type { PublicProfileViewData } from "~/contracts/users";
 import { UserProfile } from "~theme/routes/profile/UserProfile/UserProfile";
 
-/** Themed view for another user's public profile (`/users/[userId]`). */
+/** Themed view for another user's public profile (`/users/[userId]`); modules' sections go into the slot "sections". */
 export const PublicProfileView = component$<{ data: PublicProfileViewData }>(
 	({ data }) => {
 		if (!data) {
@@ -19,6 +19,10 @@ export const PublicProfileView = component$<{ data: PublicProfileViewData }>(
 			);
 		}
 
-		return <UserProfile {...data} />;
+		return (
+			<UserProfile {...data}>
+				<Slot name="sections" q:slot="sections" />
+			</UserProfile>
+		);
 	},
 );

@@ -4,13 +4,9 @@ import {
 	feedsOf,
 	type ModuleDefinition,
 	menuLinksOf,
-	type ProfileContext,
 	pagesOf,
-	profileExtrasOf,
 	reevaluateUserTagsOf,
-	type ScopePageContext,
 	scopeContentCountOf,
-	scopeExtrasOf,
 	selectActive,
 } from "~/core/router/modules";
 import { reservedScopeSlugs } from "~/core/router/reserved-slugs";
@@ -41,14 +37,6 @@ export const activeAdminSections = adminSectionsOf(activeModules);
 export const activeMenuLinks = menuLinksOf(activeModules);
 /** Feeds of active modules (head `<link rel="alternate">`, footer). */
 export const activeFeeds = feedsOf(activeModules);
-
-/** Profile sections contributed by active modules for this viewer/profile pair. */
-export const activeProfileExtras = (ctx: ProfileContext) =>
-	profileExtrasOf(activeModules, ctx);
-
-/** Scope home page sections contributed by active modules for this viewer. */
-export const activeScopeExtras = (ctx: ScopePageContext) =>
-	scopeExtrasOf(activeModules, ctx);
 
 /** Items every module (active or not: their rows stay) owns in a scope. */
 export const moduleScopeContentCount = (scopeId: string) =>

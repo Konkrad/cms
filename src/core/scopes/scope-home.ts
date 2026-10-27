@@ -4,7 +4,6 @@ import { stream } from "~/core/content/stream.service";
 import { toStreamCards } from "~/core/content/stream-cards";
 import { t } from "~/core/i18n";
 import { publicImageUrlFromKey } from "~/core/media/images";
-import { activeScopeExtras } from "~/core/registry/manifests";
 import { scopeUrl } from "~/core/router/scope-path";
 import { currentUser, isMember } from "~/core/scopes/access";
 import {
@@ -18,7 +17,7 @@ import { scopesService } from "~/core/scopes/scopes.service";
 import { buildProfileUrl } from "~/core/users/format";
 
 /**
- * Server-only: the public home page of a scope (`/germany/berlin`). Notes, articles and events follow
+ * Server-only: the public home page of a scope (`/germany/berlin`). Notes and articles follow
  * the listing rule of `scopeContentFilter`: the scope's own and its ancestors' items as far as
  * the viewer may see them, plus public items from the scopes below.
  */
@@ -35,7 +34,7 @@ export async function loadScopeHome(
 		scopeContentFilter(user, scope),
 	]);
 
-	const [memberCount, reps, recentMembers, newsCandidates, children, extras] =
+	const [memberCount, reps, recentMembers, newsCandidates, children] =
 		await Promise.all([
 			scopesService.countMembers(scope.id, { includeDescendants: true }),
 			scopesService.listRoleHolders(scope.id),
@@ -45,7 +44,6 @@ export async function loadScopeHome(
 			}),
 			stream.recent(filter, 30),
 			scopesService.getChildrenWithMemberCounts(scope.id),
-			activeScopeExtras({ scopeId: scope.id, viewerId: user?.id ?? null }),
 		]);
 
 	const rep = reps.find((r) => r.role === "representative");
@@ -60,7 +58,6 @@ export async function loadScopeHome(
 	);
 
 	return {
-		...extras,
 		scope: {
 			id: scope.id,
 			name: scope.name,
@@ -72,9 +69,6 @@ export async function loadScopeHome(
 			.map((a) => ({ name: a.name, url: scopeUrl(a.path) })),
 		childScopes: children.map(toScopeListItem),
 		memberCount,
-		// Sections of modules that are not active fall back to empty.
-		pastEventCount: extras.pastEventCount ?? 0,
-		upcomingEvents: extras.upcomingEvents ?? [],
 		recentMembers: recentMembers.map((m) => ({
 			id: m.id,
 			name: m.name,

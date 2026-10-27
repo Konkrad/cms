@@ -17,6 +17,7 @@ import { loadScopeHome } from "~/core/scopes/scope-home";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { PageView } from "~theme/routes/page/PageView";
 import { ScopeView } from "~theme/routes/scopes/ScopeView";
+import { ModuleSlot } from "../../core/registry/ModuleSlot";
 import { modulePages } from "../../core/registry/manifests";
 import { moduleViews } from "../../core/registry/views";
 import { useJoinScope } from "../../core/scopes/scope-actions";
@@ -106,8 +107,18 @@ export default component$(() => {
 	const joinAction = useJoinScope();
 	const { pageId, key, data } = page.value;
 	if (pageId === CMS_PAGE) return <PageView page={data as PageViewData} />;
-	if (pageId === SCOPE_HOME)
-		return <ScopeView data={data as ScopeViewData} joinAction={joinAction} />;
+	if (pageId === SCOPE_HOME) {
+		const home = data as ScopeViewData;
+		return (
+			<ScopeView data={home} joinAction={joinAction}>
+				<ModuleSlot
+					q:slot="sections"
+					name="scopePage.sections"
+					props={{ scopeId: home.scope.id }}
+				/>
+			</ScopeView>
+		);
+	}
 	const View = moduleViews[pageId].view;
 	return <View key={key} data={data} />;
 });

@@ -65,7 +65,11 @@ export const GenericFields = component$<GenericFieldsProps>(
 									required={field.required}
 								>
 									{field.options.map((option) => (
-										<option key={option.value} value={option.value}>
+										<option
+											key={option.value}
+											value={option.value}
+											selected={value === option.value}
+										>
 											{option.label}
 										</option>
 									))}

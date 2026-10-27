@@ -13,7 +13,7 @@ import { userTagsService } from "~/core/tags/user-tags.service";
 import { formatAffiliationResultJson } from "~/core/users/affiliation";
 import { UserProfile } from "~theme/routes/profile/UserProfile/UserProfile";
 import { useSetNotificationPreference } from "../../core/notifications/profile/useSetNotificationPreference";
-import { activeProfileExtras } from "../../core/registry/manifests";
+import { ModuleSlot } from "../../core/registry/ModuleSlot";
 import { useUpdateDetails } from "../../core/users/profile/useUpdateDetails";
 import { useUpdateLocation } from "../../core/users/profile/useUpdateLocation";
 // Import via a RELATIVE path, not "~" — qwikRouter's production transform
@@ -22,6 +22,8 @@ import { useUpdateLocation } from "../../core/users/profile/useUpdateLocation";
 import { useUpdateName } from "../../core/users/profile/useUpdateName";
 import { useUpdatePicture } from "../../core/users/profile/useUpdatePicture";
 
+// Core's requirement step action, used by the `profile.settings` slot (optional requirements).
+export { useSubmitRequirement } from "../../core/requirements/useSubmitRequirement";
 // Re-export so Qwik City registers the actions for this route.
 export {
 	useUpdateName,
@@ -47,22 +49,16 @@ export const useProfile = routeLoader$(async (event) => {
 			)
 		: null;
 
-	const [submittedForms, tags, extras, userGroups, notificationSettings] =
+	const [submittedForms, tags, userGroups, notificationSettings] =
 		await Promise.all([
 			formResultsService.getByUser(user.id),
 			userTagsService.getByUser(user.id),
-			activeProfileExtras({
-				userId: user.id,
-				viewerId: user.id,
-				isOwnProfile: true,
-			}),
 			scopesService.listUserScopes(user.id),
 			listNotificationSettings(user.id),
 		]);
 
 	return assertNoPrivateFields(
 		{
-			...extras,
 			name: user.name as string,
 			familyName: user.familyName as string,
 			city: user.city ?? null,
@@ -73,9 +69,6 @@ export const useProfile = routeLoader$(async (event) => {
 				name: g.name,
 				url: scopeUrl(g.path),
 			})),
-			// Sections of modules that are not active fall back to empty.
-			upcomingEvents: extras.upcomingEvents ?? [],
-			pastEvents: extras.pastEvents ?? [],
 			isOwner: true,
 			notificationSettings,
 			email: (user.email as string | null) ?? null,
@@ -131,6 +124,9 @@ export default component$(() => {
 			updatePictureAction={updatePictureAction}
 			updateDetailsAction={updateDetailsAction}
 			setNotificationPreferenceAction={setNotificationPreferenceAction}
-		/>
+		>
+			<ModuleSlot q:slot="sections" name="profile.sections" props={{}} />
+			<ModuleSlot q:slot="settings" name="profile.settings" props={{}} />
+		</UserProfile>
 	);
 });

@@ -1,4 +1,4 @@
-import { $, component$, useSignal } from "@qwik.dev/core";
+import { $, component$, Slot, useSignal } from "@qwik.dev/core";
 import { Form } from "@qwik.dev/router";
 import { Button } from "~/components/ui/Button";
 import { t } from "~/contracts/i18n";
@@ -8,7 +8,6 @@ import { ImageTile } from "~theme/blocks/FeatureBlock/ImageTile";
 import { LocalRepTile } from "~theme/blocks/FeatureBlock/LocalRepTile";
 import { ParticipantsTile } from "~theme/blocks/FeatureBlock/ParticipantsTile";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
-import { formatEventWhen } from "~theme/shared/format-event-when";
 import { ParticipantsModal } from "~theme/shared/ParticipantsModal";
 import { StreamList } from "~theme/shared/StreamList/StreamList";
 
@@ -16,7 +15,11 @@ const GRID_LAYOUT = `"left-top middle right-top" "left-bottom middle right-top" 
 const FALLBACK =
 	"https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800";
 
-/** Themed view for a scope's public home page (`/germany/berlin`): a group, region or chapter. */
+/**
+ * Themed view for a scope's public home page (`/germany/berlin`): a group, region or chapter.
+ * Active modules' sections (the `scopePage.sections` slot, e.g. upcoming events) are projected
+ * into the named slot "sections".
+ */
 export const ScopeView = component$<{
 	data: ScopeViewData;
 	joinAction: JoinScopeAction;
@@ -27,12 +30,10 @@ export const ScopeView = component$<{
 		parents,
 		childScopes,
 		memberCount,
-		pastEventCount,
 		recentMembers,
 		rep,
 		isMember,
 		isLoggedIn,
-		upcomingEvents,
 		recentNews,
 		image1,
 		image2,
@@ -95,9 +96,6 @@ export const ScopeView = component$<{
 						area="middle"
 						image={image2 ?? FALLBACK}
 						alt={scope.name}
-						overlayText={t("theme.scope.meetUpsAndCounting", {
-							count: pastEventCount,
-						})}
 					/>
 
 					<ImageTile
@@ -187,36 +185,8 @@ export const ScopeView = component$<{
 				</div>
 			)}
 
-			{/* Upcoming Events */}
-			{upcomingEvents.length > 0 && (
-				<div class="max-w-[1290px] mx-auto px-4 py-8">
-					<h2 class="font-semibold text-[32px] text-text-heading mb-6">
-						{t("theme.scope.upcomingCommunityEvents")}
-					</h2>
-					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-						{upcomingEvents.map((e) => {
-							const location =
-								e.city ||
-								e.address ||
-								(e.locationType === "online"
-									? t("theme.scope.online")
-									: t("theme.scope.tba"));
-							return (
-								<ContentCard
-									key={e.id}
-									category={e.source ?? undefined}
-									title={e.title}
-									image={e.image1 ?? undefined}
-									date={formatEventWhen(e.startDate, e.endDate)}
-									meta={location}
-									href={e.url}
-									label={t("theme.scope.openTickets")}
-								/>
-							);
-						})}
-					</div>
-				</div>
-			)}
+			{/* Sections of active modules (upcoming events, …) */}
+			<Slot name="sections" />
 
 			{/* Latest notes and articles */}
 			{recentNews.length > 0 && (

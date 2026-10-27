@@ -11,7 +11,7 @@ import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { formatAffiliationResultJson } from "~/core/users/affiliation";
 import { usersService } from "~/core/users/users.service";
 import { PublicProfileView } from "~theme/routes/users/PublicProfileView";
-import { activeProfileExtras } from "../../../core/registry/manifests";
+import { ModuleSlot } from "../../../core/registry/ModuleSlot";
 
 export const usePublicProfile = routeLoader$(
 	async (event): Promise<PublicProfileViewData> => {
@@ -34,15 +34,10 @@ export const usePublicProfile = routeLoader$(
 			: null;
 
 		const { userTagsService } = await import("~/core/tags/user-tags.service");
-		const [groups, tags, submittedFormRows, extras] = await Promise.all([
+		const [groups, tags, submittedFormRows] = await Promise.all([
 			scopesService.listUserScopes(user.id),
 			userTagsService.getByUser(user.id),
 			formResultsService.getByUser(user.id),
-			activeProfileExtras({
-				userId: user.id,
-				viewerId: currentUser?.id ?? null,
-				isOwnProfile: isOwner,
-			}),
 		]);
 
 		const formatResponseValue = (value: unknown): string => {
@@ -70,7 +65,7 @@ export const usePublicProfile = routeLoader$(
 
 		return assertNoPrivateFields(
 			{
-				...extras,
+				id: user.id,
 				name: user.name,
 				familyName: user.familyName,
 				city: user.city,
@@ -81,9 +76,6 @@ export const usePublicProfile = routeLoader$(
 					name: g.name,
 					url: scopeUrl(g.path),
 				})),
-				// Sections of modules that are not active fall back to empty.
-				upcomingEvents: extras.upcomingEvents ?? [],
-				pastEvents: extras.pastEvents ?? [],
 				isOwner,
 				...(ownDetails ?? {}),
 				affiliationEntries: (() => {
@@ -119,5 +111,16 @@ export const usePublicProfile = routeLoader$(
 
 export default component$(() => {
 	const data = usePublicProfile();
-	return <PublicProfileView data={data.value} />;
+	const userId = data.value?.id;
+	return (
+		<PublicProfileView data={data.value}>
+			{userId && (
+				<ModuleSlot
+					q:slot="sections"
+					name="userPage.sections"
+					props={{ userId }}
+				/>
+			)}
+		</PublicProfileView>
+	);
 });

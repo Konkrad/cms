@@ -1,7 +1,10 @@
 import crypto from "crypto";
 import { afterEach, describe, expect, it } from "vitest";
 import { canViewEvent } from "~/modules/events/public-event";
-import { eventsModule } from "../../src/modules/events/module";
+import {
+	profileEventsOf,
+	scopeEventsFor,
+} from "../../src/modules/events/slot-data";
 import {
 	createTestEvent,
 	createTestParticipation,
@@ -70,7 +73,7 @@ function grantRole(userId: string, scopeId: string, role: string) {
 const future = (days: number) =>
 	new Date(Date.now() + days * 86400000).toISOString();
 
-describe("events profile hook", () => {
+describe("events profile slots (profileEventsOf)", () => {
 	it("lists the events the user said yes to, split into upcoming and past", async () => {
 		const user = createTestUser();
 		cleanups.push(user.cleanup);
@@ -96,31 +99,23 @@ describe("events profile hook", () => {
 			);
 		}
 
-		const extras = await eventsModule.profile?.({
-			userId: user.userId,
-			viewerId: crypto.randomUUID(),
-			isOwnProfile: false,
-		});
+		const extras = await profileEventsOf(user.userId);
 
-		expect(extras?.upcomingEvents?.map((e) => e.title)).toEqual([
-			"Hook Upcoming",
-		]);
-		expect(extras?.pastEvents?.map((e) => e.title)).toEqual(["Hook Past"]);
+		expect(extras.upcoming.map((e) => e.title)).toEqual(["Hook Upcoming"]);
+		expect(extras.past.map((e) => e.title)).toEqual(["Hook Past"]);
 	});
 
 	it("is empty for a user without participation", async () => {
 		const user = createTestUser();
 		cleanups.push(user.cleanup);
-		const extras = await eventsModule.profile?.({
-			userId: user.userId,
-			viewerId: user.userId,
-			isOwnProfile: true,
+		expect(await profileEventsOf(user.userId)).toEqual({
+			upcoming: [],
+			past: [],
 		});
-		expect(extras).toEqual({ upcomingEvents: [], pastEvents: [] });
 	});
 });
 
-describe("events scope page hook", () => {
+describe("events scope page slot (scopeEventsFor)", () => {
 	it("lists the group's upcoming events and counts its past ones", async () => {
 		const owner = createTestUser();
 		cleanups.push(owner.cleanup);
@@ -148,21 +143,18 @@ describe("events scope page hook", () => {
 		// A sibling group's event never shows; the root's public event flows down.
 		assignEventToScope(elsewhere.eventId, siblingId);
 
-		const extras = await eventsModule.scopePage?.({
-			scopeId: groupId,
-			viewerId: null,
-		});
+		const extras = await scopeEventsFor(groupId, null);
 
-		expect(extras?.pastEventCount).toBe(1);
-		const titles = extras?.upcomingEvents?.map((e) => e.title);
+		expect(extras.pastEventCount).toBe(1);
+		const titles = extras.upcomingEvents.map((e) => e.title);
 		expect(titles).toContain("Group Next");
 		expect(titles).toContain("Root Event");
 		expect(titles).not.toContain("Other Group Event");
 		expect(
-			extras?.upcomingEvents?.find((e) => e.id === next.eventId),
+			extras.upcomingEvents.find((e) => e.id === next.eventId),
 		).toMatchObject({ locationType: "in-person", source: null });
 		expect(
-			extras?.upcomingEvents?.find((e) => e.id === fromRoot.eventId)?.source,
+			extras.upcomingEvents.find((e) => e.id === fromRoot.eventId)?.source,
 		).toBeTruthy();
 	});
 
@@ -184,8 +176,8 @@ describe("events scope page hook", () => {
 
 		const sees = async (viewerId: string | null) =>
 			!!(
-				await eventsModule.scopePage?.({ scopeId: groupId, viewerId })
-			)?.upcomingEvents?.some((e) => e.title === "Members Only");
+				await scopeEventsFor(groupId, viewerId ? { id: viewerId } : null)
+			).upcomingEvents.some((e) => e.title === "Members Only");
 
 		expect(await sees(null)).toBe(false);
 		expect(await sees(outsider.userId)).toBe(false);

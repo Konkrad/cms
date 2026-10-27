@@ -113,6 +113,45 @@ export function createRequirementsApi(
 		},
 
 		/**
+		 * The given requirements as editable steps (the `profile.settings` slot: a user changes an
+		 * answer given before), prefilled with the user's OWN stored value, completed or not.
+		 * Requirements that are not in force (inactive module) or do not apply are left out.
+		 * Submit them through core's single step action like any step.
+		 */
+		async settings(
+			user: RequirementUser,
+			ids: readonly string[],
+		): Promise<RequirementStepData[]> {
+			const known = ids.flatMap((id) => {
+				const def = byId(id);
+				return def ? [def] : [];
+			});
+			const checks = await Promise.all(
+				known.map((d) => (d.isApplicable ? d.isApplicable(user) : true)),
+			);
+			const defs = known.filter((_, i) => checks[i]);
+			const rows = await requirementsService.rowsFor(
+				user.id,
+				defs.map((d) => d.id),
+			);
+			const rowOf = new Map(rows.map((r) => [r.requirementId, r]));
+			return Promise.all(
+				defs.map(async (def) => {
+					const previous = rowOf.get(def.id)?.value ?? null;
+					const prefill = def.prepare
+						? await def.prepare(user, previous)
+						: {
+								values:
+									previous && typeof previous === "object"
+										? (previous as Record<string, unknown>)
+										: {},
+							};
+					return toStepData(def, prefill);
+				}),
+			);
+		},
+
+		/**
 		 * Validates one step on the server with the requirement's schema, applies it (`save`) and
 		 * stores the completion at the current version. Throws `RequirementInputError` for an
 		 * unknown, inactive or not applicable requirement and for invalid input (nothing stored).

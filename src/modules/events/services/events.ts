@@ -572,6 +572,18 @@ export const eventsService = {
 		return Number(row?.count ?? 0);
 	},
 
+	/** Events that are not deleted, owned by any of the given scopes (admin dashboard widget). */
+	async countActiveInScopes(scopeIds: readonly string[]): Promise<number> {
+		if (scopeIds.length === 0) return 0;
+		const [row] = await db
+			.select({ count: sql<number>`COUNT(*)` })
+			.from(events)
+			.where(
+				and(inArray(events.scopeId, [...scopeIds]), isNull(events.deletedAt)),
+			);
+		return Number(row?.count ?? 0);
+	},
+
 	/** Events (deleted ones included: their rows still reference the scope) owned by a scope. */
 	async countByScopeId(scopeId: string): Promise<number> {
 		const [row] = await db

@@ -287,6 +287,21 @@ describe("pending and submit", () => {
 		expect(await bumped.pending(user, "test.checkout")).toEqual([]);
 	});
 
+	it("settings: editable steps prefilled with the stored answer, completed or not", async () => {
+		const api = createRequirementsApi([basics, consent()]);
+		const user = newUser();
+		const [fresh] = await api.settings(user, [consent().id]);
+		expect(fresh).toMatchObject({ id: consent().id, values: {} });
+		await api.submit(user, consent().id, { given: "true" });
+		expect(await api.pending(user, "test.checkout")).toEqual([]);
+		const [step] = await api.settings(user, [consent().id]);
+		expect(step.values).toEqual({ given: true });
+		// Unknown (or inactive) ids are left out, and so are those that do not apply.
+		expect(await api.settings(user, ["nope.unknown"])).toEqual([]);
+		const notApplicable = createRequirementsApi([consent(1, () => false)]);
+		expect(await notApplicable.settings(user, [consent().id])).toEqual([]);
+	});
+
 	it("a requirement that does not apply is not pending and cannot be submitted", async () => {
 		const api = createRequirementsApi([consent(1, () => false)]);
 		const user = newUser();

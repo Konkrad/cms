@@ -6,6 +6,7 @@ import { t } from "~/core/i18n";
 import { adminUrl } from "~/core/router/scope-path";
 import { ADMIN_ACCESS, requireScopeRole } from "~/core/scopes/access";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
+import { ModuleSlot } from "../../../core/registry/ModuleSlot";
 
 export const useAdminStats = routeLoader$(async (event) => {
 	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
@@ -15,12 +16,14 @@ export const useAdminStats = routeLoader$(async (event) => {
 		return assertNoPrivateFields({
 			isRoot,
 			base,
+			scopeId: scope.id,
 			stats: { members: 0, ...(await adminDashboardService.getGlobalStats()) },
 		});
 	}
 	return assertNoPrivateFields({
 		isRoot,
 		base,
+		scopeId: scope.id,
 		stats: {
 			users: 0,
 			pages: 0,
@@ -61,14 +64,6 @@ export default component$(() => {
 						</div>
 						<div class="bg-white rounded-lg shadow-sm p-6">
 							<div class="text-sm text-gray-600 mb-1">
-								{t("admin.dashboard.totalEvents")}
-							</div>
-							<div class="text-3xl font-bold text-green-600">
-								{stats.value.stats.events}
-							</div>
-						</div>
-						<div class="bg-white rounded-lg shadow-sm p-6">
-							<div class="text-sm text-gray-600 mb-1">
 								{t("admin.dashboard.totalPages")}
 							</div>
 							<div class="text-3xl font-bold text-slate-600">
@@ -94,16 +89,13 @@ export default component$(() => {
 								{stats.value.stats.notes} · {stats.value.stats.articles}
 							</div>
 						</div>
-						<div class="bg-white rounded-lg shadow-sm p-6">
-							<div class="text-sm text-gray-600 mb-1">
-								{t("admin.dashboard.groupEvents")}
-							</div>
-							<div class="text-3xl font-bold text-green-600">
-								{stats.value.stats.events}
-							</div>
-						</div>
 					</>
 				)}
+				{/* Widgets of active modules (event counts, …) */}
+				<ModuleSlot
+					name="admin.dashboard.widgets"
+					props={{ scopeId: stats.value.scopeId, adminBase: stats.value.base }}
+				/>
 			</div>
 
 			<div class="bg-white rounded-lg shadow-sm p-6">
@@ -111,9 +103,6 @@ export default component$(() => {
 					{t("admin.dashboard.quickActions")}
 				</h3>
 				<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-					<Button href={`${stats.value.base}/events/new`} variant="secondary">
-						{t("admin.dashboard.newEvent")}
-					</Button>
 					<Button href={`${stats.value.base}/notes`} variant="secondary">
 						{t("admin.dashboard.newNote")}
 					</Button>

@@ -1,12 +1,4 @@
-import {
-	defineModule,
-	localFirst,
-	publicImageUrlFromKey,
-	scopeContentFilter,
-	scopeSourceLabels,
-	t,
-	withItemUrls,
-} from "~/core";
+import { defineModule, t, withItemUrls } from "~/core";
 import { eventsBlocks } from "./blocks";
 import {
 	debriefRequestedNotification,
@@ -17,7 +9,6 @@ import {
 import { eventsPages } from "./pages";
 import { eventsRequirements } from "./requirements";
 import { eventsService } from "./services/events";
-import { participationService } from "./services/participation";
 import { tagRulesService } from "./services/tag-rules";
 
 export const eventsModule = defineModule({
@@ -51,51 +42,15 @@ export const eventsModule = defineModule({
 		} while (cursor);
 		return entries;
 	},
-	// Events a user said "yes" to. Shown on every profile, as before the module port.
-	async profile({ userId }) {
-		const { upcoming, past } = await participationService.getByUserId(userId);
-		return {
-			upcomingEvents: await withItemUrls("events:event", upcoming),
-			pastEvents: await withItemUrls("events:event", past),
-		};
-	},
-	// The scope's next events (its listing: own and ancestors' events as far as the viewer may
-	// see them, public events from below, labelled with their source) and its finished-event count.
-	async scopePage({ scopeId, viewerId }) {
-		const filter = await scopeContentFilter(
-			viewerId ? { id: viewerId } : null,
-			scopeId,
-		);
-		const [pastEventCount, candidates] = await Promise.all([
-			eventsService.countPastByScopeId(scopeId),
-			eventsService.getUpcoming(filter, 30),
-		]);
-		// The scope's own (and its subtree's) events first, then the ancestors', soonest first.
-		const upcoming = localFirst(candidates, filter, 3).sort((a, b) =>
-			a.startDate.localeCompare(b.startDate),
-		);
-		const sources = await scopeSourceLabels(
-			scopeId,
-			upcoming.map((e) => e.scopeId),
-		);
-		return {
-			pastEventCount,
-			upcomingEvents: (await withItemUrls("events:event", upcoming)).map(
-				(e) => ({
-					id: e.id,
-					url: e.url,
-					title: e.title,
-					startDate: e.startDate,
-					endDate: e.endDate,
-					image1: publicImageUrlFromKey(e.image1),
-					locationType: e.locationType,
-					city: e.city,
-					address: e.address,
-					source: sources[e.scopeId] ?? null,
-				}),
-			),
-		};
-	},
+	// Profile events and settings (food preference, photo consent), the scope home page's
+	// events and the admin dashboard's event count; components in slots.tsx.
+	slots: [
+		"profile.sections",
+		"profile.settings",
+		"userPage.sections",
+		"scopePage.sections",
+		"admin.dashboard.widgets",
+	],
 	scopeContentCount: (scopeId) => eventsService.countByScopeId(scopeId),
 	notifications: [
 		ticketConfirmationNotification,

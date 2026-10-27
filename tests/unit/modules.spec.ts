@@ -5,11 +5,10 @@ import {
 	disabledBlockTypes,
 	menuLinksOf,
 	pagesOf,
-	profileExtrasOf,
 	reevaluateUserTagsOf,
-	scopeExtrasOf,
 	selectActive,
 	sitemapEntriesOf,
+	slotContributionsOf,
 	withoutDisabledBlocks,
 } from "~/core/router/modules";
 import { definePage } from "~/core/router/pages";
@@ -97,125 +96,31 @@ describe("sitemapEntriesOf", () => {
 	});
 });
 
-describe("profileExtrasOf", () => {
-	const ctx = { userId: "u1", viewerId: "u2", isOwnProfile: false };
-	const withHistory = defineModule({
-		id: "history",
-		profile: async ({ userId, isOwnProfile }) =>
-			isOwnProfile
-				? { electionGroups: [{ title: `for ${userId}`, year: 2026, apps: [] }] }
-				: {},
-	});
-
-	it("merges the sections of the given modules and passes the context through", async () => {
-		const own = { userId: "u1", viewerId: "u1", isOwnProfile: true };
-		expect(await profileExtrasOf([alpha, withHistory], own)).toEqual({
-			electionGroups: [{ title: "for u1", year: 2026, apps: [] }],
-		});
-	});
-
-	it("lets a module withhold a section from other viewers", async () => {
-		expect(await profileExtrasOf([withHistory], ctx)).toEqual({});
-	});
-
-	it("is empty without modules or hooks", async () => {
-		expect(await profileExtrasOf([], ctx)).toEqual({});
-		expect(await profileExtrasOf([alpha, beta], ctx)).toEqual({});
-	});
-
-	it("contributes nothing from an inactive module", async () => {
-		const own = { userId: "u1", viewerId: "u1", isOwnProfile: true };
-		const active = selectActive([alpha, withHistory], ["alpha"]);
-		expect(await profileExtrasOf(active, own)).toEqual({});
-	});
-});
-
-describe("profileExtrasOf with events data", () => {
-	const entry = {
-		id: "e1",
-		url: "/events/meetup",
-		title: "Meetup",
-		startDate: "2030-01-01T10:00:00.000Z",
-		endDate: "2030-01-01T12:00:00.000Z",
-		city: "Berlin",
-		country: "DE",
+describe("slotContributionsOf", () => {
+	const A = (() => null) as never;
+	const B = (() => null) as never;
+	const slots = {
+		alpha: { "profile.sections": A, "profile.settings": A },
+		beta: { "profile.sections": B },
 	};
-	const withEvents = defineModule({
-		id: "ev",
-		profile: async ({ userId }) => ({
-			upcomingEvents: [{ ...entry, id: `up-${userId}` }],
-			pastEvents: [],
-		}),
-	});
-	const ctx = { userId: "u1", viewerId: "u2", isOwnProfile: false };
 
-	it("contributes the event lists to other viewers' view of a profile", async () => {
-		expect(await profileExtrasOf([alpha, withEvents], ctx)).toEqual({
-			upcomingEvents: [{ ...entry, id: "up-u1" }],
-			pastEvents: [],
-		});
-	});
-
-	it("merges with other modules' sections without clobbering them", async () => {
-		const history = defineModule({
-			id: "history2",
-			profile: async () => ({ electionGroups: [] }),
-		});
+	it("returns the active modules' components for a slot, in active order", () => {
 		expect(
-			Object.keys(await profileExtrasOf([withEvents, history], ctx)).sort(),
-		).toEqual(["electionGroups", "pastEvents", "upcomingEvents"]);
+			slotContributionsOf(slots, "profile.sections", ["beta", "alpha"]),
+		).toEqual([B, A]);
+		expect(
+			slotContributionsOf(slots, "profile.settings", ["alpha", "beta"]),
+		).toEqual([A]);
 	});
 
-	it("contributes nothing while the module is inactive", async () => {
-		const active = selectActive([alpha, withEvents], ["alpha"]);
-		expect(await profileExtrasOf(active, ctx)).toEqual({});
-	});
-});
-
-describe("scopeExtrasOf", () => {
-	const ctx = { scopeId: "g1", viewerId: "u1" };
-	const withEvents = defineModule({
-		id: "ev",
-		scopePage: async ({ scopeId, viewerId }) => ({
-			pastEventCount: 4,
-			upcomingEvents: viewerId
-				? [
-						{
-							id: `next-${scopeId}`,
-							url: "/events/next",
-							title: "Next",
-							startDate: "2030-01-01T10:00:00.000Z",
-							endDate: "2030-01-01T12:00:00.000Z",
-							image1: null,
-							locationType: "online",
-							city: null,
-							address: null,
-							source: null,
-						},
-					]
-				: [],
-		}),
-	});
-
-	it("merges the sections of the given modules and passes the context through", async () => {
-		const extras = await scopeExtrasOf([alpha, withEvents], ctx);
-		expect(extras.pastEventCount).toBe(4);
-		expect(extras.upcomingEvents?.map((e) => e.id)).toEqual(["next-g1"]);
-	});
-
-	it("passes an anonymous viewer as null", async () => {
-		const extras = await scopeExtrasOf([withEvents], {
-			scopeId: "g1",
-			viewerId: null,
-		});
-		expect(extras.upcomingEvents).toEqual([]);
-	});
-
-	it("is empty without modules or hooks, and for inactive modules", async () => {
-		expect(await scopeExtrasOf([], ctx)).toEqual({});
-		expect(await scopeExtrasOf([alpha, beta], ctx)).toEqual({});
-		const active = selectActive([alpha, withEvents], ["alpha"]);
-		expect(await scopeExtrasOf(active, ctx)).toEqual({});
+	it("contributes nothing from an inactive module or for an unused slot", () => {
+		expect(slotContributionsOf(slots, "profile.sections", ["beta"])).toEqual([
+			B,
+		]);
+		expect(slotContributionsOf(slots, "profile.sections", [])).toEqual([]);
+		expect(
+			slotContributionsOf(slots, "scopePage.sections", ["alpha", "beta"]),
+		).toEqual([]);
 	});
 });
 

@@ -1,4 +1,4 @@
-import { component$ } from "@qwik.dev/core";
+import { component$, Slot } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
 import { formatDate, t } from "~/contracts/i18n";
 import type {
@@ -29,27 +29,6 @@ interface Community {
 	url: string;
 }
 
-interface EventEntry {
-	id: string;
-	url: string;
-	title: string;
-	startDate: string;
-	city?: string | null;
-	country?: string | null;
-}
-
-interface ElectionApp {
-	id: string;
-	status: string;
-	position?: { title: string } | null;
-}
-
-interface ElectionGroup {
-	title: string;
-	year: number;
-	apps: ElectionApp[];
-}
-
 interface FormEntry {
 	id: string;
 	title: string;
@@ -65,15 +44,11 @@ export interface UserProfileProps {
 	profilePictureUrl?: string | null;
 	tags: Tag[];
 	communities: Community[];
-	upcomingEvents: EventEntry[];
-	pastEvents: EventEntry[];
 	// Owner-only
 	isOwner: boolean;
 	email?: string | null;
 	yearOfBirth?: number | null;
 	sex?: string | null;
-	// Extended sections (own profile only)
-	electionGroups?: ElectionGroup[];
 	submittedForms?: FormEntry[];
 	affiliationEntries?: { question: string; answer: string }[];
 	affiliationEditPath?: string | null;
@@ -87,18 +62,16 @@ export interface UserProfileProps {
 	setNotificationPreferenceAction?: SetNotificationPreferenceAction;
 }
 
-const statusCls = (status: string) => {
-	if (status === "approved") return "bg-success-bg text-success";
-	if (status === "rejected") return "bg-error-bg text-error";
-	return "bg-warning-bg text-warning";
-};
-
 // Shared treatment for every "only visible to you" section, applied
 // per-section (not just once at the top) so the private/public boundary
 // stays visible while scrolling.
 const PRIVATE_SECTION_CLASS =
 	"border-l-4 border-info-border bg-info-bg/40 rounded-r-lg pl-4 py-4";
 
+/**
+ * A profile page. Active modules' sections are projected into the named slots "sections" (public
+ * area) and "settings" (the owner's private area).
+ */
 export const UserProfile = component$<UserProfileProps>((props) => {
 	const {
 		name,
@@ -108,13 +81,10 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 		profilePictureUrl,
 		tags,
 		communities,
-		upcomingEvents,
-		pastEvents,
 		isOwner,
 		email,
 		yearOfBirth,
 		sex,
-		electionGroups,
 		submittedForms,
 		affiliationEntries,
 		affiliationEditPath,
@@ -135,7 +105,6 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 		(!!email ||
 			!!yearOfBirth ||
 			!!sex ||
-			(electionGroups && electionGroups.length > 0) ||
 			(submittedForms && submittedForms.length > 0) ||
 			(notificationSettings && notificationSettings.length > 0));
 
@@ -238,67 +207,8 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 				)}
 			</section>
 
-			{/* Upcoming Events */}
-			<section>
-				<h2 class="text-xl font-semibold text-text mb-3">
-					{t("theme.userProfile.upcomingEvents")}
-				</h2>
-				{upcomingEvents.length === 0 ? (
-					<p class="text-text-muted text-sm">
-						{t("theme.userProfile.noUpcomingEvents")}
-					</p>
-				) : (
-					<ul class="space-y-2">
-						{upcomingEvents.map((e) => (
-							<li key={e.id}>
-								<a
-									href={e.url}
-									class="block p-4 rounded-xl border border-border hover:border-border-strong hover:bg-bg transition-colors"
-								>
-									<p class="font-medium text-text-heading">{e.title}</p>
-									<p class="text-sm text-text-muted mt-0.5">
-										{formatDate(e.startDate)}
-										{(e.city || e.country) && (
-											<> · {[e.city, e.country].filter(Boolean).join(", ")}</>
-										)}
-									</p>
-								</a>
-							</li>
-						))}
-					</ul>
-				)}
-			</section>
-
-			{/* Past Events */}
-			<section>
-				<h2 class="text-xl font-semibold text-text mb-3">
-					{t("theme.userProfile.pastEvents")}
-				</h2>
-				{pastEvents.length === 0 ? (
-					<p class="text-text-muted text-sm">
-						{t("theme.userProfile.noPastEventsAttended")}
-					</p>
-				) : (
-					<ul class="space-y-2">
-						{pastEvents.map((e) => (
-							<li key={e.id}>
-								<a
-									href={e.url}
-									class="block p-4 rounded-xl border border-border hover:border-border-strong hover:bg-bg transition-colors"
-								>
-									<p class="font-medium text-text-heading">{e.title}</p>
-									<p class="text-sm text-text-muted mt-0.5">
-										{formatDate(e.startDate)}
-										{(e.city || e.country) && (
-											<> · {[e.city, e.country].filter(Boolean).join(", ")}</>
-										)}
-									</p>
-								</a>
-							</li>
-						))}
-					</ul>
-				)}
-			</section>
+			{/* Sections of active modules (`profile.sections` / `userPage.sections`: events, …) */}
+			<Slot name="sections" />
 
 			{/* Relations / Affiliation */}
 			{affiliationEntries && affiliationEntries.length > 0 && (
@@ -382,47 +292,6 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 							)}
 						</div>
 
-						{/* Election History */}
-						{electionGroups && electionGroups.length > 0 && (
-							<section class={PRIVATE_SECTION_CLASS}>
-								<div class="flex items-center gap-2 mb-3">
-									<h2 class="text-xl font-semibold text-text">
-										{t("theme.userProfile.electionHistory")}
-									</h2>
-									<PrivacyBadge />
-								</div>
-								<div class="space-y-3">
-									{electionGroups.map((group) => (
-										<div
-											key={group.title}
-											class="border border-border rounded-lg overflow-hidden bg-white"
-										>
-											<div class="px-4 py-2 bg-bg border-b text-sm font-medium text-text-secondary">
-												{group.title}
-											</div>
-											<ul class="divide-y divide-gray-100">
-												{group.apps.map((app) => (
-													<li
-														key={app.id}
-														class="px-4 py-3 flex items-center justify-between"
-													>
-														<span class="text-sm text-text">
-															{app.position?.title ?? "—"}
-														</span>
-														<span
-															class={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusCls(app.status)}`}
-														>
-															{app.status}
-														</span>
-													</li>
-												))}
-											</ul>
-										</div>
-									))}
-								</div>
-							</section>
-						)}
-
 						{/* Submitted Forms */}
 						{submittedForms && submittedForms.length > 0 && (
 							<section class={PRIVATE_SECTION_CLASS}>
@@ -457,6 +326,9 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 								</ul>
 							</section>
 						)}
+
+						{/* Settings of active modules (`profile.settings`: optional requirements) */}
+						<Slot name="settings" />
 
 						{/* Notification settings */}
 						{notificationSettings &&

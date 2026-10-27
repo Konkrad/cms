@@ -51,21 +51,9 @@ export interface ProfileEventEntry {
 	country: string | null;
 }
 
-/**
- * Sections that active modules add to the profile pages (`/profile`, `/users/[userId]`).
- * One optional field per contributed section, named after what the theme renders; the pages
- * merge the `profile` hook results of all active modules into their loader output. Contribute
- * only what the viewer may see: the hook gets `isOwnProfile` and must strip anything private.
- */
-export interface ProfileExtras {
-	/** Events the user said "yes" to that have not ended yet, soonest first. */
-	upcomingEvents?: ProfileEventEntry[];
-	/** Events the user said "yes" to that have ended, latest first. */
-	pastEvents?: ProfileEventEntry[];
-	/** Election applications grouped by cycle, newest year first (own profile only). */
-	electionGroups?: {
-		title: string;
-		year: number;
-		apps: ProfileElectionApplication[];
-	}[];
+/** One election cycle with the owner's applications (elections module, own profile only). */
+export interface ProfileElectionGroup {
+	title: string;
+	year: number;
+	apps: ProfileElectionApplication[];
 }

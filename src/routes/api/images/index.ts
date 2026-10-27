@@ -3,7 +3,9 @@
  *
  * POST /api/images
  * - Expects a raw streaming file in the request body (no multipart). Use `x-upload-path` header
- *   to indicate the S3 key prefix (e.g. `private/events/{eventId}/photos`).
+ *   to indicate the S3 key prefix (e.g. `private/events/{eventId}/photos`), and for a module
+ *   prefix `x-upload-scope` (the admin page's `[scope]` segment, sent by `ImageUploader`).
+ *   Allowed: core's prefixes and the active modules' manifest `uploads` (`authorizeUpload`).
  * - Choose processing with `x-pipeline` header (e.g. `gallery`, `original`, `profile-picture`).
  *   If `pipeline=gallery` the server uploads a gallery variant AND also generates/uploads a thumbnail.
  *   For other pipelines only a single variant is produced.
@@ -29,23 +31,17 @@ import {
 	uploadRawFile,
 } from "~/core/media/image-processing.service";
 import { generatePresignedGetUrl } from "~/core/media/secure-urls";
+import { authorizeUpload } from "~/core/media/upload-access";
+import { activeUploadRules } from "~/core/registry/uploads";
 import { env } from "~/env";
 
 /**
- * Storage roots an authenticated client is allowed to write to via the
- * `x-upload-path` header. The header is fully client-controlled, so without this
- * allowlist any logged-in user could write to arbitrary S3 keys (path traversal,
- * overwriting other objects, planting files in private prefixes).
+ * The `x-upload-path` header is fully client-controlled: reject traversal, absolute paths and
+ * odd characters here; which paths may be written, and by whom, is `authorizeUpload`'s decision
+ * (core's prefixes and the active modules' `uploads`).
  */
-const ALLOWED_UPLOAD_PREFIXES = [
-	"public/",
-	"private/events/",
-	"private/profile-pictures",
-];
-
 function sanitizeUploadPrefix(raw: string): string | null {
 	const prefix = raw.replace(/\/$/, "");
-	// Reject traversal, absolute paths, backslashes, and anything outside a safe charset.
 	if (
 		prefix.includes("..") ||
 		prefix.startsWith("/") ||
@@ -53,43 +49,7 @@ function sanitizeUploadPrefix(raw: string): string | null {
 	) {
 		return null;
 	}
-	const allowed = ALLOWED_UPLOAD_PREFIXES.some(
-		(root) => prefix === root.replace(/\/$/, "") || prefix.startsWith(root),
-	);
-	return allowed ? prefix : null;
-}
-
-/**
- * Authorize an upload destination per prefix. Authentication alone is not enough:
- * a plain member must not be able to write event-gallery or public content assets
- * (which are surfaced to other users through admin/representative-gated flows).
- *
- *  - profile-pictures → any authenticated user (their own avatar)
- *  - private/events/  → admin only (mirrors the event-photo create action)
- *  - public/* content (article images under `public/articles/`, scope images, logos…) →
- *    admin or anyone with a managing role on a scope
- */
-async function isUploadAuthorized(
-	prefix: string,
-	user: { id: string },
-): Promise<boolean> {
-	if (
-		prefix.startsWith("private/profile-pictures") ||
-		prefix.startsWith("public/profile-pictures")
-	) {
-		return true;
-	}
-
-	const { isPlatformAdmin } = await import("~/core/scopes/access");
-	const isStaff = await isPlatformAdmin(user);
-	if (prefix.startsWith("private/events/")) {
-		return isStaff;
-	}
-
-	if (isStaff) return true;
-	// Any managing role on any scope (admin, moderator, representative).
-	const { listManagedScopes } = await import("~/core/scopes/access");
-	return (await listManagedScopes(user)).length > 0;
+	return prefix;
 }
 
 export const onPost: RequestHandler = async (event) => {
@@ -114,7 +74,16 @@ export const onPost: RequestHandler = async (event) => {
 			if (!sanitized) {
 				throw error(400, "Invalid upload path");
 			}
-			if (!(await isUploadAuthorized(sanitized, user))) {
+			const decision = await authorizeUpload(
+				user,
+				sanitized,
+				request.headers.get("x-upload-scope")?.trim() || null,
+				activeUploadRules,
+			);
+			if (decision === "unknown-prefix") {
+				throw error(400, "Invalid upload path");
+			}
+			if (decision === "forbidden") {
 				throw error(403, "Not authorized to upload to this location");
 			}
 			uploadPrefix = sanitized;

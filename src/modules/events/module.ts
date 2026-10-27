@@ -78,6 +78,11 @@ export const eventsModule = defineModule({
 			search: (query, limit) => eventsService.searchPublic(query, limit),
 		},
 	},
+	// Event images and product images (public), event photo galleries (private, admins).
+	uploads: [
+		{ prefix: "public/events/", minRole: "representative" },
+		{ prefix: "private/events/", minRole: "admin" },
+	],
 	// Demo events (tickets, history, the Events page) and the e2e fixtures; lazy (dev deps).
 	seed: async (ctx) => (await import("./seed")).seedEvents(ctx),
 	reevaluateUserTags: (userId) => tagRulesService.evaluateRulesForUser(userId),

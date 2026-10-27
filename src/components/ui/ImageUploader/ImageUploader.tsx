@@ -8,6 +8,7 @@ import {
 	useStyles$,
 	useVisibleTask$,
 } from "@qwik.dev/core";
+import { useLocation } from "@qwik.dev/router";
 import Uppy from "@uppy/core";
 import coreStyles from "@uppy/core/css/style.css?inline";
 import Dashboard from "@uppy/dashboard";
@@ -28,7 +29,10 @@ interface UploadedFileResponse {
 }
 
 interface ImageUploaderProps {
-	/** Storage path prefix in S3 (e.g. 'public/events', 'public/profiles') */
+	/**
+	 * Storage path prefix in S3 (e.g. 'public/events', 'public/articles'): a core prefix or one a
+	 * module declares in its manifest `uploads`. On admin pages the URL's `[scope]` is sent along.
+	 */
 	path: string;
 	/** Processing pipeline — determines resize logic on the backend. Defaults to 'standard'. */
 	pipeline?: "standard" | "gallery" | "thumbnail" | "profile-picture" | "svg";
@@ -62,6 +66,8 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
 	useStyles$(imageEditorStyles);
 	useStyles$(uploaderOverrides);
 
+	// The admin page's scope (`/admin/[scope]/…`): module upload prefixes need a role on it.
+	const uploadScope = useLocation().params.scope ?? "";
 	const containerRef = useSignal<Element>();
 	const uppyRef = useSignal<NoSerialize<Uppy>>();
 	const uploadedValues = useSignal<string[]>([]);
@@ -134,6 +140,7 @@ export const ImageUploader = component$((props: ImageUploaderProps) => {
 				headers: {
 					"x-upload-path": props.path,
 					"x-pipeline": props.pipeline ?? "standard",
+					...(uploadScope ? { "x-upload-scope": uploadScope } : {}),
 				},
 			});
 

@@ -109,7 +109,7 @@ export const ProductForm = component$<ProductFormProps>(
 								{t("events.productForm.productImage")}
 							</p>
 							<ImageUploader
-								path="public/products"
+								path="public/events/products"
 								pipeline="standard"
 								name="imageKey"
 								triggerSignal={uploadTrigger}

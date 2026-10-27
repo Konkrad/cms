@@ -35,6 +35,8 @@ export const dealsModule = defineModule({
 				await dealsService.getActive(await scopeContentFilter(null)),
 			)
 		).map((deal) => ({ path: deal.url, lastmod: deal.updatedAt })),
+	// Deal logos.
+	uploads: [{ prefix: "public/deals/", minRole: "representative" }],
 	// Demo deals and the Deals page; lazy (dev dependencies stay out of the server).
 	seed: async (ctx) => (await import("./seed")).seedDeals(ctx),
 });

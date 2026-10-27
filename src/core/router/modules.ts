@@ -8,6 +8,7 @@ import type { PaymentHandlers } from "~/core/payments/payments";
 import type { RequirementDefinition } from "~/core/requirements/define";
 import type { ReviewHandlers } from "~/core/reviews/define";
 import type { PageDefinition } from "~/core/router/pages";
+import type { UploadRule } from "~/core/router/uploads";
 import type { ScheduleDefinition } from "~/core/scheduler/define";
 
 export interface AdminSection {
@@ -191,6 +192,14 @@ export interface ModuleDefinition {
 	 * backoff and listed in the admin failure view.
 	 */
 	schedules?: ScheduleDefinition[];
+	/**
+	 * S3 key prefixes the module uploads to through core's `/api/images`, and who may (spec 4.1,
+	 * guide 5.14): `[{ prefix: "public/events/", minRole: "representative" }]`. A prefix must be
+	 * `public/<id>/…` or `private/<id>/…` (core's own prefixes stay core's). The uploader needs
+	 * `minRole` on the scope of the admin page uploading (`ImageUploader` sends it); only active
+	 * modules' prefixes are accepted. Check stored keys against the prefix in the service.
+	 */
+	uploads?: UploadRule[];
 	/**
 	 * Demo data and e2e fixtures (spec 6): `scripts/seed.ts` and `scripts/seed-test.ts` seed core,
 	 * then call this for every ACTIVE module with `ctx.mode` "demo" or "test". Import the seed

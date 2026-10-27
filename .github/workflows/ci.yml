@@ -5,6 +5,14 @@ on:
     branches: [main]
   pull_request:
 
+# The module set is switchable without editing modules.config.ts (spec 4.1, 8.2): CMS_MODULES
+# (comma-separated ids, empty = none) replaces the configured list at build and run time. Every
+# job that builds or runs the app does it twice: with all modules (modules.config.ts, CMS_MODULES
+# unset) and with none (CMS_MODULES=""). `select_modules` below exports the variable per leg.
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -48,8 +56,7 @@ jobs:
 
       # Scoped to files changed in this PR/push, not the whole repo — same
       # rationale as .githooks/pre-commit: fix what you touch, don't block on
-      # pre-existing repo-wide lint debt. `theme/**`'s noRestrictedImports
-      # boundary rule (see CLAUDE.md) still applies to any theme file touched.
+      # pre-existing repo-wide lint debt.
       - name: Run Biome on changed files
         if: steps.changed.outputs.files != ''
         env:
@@ -63,10 +70,76 @@ jobs:
           fi
           npx biome check --no-errors-on-unmatched "${files[@]}"
 
-  test:
+      # The import boundaries of theme/ and src/modules/ (noRestrictedImports, CLAUDE.md) hold
+      # for the whole tree, not only for changed files.
+      - name: Check import boundaries
+        run: |
+          npx biome lint --only=style/noRestrictedImports \
+            $(git ls-files 'src/modules/*.ts' 'src/modules/*.tsx' 'theme/*.ts' 'theme/*.tsx')
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+  unit:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # tests/vitest-global-setup.ts starts mailpit, minio and stripe-mock with testcontainers
+      # (Docker is available on the runner) and one temp SQLite file shared by all test files;
+      # --no-file-parallelism avoids "database is locked" (see .githooks/pre-commit).
+      - name: Run unit tests
+        run: npx vitest run --no-file-parallelism
+        env:
+          MAGIC_LINK_SECRET: test
+          SMTP_HOST: localhost
+          SMTP_FROM: test@example.com
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: testtest
+          S3_BUCKET: test
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        modules: [all, none]
+    name: build (${{ matrix.modules }} modules)
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The active set is fixed at build time (client bundle, routes, i18n catalog).
+      - name: Build client and server
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.modules }}" = "none" ]; then export CMS_MODULES=""; fi
+          npm run build.client
+          npm run build.server
+
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        modules: [all, none]
+    name: e2e (${{ matrix.modules }} modules)
     env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       NODE_ENV: test
       APP_URL: http://localhost:5173
       APP_NAME: Community Management System
@@ -86,6 +159,10 @@ jobs:
       TELEGRAM_CHANNEL_ID: test
       ALTCHA_HMAC_KEY: test
       E2E_ALLOW_DB_WRITE: "true"
+      # Each leg on its own port and database (playwright.config.ts reseeds DB_PATH).
+      E2E_PORT: ${{ matrix.modules == 'none' && '5186' || '5185' }}
+      DB_PATH: ${{ github.workspace }}/e2e-${{ matrix.modules }}.db
+    # The same services as docker-compose.yml locally (and testcontainers in the unit tests).
     services:
       minio:
         image: ghcr.io/coollabsio/minio:latest
@@ -122,6 +199,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Select the module set
+        run: |
+          # GITHUB_ENV makes it apply to every later step: the seeds, the dev server and the
+          # Playwright fixtures (module specs skip themselves via requireModules).
+          if [ "${{ matrix.modules }}" = "none" ]; then echo "CMS_MODULES=" >> "$GITHUB_ENV"; fi
 
       - name: Wait for services
         run: |
@@ -163,35 +246,30 @@ jobs:
       - name: Create MinIO bucket
         run: aws --endpoint-url http://localhost:9000 s3 mb s3://test
         env:
-          AWS_ACCESS_KEY_ID: test
-          AWS_SECRET_ACCESS_KEY: testtest
           AWS_DEFAULT_REGION: us-east-1
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      # --no-file-parallelism: tests/vitest-global-setup.ts shares one SQLite
-      # file across all test files; parallel workers can hit "database is
-      # locked" on unrelated tests (see .githooks/pre-commit).
-      - name: Run unit tests
-        run: npx vitest run --no-file-parallelism
-
-      - name: Seed database
+      # The demo seed (core plus each active module's `seed`) must work for every module set.
+      - name: Demo seed
         run: npx tsx scripts/seed.ts --fresh
+        env:
+          DB_PATH: ${{ github.workspace }}/demo-${{ matrix.modules }}.db
 
       - name: Run e2e tests
-        run: npm test
+        run: npx playwright test
 
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.modules }}
           path: test-results/
           retention-days: 7
 
   build-image:
-    needs: [lint, test]
+    needs: [lint, unit, build, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

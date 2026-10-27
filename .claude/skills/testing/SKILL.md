@@ -63,6 +63,7 @@ Helpers named `create*InDb` / `create*` that return `cleanup()` should be cleane
 
 | Helper | Purpose |
 |---|---|
+| `requireModules(...ids)` / `isModuleActive(id)` / `activeModuleIds` | Skip tests whose modules are inactive (`CMS_MODULES`) / check the set |
 | `createUserSession(role, prefix?, { name, familyName }?, completed?)` | Temp user + login + session (+ root admin role for `"admin"`) with every user requirement completed (`completed`: `{ only?, except?, values? }`); returns `{ userId, sessionToken, cleanup }` |
 | `createUserSessionWithMembership(tier)` | Like `createUserSession("user")` plus a membership (`"associated"` / `"full"`) |
 | `createDbSession(userId)` / `deleteDbSession(id)` | Insert / delete a session row for an existing user |
@@ -138,6 +139,15 @@ npx playwright test --project auth-flows
 ```
 
 Projects: `setup` (shared session), `auth-flows` (`auth.spec.ts`, `profile-setup.spec.ts`), `chromium` (everything else, stored session).
+
+Module sets (spec 8.2): CI runs the suite twice, with all modules (`modules.config.ts`) and with none (`CMS_MODULES=`, empty). Run both locally on separate ports and DBs:
+
+```bash
+E2E_PORT=5185 DB_PATH=/tmp/e2e-all.db npx playwright test
+CMS_MODULES= E2E_PORT=5186 DB_PATH=/tmp/e2e-none.db npx playwright test
+```
+
+`CMS_MODULES` reaches the seed (only active modules' `seed` runs) and the dev server through the environment. A module's spec file starts with `requireModules("<id>")` (from `tests/fixtures.ts`, after the imports), which skips it while the module is inactive; a core spec's test that needs a module calls `requireModules("<id>")` first thing in the test (or in its `describe`). `isModuleActive(id)` / `activeModuleIds` resolve the set the same way the server does (environment, then `.env`). Core specs must pass with no modules: never rely on module seed data or module UI in them.
 
 UI language: the default run is English. To check German, run the suite once with `SITE_LOCALE=de` on its own port and DB (`SITE_LOCALE=de E2E_PORT=5281 DB_PATH=/tmp/e2e-de.db npx playwright test`); `tests/e2e/i18n.spec.ts` reads `<html lang>` and expects that locale's strings, other specs assert English text and fail under `de` for that reason only. Unit tests always see the English catalog (no Vite plugin); test other locales with `createTranslator` / `buildCatalog` / `createFormatters` (`tests/unit/i18n.spec.ts`).
 

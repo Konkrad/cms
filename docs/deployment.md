@@ -37,6 +37,12 @@ below are the same regardless of the tool driving them.
   one exception — it's a *build-time* value baked into the client bundle
   (`import.meta.env`), so it must be passed as a Docker build arg, not a runtime
   env var; changing it requires a rebuild.
+- **Module set.** `modules.config.ts` lists the active modules; `CMS_MODULES` (comma-separated
+  ids, empty = none) replaces it for a build or run without editing the file. It is applied at
+  build time (client bundle, i18n catalog), so build and run with the same value: the server
+  refuses to start when the runtime set differs from its build's. The Docker build uses
+  `modules.config.ts`. Module settings (`<MODULE_ID>_<KEY>`, e.g. `SOCIAL_WEB_ACCOUNT`) are
+  validated at startup only for active modules.
 - **Payments are optional.** Set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`
   to enable them; without both, only free flows are offered. Point the Stripe
   webhook endpoint at `<APP_URL>/api/payments/webhook/stripe` with the events

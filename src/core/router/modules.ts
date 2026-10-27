@@ -242,9 +242,14 @@ export function selectActive(
 	const seen = new Set<string>();
 	return activeIds.map((id) => {
 		const module = byId.get(id);
-		if (!module) throw new Error(`Unknown module in modules.config: ${id}`);
+		if (!module)
+			throw new Error(
+				`Unknown module in modules.config.ts or CMS_MODULES: ${id}`,
+			);
 		if (seen.has(id))
-			throw new Error(`Duplicate module in modules.config: ${id}`);
+			throw new Error(
+				`Duplicate module in modules.config.ts or CMS_MODULES: ${id}`,
+			);
 		seen.add(id);
 		return module;
 	});

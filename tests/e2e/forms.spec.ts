@@ -17,6 +17,7 @@ import {
 	getFormsByTitle,
 	getOutboxRows,
 	grantScopeRole,
+	requireModules,
 	setEventDebriefRequested,
 	test,
 } from "../fixtures";
@@ -108,6 +109,8 @@ test("a form with answers is locked; Duplicate makes an editable copy", async ({
 test("a scope picks its own active form for a purpose", async ({
 	adminPage: page,
 }) => {
+	// Uses the events module.
+	requireModules("events");
 	const { formId } = createFormInDb({
 		title: PROPOSAL,
 		scopeId: region.id,
@@ -130,6 +133,8 @@ test("a scope picks its own active form for a purpose", async ({
 test("the organiser fills in the debrief of an event that ended; the reviewer is told", async ({
 	browser,
 }) => {
+	// Uses the events module.
+	requireModules("events");
 	const event = createScopeEventInDb({
 		organizerId: rep.userId,
 		title: `Ended meetup ${suffix}`,

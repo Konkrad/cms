@@ -7,10 +7,14 @@ import {
 	expect,
 	getUserEmailById,
 	grantScopeRole,
+	requireModules,
 	setParticipationInDb,
 	test,
 } from "../fixtures";
 import { createEventWithInventory } from "../utils/test-data";
+
+// Module spec: skipped while the module is inactive (CI also runs the suite with none).
+requireModules("events");
 
 // =============================================================================
 // Guest (logged-out) visibility

@@ -18,6 +18,7 @@ import { createServer } from "node:http";
 import { runMigrations } from "./core/db/migrate";
 import { assertBuiltSiteLocale } from "./core/i18n/server";
 import { startOutboxWorker } from "./core/notifications/worker";
+import { assertBuiltModules } from "./core/registry/assert-built-modules";
 import { prepareRawRequest } from "./core/registry/raw-request";
 import { startScheduler } from "./core/scheduler/worker";
 import render from "./entry.ssr";
@@ -28,6 +29,7 @@ declare global {
 }
 
 assertBuiltSiteLocale();
+assertBuiltModules();
 runMigrations();
 // Sends queued notifications (src/core/notifications) from this process, after migrations.
 startOutboxWorker();

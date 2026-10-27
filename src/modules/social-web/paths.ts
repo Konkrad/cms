@@ -3,7 +3,7 @@
  * vite.config.ts and the production server before the app) uses them too.
  */
 
-/** The module id (`modules.config.ts`). */
+/** The module id (`modules.config.ts`, `CMS_MODULES`). */
 export const MODULE_ID = "social-web";
 
 /** Site path of the RSS feed (`src/routes/feed.xml`). */

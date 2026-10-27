@@ -11,9 +11,13 @@ import {
 	expect,
 	GLOBAL_REQUIREMENTS,
 	getUserRequirement,
+	requireModules,
 	setParticipationInDb,
 	test,
 } from "../fixtures";
+
+// Module spec: skipped while the module is inactive (CI also runs the suite with none).
+requireModules("events");
 
 async function pageFor(browser: Browser, sessionToken: string) {
 	const ctx = await browser.newContext();

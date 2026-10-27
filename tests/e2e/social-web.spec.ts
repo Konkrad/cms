@@ -14,8 +14,12 @@ import {
 	expect,
 	getArticleByTitle,
 	getNotesByBodyText,
+	requireModules,
 	test,
 } from "../fixtures";
+
+// Module spec: skipped while the module is inactive (CI also runs the suite with none).
+requireModules("social-web");
 
 const suffix = Date.now().toString(36);
 const NOTE_TEXT = `Social note ${suffix}`;

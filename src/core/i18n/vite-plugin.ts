@@ -1,6 +1,7 @@
 /**
  * `cms:i18n` Vite plugin: replaces `src/core/i18n/catalog.ts` with the catalog of the site
- * locale, merged at build time (core, theme and the ACTIVE modules over English), so the
+ * locale, merged at build time (core, theme and the ACTIVE modules over English; the set of
+ * `cms:modules`, i.e. `modules.config.ts` or `CMS_MODULES`), so the
  * client bundle carries one locale and the strings `t()` reads are a plain object.
  * `SITE_LOCALE` is read with Vite's `loadEnv` (same `.env` as src/env.ts) and validated with
  * the schema env.ts uses; the production server refuses to start when its `SITE_LOCALE`
@@ -9,7 +10,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { loadEnv, type Plugin, type ViteDevServer } from "vite";
-import config from "../../../modules.config";
+import { buildActiveModuleIds } from "../registry/vite-plugin";
 import {
 	buildCatalog,
 	type CatalogSet,
@@ -34,14 +35,17 @@ function readCatalogSet(dir: string): CatalogSet | undefined {
 }
 
 /** Reads every catalog from disk (fresh on each load, so edits apply without a restart). */
-export function readCatalogSources(root: string): CatalogSources {
+export function readCatalogSources(
+	root: string,
+	activeIds: readonly string[],
+): CatalogSources {
 	const required = (dir: string) => {
 		const set = readCatalogSet(path.join(root, dir));
 		if (!set) throw new Error(`i18n: missing ${dir}/en.json`);
 		return set;
 	};
 	const modules: Record<string, CatalogSet> = {};
-	for (const id of config.active) {
+	for (const id of activeIds) {
 		const set = readCatalogSet(path.join(root, "src/modules", id, "i18n"));
 		if (set) modules[id] = set;
 	}
@@ -55,6 +59,7 @@ export function readCatalogSources(root: string): CatalogSources {
 export function i18nCatalog(): Plugin {
 	let root = process.cwd();
 	let locale: Locale = "en";
+	let activeIds: string[] = [];
 	let catalogFile = "";
 	const isCatalogJson = (file: string) =>
 		/[\\/]i18n[\\/][a-z]{2}\.json$/.test(file) && file.startsWith(root);
@@ -71,13 +76,18 @@ export function i18nCatalog(): Plugin {
 				"",
 			).SITE_LOCALE;
 			locale = siteLocaleSchema.parse(value || undefined);
+			activeIds = buildActiveModuleIds(
+				resolved.mode,
+				resolved.envDir || root,
+				root,
+			);
 		},
 		load(id) {
 			if (path.normalize(id.split("?")[0]) !== catalogFile) return;
 			const built = buildCatalog(
 				locale,
-				config.active,
-				readCatalogSources(root),
+				activeIds,
+				readCatalogSources(root, activeIds),
 			);
 			if (built.fallbackKeys.length > 0) {
 				this.warn(

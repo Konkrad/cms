@@ -19,6 +19,7 @@ import {
 	expect,
 	getScopeByPath,
 	grantScopeRole,
+	requireModules,
 	test,
 } from "../fixtures";
 
@@ -138,6 +139,7 @@ test.describe("Content flows between levels", () => {
 		browser,
 		guestPage,
 	}) => {
+		requireModules("events");
 		const title = `Region members-only ${suffix}`;
 		cleanups.push(() => deleteArticleByTitle(title));
 		createArticleInDb({
@@ -292,6 +294,7 @@ test.describe("Representatives manage their own scope only", () => {
 	test("a chapter representative manages the chapter's jobs and events, not a sibling's", async ({
 		browser,
 	}) => {
+		requireModules("jobs", "events");
 		const rep = createUserSession("user");
 		cleanups.push(rep.cleanup);
 		grantScopeRole(rep.userId, chapterA.id, "representative");

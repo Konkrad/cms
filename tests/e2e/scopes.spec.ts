@@ -18,6 +18,7 @@ import {
 	getScopeRoles,
 	grantScopeRole,
 	isScopeMember,
+	requireModules,
 	test,
 } from "../fixtures";
 
@@ -119,6 +120,7 @@ test.describe("Scope home page", () => {
 		guestPage,
 		browser,
 	}) => {
+		requireModules("events");
 		const upcoming = createScopeEventInDb({
 			organizerId: rep.userId,
 			title: "Scope Page Public Event",

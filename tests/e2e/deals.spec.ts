@@ -15,8 +15,12 @@ import {
 	expect,
 	getDealByName,
 	grantScopeRole,
+	requireModules,
 	test,
 } from "../fixtures";
+
+// Module spec: skipped while the module is inactive (CI also runs the suite with none).
+requireModules("deals");
 
 const suffix = Date.now().toString(36);
 const REGION = `e2e-deals-region-${suffix}`;

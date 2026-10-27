@@ -17,6 +17,7 @@ import dotenv from "dotenv";
 import { z } from "zod";
 import modulesConfig from "../modules.config";
 import { siteLocaleSchema } from "./core/i18n/locales";
+import { resolveActiveModuleIds } from "./core/registry/module-set";
 import { moduleSettingsSchemas } from "./core/registry/settings";
 import { parseModuleSettings } from "./core/router/module-settings";
 
@@ -132,6 +133,11 @@ const envSchema = z.object({
 	LOGIN_IP_MAX_PER_WINDOW: z.coerce.number().int().positive().default(10),
 	LOGIN_IP_WINDOW_MINUTES: z.coerce.number().int().positive().default(60),
 
+	// Active modules for this deployment, build or test run: comma-separated ids replacing the
+	// list in modules.config.ts; empty = no modules. Unset = modules.config.ts. Applied at build
+	// time too (client bundle, i18n catalog): build and run with the same value.
+	CMS_MODULES: z.string().optional(),
+
 	// Scope tree: the kinds a group below the root can have (deployment configuration, spec
 	// 4.2), comma-separated, in the order the admin offers them. The root's kind is "root".
 	// Module admin sections may be limited to some of these kinds (`scopes` in the manifest).
@@ -175,8 +181,11 @@ if (!parsed.success) {
 
 const _env = parsed.data;
 
-/** Ids of the active modules (`modules.config.ts`). */
-const activeModuleIds: readonly string[] = modulesConfig.active;
+/** Ids of the active modules: `modules.config.ts`, or `CMS_MODULES` when set. */
+const activeModuleIds: readonly string[] = resolveActiveModuleIds(
+	modulesConfig.active,
+	_env.CMS_MODULES,
+);
 
 // Deployment settings of the ACTIVE modules (manifest `settings`, env `<MODULE_ID>_<KEY>`);
 // an inactive module's settings are neither required nor validated.
@@ -234,6 +243,8 @@ export const env = {
 	LOGIN_IP_MAX_PER_WINDOW: _env.LOGIN_IP_MAX_PER_WINDOW,
 	LOGIN_IP_WINDOW_MINUTES: _env.LOGIN_IP_WINDOW_MINUTES,
 	SCOPE_KINDS: _env.SCOPE_KINDS as readonly string[],
+	/** Active module ids (see `src/core/registry/active-modules.ts`). */
+	ACTIVE_MODULES: activeModuleIds,
 	/** Validated settings of the active modules, by module id (read via `moduleSettings`). */
 	MODULE_SETTINGS: moduleSettings.values as Readonly<
 		Record<string, Readonly<Record<string, unknown>> | undefined>

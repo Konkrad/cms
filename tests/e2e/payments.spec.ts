@@ -9,9 +9,13 @@ import {
 	expect,
 	getPaymentById,
 	getTransactionStatus,
+	requireModules,
 	test,
 } from "../fixtures";
 import { signedCheckoutEvent } from "../utils/stripe-webhook";
+
+// Module spec: skipped while the module is inactive (CI also runs the suite with none).
+requireModules("events");
 
 test.describe("Admin payments", () => {
 	test("lists payments with filters and an item link, and refunds a paid one", async ({

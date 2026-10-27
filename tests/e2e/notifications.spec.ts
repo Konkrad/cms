@@ -13,6 +13,7 @@ import {
 	getOutboxRowById,
 	getOutboxRows,
 	getUserEmailById,
+	requireModules,
 	test,
 } from "../fixtures";
 import { extractAllLinks, waitForEmailHtml } from "../utils/mailpit-client";
@@ -60,6 +61,8 @@ async function approveJob(
 }
 
 test.describe("Notifications — optional notifications and preferences", () => {
+	requireModules("jobs");
+
 	test("the unsubscribe link mutes jobs.approved; the next approval is not queued", async ({
 		adminPage,
 		browser,
@@ -205,6 +208,8 @@ test.describe("Notifications — admin failure view", () => {
 });
 
 test.describe("Notifications — events", () => {
+	requireModules("events");
+
 	let ownsTelegramMock = false;
 	test.beforeAll(async () => {
 		// tickets.spec.ts may hold port 8099 in another worker; then its mock receives the alert.

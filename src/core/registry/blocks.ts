@@ -4,9 +4,9 @@
  * instead. `unit/modules.spec.ts` checks it against the manifests.
  */
 import { disabledBlockTypes } from "~/core/router/modules";
-import config from "../../../modules.config";
 import { dealsBlocks } from "../../modules/deals/blocks";
 import { eventsBlocks } from "../../modules/events/blocks";
+import { activeModuleIds } from "./active-modules";
 
 /** Module id → block types it owns. Add a line per module that contributes blocks. */
 export const moduleBlocks: Record<string, string[]> = {
@@ -15,4 +15,4 @@ export const moduleBlocks: Record<string, string[]> = {
 };
 
 /** Block types of inactive modules: hidden from the admin picker and not rendered. */
-export const disabledBlocks = disabledBlockTypes(moduleBlocks, config.active);
+export const disabledBlocks = disabledBlockTypes(moduleBlocks, activeModuleIds);

@@ -14,8 +14,12 @@ import {
 	createUserSession,
 	expect,
 	openDb,
+	requireModules,
 	test,
 } from "../fixtures";
+
+// Module spec: skipped while the module is inactive (CI also runs the suite with none).
+requireModules("events");
 
 function getTicketRow(ticketId: string): { qr_code_uuid: string } {
 	const db = openDb();

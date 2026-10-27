@@ -16,8 +16,12 @@ import {
 	expect,
 	getUserEmailById,
 	openDb,
+	requireModules,
 	test,
 } from "../fixtures";
+
+// Module spec: skipped while the module is inactive (CI also runs the suite with none).
+requireModules("events");
 
 function authCookies(token: string) {
 	return [

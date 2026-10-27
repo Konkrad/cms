@@ -9,15 +9,15 @@ import {
 	userMenuLinksOf,
 } from "~/core/router/modules";
 import { reservedScopeSlugs } from "~/core/router/reserved-slugs";
-import config from "../../../modules.config";
 import { dealsModule } from "../../modules/deals/module";
 import { electionsModule } from "../../modules/elections/module";
 import { eventsModule } from "../../modules/events/module";
 import { jobsModule } from "../../modules/jobs/module";
 import { qualificationsModule } from "../../modules/qualifications/module";
 import { socialWebModule } from "../../modules/social-web/module";
+import { activeModuleIds } from "./active-modules";
 
-/** Every module that exists in the codebase; `modules.config.ts` picks the active ones. */
+/** Every module that exists in the codebase; `modules.config.ts` (or `CMS_MODULES`) picks the active ones. */
 export const allModules: ModuleDefinition[] = [
 	dealsModule,
 	electionsModule,
@@ -27,7 +27,8 @@ export const allModules: ModuleDefinition[] = [
 	socialWebModule,
 ];
 
-export const activeModules = selectActive(allModules, config.active);
+/** The active modules (`modules.config.ts`, or `CMS_MODULES`), in that order. */
+export const activeModules = selectActive(allModules, activeModuleIds);
 
 /** Pages of active modules, matched in this order by the catch-all route. */
 export const modulePages = pagesOf(activeModules);

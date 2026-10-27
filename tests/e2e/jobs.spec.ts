@@ -18,8 +18,12 @@ import {
 	getJobById,
 	grantScopeRole,
 	openDb,
+	requireModules,
 	test,
 } from "../fixtures";
+
+// Module spec: skipped while the module is inactive (CI also runs the suite with none).
+requireModules("jobs");
 
 /** Inject a session cookie into the current page context. */
 async function loginAs(page: import("@playwright/test").Page, token: string) {

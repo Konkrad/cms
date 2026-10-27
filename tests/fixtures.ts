@@ -14,13 +14,17 @@ import { type BrowserContext, test as base, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { execSync } from "child_process";
 import crypto from "crypto";
+import dotenv from "dotenv";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import modulesConfig from "../modules.config";
 import {
 	type CompleteRequirementsOptions,
 	completeRequirements,
 	REQUIREMENT_VERSIONS,
 } from "../scripts/seed-requirements";
+import { resolveActiveModuleIds } from "../src/core/registry/module-set";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DB_PATH = process.env.DB_PATH ?? path.join(ROOT, "my-database.db");
@@ -1543,6 +1547,38 @@ export const test = base.extend<Fixtures>({
 });
 
 export { expect } from "@playwright/test";
+
+// ── Module set ───────────────────────────────────────────────────────────────
+// The server under test runs with `CMS_MODULES` (or modules.config.ts); module specs skip
+// themselves when their module is off, so the suite passes with all modules and with none.
+
+/** `CMS_MODULES` as the server sees it: the environment, else `.env` (src/env.ts loads it too). */
+function cmsModulesSetting(): string | undefined {
+	if (process.env.CMS_MODULES !== undefined) return process.env.CMS_MODULES;
+	const file = path.join(ROOT, ".env");
+	return fs.existsSync(file)
+		? dotenv.parse(fs.readFileSync(file)).CMS_MODULES
+		: undefined;
+}
+
+/** Ids of the modules active in the server under test. */
+export const activeModuleIds: readonly string[] = resolveActiveModuleIds(
+	modulesConfig.active,
+	cmsModulesSetting(),
+);
+
+export const isModuleActive = (id: string): boolean =>
+	activeModuleIds.includes(id);
+
+/**
+ * Skips the tests in scope unless every named module is active. Call it at the top of a module's
+ * spec file (all its tests), inside a `describe`, or first thing in one test of a core spec
+ * that also touches a module.
+ */
+export function requireModules(...ids: string[]): void {
+	const missing = ids.filter((id) => !isModuleActive(id));
+	test.skip(missing.length > 0, `module(s) inactive: ${missing.join(", ")}`);
+}
 
 /** Email used by the shared pre-authenticated session created in auth.setup.ts. */
 export const SHARED_E2E_EMAIL = "e2e-shared@example.com";

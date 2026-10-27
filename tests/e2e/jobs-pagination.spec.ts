@@ -6,7 +6,16 @@
  *  - Opening a ?cursor= URL directly (no prior page-1 visit) lands on that page
  */
 
-import { createJobInDb, createUserSession, expect, test } from "../fixtures";
+import {
+	createJobInDb,
+	createUserSession,
+	expect,
+	requireModules,
+	test,
+} from "../fixtures";
+
+// Module spec: skipped while the module is inactive (CI also runs the suite with none).
+requireModules("jobs");
 
 async function loginAs(page: import("@playwright/test").Page, token: string) {
 	await page.context().addCookies([

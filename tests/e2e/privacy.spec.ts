@@ -14,6 +14,7 @@ import {
 	createUserSession,
 	expect,
 	getUserEmailById,
+	requireModules,
 	setParticipationInDb,
 	test,
 } from "../fixtures";
@@ -36,6 +37,7 @@ test.describe("Privacy — page payloads", () => {
 	test("admin event pages with tickets, RSVPs and transactions load (leak check passes)", async ({
 		guestPage: page,
 	}) => {
+		requireModules("events");
 		const admin = createUserSession("admin");
 		const buyer = createUserSession("user");
 		const ev = createTestEventWithProduct({ ownerId: admin.userId });
@@ -76,6 +78,7 @@ test.describe("Privacy — page payloads", () => {
 	test("public event page never contains the organizer's or attendees' emails", async ({
 		guestPage: page,
 	}) => {
+		requireModules("events");
 		const organizer = createUserSession("user");
 		const attendee = createUserSession("user");
 		const ev = createTestEventWithProduct({ ownerId: organizer.userId });
@@ -101,6 +104,7 @@ test.describe("Privacy — page payloads", () => {
 	test("/profile/tickets hides other participants' emails", async ({
 		guestPage: page,
 	}) => {
+		requireModules("events");
 		const organizer = createUserSession("admin");
 		const buyer = createUserSession("user");
 		const friend = createUserSession("user");
@@ -134,6 +138,7 @@ test.describe("Privacy — page payloads", () => {
 	test("admin election cycle page with an admin note loads", async ({
 		guestPage: page,
 	}) => {
+		requireModules("elections");
 		const admin = createUserSession("admin");
 		const applicant = createUserSession("user");
 		const cycle = createElectionCycleInDb({ status: "open" });

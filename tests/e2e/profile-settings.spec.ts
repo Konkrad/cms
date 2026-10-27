@@ -7,8 +7,12 @@ import {
 	createUserSession,
 	expect,
 	getUserRequirement,
+	requireModules,
 	test,
 } from "../fixtures";
+
+// Module spec: skipped while the module is inactive (CI also runs the suite with none).
+requireModules("events");
 
 test.describe("Profile settings (events requirements)", () => {
 	test("a user changes food preference and photo consent on their profile", async ({

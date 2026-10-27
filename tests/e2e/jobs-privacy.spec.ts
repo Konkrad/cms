@@ -10,8 +10,12 @@ import {
 	expect,
 	getUserById,
 	getUserEmailById,
+	requireModules,
 	test,
 } from "../fixtures";
+
+// Module spec: skipped while the module is inactive (CI also runs the suite with none).
+requireModules("jobs");
 
 test("job list and detail do not leak the author's private fields", async ({
 	memberPage: page,

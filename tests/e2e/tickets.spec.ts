@@ -6,6 +6,7 @@ import {
 	getTransactionStatus,
 	getUserIdByEmail,
 	REQUIREMENT_VERSIONS,
+	requireModules,
 	SHARED_E2E_EMAIL,
 	test,
 } from "../fixtures";
@@ -18,6 +19,9 @@ import {
 	stopTelegramMock,
 } from "../utils/telegram-mock";
 import { createEventWithInventory } from "../utils/test-data";
+
+// Module spec: skipped while the module is inactive (CI also runs the suite with none).
+requireModules("events");
 
 test.describe("Tickets", () => {
 	test.beforeAll(async () => {

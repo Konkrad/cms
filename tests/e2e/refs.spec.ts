@@ -11,6 +11,7 @@ import {
 	deleteScopeById,
 	expect,
 	renameScopeInDb,
+	requireModules,
 	test,
 } from "../fixtures";
 
@@ -34,6 +35,7 @@ test.describe("canonical item URLs and references", () => {
 	test("an event lives at its scope's URL; other URLs answer 301 there", async ({
 		guestPage: page,
 	}) => {
+		requireModules("events");
 		const title = `Refs BBQ ${ts}`;
 		const ev = createScopeEventInDb({
 			organizerId: organizer.userId,

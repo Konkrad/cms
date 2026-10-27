@@ -11,6 +11,7 @@ import { defineConfig, type Plugin, type UserConfig } from "vite";
 import pkg from "./package.json";
 import { i18nCatalog } from "./src/core/i18n/vite-plugin";
 import { prepareRawRequest } from "./src/core/registry/raw-request";
+import { moduleSet } from "./src/core/registry/vite-plugin";
 
 // Absolute path to ./src for the "~" alias below.
 const srcDir = fileURLToPath(new URL("./src/", import.meta.url));
@@ -51,6 +52,8 @@ export default defineConfig(
 			publicDir,
 			plugins: [
 				rawRequest(),
+				// The active module set (modules.config.ts or CMS_MODULES), fixed at build time.
+				moduleSet(),
 				// The site locale's message catalog, merged at build time (src/core/i18n).
 				i18nCatalog(),
 				// Dev server only, after the migrations above (never in builds or vitest, which

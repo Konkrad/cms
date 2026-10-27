@@ -8,6 +8,7 @@ import {
 	createScopeEventInDb,
 	createUserSession,
 	expect,
+	requireModules,
 	test,
 } from "../fixtures";
 
@@ -48,6 +49,8 @@ test("the login page renders in the site locale", async ({
 test("an event page renders labels and dates in the site locale", async ({
 	guestPage: page,
 }) => {
+	// Uses the events module.
+	requireModules("events");
 	const organiser = createUserSession("user", "i18n-org");
 	const slug = `i18n-${Date.now().toString(36)}`;
 	const event = createScopeEventInDb({

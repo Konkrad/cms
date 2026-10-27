@@ -19,6 +19,7 @@ import {
 	getMenuItemByUrl,
 	getMenuItemPosition,
 	getPageContent,
+	requireModules,
 	test,
 } from "../fixtures";
 
@@ -422,6 +423,7 @@ test.describe("Pages — builder: content blocks", () => {
 	test("UpcomingEventsBlock: adds to canvas with no config required", async ({
 		adminPage: page,
 	}) => {
+		requireModules("events");
 		const { pageId } = createPageInDb({
 			title: "Builder UpcomingEventsBlock",
 			url: `/e2e-builder-upcoming-${Date.now()}`,

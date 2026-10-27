@@ -47,8 +47,12 @@ import {
 	getUserById,
 	grantScopeRole,
 	openDb,
+	requireModules,
 	test,
 } from "../fixtures";
+
+// Module spec: skipped while the module is inactive (CI also runs the suite with none).
+requireModules("elections");
 
 async function loginAs(page: import("@playwright/test").Page, token: string) {
 	await page.context().addCookies([

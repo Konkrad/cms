@@ -15,6 +15,7 @@ import {
 	deleteScopeById,
 	expect,
 	getJobById,
+	requireModules,
 	test,
 } from "../fixtures";
 import { createEventWithInventory } from "../utils/test-data";
@@ -69,6 +70,7 @@ test.describe("Scope routing — server rendering", () => {
 	test("prefixed /jobs renders the jobs route with the chapter scope", async ({
 		memberPage: page,
 	}) => {
+		requireModules("jobs");
 		await page.goto("/jobs");
 		await expect(page.locator("h1")).toHaveText("Job Board");
 		expect(await scopeOf(page)).toBe("/");
@@ -100,6 +102,8 @@ test.describe("Scope routing — server rendering", () => {
 });
 
 test.describe("Scope routing — events module pages", () => {
+	requireModules("events");
+
 	test("/<region>/<chapter>/events/<id> renders the event page with the chapter scope", async ({
 		guestPage: page,
 	}) => {
@@ -154,6 +158,8 @@ test.describe("Scope routing — events module pages", () => {
 });
 
 test.describe("Scope routing — form actions", () => {
+	requireModules("jobs");
+
 	test("route action works under the prefix without JavaScript", async ({
 		browser,
 	}) => {
@@ -229,6 +235,8 @@ const stillSameDocument = (page: Page) =>
 	);
 
 test.describe("Scope routing — client-side navigation", () => {
+	requireModules("jobs");
+
 	test("SPA navigation from /jobs to a job and back at the root", async ({
 		browser,
 	}) => {

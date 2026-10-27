@@ -19,6 +19,7 @@ import {
 	getLatestReview,
 	getUserEmailById,
 	grantScopeRole,
+	requireModules,
 	test,
 } from "../fixtures";
 import { waitForEmailHtml } from "../utils/mailpit-client";
@@ -141,6 +142,7 @@ test("a representative proposes a public event; the coordinator is emailed, appr
 	browser,
 	guestPage,
 }) => {
+	requireModules("events");
 	const title = `Proposed meetup ${suffix}`;
 	const slug = `proposed-${suffix}`;
 	const event = draftEvent(title, slug);
@@ -197,6 +199,7 @@ test("a representative proposes a public event; the coordinator is emailed, appr
 test("a rejected proposal goes back to draft with the comment and can be resubmitted", async ({
 	browser,
 }) => {
+	requireModules("events");
 	const title = `Rejected meetup ${suffix}`;
 	const event = draftEvent(title, `rejected-${suffix}`);
 	const ref = `events:event:${event.eventId}`;
@@ -226,6 +229,7 @@ test("a rejected proposal goes back to draft with the comment and can be resubmi
 test("a public event of a coordinator-level manager (region admin) is published without review", async ({
 	browser,
 }) => {
+	requireModules("events");
 	const event = createScopeEventInDb({
 		organizerId: coordinator.userId,
 		title: `Coordinator event ${suffix}`,

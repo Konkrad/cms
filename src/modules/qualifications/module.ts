@@ -13,4 +13,6 @@ export const qualificationsModule = defineModule({
 			},
 		],
 	},
+	// Demo qualification types and user qualifications; lazy (dev dependencies stay out of the server).
+	seed: async (ctx) => (await import("./seed")).seedQualifications(ctx),
 });

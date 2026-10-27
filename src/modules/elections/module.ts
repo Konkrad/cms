@@ -34,4 +34,6 @@ export const electionsModule = defineModule({
 	},
 	// Election history on the own profile (private: the owner only); components in slots.tsx.
 	slots: ["profile.sections", "userPage.sections"],
+	// E2E board elections; lazy (dev dependencies stay out of the server).
+	seed: async (ctx) => (await import("./seed")).seedElections(ctx),
 });

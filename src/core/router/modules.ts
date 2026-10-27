@@ -1,6 +1,7 @@
 import type { Component } from "@qwik.dev/core";
 import type { ZodObject } from "zod";
 import type { SlotComponents, SlotName, SlotProps } from "~/contracts/slots";
+import type { ModuleSeed } from "~/core/db/seed";
 import type { FormPurpose } from "~/core/forms/purposes";
 import type { NotificationDefinition } from "~/core/notifications/define";
 import type { PaymentHandlers } from "~/core/payments/payments";
@@ -190,6 +191,13 @@ export interface ModuleDefinition {
 	 * backoff and listed in the admin failure view.
 	 */
 	schedules?: ScheduleDefinition[];
+	/**
+	 * Demo data and e2e fixtures (spec 6): `scripts/seed.ts` and `scripts/seed-test.ts` seed core,
+	 * then call this for every ACTIVE module with `ctx.mode` "demo" or "test". Import the seed
+	 * code lazily (`seed: async (ctx) => (await import("./seed")).seedJobs(ctx)`): it uses dev
+	 * dependencies (faker) and must stay out of the server's startup graph.
+	 */
+	seed?: ModuleSeed;
 	/**
 	 * Review handlers per item type (spec 4.9): `{ event: { onApproved, onRejected } }`, called
 	 * by name after a decision on `<module>:<type>:<id>`, retried until they succeed, even while

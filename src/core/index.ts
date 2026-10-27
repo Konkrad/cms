@@ -135,6 +135,14 @@ export * from "./schema";
 export { requireModuleAdmin } from "~/core/registry/module-admin";
 export { requireModuleAuth } from "~/core/registry/module-auth";
 export { moduleSettings } from "~/core/registry/module-settings";
+export {
+	ensureWorkflowForm,
+	type ModuleSeed,
+	type SeedContext,
+	type SeedPeople,
+	seedPeople,
+	type WorkflowFormSeed,
+} from "~/core/db/seed";
 // User requirements (spec 4.6): `requirements.pending(user, context)` in a loader and again in the
 // action (never trust the client); steps are submitted through core's single step action.
 export type { PendingRequirement } from "~/core/requirements/requirements";

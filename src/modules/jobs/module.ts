@@ -23,4 +23,6 @@ export const jobsModule = defineModule({
 			search: (query, limit) => jobsService.searchPublished(query, limit),
 		},
 	},
+	// Demo jobs and menu links; lazy (dev dependencies stay out of the server).
+	seed: async (ctx) => (await import("./seed")).seedJobs(ctx),
 });

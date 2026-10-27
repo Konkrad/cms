@@ -78,6 +78,8 @@ export const eventsModule = defineModule({
 			search: (query, limit) => eventsService.searchPublic(query, limit),
 		},
 	},
+	// Demo events (tickets, history, the Events page) and the e2e fixtures; lazy (dev deps).
+	seed: async (ctx) => (await import("./seed")).seedEvents(ctx),
 	reevaluateUserTags: (userId) => tagRulesService.evaluateRulesForUser(userId),
 	// Proposal and debrief questions are forms admins edit (spec 5.2); the active form per scope.
 	forms: [

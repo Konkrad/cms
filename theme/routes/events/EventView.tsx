@@ -97,6 +97,26 @@ export const EventView = component$<{
 	return (
 		<div class="min-h-screen bg-white">
 			<div class="max-w-[1290px] mx-auto px-4 py-12">
+				{/* ── RSVP feedback (top of the page, so it is seen without scrolling) ── */}
+				{updateParticipation.value &&
+					"message" in updateParticipation.value && (
+						<div class="max-w-xl mx-auto mb-8 p-3 bg-error-bg border border-error-border rounded-lg text-error text-center text-sm">
+							{updateParticipation.value.message}
+						</div>
+					)}
+
+				{/* RSVP confirmation messages */}
+				{effectiveParticipationStatus === "yes" && showFreeRSVP && (
+					<div class="max-w-xl mx-auto mb-8 p-3 bg-success-bg border border-success-border rounded-lg text-success text-center text-sm">
+						{t("theme.event.youReAttendingYourFree")}
+					</div>
+				)}
+				{effectiveParticipationStatus === "maybe" && showWaitlist && (
+					<div class="max-w-xl mx-auto mb-8 p-3 bg-info-bg border border-info-border rounded-lg text-primary text-center text-sm">
+						{t("theme.event.youReOnTheWaitlist")}
+					</div>
+				)}
+
 				{/* ── Title ── */}
 				<h1 class="font-['Rubik',sans-serif] font-bold text-[48px] md:text-[64px] leading-[1.1] text-center text-black mb-8">
 					{event.title}
@@ -195,25 +215,6 @@ export const EventView = component$<{
 					</div>
 				)}
 
-				{updateParticipation.value &&
-					"message" in updateParticipation.value && (
-						<div class="max-w-xl mx-auto mb-8 p-3 bg-error-bg border border-error-border rounded-lg text-error text-center text-sm">
-							{updateParticipation.value.message}
-						</div>
-					)}
-
-				{/* RSVP confirmation messages */}
-				{effectiveParticipationStatus === "yes" && showFreeRSVP && (
-					<div class="max-w-xl mx-auto mb-8 p-3 bg-success-bg border border-success-border rounded-lg text-success text-center text-sm">
-						{t("theme.event.youReAttendingYourFree")}
-					</div>
-				)}
-				{effectiveParticipationStatus === "maybe" && showWaitlist && (
-					<div class="max-w-xl mx-auto mb-8 p-3 bg-info-bg border border-info-border rounded-lg text-primary text-center text-sm">
-						{t("theme.event.youReOnTheWaitlist")}
-					</div>
-				)}
-
 				{/* ── Feature Grid ── */}
 				<FeatureGrid gap={20}>
 					{/* Top-left: Save the Date */}
@@ -293,7 +294,9 @@ export const EventView = component$<{
 				{showParticipantsModal.value && (
 					<ParticipantsModal
 						participants={event.participants}
-						eventName={event.title}
+						title={t("theme.participantsModal.participants", {
+							eventName: event.title,
+						})}
 						onClose$={$(() => {
 							showParticipantsModal.value = false;
 						})}

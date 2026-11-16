@@ -8,8 +8,8 @@ import { ImageTile } from "~theme/blocks/FeatureBlock/ImageTile";
 import { LocalRepTile } from "~theme/blocks/FeatureBlock/LocalRepTile";
 import { ParticipantsTile } from "~theme/blocks/FeatureBlock/ParticipantsTile";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
-import { ParticipantsModal } from "~theme/shared/ParticipantsModal";
 import { StreamList } from "~theme/shared/StreamList/StreamList";
+import { ScopeMembersModal } from "./ScopeMembersModal";
 
 const GRID_LAYOUT = `"left-top middle right-top" "left-bottom middle right-top" "left-bottom middle right-bottom"`;
 const FALLBACK =
@@ -199,9 +199,8 @@ export const ScopeView = component$<{
 			)}
 			{/* Members modal */}
 			{showMembersModal.value && (
-				<ParticipantsModal
-					participants={recentMembers}
-					eventName={t("theme.scope.community", { name: scope.name })}
+				<ScopeMembersModal
+					scopeName={scope.name}
 					onClose$={$(() => {
 						showMembersModal.value = false;
 					})}

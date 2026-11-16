@@ -47,6 +47,8 @@ export type ScopeRoleHolder = PublicUser & {
 export interface ListMembersOptions {
 	includeDescendants?: boolean;
 	limit?: number;
+	/** Rows to skip (paging; use with `limit`). */
+	offset?: number;
 }
 export type { Visibility };
 
@@ -629,7 +631,7 @@ export const scopesService = {
 	 */
 	async listMembers(
 		scopeId: string,
-		{ includeDescendants = false, limit }: ListMembersOptions = {},
+		{ includeDescendants = false, limit, offset }: ListMembersOptions = {},
 	): Promise<ScopeMember[]> {
 		const scope = await this.getById(scopeId);
 		if (!scope) return [];
@@ -648,8 +650,11 @@ export const scopesService = {
 			.innerJoin(scopes, eq(scopes.id, scopeMemberships.scopeId))
 			.where(where)
 			.groupBy(users.id)
-			.orderBy(asc(sql`MIN(${scopeMemberships.createdAt})`));
-		const rows = limit ? await query.limit(limit) : await query;
+			// The user id breaks ties, so pages never overlap or skip members.
+			.orderBy(asc(sql`MIN(${scopeMemberships.createdAt})`), asc(users.id));
+		const rows = limit
+			? await query.limit(limit).offset(offset ?? 0)
+			: await query;
 		return rows.map(({ profilePicture, profilePictureSmall, ...member }) => ({
 			...member,
 			profilePictureSmallUrl: publicUserThumbnailUrl({

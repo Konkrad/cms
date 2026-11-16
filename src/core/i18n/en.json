@@ -641,6 +641,7 @@
 	"core.scopes.hasChildren": "Scope still has child scopes",
 	"core.scopes.invalidSlug": "Invalid scope slug \"{slug}\"",
 	"core.scopes.localRep": "Local Rep {name}",
+	"core.scopes.membersLoadFailed": "Could not load the members.",
 	"core.scopes.metaDescription": "{name} — {memberCount} members. Join the local community group.",
 	"core.scopes.nameRequired": "Scope name is required",
 	"core.scopes.pageExists": "A page with the URL segment \"{slug}\" already exists there",

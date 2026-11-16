@@ -641,6 +641,7 @@
 	"core.scopes.hasChildren": "Die Gruppe hat noch Untergruppen",
 	"core.scopes.invalidSlug": "Ungültiger Gruppen-Slug „{slug}“",
 	"core.scopes.localRep": "Ansprechperson vor Ort {name}",
+	"core.scopes.membersLoadFailed": "Die Mitglieder konnten nicht geladen werden.",
 	"core.scopes.metaDescription": "{name} – {memberCount} Mitglieder. Tritt der lokalen Community-Gruppe bei.",
 	"core.scopes.nameRequired": "Gruppenname ist erforderlich",
 	"core.scopes.pageExists": "Dort gibt es bereits eine Seite mit dem URL-Segment „{slug}“",

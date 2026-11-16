@@ -55,6 +55,12 @@ export interface ScopeMemberCard {
 	profileUrl: string;
 }
 
+/** One page of a scope's member list (`useScopeMembers`, logged-in viewers only). */
+export interface ScopeMembersPage {
+	members: ScopeMemberCard[];
+	hasMore: boolean;
+}
+
 /** Payload of a scope home page (declared, not derived: it shows members and authors). */
 export type ScopeViewData = {
 	scope: { id: string; name: string; kind: string; description: string | null };

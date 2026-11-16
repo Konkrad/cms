@@ -1,6 +1,7 @@
 import { component$, type QRL } from "@qwik.dev/core";
 import { Link } from "@qwik.dev/router";
 import { Avatar } from "~/components/ui/Avatar";
+import { Button } from "~/components/ui/Button";
 import { Modal } from "~/components/ui/Modal";
 import { t } from "~/contracts/i18n";
 import { formatUserName } from "~/core/users/format";
@@ -8,21 +9,45 @@ import type { ParticipantData } from "~theme/blocks/FeatureBlock/ParticipantsTil
 
 interface ParticipantsModalProps {
 	participants: ParticipantData[];
-	eventName: string;
+	title: string;
+	/** Shown when the list is empty (default: "No participants yet."). */
+	emptyText?: string;
+	/** First page still loading. */
+	isLoading?: boolean;
+	error?: string | null;
+	/** Paged lists: a "Load more" button while `hasMore`. */
+	hasMore?: boolean;
+	isLoadingMore?: boolean;
+	onLoadMore$?: QRL<() => void>;
 	onClose$: QRL<() => void>;
 }
 
 export const ParticipantsModal = component$<ParticipantsModalProps>(
-	({ participants, eventName, onClose$ }) => {
+	({
+		participants,
+		title,
+		emptyText,
+		isLoading,
+		error,
+		hasMore,
+		isLoadingMore,
+		onLoadMore$,
+		onClose$,
+	}) => {
 		return (
-			<Modal
-				open={true}
-				onClose$={onClose$}
-				title={t("theme.participantsModal.participants", { eventName })}
-			>
-				{participants.length === 0 ? (
+			<Modal open={true} onClose$={onClose$} title={title}>
+				{error && (
+					<p class="text-error text-center py-4" role="alert">
+						{error}
+					</p>
+				)}
+				{isLoading ? (
 					<p class="text-text-muted text-center py-8">
-						{t("theme.participantsModal.noParticipantsYet")}
+						{t("theme.participantsModal.loading")}
+					</p>
+				) : participants.length === 0 ? (
+					<p class="text-text-muted text-center py-8">
+						{emptyText ?? t("theme.participantsModal.noParticipantsYet")}
 					</p>
 				) : (
 					<ul class="divide-y divide-gray-200">
@@ -71,6 +96,20 @@ export const ParticipantsModal = component$<ParticipantsModalProps>(
 							);
 						})}
 					</ul>
+				)}
+				{hasMore && onLoadMore$ && (
+					<div class="pt-4 text-center">
+						<Button
+							variant="secondary"
+							size="sm"
+							onClick$={onLoadMore$}
+							disabled={isLoadingMore}
+						>
+							{isLoadingMore
+								? t("theme.participantsModal.loading")
+								: t("theme.participantsModal.loadMore")}
+						</Button>
+					</div>
 				)}
 			</Modal>
 		);

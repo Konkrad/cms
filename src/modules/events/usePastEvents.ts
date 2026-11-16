@@ -4,9 +4,9 @@ import type { EventsPage } from "~/contracts/events";
 import {
 	publicImageUrlFromKey,
 	requestContentFilter,
-	t,
 	withItemUrls,
 } from "~/core";
+import { t } from "~/core/i18n";
 import { eventsService } from "./services/events";
 
 // The listing of the page's scope (the URL's scope prefix), as the viewer sees it.

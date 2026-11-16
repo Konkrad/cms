@@ -1,7 +1,8 @@
 import { useSignal, useTask$ } from "@qwik.dev/core";
 import { server$ } from "@qwik.dev/router";
 import type { DealListItem } from "~/contracts/deals";
-import { requestContentFilter, t, withItemUrls } from "~/core";
+import { requestContentFilter, withItemUrls } from "~/core";
+import { t } from "~/core/i18n";
 import { toDealListItem } from "./public-deal";
 import { dealsService } from "./service";
 

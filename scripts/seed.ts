@@ -503,31 +503,34 @@ if (neededNew > 0 || bulkUsersWithoutCity.length > 0) {
 
 // ─── 5. Groups ───────────────────────────────────────────────────────────────
 
-const groupDefs = [
-	{
-		name: "North Chapter",
-		slug: "berlin",
-	},
-	{
-		name: "South Chapter",
-		slug: "munich",
-	},
-	{
-		name: "Coast Chapter",
-		slug: "hamburg",
-	},
-	{
-		name: "Central Chapter",
-		slug: "frankfurt",
-	},
-	{
-		name: "West Chapter",
-		slug: "cologne",
-	},
+// Chapters per region (slugs are city names; display names are generic). The first five
+// (Germany) carry the hand-written memberships and posts below.
+const regionDefs = [
+	{ name: "Germany", slug: "germany" },
+	{ name: "Austria", slug: "austria" },
+	{ name: "Switzerland", slug: "switzerland" },
+];
+const groupDefs: Array<{ name: string; slug: string; region: string }> = [
+	{ name: "North Chapter", slug: "berlin", region: "germany" },
+	{ name: "South Chapter", slug: "munich", region: "germany" },
+	{ name: "Coast Chapter", slug: "hamburg", region: "germany" },
+	{ name: "Central Chapter", slug: "frankfurt", region: "germany" },
+	{ name: "West Chapter", slug: "cologne", region: "germany" },
+	{ name: "East Chapter", slug: "leipzig", region: "germany" },
+	{ name: "Southwest Chapter", slug: "stuttgart", region: "germany" },
+	{ name: "Elbe Chapter", slug: "dresden", region: "germany" },
+	{ name: "Rhine Chapter", slug: "duesseldorf", region: "germany" },
+	{ name: "Lower Saxony Chapter", slug: "hanover", region: "germany" },
+	{ name: "Franconia Chapter", slug: "nuremberg", region: "germany" },
+	{ name: "Danube Chapter", slug: "vienna", region: "austria" },
+	{ name: "Styria Chapter", slug: "graz", region: "austria" },
+	{ name: "Alpine Chapter", slug: "salzburg", region: "austria" },
+	{ name: "Lake Chapter", slug: "zurich", region: "switzerland" },
+	{ name: "Capital Chapter", slug: "bern", region: "switzerland" },
+	{ name: "Border Chapter", slug: "basel", region: "switzerland" },
 ];
 
-// Groups are chapters in the scope tree: root → region "Germany" → the chapters below.
-// (Slugs are city names; display names are generic.)
+// Groups are chapters in the scope tree: root → region → the chapters below.
 function ensureScope(
 	parent: { id: string; path: string },
 	def: { name: string; slug: string; kind: string },
@@ -551,14 +554,15 @@ function ensureScope(
 		.find((s) => s.id === id)!;
 }
 
-const regionScope = ensureScope(rootScope, {
-	name: "Germany",
-	slug: "germany",
-	kind: "region",
-});
+const regionScopes = Object.fromEntries(
+	regionDefs.map((r) => [
+		r.slug,
+		ensureScope(rootScope, { ...r, kind: "region" }),
+	]),
+);
 const groupIds: Record<string, string> = {};
 for (const def of groupDefs) {
-	groupIds[def.slug] = ensureScope(regionScope, {
+	groupIds[def.slug] = ensureScope(regionScopes[def.region], {
 		name: def.name,
 		slug: def.slug,
 		kind: "chapter",

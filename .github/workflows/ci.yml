@@ -160,9 +160,10 @@ jobs:
       TELEGRAM_CHANNEL_ID: test
       ALTCHA_HMAC_KEY: test
       E2E_ALLOW_DB_WRITE: "true"
-      # Each leg on its own port and database (playwright.config.ts reseeds DB_PATH).
+      # Each leg on its own port and database (playwright.config.ts reseeds DB_PATH). The
+      # databases live outside the checkout, where the dev server neither watches nor scans them.
       E2E_PORT: ${{ matrix.modules == 'none' && '5186' || '5185' }}
-      DB_PATH: ${{ github.workspace }}/e2e-${{ matrix.modules }}.db
+      DB_PATH: /tmp/e2e-${{ matrix.modules }}.db
     # The same services as docker-compose.yml locally (and testcontainers in the unit tests).
     services:
       minio:
@@ -256,7 +257,7 @@ jobs:
       - name: Demo seed
         run: npx tsx scripts/seed.ts --fresh
         env:
-          DB_PATH: ${{ github.workspace }}/demo-${{ matrix.modules }}.db
+          DB_PATH: /tmp/demo-${{ matrix.modules }}.db
 
       - name: Run e2e tests
         run: npx playwright test

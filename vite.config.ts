@@ -112,6 +112,9 @@ export default defineConfig(
 					// Don't cache the server response in dev mode
 					"Cache-Control": "public, max-age=0",
 				},
+				// Never watch SQLite files: the WAL changes on every write, and a read of a
+				// database file from this process would drop its own SQLite locks (see .gitignore).
+				watch: { ignored: ["**/*.db", "**/*.db-shm", "**/*.db-wal"] },
 			},
 			preview: {
 				headers: {

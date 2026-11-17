@@ -50,6 +50,9 @@ export default defineConfig({
 		reuseExistingServer: false,
 		timeout: 180_000,
 		env: {
+			// A dev server, even when the shell says NODE_ENV=test (CI does): under "test" the
+			// notification worker and the scheduler never start, and the specs below need both.
+			NODE_ENV: "development",
 			// Bind the server to the isolated test DB.
 			DB_PATH: TEST_DB,
 			// Build magic links / redirects against the test server, not the default

@@ -17,7 +17,7 @@ import { getNotificationDefinition } from "~/core/registry/notifications";
  *
  * GET shows a confirmation with a button (link scanners prefetch GETs, so a GET never
  * changes anything); POST mutes. Mail clients use the RFC 8058 POST directly; see
- * `allowOneClickUnsubscribe` for why that POST passes Qwik's CSRF check.
+ * `allowOneClickUnsubscribe` for why that POST passes Qwik's origin check.
  */
 
 function authorize(event: RequestEvent) {

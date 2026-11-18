@@ -194,12 +194,16 @@ test.describe("Jobs — pagination history", () => {
 			await expect(nextButton).toBeVisible({ timeout: 10_000 });
 			await nextButton.click();
 			await expect(page).toHaveURL(/\?cursor=[^&]+$/, { timeout: 10_000 });
+			const page2Url = page.url();
 			const firstTitleOnPage2 = await page
 				.locator('a[href^="/jobs/"]')
 				.first()
 				.textContent();
 
 			await nextButton.click();
+			// The URL already carries page 2's cursor: wait until it really changes, or
+			// page3Url could still be page 2's URL.
+			await expect(page).not.toHaveURL(page2Url, { timeout: 10_000 });
 			await expect(page).toHaveURL(/\?cursor=[^&]+$/, { timeout: 10_000 });
 			const page3Url = page.url();
 

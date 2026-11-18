@@ -250,11 +250,14 @@ test.describe("Notifications — events", () => {
 				),
 			).toBeVisible({ timeout: 10_000 });
 
-			const rows = getOutboxRows({
-				notificationId: "events.ticket-confirmation",
-				recipientUserId: session.userId,
-			});
-			expect(rows).toHaveLength(1);
+			// The message above is optimistic (shown on click), so wait for the action's row.
+			const outboxRows = () =>
+				getOutboxRows({
+					notificationId: "events.ticket-confirmation",
+					recipientUserId: session.userId,
+				});
+			await expect.poll(() => outboxRows().length, { timeout: 10_000 }).toBe(1);
+			const rows = outboxRows();
 			expect(rows[0].recipient_address).toBe(email);
 
 			const html = await waitForEmailHtml(email, 30_000, since);

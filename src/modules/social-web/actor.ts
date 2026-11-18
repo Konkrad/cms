@@ -90,7 +90,7 @@ export async function handleActorGet(event: RequestEvent): Promise<void> {
 /**
  * Every method of `/social/inbox`. A poll-only actor receives nothing (FEP-b06c): GET shows an
  * empty collection, every write answers 405 (no body is read, nothing is stored). Writes reach
- * this handler past Qwik's CSRF check through `relabelInboxWrite`.
+ * this handler past Qwik's origin check through `allowInboxWrite`.
  */
 export async function handleInboxRequest(event: RequestEvent): Promise<void> {
 	requireActiveModule(event, MODULE_ID);

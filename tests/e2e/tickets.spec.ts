@@ -303,10 +303,11 @@ test.describe("Tickets", () => {
 		await page.goto(`/events/${ev.slug}/checkout?payment=${payment.id}`);
 		await expect(page.getByText("Payment Successful!")).toBeVisible();
 
-		// Telegram notifications are best-effort and can be disabled in some test setups.
+		// Telegram notifications are best-effort and can be disabled in some test setups. The
+		// mock is shared by every test (one port), so other tests' sale alerts may be in it too.
 		const telegramMsgs = getTelegramMessages();
 		if (telegramMsgs.length > 0) {
-			expect(telegramMsgs[0].text).toContain(productName);
+			expect(telegramMsgs.map((m) => m.text).join("\n")).toContain(productName);
 		}
 	});
 });

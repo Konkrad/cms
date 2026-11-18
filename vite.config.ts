@@ -134,7 +134,12 @@ function rawRequest(): Plugin {
 		name: "cms:raw-request",
 		configureServer(server) {
 			server.middlewares.use((req, _res, next) => {
-				prepareRawRequest(req);
+				// The origin Qwik's dev router compares writes with: protocol and Host header.
+				const tls = (req.socket as { encrypted?: boolean }).encrypted;
+				prepareRawRequest(
+					req,
+					`${tls ? "https" : "http"}://${req.headers.host}`,
+				);
 				next();
 			});
 		},

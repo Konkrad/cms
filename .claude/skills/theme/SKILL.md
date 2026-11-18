@@ -1,0 +1,63 @@
+---
+name: theme
+description: Use when editing anything in theme/ (blocks, chrome, emails, routes, shared, tokens), creating or changing UI components, shared UI primitives or form elements, colors/fonts/tokens, qwikify$ React components, contracts in src/contracts, page-builder blocks or headless composables, or when deciding whether code belongs in theme or core.
+---
+
+# Theme vs core, contracts, UI
+
+The presentational layer for public-facing routes lives in `theme/` and is licensed separately from core (`theme/LICENSE`). The admin panel is core and is **not** themeable. See `theme/README.md` for the folder layout.
+
+## Route / theme split
+
+- **Qwik City forces route files to stay in `src/routes/**`.** A route file keeps its `routeLoader$`/`routeAction$`/`onRequest`/`head`/auth, strips secrets, then delegates rendering to a theme `*View` component, passing loader data as typed props.
+- **The props type is the contract.** Contracts live in `src/contracts/*.ts`. Pages that show another user's data declare their payload type there and the loader returns it (`satisfies` / explicit return type); for other pages it may be derived from the loader (`NonNullable<ReturnType<typeof useX>["value"]>`) and re-exported from `src/contracts/*.ts`. Module page types (`JobsListData`, ...) are declared the same way.
+- Theme components import only from `~/contracts/*` and, where a block/view needs live data after SSR (pagination, "Load More"), a core-owned **headless composable**. Never `db`, `env`, services, `~/core` or `~/core/auth/*` directly.
+- Visibility is decided in the loader/service; the theme only renders what it gets and never hides data with conditionals (CLAUDE.md Security).
+- Links to items come from the payload (`event.url`, `job.url`, `article.url`, `checkoutUrl`, …): the theme never builds item URLs (`/events/${id}`), because an item lives under its owning scope's path (spec 4.3). A missing URL means a contract field to add in core (`itemUrl` / `withItemUrls` in the loader or composable). `tests/unit/no-hand-built-item-links.spec.ts` enforces it. Stored links (menus, block link fields, rich text) reach the theme already resolved.
+
+## Notes and articles
+
+- Two core types (spec 4.4). A note (`NoteCardData`, `type: "note"`) is shown whole with its author, like a status update: `body` is sanitized HTML with links only, no title, no image. An article (`ArticleCardData`, `type: "article"`) has `title`, `excerpt`, `imageUrl` (featured image, may be null) and links to `url`.
+- Mixed listings (the Stream block, `ArchiveViewData`, scope home `recentNews`, related items, an event's `updates`) are `StreamItemData[]`, newest first: render them with `StreamList` / `StreamCard` (`theme/shared/StreamList`), which pick `NoteCard` / `ArticleCard` by `type`. Pages: `NoteView` (`theme/routes/notes`, `data-layout="note"`) and `ArticleView` (`theme/routes/articles`, `data-layout="article"`, image beside the text).
+- The Stream block's `show` setting (`all` / `notes` / `articles`) and the archives (`/archive/<all|notes|articles>`) filter by type in core (`useStream`, `stream.service.ts`); the theme never filters lists itself. `HeroArticle` (hero block) lists articles with their image.
+
+## User requirement steps
+
+- Pending requirements (spec 4.6) reach the theme as `RequirementStepData[]` (`~/contracts/requirements`): render them with `RequirementSteps` / `RequirementStep` (`theme/shared/RequirementStep/`), which post to core's single action passed in as a prop (`SubmitRequirementAction`). Custom views by `step.view` (`core.profile`, `core.location`, `core.form`), otherwise `GenericFields` from `step.fields`. Field names are the requirement's input keys; errors come back per field in the action value. The setup flow is `theme/routes/onboarding/SetupView.tsx`.
+
+## Headless composables and blocks
+
+- **Page-builder blocks have no route loader**, so each "dynamic" block delegates data-fetching/pagination to a composable: core ones under `src/core/content/builder/blocks/use*.ts` (`useScopesList` — the child scopes of the page's scope —, `useHeroSection`, `useStream`); module blocks live in the module (`src/modules/events/useUpcomingEvents.ts`, `useUpcomingEvents`/`usePastEvents`, `src/modules/deals/useDealsList.ts`). Plain functions using `useSignal`/`useTask$`/`server$()`, Qwik's native "custom hook" pattern.
+- The composable owns the service/db/auth calls and any `server$()` RPC boundary; the theme block (`theme/blocks/**`) only calls the composable and renders the returned signals. Same split for the `/jobs` list pagination (`src/modules/jobs/useJobsPagination.ts`). Mark the block `category: "dynamic"`. See `src/core/content/builder/README.md`.
+- `BlockDefinition`/`FieldDefinition`/`BlockData` (needed by every block for registration) are re-exported type-only from `src/contracts/blocks.ts`, so blocks never import `~/core/*/schema` either.
+- A block field that links somewhere uses `type: "link"` (not `"url"`): the builder offers a search over scopes, pages, notes, articles and module items and stores the pick as a `ref:` reference; the CMS page loader hands the block the current URL (an unavailable reference becomes `""`). `"url"` stays for external embeds (video, iframe).
+- Module-owned block types are also listed in the module's `blocks.ts` and `src/core/registry/blocks.ts` (see `add-module`).
+
+## UI strings and formatting (spec 4.8)
+
+- Theme text lives in `theme/i18n/en.json` + `de.json` (flat keys `theme.<component>.<key>`), rendered with `t("theme.…", params?)` imported from `~/contracts/i18n` (the theme's door to core's i18n runtime, together with `formatDate` / `formatNumber` / `formatCurrency` / `formatMoney` / `siteLocale`). Never literal JSX text or text attributes (`placeholder`, `title`, `aria-label`, `alt`, `label`…): `tests/unit/no-hardcoded-jsx-text.spec.ts` flags them (small justified allow-list there). Block definitions (`name`, field `label`s, options, defaults) and email templates use `t()` as well.
+- Plurals: `<key>_one` / `<key>_other` with `{ count }`. Keep sentences whole where you can (one key with `{param}`s) instead of fragments around inline elements.
+- Tests should find elements by role or `data-testid`, not by translated text (e.g. `data-testid="profile-menu"`).
+
+## Enforced boundary
+
+`biome.json` has a `noRestrictedImports` override scoped to `theme/**` that fails the build on any import of `~/core` (module API root), `~/core/schema`, `~/core/db/**`, `~/core/*/*.service`, `~/core/*/schema` (and `/**`), `~/core/auth/**`, or `~/env`. Run `npx biome lint theme`. When adding a new dynamic block or live data need, add a composable in core (or the module) first; do not import a service directly from `theme/**` to work around the rule.
+
+## Imports and the Qwik production-build footgun
+
+- Import theme code via the `~theme/*` alias (`~theme/chrome`, `~theme/blocks`, `~theme/routes/**`, `~theme/shared/**`). Never import theme code from a route file via a relative path.
+- A re-exported `routeAction$`/`routeLoader$` is only resolved correctly by the production Rollup transform when re-exported via a **relative** import path, never `~` or `~theme`. When a step/widget bundles an action with JSX (see `src/core/users/setup/README.md`), split it: the action stays in core (`src/core/<area>/**/useXxx.ts`, re-exported relatively from the route), the JSX moves to `theme/shared/**` (imported via `~theme`; only the action re-export hits the broken transform).
+- **Check usage per exported component, not per file.** A file can export several components where only some are theme-exclusive; check what each consuming route imports before moving or splitting (e.g. `ParticipationToggle` vs `ParticipationSummary`, split because only the public route used the toggle and only the admin route used the summary).
+
+## Admin is not themeable
+
+Admin stays un-themeable via the `.admin-shell` scope in `src/global.css`, which re-pins brand token values; `src/routes/admin/layout.tsx` wraps admin in it. Never let an admin-only component read brand tokens (`--color-primary*`, `--color-accent*`) expecting theme values to apply.
+
+## Tokens
+
+Design tokens (colors, fonts, radii, shadows) are defined once in `theme/tokens/theme.css` (Tailwind `@theme {}` block) and `theme/tokens/tokens.ts` (TS constants for emails/inline styles), with a core fallback set in `src/design/tokens.css`. Never hardcode hex colors or font stacks in components or emails; reference a token. `src/design/DESIGN.md` has the full palette; `theme/emails/brand.ts` has email-specific brand strings.
+
+## UI components
+
+- React components used through `qwikify$()` must be self-contained: keep their CSS alongside the component.
+- Before creating any shared UI primitive or form element, read `src/design/DESIGN.md` and import primitives from `~/components/ui` only (modules get them through `~/core/ui`).

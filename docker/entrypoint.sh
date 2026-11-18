@@ -11,7 +11,7 @@ if [ ! -f "$DB_PATH" ]; then
   litestream restore -if-replica-exists -config /app/litestream.yml "$DB_PATH" || true
 fi
 
-# Migrations are applied by the server itself (src/db/migrate.ts, called from
+# Migrations are applied by the server itself (src/core/db/migrate.ts, called from
 # entry.node-server.tsx before it starts listening) — no separate step here.
 
 # Run the server supervised by Litestream so the SQLite WAL is continuously

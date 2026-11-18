@@ -7,8 +7,11 @@ import { fileURLToPath } from "node:url";
 import { qwikVite } from "@qwik.dev/core/optimizer";
 import { qwikRouter } from "@qwik.dev/router/vite";
 import tailwindcss from "@tailwindcss/vite";
-import { defineConfig, type UserConfig } from "vite";
+import { defineConfig, type Plugin, type UserConfig } from "vite";
 import pkg from "./package.json";
+import { i18nCatalog } from "./src/core/i18n/vite-plugin";
+import { prepareRawRequest } from "./src/core/registry/raw-request";
+import { moduleSet } from "./src/core/registry/vite-plugin";
 
 // Absolute path to ./src for the "~" alias below.
 const srcDir = fileURLToPath(new URL("./src/", import.meta.url));
@@ -39,14 +42,23 @@ export default defineConfig(
 		// since Vite doesn't re-invoke this config function for app-source changes.
 		// Imported dynamically so `vite build` (which lacks the full secret set at
 		// build time — see Dockerfile) never eagerly loads src/env.ts's validation.
-		if (command === "serve" && !isPreview) {
-			const { runMigrations } = await import("./src/db/migrate");
+		const devServer = command === "serve" && !isPreview;
+		if (devServer) {
+			const { runMigrations } = await import("./src/core/db/migrate");
 			runMigrations();
 		}
 
 		return {
 			publicDir,
 			plugins: [
+				rawRequest(),
+				// The active module set (modules.config.ts or CMS_MODULES), fixed at build time.
+				moduleSet(),
+				// The site locale's message catalog, merged at build time (src/core/i18n).
+				i18nCatalog(),
+				// Dev server only, after the migrations above (never in builds or vitest, which
+				// uses vitest.config.ts). The production server starts it in entry.node-server.tsx.
+				...(devServer ? [notificationOutboxWorker()] : []),
 				tailwindcss(),
 				// strictLoaders defaults to true as of @qwik.dev/router beta.37, which makes every
 				// routeAction$ send an empty loaderHashes list unless it explicitly opts specific
@@ -100,6 +112,9 @@ export default defineConfig(
 					// Don't cache the server response in dev mode
 					"Cache-Control": "public, max-age=0",
 				},
+				// Never watch SQLite files: the WAL changes on every write, and a read of a
+				// database file from this process would drop its own SQLite locks (see .gitignore).
+				watch: { ignored: ["**/*.db", "**/*.db-shm", "**/*.db-wal"] },
 			},
 			preview: {
 				headers: {
@@ -112,6 +127,47 @@ export default defineConfig(
 );
 
 // *** utils ***
+
+/** Dev-server side of `prepareRawRequest` (runs before Qwik's middleware). */
+function rawRequest(): Plugin {
+	return {
+		name: "cms:raw-request",
+		configureServer(server) {
+			server.middlewares.use((req, _res, next) => {
+				// The origin Qwik's dev router compares writes with: protocol and Host header.
+				const tls = (req.socket as { encrypted?: boolean }).encrypted;
+				prepareRawRequest(
+					req,
+					`${tls ? "https" : "http"}://${req.headers.host}`,
+				);
+				next();
+			});
+		},
+	};
+}
+
+/**
+ * Starts the notification outbox worker and the scheduler in the dev server process once it listens. Loaded
+ * through Vite's SSR module graph (not a plain import) so the app's "~" aliases resolve;
+ * `startOutboxWorker` guards against a second start on dev-server restarts.
+ */
+function notificationOutboxWorker(): Plugin {
+	return {
+		name: "cms:notification-outbox-worker",
+		configureServer(server) {
+			server.httpServer?.once("listening", async () => {
+				const { startOutboxWorker } = await server.ssrLoadModule(
+					"/src/core/notifications/worker.ts",
+				);
+				startOutboxWorker();
+				const { startScheduler } = await server.ssrLoadModule(
+					"/src/core/scheduler/worker.ts",
+				);
+				startScheduler();
+			});
+		},
+	};
+}
 
 /**
  * Function to identify duplicate dependencies and throw an error

@@ -1,1 +1,0 @@
-export { TicketScanner } from "./TicketScanner";

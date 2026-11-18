@@ -1,19 +1,20 @@
 import { component$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { t } from "~/contracts/i18n";
 
 interface SpacerBlockProps {
 	height?: number;
 }
 
 export const definition: BlockDefinition = {
-	name: "Spacer",
+	name: t("theme.blocks.spacer.spacer"),
 	componentType: "SpacerBlock",
 	category: "content",
 	icon: "↕️",
 	configSchema: [
 		{
 			name: "height",
-			label: "Height (pixels)",
+			label: t("theme.blocks.spacer.heightPixels"),
 			type: "number",
 			defaultValue: 60,
 			required: true,

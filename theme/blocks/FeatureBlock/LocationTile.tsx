@@ -2,87 +2,95 @@ import { component$, useSignal, useVisibleTask$ } from "@qwik.dev/core";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 interface LocationTileProps {
-  image: string;
-  location: string;
-  area?: string;
-  lat?: number;
-  lng?: number;
+	image: string;
+	location: string;
+	area?: string;
+	lat?: number;
+	lng?: number;
 }
 
 export const LocationTile = component$<LocationTileProps>((props) => {
-  const mapContainer = useSignal<HTMLDivElement>();
+	const mapContainer = useSignal<HTMLDivElement>();
 
-  useVisibleTask$(({ track, cleanup }) => {
-    const lat = track(() => props.lat);
-    const lng = track(() => props.lng);
+	// biome-ignore lint/correctness/noQwikUseVisibleTask: the map library needs the DOM node in the browser
+	useVisibleTask$(({ track, cleanup }) => {
+		const lat = track(() => props.lat);
+		const lng = track(() => props.lng);
 
-    if (
-      lat !== undefined &&
-      lng !== undefined &&
-      !isNaN(lat) &&
-      !isNaN(lng) &&
-      mapContainer.value
-    ) {
-      const map = new maplibregl.Map({
-        container: mapContainer.value,
-        style: "https://tiles.openfreemap.org/styles/liberty",
-        center: [lng, lat],
-        zoom: 14,
-        interactive: false,
-      });
+		if (
+			lat !== undefined &&
+			lng !== undefined &&
+			!isNaN(lat) &&
+			!isNaN(lng) &&
+			mapContainer.value
+		) {
+			const map = new maplibregl.Map({
+				container: mapContainer.value,
+				style: "https://tiles.openfreemap.org/styles/liberty",
+				center: [lng, lat],
+				zoom: 14,
+				interactive: false,
+			});
 
-      map.on("load", () => {
-        const poiLabelLayers = map
-          .getStyle()
-          .layers?.filter((layer) => layer.id.startsWith("poi") && layer.type === "symbol");
-        for (const layer of poiLabelLayers ?? []) {
-          map.setLayoutProperty(layer.id, "visibility", "none");
-        }
-      });
+			map.on("load", () => {
+				const poiLabelLayers = map
+					.getStyle()
+					.layers?.filter(
+						(layer) => layer.id.startsWith("poi") && layer.type === "symbol",
+					);
+				for (const layer of poiLabelLayers ?? []) {
+					map.setLayoutProperty(layer.id, "visibility", "none");
+				}
+			});
 
-      new maplibregl.Marker({ color: "#ff0000" })
-        .setLngLat([lng, lat])
-        .addTo(map);
+			new maplibregl.Marker({ color: "#ff0000" })
+				.setLngLat([lng, lat])
+				.addTo(map);
 
-      cleanup(() => map.remove());
-    }
-  });
+			cleanup(() => map.remove());
+		}
+	});
 
-  return (
-    <div
-      class="relative rounded-[25px] overflow-hidden h-full w-full"
-      style={props.area ? { gridArea: props.area } : undefined}
-    >
-      {props.lat !== undefined &&
-      props.lng !== undefined &&
-      !isNaN(props.lat) &&
-      !isNaN(props.lng) ? (
-        <div ref={mapContainer} class="w-full h-full absolute inset-0" />
-      ) : (
-        <img
-          src={props.image}
-          alt={props.location}
-          class="w-full h-full object-cover"
-          width={800}
-          height={600}
-        />
-      )}
+	return (
+		<div
+			class="relative rounded-[25px] overflow-hidden h-full w-full"
+			style={props.area ? { gridArea: props.area } : undefined}
+		>
+			{props.lat !== undefined &&
+			props.lng !== undefined &&
+			!isNaN(props.lat) &&
+			!isNaN(props.lng) ? (
+				<div ref={mapContainer} class="w-full h-full absolute inset-0" />
+			) : (
+				<img
+					src={props.image}
+					alt={props.location}
+					class="w-full h-full object-cover"
+					width={800}
+					height={600}
+				/>
+			)}
 
-      {/* Top overlay with location pin + address */}
-      <div class="absolute top-8 left-8 right-8 flex items-start gap-3">
-        {/* Map pin icon */}
-        <div class="w-9 h-9 shrink-0">
-          <svg class="w-full h-full" fill="none" viewBox="0 0 36 36">
-            <path
-              d="M18 2C12.48 2 8 6.48 8 12c0 7.5 10 22 10 22s10-14.5 10-22c0-5.52-4.48-10-10-10zm0 14c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"
-              fill="black"
-            />
-          </svg>
-        </div>
-        <h3 class="font-semibold text-[25px] md:text-[30px] leading-[1.406] text-black drop-shadow-lg">
-          {props.location}
-        </h3>
-      </div>
-    </div>
-  );
+			{/* Top overlay with location pin + address */}
+			<div class="absolute top-8 left-8 right-8 flex items-start gap-3">
+				{/* Map pin icon */}
+				<div class="w-9 h-9 shrink-0">
+					<svg
+						class="w-full h-full"
+						fill="none"
+						viewBox="0 0 36 36"
+						aria-hidden="true"
+					>
+						<path
+							d="M18 2C12.48 2 8 6.48 8 12c0 7.5 10 22 10 22s10-14.5 10-22c0-5.52-4.48-10-10-10zm0 14c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"
+							fill="black"
+						/>
+					</svg>
+				</div>
+				<h3 class="font-semibold text-[25px] md:text-[30px] leading-[1.406] text-black drop-shadow-lg">
+					{props.location}
+				</h3>
+			</div>
+		</div>
+	);
 });

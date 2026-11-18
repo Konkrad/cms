@@ -1,6 +1,6 @@
 /**
- * Core → theme data contract for the catch-all CMS page route (`/[...slug]`).
+ * Core → theme data contract for CMS pages rendered by the catch-all route (`/[...path]`).
  */
-import type { usePage } from "~/routes/[...slug]";
+import type { loadCmsPage } from "~/core/content/cms-page";
 
-export type PageViewData = ReturnType<typeof usePage>["value"];
+export type PageViewData = Awaited<ReturnType<typeof loadCmsPage>>;

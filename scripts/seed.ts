@@ -25,8 +25,10 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
-import { runMigrations } from "../src/db/migrate.ts";
-import * as schema from "../src/db/schema.ts";
+import { runMigrations } from "../src/core/db/migrate.ts";
+import * as schema from "../src/core/db/schema.ts";
+import { ensureWorkflowForm, onboardingFormSeed } from "./seed-forms.ts";
+import { completeRequirements } from "./seed-requirements.ts";
 
 dotenv.config();
 
@@ -132,7 +134,41 @@ async function ensureBucketAndPublicReadPolicy(s3: S3Client): Promise<void> {
 	);
 }
 
-async function downloadAndUploadSeedImages(): Promise<string[]> {
+/** Uploads one public object for a module's demo data (deal logos); its key, or null on failure. */
+async function uploadPublicSeedObject(
+	key: string,
+	body: Buffer,
+	contentType: string,
+): Promise<string | null> {
+	const s3 = new S3Client({
+		region: seedStorageConfig.region,
+		endpoint: seedStorageConfig.endpoint,
+		forcePathStyle: true,
+		credentials: {
+			accessKeyId: seedStorageConfig.accessKeyId,
+			secretAccessKey: seedStorageConfig.secretAccessKey,
+		},
+	});
+	try {
+		await s3.send(
+			new PutObjectCommand({
+				Bucket: seedStorageConfig.bucket,
+				Key: key,
+				Body: body,
+				ContentType: contentType,
+				CacheControl: "public, max-age=86400",
+			}),
+		);
+		return key;
+	} catch {
+		return null;
+	}
+}
+
+async function downloadAndUploadSeedImages(): Promise<{
+	keys: string[];
+	articleKeys: string[];
+}> {
 	const s3 = new S3Client({
 		region: seedStorageConfig.region,
 		endpoint: seedStorageConfig.endpoint,
@@ -146,6 +182,8 @@ async function downloadAndUploadSeedImages(): Promise<string[]> {
 	await ensureBucketAndPublicReadPolicy(s3);
 
 	const uploadedKeys: string[] = [];
+	// Article images live under their own public prefix (validated by the articles service).
+	const articleKeys: string[] = [];
 
 	for (let i = 0; i < seedImageSources.length; i++) {
 		const sourceUrl = seedImageSources[i];
@@ -200,10 +238,22 @@ async function downloadAndUploadSeedImages(): Promise<string[]> {
 			}),
 		);
 
+		const articleKey = `public/articles/seed-${i + 1}.webp`;
+		await s3.send(
+			new PutObjectCommand({
+				Bucket: seedStorageConfig.bucket,
+				Key: articleKey,
+				Body: mainBuffer,
+				ContentType: "image/webp",
+				CacheControl: "public, max-age=86400",
+			}),
+		);
+
 		uploadedKeys.push(objectKey);
+		articleKeys.push(articleKey);
 	}
 
-	return uploadedKeys;
+	return { keys: uploadedKeys, articleKeys };
 }
 
 // ─── 4. Base users ───────────────────────────────────────────────────────────
@@ -212,9 +262,7 @@ const ADMIN_EMAIL = "admin@example.com";
 
 const existingUsers = db.select().from(schema.users).all();
 
-let adminUser = existingUsers.find(
-	(u) => u.role === "admin" && u.name === "Admin",
-);
+let adminUser = existingUsers.find((u) => u.name === "Admin");
 let hostUser = existingUsers.find((u) => u.name === "Host");
 
 if (!adminUser) {
@@ -233,7 +281,6 @@ if (!adminUser) {
 			id,
 			name: "Admin",
 			familyName: "User",
-			role: "admin",
 			loginId,
 			createdAt: now(),
 			updatedAt: now(),
@@ -262,7 +309,6 @@ if (!hostUser) {
 			id,
 			name: "Host",
 			familyName: "User",
-			role: "admin",
 			loginId,
 			createdAt: now(),
 			updatedAt: now(),
@@ -274,6 +320,39 @@ if (!hostUser) {
 		.all()
 		.find((u) => u.id === id)!;
 	console.log("  created host user 'Host' (host@example.com)");
+}
+
+// ─── Scope tree root and platform admins ─────────────────────────────────────
+// A platform admin is an admin of the root scope (there is no users.role).
+
+let rootScope = db
+	.select()
+	.from(schema.scopes)
+	.all()
+	.find((s) => s.parentId === null);
+if (!rootScope) {
+	const id = uuid();
+	db.insert(schema.scopes)
+		.values({
+			id,
+			parentId: null,
+			kind: "root",
+			slug: "",
+			name: "Community",
+			path: "/",
+		})
+		.run();
+	rootScope = db
+		.select()
+		.from(schema.scopes)
+		.all()
+		.find((s) => s.id === id)!;
+}
+for (const admin of [adminUser!, hostUser!]) {
+	db.insert(schema.scopeRoles)
+		.values({ userId: admin.id, scopeId: rootScope.id, role: "admin" })
+		.onConflictDoNothing()
+		.run();
 }
 
 const TEST_USER_EMAILS = new Set(
@@ -292,24 +371,7 @@ let testUsers = db
 	.select()
 	.from(schema.users)
 	.all()
-	.filter((u) => u.role === "user" && testLoginIds.has(u.loginId ?? ""));
-
-// Ensure existing test users have the consent fields needed to reach the survey phase.
-for (const u of testUsers) {
-	const consent = (u.consent ?? {}) as Record<string, string | null>;
-	if (!consent.lastProfileUpdate || !consent.locationVerification) {
-		db.update(schema.users)
-			.set({
-				consent: {
-					...consent,
-					lastProfileUpdate: now(),
-					locationVerification: now(),
-				},
-			})
-			.where(eq(schema.users.id, u.id))
-			.run();
-	}
-}
+	.filter((u) => testLoginIds.has(u.loginId ?? ""));
 
 if (testUsers.length < 10) {
 	for (let i = testUsers.length; i < 10; i++) {
@@ -324,9 +386,7 @@ if (testUsers.length < 10) {
 				id: uuid(),
 				name: faker.person.firstName(),
 				familyName: faker.person.lastName(),
-				role: "user",
 				loginId,
-				consent: { lastProfileUpdate: now(), locationVerification: now() },
 				createdAt: now(),
 				updatedAt: now(),
 			})
@@ -336,7 +396,7 @@ if (testUsers.length < 10) {
 		.select()
 		.from(schema.users)
 		.all()
-		.filter((u) => u.role === "user" && testLoginIds.has(u.loginId ?? ""));
+		.filter((u) => testLoginIds.has(u.loginId ?? ""));
 	console.log(`  ensured 10 test users exist (now ${testUsers.length})`);
 }
 
@@ -354,7 +414,12 @@ const allBulkUsers = db
 	.select()
 	.from(schema.users)
 	.all()
-	.filter((u) => u.role === "user" && !testLoginIds.has(u.loginId ?? ""));
+	.filter(
+		(u) =>
+			u.id !== adminUser!.id &&
+			u.id !== hostUser!.id &&
+			!testLoginIds.has(u.loginId ?? ""),
+	);
 
 // All users missing a city (includes admin, host, test, QA users)
 const allUsersWithoutCity = db
@@ -416,7 +481,6 @@ if (neededNew > 0 || bulkUsersWithoutCity.length > 0) {
 				id: uuid(),
 				name: faker.person.firstName(),
 				familyName: faker.person.lastName(),
-				role: "user",
 				loginId,
 				city,
 				country,
@@ -439,54 +503,70 @@ if (neededNew > 0 || bulkUsersWithoutCity.length > 0) {
 
 // ─── 5. Groups ───────────────────────────────────────────────────────────────
 
-const groupDefs = [
-	{
-		name: "North Chapter",
-		slug: "berlin",
-		latitude: "59.3293",
-		longitude: "18.0686",
-	}, // Stockholm
-	{
-		name: "South Chapter",
-		slug: "munich",
-		latitude: "41.3851",
-		longitude: "2.1734",
-	}, // Barcelona
-	{
-		name: "Coast Chapter",
-		slug: "hamburg",
-		latitude: "51.5074",
-		longitude: "-0.1278",
-	}, // London
-	{
-		name: "Central Chapter",
-		slug: "frankfurt",
-		latitude: "48.2082",
-		longitude: "16.3738",
-	}, // Vienna
-	{
-		name: "West Chapter",
-		slug: "cologne",
-		latitude: "48.8566",
-		longitude: "2.3522",
-	}, // Paris
+// Chapters per region (slugs are city names; display names are generic). The first five
+// (Germany) carry the hand-written memberships and posts below.
+const regionDefs = [
+	{ name: "Germany", slug: "germany" },
+	{ name: "Austria", slug: "austria" },
+	{ name: "Switzerland", slug: "switzerland" },
+];
+const groupDefs: Array<{ name: string; slug: string; region: string }> = [
+	{ name: "North Chapter", slug: "berlin", region: "germany" },
+	{ name: "South Chapter", slug: "munich", region: "germany" },
+	{ name: "Coast Chapter", slug: "hamburg", region: "germany" },
+	{ name: "Central Chapter", slug: "frankfurt", region: "germany" },
+	{ name: "West Chapter", slug: "cologne", region: "germany" },
+	{ name: "East Chapter", slug: "leipzig", region: "germany" },
+	{ name: "Southwest Chapter", slug: "stuttgart", region: "germany" },
+	{ name: "Elbe Chapter", slug: "dresden", region: "germany" },
+	{ name: "Rhine Chapter", slug: "duesseldorf", region: "germany" },
+	{ name: "Lower Saxony Chapter", slug: "hanover", region: "germany" },
+	{ name: "Franconia Chapter", slug: "nuremberg", region: "germany" },
+	{ name: "Danube Chapter", slug: "vienna", region: "austria" },
+	{ name: "Styria Chapter", slug: "graz", region: "austria" },
+	{ name: "Alpine Chapter", slug: "salzburg", region: "austria" },
+	{ name: "Lake Chapter", slug: "zurich", region: "switzerland" },
+	{ name: "Capital Chapter", slug: "bern", region: "switzerland" },
+	{ name: "Border Chapter", slug: "basel", region: "switzerland" },
 ];
 
-const existingGroups = db.select().from(schema.groups).all();
-const groupIds: Record<string, string> = {};
+// Groups are chapters in the scope tree: root → region → the chapters below.
+function ensureScope(
+	parent: { id: string; path: string },
+	def: { name: string; slug: string; kind: string },
+) {
+	const path = `${parent.path}${def.slug}/`;
+	const existing = db
+		.select()
+		.from(schema.scopes)
+		.all()
+		.find((s) => s.path === path);
+	if (existing) return existing;
+	const id = uuid();
+	db.insert(schema.scopes)
+		.values({ id, parentId: parent.id, path, createdAt: now(), ...def })
+		.run();
+	console.log(`  created ${def.kind} '${def.name}' (${path})`);
+	return db
+		.select()
+		.from(schema.scopes)
+		.all()
+		.find((s) => s.id === id)!;
+}
 
+const regionScopes = Object.fromEntries(
+	regionDefs.map((r) => [
+		r.slug,
+		ensureScope(rootScope, { ...r, kind: "region" }),
+	]),
+);
+const groupIds: Record<string, string> = {};
 for (const def of groupDefs) {
-	const existing = existingGroups.find((g) => g.slug === def.slug);
-	if (existing) {
-		groupIds[def.slug] = existing.id;
-	} else {
-		const id = uuid();
-		db.insert(schema.groups)
-			.values({ id, ...def, createdAt: now(), updatedAt: now() })
-			.run();
-		groupIds[def.slug] = id;
-		console.log(`  created group '${def.name}'`);
-	}
+	groupIds[def.slug] = ensureScope(regionScopes[def.region], {
+		name: def.name,
+		slug: def.slug,
+		kind: "chapter",
+	}).id;
 }
 
 // ─── 6. Memberships ──────────────────────────────────────────────────────────
@@ -523,20 +603,14 @@ const membershipPlan: Array<{ userId: string; groupSlug: string }> = [
 	{ userId: hostUser.id, groupSlug: "frankfurt" },
 ].filter((m) => m.userId);
 
-const existingMemberships = db.select().from(schema.groupMemberships).all();
-
 for (const m of membershipPlan) {
-	const already = existingMemberships.some(
-		(em) => em.userId === m.userId && em.groupId === groupIds[m.groupSlug],
-	);
-	if (already) continue;
-	db.insert(schema.groupMemberships)
+	db.insert(schema.scopeMemberships)
 		.values({
-			id: uuid(),
 			userId: m.userId,
-			groupId: groupIds[m.groupSlug],
-			joinedAt: now(),
+			scopeId: groupIds[m.groupSlug],
+			createdAt: now(),
 		})
+		.onConflictDoNothing()
 		.run();
 }
 console.log("  memberships seeded");
@@ -546,9 +620,9 @@ console.log("  memberships seeded");
 	const assignedSet = new Set(
 		db
 			.select()
-			.from(schema.groupMemberships)
+			.from(schema.scopeMemberships)
 			.all()
-			.map((m) => `${m.userId}::${m.groupId}`),
+			.map((m) => `${m.userId}::${m.scopeId}`),
 	);
 	const groupSlugList = Object.keys(groupIds);
 	const bulkUserIds = db
@@ -571,12 +645,11 @@ console.log("  memberships seeded");
 			const key = `${userId}::${groupId}`;
 			if (assignedSet.has(key)) continue;
 			assignedSet.add(key);
-			db.insert(schema.groupMemberships)
+			db.insert(schema.scopeMemberships)
 				.values({
-					id: uuid(),
 					userId,
-					groupId,
-					joinedAt: faker.date
+					scopeId: groupId,
+					createdAt: faker.date
 						.between({ from: "2020-01-01", to: new Date() })
 						.toISOString(),
 				})
@@ -590,30 +663,34 @@ console.log("  memberships seeded");
 }
 
 // ─── 7. Representatives ──────────────────────────────────────────────────────
-// Ensure every group has at least one rep. Pick one from the group's bulk members.
+// Ensure every chapter has at least one rep (scope role "representative"). Pick one from
+// the chapter's bulk members.
 {
-	const existingReps = db.select().from(schema.groupRepresentatives).all();
-	const groupsWithRep = new Set(existingReps.map((r) => r.groupId));
-	const allMemberships = db.select().from(schema.groupMemberships).all();
+	const existingReps = db
+		.select()
+		.from(schema.scopeRoles)
+		.all()
+		.filter((r) => r.role === "representative");
+	const groupsWithRep = new Set(existingReps.map((r) => r.scopeId));
+	const allMemberships = db.select().from(schema.scopeMemberships).all();
 
 	for (const [, groupId] of Object.entries(groupIds)) {
 		if (groupsWithRep.has(groupId)) continue;
 		// Pick a random member who is not admin/host
 		const candidates = allMemberships.filter(
 			(m) =>
-				m.groupId === groupId &&
+				m.scopeId === groupId &&
 				m.userId !== adminUser.id &&
 				m.userId !== hostUser.id,
 		);
 		if (candidates.length === 0) continue;
 		const pick = candidates[Math.floor(Math.random() * candidates.length)];
-		db.insert(schema.groupRepresentatives)
+		db.insert(schema.scopeRoles)
 			.values({
-				id: uuid(),
 				userId: pick.userId,
-				groupId,
-				promotedBy: adminUser.id,
-				promotedAt: now(),
+				scopeId: groupId,
+				role: "representative",
+				createdAt: now(),
 			})
 			.run();
 		groupsWithRep.add(groupId);
@@ -621,104 +698,119 @@ console.log("  memberships seeded");
 	console.log("  representatives seeded");
 }
 
-// ─── 8. Posts ────────────────────────────────────────────────────────────────
+// ─── 8. Notes and articles ───────────────────────────────────────────────────
 
+// Two core types (spec 4.4): entries with a title are seeded as articles, without as notes.
 const postDefs: Array<{
-	title: string;
+	title: string | null;
 	body: string;
 	groupSlug: string | null;
-	visibility: "global" | "group-only";
+	visibility: "public" | "members";
 	authorIdx: number;
 }> = [
 	{
 		title: "Welcome to the North Chapter!",
 		body: "<p>Hey everyone, great to have you here. This is the official group for all North Chapter members. Introduce yourself and say hello!</p>",
 		groupSlug: "berlin",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: 0,
 	},
 	{
 		title: "Spring Meetup Recap",
 		body: "<p>What a fantastic evening! We had over 30 people join us for our spring gathering. Thanks to everyone who came out — see you at the next one.</p>",
 		groupSlug: "berlin",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: 0,
 	},
 	{
 		title: "New Members – Introduce Yourself!",
 		body: "<p>We've had a wave of new sign-ups recently. Drop a reply below and tell the group a bit about yourself — where you're based, what you do, and what you're hoping to get from the community.</p>",
 		groupSlug: "berlin",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: 5,
 	},
 	{
 		title: "South Chapter Is Here",
 		body: "<p>Welcome to the South Chapter! We're just getting started but already have some exciting events in the pipeline. Watch this space.</p>",
 		groupSlug: "munich",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: 2,
 	},
 	{
 		title: "Summer Networking Evening – Interested?",
 		body: "<p>We're thinking of organising a casual networking evening this summer. Reply below if you'd be up for it and we'll lock in a date.</p>",
 		groupSlug: "munich",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: 7,
 	},
 	{
 		title: "Coast Chapter – Now Open",
 		body: "<p>The Coast Chapter is officially open. Whether you're a long-time member or just joined, you're welcome here. Looking forward to building something great together.</p>",
 		groupSlug: "hamburg",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: 6,
 	},
 	{
 		title: "Morning Walk – Members Only",
 		body: "<p>We're organising a guided walk along the waterfront on Saturday morning. Limited spots — reply to join. Details will be shared with confirmed attendees.</p>",
 		groupSlug: "hamburg",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: 3,
 	},
 	{
 		title: "Central Chapter Launches",
 		body: "<p>Central Chapter is now live! We're excited to build a local community here. If you're in the area, join the group and say hello.</p>",
 		groupSlug: "frankfurt",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: 4,
 	},
 	{
 		title: "Networking Night – Save the Date",
 		body: "<p>We're hosting a networking evening for members next month. More details to follow — mark your calendars and spread the word.</p>",
 		groupSlug: "frankfurt",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: 8,
 	},
 	{
 		title: "West Chapter – Welcome",
 		body: "<p>We're thrilled to open the West Chapter. A space for local members to connect, share, and organise events together.</p>",
 		groupSlug: "cologne",
-		visibility: "global",
+		visibility: "public",
 		authorIdx: -2,
 	},
 	{
 		title: "Members-Only Gathering – Limited Spots",
 		body: "<p>We're organising a private members-only get-together. Spots are limited so reply early to secure yours. Location shared with confirmed attendees.</p>",
 		groupSlug: "cologne",
-		visibility: "group-only",
+		visibility: "members",
 		authorIdx: 3,
+	},
+	{
+		title: null,
+		body: "<p>Reminder: the North Chapter board meets on Thursday at 19:00. Agenda items welcome until Wednesday.</p>",
+		groupSlug: "berlin",
+		visibility: "public",
+		authorIdx: 0,
+	},
+	{
+		title: null,
+		body: "<p>Thanks to everyone who helped set up the new chapter pages this week!</p>",
+		groupSlug: null,
+		visibility: "public",
+		authorIdx: -1,
 	},
 	{
 		title: "New Features Live on the Platform",
 		body: "<p>We've just rolled out a set of improvements including updated group pages, better event management, and a cleaner profile experience. Let us know what you think.</p>",
 		groupSlug: null,
-		visibility: "global",
+		visibility: "public",
 		authorIdx: -1,
 	},
 	{
 		title: "Community Guidelines — Updated",
 		body: "<p>We've refreshed our community guidelines to keep things clear and respectful for everyone. Please take a moment to read through them.</p>",
 		groupSlug: null,
-		visibility: "global",
+		visibility: "public",
 		authorIdx: -1,
 	},
 ];
@@ -730,30 +822,31 @@ function resolveAuthor(idx: number) {
 }
 
 postDefs.forEach((p, i) => {
-	// Stagger createdAt by one minute per post so timestamps are strictly
-	// distinct and descending. Cursor pagination keys on createdAt, so a batch
+	// Stagger publishedAt by one minute per item so timestamps are strictly
+	// distinct and descending. Cursor pagination keys on publishedAt, so a batch
 	// sharing the same millisecond would break page boundaries at the ties.
-	const createdAt = new Date(Date.now() - i * 60_000).toISOString();
-	db.insert(schema.posts)
-		.values({
-			id: uuid(),
-			title: p.title,
-			body: p.body,
-			editorState: null,
-			userId: resolveAuthor(p.authorIdx),
-			groupId: p.groupSlug ? groupIds[p.groupSlug] : null,
-			visibility: p.visibility,
-			createdAt,
-			updatedAt: createdAt,
-		})
-		.run();
+	const publishedAt = new Date(Date.now() - i * 60_000).toISOString();
+	const common = {
+		id: uuid(),
+		body: p.body,
+		authorId: resolveAuthor(p.authorIdx),
+		scopeId: p.groupSlug ? groupIds[p.groupSlug] : rootScope!.id,
+		visibility: p.visibility,
+		publishedAt,
+		updatedAt: publishedAt,
+	};
+	if (p.title)
+		db.insert(schema.articles)
+			.values({ ...common, title: p.title })
+			.run();
+	else db.insert(schema.notes).values(common).run();
 });
-console.log(`  posts seeded (${postDefs.length})`);
+console.log(`  notes and articles seeded (${postDefs.length})`);
 
-// Add faker-generated posts for each group (3 per group)
+// Add faker-generated articles for each group (3 per group)
 {
 	const groupSlugsForPosts = Object.entries(groupIds); // [slug, id][]
-	const allGroupPosts = db.select().from(schema.posts).all();
+	const allGroupPosts = db.select().from(schema.articles).all();
 	const fakerPostTopics = [
 		() => ({
 			title: faker.company.catchPhrase(),
@@ -779,1155 +872,34 @@ console.log(`  posts seeded (${postDefs.length})`);
 
 	for (const [, groupId] of groupSlugsForPosts) {
 		const existingCount = allGroupPosts.filter(
-			(p) => p.groupId === groupId,
+			(p) => p.scopeId === groupId,
 		).length;
 		const toAdd = Math.max(0, 3 - existingCount);
 		for (let i = 0; i < toAdd; i++) {
 			const { title, body } = fakerPostTopics[i % fakerPostTopics.length]();
-			const createdAt = faker.date
+			const publishedAt = faker.date
 				.between({ from: "2023-01-01", to: new Date() })
 				.toISOString();
-			db.insert(schema.posts)
+			db.insert(schema.articles)
 				.values({
 					id: uuid(),
 					title,
 					body,
-					editorState: null,
-					userId: adminUser.id,
-					groupId,
-					visibility: "global",
-					createdAt,
-					updatedAt: createdAt,
+					authorId: adminUser.id,
+					scopeId: groupId,
+					visibility: "public",
+					publishedAt,
+					updatedAt: publishedAt,
 				})
 				.run();
 		}
 	}
-	console.log(`  faker posts added per group`);
-}
-
-// ─── 9. Events ───────────────────────────────────────────────────────────────
-
-const eventDefs: Array<{
-	title: string;
-	body: string;
-	groupSlug: string | null;
-	visibility: "global" | "group-only";
-	authorIdx: number;
-	startOffsetDays: number;
-	durationHours: number;
-	city: string;
-	country: string;
-	address: string;
-	latitude: string;
-	longitude: string;
-}> = [
-	{
-		title: "Evening Social — Tickets Available",
-		body: "<p>A relaxed evening gathering for all community members. Light refreshments included. A great opportunity to meet people and enjoy the community in a social setting.</p>",
-		groupSlug: null,
-		visibility: "global",
-		authorIdx: -1,
-		startOffsetDays: 5,
-		durationHours: 3,
-		city: "Demo City",
-		country: "Exampleland",
-		address: "The Grand Hall, Demo City",
-		latitude: "52.5200",
-		longitude: "13.4050",
-	},
-	{
-		title: "North Chapter – Summer Social",
-		body: "<p>A free, informal gathering for all North Chapter members. Bring friends, enjoy the weather, and meet your local community.</p>",
-		groupSlug: "berlin",
-		visibility: "global",
-		authorIdx: 0,
-		startOffsetDays: 14,
-		durationHours: 4,
-		city: "Demo City",
-		country: "Exampleland",
-		address: "Central Park, Demo City",
-		latitude: "52.4988",
-		longitude: "13.4439",
-	},
-	{
-		title: "Tech Talk: AI & Automation",
-		body: "<p>A members-only evening of short talks on artificial intelligence and workflow automation. All skill levels welcome.</p>",
-		groupSlug: "berlin",
-		visibility: "group-only",
-		authorIdx: 5,
-		startOffsetDays: 21,
-		durationHours: 3,
-		city: "Demo City",
-		country: "Exampleland",
-		address: "Innovation Hub, Demo City",
-		latitude: "52.5369",
-		longitude: "13.4008",
-	},
-	{
-		title: "New Members Welcome Night",
-		body: "<p>Just joined? Come along to our relaxed welcome evening and meet other members over drinks.</p>",
-		groupSlug: "berlin",
-		visibility: "group-only",
-		authorIdx: -2,
-		startOffsetDays: 7,
-		durationHours: 2,
-		city: "Demo City",
-		country: "Exampleland",
-		address: "The Local Bar, Demo City",
-		latitude: "52.5396",
-		longitude: "13.4119",
-	},
-	{
-		title: "South Chapter – Community Hike",
-		body: "<p>A group hike through the local park. All fitness levels welcome — we'll keep a comfortable pace.</p>",
-		groupSlug: "munich",
-		visibility: "global",
-		authorIdx: 2,
-		startOffsetDays: 10,
-		durationHours: 3,
-		city: "Southville",
-		country: "Exampleland",
-		address: "Riverside Trail, Southville",
-		latitude: "48.1545",
-		longitude: "11.5956",
-	},
-	{
-		title: "Workshop: Public Speaking Skills",
-		body: "<p>A practical workshop on public speaking. Limited to 15 participants for a hands-on experience.</p>",
-		groupSlug: "munich",
-		visibility: "group-only",
-		authorIdx: 7,
-		startOffsetDays: 30,
-		durationHours: 2,
-		city: "Southville",
-		country: "Exampleland",
-		address: "Community Centre, Southville",
-		latitude: "48.1247",
-		longitude: "11.5456",
-	},
-	{
-		title: "Coast Chapter – Morning Walk",
-		body: "<p>Start your Saturday right with a 90-minute walk along the waterfront. Relaxed pace, great views.</p>",
-		groupSlug: "hamburg",
-		visibility: "group-only",
-		authorIdx: 6,
-		startOffsetDays: 6,
-		durationHours: 2,
-		city: "Portstown",
-		country: "Exampleland",
-		address: "Harbourside, Portstown",
-		latitude: "53.5446",
-		longitude: "9.9685",
-	},
-	{
-		title: "Coast Chapter – Open Meetup",
-		body: "<p>An open-door meetup. No agenda, no pressure — just a chance to connect with fellow members.</p>",
-		groupSlug: "hamburg",
-		visibility: "global",
-		authorIdx: 3,
-		startOffsetDays: 18,
-		durationHours: 3,
-		city: "Portstown",
-		country: "Exampleland",
-		address: "Waterfront Park, Portstown",
-		latitude: "53.5668",
-		longitude: "9.9961",
-	},
-	{
-		title: "Networking Breakfast",
-		body: "<p>An early-morning networking session over coffee and pastries. Central Chapter members only.</p>",
-		groupSlug: "frankfurt",
-		visibility: "group-only",
-		authorIdx: 4,
-		startOffsetDays: 12,
-		durationHours: 2,
-		city: "Midtown",
-		country: "Exampleland",
-		address: "The Grand Café, Midtown",
-		latitude: "50.1054",
-		longitude: "8.6768",
-	},
-	{
-		title: "Startup Pitch Night",
-		body: "<p>Five members pitch their ideas to the group. Attendees vote for their favourite. Light drinks provided.</p>",
-		groupSlug: "frankfurt",
-		visibility: "global",
-		authorIdx: 8,
-		startOffsetDays: 25,
-		durationHours: 3,
-		city: "Midtown",
-		country: "Exampleland",
-		address: "Coworking Space, Midtown",
-		latitude: "50.1044",
-		longitude: "8.6513",
-	},
-	{
-		title: "West Chapter Members Dinner",
-		body: "<p>A sit-down dinner for West Chapter members. Tickets include a three-course meal.</p>",
-		groupSlug: "cologne",
-		visibility: "group-only",
-		authorIdx: -2,
-		startOffsetDays: 9,
-		durationHours: 3,
-		city: "Westford",
-		country: "Exampleland",
-		address: "The Riverside Restaurant, Westford",
-		latitude: "50.9417",
-		longitude: "6.9590",
-	},
-	{
-		title: "West Chapter – Public Meet & Greet",
-		body: "<p>Come and meet the West Chapter! Open to everyone — bring a friend along.</p>",
-		groupSlug: "cologne",
-		visibility: "global",
-		authorIdx: 3,
-		startOffsetDays: 35,
-		durationHours: 4,
-		city: "Westford",
-		country: "Exampleland",
-		address: "Town Square, Westford",
-		latitude: "50.9440",
-		longitude: "6.9831",
-	},
-	{
-		title: "Checkout Demo Event",
-		body: "<p>Demo event for testing checkout with multiple ticket types and paid product choices.</p>",
-		groupSlug: "berlin",
-		visibility: "global",
-		authorIdx: -1,
-		startOffsetDays: 20,
-		durationHours: 3,
-		city: "Demo City",
-		country: "Exampleland",
-		address: "Demo Venue, Demo City",
-		latitude: "52.5060",
-		longitude: "13.3903",
-	},
-	{
-		title: "Photography Workshop — Sold Out",
-		body: "<p>A hands-on photography workshop. This event is fully booked — join the waitlist to be notified if spots open up.</p>",
-		groupSlug: null,
-		visibility: "global",
-		authorIdx: -1,
-		startOffsetDays: 22,
-		durationHours: 3,
-		city: "Midtown",
-		country: "Exampleland",
-		address: "Studio Space, Midtown",
-		latitude: "50.1109",
-		longitude: "8.6821",
-	},
-	{
-		title: "Annual Community Conference",
-		body: "<p>Our biggest event of the year. Ticket sales will open 30 days before the event. Mark your calendar!</p>",
-		groupSlug: null,
-		visibility: "global",
-		authorIdx: -1,
-		startOffsetDays: 90,
-		durationHours: 8,
-		city: "Demo City",
-		country: "Exampleland",
-		address: "Convention Centre, Demo City",
-		latitude: "52.5200",
-		longitude: "13.4050",
-	},
-	{
-		title: "All-Groups Online Town Hall",
-		body: "<p>Quarterly online town hall open to all groups. Platform updates, Q&A, and upcoming features.</p>",
-		groupSlug: null,
-		visibility: "global",
-		authorIdx: -1,
-		startOffsetDays: 45,
-		durationHours: 1,
-		city: "Online",
-		country: "Exampleland",
-		address: "",
-		latitude: "52.5200",
-		longitude: "13.4050",
-	},
-];
-
-for (const e of eventDefs) {
-	const start = daysFromNow(e.startOffsetDays);
-	const end = new Date(
-		new Date(start).getTime() + e.durationHours * 3600000,
-	).toISOString();
-
-	db.insert(schema.events)
-		.values({
-			id: uuid(),
-			title: e.title,
-			body: e.body,
-			startDate: start,
-			endDate: end,
-			locationType: e.city === "Online" ? "online" : "in-person",
-			address: e.address || null,
-			city: e.city,
-			country: e.country,
-			longitude: e.longitude,
-			latitude: e.latitude,
-			onlineUrl:
-				e.city === "Online" ? "https://meet.example.com/town-hall" : null,
-			userId: resolveAuthor(e.authorIdx),
-			groupId: e.groupSlug ? groupIds[e.groupSlug] : null,
-			visibility: e.visibility,
-			createdAt: now(),
-			updatedAt: now(),
-		})
-		.run();
-}
-console.log(`  events seeded (${eventDefs.length})`);
-
-// ─── 10. Participation statuses ──────────────────────────────────────────────
-
-const statusEvents = [
-	"Evening Social — Tickets Available",
-	"North Chapter – Summer Social",
-	"Tech Talk: AI & Automation",
-	"New Members Welcome Night",
-	"South Chapter – Community Hike",
-	"Workshop: Public Speaking Skills",
-	"Coast Chapter – Morning Walk",
-	"Coast Chapter – Open Meetup",
-	"Networking Breakfast",
-	"Startup Pitch Night",
-	"West Chapter Members Dinner",
-	"West Chapter – Public Meet & Greet",
-	"Photography Workshop — Sold Out",
-	"Annual Community Conference",
-	"All-Groups Online Town Hall",
-];
-
-const statuses = ["yes", "no", "maybe"] as const;
-let participationCount = 0;
-
-for (const eventTitle of statusEvents) {
-	const evt = db
-		.select()
-		.from(schema.events)
-		.all()
-		.find((e) => e.title === eventTitle);
-	if (!evt) continue;
-
-	// Each event gets a random subset of users with varied statuses
-	const usersForEvent = [...testUsers, adminUser!, hostUser!];
-	for (let i = 0; i < usersForEvent.length; i++) {
-		// Skip some users randomly to create realistic variation
-		if (Math.random() < 0.3) continue;
-		const existing = db
-			.select()
-			.from(schema.participationStatus)
-			.all()
-			.find((p) => p.userId === usersForEvent[i].id && p.eventId === evt.id);
-		if (existing) continue;
-		db.insert(schema.participationStatus)
-			.values({
-				id: uuid(),
-				userId: usersForEvent[i].id,
-				eventId: evt.id,
-				status: statuses[i % 3],
-				updatedAt: now(),
-			})
-			.run();
-		participationCount++;
-	}
-}
-console.log(`  participation statuses seeded (${participationCount})`);
-
-// ─── 11. Inventory & products (ticket scenarios) ─────────────────────────────
-
-const allEvents = db.select().from(schema.events).all();
-const eventByTitle: Record<string, (typeof allEvents)[0]> = Object.fromEntries(
-	allEvents.map((e) => [e.title, e]),
-);
-
-function seedInventory(opts: {
-	eventTitle: string;
-	inventoryName: string;
-	maxCapacity: number;
-	needsTicket?: boolean;
-	salesStartOffset?: number | null;
-	salesEndOffset?: number | null;
-	products?: Array<{
-		name: string;
-		price: number;
-		maxQuantity: number;
-		soldQuantity?: number;
-		participantCapacity?: number;
-	}>;
-}) {
-	const e = eventByTitle[opts.eventTitle];
-	if (!e) {
-		console.warn(`  skipping inventory for missing event '${opts.eventTitle}'`);
-		return;
-	}
-
-	const invId = uuid();
-	db.insert(schema.inventoryGroups)
-		.values({
-			id: invId,
-			eventId: e.id,
-			name: opts.inventoryName,
-			maxCapacity: opts.maxCapacity,
-			needsTicket: opts.needsTicket ?? true,
-			salesStartDate:
-				typeof opts.salesStartOffset === "number"
-					? daysFromNow(opts.salesStartOffset)
-					: null,
-			salesEndDate:
-				typeof opts.salesEndOffset === "number"
-					? daysFromNow(opts.salesEndOffset)
-					: null,
-			createdAt: now(),
-		})
-		.run();
-
-	for (const p of opts.products ?? []) {
-		db.insert(schema.products)
-			.values({
-				id: uuid(),
-				eventId: e.id,
-				inventoryGroupId: invId,
-				name: p.name,
-				price: p.price,
-				maxQuantity: p.maxQuantity,
-				participantCapacity: p.participantCapacity ?? 1,
-				features: [],
-				imageKey: null,
-				stripeProductId: null,
-				soldQuantity: p.soldQuantity ?? 0,
-				createdAt: now(),
-				updatedAt: now(),
-			})
-			.run();
-	}
-}
-
-seedInventory({
-	eventTitle: "Evening Social — Tickets Available",
-	inventoryName: "Social Evening Tickets",
-	maxCapacity: 80,
-	salesStartOffset: -14,
-	salesEndOffset: 4,
-	products: [
-		{ name: "General Admission", price: 15, maxQuantity: 60, soldQuantity: 14 },
-		{
-			name: "VIP Entry (incl. welcome drink)",
-			price: 30,
-			maxQuantity: 20,
-			soldQuantity: 5,
-		},
-	],
-});
-
-seedInventory({
-	eventTitle: "North Chapter – Summer Social",
-	inventoryName: "General Admission",
-	maxCapacity: 50,
-	salesStartOffset: -7,
-	salesEndOffset: 13,
-	products: [
-		{ name: "Free Entry", price: 0, maxQuantity: 50, soldQuantity: 8 },
-	],
-});
-
-seedInventory({
-	eventTitle: "Tech Talk: AI & Automation",
-	inventoryName: "Seats",
-	maxCapacity: 30,
-	salesStartOffset: -5,
-	salesEndOffset: 20,
-	products: [
-		{ name: "Standard Seat", price: 0, maxQuantity: 25, soldQuantity: 6 },
-		{
-			name: "VIP Seat (front row + networking)",
-			price: 15,
-			maxQuantity: 5,
-			soldQuantity: 2,
-		},
-	],
-});
-
-seedInventory({
-	eventTitle: "New Members Welcome Night",
-	inventoryName: "Welcome Night Spots",
-	maxCapacity: 20,
-	salesStartOffset: -3,
-	salesEndOffset: 6,
-	products: [
-		{
-			name: "Welcome Night Ticket",
-			price: 0,
-			maxQuantity: 20,
-			soldQuantity: 4,
-		},
-	],
-});
-
-seedInventory({
-	eventTitle: "South Chapter – Community Hike",
-	inventoryName: "Hike Spots",
-	maxCapacity: 25,
-	salesStartOffset: -7,
-	salesEndOffset: 9,
-	products: [
-		{ name: "Hiker Spot", price: 0, maxQuantity: 25, soldQuantity: 5 },
-	],
-});
-
-seedInventory({
-	eventTitle: "Workshop: Public Speaking Skills",
-	inventoryName: "Workshop Seats",
-	maxCapacity: 15,
-	salesStartOffset: -10,
-	salesEndOffset: 29,
-	products: [
-		{ name: "Workshop Ticket", price: 10, maxQuantity: 15, soldQuantity: 7 },
-	],
-});
-
-seedInventory({
-	eventTitle: "Coast Chapter – Morning Walk",
-	inventoryName: "Walk Spots",
-	maxCapacity: 15,
-	salesStartOffset: -5,
-	salesEndOffset: 5,
-	products: [
-		{ name: "Walk Ticket", price: 0, maxQuantity: 15, soldQuantity: 3 },
-	],
-});
-
-seedInventory({
-	eventTitle: "Coast Chapter – Open Meetup",
-	inventoryName: "Open Meetup Spots",
-	maxCapacity: 40,
-	salesStartOffset: -7,
-	salesEndOffset: 17,
-	products: [
-		{ name: "Free Entry", price: 0, maxQuantity: 40, soldQuantity: 6 },
-	],
-});
-
-seedInventory({
-	eventTitle: "Networking Breakfast",
-	inventoryName: "Breakfast Seats",
-	maxCapacity: 20,
-	salesStartOffset: -5,
-	salesEndOffset: 11,
-	products: [
-		{
-			name: "Breakfast Ticket (incl. food)",
-			price: 12,
-			maxQuantity: 20,
-			soldQuantity: 5,
-		},
-	],
-});
-
-seedInventory({
-	eventTitle: "Startup Pitch Night",
-	inventoryName: "Pitch Night Tickets",
-	maxCapacity: 60,
-	salesStartOffset: -10,
-	salesEndOffset: 24,
-	products: [
-		{ name: "Audience Ticket", price: 10, maxQuantity: 50, soldQuantity: 12 },
-		{
-			name: "Pitcher Ticket (present your startup)",
-			price: 0,
-			maxQuantity: 5,
-			soldQuantity: 3,
-		},
-	],
-});
-
-seedInventory({
-	eventTitle: "West Chapter Members Dinner",
-	inventoryName: "Dinner Tickets",
-	maxCapacity: 20,
-	salesStartOffset: -1,
-	salesEndOffset: 8,
-	products: [
-		{
-			name: "Dinner Ticket (3-course meal)",
-			price: 25,
-			maxQuantity: 20,
-			soldQuantity: 8,
-		},
-	],
-});
-
-seedInventory({
-	eventTitle: "West Chapter – Public Meet & Greet",
-	inventoryName: "Meet & Greet Spots",
-	maxCapacity: 40,
-	salesStartOffset: -5,
-	salesEndOffset: 34,
-	products: [
-		{ name: "Free Entry", price: 0, maxQuantity: 40, soldQuantity: 4 },
-	],
-});
-
-seedInventory({
-	eventTitle: "Photography Workshop — Sold Out",
-	inventoryName: "Workshop Spots",
-	maxCapacity: 10,
-	salesStartOffset: -14,
-	salesEndOffset: 21,
-	products: [
-		{ name: "Workshop Ticket", price: 20, maxQuantity: 10, soldQuantity: 10 },
-	],
-});
-
-// Sales open 30 days from now — tests the "coming soon" CTA state
-seedInventory({
-	eventTitle: "Annual Community Conference",
-	inventoryName: "Conference Passes",
-	maxCapacity: 300,
-	salesStartOffset: 30,
-	salesEndOffset: 89,
-	products: [
-		{ name: "Early Bird Pass", price: 49, maxQuantity: 100, soldQuantity: 0 },
-		{ name: "Standard Pass", price: 79, maxQuantity: 200, soldQuantity: 0 },
-	],
-});
-
-seedInventory({
-	eventTitle: "Checkout Demo Event",
-	inventoryName: "Main Hall Passes",
-	maxCapacity: 120,
-	salesStartOffset: -7,
-	salesEndOffset: 19,
-	products: [
-		{ name: "Standard Pass", price: 18, maxQuantity: 80, soldQuantity: 12 },
-		{ name: "Premium Pass", price: 35, maxQuantity: 40, soldQuantity: 6 },
-	],
-});
-
-seedInventory({
-	eventTitle: "Checkout Demo Event",
-	inventoryName: "Workshops",
-	maxCapacity: 50,
-	salesStartOffset: -7,
-	salesEndOffset: 19,
-	products: [
-		{
-			name: "AI Hands-on Workshop",
-			price: 22,
-			maxQuantity: 30,
-			soldQuantity: 4,
-		},
-		{
-			name: "Founder Coaching Session",
-			price: 45,
-			maxQuantity: 20,
-			soldQuantity: 3,
-		},
-	],
-});
-
-seedInventory({
-	eventTitle: "All-Groups Online Town Hall",
-	inventoryName: "Virtual Seats",
-	maxCapacity: 200,
-	salesStartOffset: -14,
-	salesEndOffset: 44,
-	products: [
-		{ name: "Virtual Seat", price: 0, maxQuantity: 200, soldQuantity: 15 },
-	],
-});
-
-console.log("  inventory & products seeded");
-
-// ─── 11c. Historical events (past 10 years) with participants ─────────────────
-
-{
-	const bulkUsers = db
-		.select()
-		.from(schema.users)
-		.all()
-		.filter(
-			(u) =>
-				u.id !== adminUser.id &&
-				u.id !== hostUser.id &&
-				!testLoginIds.has(u.loginId ?? ""),
-		);
-	const bulkUserPool = bulkUsers.map((u) => u.id);
-	const bulkUserById = new Map(bulkUsers.map((u) => [u.id, u]));
-	const loginEmailById = new Map(
-		db
-			.select()
-			.from(schema.logins)
-			.all()
-			.map((l) => [l.id, l.email]),
-	);
-
-	function pickBuyers(n: number): string[] {
-		return [...bulkUserPool].sort(() => Math.random() - 0.5).slice(0, n);
-	}
-
-	function seedHistoricalEvent(opts: {
-		title: string;
-		body: string;
-		groupSlug: string | null;
-		startDate: string;
-		durationHours: number;
-		city: string;
-		country: string;
-		address: string;
-		latitude: string;
-		longitude: string;
-		locationType: "in-person" | "online";
-		onlineUrl?: string;
-		products: Array<{
-			name: string;
-			price: number;
-			capacity: number;
-			attendees: number;
-		}>;
-	}) {
-		if (
-			db
-				.select()
-				.from(schema.events)
-				.all()
-				.find((e) => e.title === opts.title)
-		)
-			return;
-
-		const eventId = uuid();
-		const endDate = new Date(
-			new Date(opts.startDate).getTime() + opts.durationHours * 3_600_000,
-		).toISOString();
-		const createdAt = new Date(
-			new Date(opts.startDate).getTime() - 30 * 86_400_000,
-		).toISOString();
-
-		db.insert(schema.events)
-			.values({
-				id: eventId,
-				title: opts.title,
-				body: opts.body,
-				startDate: opts.startDate,
-				endDate,
-				locationType: opts.locationType === "online" ? "online" : "in-person",
-				address: opts.address || null,
-				city: opts.city,
-				country: opts.country,
-				longitude: opts.longitude,
-				latitude: opts.latitude,
-				onlineUrl: opts.onlineUrl ?? null,
-				userId: adminUser!.id,
-				groupId: opts.groupSlug ? groupIds[opts.groupSlug] : null,
-				visibility: "global",
-				createdAt,
-				updatedAt: createdAt,
-			})
-			.run();
-
-		const invId = uuid();
-		db.insert(schema.inventoryGroups)
-			.values({
-				id: invId,
-				eventId,
-				name: "Tickets",
-				maxCapacity: opts.products.reduce((s, p) => s + p.capacity, 0),
-				needsTicket: true,
-				salesStartDate: new Date(
-					new Date(opts.startDate).getTime() - 60 * 86_400_000,
-				).toISOString(),
-				salesEndDate: new Date(
-					new Date(opts.startDate).getTime() - 86_400_000,
-				).toISOString(),
-				createdAt,
-			})
-			.run();
-
-		for (const product of opts.products) {
-			const productId = uuid();
-			db.insert(schema.products)
-				.values({
-					id: productId,
-					eventId,
-					inventoryGroupId: invId,
-					name: product.name,
-					price: product.price,
-					maxQuantity: product.capacity,
-					soldQuantity: product.attendees,
-					participantCapacity: 1,
-					features: [],
-					imageKey: null,
-					stripeProductId: null,
-					createdAt,
-					updatedAt: createdAt,
-				})
-				.run();
-
-			for (const buyerId of pickBuyers(product.attendees)) {
-				const buyer = bulkUserById.get(buyerId)!;
-				const buyerEmail = buyer.loginId
-					? (loginEmailById.get(buyer.loginId) ?? null)
-					: null;
-				const purchaseDate = new Date(
-					new Date(opts.startDate).getTime() - Math.random() * 25 * 86_400_000,
-				).toISOString();
-				const txId = uuid();
-				db.insert(schema.transactions)
-					.values({
-						id: txId,
-						eventId,
-						userId: buyerId,
-						totalAmount: product.price,
-						transactionFee:
-							product.price > 0
-								? Math.round(product.price * 0.029 * 100) / 100
-								: 0,
-						stripeSessionId: `cs_hist_${uuid().slice(0, 8)}`,
-						stripePaymentId:
-							product.price > 0 ? `pi_hist_${uuid().slice(0, 8)}` : null,
-						paymentDate: purchaseDate,
-						createdAt: purchaseDate,
-					})
-					.run();
-				db.insert(schema.transactionItems)
-					.values({
-						id: uuid(),
-						transactionId: txId,
-						productId,
-						quantity: 1,
-						unitPrice: product.price,
-					})
-					.run();
-				const ticketId = uuid();
-				db.insert(schema.tickets)
-					.values({
-						id: ticketId,
-						qrCodeUuid: uuid(),
-						transactionId: txId,
-						productId,
-						eventId,
-						buyerId,
-						scannedAt: new Date(
-							new Date(opts.startDate).getTime() + Math.random() * 3_600_000,
-						).toISOString(),
-						createdAt: purchaseDate,
-					})
-					.run();
-				db.insert(schema.ticketParticipants)
-					.values({
-						id: uuid(),
-						ticketId,
-						participantOrder: 1,
-						name: `${buyer.name} ${(buyer as any).familyName ?? ""}`.trim(),
-						email: buyerEmail ?? `${buyer.name.toLowerCase()}@example.com`,
-						userId: buyerId,
-					})
-					.run();
-			}
-		}
-	}
-
-	const p = (text: string) => `<p>${text}</p>`;
-
-	// ── Global events ─────────────────────────────────────────────────────────
-	seedHistoricalEvent({
-		title: "Community Founding Meetup",
-		body: p(faker.lorem.paragraph()),
-		groupSlug: null,
-		startDate: "2015-06-12T18:00:00.000Z",
-		durationHours: 3,
-		city: "Demo City",
-		country: "Exampleland",
-		address: "The Foundry, Demo City",
-		latitude: "52.5200",
-		longitude: "13.4050",
-		locationType: "in-person",
-		products: [{ name: "Free Entry", price: 0, capacity: 60, attendees: 42 }],
-	});
-	seedHistoricalEvent({
-		title: "Annual Gathering 2016",
-		body: p(faker.lorem.paragraph()),
-		groupSlug: null,
-		startDate: "2016-10-08T10:00:00.000Z",
-		durationHours: 8,
-		city: "Demo City",
-		country: "Exampleland",
-		address: "Grand Hall, Demo City",
-		latitude: "52.5200",
-		longitude: "13.4050",
-		locationType: "in-person",
-		products: [
-			{ name: "Standard Ticket", price: 15, capacity: 80, attendees: 68 },
-			{ name: "VIP Ticket", price: 35, capacity: 20, attendees: 14 },
-		],
-	});
-	seedHistoricalEvent({
-		title: "Summer Social 2017",
-		body: p(faker.lorem.paragraph()),
-		groupSlug: null,
-		startDate: "2017-07-14T17:00:00.000Z",
-		durationHours: 4,
-		city: "Demo City",
-		country: "Exampleland",
-		address: "Riverside Park, Demo City",
-		latitude: "52.5200",
-		longitude: "13.4050",
-		locationType: "in-person",
-		products: [{ name: "Free Entry", price: 0, capacity: 80, attendees: 63 }],
-	});
-	seedHistoricalEvent({
-		title: "Annual Conference 2018",
-		body: p(faker.lorem.paragraph()),
-		groupSlug: null,
-		startDate: "2018-09-21T09:00:00.000Z",
-		durationHours: 9,
-		city: "Demo City",
-		country: "Exampleland",
-		address: "Convention Centre, Demo City",
-		latitude: "52.5200",
-		longitude: "13.4050",
-		locationType: "in-person",
-		products: [
-			{ name: "Day Pass", price: 20, capacity: 120, attendees: 98 },
-			{ name: "VIP Pass", price: 45, capacity: 30, attendees: 22 },
-		],
-	});
-	seedHistoricalEvent({
-		title: "Annual Conference 2019",
-		body: p(faker.lorem.paragraph()),
-		groupSlug: null,
-		startDate: "2019-10-05T09:00:00.000Z",
-		durationHours: 10,
-		city: "Southville",
-		country: "Exampleland",
-		address: "Expo Centre, Southville",
-		latitude: "41.3851",
-		longitude: "2.1734",
-		locationType: "in-person",
-		products: [
-			{ name: "Standard Pass", price: 25, capacity: 160, attendees: 143 },
-			{ name: "Premium Pass", price: 55, capacity: 40, attendees: 31 },
-		],
-	});
-	seedHistoricalEvent({
-		title: "Online Town Hall — Spring 2020",
-		body: p(
-			"Our first fully online event, bringing all chapters together virtually.",
-		),
-		groupSlug: null,
-		startDate: "2020-05-20T17:00:00.000Z",
-		durationHours: 2,
-		city: "Online",
-		country: "Exampleland",
-		address: "",
-		latitude: "52.5200",
-		longitude: "13.4050",
-		locationType: "online",
-		onlineUrl: "https://meet.example.com/townhall-2020",
-		products: [{ name: "Free Entry", price: 0, capacity: 200, attendees: 147 }],
-	});
-	seedHistoricalEvent({
-		title: "Online Workshop — Autumn 2020",
-		body: p(faker.lorem.paragraph()),
-		groupSlug: null,
-		startDate: "2020-11-14T10:00:00.000Z",
-		durationHours: 3,
-		city: "Online",
-		country: "Exampleland",
-		address: "",
-		latitude: "52.5200",
-		longitude: "13.4050",
-		locationType: "online",
-		onlineUrl: "https://meet.example.com/workshop-2020",
-		products: [{ name: "Free Entry", price: 0, capacity: 150, attendees: 89 }],
-	});
-	seedHistoricalEvent({
-		title: "First In-Person Since 2020",
-		body: p(
-			"A long-awaited return to meeting face-to-face. " +
-				faker.lorem.sentence(),
-		),
-		groupSlug: null,
-		startDate: "2021-07-03T15:00:00.000Z",
-		durationHours: 4,
-		city: "Demo City",
-		country: "Exampleland",
-		address: "Rooftop Bar, Demo City",
-		latitude: "52.5200",
-		longitude: "13.4050",
-		locationType: "in-person",
-		products: [{ name: "Free Entry", price: 0, capacity: 80, attendees: 71 }],
-	});
-	seedHistoricalEvent({
-		title: "Annual Conference 2022",
-		body: p(faker.lorem.paragraph()),
-		groupSlug: null,
-		startDate: "2022-06-17T09:00:00.000Z",
-		durationHours: 10,
-		city: "Portstown",
-		country: "Exampleland",
-		address: "Harbour Convention Centre, Portstown",
-		latitude: "51.5074",
-		longitude: "-0.1278",
-		locationType: "in-person",
-		products: [
-			{ name: "Standard Pass", price: 30, capacity: 200, attendees: 176 },
-			{ name: "VIP Pass", price: 60, capacity: 50, attendees: 38 },
-		],
-	});
-	seedHistoricalEvent({
-		title: "Summer Social 2023",
-		body: p(faker.lorem.paragraph()),
-		groupSlug: null,
-		startDate: "2023-07-22T16:00:00.000Z",
-		durationHours: 5,
-		city: "Demo City",
-		country: "Exampleland",
-		address: "Rooftop Terrace, Demo City",
-		latitude: "52.5200",
-		longitude: "13.4050",
-		locationType: "in-person",
-		products: [{ name: "Free Entry", price: 0, capacity: 100, attendees: 83 }],
-	});
-	seedHistoricalEvent({
-		title: "Annual Conference 2024",
-		body: p(faker.lorem.paragraph()),
-		groupSlug: null,
-		startDate: "2024-04-19T09:00:00.000Z",
-		durationHours: 10,
-		city: "Midtown",
-		country: "Exampleland",
-		address: "Innovation Hub, Midtown",
-		latitude: "48.2082",
-		longitude: "16.3738",
-		locationType: "in-person",
-		products: [
-			{ name: "Standard Pass", price: 35, capacity: 250, attendees: 214 },
-			{ name: "VIP Pass", price: 70, capacity: 50, attendees: 41 },
-		],
-	});
-
-	// ── Local chapter events ──────────────────────────────────────────────────
-	seedHistoricalEvent({
-		title: "North Chapter — Spring Social 2016",
-		body: p(faker.lorem.paragraph()),
-		groupSlug: "berlin",
-		startDate: "2016-04-09T14:00:00.000Z",
-		durationHours: 3,
-		city: "Demo City",
-		country: "Exampleland",
-		address: "Local Café, Demo City",
-		latitude: "59.3293",
-		longitude: "18.0686",
-		locationType: "in-person",
-		products: [{ name: "Free Entry", price: 0, capacity: 30, attendees: 23 }],
-	});
-	seedHistoricalEvent({
-		title: "South Chapter — Hiking Day 2018",
-		body: p(faker.lorem.paragraph()),
-		groupSlug: "munich",
-		startDate: "2018-05-19T09:00:00.000Z",
-		durationHours: 5,
-		city: "Southville",
-		country: "Exampleland",
-		address: "Trailhead, Southville",
-		latitude: "41.3851",
-		longitude: "2.1734",
-		locationType: "in-person",
-		products: [{ name: "Free Entry", price: 0, capacity: 25, attendees: 19 }],
-	});
-	seedHistoricalEvent({
-		title: "Coast Chapter — Harbour Walk 2019",
-		body: p(faker.lorem.paragraph()),
-		groupSlug: "hamburg",
-		startDate: "2019-09-07T10:00:00.000Z",
-		durationHours: 2,
-		city: "Portstown",
-		country: "Exampleland",
-		address: "Harbourside, Portstown",
-		latitude: "51.5074",
-		longitude: "-0.1278",
-		locationType: "in-person",
-		products: [{ name: "Free Entry", price: 0, capacity: 20, attendees: 17 }],
-	});
-	seedHistoricalEvent({
-		title: "Central Chapter — Networking Dinner 2021",
-		body: p(faker.lorem.paragraph()),
-		groupSlug: "frankfurt",
-		startDate: "2021-10-14T19:00:00.000Z",
-		durationHours: 3,
-		city: "Midtown",
-		country: "Exampleland",
-		address: "The Grand Café, Midtown",
-		latitude: "48.2082",
-		longitude: "16.3738",
-		locationType: "in-person",
-		products: [
-			{ name: "Dinner Ticket", price: 18, capacity: 40, attendees: 32 },
-		],
-	});
-	seedHistoricalEvent({
-		title: "West Chapter — End of Year Party 2022",
-		body: p(faker.lorem.paragraph()),
-		groupSlug: "cologne",
-		startDate: "2022-12-02T19:00:00.000Z",
-		durationHours: 4,
-		city: "Westford",
-		country: "Exampleland",
-		address: "Town Square Venue, Westford",
-		latitude: "48.8566",
-		longitude: "2.3522",
-		locationType: "in-person",
-		products: [
-			{ name: "Entry Ticket", price: 10, capacity: 50, attendees: 41 },
-		],
-	});
-	seedHistoricalEvent({
-		title: "North Chapter — Annual Dinner 2023",
-		body: p(faker.lorem.paragraph()),
-		groupSlug: "berlin",
-		startDate: "2023-11-18T19:00:00.000Z",
-		durationHours: 3,
-		city: "Demo City",
-		country: "Exampleland",
-		address: "The Riverside Restaurant, Demo City",
-		latitude: "59.3293",
-		longitude: "18.0686",
-		locationType: "in-person",
-		products: [
-			{ name: "Dinner Ticket", price: 22, capacity: 45, attendees: 38 },
-		],
-	});
-	seedHistoricalEvent({
-		title: "South Chapter — Workshop Day 2024",
-		body: p(faker.lorem.paragraph()),
-		groupSlug: "munich",
-		startDate: "2024-02-24T10:00:00.000Z",
-		durationHours: 6,
-		city: "Southville",
-		country: "Exampleland",
-		address: "Community Centre, Southville",
-		latitude: "41.3851",
-		longitude: "2.1734",
-		locationType: "in-person",
-		products: [
-			{ name: "Workshop Ticket", price: 12, capacity: 30, attendees: 27 },
-		],
-	});
-
-	const pastCount = db
-		.select()
-		.from(schema.events)
-		.all()
-		.filter((e) => new Date(e.startDate) < new Date()).length;
-	console.log(
-		`  historical events seeded (${pastCount} total past events with participants)`,
-	);
+	console.log(`  faker articles added per group`);
 }
 
 // ─── 12. Placeholder images ──────────────────────────────────────────────────
 
-const imageKeys = await downloadAndUploadSeedImages();
+const { keys: imageKeys, articleKeys } = await downloadAndUploadSeedImages();
 
 const usersWithoutProfile = db
 	.select()
@@ -1945,41 +917,13 @@ for (let i = 0; i < usersWithoutProfile.length; i++) {
 		.run();
 }
 
-const eventsNoImg = sqlite
-	.prepare(
-		"SELECT id FROM events WHERE deleted_at IS NULL AND (image1 IS NULL OR image1 LIKE '%picsum.photos%' OR image2 IS NULL OR image2 LIKE '%picsum.photos%')",
-	)
-	.all() as Array<{ id: string }>;
-const updateEvent = sqlite.prepare(
-	"UPDATE events SET image1 = ?, image2 = ? WHERE id = ?",
-);
-for (let i = 0; i < eventsNoImg.length; i++) {
-	updateEvent.run(
-		imageKeys[i % imageKeys.length],
-		imageKeys[(i + 1) % imageKeys.length],
-		eventsNoImg[i].id,
-	);
-}
-
-const postsNoImg = sqlite
-	.prepare(
-		"SELECT id FROM posts WHERE deleted_at IS NULL AND (featured_image IS NULL OR featured_image LIKE '%picsum.photos%')",
-	)
-	.all() as Array<{ id: string }>;
-const updatePost = sqlite.prepare(
-	"UPDATE posts SET featured_image = ? WHERE id = ?",
-);
-for (let i = 0; i < postsNoImg.length; i++) {
-	updatePost.run(imageKeys[i % imageKeys.length], postsNoImg[i].id);
-}
-
 const groupsNoImg = sqlite
 	.prepare(
-		"SELECT id FROM groups WHERE (image1 IS NULL OR image1 LIKE '%picsum.photos%' OR image2 IS NULL OR image2 LIKE '%picsum.photos%' OR image3 IS NULL OR image3 LIKE '%picsum.photos%')",
+		"SELECT id FROM scopes WHERE (image1 IS NULL OR image1 LIKE '%picsum.photos%' OR image2 IS NULL OR image2 LIKE '%picsum.photos%' OR image3 IS NULL OR image3 LIKE '%picsum.photos%')",
 	)
 	.all() as Array<{ id: string }>;
 const updateGroup = sqlite.prepare(
-	"UPDATE groups SET image1 = ?, image2 = ?, image3 = ? WHERE id = ?",
+	"UPDATE scopes SET image1 = ?, image2 = ?, image3 = ? WHERE id = ?",
 );
 for (let i = 0; i < groupsNoImg.length; i++) {
 	updateGroup.run(
@@ -1990,8 +934,18 @@ for (let i = 0; i < groupsNoImg.length; i++) {
 	);
 }
 
+// Every other article gets a featured image (spec 4.4: optional, articles only).
+const seededArticles = db.select().from(schema.articles).all();
+for (const [i, a] of seededArticles.entries()) {
+	if (i % 2 === 1 || a.featuredImage) continue;
+	db.update(schema.articles)
+		.set({ featuredImage: articleKeys[i % articleKeys.length] })
+		.where(eq(schema.articles.id, a.id))
+		.run();
+}
+
 console.log(
-	`  images downloaded/uploaded and linked (${eventsNoImg.length} events, ${postsNoImg.length} posts, ${groupsNoImg.length} groups)`,
+	`  images downloaded/uploaded and linked (${groupsNoImg.length} groups, ${Math.ceil(seededArticles.length / 2)} articles)`,
 );
 console.log(
 	`  user profile pictures assigned (${usersWithoutProfile.length} users)`,
@@ -1999,37 +953,27 @@ console.log(
 
 // ─── 13. Forms ───────────────────────────────────────────────────────────────
 
-const onboardJson = JSON.parse(
-	fs.readFileSync("surveys/onboard.json", "utf-8"),
+// Workflow forms (a purpose, active at the root) and a public survey.
+const onboardingFormId = ensureWorkflowForm(
+	sqlite,
+	rootScope!.id,
+	adminUser!.id,
+	onboardingFormSeed(),
 );
 
-const formDefs: Array<{
+const surveyDefs: Array<{
 	title: string;
 	slug: string;
 	description: string;
-	schemaJson: any;
+	schema: Record<string, unknown>;
 	visibility: "private" | "public";
-	isSystemForm: boolean;
-	allowResubmission?: boolean;
-	systemKey: string | null;
 }> = [
-	{
-		title: "Onboarding Survey",
-		slug: "onboarding",
-		description:
-			"Required during signup — captures how you know us and your academic background.",
-		schemaJson: onboardJson,
-		visibility: "private",
-		isSystemForm: true,
-		allowResubmission: true,
-		systemKey: "affilation",
-	},
 	{
 		title: "Community Feedback",
 		slug: "community-feedback",
 		description:
 			"Tell us what you think about the community and how we can improve.",
-		schemaJson: {
+		schema: {
 			pages: [
 				{
 					name: "feedback_page",
@@ -2077,52 +1021,32 @@ const formDefs: Array<{
 			],
 		},
 		visibility: "public",
-		isSystemForm: false,
-		systemKey: null,
 	},
 ];
 
-for (const f of formDefs) {
-	const existing = f.systemKey
-		? db
-				.select()
-				.from(schema.forms)
-				.all()
-				.find((r) => r.systemKey === f.systemKey)
-		: null;
-
-	if (existing) {
-		if (
-			f.allowResubmission !== undefined &&
-			existing.allowResubmission !== f.allowResubmission
-		) {
-			db.update(schema.forms)
-				.set({ allowResubmission: f.allowResubmission, updatedAt: now() })
-				.where(eq(schema.forms.id, existing.id))
-				.run();
-		}
-		continue;
-	}
-
+for (const f of surveyDefs) {
+	const existing = db
+		.select()
+		.from(schema.forms)
+		.all()
+		.find((r) => r.slug === f.slug && r.scopeId === rootScope!.id);
+	if (existing) continue;
 	db.insert(schema.forms)
 		.values({
 			id: uuid(),
+			scopeId: rootScope!.id,
 			title: f.title,
 			slug: f.slug,
 			description: f.description,
-			schemaJson: f.schemaJson,
+			schema: f.schema,
 			visibility: f.visibility,
-			scopeType: "global",
-			isSystemForm: f.isSystemForm,
-			allowResubmission: f.allowResubmission ?? false,
-			systemKey: f.systemKey,
 			createdBy: adminUser.id,
 			createdAt: now(),
 			updatedAt: now(),
 		})
 		.run();
 }
-console.log(`  forms seeded (${formDefs.length})`);
+console.log(`  forms seeded (onboarding + ${surveyDefs.length} surveys)`);
 
 // ─── 13b. Onboarding form results ─────────────────────────────────────────────
 
@@ -2130,7 +1054,7 @@ const onboardingForm = db
 	.select()
 	.from(schema.forms)
 	.all()
-	.find((f) => f.systemKey === "affilation");
+	.find((f) => f.id === onboardingFormId);
 
 if (onboardingForm) {
 	// Delete any existing form results for test users so they land on the survey fresh.
@@ -2330,7 +1254,7 @@ if (onboardingForm) {
 		if (alreadySubmitted.has(user.id)) continue;
 		if (testUserIds.has(user.id)) continue;
 
-		const resultJson =
+		const answers =
 			affiliationPool[Math.floor(Math.random() * affiliationPool.length)];
 
 		db.insert(schema.formResults)
@@ -2338,8 +1262,8 @@ if (onboardingForm) {
 				id: uuid(),
 				formId: onboardingForm.id,
 				userId: user.id,
-				resultJson,
-				submittedAt: now(),
+				answers,
+				createdAt: now(),
 			})
 			.run();
 
@@ -2439,13 +1363,13 @@ const pageDefs: Array<{
 				id: uuid(),
 				componentType: "TitleBlock",
 				order: 8,
-				data: { text: "Latest Posts", level: "2", align: "center" },
+				data: { text: "Latest News", level: "2", align: "center" },
 			},
 			{
 				id: uuid(),
-				componentType: "PostsListBlock",
+				componentType: "StreamBlock",
 				order: 9,
-				data: { limit: 6 },
+				data: { show: "all", limit: 6 },
 			},
 		],
 	},
@@ -2703,7 +1627,7 @@ const pageDefs: Array<{
 				order: 20,
 				data: {
 					text: "Go to Admin Panel",
-					href: "/admin/global",
+					href: "/admin/root",
 					align: "left",
 				},
 			},
@@ -2727,7 +1651,7 @@ const pageDefs: Array<{
 				data: {
 					type: "info",
 					title: "Self-fetching blocks",
-					body: "The blocks below (Upcoming Events, Groups List, Posts List) fetch their own data from the database. Drop them on any page and they update automatically.",
+					body: "The blocks below (Upcoming Events, Groups List, Stream) fetch their own data from the database. Drop them on any page and they update automatically.",
 				},
 			},
 			{
@@ -2743,39 +1667,6 @@ const pageDefs: Array<{
 				data: { text: "Upcoming Events", level: "3", align: "left" },
 			},
 			{ id: uuid(), componentType: "UpcomingEventsBlock", order: 26, data: {} },
-		],
-	},
-	{
-		title: "Events",
-		slug: "/events",
-		status: "published",
-		content: [
-			{
-				id: uuid(),
-				componentType: "TitleBlock",
-				order: 0,
-				data: { text: "Events", level: "1", align: "center" },
-			},
-			{
-				id: uuid(),
-				componentType: "SpacerBlock",
-				order: 1,
-				data: { height: 20 },
-			},
-			{ id: uuid(), componentType: "UpcomingEventsBlock", order: 2, data: {} },
-			{
-				id: uuid(),
-				componentType: "SpacerBlock",
-				order: 3,
-				data: { height: 40 },
-			},
-			{
-				id: uuid(),
-				componentType: "TitleBlock",
-				order: 4,
-				data: { text: "Past Events", level: "2", align: "center" },
-			},
-			{ id: uuid(), componentType: "PastEventsBlock", order: 5, data: {} },
 		],
 	},
 	{
@@ -2814,41 +1705,6 @@ const pageDefs: Array<{
 		],
 	},
 	{
-		title: "Deals",
-		slug: "/deals",
-		status: "published",
-		content: [
-			{
-				id: uuid(),
-				componentType: "TitleBlock",
-				order: 0,
-				data: { text: "Member Deals", level: "1", align: "center" },
-			},
-			{
-				id: uuid(),
-				componentType: "SpacerBlock",
-				order: 1,
-				data: { height: 20 },
-			},
-			{
-				id: uuid(),
-				componentType: "TextBlock",
-				order: 2,
-				data: {
-					content:
-						"<p>Exclusive discounts and offers for community members.</p>",
-				},
-			},
-			{
-				id: uuid(),
-				componentType: "SpacerBlock",
-				order: 3,
-				data: { height: 20 },
-			},
-			{ id: uuid(), componentType: "DealsListBlock", order: 4, data: {} },
-		],
-	},
-	{
 		title: "News",
 		slug: "/news",
 		status: "published",
@@ -2867,9 +1723,9 @@ const pageDefs: Array<{
 			},
 			{
 				id: uuid(),
-				componentType: "PostsListBlock",
+				componentType: "StreamBlock",
 				order: 2,
-				data: { limit: 10 },
+				data: { show: "all", limit: 10 },
 			},
 		],
 	},
@@ -2883,6 +1739,9 @@ for (const p of pageDefs) {
 	db.insert(schema.pages)
 		.values({
 			id: pageId,
+			scopeId: rootScope!.id,
+			slug: p.slug.replace(/^\/+/, ""),
+			title: p.title,
 			content: p.content,
 			status: p.status,
 			createdAt: now(),
@@ -2895,7 +1754,8 @@ console.log(`  pages seeded (${pageDefs.length})`);
 
 // ─── 15. Menu items ──────────────────────────────────────────────────────────
 
-// Pages that have a builder-managed content page are linked via pageId.
+// Pages that have a builder-managed content page are linked via pageId. Modules add their own
+// entries (Events, Jobs, Deals) in their seeds.
 // Footer-only items (Contact, Privacy, Terms) are plain links with no page.
 const menuDefs: Array<{
 	title: string;
@@ -2907,20 +1767,12 @@ const menuDefs: Array<{
 	{ menuName: "main", title: "Home", url: "/", position: 0, hasPage: true },
 	{
 		menuName: "main",
-		title: "Events",
-		url: "/events",
-		position: 1,
-		hasPage: true,
-	},
-	{
-		menuName: "main",
 		title: "Communities",
 		url: "/communities",
 		position: 2,
 		hasPage: true,
 	},
 	{ menuName: "main", title: "News", url: "/news", position: 3, hasPage: true },
-	{ menuName: "main", title: "Jobs", url: "/jobs", position: 4 },
 	{
 		menuName: "main",
 		title: "About",
@@ -2929,13 +1781,6 @@ const menuDefs: Array<{
 		hasPage: true,
 	},
 	{ menuName: "footer", title: "Home", url: "/", position: 0, hasPage: true },
-	{
-		menuName: "footer",
-		title: "Events",
-		url: "/events",
-		position: 1,
-		hasPage: true,
-	},
 	{
 		menuName: "footer",
 		title: "Communities",
@@ -2950,14 +1795,6 @@ const menuDefs: Array<{
 		position: 3,
 		hasPage: true,
 	},
-	{
-		menuName: "footer",
-		title: "Deals",
-		url: "/deals",
-		position: 4,
-		hasPage: true,
-	},
-	{ menuName: "footer", title: "Jobs", url: "/jobs", position: 5 },
 	{
 		menuName: "footer",
 		title: "About",
@@ -2975,13 +1812,15 @@ const menuDefs: Array<{
 ];
 
 for (const m of menuDefs) {
+	const pageId = m.hasPage ? (pageIdByUrl.get(m.url) ?? null) : null;
 	db.insert(schema.menuItems)
 		.values({
 			id: uuid(),
 			menuName: m.menuName,
 			title: m.title,
-			url: m.url,
-			pageId: m.hasPage ? (pageIdByUrl.get(m.url) ?? null) : null,
+			// Internal links are stored as references (spec 4.3); the rest are fixed paths.
+			url: pageId ? `ref:core:page:${pageId}` : m.url,
+			pageId,
 			position: m.position,
 			status: "visible",
 			target: "_self",
@@ -2991,302 +1830,6 @@ for (const m of menuDefs) {
 		.run();
 }
 console.log(`  menu items seeded (${menuDefs.length})`);
-
-// ─── 16. Deals ───────────────────────────────────────────────────────────────
-
-const dealS3 = new S3Client({
-	region: seedStorageConfig.region,
-	endpoint: seedStorageConfig.endpoint,
-	forcePathStyle: true,
-	credentials: {
-		accessKeyId: seedStorageConfig.accessKeyId,
-		secretAccessKey: seedStorageConfig.secretAccessKey,
-	},
-});
-
-async function uploadDealLogo(
-	slug: string,
-	bgColor: string,
-	letter: string,
-): Promise<string | null> {
-	const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
-  <rect width="200" height="200" fill="${bgColor}"/>
-  <text x="100" y="115" text-anchor="middle" dominant-baseline="middle"
-    font-family="system-ui, -apple-system, sans-serif"
-    font-size="96" font-weight="700" fill="white">${letter}</text>
-</svg>`;
-	const key = `public/deals/logos/seed-${slug}.svg`;
-	try {
-		await dealS3.send(
-			new PutObjectCommand({
-				Bucket: seedStorageConfig.bucket,
-				Key: key,
-				Body: Buffer.from(svg, "utf8"),
-				ContentType: "image/svg+xml",
-				CacheControl: "public, max-age=86400",
-			}),
-		);
-		return key;
-	} catch {
-		console.warn(`  could not upload deal logo for ${slug}, skipping`);
-		return null;
-	}
-}
-
-const dealDefs: Array<{
-	slug: string;
-	logoColor: string;
-	logoLetter: string;
-	name: string;
-	description: string;
-	validUntilOffsetDays: number | null;
-	steps: schema.DealStep[];
-}> = [
-	{
-		slug: "cafe",
-		logoColor: "#0d9488",
-		logoLetter: "C",
-		name: "10% Off at Partner Café",
-		description: "Enjoy an exclusive 10% discount at our partner café chain.",
-		validUntilOffsetDays: 90,
-		steps: [
-			{
-				type: "text",
-				title: "Who qualifies",
-				text: "Available to all active community members.",
-				requiresLogin: false,
-			},
-			{
-				type: "link",
-				title: "Find a Location",
-				text: "Browse all café locations near you.",
-				link: "https://example.com/cafe-locations",
-				linkText: "Browse Locations",
-				requiresLogin: false,
-			},
-			{
-				type: "promo",
-				title: "Your Promo Code",
-				text: "Use this code at checkout or show it in-store.",
-				promoCode: "COMMUNITY10",
-				requiresLogin: true,
-			},
-		],
-	},
-	{
-		slug: "gym",
-		logoColor: "#ea580c",
-		logoLetter: "G",
-		name: "Free Month at FitSpace Gym",
-		description:
-			"Get your first month completely free at any FitSpace gym location.",
-		validUntilOffsetDays: 60,
-		steps: [
-			{
-				type: "text",
-				title: "How it works",
-				text: "Show your membership confirmation email at the front desk when signing up.",
-				requiresLogin: false,
-			},
-			{
-				type: "link",
-				title: "Sign Up Online",
-				text: "Start your free trial directly on the FitSpace website.",
-				link: "https://example.com/fitspace-signup",
-				linkText: "Start Free Trial",
-				requiresLogin: true,
-			},
-			{
-				type: "promo",
-				title: "Referral Code",
-				text: "Enter this code during online sign-up to activate the free month.",
-				promoCode: "FITFREE2026",
-				requiresLogin: true,
-			},
-		],
-	},
-	{
-		slug: "cowork",
-		logoColor: "#7c3aed",
-		logoLetter: "W",
-		name: "20% Off Co-Working Day Pass",
-		description:
-			"Work from one of our co-working partner spaces at a special member rate.",
-		validUntilOffsetDays: null,
-		steps: [
-			{
-				type: "text",
-				title: "Valid Locations",
-				text: "Valid at all SpaceHub co-working partner locations. Find a location near you on their website.",
-				requiresLogin: false,
-			},
-			{
-				type: "promo",
-				title: "Day Pass Code",
-				text: "Present this code at reception or enter it when booking online.",
-				promoCode: "SPACE20",
-				requiresLogin: true,
-			},
-		],
-	},
-	{
-		slug: "expired",
-		logoColor: "#6b7280",
-		logoLetter: "X",
-		name: "Expired Deal (Seed)",
-		description:
-			"This deal has already expired — used to test expiry filtering.",
-		validUntilOffsetDays: -10,
-		steps: [
-			{
-				type: "text",
-				title: "Expired",
-				text: "This deal is no longer active.",
-				requiresLogin: false,
-			},
-		],
-	},
-];
-
-for (const d of dealDefs) {
-	const logoKey = await uploadDealLogo(d.slug, d.logoColor, d.logoLetter);
-	const validUntil =
-		d.validUntilOffsetDays !== null
-			? daysFromNow(d.validUntilOffsetDays)
-			: null;
-	db.insert(schema.deals)
-		.values({
-			id: uuid(),
-			name: d.name,
-			description: d.description,
-			logo: logoKey,
-			validUntil,
-			steps: d.steps,
-			createdAt: now(),
-			updatedAt: now(),
-		})
-		.run();
-}
-console.log(`  deals seeded (${dealDefs.length})`);
-
-// ─── 17. Jobs ───────────────────────────────────────────────────────────────
-
-const jobDefs: Array<{
-	title: string;
-	body: string;
-	locationType: "on-site" | "remote-eu" | "remote-country";
-	city?: string;
-	country?: string;
-	link?: string;
-	posterRelation?:
-		| "hiring"
-		| "founder"
-		| "direct-team"
-		| "works-there"
-		| "other";
-	expiresAtOffsetDays: number;
-	status: "pending" | "approved";
-	authorIdx: number;
-}> = [
-	{
-		title: "Senior Full-Stack Engineer",
-		body: `<h2>About the role</h2><p>We are looking for a Senior Full-Stack Engineer to join our product team. You will own features end-to-end — from database design through to the user interface.</p><h2>What you'll do</h2><ul><li>Design and build scalable backend APIs with Node.js</li><li>Develop responsive frontend components in React or similar</li><li>Collaborate with product and design in a small, fast-moving team</li></ul><h2>What we're looking for</h2><ul><li>5+ years of professional software development experience</li><li>Solid TypeScript and SQL skills</li><li>Strong communication and ownership mindset</li></ul>`,
-		locationType: "on-site",
-		city: "Demo City",
-		country: "Exampleland",
-		link: "https://example.com/jobs/senior-fullstack",
-		posterRelation: "hiring",
-		expiresAtOffsetDays: 25,
-		status: "approved",
-		authorIdx: 0,
-	},
-	{
-		title: "Product Designer (Remote, EU)",
-		body: `<h2>The opportunity</h2><p>We're hiring a Product Designer to help shape the future of our platform. You'll work closely with engineering and product to craft clear, useful, and beautiful interfaces.</p><h2>Responsibilities</h2><ul><li>Own the design process from discovery through delivery</li><li>Conduct user research and usability testing</li><li>Maintain and evolve our design system</li></ul><h2>Requirements</h2><ul><li>3+ years of product design experience</li><li>Proficiency with Figma</li><li>Experience in an agile environment</li></ul>`,
-		locationType: "remote-eu",
-		link: "https://example.com/jobs/product-designer",
-		posterRelation: "hiring",
-		expiresAtOffsetDays: 20,
-		status: "approved",
-		authorIdx: 2,
-	},
-	{
-		title: "Data Analyst — Remote",
-		body: `<h2>What you'll be doing</h2><p>Join our analytics team and help us turn data into decisions. You'll build dashboards, run analyses, and work with stakeholders across the business.</p><h2>Skills & experience</h2><ul><li>Strong SQL and Python skills</li><li>Experience with BI tools such as Metabase or Looker</li><li>Comfortable presenting findings to non-technical audiences</li></ul>`,
-		locationType: "remote-country",
-		country: "Exampleland",
-		posterRelation: "works-there",
-		expiresAtOffsetDays: 18,
-		status: "approved",
-		authorIdx: 4,
-	},
-	{
-		title: "Community Manager",
-		body: `<h2>About this role</h2><p>We are growing our local presence and are looking for a Community Manager to cultivate and grow the member base. You'll organise events, onboard new members, and be the face of the community.</p><h2>What we need</h2><ul><li>Excellent interpersonal and organisational skills</li><li>Experience planning and running events</li><li>Strong communication skills</li></ul>`,
-		locationType: "on-site",
-		city: "Southville",
-		country: "Exampleland",
-		posterRelation: "founder",
-		expiresAtOffsetDays: 28,
-		status: "approved",
-		authorIdx: 7,
-	},
-	{
-		title: "Backend Engineer — Pending Review",
-		body: `<h2>The role</h2><p>We are hiring a Backend Engineer to work on our core platform API.</p><h2>Requirements</h2><ul><li>3+ years backend experience (Go, Node.js, or Python)</li><li>Experience with REST and/or GraphQL APIs</li><li>Familiarity with cloud infrastructure (AWS, GCP)</li></ul>`,
-		locationType: "on-site",
-		city: "Midtown",
-		country: "Exampleland",
-		link: "https://example.com/jobs/backend-engineer",
-		posterRelation: "hiring",
-		expiresAtOffsetDays: 30,
-		status: "pending",
-		authorIdx: 1,
-	},
-	{
-		title: "Marketing Lead — Pending Review",
-		body: `<h2>Overview</h2><p>We are looking for a Marketing Lead to own our growth channels and brand strategy.</p><h2>What you'll do</h2><ul><li>Define and execute the marketing roadmap</li><li>Manage social media, email, and paid channels</li><li>Measure and report on campaign performance</li></ul>`,
-		locationType: "remote-eu",
-		posterRelation: "direct-team",
-		expiresAtOffsetDays: 14,
-		status: "pending",
-		authorIdx: 3,
-	},
-	{
-		title: "Expired Role (Seed)",
-		body: "<p>This job listing has already expired and should not appear in the public job board.</p>",
-		locationType: "on-site",
-		city: "Portstown",
-		country: "Exampleland",
-		expiresAtOffsetDays: -5,
-		status: "approved",
-		authorIdx: 6,
-	},
-];
-
-for (const j of jobDefs) {
-	db.insert(schema.jobs)
-		.values({
-			id: uuid(),
-			title: j.title,
-			body: j.body,
-			editorState: null,
-			locationType: j.locationType,
-			city: j.city ?? null,
-			country: j.country ?? null,
-			link: j.link ?? null,
-			posterRelation: j.posterRelation ?? null,
-			expiresAt: daysFromNow(j.expiresAtOffsetDays),
-			status: j.status,
-			suggestedBy: resolveAuthor(j.authorIdx),
-			createdAt: now(),
-			updatedAt: now(),
-		})
-		.run();
-}
-console.log(
-	`  jobs seeded (${jobDefs.length}: ${jobDefs.filter((j) => j.status === "approved").length} approved, ${jobDefs.filter((j) => j.status === "pending").length} pending, 1 expired)`,
-);
 
 // ─── 17b. Tag definitions ─────────────────────────────────────────────────────
 
@@ -3389,235 +1932,52 @@ for (const def of tagDefDefs) {
 }
 console.log(`  tag definitions seeded (${tagDefDefs.length})`);
 
-// ─── 18. Qualification types ─────────────────────────────────────────────────
+// ─── Modules ─────────────────────────────────────────────────────────────────
+// Each ACTIVE module's `seed` adds its demo data (spec 6): events, deals, jobs, qualifications.
+// Imported only now: the registry opens the app's DB connection and validates the environment.
 
-const qualTypeDefs = [
-	{
-		slug: "master-school",
-		label: "Master School Graduate",
-		description: "Completed our master-level programme.",
-		grantsMembershipTier: "full" as const,
-	},
-	{
-		slug: "summer-school",
-		label: "Summer School Graduate",
-		description: "Completed our summer school programme.",
-		grantsMembershipTier: "associated" as const,
-	},
-	{
-		slug: "phd",
-		label: "PhD",
-		description: "Holds a doctoral degree.",
-		grantsMembershipTier: "full" as const,
-	},
-	{
-		slug: "former-employee",
-		label: "Former Employee",
-		description: "Previously worked at the organisation.",
-		grantsMembershipTier: "associated" as const,
-	},
-];
-
-const existingQualTypes = db.select().from(schema.qualificationTypes).all();
-const qualTypeIdBySlug: Record<string, string> = {};
-
-for (const qt of qualTypeDefs) {
-	const existing = existingQualTypes.find((q) => q.slug === qt.slug);
-	if (existing) {
-		qualTypeIdBySlug[qt.slug] = existing.id;
-	} else {
-		const id = uuid();
-		db.insert(schema.qualificationTypes)
-			.values({
-				id,
-				slug: qt.slug,
-				label: qt.label,
-				description: qt.description,
-				grantsMembershipTier: qt.grantsMembershipTier,
-				createdAt: now(),
-				updatedAt: now(),
-			})
-			.run();
-		qualTypeIdBySlug[qt.slug] = id;
-		console.log(`  created qualification type '${qt.slug}'`);
-	}
-}
-console.log(`  qualification types seeded (${qualTypeDefs.length})`);
-
-// ─── 19. User qualifications, memberships & tags ──────────────────────────────
-
-// Maps: userIdx (-1=admin) → { typeSlug, status, notes? }
-const qualificationPlan: Array<{
-	userIdx: number;
-	typeSlug: string;
-	status: "pending" | "approved" | "rejected";
-	notes?: string;
-}> = [
-	{ userIdx: 0, typeSlug: "master-school", status: "approved" },
-	{ userIdx: 1, typeSlug: "summer-school", status: "approved" },
-	{ userIdx: 2, typeSlug: "phd", status: "approved" },
-	{ userIdx: 3, typeSlug: "summer-school", status: "pending" },
-	{ userIdx: 4, typeSlug: "phd", status: "pending" },
-	{
-		userIdx: 5,
-		typeSlug: "master-school",
-		status: "rejected",
-		notes: "Could not verify the transcript submitted.",
-	},
-	{ userIdx: 6, typeSlug: "former-employee", status: "approved" },
-	{ userIdx: 7, typeSlug: "summer-school", status: "approved" },
-	{ userIdx: -1, typeSlug: "master-school", status: "approved" },
-];
-
-const existingQuals = db.select().from(schema.userQualifications).all();
-const existingMembershipRows = db.select().from(schema.userMemberships).all();
-const existingTagRows = db.select().from(schema.userTags).all();
-
-// Tier hierarchy for upgrade-only logic
-const tierRank: Record<string, number> = { associated: 1, full: 2 };
-
-for (const plan of qualificationPlan) {
-	const userId =
-		plan.userIdx === -1 ? adminUser!.id : testUsers[plan.userIdx]?.id;
-	if (!userId) continue;
-	const typeId = qualTypeIdBySlug[plan.typeSlug];
-	if (!typeId) continue;
-
-	// Upsert qualification
-	const exists = existingQuals.find(
-		(q) => q.userId === userId && q.typeId === typeId,
-	);
-	let qualId: string;
-	if (!exists) {
-		qualId = uuid();
-		db.insert(schema.userQualifications)
-			.values({
-				id: qualId,
-				userId,
-				typeId,
-				status: plan.status,
-				notes: plan.notes ?? null,
-				verifiedBy: plan.status !== "pending" ? adminUser!.id : null,
-				verifiedAt: plan.status !== "pending" ? now() : null,
-				createdAt: now(),
-				updatedAt: now(),
-			})
-			.run();
-	} else {
-		qualId = exists.id;
-	}
-
-	if (plan.status !== "approved") continue;
-
-	// For approved qualifications: grant membership and tag
-	const qualType = qualTypeDefs.find((qt) => qt.slug === plan.typeSlug)!;
-	const grantsTier = qualType.grantsMembershipTier;
-
-	// Membership — only upgrade, never downgrade
-	const existingMembership =
-		existingMembershipRows.find((m) => m.userId === userId) ??
-		db
-			.select()
-			.from(schema.userMemberships)
-			.all()
-			.find((m) => m.userId === userId);
-	const currentRank = existingMembership
-		? (tierRank[existingMembership.tier] ?? 0)
-		: 0;
-	const newRank = tierRank[grantsTier] ?? 0;
-
-	if (newRank > currentRank) {
-		if (existingMembership) {
-			db.update(schema.userMemberships)
-				.set({
-					tier: grantsTier,
-					grantedBy: adminUser!.id,
-					grantedAt: now(),
-					updatedAt: now(),
-				})
-				.where(eq(schema.userMemberships.userId, userId))
-				.run();
-		} else {
-			db.insert(schema.userMemberships)
-				.values({
-					id: uuid(),
-					userId,
-					tier: grantsTier,
-					grantedBy: adminUser!.id,
-					grantedAt: now(),
-					createdAt: now(),
-					updatedAt: now(),
-				})
-				.run();
-		}
-		// Refresh for subsequent iterations
-		existingMembershipRows.push({
-			id: "",
-			userId,
-			tier: grantsTier,
-			grantedBy: adminUser!.id,
-			grantedAt: now(),
-			expiresAt: null,
-			notes: null,
-			createdAt: now(),
-			updatedAt: now(),
-		});
-	}
-
-	// Tag — upsert on (userId, slug)
-	const tagExists =
-		existingTagRows.find(
-			(t) => t.userId === userId && t.slug === plan.typeSlug,
-		) ??
-		db
-			.select()
-			.from(schema.userTags)
-			.all()
-			.find((t) => t.userId === userId && t.slug === plan.typeSlug);
-	if (!tagExists) {
-		db.insert(schema.userTags)
-			.values({
-				id: uuid(),
-				userId,
-				slug: plan.typeSlug,
-				label: qualType.label,
-				category: "qualification",
-				sourceType: "qualification",
-				sourceId: qualId,
-				grantedBy: adminUser!.id,
-				grantedAt: now(),
-			})
-			.run();
-	}
+{
+	const { seedActiveModules } = await import("../src/core/registry/seeds.ts");
+	const seeded = await seedActiveModules({
+		mode: "demo",
+		db,
+		sqlite,
+		schema,
+		rootScopeId: rootScope.id,
+		imageKeys,
+		uploadPublicObject: (key, body, contentType) =>
+			uploadPublicSeedObject(key, body, contentType),
+		log: (message) => console.log(message),
+	});
+	console.log(`  modules seeded: ${seeded.join(", ") || "none"}`);
 }
 
-const qualCount = db.select().from(schema.userQualifications).all().length;
-const membershipCount = db.select().from(schema.userMemberships).all().length;
-const tagCount = db.select().from(schema.userTags).all().length;
-console.log(`  user qualifications seeded (${qualCount})`);
-console.log(`  user memberships seeded (${membershipCount})`);
-console.log(`  user tags seeded (${tagCount})`);
+// ─── User requirements ───────────────────────────────────────────────────────
+// Every seeded user has completed profile basics, location, the onboarding survey and the
+// event checkout questions (spec 4.6), so logging in as any of them is not gated.
+
+completeRequirements(
+	sqlite,
+	db
+		.select({ id: schema.users.id })
+		.from(schema.users)
+		.all()
+		.map((u) => u.id),
+);
+console.log("  user requirements completed for every seeded user");
 
 // ─── Done ────────────────────────────────────────────────────────────────────
 
 const counts = {
 	users: db.select().from(schema.users).all().length,
-	groups: db.select().from(schema.groups).all().length,
-	memberships: db.select().from(schema.groupMemberships).all().length,
-	reps: db.select().from(schema.groupRepresentatives).all().length,
-	posts: db.select().from(schema.posts).all().length,
-	events: db.select().from(schema.events).all().length,
-	inventoryGroups: db.select().from(schema.inventoryGroups).all().length,
-	products: db.select().from(schema.products).all().length,
-	participationStatus: db.select().from(schema.participationStatus).all()
-		.length,
+	scopes: db.select().from(schema.scopes).all().length,
+	memberships: db.select().from(schema.scopeMemberships).all().length,
+	scopeRoles: db.select().from(schema.scopeRoles).all().length,
+	notes: db.select().from(schema.notes).all().length,
+	articles: db.select().from(schema.articles).all().length,
 	pages: db.select().from(schema.pages).all().length,
 	menuItems: db.select().from(schema.menuItems).all().length,
 	forms: db.select().from(schema.forms).all().length,
-	deals: db.select().from(schema.deals).all().length,
-	jobs: db.select().from(schema.jobs).all().length,
-	qualificationTypes: db.select().from(schema.qualificationTypes).all().length,
-	userQualifications: db.select().from(schema.userQualifications).all().length,
 	userMemberships: db.select().from(schema.userMemberships).all().length,
 	userTags: db.select().from(schema.userTags).all().length,
 };

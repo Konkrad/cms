@@ -3,7 +3,7 @@
  * and creates an isolated SQLite test database with the current schema applied.
  *
  * All ports and the temp DB path are written into process.env so that
- * src/env.ts and src/db/connection.ts pick them up when first imported in
+ * src/env.ts and src/core/db/connection.ts pick them up when first imported in
  * each test worker.
  */
 
@@ -90,7 +90,6 @@ export async function setup() {
 
 	process.env.STRIPE_API_BASE_URL = `http://localhost:${stripePort}`;
 	process.env.STRIPE_SECRET_KEY = "sk_test_dummy";
-	process.env.STRIPE_PUBLISHABLE_KEY = "pk_test_dummy";
 	process.env.STRIPE_WEBHOOK_SECRET = "whsec_dummy";
 }
 

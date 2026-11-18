@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { t } from "~/contracts/i18n";
 
 type CalloutType = "info" | "tip" | "warning" | "danger";
 
@@ -40,35 +41,40 @@ const STYLES: Record<
 };
 
 export const definition: BlockDefinition = {
-	name: "Callout",
+	name: t("theme.blocks.callout.callout"),
 	componentType: "CalloutBlock",
 	category: "content",
 	icon: "📣",
 	configSchema: [
 		{
 			name: "type",
-			label: "Type",
+			label: t("theme.blocks.callout.type"),
 			type: "select",
 			options: [
-				{ label: "Info", value: "info" },
-				{ label: "Tip", value: "tip" },
-				{ label: "Warning", value: "warning" },
-				{ label: "Danger", value: "danger" },
+				{ label: t("theme.blocks.callout.info"), value: "info" },
+				{ label: t("theme.blocks.callout.tip"), value: "tip" },
+				{ label: t("theme.blocks.callout.warning"), value: "warning" },
+				{ label: t("theme.blocks.callout.danger"), value: "danger" },
 			],
 			defaultValue: "info",
 		},
-		{ name: "title", label: "Title", type: "text", required: false },
+		{
+			name: "title",
+			label: t("theme.blocks.callout.title"),
+			type: "text",
+			required: false,
+		},
 		{
 			name: "body",
-			label: "Body",
+			label: t("theme.blocks.callout.body"),
 			type: "textarea",
-			defaultValue: "Add your callout message here.",
+			defaultValue: t("theme.blocks.callout.addYourCalloutMessageHere"),
 		},
 	],
 	defaultData: {
 		type: "info",
 		title: "",
-		body: "Add your callout message here.",
+		body: t("theme.blocks.callout.addYourCalloutMessageHere"),
 	},
 };
 

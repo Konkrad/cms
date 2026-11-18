@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { t } from "~/contracts/i18n";
 
 interface VideoBlockProps {
 	url?: string;
@@ -28,18 +29,23 @@ function isDirectVideo(url: string): boolean {
 }
 
 export const definition: BlockDefinition = {
-	name: "Video",
+	name: t("theme.blocks.video.video"),
 	componentType: "VideoBlock",
 	category: "content",
 	icon: "🎬",
 	configSchema: [
 		{
 			name: "url",
-			label: "Video URL (YouTube, Vimeo, or .mp4)",
+			label: t("theme.blocks.video.videoUrlYoutubeVimeoOr"),
 			type: "url",
 			defaultValue: "",
 		},
-		{ name: "caption", label: "Caption", type: "text", required: false },
+		{
+			name: "caption",
+			label: t("theme.blocks.video.caption"),
+			type: "text",
+			required: false,
+		},
 	],
 	defaultData: { url: "", caption: "" },
 };
@@ -58,7 +64,7 @@ export default component$<VideoBlockProps>((props) => {
 					{embedUrl ? (
 						<iframe
 							src={embedUrl}
-							title={props.caption ?? "Video"}
+							title={props.caption ?? t("theme.videoBlock.video")}
 							class="absolute inset-0 w-full h-full border-0"
 							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 							allowFullscreen
@@ -72,7 +78,9 @@ export default component$<VideoBlockProps>((props) => {
 						/>
 					) : (
 						<div class="absolute inset-0 flex items-center justify-center bg-bg-muted border border-border">
-							<p class="text-text-muted text-sm">Unsupported video URL</p>
+							<p class="text-text-muted text-sm">
+								{t("theme.videoBlock.unsupportedVideoUrl")}
+							</p>
 						</div>
 					)}
 				</div>

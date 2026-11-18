@@ -1,19 +1,20 @@
 import { component$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { t } from "~/contracts/i18n";
 
 interface TextBlockProps {
 	content?: string;
 }
 
 export const definition: BlockDefinition = {
-	name: "Text Content",
+	name: t("theme.blocks.text.textContent"),
 	componentType: "TextBlock",
 	category: "content",
 	icon: "📝",
 	configSchema: [
 		{
 			name: "content",
-			label: "Content (HTML supported)",
+			label: t("theme.blocks.text.contentHtmlSupported"),
 			type: "textarea",
 			defaultValue: "<p>Enter your text here...</p>",
 			required: true,

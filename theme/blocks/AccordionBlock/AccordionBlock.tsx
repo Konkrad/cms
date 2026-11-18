@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { t } from "~/contracts/i18n";
 
 interface AccordionItem {
 	question: string;
@@ -12,32 +13,44 @@ interface AccordionBlockProps {
 }
 
 export const definition: BlockDefinition = {
-	name: "Accordion",
+	name: t("theme.blocks.accordion.accordion"),
 	componentType: "AccordionBlock",
 	category: "content",
 	icon: "📋",
 	configSchema: [
 		{
 			name: "heading",
-			label: "Section Heading",
+			label: t("theme.blocks.accordion.sectionHeading"),
 			type: "text",
 			required: false,
 		},
 		{
 			name: "items",
-			label: "Items",
+			label: t("theme.blocks.accordion.items"),
 			type: "tiles",
 			defaultValue: JSON.stringify([
-				{ question: "Question one?", answer: "Answer one." },
-				{ question: "Question two?", answer: "Answer two." },
+				{
+					question: t("theme.blocks.accordion.questionOne"),
+					answer: t("theme.blocks.accordion.answerOne"),
+				},
+				{
+					question: t("theme.blocks.accordion.questionTwo"),
+					answer: t("theme.blocks.accordion.answerTwo"),
+				},
 			]),
 		},
 	],
 	defaultData: {
 		heading: "",
 		items: JSON.stringify([
-			{ question: "Question one?", answer: "Answer one." },
-			{ question: "Question two?", answer: "Answer two." },
+			{
+				question: t("theme.blocks.accordion.questionOne"),
+				answer: t("theme.blocks.accordion.answerOne"),
+			},
+			{
+				question: t("theme.blocks.accordion.questionTwo"),
+				answer: t("theme.blocks.accordion.answerTwo"),
+			},
 		]),
 	},
 };

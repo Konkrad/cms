@@ -20,7 +20,7 @@ A theme is a `theme/` directory with this shape:
 - **`chrome/`** — site-wide layout wrapping every page: `Navigation/`,
   `SiteFooter/`.
 - **`blocks/`** — page-builder blocks (e.g. a hero section, an upcoming-events
-  list, a posts list) that admins compose pages out of via the visual page
+  list, a news stream of notes and articles) that admins compose pages out of via the visual page
   builder. Blocks are the one place theme code is allowed to self-fetch
   data via `server$()`, since the page builder has no route loader to hand
   them props.
@@ -28,6 +28,10 @@ A theme is a `theme/` directory with this shape:
   `EventView`, `CheckoutView`), each receiving typed, already
   secrets-stripped props from the matching core `src/routes/**` loader. A
   theme route component never imports `db`, `env`, or a service directly.
+  Links to events, notes, articles, jobs and other items come in the props as `url`
+  fields (an item lives under the address of the group that owns it, e.g.
+  `/germany/berlin/events/summer-bbq`): a theme never builds those URLs
+  itself, and a unit test fails on `/events/${id}`-style links.
 - **`shared/`** — smaller presentational widgets reused across routes
   (e.g. a location-picker step, a participation toggle).
 - **`emails/`** — the entire email layer: layout chrome, brand strings, and
@@ -45,7 +49,7 @@ re-exported `routeAction$`/`routeLoader$` does not resolve the `~` or
 specifically. In practice this means: if a themed widget bundles a server
 action together with its JSX (a step in a multi-step flow, say), split it —
 the action stays in **core** (e.g.
-`src/components/some-feature/useDoTheThing.ts`), re-exported *relatively*
+`src/core/<area>/useDoTheThing.ts`), re-exported *relatively*
 from the route file that uses it; the JSX/presentation moves to
 **theme**, imported via the `~theme` alias as normal. Only the action
 re-export needs the relative-path workaround.

@@ -1,0 +1,256 @@
+import { $, component$, useSignal } from "@qwik.dev/core";
+import { routeAction$, z, zod$ } from "@qwik.dev/router";
+import { allowedVisibilities, requireModuleAdmin, reviews } from "~/core";
+import {
+	AddressAutocomplete,
+	Button,
+	ImageUploader,
+	Input,
+	Select,
+	SmartDatePicker,
+	TextArea,
+	t,
+	VISIBILITIES,
+	VisibilitySelector,
+} from "~/core/ui";
+import { eventsService } from "../services/events";
+import type { NewEventContext } from "./new-data";
+
+const eventSchema = z.object({
+	title: z.string().min(1, t("events.admin.new.titleIsRequired")),
+	body: z.string().min(1, t("events.admin.new.descriptionIsRequired")),
+	startDate: z.string().min(1, t("events.admin.new.startTimeIsRequired")),
+	endDate: z.string().min(1, t("events.admin.new.endTimeIsRequired")),
+	address: z.string().optional(),
+	city: z.string().optional(),
+	country: z.string().optional(),
+	latitude: z.string().optional(),
+	longitude: z.string().optional(),
+	locationType: z.enum(["in_person", "online", "hybrid"]),
+	onlineUrl: z
+		.string()
+		.url(t("events.admin.new.invalidUrl"))
+		.optional()
+		.or(z.literal("")),
+	visibility: z.enum(VISIBILITIES),
+	image1: z.string().optional(),
+	image2: z.string().optional(),
+});
+
+export const useCreateEvent = routeAction$(async (data, event) => {
+	const { user, scope, adminBase } = await requireModuleAdmin(event, {
+		module: "events",
+	});
+
+	if (!(await allowedVisibilities(user, scope.id)).includes(data.visibility)) {
+		return {
+			success: false,
+			error: t("events.admin.new.youCannotPublishWithThis"),
+		};
+	}
+
+	if (data.locationType !== "online" && !data.address) {
+		return {
+			success: false,
+			error: t("events.admin.new.locationIsRequiredForIn"),
+		};
+	}
+
+	// A draft first: a chapter's public event is published once its proposal is approved
+	// (spec 5.2); core decides whether that review is needed.
+	const created = await eventsService.create({
+		title: data.title,
+		body: data.body,
+		startDate: new Date(data.startDate).toISOString(),
+		endDate: new Date(data.endDate).toISOString(),
+		address: data.address || null,
+		city: data.city || null,
+		country: data.country || null,
+		latitude: data.latitude || null,
+		longitude: data.longitude || null,
+		locationType: data.locationType,
+		onlineUrl: data.onlineUrl || null,
+		visibility: data.visibility,
+		scopeId: scope.id,
+		userId: user.id,
+		image1: data.image1 || null,
+		image2: data.image2 || null,
+		status: "draft",
+	});
+	if (
+		await reviews.isRequired({ userId: user.id }, `events:event:${created.id}`)
+	)
+		throw event.redirect(303, `${adminBase}/events/${created.id}/review`);
+	await eventsService.setStatus(created.id, "published");
+
+	throw event.redirect(303, `${adminBase}/events`);
+}, zod$(eventSchema));
+
+type Props = { groupContext: NewEventContext };
+
+export const AdminEventNew = component$<Props>(({ groupContext }) => {
+	const createEventAction = useCreateEvent();
+	const isSubmitting = useSignal(false);
+	const locationType = useSignal("in_person");
+	const latitude = useSignal("");
+	const longitude = useSignal("");
+	const city = useSignal("");
+	const country = useSignal("");
+
+	const triggerUpload = useSignal(false);
+	const successCount = useSignal(0);
+
+	const handleSubmit = $(() => {
+		console.log("[events/new] handleSubmit — setting triggerUpload=true");
+		isSubmitting.value = true;
+		triggerUpload.value = true;
+	});
+
+	const checkAndSubmit = $(() => {
+		successCount.value++;
+		console.log(
+			`[events/new] checkAndSubmit — successCount=${successCount.value}`,
+		);
+		// We have 2 uploaders
+		if (successCount.value === 2) {
+			const form = document.querySelector("form");
+			console.log("[events/new] submitting form", form);
+			if (form) {
+				createEventAction.submit(new FormData(form));
+			}
+		}
+	});
+
+	return (
+		<div>
+			<div class="flex items-center justify-between mb-6">
+				<h2 class="text-2xl font-bold text-gray-800">
+					{t("events.admin.new.createNewEvent")}
+				</h2>
+				<Button href={`${groupContext.adminBase}/events`} variant="secondary">
+					{t("events.admin.new.backToEvents")}
+				</Button>
+			</div>
+
+			<div class="bg-white rounded-lg shadow-sm p-6">
+				<form preventdefault:submit onSubmit$={handleSubmit} class="space-y-6">
+					<Input
+						name="title"
+						label={t("events.admin.new.title")}
+						placeholder={t("events.admin.new.eGMonthlyCommunityMeetup")}
+						required
+					/>
+					<TextArea
+						name="body"
+						label={t("events.admin.new.description")}
+						placeholder={t("events.admin.new.describeTheEvent")}
+						required
+					/>
+
+					<SmartDatePicker
+						startDateName="startDate"
+						endDateName="endDate"
+						label={t("events.admin.new.dateTime")}
+						required
+					/>
+
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<Select
+							name="locationType"
+							label={t("events.admin.new.locationType")}
+							value={locationType.value}
+							onChange$={(e) => {
+								locationType.value = (e.target as HTMLSelectElement).value;
+							}}
+						>
+							<option value="in_person">
+								{t("events.admin.new.inPerson")}
+							</option>
+							<option value="online">{t("events.admin.new.online")}</option>
+							<option value="hybrid">{t("events.admin.new.hybrid")}</option>
+						</Select>
+						{locationType.value !== "online" && (
+							<AddressAutocomplete
+								name="address"
+								label={t("events.admin.new.locationAddress")}
+								placeholder={t("events.admin.new.startTypingAnAddress")}
+								required={locationType.value !== "online"}
+								value=""
+								latitudeSignal={latitude}
+								longitudeSignal={longitude}
+								citySignal={city}
+								countrySignal={country}
+							/>
+						)}
+					</div>
+
+					{(locationType.value === "online" ||
+						locationType.value === "hybrid") && (
+						<Input
+							name="onlineUrl"
+							label={t("events.admin.new.onlineMeetingUrl")}
+							placeholder={t("events.admin.new.httpsZoomUsJ")}
+							required
+						/>
+					)}
+
+					<VisibilitySelector
+						name="visibility"
+						value={groupContext.visibilities[0]}
+						options={groupContext.visibilities}
+					/>
+
+					<hr class="border-gray-200" />
+					<p class="text-sm font-semibold text-gray-700">
+						{t("events.admin.new.eventPageImages")}
+					</p>
+
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<p class="text-sm font-medium text-gray-700 mb-1">
+								{t("events.admin.new.imageLeftSquare")}
+							</p>
+							<ImageUploader
+								name="image1"
+								path="public/events"
+								triggerSignal={triggerUpload}
+								aspectRatio="1/1"
+								crop
+								cropAspectRatio="1/1"
+								onSettled$={checkAndSubmit}
+							/>
+						</div>
+						<div>
+							<p class="text-sm font-medium text-gray-700 mb-1">
+								{t("events.admin.new.imageRightSquare")}
+							</p>
+							<ImageUploader
+								name="image2"
+								path="public/events"
+								triggerSignal={triggerUpload}
+								aspectRatio="1/1"
+								crop
+								cropAspectRatio="1/1"
+								onSettled$={checkAndSubmit}
+							/>
+						</div>
+					</div>
+
+					<div class="flex gap-4">
+						<Button type="submit" disabled={isSubmitting.value}>
+							{isSubmitting.value
+								? t("events.admin.new.creating")
+								: t("events.admin.new.createEvent")}
+						</Button>
+						<Button
+							href={`${groupContext.adminBase}/events`}
+							variant="secondary"
+						>
+							{t("events.admin.new.cancel")}
+						</Button>
+					</div>
+				</form>
+			</div>
+		</div>
+	);
+});

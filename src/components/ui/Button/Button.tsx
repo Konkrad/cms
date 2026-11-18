@@ -33,10 +33,7 @@ export const Button = component$<ButtonProps>(
 		}
 
 		return (
-			<button
-				{...props}
-				class={classes}
-			>
+			<button {...props} class={classes}>
 				<Slot />
 			</button>
 		);

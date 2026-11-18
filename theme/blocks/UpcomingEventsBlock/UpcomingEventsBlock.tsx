@@ -1,41 +1,18 @@
 import { component$ } from "@qwik.dev/core";
-import { useUpcomingEvents } from "~/components/builder/blocks/useUpcomingEvents";
 import type { BlockDefinition } from "~/contracts/blocks";
+import { t } from "~/contracts/i18n";
+import { useUpcomingEvents } from "~/modules/events/useUpcomingEvents";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
+import { formatEventWhen } from "~theme/shared/format-event-when";
 
 export const definition: BlockDefinition = {
-	name: "Upcoming Events",
+	name: t("theme.blocks.upcomingEvents.upcomingEvents"),
 	componentType: "UpcomingEventsBlock",
 	category: "dynamic",
 	icon: "📅",
 	configSchema: [],
 	defaultData: {},
 };
-
-function formatEventDate(startDate: string, endDate?: string): string {
-	const start = new Date(startDate);
-	const day = new Intl.DateTimeFormat("en-US", { day: "numeric" }).format(
-		start,
-	);
-	const month = new Intl.DateTimeFormat("en-US", { month: "long" }).format(
-		start,
-	);
-	const startTime = new Intl.DateTimeFormat("en-US", {
-		hour: "numeric",
-		minute: "2-digit",
-		hour12: true,
-	}).format(start);
-
-	if (!endDate) return `${day} ${month} · ${startTime}`;
-
-	const endTime = new Intl.DateTimeFormat("en-US", {
-		hour: "numeric",
-		minute: "2-digit",
-		hour12: true,
-	}).format(new Date(endDate));
-
-	return `${day} ${month} · ${startTime} - ${endTime}`;
-}
 
 export default component$(() => {
 	const { events, nextCursor, isLoading, isLoadingMore, error, loadMore } =
@@ -45,14 +22,20 @@ export default component$(() => {
 		<div class="max-w-6xl mx-auto px-4 py-12">
 			{isLoading.value ? (
 				<div class="text-center py-12">
-					<p class="text-text-muted">Loading upcoming events...</p>
+					<p class="text-text-muted">
+						{t("theme.upcomingEventsBlock.loadingUpcomingEvents")}
+					</p>
 				</div>
 			) : error.value ? (
 				<p class="text-error text-center py-8">
-					Failed to load events: {error.value}
+					{t("theme.upcomingEventsBlock.failedToLoadEvents", {
+						value: error.value,
+					})}
 				</p>
 			) : events.value.length === 0 ? (
-				<p class="text-text-muted text-center py-8">No upcoming events.</p>
+				<p class="text-text-muted text-center py-8">
+					{t("theme.upcomingEventsBlock.noUpcomingEvents")}
+				</p>
 			) : (
 				<>
 					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -60,19 +43,21 @@ export default component$(() => {
 							const location =
 								event.city ||
 								event.address ||
-								(event.locationType === "online" ? "Online" : "TBA");
+								(event.locationType === "online"
+									? t("theme.upcomingEventsBlock.online")
+									: t("theme.upcomingEventsBlock.tba"));
 							return (
 								<ContentCard
 									key={event.id}
 									title={event.title}
 									image={event.image1}
-									date={formatEventDate(event.startDate, event.endDate)}
+									date={formatEventWhen(event.startDate, event.endDate)}
 									meta={location}
 									description={event.body
 										?.replace(/<[^>]+>/g, "")
 										.substring(0, 180)}
-									href={`/events/${event.id}`}
-									label="Open Tickets"
+									href={event.url}
+									label={t("theme.upcomingEventsBlock.openTickets")}
 								/>
 							);
 						})}
@@ -86,7 +71,9 @@ export default component$(() => {
 								onClick$={loadMore}
 								disabled={isLoadingMore.value}
 							>
-								{isLoadingMore.value ? "Loading..." : "Load More"}
+								{isLoadingMore.value
+									? t("theme.upcomingEventsBlock.loading")
+									: t("theme.upcomingEventsBlock.loadMore")}
 							</button>
 						</div>
 					)}

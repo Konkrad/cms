@@ -76,7 +76,7 @@ test("admin creates and prices the reunion dinner", async ({
 	await injectCursor(page);
 
 	try {
-		await page.goto("/admin/global/events/new");
+		await page.goto("/admin/root/events/new");
 		await beat(page);
 
 		await glideFill(
@@ -173,9 +173,9 @@ test("admin creates and prices the reunion dinner", async ({
 		// Add a paid inventory group + product so the event has a ticket price.
 		// Occasionally races Qwik's own client-side navigation and aborts — retry once.
 		try {
-			await page.goto(`/admin/global/events/${created.id}/products`);
+			await page.goto(`/admin/root/events/${created.id}/products`);
 		} catch {
-			await page.goto(`/admin/global/events/${created.id}/products`);
+			await page.goto(`/admin/root/events/${created.id}/products`);
 		}
 		await beat(page);
 

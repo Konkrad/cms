@@ -1,13 +1,40 @@
 /**
- * Core → theme data contracts for the public elections routes.
+ * Core → theme data contracts for the public elections pages (src/modules/elections).
  */
-import type { useElections } from "~/routes/elections";
-import type { useMyApplications } from "~/routes/elections/mine";
-import type { useElectionDetail } from "~/routes/elections/[id]";
-import type { useApplyData, useSubmitApplication } from "~/routes/elections/[id]/apply";
 
-export type ElectionsViewData = ReturnType<typeof useElections>["value"];
-export type MyApplicationsViewData = ReturnType<typeof useMyApplications>["value"];
-export type ElectionDetailViewData = ReturnType<typeof useElectionDetail>["value"];
-export type ApplyViewData = ReturnType<typeof useApplyData>["value"];
+import type { PublicUser } from "~/core/users/public-user";
+import type { useSubmitApplication } from "~/modules/elections/actions";
+import type {
+	electionApplyPage,
+	electionsListPage,
+	myApplicationsPage,
+} from "~/modules/elections/pages";
+import type { ElectionCycleWithPositions } from "~/modules/elections/service";
+
+type PageData<P extends { load: (...args: never[]) => Promise<unknown> }> =
+	Awaited<ReturnType<P["load"]>>;
+
+export type ElectionsViewData = PageData<typeof electionsListPage>;
+export type MyApplicationsViewData = PageData<typeof myApplicationsPage>;
+/** An approved candidate as other members see them: motivation and public identity only. */
+export type ElectionCandidate = {
+	id: string;
+	positionId: string;
+	motivationWhy: string;
+	motivationExperience: string;
+	motivationGoals: string;
+	user: PublicUser;
+};
+
+/** Payload of `/elections/:id` (declared, not derived: it shows other members' applications). */
+export type ElectionDetailViewData = {
+	cycle: ElectionCycleWithPositions;
+	/** Canonical URL of the cycle, and of its application form (add `?positionId=`). */
+	url: string;
+	applyUrl: string;
+	approvedApps: ElectionCandidate[];
+	userCanApply: boolean;
+	userAppPositionIds: string[];
+};
+export type ApplyViewData = PageData<typeof electionApplyPage>;
 export type SubmitApplicationAction = ReturnType<typeof useSubmitApplication>;

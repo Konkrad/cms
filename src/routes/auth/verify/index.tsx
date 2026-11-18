@@ -1,6 +1,7 @@
 import { component$ } from "@qwik.dev/core";
 import { routeLoader$ } from "@qwik.dev/router";
-import { emailAuthService } from "~/services/email-auth.service";
+import { emailAuthService } from "~/core/auth/email-auth.service";
+import { t } from "~/core/i18n";
 import { env } from "~/env";
 import { AuthVerifyView } from "~theme/routes/auth/AuthVerifyView";
 
@@ -8,7 +9,7 @@ export const useVerify = routeLoader$(async (event: any) => {
 	const url = new URL(event.request.url);
 	const token = url.searchParams.get("token");
 	if (!token) {
-		return { success: false, error: "Missing token" };
+		return { success: false, error: t("core.auth.missingToken") };
 	}
 
 	const ip =
@@ -23,7 +24,10 @@ export const useVerify = routeLoader$(async (event: any) => {
 		result = await emailAuthService.verifyMagic(token, { ip, userAgent });
 	} catch (err: any) {
 		console.error("[auth/verify] error:", err);
-		return { success: false, error: err?.message || "Invalid or expired token" };
+		return {
+			success: false,
+			error: err?.message || t("core.auth.invalidToken"),
+		};
 	}
 
 	// Set session cookie

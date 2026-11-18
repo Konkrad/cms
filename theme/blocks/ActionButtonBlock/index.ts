@@ -1,2 +1,1 @@
-export { default } from "./ActionButtonBlock";
-export { definition } from "./ActionButtonBlock";
+export { default, definition } from "./ActionButtonBlock";

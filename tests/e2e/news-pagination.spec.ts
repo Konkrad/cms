@@ -1,16 +1,19 @@
 /**
- * E2E tests for PostsListBlock bidirectional cursor pagination on /news.
+ * E2E tests for the Stream block's bidirectional cursor pagination on /news, over notes and
+ * articles merged by publishedAt.
  *
  * Fully self-contained: creates its own /news page (if missing) and 13 of its
- * own posts, independent of scripts/seed.ts (demo content is not a test
- * fixture — see tests/fixtures.ts `ensureNewsPage`/`createPostInDb`). At 10
- * per page, 13 posts means exactly two pages: page 1 (10 posts), page 2 (3).
+ * own items (articles and notes alternating), independent of scripts/seed.ts (demo content is
+ * not a test fixture — see tests/fixtures.ts `ensureNewsPage`/`createArticleInDb`). At 10
+ * per page, 13 items means exactly two pages: page 1 (10 items), page 2 (3).
  */
 
 import {
-	createPostInDb,
+	createArticleInDb,
+	createNoteInDb,
 	createUserSession,
-	deletePostByTitle,
+	deleteArticleById,
+	deleteNoteById,
 	ensureNewsPage,
 	expect,
 	test,
@@ -20,34 +23,47 @@ const POST_COUNT = 13;
 const TITLE_PREFIX = "E2E News Pagination Post";
 
 let author: ReturnType<typeof createUserSession>;
-const postTitles: string[] = [];
+const articleIds: string[] = [];
+const noteIds: string[] = [];
 
 test.beforeAll(() => {
 	ensureNewsPage();
 	author = createUserSession("user");
 
 	for (let i = 0; i < POST_COUNT; i++) {
-		const title = `${TITLE_PREFIX} ${i + 1}`;
-		postTitles.push(title);
-		createPostInDb({
-			title,
-			body: `<p>Fixture post ${i + 1} for news pagination e2e.</p>`,
-			userId: author.userId,
-			// Stagger createdAt by one minute per post so timestamps are strictly
-			// distinct and descending — cursor pagination keys on createdAt, so a
-			// batch sharing the same millisecond would break page boundaries at ties.
-			createdAt: new Date(Date.now() - i * 60_000).toISOString(),
-		});
+		// Stagger publishedAt by one minute per item so timestamps are strictly
+		// distinct and descending — cursor pagination keys on publishedAt, so a
+		// batch sharing the same millisecond would break page boundaries at ties.
+		const publishedAt = new Date(Date.now() - i * 60_000).toISOString();
+		// Articles (with an h3 title) at even positions, so both pages have some.
+		if (i % 2 === 0)
+			articleIds.push(
+				createArticleInDb({
+					title: `${TITLE_PREFIX} ${i + 1}`,
+					body: `<p>Fixture article ${i + 1} for news pagination e2e.</p>`,
+					userId: author.userId,
+					publishedAt,
+				}),
+			);
+		else
+			noteIds.push(
+				createNoteInDb({
+					body: `<p>Fixture note ${i + 1} for news pagination e2e.</p>`,
+					userId: author.userId,
+					publishedAt,
+				}),
+			);
 	}
 });
 
 test.afterAll(() => {
-	for (const title of postTitles) deletePostByTitle(title);
+	for (const id of articleIds) deleteArticleById(id);
+	for (const id of noteIds) deleteNoteById(id);
 	author.cleanup();
 });
 
 test.describe("News — cursor pagination", () => {
-	test("page 1 loads posts and Next is enabled, Previous disabled", async ({
+	test("page 1 loads the stream and Next is enabled, Previous disabled", async ({
 		memberPage: page,
 	}) => {
 		await page.goto("/news");

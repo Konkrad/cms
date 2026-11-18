@@ -1,2 +1,1 @@
-export { default } from "./TitleBlock";
-export { definition } from "./TitleBlock";
+export { default, definition } from "./TitleBlock";

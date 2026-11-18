@@ -1,11 +1,12 @@
 import { component$ } from "@qwik.dev/core";
-import { useDealsList } from "~/components/builder/blocks/useDealsList";
 import type { BlockDefinition } from "~/contracts/blocks";
-import { publicImageUrlFromKey } from "~/utils/images";
+import { t } from "~/contracts/i18n";
+import { publicImageUrlFromKey } from "~/core/media/images";
+import { useDealsList } from "~/modules/deals/useDealsList";
 import { ContentCard } from "~theme/shared/ContentCard/ContentCard";
 
 export const definition: BlockDefinition = {
-	name: "Deals",
+	name: t("theme.blocks.dealsList.deals"),
 	componentType: "DealsListBlock",
 	category: "dynamic",
 	icon: "🎁",
@@ -20,14 +21,20 @@ export default component$(() => {
 		<div class="max-w-6xl mx-auto px-4 py-12">
 			{isLoading.value ? (
 				<div class="text-center py-12">
-					<p class="text-text-muted">Loading deals...</p>
+					<p class="text-text-muted">
+						{t("theme.dealsListBlock.loadingDeals")}
+					</p>
 				</div>
 			) : errorMsg.value ? (
 				<p class="text-error text-center py-8">
-					Failed to load deals: {errorMsg.value}
+					{t("theme.dealsListBlock.failedToLoadDeals", {
+						value: errorMsg.value,
+					})}
 				</p>
 			) : deals.value.length === 0 ? (
-				<p class="text-text-muted text-center py-8">No deals available.</p>
+				<p class="text-text-muted text-center py-8">
+					{t("theme.dealsListBlock.noDealsAvailable")}
+				</p>
 			) : (
 				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 					{deals.value.map((deal) => (
@@ -37,8 +44,8 @@ export default component$(() => {
 							image={publicImageUrlFromKey(deal.logo)}
 							imageAlt={deal.name}
 							description={deal.description ?? undefined}
-							href={`/deals/${deal.id}`}
-							label="View deal"
+							href={deal.url}
+							label={t("theme.dealsListBlock.viewDeal")}
 						/>
 					))}
 				</div>

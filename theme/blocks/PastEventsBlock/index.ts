@@ -1,2 +1,1 @@
-export { default } from "./PastEventsBlock";
-export { definition } from "./PastEventsBlock";
+export { default, definition } from "./PastEventsBlock";

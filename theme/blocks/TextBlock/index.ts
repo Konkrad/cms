@@ -1,2 +1,1 @@
-export { default } from "./TextBlock";
-export { definition } from "./TextBlock";
+export { default, definition } from "./TextBlock";

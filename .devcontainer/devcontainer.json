@@ -31,7 +31,7 @@
 		"S3_BUCKET": "dev-bucket",
 		"STRIPE_API_BASE_URL": "http://stripe-mock:12111",
 		"STRIPE_SECRET_KEY": "sk_test_codespace",
-		"STRIPE_PUBLISHABLE_KEY": "pk_test_codespace",
+		"STRIPE_WEBHOOK_SECRET": "whsec_codespace",
 		"DB_PATH": "./my-database.db"
 	},
 

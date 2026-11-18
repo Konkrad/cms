@@ -14,6 +14,8 @@ import {
 	type RenderToStreamOptions,
 	renderToStream,
 } from "@qwik.dev/core/server";
+import { siteLocale } from "./core/i18n";
+import "./core/i18n/zod-errors";
 import Root from "./root";
 
 export default function (opts: RenderToStreamOptions) {
@@ -21,7 +23,7 @@ export default function (opts: RenderToStreamOptions) {
 		...opts,
 		// Use container attributes to set attributes on the html tag.
 		containerAttributes: {
-			lang: "en-us",
+			lang: siteLocale,
 			...opts.containerAttributes,
 		},
 		serverData: {

@@ -1,157 +1,204 @@
-import Database from 'better-sqlite3';
+import Database from "better-sqlite3";
 
 function daysFromNow(n: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + n);
-  return d.toISOString();
+	const d = new Date();
+	d.setDate(d.getDate() + n);
+	return d.toISOString();
 }
 
-export async function createEventWithInventory(opts: {
-  title: string;
-  startOffsetDays: number;
-  durationHours?: number;
-  city?: string;
-  country?: string;
-  groupSlug?: string | null;
-  products?: Array<{
-    name: string;
-    price: number;
-    maxQuantity: number;
-    participantCapacity?: number;
-    soldQuantity?: number;
-  }>;
-  salesStartOffset?: number | null;
-  salesEndOffset?: number | null;
-  needsTicket?: boolean;
-  /** Create one inventory group per product so multiple products can be selected simultaneously */
-  separateGroups?: boolean;
-}, useServicesForProducts = true) {
-  const db = new Database(process.env.DB_PATH ?? './my-database.db');
-  // Wait on a held lock instead of erroring (matches the app + openDb()).
-  db.pragma("busy_timeout = 5000");
-  try {
-    // Find an admin user as organizer
-    const admin = db
-      .prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1")
-      .get() as { id: string } | undefined;
-    const adminId = admin?.id;
+export async function createEventWithInventory(
+	opts: {
+		title: string;
+		startOffsetDays: number;
+		durationHours?: number;
+		city?: string;
+		country?: string;
+		groupSlug?: string | null;
+		products?: Array<{
+			name: string;
+			price: number;
+			maxQuantity: number;
+			participantCapacity?: number;
+			soldQuantity?: number;
+		}>;
+		salesStartOffset?: number | null;
+		salesEndOffset?: number | null;
+		needsTicket?: boolean;
+		/** Create one inventory group per product so multiple products can be selected simultaneously */
+		separateGroups?: boolean;
+	},
+	useServicesForProducts = true,
+) {
+	const db = new Database(process.env.DB_PATH ?? "./my-database.db");
+	// Wait on a held lock instead of erroring (matches the app + openDb()).
+	db.pragma("busy_timeout = 5000");
+	try {
+		// Find an admin user as organizer
+		const admin = db
+			.prepare(
+				"SELECT r.user_id AS id FROM scope_roles r JOIN scopes s ON s.id = r.scope_id WHERE s.parent_id IS NULL AND r.role = 'admin' LIMIT 1",
+			)
+			.get() as { id: string } | undefined;
+		const adminId = admin?.id;
 
-    // Pick seed images from an existing event (if available) so per-test events have images
-    const seedImgRow = db
-      .prepare("SELECT image1, image2 FROM events WHERE image1 IS NOT NULL AND image2 IS NOT NULL LIMIT 1")
-      .get() as { image1: string; image2: string } | undefined;
+		// Pick seed images from an existing event (if available) so per-test events have images
+		const seedImgRow = db
+			.prepare(
+				"SELECT image1, image2 FROM events WHERE image1 IS NOT NULL AND image2 IS NOT NULL LIMIT 1",
+			)
+			.get() as { image1: string; image2: string } | undefined;
 
-    // Find group id if provided
-    let groupId: string | null = null;
-    if (opts.groupSlug) {
-      const g = db
-        .prepare('SELECT id FROM groups WHERE slug = ? LIMIT 1')
-        .get(opts.groupSlug) as { id: string } | undefined;
-      if (g) groupId = g.id;
-    }
+		// Find the owning scope (a group) by slug if provided; the root otherwise.
+		let scopeId = (
+			db.prepare("SELECT id FROM scopes WHERE parent_id IS NULL").get() as {
+				id: string;
+			}
+		).id;
+		if (opts.groupSlug) {
+			const g = db
+				.prepare(
+					"SELECT id FROM scopes WHERE slug = ? AND parent_id IS NOT NULL LIMIT 1",
+				)
+				.get(opts.groupSlug) as { id: string } | undefined;
+			if (g) scopeId = g.id;
+		}
 
-    // Create event using the app service
-    const { eventsService } = await import('../../src/services/events.service');
+		// Create event using the app service
+		const { eventsService } = await import(
+			"../../src/modules/events/services/events"
+		);
 
-    const start = daysFromNow(opts.startOffsetDays);
-    const end = new Date(new Date(start).getTime() + (opts.durationHours ?? 2) * 3600000).toISOString();
+		const start = daysFromNow(opts.startOffsetDays);
+		const end = new Date(
+			new Date(start).getTime() + (opts.durationHours ?? 2) * 3600000,
+		).toISOString();
 
-    const ev = await eventsService.create({
-      title: opts.title,
-      body: `<p>Auto-created event ${opts.title}</p>`,
-      startDate: start,
-      endDate: end,
-      locationType: opts.city === 'Online' ? 'online' : 'in-person',
-      address: opts.city === 'Online' ? '' : (opts.city || '') + ' address',
-      city: opts.city || null,
-      country: opts.country || null,
-      longitude: opts.city ? '0' : null,
-      latitude: opts.city ? '0' : null,
-      onlineUrl: opts.city === 'Online' ? 'https://meet.example.com' : null,
-      userId: adminId,
-      groupId,
-      visibility: 'global',
-      image1: seedImgRow?.image1 ?? null,
-      image2: seedImgRow?.image2 ?? null,
-    } as any);
+		const ev = await eventsService.create({
+			title: opts.title,
+			body: `<p>Auto-created event ${opts.title}</p>`,
+			startDate: start,
+			endDate: end,
+			locationType: opts.city === "Online" ? "online" : "in-person",
+			address: opts.city === "Online" ? "" : (opts.city || "") + " address",
+			city: opts.city || null,
+			country: opts.country || null,
+			longitude: opts.city ? "0" : null,
+			latitude: opts.city ? "0" : null,
+			onlineUrl: opts.city === "Online" ? "https://meet.example.com" : null,
+			userId: adminId,
+			scopeId,
+			visibility: "public",
+			image1: seedImgRow?.image1 ?? null,
+			image2: seedImgRow?.image2 ?? null,
+		} as any);
 
-    // If no products requested, return the event
-    if (!opts.products || opts.products.length === 0) {
-      return ev;
-    }
+		// If no products requested, return the event
+		if (!opts.products || opts.products.length === 0) {
+			return ev;
+		}
 
-    const { inventoryGroupsService } = await import('../../src/services/inventory-groups.service');
-    const { productsService } = await import('../../src/services/products.service');
+		const { inventoryGroupsService } = await import(
+			"../../src/modules/events/services/inventory-groups"
+		);
+		const { productsService } = await import(
+			"../../src/modules/events/services/products"
+		);
 
-    const createGroup = async (name: string, capacity: number) =>
-      inventoryGroupsService.create({
-        eventId: ev.id,
-        name,
-        maxCapacity: capacity,
-        needsTicket: opts.needsTicket === undefined ? true : opts.needsTicket,
-        salesStartDate: opts.salesStartOffset != null ? daysFromNow(opts.salesStartOffset) : undefined,
-        salesEndDate: opts.salesEndOffset != null ? daysFromNow(opts.salesEndOffset) : undefined,
-        createdAt: new Date().toISOString(),
-      } as any);
+		const createGroup = async (name: string, capacity: number) =>
+			inventoryGroupsService.create({
+				eventId: ev.id,
+				name,
+				maxCapacity: capacity,
+				needsTicket: opts.needsTicket === undefined ? true : opts.needsTicket,
+				salesStartDate:
+					opts.salesStartOffset != null
+						? daysFromNow(opts.salesStartOffset)
+						: undefined,
+				salesEndDate:
+					opts.salesEndOffset != null
+						? daysFromNow(opts.salesEndOffset)
+						: undefined,
+				createdAt: new Date().toISOString(),
+			} as any);
 
-    if (opts.separateGroups) {
-      // One inventory group per product so all can be selected simultaneously
-      for (const p of opts.products) {
-        const inv = await createGroup(`${p.name} Inventory`, p.maxQuantity || 10);
-        const prod = await productsService.create({
-          eventId: ev.id,
-          inventoryGroupId: inv.id,
-          name: p.name,
-          price: p.price,
-          maxQuantity: p.maxQuantity,
-          participantCapacity: p.participantCapacity ?? 1,
-          features: [],
-        } as any);
-        if (p.soldQuantity) {
-          db.prepare('UPDATE products SET sold_quantity = ? WHERE id = ?').run(p.soldQuantity, prod.id);
-        }
-      }
-      return ev;
-    }
+		if (opts.separateGroups) {
+			// One inventory group per product so all can be selected simultaneously
+			for (const p of opts.products) {
+				const inv = await createGroup(
+					`${p.name} Inventory`,
+					p.maxQuantity || 10,
+				);
+				const prod = await productsService.create({
+					eventId: ev.id,
+					inventoryGroupId: inv.id,
+					name: p.name,
+					price: p.price,
+					maxQuantity: p.maxQuantity,
+					participantCapacity: p.participantCapacity ?? 1,
+					features: [],
+				} as any);
+				if (p.soldQuantity) {
+					db.prepare("UPDATE products SET sold_quantity = ? WHERE id = ?").run(
+						p.soldQuantity,
+						prod.id,
+					);
+				}
+			}
+			return ev;
+		}
 
-    // Default: single inventory group for all products
-    const inv = await createGroup(
-      `${opts.title} Inventory`,
-      opts.products.reduce((s, p) => s + p.maxQuantity, 0) || 10,
-    );
+		// Default: single inventory group for all products
+		const inv = await createGroup(
+			`${opts.title} Inventory`,
+			opts.products.reduce((s, p) => s + p.maxQuantity, 0) || 10,
+		);
 
-    if (useServicesForProducts) {
-      for (const p of opts.products) {
-        const prod = await productsService.create({
-          eventId: ev.id,
-          inventoryGroupId: inv.id,
-          name: p.name,
-          price: p.price,
-          maxQuantity: p.maxQuantity,
-          participantCapacity: p.participantCapacity ?? 1,
-          features: [],
-        } as any);
-        if (p.soldQuantity) {
-          db.prepare('UPDATE products SET sold_quantity = ? WHERE id = ?').run(p.soldQuantity, prod.id);
-        }
-      }
-      return ev;
-    }
+		if (useServicesForProducts) {
+			for (const p of opts.products) {
+				const prod = await productsService.create({
+					eventId: ev.id,
+					inventoryGroupId: inv.id,
+					name: p.name,
+					price: p.price,
+					maxQuantity: p.maxQuantity,
+					participantCapacity: p.participantCapacity ?? 1,
+					features: [],
+				} as any);
+				if (p.soldQuantity) {
+					db.prepare("UPDATE products SET sold_quantity = ? WHERE id = ?").run(
+						p.soldQuantity,
+						prod.id,
+					);
+				}
+			}
+			return ev;
+		}
 
-    // Fallback: insert products directly via raw SQL
-    for (const p of opts.products) {
-      const id = require('crypto').randomUUID();
-      db.prepare(`INSERT INTO products (id, event_id, inventory_group_id, name, price, max_quantity, participant_capacity, features, image_url, stripe_product_id, sold_quantity, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
-        id, ev.id, inv.id, p.name, p.price, p.maxQuantity,
-        p.participantCapacity ?? 1, JSON.stringify([]), null, null,
-        p.soldQuantity || 0, new Date().toISOString(), new Date().toISOString(),
-      );
-    }
+		// Fallback: insert products directly via raw SQL
+		for (const p of opts.products) {
+			const id = require("crypto").randomUUID();
+			db.prepare(
+				`INSERT INTO products (id, event_id, inventory_group_id, name, price, max_quantity, participant_capacity, features, image_key, sold_quantity, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+			).run(
+				id,
+				ev.id,
+				inv.id,
+				p.name,
+				p.price,
+				p.maxQuantity,
+				p.participantCapacity ?? 1,
+				JSON.stringify([]),
+				null,
+				p.soldQuantity || 0,
+				new Date().toISOString(),
+				new Date().toISOString(),
+			);
+		}
 
-    return ev;
-  } finally {
-    db.close();
-  }
+		return ev;
+	} finally {
+		db.close();
+	}
 }
 
 export default { createEventWithInventory };

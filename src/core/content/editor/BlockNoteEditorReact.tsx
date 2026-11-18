@@ -7,7 +7,13 @@ import {
 	type PartialBlock,
 } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/mantine";
-import { useCreateBlockNote } from "@blocknote/react";
+import {
+	BasicTextStyleButton,
+	CreateLinkButton,
+	FormattingToolbar,
+	FormattingToolbarController,
+	useCreateBlockNote,
+} from "@blocknote/react";
 import React, {
 	forwardRef,
 	type ReactElement,
@@ -25,6 +31,10 @@ import "@uppy/core/css/style.min.css";
 
 const { image, file, audio, video, ...textBlockSpecs } = defaultBlockSpecs;
 const textOnlySchema = BlockNoteSchema.create({ blockSpecs: textBlockSpecs });
+// Notes: paragraphs only (no headings, lists, quotes, code blocks, tables or media).
+const inlineSchema = BlockNoteSchema.create({
+	blockSpecs: { paragraph: defaultBlockSpecs.paragraph },
+});
 
 /** A link the surrounding link picker asks to insert (a new `nonce` per request). */
 export interface InsertLinkRequest {
@@ -39,6 +49,10 @@ interface BlockNoteEditorProps {
 	onChange: (content: string, editorState: string) => void;
 	uploadUrl?: string;
 	textOnly?: boolean;
+	/** Notes: text with inline formatting and links only, no block menus. */
+	inline?: boolean;
+	/** Placeholder of the empty editor (BlockNote's default mentions the "/" menu). */
+	placeholder?: string;
 	insertLink?: InsertLinkRequest | null;
 }
 
@@ -60,6 +74,8 @@ const BlockNoteEditorReact = (
 		onChange,
 		uploadUrl = "/api/images",
 		textOnly = false,
+		inline = false,
+		placeholder,
 		insertLink = null,
 	}: BlockNoteEditorProps,
 	ref: React.ForwardedRef<BlockNoteEditorRef>,
@@ -201,13 +217,27 @@ const BlockNoteEditorReact = (
 
 	// Create BlockNote editor
 	const editor = useCreateBlockNote(
-		textOnly
+		inline
 			? {
-					schema: textOnlySchema,
+					schema: inlineSchema,
 					initialContent: initialContent as any,
 					links: { isValidLink },
+					...(placeholder
+						? {
+								placeholders: {
+									default: placeholder,
+									emptyDocument: placeholder,
+								},
+							}
+						: {}),
 				}
-			: { initialContent, uploadFile, links: { isValidLink } },
+			: textOnly
+				? {
+						schema: textOnlySchema,
+						initialContent: initialContent as any,
+						links: { isValidLink },
+					}
+				: { initialContent, uploadFile, links: { isValidLink } },
 	);
 
 	// The link picker: link the selected text, or insert the target's label as linked text.
@@ -262,7 +292,26 @@ const BlockNoteEditorReact = (
 				editor={editor as any}
 				onChange={handleChange}
 				theme="light"
-			/>
+				sideMenu={!inline}
+				slashMenu={!inline}
+				formattingToolbar={!inline}
+			>
+				{inline && (
+					// Only what a note keeps (sanitizeNoteHtml): no block type, alignment or colours.
+					<FormattingToolbarController
+						formattingToolbar={() => (
+							<FormattingToolbar>
+								<BasicTextStyleButton basicTextStyle="bold" />
+								<BasicTextStyleButton basicTextStyle="italic" />
+								<BasicTextStyleButton basicTextStyle="underline" />
+								<BasicTextStyleButton basicTextStyle="strike" />
+								<BasicTextStyleButton basicTextStyle="code" />
+								<CreateLinkButton />
+							</FormattingToolbar>
+						)}
+					/>
+				)}
+			</BlockNoteView>
 		</div>
 	);
 };

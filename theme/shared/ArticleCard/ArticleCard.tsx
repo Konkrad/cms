@@ -1,9 +1,12 @@
 import { component$ } from "@qwik.dev/core";
 import type { ArticleCardData } from "~/contracts/articles";
 import { t } from "~/contracts/i18n";
-import { cardMeta } from "~theme/shared/StreamList/card-meta";
+import { CardByline } from "~theme/shared/StreamList/CardByline";
 
-/** One article in a listing: its image (if any), title and an excerpt, linking to the article. */
+/**
+ * One article in a listing: its image (if any), the byline (author · date, as on a note card),
+ * title and an excerpt, linking to the article.
+ */
 export const ArticleCard = component$<{ article: ArticleCardData }>(
 	({ article }) => (
 		<a
@@ -23,12 +26,10 @@ export const ArticleCard = component$<{ article: ArticleCardData }>(
 				</div>
 			)}
 			<div class="flex flex-col flex-1 p-4 gap-1">
+				<CardByline item={article} />
 				<h3 class="font-semibold text-text-heading group-hover:text-primary transition-colors leading-snug line-clamp-2">
 					{article.title}
 				</h3>
-				<p class="text-xs text-text-muted">
-					{article.author.displayName} · {cardMeta(article)}
-				</p>
 				{article.excerpt && (
 					<p class="text-sm text-text-secondary mt-1 line-clamp-3">
 						{article.excerpt}

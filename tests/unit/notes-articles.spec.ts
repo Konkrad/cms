@@ -135,7 +135,7 @@ describe("notes", () => {
 			body: '<h2>Doors</h2><ul><li>open at <a href="https://example.com">18:00</a></li></ul><p onclick="x()">Bring<script>alert(1)</script> a friend<img src=x onerror="alert(1)"></p>',
 		});
 		expect(row.body).toBe(
-			'<p>Doors</p><p>open at <a href="https://example.com" rel="noopener noreferrer nofollow" target="_blank">18:00</a></p><p>Bring a friend</p>',
+			'<p>Doors<br />open at <a href="https://example.com" rel="noopener noreferrer nofollow" target="_blank">18:00</a><br />Bring a friend</p>',
 		);
 		expect(row.authorId).toBe(coordinator);
 		expect(row.publishedAt).toBeTruthy();

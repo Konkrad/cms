@@ -96,13 +96,14 @@ function keepSiteLinks(
 const toParagraph = (): sanitizeHtml.Tag => ({ tagName: "p", attribs: {} });
 
 /**
- * Sanitizes a note body (spec 4.4): short text with links only. Paragraphs, line breaks,
- * links (the same rule as `sanitizeRichHtml`) and inline emphasis stay; headings, list items,
- * quotes and code blocks become plain paragraphs; lists, tables, images and everything else
- * go (their text stays). Run `internalLinksToRefs` first, like for rich text.
+ * Sanitizes a note body (spec 4.4): one paragraph of text with inline formatting. Line breaks,
+ * links (the same rule as `sanitizeRichHtml`) and inline emphasis (bold, italic, underline,
+ * strikethrough, code) stay; headings, list items, quotes, code blocks and paragraphs become
+ * lines of the one paragraph; lists, tables, images and everything else go (their text stays).
+ * Run `internalLinksToRefs` first, like for rich text.
  */
 export function sanitizeNoteHtml(dirty: string): string {
-	return sanitizeHtml(dirty, {
+	const clean = sanitizeHtml(dirty, {
 		allowedTags: ["p", "br", "a", "strong", "b", "em", "i", "u", "s", "code"],
 		allowedAttributes: { a: ["href", "title", "target", "rel"] },
 		allowedSchemes: ["http", "https", "mailto", "tel", "ref"],
@@ -121,7 +122,20 @@ export function sanitizeNoteHtml(dirty: string): string {
 			div: toParagraph,
 		},
 		disallowedTagsMode: "discard",
-	})
-		.replace(/<p>\s*<\/p>/g, "")
+	});
+	return toSingleParagraph(clean);
+}
+
+/**
+ * A note is one paragraph: every paragraph boundary (headings, list items … were turned into
+ * paragraphs above) becomes a line break, at most one empty line in a row, none at the ends.
+ */
+function toSingleParagraph(html: string): string {
+	const inner = html
+		.replace(/<p>/g, "")
+		.replace(/<\/p>/g, "<br />")
+		.replace(/(?:\s*<br \/>\s*){3,}/g, "<br /><br />")
+		.replace(/^(?:\s*<br \/>\s*)+|(?:\s*<br \/>\s*)+$/g, "")
 		.trim();
+	return inner ? `<p>${inner}</p>` : "";
 }

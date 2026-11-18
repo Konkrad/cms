@@ -18,7 +18,8 @@ export interface NoteFormValues {
 }
 
 /**
- * The quick note form (spec 4.4): short text with links, no title, no image; at most
+ * The quick note form (spec 4.4): one paragraph of text with inline formatting and links, no
+ * title, no headings or lists, no image; at most
  * `NOTE_MAX_LENGTH` characters (counted here, enforced by the notes service), visibility (the
  * options the user may use on the scope: `allowedVisibilities`) and, with `subjectPicker`, the
  * item the note is about. Posts `body`, `visibility` and `subject` to `action`; the action
@@ -51,7 +52,8 @@ export const NoteForm = component$<{
 						onChange$={(html: string) => {
 							body.value = html;
 						}}
-						uploadUrl="/api/images"
+						inline
+						placeholder={t("admin.noteForm.placeholder")}
 						linkPicker
 					/>
 				</div>

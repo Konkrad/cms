@@ -35,6 +35,10 @@ interface BlockNoteEditorProps {
 	onChange$: QRL<(content: string, editorState: string) => void>;
 	uploadUrl?: string;
 	textOnly?: boolean;
+	/** Notes: text with inline formatting and links only (no headings, lists or media). */
+	inline?: boolean;
+	/** Placeholder of the empty editor (inline mode). */
+	placeholder?: string;
 	/**
 	 * Show the internal link picker (admin editors only): it searches scopes, pages, notes, articles and
 	 * module items and links the selected text with a `ref:` reference.
@@ -43,7 +47,16 @@ interface BlockNoteEditorProps {
 }
 
 export const BlockNoteEditor = component$<BlockNoteEditorProps>(
-	({ editorState, content, onChange$, uploadUrl, textOnly, linkPicker }) => {
+	({
+		editorState,
+		content,
+		onChange$,
+		uploadUrl,
+		textOnly,
+		inline,
+		placeholder,
+		linkPicker,
+	}) => {
 		const insertLink = useSignal<InsertLinkRequest | null>(null);
 		return (
 			<div class="blocknote-editor-container">
@@ -64,6 +77,8 @@ export const BlockNoteEditor = component$<BlockNoteEditorProps>(
 					onChange$={onChange$}
 					uploadUrl={uploadUrl}
 					textOnly={textOnly}
+					inline={inline}
+					placeholder={placeholder}
 					insertLink={insertLink.value}
 				/>
 			</div>

@@ -8,7 +8,7 @@ tags: [core, reviews, scopes]
 ---
 # Review flow
 
-Content from people below coordinator level is checked by a coordinator above before the public sees it. Used by notes, articles and [[event-proposals]].
+Content from people below coordinator level is checked by a coordinator above before the public sees it. Used by notes, articles and [[event-proposals]]. Roles: [[scopes-and-roles]].
 
 ## Rules
 - Review is needed when the item is **public** and the author is **below coordinator** of the owning scope (roles inherit downward). Non-public items never need review.
@@ -16,6 +16,10 @@ Content from people below coordinator level is checked by a coordinator above be
 - The request email goes to the coordinators of the nearest scope above that has any; root admins otherwise.
 - The decision runs the owner's `onApproved` / `onRejected` handler, retried until it succeeds.
 - Queue: `/admin/<scope>/reviews`.
+
+## Data
+- `reviews(ref, scopeId, status, submittedBy, reviewedBy, comment, formId, createdAt, decidedAt)`: one row per submission; `ref` points to the item (`events:event:<id>`, `core:note:<id>`).
+- `handler_calls`: the queued `onApproved` / `onRejected` call, retried until it succeeds.
 
 ## Decisions
 - Modules never decide whether review is needed themselves (`reviews.isRequired`), so the rule stays the same everywhere.

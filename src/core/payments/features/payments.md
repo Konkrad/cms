@@ -18,6 +18,10 @@ Generic payments for all modules, with Stripe Checkout as the one provider. Used
 - Without a provider configured, payments are disabled and modules offer free flows.
 - Root admins list and refund payments at `/admin/root/payments`.
 
+## Data
+- `payments(moduleId, kind, refId, userId, status, provider, amount in cents, currency, lines, expiresAt, paidAt, …)`: `moduleId` + `kind` + `refId` point to the module's own record (for tickets: the order).
+- `payment_events(paymentId, change, providerEventId)`: one row per status change, so each change is handled once.
+
 ## Decisions
 - One generic payments table plus per-module hooks, instead of payment code in every module.
 - Open: partial refunds (#124), subscriptions (#125).

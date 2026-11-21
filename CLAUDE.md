@@ -7,11 +7,15 @@
 5. Do not create APIs unless they are explicitly needed. When in doubt, ask the user.
 6. Do not create ad hoc types if a package already provides them; install the existing package types instead.
 7. Do not wrap everything in `try/catch`. Catch only expected errors and let unexpected failures bubble up.
-8. Do not create README or other documentation unless asked.
+8. Do not create README or other documentation unless asked. Exception: feature notes (see below) are part of the change.
 9. Migrations: after changing a schema file run `npm run db:generate` and commit the file under `drizzle/`; never `drizzle-kit push`. Details in the `database` skill.
 10. Use Qwik patterns consistently: `component$()`, `routeLoader$()`, `routeAction$()`, `useSignal()`, and `$()` where serialization requires it.
 11. Notifications (email, Telegram) go only through `notify(id, { to, data })` with a `defineNotification` declaration (module manifest or `src/core/notifications/core-notifications.ts`); the outbox worker sends them. Never call `sendEmail`/Telegram directly; the login OTP/magic-link email (`sendLoginEmail`) is the only synchronous exception. Details in the `add-module` skill.
 12. UI strings (spec 4.8): no hard-coded user-facing text. Put it in a catalog and render it with `t("<ns>.<key>", params?)`: core `src/core/i18n/<locale>.json` (`core.*`, `admin.*`, import from `~/core/i18n`), theme `theme/i18n/` (`theme.*`, via `~/contracts/i18n`), module `src/modules/<id>/i18n/` (`<id>.*`, via `~/core` / `~/core/ui`). Format dates, numbers and money with `formatDate` / `formatNumber` / `formatCurrency` / `formatMoney` (never `toLocale*` or a fixed `Intl` locale). Details in the `add-module` and `theme` skills.
+
+## Feature notes
+
+Business logic is described in feature notes next to the code: `<area>/features/<feature>.md` (e.g. `src/modules/events/features/`, `src/core/payments/features/`). Each note has frontmatter (`status`, `code:` paths, `tags`), the feature's rules, and a short `Decisions` section with the why. Link other notes with `[[note-name]]`. Read the notes of an area before changing its behaviour; a change to a rule or a new business decision updates the note in the same commit. `tests/unit/feature-notes.spec.ts` checks the `code:` paths and links. The repo opens as an Obsidian vault (graph view filtered to the notes).
 
 ## Architecture map
 

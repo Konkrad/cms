@@ -11,6 +11,23 @@ tags: [events, payments, requirements]
 
 A buyer picks tickets for an event, answers the checkout questions, pays through [[payments]] and gets the tickets by email.
 
+```mermaid
+sequenceDiagram
+    actor Buyer
+    participant Events as Events module
+    participant Payments as Core payments
+    participant Stripe
+    Buyer->>Events: checkout (requirements answered)
+    Events->>Events: pending order, prices from DB
+    Events->>Payments: payments.create(lines)
+    Payments->>Stripe: checkout session (expires_at)
+    Buyer->>Stripe: pays
+    Stripe-->>Payments: webhook (signature verified)
+    Payments->>Events: onPaid (retried until it succeeds)
+    Events->>Events: order paid, tickets issued, RSVP yes
+    Events-->>Buyer: confirmation email (outbox)
+```
+
 ## Rules
 - Before buying, the buyer completes the `event.checkout` requirements: food preference and photo consent. Answers are private; organisers see them only in the participant list.
 - Prices always come from the products in the DB, never from the request.
@@ -25,6 +42,17 @@ A buyer picks tickets for an event, answers the checkout questions, pays through
 - `products(eventId, inventoryGroupId, name, price, maxQuantity, participantCapacity, soldQuantity)`: what can be bought; `soldQuantity` counts paid orders.
 - `transactions(eventId, userId, status, totalAmount, paymentId, participants)` + `transaction_items(productId, quantity, unitPrice)`: the order.
 - `tickets(transactionId, productId, eventId, buyerId, qrCodeUuid, scannedAt)` + `ticket_participants`: what is scanned at the door.
+```mermaid
+erDiagram
+    events ||--o{ inventory_groups : "has"
+    inventory_groups ||--o{ products : "shares capacity"
+    events ||--o{ transactions : "orders"
+    transactions ||--o{ transaction_items : "lines"
+    products ||--o{ transaction_items : "bought as"
+    transactions ||--o{ tickets : "issues"
+    tickets ||--o{ ticket_participants : "for"
+    transactions |o--|| payments : "paymentId"
+```
 - Requirement answers: `user_requirements` (core). The payment itself: see [[payments]].
 
 ## Decisions

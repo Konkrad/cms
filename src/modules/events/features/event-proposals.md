@@ -11,6 +11,16 @@ tags: [events, reviews, forms]
 
 There is **one way to create an event**: in the admin area. Every new event starts as a **draft**. The organiser (its creator, see [[scopes-and-roles]]) then submits it on the event's Review tab. Whether that publishes it directly or makes it a *proposal* waiting for approval depends only on who submits it and the event's visibility. After the event, the organiser is asked for a debrief.
 
+```mermaid
+stateDiagram-v2
+    [*] --> draft: created in admin
+    draft --> published: submit (coordinator/admin, or not public)
+    draft --> in_review: submit (representative, public)
+    in_review --> published: approved (+ announcement note)
+    in_review --> draft: rejected (comment on Review tab)
+    published --> [*]: event ends, debrief requested
+```
+
 ## Rules
 - Status: `draft` → (`in_review`) → `published`. Only a draft can be submitted; a rejection returns it to `draft`.
 - Published directly: a coordinator, admin or moderator of the scope or above, or a non-public event ([[visibility]]). Otherwise (a representative's public event) it goes to [[review-flow]]. The events module never decides this itself.

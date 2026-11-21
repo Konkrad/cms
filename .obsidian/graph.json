@@ -1,5 +1,5 @@
 {
-	"search": "path:features",
+	"search": "path:features OR file:FEATURES",
 	"showTags": true,
 	"showAttachments": false,
 	"showOrphans": true

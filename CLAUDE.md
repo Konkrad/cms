@@ -15,7 +15,7 @@
 
 ## Feature notes
 
-Business logic is described in feature notes next to the code: `<area>/features/<feature>.md` (e.g. `src/modules/events/features/`, `src/core/payments/features/`). Each note has frontmatter (`status`, `code:` paths, `tags`), the feature's rules, and a short `Decisions` section with the why. Link other notes with `[[note-name]]`. Read the notes of an area before changing its behaviour; a change to a rule or a new business decision updates the note in the same commit. `tests/unit/feature-notes.spec.ts` checks the `code:` paths and links. The repo opens as an Obsidian vault (graph view filtered to the notes).
+Business logic is described in feature notes next to the code: `<area>/features/<feature>.md` (e.g. `src/modules/events/features/`, `src/core/payments/features/`). Each note has frontmatter (`status`, `code:` paths, `tags`), the feature's rules, and a short `Decisions` section with the why. Link other notes with `[[note-name]]`. Read the notes of an area before changing its behaviour; a change to a rule or a new business decision updates the note in the same commit. `tests/unit/feature-notes.spec.ts` checks the `code:` paths and links. `FEATURES.md` at the repo root lists every note (the test checks it): add a new note there. The repo opens as an Obsidian vault; start at `FEATURES.md`.
 
 ## Architecture map
 

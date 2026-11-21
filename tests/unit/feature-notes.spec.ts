@@ -36,6 +36,13 @@ describe("feature notes", () => {
 		expect(names.length).toBe(new Set(names).size);
 	});
 
+	it("are all listed in FEATURES.md", () => {
+		const index = readFileSync(join(root, "FEATURES.md"), "utf8");
+		const listed = [...index.matchAll(/\[\[([^\]|#]+)/g)].map((m) => m[1]);
+		expect(names.filter((n) => !listed.includes(n))).toEqual([]);
+		expect(listed.filter((l) => !names.includes(l))).toEqual([]);
+	});
+
 	for (const note of notes) {
 		const source = readFileSync(note, "utf8");
 		const rel = relative(root, note);

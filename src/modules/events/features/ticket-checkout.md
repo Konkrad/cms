@@ -16,7 +16,7 @@ A buyer picks tickets for an event, answers the checkout questions, pays through
 - Prices always come from the products in the DB, never from the request.
 - A checkout creates a pending order (`transactions`). **Nothing is reserved until payment**: capacity counts paid orders only.
 - Paid: the order is marked paid, tickets are issued (once, even on retry), the buyer's RSVP becomes "yes", the buyer gets a confirmation email and the team's Telegram channel gets a sale alert (both through [[notifications]]).
-- Late payment: an unfinished checkout expires after a while and its order is canceled. If the buyer still completes the payment at Stripe and that payment arrives afterwards, the order is revived and the tickets are issued anyway, even if the event is full by then, because the money was already taken.
+- Late payment (safety net, rare): checkouts expire at Stripe and here at the same time (see [[payments]]), so normally no payment can arrive for a canceled order. If one still does (e.g. a race at the moment of expiry), the order is revived and the tickets are issued anyway, even if the event is full by then, because the money was already taken.
 - Failed or expired: the pending order is canceled.
 - Refunded: unscanned tickets are deleted and their places freed; scanned tickets stay.
 

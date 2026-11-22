@@ -25,4 +25,4 @@ Labels on a person's public profile: "Board member", "Attended 5 events", a veri
 
 ## Decisions
 - One badge system for all sources, so a profile shows everything in one place.
-- **Open:** winning an election does not give a board badge automatically ([[elections]]); admins add it by hand.
+- 2026-11: winning an election does not give a board badge automatically; this is not wanted ([[elections]]), admins add it by hand.

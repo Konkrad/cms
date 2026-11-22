@@ -33,4 +33,4 @@ sequenceDiagram
 ## Decisions
 - QR codes for in-person checks (at an event or info desk) approve immediately; no second check.
 - 2026-11: pending claims moved from the qualifications admin page to the site-wide [[review-flow]].
-- **Open:** members cannot claim a qualification themselves yet; pending claims only come from demo data. If self-claims are added, they go through the review flow.
+- 2026-11: members do not claim qualifications themselves; this is not wanted. Qualifications come from QR codes; pending claims only from demo data.

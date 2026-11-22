@@ -32,4 +32,4 @@ stateDiagram-v2
 ## Decisions
 - Voting itself is left to a dedicated tool; the CMS handles candidates and information.
 - 2026-11: applications moved from the election's admin page to the site-wide [[review-flow]], keeping who decides.
-- **Open:** elected candidates do not get a board badge automatically ([[badges]]).
+- 2026-11: elected candidates get no board badge automatically; this is not wanted, admins add it by hand ([[badges]]).

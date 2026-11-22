@@ -9,52 +9,51 @@ tags: [events, payments, requirements]
 ---
 # Ticket checkout
 
-A buyer picks tickets for an event, answers the checkout questions, pays through [[payments]] and gets the tickets by email.
+A buyer picks tickets for an event, answers a few questions, pays through [[payments]] and gets the tickets by email.
 
 ```mermaid
 sequenceDiagram
     actor Buyer
-    participant Events as Events module
-    participant Payments as Core payments
+    participant Events
+    participant Payments
     participant Stripe
-    Buyer->>Events: checkout (requirements answered)
-    Events->>Events: pending order, prices from DB
-    Events->>Payments: payments.create(lines)
-    Payments->>Stripe: checkout session (expires_at)
-    Buyer->>Stripe: pays
-    Stripe-->>Payments: webhook (signature verified)
-    Payments->>Events: onPaid (retried until it succeeds)
-    Events->>Events: order paid, tickets issued, RSVP yes
-    Events-->>Buyer: confirmation email (outbox)
+    Buyer->>Events: choose tickets, answer questions
+    Events->>Events: create an unpaid order (prices from the database)
+    Events->>Payments: start payment
+    Payments->>Stripe: open checkout page
+    Buyer->>Stripe: pay
+    Stripe-->>Payments: signed confirmation
+    Payments->>Events: "order paid" (in the background, retried)
+    Events->>Events: issue tickets, RSVP becomes "yes"
+    Events-->>Buyer: tickets by email
+    Events-->>Events: sale alert to the team channel
 ```
 
 ## Rules
-- Before buying, the buyer completes the `event.checkout` requirements: food preference and photo consent. Answers are private; organisers see them only in the participant list.
-- Prices always come from the products in the DB, never from the request.
-- A checkout creates a pending order (`transactions`). **Nothing is reserved until payment**: capacity counts paid orders only.
-- Paid: the order is marked paid, tickets are issued (once, even on retry), the buyer's RSVP becomes "yes", the buyer gets a confirmation email and the team's Telegram channel gets a sale alert (both through [[notifications]]).
-- Late payment (safety net, rare): checkouts expire at Stripe and here at the same time (see [[payments]]), so normally no payment can arrive for a canceled order. If one still does (e.g. a race at the moment of expiry), the order is revived and the tickets are issued anyway, even if the event is full by then, because the money was already taken.
-- Failed or expired: the pending order is canceled.
-- Refunded: unscanned tickets are deleted and their places freed; scanned tickets stay.
+- Before buying, the buyer states their **food preference** and **photo consent**. The answers are private: organisers see them only in the participant list.
+- **Places are not reserved during checkout.** Only paid orders count against capacity.
+- **Paid:** the order is marked paid, tickets are issued (never twice), the buyer's RSVP becomes "yes", the buyer gets the tickets and the team channel gets a sale alert ([[notifications]]).
+- **Not paid** (declined or expired): the order is canceled.
+- **Late payment (rare safety net):** if a payment still arrives for an order that was already canceled, the order is revived and the tickets are issued anyway, even if the event is full by then, because the money was taken.
+- **Refunded:** tickets not yet scanned at the door are canceled and their places freed; scanned tickets stay.
 
-## Data
-- `inventory_groups(eventId, name, maxCapacity, needsTicket, salesStartDate, salesEndDate)`: a shared pool of places (capacity is counted here).
-- `products(eventId, inventoryGroupId, name, price, maxQuantity, participantCapacity, soldQuantity)`: what can be bought; `soldQuantity` counts paid orders.
-- `transactions(eventId, userId, status, totalAmount, paymentId, participants)` + `transaction_items(productId, quantity, unitPrice)`: the order.
-- `tickets(transactionId, productId, eventId, buyerId, qrCodeUuid, scannedAt)` + `ticket_participants`: what is scanned at the door.
+## How it is stored
+
 ```mermaid
 erDiagram
-    events ||--o{ inventory_groups : "has"
-    inventory_groups ||--o{ products : "shares capacity"
-    events ||--o{ transactions : "orders"
-    transactions ||--o{ transaction_items : "lines"
-    products ||--o{ transaction_items : "bought as"
-    transactions ||--o{ tickets : "issues"
-    tickets ||--o{ ticket_participants : "for"
-    transactions |o--|| payments : "paymentId"
+    EVENT ||--o{ CAPACITY_POOL : "has"
+    CAPACITY_POOL ||--o{ PRODUCT : "shared by"
+    EVENT ||--o{ ORDER : "receives"
+    ORDER ||--o{ ORDER_LINE : "contains"
+    PRODUCT ||--o{ ORDER_LINE : "bought as"
+    ORDER ||--o{ TICKET : "issues"
+    TICKET ||--o{ PARTICIPANT : "admits"
+    ORDER ||--o| PAYMENT : "paid by"
 ```
-- Requirement answers: `user_requirements` (core). The payment itself: see [[payments]].
+
+- A **capacity pool** is a number of places shared by several products (e.g. "Early bird" and "Regular" both use the 100 seats). Why: see [why inventory groups](../../../../docs/event-tickets.md).
+- A **ticket** is what gets scanned at the door; a group ticket admits several participants.
 
 ## Decisions
-- 2026-10: tickets go through the generic core payments instead of an own Stripe integration.
-- No reservation during checkout: no capacity is held by unpaid checkouts. Consequence: two buyers paying for the last places at the same time can both get them.
+- 2026-10: tickets use the shared payment system instead of their own Stripe integration.
+- No reservation during checkout, so unpaid checkouts never block places. **Consequence, open:** two buyers paying for the last places at the same time, or a bank transfer confirming days later, can push an event over capacity; nothing refunds or flags it yet (see #74).

@@ -9,28 +9,33 @@ tags: [events, reviews, forms]
 ---
 # Event proposals
 
-There is **one way to create an event**: in the admin area. Every new event starts as a **draft**. The organiser (its creator, see [[scopes-and-roles]]) then submits it on the event's Review tab. Whether that publishes it directly or makes it a *proposal* waiting for approval depends only on who submits it and the event's visibility. After the event, the organiser is asked for a debrief.
+There is **one way to create an event**: in the admin area of a scope. Every new event starts as a **draft**, visible only in the admin area. The organiser (whoever created it, see [[scopes-and-roles]]) submits it on the event's Review tab. Whether that publishes it straight away or turns it into a *proposal* waiting for approval depends only on who submits it and on its visibility ([[review-flow]]).
 
 ```mermaid
 stateDiagram-v2
     [*] --> draft: created in admin
     draft --> published: submit (coordinator/admin, or not public)
-    draft --> in_review: submit (representative, public)
-    in_review --> published: approved (+ announcement note)
-    in_review --> draft: rejected (comment on Review tab)
-    published --> [*]: event ends, debrief requested
+    draft --> in_review: submit (representative, public event)
+    in_review --> published: approved
+    in_review --> draft: rejected, with a comment
+    published --> [*]
 ```
 
 ## Rules
-- Status: `draft` → (`in_review`) → `published`. Only a draft can be submitted; a rejection returns it to `draft`.
-- Published directly: a coordinator, admin or moderator of the scope or above, or a non-public event ([[visibility]]). Otherwise (a representative's public event) it goes to [[review-flow]]. The events module never decides this itself.
-- The scope's active `events.proposal` form (if any) is filled in on submit; its answers are stored with the review.
-- On approval, "Post announcement" (on by default) creates a note about the event, authored by the organiser.
-- Debrief: a daily schedule asks the organiser of an ended event (up to 30 days ago) to fill in the active `events.debrief` form, once, plus one reminder a week later ([[notifications]]). After that it shows as overdue in the admin list. Nothing is blocked.
+- Only a draft can be submitted.
+- If the scope has a **proposal form**, the organiser fills it in when submitting; the reviewer sees the answers.
+- On approval, the event is published and, unless the organiser unticked "Post announcement", a short note announcing it is posted in the organiser's name.
+- **Debrief:** after the event, the organiser is asked to fill in the scope's debrief form, if there is one: once by email, and once more a week later ([[notifications]]). After that it shows as overdue in the admin list. Nothing is blocked if it stays empty. Events that ended more than 30 days before this started are not asked.
 
-## Data
-- `events(id, scopeId, userId = organiser, status, visibility, announceOnApproval, announcementNoteId, debriefRequestedAt, …)`
-- The review is a `reviews` row with ref `events:event:<id>`; proposal and debrief answers are `form_results` with the same ref.
+```mermaid
+timeline
+    Event ends : debrief requested
+    + 7 days : one reminder
+    later : shown as overdue to admins
+```
+
+## How it is stored
+The event itself carries its status, its organiser and whether to announce it. The review and the form answers are stored by core and point back to the event.
 
 ## Decisions
-- 2026-10: proposals reuse core reviews and forms instead of an approval flow of their own (#88).
+- 2026-10: proposals reuse the site-wide review flow and forms instead of an approval flow of their own (#88).

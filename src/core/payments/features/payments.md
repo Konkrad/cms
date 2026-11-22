@@ -4,24 +4,33 @@ code:
   - src/core/payments/payments.ts
   - src/core/payments/stripe-provider.ts
   - src/core/payments/handlers.ts
-tags: [core, payments]
+tags: [foundation, payments]
 ---
 # Payments
 
-Generic payments for all modules, with Stripe Checkout as the one provider. Used by [[ticket-checkout]].
+One payment system for every feature, with Stripe Checkout as the provider. A feature says what is being bought and at what price; payments handles the rest and tells the feature when the status changes. Used by [[ticket-checkout]].
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending: checkout started
+    pending --> paid: Stripe confirms
+    pending --> failed: payment declined
+    pending --> expired: not paid in time
+    paid --> refunded: refund by a platform admin
+```
 
 ## Rules
-- A module computes the lines from its DB prices and calls `payments.create`; the buyer is redirected to the provider.
-- **Only the verified webhook proves a payment.** Returning to the success page proves nothing (`payments.statusForOwner`).
-- Each status change (paid, failed, expired, refunded, …) runs the module's handler once, retried until it succeeds, even when the module is inactive. Core also sends a receipt email.
-- A checkout is open for `PAYMENTS_CHECKOUT_EXPIRY_MINUTES` (default 60); Stripe gets the same expiry time. An hourly job expires abandoned checkouts: it first closes the session at Stripe, so the buyer can no longer pay. A session the buyer already completed is left alone, including delayed methods (e.g. SEPA) whose money arrives days later; their paid or failed event follows.
-- Without a provider configured, payments are disabled and modules offer free flows.
-- Root admins list and refund payments at `/admin/root/payments`.
+- **Prices always come from the database**, never from what the browser sends.
+- **Only Stripe's signed confirmation counts as paid.** A buyer landing on the "thank you" page proves nothing.
+- A checkout is open for a limited time (default 60 minutes; Stripe gets the same deadline). An hourly job closes abandoned ones, first at Stripe so they can no longer be paid. A checkout the buyer already finished is left alone, including bank transfers (SEPA) whose money arrives days later.
+- Every status change is passed to the owning feature exactly once, in the background, retried until it succeeds ([[background-jobs]]). This also happens when the feature has since been switched off, so no paid order is lost.
+- The buyer gets a receipt by email ([[notifications]]).
+- Without Stripe configured, payments are switched off and features offer free alternatives.
+- Platform admins see all payments and can refund them in full.
 
-## Data
-- `payments(moduleId, kind, refId, userId, status, provider, amount in cents, currency, lines, expiresAt, paidAt, …)`: `moduleId` + `kind` + `refId` point to the module's own record (for tickets: the order).
-- `payment_events(paymentId, change, providerEventId)`: one row per status change, so each change is handled once.
+## How it is stored
+One record per payment (what, for whom, amount, status) pointing to the feature's own record (e.g. the ticket order), plus a log of every status change so none is applied twice.
 
 ## Decisions
-- One generic payments table plus per-module hooks, instead of payment code in every module.
+- One shared payment system with hooks per feature, instead of payment code in every feature.
 - Open: partial refunds (#124), subscriptions (#125).

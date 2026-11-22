@@ -5,22 +5,31 @@ code:
   - src/core/notifications/worker.ts
   - src/core/notifications/addressing.ts
   - src/core/notifications/core-notifications.ts
-tags: [core, notifications]
+tags: [foundation, notifications]
 ---
 # Notifications
 
-Every email and Telegram message (except the login email) goes through one system: code calls `notify(id, { to, data })`, a row is written to the outbox, and a background worker sends it.
+Every email and Telegram message goes through one system. A feature only says *"send notification X to Y"*; the message is put into an outbox and a background worker delivers it.
+
+```mermaid
+flowchart LR
+    F["A feature<br/>(e.g. ticket sold)"] --> O[("Outbox")]
+    O --> W["Worker<br/>(every 5 seconds)"]
+    W --> E["Email to a user"]
+    W --> T["Team Telegram channel"]
+    W -- "failed" --> RETRY["Retry later:<br/>30 s, 1 min, 2 min … 1 h"] --> O
+    W -- "5th failure" --> ADMIN["Shown to platform admins"]
+```
 
 ## Rules
-- Each notification is declared once (`defineNotification`, in core or a module manifest): its channels and whether users may turn it off (`optional`).
-- Recipients are users (email to their address) or **ops targets**: `ops` is the team Telegram channel (`TELEGRAM_CHANNEL_ID`), used e.g. for sale alerts in [[ticket-checkout]].
-- Optional notifications carry a signed one-click unsubscribe link; users manage them in their profile.
-- Failed sends are retried with growing delays (30 s, 1 min, 2 min … up to 1 h), then marked failed; root admins see failures at `/admin/root/notifications`.
-- The login email is the only one sent directly, because the user waits for it.
+- Every notification is declared once, with its channels and whether people may turn it off.
+- Recipients are users (email) or the **team channel** on Telegram (e.g. the sale alert in [[ticket-checkout]]).
+- Notifications people may turn off carry a one-click unsubscribe link; users manage them in their profile.
+- The **login email is the only exception**: it is sent immediately, because the user is waiting for it.
+- Platform admins see failed messages and can retry them.
 
-## Data
-- `notification_outbox`: one row per message to send (status, attempts, next try).
-- `notification_preferences(userId, notificationId, channel, enabled)`: a user's choices for optional notifications.
+## How it is stored
+One outbox row per message (with its status and attempts), plus each user's choices for the notifications they may turn off.
 
 ## Decisions
-- Outbox instead of sending inline: a slow or failing mail server never breaks a page or a payment handler, and nothing is lost on a crash.
+- An outbox instead of sending immediately: a slow or broken mail server never breaks a page or a payment, and no message is lost when the server restarts.

@@ -3,8 +3,6 @@ status: shipped
 code:
   - src/modules/events/module.ts
   - src/modules/events/pages.ts
-  - src/modules/events/admin
-  - src/modules/events/services
 tags: [events, overview]
 ---
 # Events
@@ -27,12 +25,12 @@ flowchart LR
 |---|---|---|
 | Create & publish | Created as a draft in a scope's admin area; published directly or after approval. | [[event-proposals]] |
 | Tickets | Optional. Places come in capacity pools, shared by ticket types with a price, a per-person limit and how many people one ticket covers. | [[ticket-checkout]] |
-| RSVP | "Going / maybe / not going", no payment, no capacity. Buying a ticket sets "going" automatically. | *no note yet* |
+| RSVP | "Going / maybe / not going", no payment, no capacity. Buying a ticket sets "going" automatically. | [[rsvp-and-check-in]] |
 | Buy | Questions (food, photo consent), attendee names, then payment. A €0 ticket goes through the same steps and is issued at once. | [[ticket-checkout]] |
-| Free tickets by hand | Admins can issue a free ticket to someone's email address, e.g. for guests or press. | *no note yet* |
-| Check-in | Each ticket is a QR code under "My tickets"; scanned at the door with a phone, once only. | *no note yet* |
-| Updates | Notes and articles about the event appear on its page. | *no note yet* |
-| Afterwards | Photos visible only to people who were checked in; participation badges awarded daily; the organiser is asked for a debrief. | [[event-proposals]] |
+| Free tickets by hand | Admins can issue a free ticket to someone's email address, e.g. for guests or press. | [[rsvp-and-check-in]] |
+| Check-in | Each ticket is a QR code under "My tickets"; scanned at the door with a phone, once only. | [[rsvp-and-check-in]] |
+| Updates | Notes and articles about the event appear on its page. | [[notes-and-articles]] |
+| Afterwards | Photos visible only to people who were checked in; participation badges awarded daily; the organiser is asked for a debrief. | [[rsvp-and-check-in]], [[badges]], [[event-proposals]] |
 
 ## Where events show up
 - **Public:** the Events page of each scope (its own and its parents' events, plus public events from scopes below: [[visibility]]), the event's own page, page-builder blocks, the scope's home page, the sitemap (public events only), a calendar file in the ticket email.

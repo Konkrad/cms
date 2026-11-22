@@ -47,8 +47,7 @@ flowchart TD
 So public content **travels up** to the site's front page, and everything **travels down** to the chapters below, but members-only content never travels up.
 
 ## Who may choose which visibility
-- Role holders on the scope may choose all three.
-- Everyone else may choose members or representatives only, never public.
+- Posts and events are written in the admin area, so their authors always hold a role; they may choose all three. (The rule also covers authors without a role, who could only choose members or representatives.)
 - Public content by someone below coordinator level waits for approval ([[review-flow]]); until then only the author and the reviewers can see it.
 
 ## Decisions

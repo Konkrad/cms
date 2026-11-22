@@ -1,12 +1,12 @@
 ---
 status: shipped
 code:
-  - src/core
-  - src/modules
-  - theme
-  - src/contracts
   - modules.config.ts
   - src/core/router/modules.ts
+  - src/core/registry/manifests.ts
+  - src/core/registry/active-modules.ts
+  - src/core/index.ts
+  - biome.json
 tags: [architecture]
 ---
 # Application structure

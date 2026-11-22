@@ -15,6 +15,7 @@ Start page of the knowledge base: what the CMS does, why, and how it is built. E
 - [[payments]]: Stripe checkout, what counts as paid, expiry
 
 ## Events
+- [[events]]: **start here**: what the module does, an event's life, where it shows up
 - [[event-proposals]]: creating an event, review, announcement, debrief
 - [[ticket-checkout]]: checkout questions, payment, tickets, refunds
 

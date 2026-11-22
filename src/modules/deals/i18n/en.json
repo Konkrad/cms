@@ -1,4 +1,9 @@
 {
+	"deals.admin.access.associated": "Associated or full membership",
+	"deals.admin.access.full": "Full membership",
+	"deals.admin.access.noTier": "No membership needed",
+	"deals.admin.access.requiredTier": "Steps only for members with",
+	"deals.admin.access.requiredTierHint": "Everyone who may see the deal sees its name and description; the steps (codes, links) only show to people with this membership.",
 	"deals.admin.edit.backToDeals": "Back to Deals",
 	"deals.admin.edit.currentLogo": "Current logo",
 	"deals.admin.edit.description": "Description",

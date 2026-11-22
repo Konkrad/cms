@@ -1,16 +1,19 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
-import { requireModuleAdmin } from "~/core";
+import { allowedVisibilities, requireModuleAdmin } from "~/core";
 import { Button, ImageUploader, Input, TextArea, t } from "~/core/ui";
 import { dealsService } from "../service";
+import { AccessFields } from "./AccessFields";
 import type { AdminDealNewData } from "./new-data";
 import { StepsEditor } from "./StepsEditor";
 
 export const useCreateDeal = routeAction$(
 	async (data, event) => {
-		const { scope, adminBase } = await requireModuleAdmin(event, {
+		const { user, scope, adminBase } = await requireModuleAdmin(event, {
 			module: "deals",
 		});
+		if (!(await allowedVisibilities(user, scope.id)).includes(data.visibility))
+			return { failed: true };
 
 		const steps = JSON.parse(data.steps || "[]");
 
@@ -22,6 +25,8 @@ export const useCreateDeal = routeAction$(
 				? new Date(data.validUntil).toISOString()
 				: null,
 			steps,
+			visibility: data.visibility,
+			requiredMembershipTier: data.requiredMembershipTier || null,
 			scopeId: scope.id,
 		} as any);
 
@@ -32,6 +37,10 @@ export const useCreateDeal = routeAction$(
 		description: z.string().optional(),
 		logo: z.string().optional(),
 		validUntil: z.string().optional(),
+		visibility: z
+			.enum(["public", "members", "representatives"])
+			.default("public"),
+		requiredMembershipTier: z.enum(["", "associated", "full"]).default(""),
 		steps: z.string().default("[]"),
 	}),
 );
@@ -102,6 +111,8 @@ export const AdminDealNew = component$<{ data: AdminDealNewData }>(
 							label={t("deals.admin.new.validUntilOptional")}
 							type="date"
 						/>
+
+						<AccessFields visibilities={data.visibilities} />
 
 						<div>
 							<p class="text-sm font-medium text-gray-700 mb-2">

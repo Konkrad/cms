@@ -144,6 +144,8 @@
 	"theme.checkout.youWillContinueToOur": "Du wirst zu unserem Zahlungsanbieter weitergeleitet, um sicher zu bezahlen. Deine Tickets kommen per E-Mail, sobald die Zahlung bestätigt ist.",
 	"theme.checkout.yourOrderWasNotPaid": "Deine Bestellung wurde nicht bezahlt, daher wurden keine Tickets ausgestellt.",
 	"theme.contentCard.readMore": "Weiterlesen →",
+	"theme.deal.forAssociatedMembers": "Dieses Angebot gilt für assoziierte und Vollmitglieder. Die Schritte erscheinen, sobald du diese Mitgliedschaft hast.",
+	"theme.deal.forFullMembers": "Dieses Angebot gilt für Vollmitglieder. Die Schritte erscheinen, sobald du diese Mitgliedschaft hast.",
 	"theme.deal.howToGetThisDeal": "So bekommst du dieses Angebot",
 	"theme.deal.validUntil": "Gültig bis {validUntil}",
 	"theme.dealBox.goToTheWebsite": "Zur Website",

@@ -3,7 +3,7 @@ import { type InferSelectModel, sql } from "drizzle-orm";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { defineModuleSchema, scopes } from "~/core/schema";
+import { defineModuleSchema, scopes, VISIBILITIES } from "~/core/schema";
 
 export interface DealStep {
 	type: "text" | "link" | "promo";
@@ -25,6 +25,14 @@ export const deals = sqliteTable("deals", {
 		.$type<DealStep[]>()
 		.notNull()
 		.default([]),
+	// Who may see the deal (spec 4.2): public, members of the scope, role holders.
+	visibility: text("visibility", { enum: VISIBILITIES })
+		.notNull()
+		.default("public"),
+	// The membership tier needed to see the steps (promo codes); null = none.
+	requiredMembershipTier: text("required_membership_tier", {
+		enum: ["associated", "full"],
+	}),
 	// Owning scope (spec 4.2: every scoped content row has one; site-wide = the root).
 	scopeId: text("scope_id")
 		.notNull()

@@ -1,15 +1,18 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
+import { getServerSession } from "~/core/auth/server-auth";
 import { pagesService } from "~/core/content/pages.service";
 import { renderBlockRefs } from "~/core/registry/refs";
+import { canViewScope } from "~/core/scopes/access";
 import type { Scope } from "~/core/scopes/schema/scopes";
 
 /**
  * The published CMS page of `scope` at the URL remainder `rest` (after the scope prefix):
  * "/" is the root's home page, "/about" the page with slug "about". Null with a 404 status
- * when there is none (pages are one segment deep). Server only.
+ * when there is none (pages are one segment deep) or the viewer may not see it (a members-only
+ * page, spec 4.2). Server only.
  */
 export async function loadCmsPage(
-	{ status }: Pick<RequestEventLoader, "status">,
+	event: RequestEventLoader,
 	scope: Scope | undefined,
 	rest: string,
 ) {
@@ -18,8 +21,16 @@ export async function loadCmsPage(
 		scope && !slug.includes("/")
 			? await pagesService.getBySlug(scope.id, slug)
 			: undefined;
-	if (!page || page.status !== "published") {
-		status(404);
+	const visible =
+		page?.status === "published" &&
+		(page.visibility === "public" ||
+			(await canViewScope(
+				await getServerSession(event),
+				page.scopeId,
+				page.visibility,
+			)));
+	if (!page || !visible) {
+		event.status(404);
 		return null;
 	}
 	return {

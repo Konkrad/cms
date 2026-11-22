@@ -41,6 +41,17 @@ export const DealView = component$<DealViewData>(({ deal, isLoggedIn }) => {
 				</p>
 			)}
 
+			{deal.tierLocked && (
+				<p
+					class="max-w-md mx-auto bg-bg-muted border border-border rounded-lg px-4 py-3 text-text-secondary"
+					data-testid="deal-tier-required"
+				>
+					{deal.requiredTier === "full"
+						? t("theme.deal.forFullMembers")
+						: t("theme.deal.forAssociatedMembers")}
+				</p>
+			)}
+
 			{(deal.steps ?? []).length > 0 && (
 				<div>
 					<h2 class="font-['Lato',sans-serif] font-bold text-lg text-text-secondary mb-4">

@@ -1,12 +1,10 @@
 import { component$, useSignal } from "@qwik.dev/core";
-import { Form } from "@qwik.dev/router";
+import { Form, Link } from "@qwik.dev/router";
 import { formatDate, t } from "~/core/ui";
 import {
-	useApproveQualification,
 	useCreateType,
 	useDeleteType,
 	useGenerateToken,
-	useRejectQualification,
 	useRevokeToken,
 } from "./actions";
 import type { AdminQualificationsData } from "./data";
@@ -17,8 +15,6 @@ export const AdminQualifications = component$<{
 	const data = { value: loaded };
 	const createTypeAction = useCreateType();
 	const deleteTypeAction = useDeleteType();
-	const approveAction = useApproveQualification();
-	const rejectAction = useRejectQualification();
 	const generateTokenAction = useGenerateToken();
 	const revokeTokenAction = useRevokeToken();
 	const activeTab = useSignal<"pending" | "all" | "types">("pending");
@@ -97,50 +93,13 @@ export const AdminQualifications = component$<{
 									<td class="px-6 py-4 text-sm text-gray-500">
 										{q.createdAt.slice(0, 10)}
 									</td>
-									<td class="px-6 py-4">
-										<div class="flex flex-col gap-2">
-											<Form
-												action={approveAction}
-												class="flex items-center gap-2"
-											>
-												<input type="hidden" name="qualId" value={q.id} />
-												<input
-													type="text"
-													name="notes"
-													placeholder={t(
-														"qualifications.admin.qualifications.optionalNote",
-													)}
-													class="text-xs border rounded px-2 py-1 w-40"
-												/>
-												<button
-													type="submit"
-													class="text-green-600 hover:text-green-900 text-sm font-medium"
-												>
-													{t("qualifications.admin.qualifications.approve")}
-												</button>
-											</Form>
-											<Form
-												action={rejectAction}
-												class="flex items-center gap-2"
-											>
-												<input type="hidden" name="qualId" value={q.id} />
-												<input
-													type="text"
-													name="notes"
-													placeholder={t(
-														"qualifications.admin.qualifications.reasonRequired",
-													)}
-													class="text-xs border rounded px-2 py-1 w-40"
-													required
-												/>
-												<button
-													type="submit"
-													class="text-red-600 hover:text-red-900 text-sm font-medium"
-												>
-													{t("qualifications.admin.qualifications.reject")}
-												</button>
-											</Form>
-										</div>
+									<td class="px-6 py-4 text-sm">
+										<Link
+											href={`${data.value.adminBase}/reviews`}
+											class="text-green-600 hover:text-green-900 font-medium"
+										>
+											{t("qualifications.admin.qualifications.review")}
+										</Link>
 									</td>
 								</tr>
 							))}

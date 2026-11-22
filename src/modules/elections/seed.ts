@@ -199,9 +199,10 @@ export async function seedElections(ctx: SeedContext): Promise<void> {
 			(ea) => ea.positionId === positionId && ea.userId === userId,
 		);
 		if (exists) continue;
+		const id = uuid();
 		db.insert(schema.electionApplications)
 			.values({
-				id: uuid(),
+				id,
 				positionId,
 				cycleId,
 				userId,
@@ -217,6 +218,19 @@ export async function seedElections(ctx: SeedContext): Promise<void> {
 				updatedAt: now(),
 			})
 			.run();
+		// Pending applications wait in the Reviews queue of the election's scope.
+		if (a.status === "pending")
+			db.insert(schema.reviews)
+				.values({
+					id: uuid(),
+					ref: `elections:application:${id}`,
+					// Every seeded election belongs to the root.
+					scopeId: rootScope.id,
+					status: "in_review",
+					submittedBy: userId,
+					createdAt: now(),
+				})
+				.run();
 	}
 
 	const cycleCount = db.select().from(schema.electionCycles).all().length;

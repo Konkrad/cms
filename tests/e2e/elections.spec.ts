@@ -42,6 +42,7 @@ import {
 	createScopeInDb,
 	createUserSession,
 	createUserSessionWithMembership,
+	decideInReviewQueue,
 	deleteScopeById,
 	expect,
 	getUserById,
@@ -441,7 +442,8 @@ test.describe("Elections — membership gate", () => {
 		}
 	});
 
-	test("full member can see apply button and submit an application", async ({
+	test("full member applies; the application is approved in the Reviews queue", async ({
+		adminPage,
 		guestPage: page,
 	}) => {
 		const { cycleId, cleanup } = createElectionCycleInDb({
@@ -485,8 +487,46 @@ test.describe("Elections — membership gate", () => {
 			await expect(page.locator("text=✓ Applied")).toBeVisible({
 				timeout: 5_000,
 			});
+
+			// The application waits in the root's Reviews queue with its answers; approving it
+			// there makes the applicant a candidate.
+			const db1 = openDb();
+			const app = db1
+				.prepare("SELECT id FROM election_applications WHERE user_id = ?")
+				.get(session.userId) as { id: string };
+			db1.close();
+			await adminPage.goto("/admin/root/reviews");
+			await expect(
+				adminPage.locator(`[data-ref="elections:application:${app.id}"]`),
+			).toContainText("I have 5 years of relevant experience.", {
+				timeout: 15_000,
+			});
+			await decideInReviewQueue(
+				adminPage,
+				"/admin/root",
+				`elections:application:${app.id}`,
+				"approve",
+			);
+			await expect
+				.poll(
+					() => {
+						const db3 = openDb();
+						const row = db3
+							.prepare("SELECT status FROM election_applications WHERE id = ?")
+							.get(app.id) as { status: string };
+						db3.close();
+						return row.status;
+					},
+					{ timeout: 15_000 },
+				)
+				.toBe("approved");
 		} finally {
 			const db2 = openDb();
+			db2
+				.prepare(
+					"DELETE FROM reviews WHERE ref IN (SELECT 'elections:application:' || id FROM election_applications WHERE user_id = ?)",
+				)
+				.run(session.userId);
 			db2
 				.prepare("DELETE FROM election_applications WHERE user_id = ?")
 				.run(session.userId);

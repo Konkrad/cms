@@ -1,5 +1,6 @@
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { itemUrl, requireModuleAuth, t } from "~/core";
+import { submitApplicationForReview } from "./review";
 import { electionsService } from "./service";
 
 export const useSubmitApplication = routeAction$(
@@ -13,7 +14,10 @@ export const useSubmitApplication = routeAction$(
 			motivationExperience: data.motivationExperience,
 			motivationGoals: data.motivationGoals,
 		});
-		if (result.error) return { failed: true, error: result.error };
+		if (result.error || !result.application)
+			return { failed: true, error: result.error };
+		// Waits in the Reviews queue of the election's scope.
+		await submitApplicationForReview(user.id, result.application);
 		const cycle = await electionsService.getCycleById(data.cycleId);
 		throw event.redirect(
 			302,

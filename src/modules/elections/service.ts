@@ -67,6 +67,38 @@ export const electionsService = {
 			.where(inArray(electionCycles.id, [...ids]));
 	},
 
+	/**
+	 * Election applications with these ids, for core's review queue: the election's scope and
+	 * the position and election titles.
+	 */
+	async locateApplications(ids: readonly string[]): Promise<
+		Array<{
+			id: string;
+			scopeId: string;
+			positionTitle: string;
+			cycleTitle: string;
+		}>
+	> {
+		if (!ids.length) return [];
+		return db
+			.select({
+				id: electionApplications.id,
+				scopeId: electionCycles.scopeId,
+				positionTitle: electionPositions.title,
+				cycleTitle: electionCycles.title,
+			})
+			.from(electionApplications)
+			.innerJoin(
+				electionCycles,
+				eq(electionCycles.id, electionApplications.cycleId),
+			)
+			.innerJoin(
+				electionPositions,
+				eq(electionPositions.id, electionApplications.positionId),
+			)
+			.where(inArray(electionApplications.id, [...ids]));
+	},
+
 	/** Published (not draft) cycles whose title contains `query` (admin link picker). */
 	async searchPublished(
 		query: string,

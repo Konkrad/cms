@@ -2,39 +2,45 @@
 status: shipped
 code:
   - src/core/reviews/reviews.ts
+  - src/core/reviews/define.ts
   - src/core/content/content-review.ts
   - src/routes/admin/[scope]/reviews/index.tsx
 tags: [foundation, reviews]
 ---
 # Review flow
 
-Public content from people below coordinator level is approved by someone higher up before the public sees it. Used by notes, articles and [[event-proposals]]. Roles: [[scopes-and-roles]].
+The one approval flow of the site. Everything that waits for someone's approval goes through it and is decided in the **Reviews** section of the admin area. Roles: [[scopes-and-roles]].
 
-## Does it need review?
+| What | Needs review when | Who decides |
+|---|---|---|
+| Notes, articles, [[event-proposals]] | it is public and the author is below coordinator of its scope | coordinators, admins and moderators of a scope **above** it |
+| [[jobs]] | the poster does not manage the job's scope | admins, moderators and representatives of the job's scope **or above** |
+| [[elections]] applications | always | admins, moderators and representatives of the election's scope **or above** |
+| [[qualifications]] claims | always (QR codes are approved at once instead) | admins, moderators and representatives of the root |
+
+Platform admins may always decide; nobody decides their own submission.
 
 ```mermaid
 flowchart TD
-    A[Author saves or submits] --> P{Public?}
-    P -- no --> PUB[Published directly]
-    P -- yes --> R{Author is coordinator,<br/>admin or moderator<br/>of the scope or above?}
-    R -- yes --> PUB
-    R -- no --> Q[Waits in review]
-    Q --> D{Reviewer decides}
+    A[Submitted] --> R{Review needed<br/>for this kind of item?}
+    R -- no --> PUB[Published / approved directly]
+    R -- yes --> Q[Waits in the Reviews queue]
+    Q --> D{Someone allowed to<br/>decide this kind}
     D -- approve --> PUB
     D -- reject + comment --> E[Back to the author] --> A
 ```
 
-## Who reviews
-- **Gets the request email:** the coordinators of the nearest scope above that has any; if there are none above, the platform admins. This email can't be turned off.
-- **May decide:** coordinators, admins and moderators of any scope **above** the item's scope, and platform admins.
-- **Never:** the author themselves, or the representatives of the item's own scope.
-- The author gets an email either way. The queue is the Reviews section in the admin area.
-
 ## Rules
-- While waiting, the item is invisible: not listed, not found by search, its address answers "not found". Only the author and the reviewers can preview it.
-- After a rejection, the author edits and saves (an event: submits again), which sends it back to review.
-- Edits to approved content are published directly.
-- Approval and rejection trigger follow-up work in the owning feature (publish the event, post an announcement). It runs in the background and is retried until it succeeds ([[background-jobs]]).
+- **Request email:** for content, the coordinators of the nearest scope above that has any; for the other kinds, the managers of the nearest scope (starting with the item's own) that has any; the platform admins when nobody qualifies. It cannot be turned off.
+- **Decision email:** the author is told either way. Job posters hear about an approval through the job's own email, which they may turn off; rejections always come from the review flow.
+- A rejection needs a comment. The author sees it (on the item's admin page, in "My submissions", next to their job listing or application).
+- While waiting, content is invisible except to its author and its reviewers, who can preview it (a pending job listing too).
+- Answers that come with a submission (an event proposal form, an election application's motivation) are shown to the reviewers in the queue.
+- After the decision, the owning feature does its part (publish the event, approve the listing, grant the qualification) in the background, retried until it succeeds ([[background-jobs]]).
+- An item deleted while waiting disappears from the queue.
+- Content edits after an approval are not reviewed again; a rejected job listing goes back to review when its poster edits it.
 
 ## Decisions
-- One review rule for the whole site: features never decide for themselves whether review is needed.
+- 2026-11: one review flow for content, jobs, election applications and qualification claims (before, each module had its own approve/reject buttons). Each kind keeps its earlier rule of who decides; the queue, comments, emails and history are now the same everywhere.
+- Content needs approval from **above** (it travels up to the parents' pages); jobs, applications and claims are decided by the scope's own managers, as before.
+- Features never decide for themselves whether review is needed; they declare their rule and core applies it.

@@ -5,11 +5,9 @@ import { loadAdminQualifications } from "../../../../modules/qualifications/admi
 import { AdminQualifications } from "../../../../modules/qualifications/admin/qualifications";
 
 export {
-	useApproveQualification,
 	useCreateType,
 	useDeleteType,
 	useGenerateToken,
-	useRejectQualification,
 	useRevokeToken,
 } from "../../../../modules/qualifications/admin/actions";
 

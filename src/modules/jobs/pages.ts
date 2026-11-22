@@ -6,9 +6,11 @@ import {
 	requestContentFilter,
 	requireAuth,
 	requireCanonicalUrl,
+	reviews,
 	withItemUrls,
 } from "~/core";
 import { toPublicJob } from "./public-job";
+import { jobRef } from "./review";
 import { jobsService } from "./service";
 
 export const JOBS_PAGE_SIZE = 10;
@@ -43,7 +45,18 @@ export const myJobsPage = definePage({
 	path: "/jobs/mine",
 	async load(event) {
 		const user = await requireAuth(event);
-		return { jobs: await jobsService.getByUser(user.id) };
+		const jobs = await jobsService.getByUser(user.id);
+		// The poster's own listings, with where their review stands and the reviewer's comment.
+		const statuses = await reviews.statusOfMany(jobs.map((j) => jobRef(j.id)));
+		return {
+			jobs: jobs.map((j) => {
+				const s = statuses.get(jobRef(j.id));
+				return {
+					...j,
+					review: s ? { status: s.status, comment: s.comment } : null,
+				};
+			}),
+		};
 	},
 });
 
@@ -65,10 +78,12 @@ export const jobDetailPage = definePage({
 	id: "jobs.detail",
 	path: "/jobs/:id",
 	async load(event, { params }): Promise<JobDetailData> {
-		await requireAuth(event);
+		const user = await requireAuth(event);
 		const job = await jobsService.getById(params.id);
 		const now = new Date().toISOString();
-		if (!job || job.status !== "approved" || job.expiresAt < now) {
+		const live = job?.status === "approved" && job.expiresAt >= now;
+		// Reviewers may preview a pending listing from the Reviews queue.
+		if (!job || (!live && !(await reviews.canReview(user, jobRef(job.id))))) {
 			throw event.error(404, "Job not found");
 		}
 		requireCanonicalUrl(event, await itemUrl("jobs:job", job));

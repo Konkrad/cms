@@ -1,5 +1,6 @@
 import { defineModule, t } from "~/core";
 import { electionsPages } from "./pages";
+import { applicationReview } from "./review";
 import electionsSchema from "./schema";
 import { electionsService } from "./service";
 
@@ -25,6 +26,8 @@ export const electionsModule = defineModule({
 			url: "/elections",
 		},
 	],
+	// Applications are approved in core's Reviews queue (review.ts).
+	reviews: { application: applicationReview },
 	// `elections:cycle:<id>` → `<scope path>/elections/<id>`.
 	refs: {
 		cycle: {

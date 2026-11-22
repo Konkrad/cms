@@ -87,19 +87,35 @@ export const MyJobsView = component$<{
 												{formatDate(job.expiresAt)}
 											</span>
 										</td>
-										<td class="px-6 py-4 whitespace-nowrap">
+										<td class="px-6 py-4">
 											<span
 												class={[
-													"inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+													"inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap",
 													job.status === "approved"
 														? "bg-success-bg text-success"
-														: "bg-warning-bg text-warning",
+														: job.review?.status === "rejected"
+															? "bg-error-bg text-error"
+															: "bg-warning-bg text-warning",
 												].join(" ")}
 											>
 												{job.status === "approved"
 													? t("theme.myJobs.approved")
-													: t("theme.myJobs.pendingReview")}
+													: job.review?.status === "rejected"
+														? t("theme.myJobs.rejected")
+														: t("theme.myJobs.pendingReview")}
 											</span>
+											{job.status !== "approved" &&
+												job.review?.status === "rejected" &&
+												job.review.comment && (
+													<p
+														class="mt-1 text-xs text-muted max-w-xs"
+														data-testid="job-review-comment"
+													>
+														{t("theme.myJobs.reviewerComment", {
+															comment: job.review.comment,
+														})}
+													</p>
+												)}
 										</td>
 										<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
 											<div class="flex items-center gap-4">

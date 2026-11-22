@@ -6,9 +6,7 @@ import { loadAdminCycle } from "../../../../../modules/elections/admin/data";
 
 export {
 	useAdvanceStatus,
-	useApproveApplication,
 	useDeletePosition,
-	useRejectApplication,
 	useSetVotingUrl,
 } from "../../../../../modules/elections/admin/actions";
 

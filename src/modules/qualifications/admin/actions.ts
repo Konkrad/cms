@@ -28,37 +28,6 @@ export const useDeleteType = routeAction$(
 	zod$({ typeId: z.string().uuid() }),
 );
 
-export const useApproveQualification = routeAction$(
-	async (data, event) => {
-		const { user } = await requireModuleAdmin(event, {
-			module: "qualifications",
-		});
-		await qualificationsService.approve(
-			data.qualId,
-			user.id,
-			data.notes || undefined,
-		);
-		return { success: true };
-	},
-	zod$({ qualId: z.string().uuid(), notes: z.string().optional() }),
-);
-
-export const useRejectQualification = routeAction$(
-	async (data, event) => {
-		const { user } = await requireModuleAdmin(event, {
-			module: "qualifications",
-		});
-		await qualificationsService.reject(data.qualId, user.id, data.notes);
-		return { success: true };
-	},
-	zod$({
-		qualId: z.string().uuid(),
-		notes: z
-			.string()
-			.min(1, t("qualifications.admin.actions.pleaseProvideAReason")),
-	}),
-);
-
 export const useGenerateToken = routeAction$(
 	async (data, event) => {
 		const { user } = await requireModuleAdmin(event, {

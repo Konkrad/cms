@@ -2,7 +2,6 @@ import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireModuleAdmin, requireWithinScope } from "~/core";
 import { BlockNoteEditor, Button, Input, Select, t } from "~/core/ui";
-import { notifyIfApproved } from "../notifications";
 import { jobsService } from "../service";
 import type { AdminJobData } from "./edit-data";
 
@@ -16,7 +15,8 @@ export const useUpdateJob = routeAction$(
 		await requireWithinScope(event, scope, before);
 		if (!before)
 			return event.fail(404, { message: t("jobs.admin.edit.jobNotFound") });
-		const after = await jobsService.update(event.params.id, {
+		// Content only: approval happens in the Reviews queue.
+		await jobsService.update(event.params.id, {
 			title: data.title,
 			body: data.body,
 			editorState: data.editorState || null,
@@ -29,9 +29,7 @@ export const useUpdateJob = routeAction$(
 			link: data.link || null,
 			posterRelation: data.posterRelation || null,
 			expiresAt: new Date(data.expiresAt),
-			status: data.status as "pending" | "approved",
 		} as any);
-		await notifyIfApproved(before, after);
 
 		throw event.redirect(303, `${adminBase}/jobs`);
 	},
@@ -47,7 +45,6 @@ export const useUpdateJob = routeAction$(
 			.enum(["hiring", "founder", "direct-team", "works-there", "other"])
 			.optional(),
 		expiresAt: z.string().min(1, t("jobs.admin.edit.expiryDateIsRequired")),
-		status: z.enum(["pending", "approved"]),
 	}),
 );
 
@@ -174,17 +171,6 @@ export const AdminJobEdit = component$<{ data: AdminJobData }>(({ data }) => {
 						required
 						value={job.expiresAt.slice(0, 10)}
 					/>
-
-					<Select
-						name="status"
-						label={t("jobs.admin.edit.status")}
-						value={job.status}
-					>
-						<option value="pending">
-							{t("jobs.admin.edit.pendingReview")}
-						</option>
-						<option value="approved">{t("jobs.admin.edit.approved")}</option>
-					</Select>
 
 					{updateAction.value?.failed && (
 						<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm">

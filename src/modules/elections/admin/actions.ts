@@ -115,39 +115,3 @@ export const useDeletePosition = routeAction$(
 	},
 	zod$({ positionId: z.string().uuid() }),
 );
-
-export const useApproveApplication = routeAction$(
-	async (data, event) => {
-		const { scope } = await requireModuleAdmin(event, ELECTIONS);
-		await requireWithinScope(
-			event,
-			scope,
-			await electionsService.scopeOf({ applicationId: data.appId }),
-		);
-		await electionsService.updateApplicationStatus(
-			data.appId,
-			"approved",
-			data.notes || undefined,
-		);
-		return { success: true };
-	},
-	zod$({ appId: z.string().uuid(), notes: z.string().optional() }),
-);
-
-export const useRejectApplication = routeAction$(
-	async (data, event) => {
-		const { scope } = await requireModuleAdmin(event, ELECTIONS);
-		await requireWithinScope(
-			event,
-			scope,
-			await electionsService.scopeOf({ applicationId: data.appId }),
-		);
-		await electionsService.updateApplicationStatus(
-			data.appId,
-			"rejected",
-			data.notes || undefined,
-		);
-		return { success: true };
-	},
-	zod$({ appId: z.string().uuid(), notes: z.string().optional() }),
-);

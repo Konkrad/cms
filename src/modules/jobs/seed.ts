@@ -114,9 +114,10 @@ export async function seedJobs(ctx: SeedContext): Promise<void> {
 	];
 
 	for (const j of jobDefs) {
+		const id = uuid();
 		db.insert(schema.jobs)
 			.values({
-				id: uuid(),
+				id,
 				scopeId: rootScope.id,
 				title: j.title,
 				body: j.body,
@@ -133,6 +134,18 @@ export async function seedJobs(ctx: SeedContext): Promise<void> {
 				updatedAt: now(),
 			})
 			.run();
+		// Pending listings wait in the root's Reviews queue, as if submitted through /jobs/new.
+		if (j.status === "pending")
+			db.insert(schema.reviews)
+				.values({
+					id: uuid(),
+					ref: `jobs:job:${id}`,
+					scopeId: rootScope.id,
+					status: "in_review",
+					submittedBy: resolveAuthor(j.authorIdx),
+					createdAt: now(),
+				})
+				.run();
 	}
 	console.log(
 		`  jobs seeded (${jobDefs.length}: ${jobDefs.filter((j) => j.status === "approved").length} approved, ${jobDefs.filter((j) => j.status === "pending").length} pending, 1 expired)`,

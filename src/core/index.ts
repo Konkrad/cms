@@ -207,6 +207,7 @@ export type {
 	ReviewContext,
 	ReviewDecision,
 	ReviewHandlers,
+	ReviewItemLocation,
 } from "~/core/reviews/define";
 export {
 	ReviewError,

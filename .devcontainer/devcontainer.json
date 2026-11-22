@@ -13,18 +13,17 @@
 	"portsAttributes": {
 		"5173": { "label": "App", "onAutoForward": "notify" },
 		"8025": { "label": "Mailpit UI" },
-		"9000": { "label": "Minio API", "onAutoForward": "notify" },
-		"9001": { "label": "Minio UI" }
+		"4566": { "label": "S3 (Floci)", "onAutoForward": "notify" }
 	},
 
-	"runServices": ["mailpit", "minio", "stripe-mock"],
+	"runServices": ["mailpit", "floci", "stripe-mock"],
 
-	"forwardPorts": [5173, 8025, 9000, 9001],
+	"forwardPorts": [5173, 8025, 4566],
 
 	"containerEnv": {
 		"APP_URL": "http://localhost:5173",
 		"MAILPIT_API_URL": "http://mailpit:8025",
-		"AWS_ENDPOINT": "http://minio:9000",
+		"AWS_ENDPOINT": "http://floci:4566",
 		"AWS_ACCESS_KEY_ID": "test",
 		"AWS_SECRET_ACCESS_KEY": "testtest",
 		"AWS_REGION": "us-east-1",

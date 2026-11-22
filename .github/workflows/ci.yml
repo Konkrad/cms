@@ -93,7 +93,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # tests/vitest-global-setup.ts starts mailpit, minio and stripe-mock with testcontainers
+      # tests/vitest-global-setup.ts starts mailpit, floci and stripe-mock with testcontainers
       # (Docker is available on the runner) and one temp SQLite file shared by all test files;
       # --no-file-parallelism avoids "database is locked" (see .githooks/pre-commit).
       - name: Run unit tests
@@ -149,7 +149,7 @@ jobs:
       SMTP_PORT: "1025"
       SMTP_FROM: test@example.com
       AWS_REGION: us-east-1
-      AWS_ENDPOINT: http://localhost:9000
+      AWS_ENDPOINT: http://localhost:4566
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: testtest
       S3_BUCKET: test
@@ -166,15 +166,11 @@ jobs:
       DB_PATH: /tmp/e2e-${{ matrix.modules }}.db
     # The same services as docker-compose.yml locally (and testcontainers in the unit tests).
     services:
-      minio:
-        image: ghcr.io/coollabsio/minio:latest
+      # S3-compatible storage: Floci, a local AWS emulator (any non-empty credentials).
+      floci:
+        image: floci/floci:2.5.0
         ports:
-          - 9000:9000
-          - 9001:9001
-        env:
-          MINIO_ROOT_USER: test
-          MINIO_ROOT_PASSWORD: testtest
-        command: server /data --console-address ":9001"
+          - 4566:4566
 
       mailpit:
         image: axllent/mailpit:latest
@@ -241,12 +237,24 @@ jobs:
             exit 1
           }
 
-          wait_for_http http://localhost:9000/minio/health/live minio
+          wait_for_port localhost 4566 floci
           wait_for_http http://localhost:8025/api/v1/messages?limit=1 mailpit
           wait_for_port localhost 12111 stripe-mock
 
-      - name: Create MinIO bucket
-        run: aws --endpoint-url http://localhost:9000 s3 mb s3://test
+      - name: Create the S3 bucket
+        run: |
+          set -euo pipefail
+          # The port opens before every service is up: retry the first call.
+          for i in $(seq 1 15); do
+            aws --endpoint-url http://localhost:4566 s3 mb s3://test && break
+            [ "$i" = 15 ] && exit 1
+            sleep 2
+          done
+          # Public images are served straight from the bucket URL: an unsigned GET must work.
+          echo ok > /tmp/probe.txt
+          aws --endpoint-url http://localhost:4566 s3 cp /tmp/probe.txt s3://test/public/probe.txt
+          curl -fsS http://localhost:4566/test/public/probe.txt | grep -qx ok
+          aws --endpoint-url http://localhost:4566 s3 rm s3://test/public/probe.txt
         env:
           AWS_DEFAULT_REGION: us-east-1
 

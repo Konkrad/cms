@@ -78,15 +78,15 @@ function resolveSeedPublicEndpoint(): string {
 	const forwardingDomain = process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN;
 
 	if (codespaceName && forwardingDomain) {
-		return `https://${codespaceName}-9000.${forwardingDomain}`;
+		return `https://${codespaceName}-4566.${forwardingDomain}`;
 	}
 
-	return process.env.AWS_ENDPOINT ?? "http://localhost:9000";
+	return process.env.AWS_ENDPOINT ?? "http://localhost:4566";
 }
 
 const seedStorageConfig = {
 	region: process.env.AWS_REGION ?? "us-east-1",
-	endpoint: process.env.AWS_ENDPOINT ?? "http://localhost:9000",
+	endpoint: process.env.AWS_ENDPOINT ?? "http://localhost:4566",
 	publicEndpoint: resolveSeedPublicEndpoint(),
 	accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? "test",
 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? "testtest",
@@ -115,23 +115,32 @@ async function ensureBucketAndPublicReadPolicy(s3: S3Client): Promise<void> {
 		}
 	}
 
-	await s3.send(
-		new PutBucketPolicyCommand({
-			Bucket: seedStorageConfig.bucket,
-			Policy: JSON.stringify({
-				Version: "2012-10-17",
-				Statement: [
-					{
-						Sid: "PublicReadSeedImages",
-						Effect: "Allow",
-						Principal: "*",
-						Action: ["s3:GetObject"],
-						Resource: [`arn:aws:s3:::${seedStorageConfig.bucket}/public/*`],
-					},
-				],
+	// Stores that block public bucket policies (Floci) refuse it with AccessDenied; they serve
+	// public objects without one, which CI checks. Any other error is real.
+	try {
+		await s3.send(
+			new PutBucketPolicyCommand({
+				Bucket: seedStorageConfig.bucket,
+				Policy: JSON.stringify({
+					Version: "2012-10-17",
+					Statement: [
+						{
+							Sid: "PublicReadSeedImages",
+							Effect: "Allow",
+							Principal: "*",
+							Action: ["s3:GetObject"],
+							Resource: [`arn:aws:s3:::${seedStorageConfig.bucket}/public/*`],
+						},
+					],
+				}),
 			}),
-		}),
-	);
+		);
+	} catch (error) {
+		if ((error as { name?: string }).name !== "AccessDenied") throw error;
+		console.warn(
+			"  bucket policy refused by the store (AccessDenied); relying on its default public reads",
+		);
+	}
 }
 
 /** Uploads one public object for a module's demo data (deal logos); its key, or null on failure. */

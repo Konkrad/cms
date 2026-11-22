@@ -11,7 +11,7 @@ npm install
 cp .env.example .env
 ```
 
-All configuration is centralized in `src/env.ts` (validated with Zod at startup) — fill in `.env` with your own SMTP, S3/AWS, Stripe, and Telegram credentials. `docker-compose.yml` provides local stand-ins (Mailpit, MinIO, stripe-mock) if you don't want to wire up real services yet.
+All configuration is centralized in `src/env.ts` (validated with Zod at startup) — fill in `.env` with your own SMTP, S3/AWS, Stripe, and Telegram credentials. `docker-compose.yml` provides local stand-ins (Mailpit, Floci for S3, stripe-mock) if you don't want to wire up real services yet.
 
 ## 2. Run it
 

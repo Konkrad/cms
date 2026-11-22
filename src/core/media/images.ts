@@ -10,7 +10,7 @@ export function deriveThumbnailKey(mainKey: string): string {
  * Resolve a stored S3 key to a direct browser-safe URL.
  *
  * Uses VITE_S3_BASE_URL (e.g. https://bucket.s3.region.amazonaws.com or
- * http://192.168.x.x:9000/bucket for local dev). Falls back to the
+ * http://localhost:4566/bucket for local dev with Floci). Falls back to the
  * /api/images redirect if the env var is not configured.
  *
  * Only call this for public/* keys. Private keys must be presigned

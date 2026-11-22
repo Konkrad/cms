@@ -68,7 +68,7 @@ function now() {
 
 const seedStorageConfig = {
 	region: process.env.AWS_REGION ?? "us-east-1",
-	endpoint: process.env.AWS_ENDPOINT ?? "http://localhost:9000",
+	endpoint: process.env.AWS_ENDPOINT ?? "http://localhost:4566",
 	accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? "test",
 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? "testtest",
 	bucket: process.env.S3_BUCKET ?? "data",
@@ -90,23 +90,32 @@ async function ensureBucketAndPublicReadPolicy(s3: S3Client): Promise<void> {
 		}
 	}
 
-	await s3.send(
-		new PutBucketPolicyCommand({
-			Bucket: seedStorageConfig.bucket,
-			Policy: JSON.stringify({
-				Version: "2012-10-17",
-				Statement: [
-					{
-						Sid: "PublicReadSeedImages",
-						Effect: "Allow",
-						Principal: "*",
-						Action: ["s3:GetObject"],
-						Resource: [`arn:aws:s3:::${seedStorageConfig.bucket}/public/*`],
-					},
-				],
+	// Stores that block public bucket policies (Floci) refuse it with AccessDenied; they serve
+	// public objects without one, which CI checks. Any other error is real.
+	try {
+		await s3.send(
+			new PutBucketPolicyCommand({
+				Bucket: seedStorageConfig.bucket,
+				Policy: JSON.stringify({
+					Version: "2012-10-17",
+					Statement: [
+						{
+							Sid: "PublicReadSeedImages",
+							Effect: "Allow",
+							Principal: "*",
+							Action: ["s3:GetObject"],
+							Resource: [`arn:aws:s3:::${seedStorageConfig.bucket}/public/*`],
+						},
+					],
+				}),
 			}),
-		}),
-	);
+		);
+	} catch (error) {
+		if ((error as { name?: string }).name !== "AccessDenied") throw error;
+		console.warn(
+			"  bucket policy refused by the store (AccessDenied); relying on its default public reads",
+		);
+	}
 }
 
 /** Uploads a deterministic real-face photo for `email` and returns the two DB keys. */

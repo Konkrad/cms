@@ -371,7 +371,7 @@
 	"admin.reviews.approve": "Approve",
 	"admin.reviews.commentRequiredToReject": "Comment (required to reject)",
 	"admin.reviews.nothingToReview": "Nothing to review.",
-	"admin.reviews.publicContentFromTheGroups": "Public content from the groups below is published once a reviewer approves it.",
+	"admin.reviews.publicContentFromTheGroups": "Everything waiting for approval that you may decide: public content from the groups below, job listings, election applications and qualification claims.",
 	"admin.reviews.reject": "Reject",
 	"admin.reviews.reviews": "Reviews",
 	"admin.reviews.status.approved": "Approved",

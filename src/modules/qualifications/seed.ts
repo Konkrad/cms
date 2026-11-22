@@ -130,6 +130,18 @@ export async function seedQualifications(ctx: SeedContext): Promise<void> {
 					updatedAt: now(),
 				})
 				.run();
+			// Pending claims wait in the root's Reviews queue.
+			if (plan.status === "pending")
+				db.insert(schema.reviews)
+					.values({
+						id: uuid(),
+						ref: `qualifications:claim:${qualId}`,
+						scopeId: ctx.rootScopeId,
+						status: "in_review",
+						submittedBy: userId,
+						createdAt: now(),
+					})
+					.run();
 		} else {
 			qualId = exists.id;
 		}

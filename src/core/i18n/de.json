@@ -371,7 +371,7 @@
 	"admin.reviews.approve": "Freigeben",
 	"admin.reviews.commentRequiredToReject": "Kommentar (zum Ablehnen erforderlich)",
 	"admin.reviews.nothingToReview": "Nichts zu prüfen.",
-	"admin.reviews.publicContentFromTheGroups": "Öffentliche Inhalte aus den Gruppen darunter werden veröffentlicht, sobald eine prüfende Person zustimmt.",
+	"admin.reviews.publicContentFromTheGroups": "Alles, was auf Freigabe wartet und worüber du entscheiden darfst: öffentliche Inhalte aus den Gruppen darunter, Stellenanzeigen, Kandidaturen und Qualifikationsanträge.",
 	"admin.reviews.reject": "Ablehnen",
 	"admin.reviews.reviews": "Prüfungen",
 	"admin.reviews.status.approved": "Freigegeben",

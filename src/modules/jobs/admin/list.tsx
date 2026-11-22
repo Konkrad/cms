@@ -2,25 +2,8 @@ import { component$ } from "@qwik.dev/core";
 import { Form, Link, routeAction$, z, zod$ } from "@qwik.dev/router";
 import { requireModuleAdmin, requireWithinScope } from "~/core";
 import { formatDate, Pagination, SearchBar, t } from "~/core/ui";
-import { notifyIfApproved } from "../notifications";
 import { jobsService } from "../service";
 import type { AdminJobsData } from "./list-data";
-
-export const useApproveJob = routeAction$(
-	async (data, event) => {
-		const { scope } = await requireModuleAdmin(event, { module: "jobs" });
-		const before = await jobsService.getById(data.jobId);
-		await requireWithinScope(event, scope, before);
-		if (!before)
-			return event.fail(404, { message: t("jobs.admin.list.jobNotFound") });
-		const after = await jobsService.update(data.jobId, {
-			status: "approved",
-		} as any);
-		await notifyIfApproved(before, after);
-		return { success: true };
-	},
-	zod$({ jobId: z.string().uuid() }),
-);
 
 export const useDeleteJob = routeAction$(
 	async (data, event) => {
@@ -37,7 +20,6 @@ export const useDeleteJob = routeAction$(
 );
 
 export const AdminJobsList = component$<{ data: AdminJobsData }>(({ data }) => {
-	const approveAction = useApproveJob();
 	const deleteAction = useDeleteJob();
 	const now = new Date();
 	const totalPages = Math.ceil(data.total / data.pageSize);
@@ -124,21 +106,20 @@ export const AdminJobsList = component$<{ data: AdminJobsData }>(({ data }) => {
 										>
 											{job.status === "approved"
 												? t("jobs.admin.list.approved")
-												: t("jobs.admin.list.pending")}
+												: job.reviewStatus === "rejected"
+													? t("jobs.admin.list.rejected")
+													: t("jobs.admin.list.pending")}
 										</span>
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
 										<div class="flex items-center gap-4">
-											{job.status === "pending" && (
-												<Form action={approveAction}>
-													<input type="hidden" name="jobId" value={job.id} />
-													<button
-														type="submit"
-														class="text-green-600 hover:text-green-900"
-													>
-														{t("jobs.admin.list.approve")}
-													</button>
-												</Form>
+											{job.reviewStatus === "in_review" && (
+												<Link
+													href={`${data.adminBase}/reviews`}
+													class="text-green-600 hover:text-green-900"
+												>
+													{t("jobs.admin.list.review")}
+												</Link>
 											)}
 											<Link
 												href={`${data.adminBase}/jobs/${job.id}/edit`}

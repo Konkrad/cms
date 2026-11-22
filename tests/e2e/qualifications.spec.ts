@@ -2,9 +2,9 @@
  * E2E tests for the Qualifications feature:
  *  - Unauthenticated access to admin page redirects to login
  *  - Non-admin cannot access admin qualification pages
- *  - Admin sees pending qualification in the queue
- *  - Admin approves → user profile shows the tag
- *  - Admin rejects with note → rejection note visible on user's profile
+ *  - Admin sees a pending claim in the qualifications list
+ *  - Approving it in core's Reviews queue grants the tag and tier
+ *  - Rejecting it there keeps the reviewer's comment on the claim
  */
 
 import {
@@ -13,6 +13,7 @@ import {
 	createQualificationTypeInDb,
 	createScopeInDb,
 	createUserSession,
+	decideInReviewQueue,
 	deleteScopeById,
 	expect,
 	grantScopeRole,
@@ -85,7 +86,7 @@ test("admin sees a pending qualification in the queue", async ({
 	}
 });
 
-test("admin approves qualification → tag appears on user profile", async ({
+test("admin approves a claim in the Reviews queue → tag and tier are granted", async ({
 	guestPage: page,
 }) => {
 	const admin = createUserSession("admin");
@@ -103,22 +104,35 @@ test("admin approves qualification → tag appears on user profile", async ({
 	);
 	try {
 		await loginAs(page, admin.sessionToken);
+		// The pending claim links to the queue, where it is decided.
 		await page.goto("/admin/root/qualifications");
-
-		// Click Approve for this qualification
 		const row = page
 			.locator("tr", { has: page.locator("text=E2E Approve Test") })
 			.first();
-		await row.locator("button:has-text('Approve')").click();
-		await page.waitForLoadState("networkidle");
+		await expect(row.getByRole("link", { name: "Review" })).toBeVisible({
+			timeout: 10_000,
+		});
+		await decideInReviewQueue(
+			page,
+			"/admin/root",
+			`qualifications:claim:${qualId}`,
+			"approve",
+		);
 
-		// Now check the user's tags
-		const db = openDb();
-		const tag = db
-			.prepare("SELECT * FROM user_tags WHERE user_id = ? AND slug = ?")
-			.get(applicant.userId, slug);
-		db.close();
-		expect(tag).toBeTruthy();
+		// The handler runs on the next scheduler tick.
+		await expect
+			.poll(
+				() => {
+					const db = openDb();
+					const tag = db
+						.prepare("SELECT 1 FROM user_tags WHERE user_id = ? AND slug = ?")
+						.get(applicant.userId, slug);
+					db.close();
+					return !!tag;
+				},
+				{ timeout: 15_000 },
+			)
+			.toBe(true);
 	} finally {
 		const db = openDb();
 		db.prepare("DELETE FROM user_tags WHERE user_id = ?").run(applicant.userId);
@@ -133,7 +147,7 @@ test("admin approves qualification → tag appears on user profile", async ({
 	}
 });
 
-test("admin rejects qualification → rejection note visible on user profile", async ({
+test("admin rejects a claim in the Reviews queue → the comment is kept on the claim", async ({
 	guestPage: page,
 }) => {
 	const admin = createUserSession("admin");
@@ -148,39 +162,29 @@ test("admin rejects qualification → rejection note visible on user profile", a
 	);
 	try {
 		await loginAs(page, admin.sessionToken);
-		await page.goto("/admin/root/qualifications");
+		await decideInReviewQueue(
+			page,
+			"/admin/root",
+			`qualifications:claim:${qualId}`,
+			"reject",
+			"Not yet eligible",
+		);
 
-		const row = page
-			.locator("tr", { has: page.locator("text=E2E Reject Test") })
-			.first();
-		await row
-			.locator("input[placeholder='Reason (required)']")
-			.fill("Not yet eligible");
-		await row.locator("button:has-text('Reject')").click();
-		await page.waitForLoadState("networkidle");
-
-		// Now view the applicant's profile as them
-		const applicantPage = await page.context().newPage();
-		await applicantPage.context().addCookies([
-			{
-				name: "session",
-				value: (createUserSession as any)._token ?? admin.sessionToken,
-				domain: "localhost",
-				path: "/",
-				httpOnly: true,
-				secure: false,
-				sameSite: "Strict",
-			},
-		]);
-
-		const db = openDb();
-		const qual = db
-			.prepare("SELECT status, notes FROM user_qualifications WHERE id = ?")
-			.get(qualId) as any;
-		db.close();
-		expect(qual?.status).toBe("rejected");
-		expect(qual?.notes).toBe("Not yet eligible");
-		await applicantPage.close();
+		await expect
+			.poll(
+				() => {
+					const db = openDb();
+					const qual = db
+						.prepare(
+							"SELECT status, notes FROM user_qualifications WHERE id = ?",
+						)
+						.get(qualId) as { status: string; notes: string | null };
+					db.close();
+					return `${qual.status}: ${qual.notes}`;
+				},
+				{ timeout: 15_000 },
+			)
+			.toBe("rejected: Not yet eligible");
 	} finally {
 		qc();
 		tc();

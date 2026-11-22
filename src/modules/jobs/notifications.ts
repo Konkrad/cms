@@ -45,18 +45,18 @@ export const jobApprovedNotification = defineNotification<{
 	},
 });
 
-/** Notifies the poster when a job goes from pending to approved. Server-only. */
-export async function notifyIfApproved(
-	before: { status: string } | undefined,
-	after: { id: string; title: string; status: string; suggestedBy: string },
-): Promise<void> {
-	if (before?.status !== "pending" || after.status !== "approved") return;
+/** Tells the poster that their job listing was approved (optional email). Server-only. */
+export async function notifyJobApproved(job: {
+	id: string;
+	title: string;
+	suggestedBy: string;
+}): Promise<void> {
 	await notify(jobApprovedNotification.id, {
-		to: after.suggestedBy,
+		to: job.suggestedBy,
 		data: {
-			jobId: after.id,
-			jobTitle: after.title,
-			link: refHref(itemRef("jobs", "job", after.id)),
+			jobId: job.id,
+			jobTitle: job.title,
+			link: refHref(itemRef("jobs", "job", job.id)),
 		},
 	});
 }

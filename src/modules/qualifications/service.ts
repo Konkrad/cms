@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { and, eq, lte } from "drizzle-orm";
+import { and, eq, inArray, lte } from "drizzle-orm";
 import {
 	db,
 	membershipsService,
@@ -117,6 +117,25 @@ export const qualificationsService = {
 			with: { type: true, user: { columns: publicUserColumns } },
 		});
 		return row as UserQualificationWithType | undefined;
+	},
+
+	/** Claims with these ids, for core's review queue: their type's scope and label. */
+	async locateClaims(
+		ids: readonly string[],
+	): Promise<Array<{ id: string; scopeId: string; label: string }>> {
+		if (!ids.length) return [];
+		return db
+			.select({
+				id: userQualifications.id,
+				scopeId: qualificationTypes.scopeId,
+				label: qualificationTypes.label,
+			})
+			.from(userQualifications)
+			.innerJoin(
+				qualificationTypes,
+				eq(qualificationTypes.id, userQualifications.typeId),
+			)
+			.where(inArray(userQualifications.id, [...ids]));
 	},
 
 	async upsert(userId: string, typeId: string): Promise<UserQualification> {

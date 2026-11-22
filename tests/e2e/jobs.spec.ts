@@ -12,6 +12,7 @@ import {
 	createJobInDb,
 	createScopeInDb,
 	createUserSession,
+	decideInReviewQueue,
 	deleteJobById,
 	deleteScopeById,
 	expect,
@@ -334,7 +335,7 @@ test.describe("Jobs — public list", () => {
 // ── Admin management ───────────────────────────────────────────────────────────
 
 test.describe("Jobs — admin", () => {
-	test("admin sees pending job in /admin/root/jobs and can approve it", async ({
+	test("admin sees pending job in /admin/root/jobs and approves it in the Reviews queue", async ({
 		adminPage: page,
 	}) => {
 		const member = createUserSession("user");
@@ -349,13 +350,17 @@ test.describe("Jobs — admin", () => {
 			const row = page.locator("tr", { hasText: "Needs Admin Approval" });
 			await expect(row).toBeVisible({ timeout: 10_000 });
 			await expect(row.locator("text=Pending")).toBeVisible();
+			await expect(row.getByRole("link", { name: "Review" })).toBeVisible();
 
-			await row.locator("button:has-text('Approve')").click();
-
-			await expect(row.locator("text=Approved")).toBeVisible({
-				timeout: 10_000,
-			});
-			expect(getJobById(jobId)?.status).toBe("approved");
+			await decideInReviewQueue(
+				page,
+				"/admin/root",
+				`jobs:job:${jobId}`,
+				"approve",
+			);
+			await expect
+				.poll(() => getJobById(jobId)?.status, { timeout: 15_000 })
+				.toBe("approved");
 		} finally {
 			cleanup();
 			member.cleanup();

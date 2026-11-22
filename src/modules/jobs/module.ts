@@ -1,6 +1,7 @@
 import { defineModule, t } from "~/core";
 import { jobApprovedNotification } from "./notifications";
 import { jobsPages } from "./pages";
+import { jobReview } from "./review";
 import jobsSchema from "./schema";
 import { jobsService } from "./service";
 
@@ -16,6 +17,8 @@ export const jobsModule = defineModule({
 	},
 	menuLinks: [{ key: "jobs", label: t("jobs.module.jobs"), url: "/jobs" }],
 	notifications: [jobApprovedNotification],
+	// Listings are approved in core's Reviews queue (review.ts).
+	reviews: { job: jobReview },
 	// `jobs:job:<id>` → `<scope path>/jobs/<id>`.
 	refs: {
 		job: {

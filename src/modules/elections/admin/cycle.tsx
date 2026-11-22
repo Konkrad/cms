@@ -3,9 +3,7 @@ import { Form, Link } from "@qwik.dev/router";
 import { t } from "~/core/ui";
 import {
 	useAdvanceStatus,
-	useApproveApplication,
 	useDeletePosition,
-	useRejectApplication,
 	useSetVotingUrl,
 } from "./actions";
 import type { AdminCycleData } from "./data";
@@ -42,8 +40,6 @@ export const AdminElectionCycle = component$<{ data: AdminCycleData }>(
 		const advanceAction = useAdvanceStatus();
 		const setVotingUrlAction = useSetVotingUrl();
 		const deletePosAction = useDeletePosition();
-		const approveAppAction = useApproveApplication();
-		const rejectAppAction = useRejectApplication();
 		const activeTab = useSignal<"positions" | "applications">("applications");
 
 		const { cycle, applications } = data.value;
@@ -211,57 +207,15 @@ export const AdminElectionCycle = component$<{ data: AdminCycleData }>(
 													<td class="px-6 py-4 text-sm text-gray-500">
 														{app.adminNote ?? "—"}
 													</td>
-													<td class="px-6 py-4">
-														<div class="flex flex-col gap-2">
-															<Form
-																action={approveAppAction}
-																class="flex items-center gap-2"
+													<td class="px-6 py-4 text-sm">
+														{app.status === "pending" && (
+															<Link
+																href={`${data.value.adminBase}/reviews`}
+																class="text-green-600 hover:text-green-900 font-medium"
 															>
-																<input
-																	type="hidden"
-																	name="appId"
-																	value={app.id}
-																/>
-																<input
-																	type="text"
-																	name="notes"
-																	placeholder={t(
-																		"elections.admin.cycle.optionalNote",
-																	)}
-																	class="text-xs border rounded px-2 py-1 w-32"
-																/>
-																<button
-																	type="submit"
-																	class="text-green-600 hover:text-green-900 text-xs font-medium"
-																>
-																	{t("elections.admin.cycle.approve")}
-																</button>
-															</Form>
-															<Form
-																action={rejectAppAction}
-																class="flex items-center gap-2"
-															>
-																<input
-																	type="hidden"
-																	name="appId"
-																	value={app.id}
-																/>
-																<input
-																	type="text"
-																	name="notes"
-																	placeholder={t(
-																		"elections.admin.cycle.optionalNote",
-																	)}
-																	class="text-xs border rounded px-2 py-1 w-32"
-																/>
-																<button
-																	type="submit"
-																	class="text-red-600 hover:text-red-900 text-xs font-medium"
-																>
-																	{t("elections.admin.cycle.reject")}
-																</button>
-															</Form>
-														</div>
+																{t("elections.admin.cycle.review")}
+															</Link>
+														)}
 													</td>
 												</tr>
 											))}

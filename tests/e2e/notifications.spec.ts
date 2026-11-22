@@ -8,7 +8,9 @@ import {
 	createOutboxRowInDb,
 	createPendingTicketPaymentInDb,
 	createUserSession,
+	decideInReviewQueue,
 	expect,
+	getJobById,
 	getNotificationPreference,
 	getOutboxRowById,
 	getOutboxRows,
@@ -49,15 +51,20 @@ async function loggedInPage(
 	return { context, page: await context.newPage() };
 }
 
+/** Approves a pending job in the root's Reviews queue and waits for its handler to publish it. */
 async function approveJob(
 	page: import("@playwright/test").Page,
-	title: string,
+	jobId: string,
 ) {
-	await page.goto("/admin/root/jobs");
-	const row = page.locator("tr", { hasText: title });
-	await expect(row).toBeVisible({ timeout: 10_000 });
-	await row.locator("button:has-text('Approve')").click();
-	await expect(row.locator("text=Approved")).toBeVisible({ timeout: 10_000 });
+	await decideInReviewQueue(
+		page,
+		"/admin/root",
+		`jobs:job:${jobId}`,
+		"approve",
+	);
+	await expect
+		.poll(() => getJobById(jobId)?.status, { timeout: 15_000 })
+		.toBe("approved");
 }
 
 test.describe("Notifications — optional notifications and preferences", () => {
@@ -79,7 +86,7 @@ test.describe("Notifications — optional notifications and preferences", () => 
 		});
 		try {
 			const since = new Date();
-			await approveJob(adminPage, titleA);
+			await approveJob(adminPage, first.jobId);
 			const html = await waitForEmailHtml(posterEmail, 30_000, since);
 			const link = extractAllLinks(html)
 				.map((l) => l.replaceAll("&amp;", "&"))
@@ -118,7 +125,7 @@ test.describe("Notifications — optional notifications and preferences", () => 
 			);
 			expect(tampered.status()).toBe(400);
 
-			await approveJob(adminPage, titleB);
+			await approveJob(adminPage, second.jobId);
 			expect(
 				getOutboxRows({
 					notificationId: "jobs.approved",

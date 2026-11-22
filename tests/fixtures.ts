@@ -737,6 +737,7 @@ export function createJobInDb(opts: {
 }): { jobId: string; cleanup(): void } {
 	const db = openDb();
 	const jobId = crypto.randomUUID();
+	const scopeId = opts.scopeId ?? rootScopeId(db);
 	const expiresAt =
 		opts.expiresAt ?? new Date(Date.now() + 30 * 86400000).toISOString();
 	db.prepare(
@@ -750,18 +751,65 @@ export function createJobInDb(opts: {
 		expiresAt,
 		opts.status ?? "pending",
 		opts.suggestedBy,
-		opts.scopeId ?? rootScopeId(db),
+		scopeId,
 	);
+	// A pending listing waits in core's Reviews queue, as one submitted through /jobs/new.
+	if ((opts.status ?? "pending") === "pending")
+		insertReviewInDb(db, `jobs:job:${jobId}`, scopeId, opts.suggestedBy);
 	db.close();
 
 	return {
 		jobId,
 		cleanup() {
 			const db2 = openDb();
+			db2.prepare("DELETE FROM reviews WHERE ref = ?").run(`jobs:job:${jobId}`);
 			db2.prepare("DELETE FROM jobs WHERE id = ?").run(jobId);
 			db2.close();
 		},
 	};
+}
+
+/** A submission waiting in core's Reviews queue (status `in_review`). */
+export function insertReviewInDb(
+	db: ReturnType<typeof openDb>,
+	ref: string,
+	scopeId: string,
+	submittedBy: string,
+	data: Record<string, string> | null = null,
+): string {
+	const id = crypto.randomUUID();
+	db.prepare(
+		`INSERT INTO reviews (id, ref, scope_id, status, submitted_by, data, created_at)
+     VALUES (?, ?, ?, 'in_review', ?, ?, ?)`,
+	).run(
+		id,
+		ref,
+		scopeId,
+		submittedBy,
+		data ? JSON.stringify(data) : null,
+		new Date().toISOString(),
+	);
+	return id;
+}
+
+/**
+ * Approves or rejects the submission of `ref` in the Reviews queue of an admin area
+ * (`/admin/root`, `/admin/germany.berlin`) and waits until it has left the queue. The
+ * owner's handler runs on the next scheduler tick: poll for its effect.
+ */
+export async function decideInReviewQueue(
+	page: Page,
+	adminBase: string,
+	ref: string,
+	decision: "approve" | "reject",
+	comment?: string,
+): Promise<void> {
+	await page.goto(`${adminBase}/reviews`);
+	const item = page.getByTestId("review-queue").locator(`[data-ref="${ref}"]`);
+	await item.first().waitFor({ timeout: 15_000 });
+	if (comment) await item.locator('textarea[name="comment"]').fill(comment);
+	await item.locator(`button[name="decision"][value="${decision}"]`).click();
+	await item.first().waitFor({ state: "detached", timeout: 15_000 });
 }
 
 export function getJobById(
@@ -783,6 +831,7 @@ export function getJobById(
 
 export function deleteJobById(id: string): void {
 	const db = openDb();
+	db.prepare("DELETE FROM reviews WHERE ref = ?").run(`jobs:job:${id}`);
 	db.prepare("DELETE FROM jobs WHERE id = ?").run(id);
 	db.close();
 }
@@ -1634,11 +1683,22 @@ export function createQualificationInDb(
 		new Date().toISOString(),
 		new Date().toISOString(),
 	);
+	// A pending claim waits in the root's Reviews queue.
+	if (status === "pending")
+		insertReviewInDb(
+			db,
+			`qualifications:claim:${qualId}`,
+			rootScopeId(db),
+			userId,
+		);
 	db.close();
 	return {
 		qualId,
 		cleanup() {
 			const db2 = openDb();
+			db2
+				.prepare("DELETE FROM reviews WHERE ref = ?")
+				.run(`qualifications:claim:${qualId}`);
 			db2.prepare("DELETE FROM user_qualifications WHERE id = ?").run(qualId);
 			db2.close();
 		},

@@ -17,8 +17,9 @@ import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 
 /**
  * The review queue of a scope (spec 4.9): items in review in the scope's subtree that the
- * viewer may decide (coordinators and admins above the item's scope, root admins; never the
- * item's own representatives or the submitter), and the viewer's own submissions with the
+ * viewer may decide by the item type's rule (content: coordinators and admins above the item's
+ * scope; jobs, election applications, qualification claims: managers of the item's scope or
+ * above; root admins always; never the submitter), and the viewer's own submissions with the
  * reviewer's comment.
  */
 export const useReviewQueue = routeLoader$(async (event) => {

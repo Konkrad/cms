@@ -14,21 +14,21 @@ async function reviewContext(reviewId: string) {
 	// Lazy: the registry imports every module manifest.
 	const [
 		{ reviewsService },
-		{ locateRef, resolveRef },
+		{ locateReviewItem, reviewItemUrl },
 		{ scopesService },
 		{ adminUrl },
 	] = await Promise.all([
 		import("~/core/reviews/reviews.service"),
-		import("~/core/registry/refs"),
+		import("~/core/reviews/reviews"),
 		import("~/core/scopes/scopes.service"),
 		import("~/core/router/scope-path"),
 	]);
 	const review = await reviewsService.getById(reviewId);
 	if (!review) throw new Error(`Review ${reviewId} not found`);
 	const [item, scope, url] = await Promise.all([
-		locateRef(review.ref),
+		locateReviewItem(review.ref),
 		scopesService.getById(review.scopeId),
-		resolveRef(review.ref),
+		reviewItemUrl(review.ref),
 	]);
 	return {
 		review,

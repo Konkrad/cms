@@ -4,8 +4,10 @@ import {
 	currentScopeRest,
 	matchPath,
 	requireModuleAuth,
+	reviews,
 	t,
 } from "~/core";
+import { jobRef, submitJobForReview } from "./review";
 import { jobsService } from "./service";
 
 const MAX_DAYS = 30;
@@ -25,7 +27,7 @@ export const useSubmitJob = routeAction$(
 			};
 		}
 
-		await jobsService.create({
+		const job = await jobsService.create({
 			title: data.title,
 			body: data.body,
 			editorState: data.editorState || null,
@@ -43,6 +45,8 @@ export const useSubmitJob = routeAction$(
 			// Owned by the scope whose /jobs/new the form was posted from (the root by default).
 			scopeId: (await currentScope(event))!.id,
 		} as any);
+		// Pending until approved in the Reviews queue (at once when the poster manages the scope).
+		await submitJobForReview(user.id, job.id);
 
 		throw event.redirect(303, "/jobs/mine");
 	},
@@ -111,6 +115,9 @@ export const useUpdateMyJob = routeAction$(
 			posterRelation: data.posterRelation || null,
 			expiresAt,
 		} as any);
+		// A rejected listing goes back to review once its poster has changed it.
+		if ((await reviews.statusOf(jobRef(job.id)))?.status === "rejected")
+			await submitJobForReview(user.id, job.id);
 
 		throw event.redirect(303, "/jobs/mine");
 	},

@@ -8,7 +8,7 @@ tags: [foundation, scopes, visibility]
 ---
 # Visibility
 
-Every item (event, note, article, page, job, …) belongs to a scope ([[scopes-and-roles]]) and has one of three visibilities. Two questions follow from that: **who may open it**, and **on which scope pages it is listed**.
+Every item belongs to a scope ([[scopes-and-roles]]). Notes, articles, events, pages and deals also have one of three visibilities; jobs and elections have none and count as public. Two questions follow from that: **who may open it**, and **on which scope pages it is listed**.
 
 ## Who may open an item
 

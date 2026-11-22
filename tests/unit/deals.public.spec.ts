@@ -9,6 +9,8 @@ const deal: Deal = {
 	logo: "public/deals/logos/x.svg",
 	validUntil: null,
 	scopeId: "root",
+	visibility: "public",
+	requiredMembershipTier: null,
 	steps: [
 		{ type: "text", title: "Open", text: "public text" },
 		{
@@ -32,7 +34,7 @@ const deal: Deal = {
 
 describe("toPublicDeal", () => {
 	it("strips login-gated step content for guests", () => {
-		const json = JSON.stringify(toPublicDeal(deal, false));
+		const json = JSON.stringify(toPublicDeal(deal, false, true));
 		expect(json).not.toContain("SECRET");
 		expect(json).not.toContain("secret text");
 		expect(json).not.toContain("example.com");
@@ -41,9 +43,33 @@ describe("toPublicDeal", () => {
 	});
 
 	it("keeps everything for logged-in users", () => {
-		const json = JSON.stringify(toPublicDeal(deal, true));
+		const json = JSON.stringify(toPublicDeal(deal, true, true));
 		expect(json).toContain("SECRET");
 		expect(json).toContain("example.com");
+	});
+});
+
+describe("toPublicDeal with a required membership tier", () => {
+	const tierDeal: Deal = { ...deal, requiredMembershipTier: "full" };
+
+	it("keeps no step at all for a viewer without the tier, logged in or not", () => {
+		for (const isLoggedIn of [false, true]) {
+			const view = toPublicDeal(tierDeal, isLoggedIn, false);
+			expect(view.steps).toEqual([]);
+			expect(view.tierLocked).toBe(true);
+			expect(view.requiredTier).toBe("full");
+			const json = JSON.stringify(view);
+			expect(json).not.toContain("public text");
+			expect(json).not.toContain("SECRET");
+		}
+		// The deal itself stays visible.
+		expect(toPublicDeal(tierDeal, true, false).name).toBe("Deal");
+	});
+
+	it("shows the steps to a viewer with the tier", () => {
+		const view = toPublicDeal(tierDeal, true, true);
+		expect(view.tierLocked).toBe(false);
+		expect(JSON.stringify(view)).toContain("SECRET");
 	});
 });
 

@@ -10,7 +10,7 @@
  * - Never up: members-only and representatives-only items of a scope below the listing scope
  *   are not listed there, whoever looks (they stay in their own subtree's listings).
  *
- * Tables without a visibility column (jobs, deals, election cycles) count as public.
+ * Tables without a visibility column (jobs, election cycles) count as public.
  */
 
 import type { RequestEventBase } from "@qwik.dev/router";

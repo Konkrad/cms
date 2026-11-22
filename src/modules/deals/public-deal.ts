@@ -13,16 +13,24 @@ export function toDealListItem(deal: Deal) {
 /**
  * Deal for the public detail page. Steps flagged `requiresLogin` keep only their
  * title for guests: the text, link and promo code must not reach the HTML, since
- * the theme only blurs a locked step visually.
+ * the theme only blurs a locked step visually. A deal that requires a membership tier the
+ * viewer lacks keeps no steps at all; `requiredTier` tells the page which tier unlocks them.
  */
-export function toPublicDeal(deal: Deal, isLoggedIn: boolean) {
+export function toPublicDeal(
+	deal: Deal,
+	isLoggedIn: boolean,
+	hasRequiredTier: boolean,
+) {
+	const tierLocked = !!deal.requiredMembershipTier && !hasRequiredTier;
 	return {
 		id: deal.id,
 		name: deal.name,
 		description: deal.description,
 		logo: deal.logo,
 		validUntil: deal.validUntil,
-		steps: deal.steps.map((step) =>
+		requiredTier: deal.requiredMembershipTier,
+		tierLocked,
+		steps: (tierLocked ? [] : deal.steps).map((step) =>
 			step.requiresLogin && !isLoggedIn
 				? {
 						type: step.type,

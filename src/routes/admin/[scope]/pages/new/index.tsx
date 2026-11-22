@@ -4,6 +4,7 @@ import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
+import { VisibilitySelector } from "~/core/admin/VisibilitySelector";
 import { menuItemsService } from "~/core/content/menu-items.service";
 import {
 	PageError,
@@ -14,22 +15,30 @@ import { t } from "~/core/i18n";
 import { itemRef, refHref } from "~/core/refs/refs";
 import { allModules } from "~/core/registry/manifests";
 import { adminUrl, scopeUrl } from "~/core/router/scope-path";
-import { ADMIN_ACCESS, requireScopeRole } from "~/core/scopes/access";
+import {
+	ADMIN_ACCESS,
+	allowedVisibilities,
+	requireScopeRole,
+} from "~/core/scopes/access";
+import { VISIBILITIES } from "~/core/scopes/visibility";
 
 /** Pages belong to the URL's scope; its managers create them. */
 export const usePageScope = routeLoader$(async (event) => {
-	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
+	const { user, scope } = await requireScopeRole(event, ADMIN_ACCESS);
 	return {
 		isRoot: scope.parentId === null,
 		scopeUrl: scopeUrl(scope.path),
+		visibilities: await allowedVisibilities(user, scope.id),
 	};
 });
 
 export const useCreatePage = routeAction$(
 	async (data, event) => {
-		const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
+		const { user, scope } = await requireScopeRole(event, ADMIN_ACCESS);
 		const isRoot = scope.parentId === null;
 		const slug = slugFromPath(data.url);
+		if (!(await allowedVisibilities(user, scope.id)).includes(data.visibility))
+			return { success: false, error: t("admin.pages.visibilityNotAllowed") };
 
 		try {
 			const page = await pagesService.create(
@@ -38,6 +47,7 @@ export const useCreatePage = routeAction$(
 					slug,
 					title: data.title,
 					status: data.status,
+					visibility: data.visibility,
 				},
 				allModules,
 			);
@@ -81,6 +91,7 @@ export const useCreatePage = routeAction$(
 		url: z.string().min(1, "URL is required"),
 		menuName: z.enum(["main", "footer"]).default("main"),
 		status: z.enum(["draft", "published"]).default("draft"),
+		visibility: z.enum(VISIBILITIES).default("public"),
 	}),
 );
 
@@ -149,6 +160,11 @@ export default component$(() => {
 						<option value="draft">{t("admin.pages.new.draft")}</option>
 						<option value="published">{t("admin.pages.new.published")}</option>
 					</Select>
+
+					<VisibilitySelector
+						value="public"
+						options={scope.value.visibilities}
+					/>
 
 					<div class="flex gap-4">
 						<Button type="submit" disabled={action.isRunning}>

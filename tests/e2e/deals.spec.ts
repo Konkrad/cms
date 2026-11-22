@@ -10,6 +10,7 @@ import {
 	createDealInDb,
 	createScopeInDb,
 	createUserSession,
+	createUserSessionWithMembership,
 	deleteDealById,
 	deleteScopeById,
 	expect,
@@ -223,6 +224,75 @@ test.describe("Deals — public page", () => {
 			await page.goto(`/deals/${dealId}`);
 			await expect(page.getByText("MEMBERCODE456")).toBeVisible();
 		} finally {
+			cleanup();
+		}
+	});
+
+	test("a members-only deal answers 404 to guests and logged-in non-members", async ({
+		guestPage,
+		memberPage,
+	}) => {
+		const { dealId, cleanup } = createDealInDb({
+			name: `Members Deal ${suffix}`,
+			visibility: "members",
+			scopeId: regionId,
+		});
+		try {
+			expect(
+				(await guestPage.goto(`/${REGION}/deals/${dealId}`))?.status(),
+			).toBe(404);
+			expect(
+				(await memberPage.goto(`/${REGION}/deals/${dealId}`))?.status(),
+			).toBe(404);
+		} finally {
+			cleanup();
+		}
+	});
+
+	test("a deal that requires full membership hides its steps without it and shows them with it", async ({
+		memberPage,
+		browser,
+	}) => {
+		const { dealId, cleanup } = createDealInDb({
+			name: `Full Members Deal ${suffix}`,
+			requiredMembershipTier: "full",
+			steps: [
+				{
+					type: "promo",
+					title: "Code",
+					text: "for full members",
+					promoCode: "FULLCODE789",
+				},
+			],
+		});
+		const full = createUserSessionWithMembership("full");
+		const ctx = await browser.newContext({
+			storageState: { cookies: [], origins: [] },
+		});
+		try {
+			// A logged-in member without the tier sees the deal and the hint, not the code.
+			await memberPage.goto(`/deals/${dealId}`);
+			await expect(memberPage.getByTestId("deal-tier-required")).toBeVisible();
+			expect(await memberPage.content()).not.toContain("FULLCODE789");
+
+			await ctx.addCookies([
+				{
+					name: "session",
+					value: full.sessionToken,
+					domain: "localhost",
+					path: "/",
+					httpOnly: true,
+					secure: false,
+					sameSite: "Strict",
+				},
+			]);
+			const page = await ctx.newPage();
+			await page.goto(`/deals/${dealId}`);
+			await expect(page.getByText("FULLCODE789")).toBeVisible();
+			await expect(page.getByTestId("deal-tier-required")).toHaveCount(0);
+		} finally {
+			await ctx.close();
+			full.cleanup();
 			cleanup();
 		}
 	});

@@ -957,12 +957,14 @@ export function createDealInDb(opts: {
 	steps?: unknown[];
 	/** Owning scope (default: the root). */
 	scopeId?: string;
+	visibility?: "public" | "members" | "representatives";
+	requiredMembershipTier?: "associated" | "full" | null;
 }): { dealId: string; cleanup(): void } {
 	const db = openDb();
 	const dealId = crypto.randomUUID();
 	db.prepare(
-		`INSERT INTO deals (id, name, description, logo, valid_until, steps, scope_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO deals (id, name, description, logo, valid_until, steps, scope_id, visibility, required_membership_tier)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		dealId,
 		opts.name ?? "Test Deal",
@@ -971,6 +973,8 @@ export function createDealInDb(opts: {
 		opts.validUntil ?? null,
 		JSON.stringify(opts.steps ?? []),
 		opts.scopeId ?? rootScopeId(db),
+		opts.visibility ?? "public",
+		opts.requiredMembershipTier ?? null,
 	);
 	db.close();
 	return { dealId, cleanup: () => deleteDealById(dealId) };
@@ -1281,6 +1285,7 @@ export function createPageInDb(opts: {
 	status: "draft" | "published";
 	scopeId?: string;
 	content?: unknown[];
+	visibility?: "public" | "members" | "representatives";
 }): { pageId: string; menuItemId: string } {
 	const db = openDb();
 	const pageId = crypto.randomUUID();
@@ -1288,7 +1293,7 @@ export function createPageInDb(opts: {
 	const now = new Date().toISOString();
 
 	db.prepare(
-		"INSERT INTO pages (id, scope_id, slug, title, content, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO pages (id, scope_id, slug, title, content, status, visibility, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
 	).run(
 		pageId,
 		opts.scopeId ?? rootScopeId(db),
@@ -1296,6 +1301,7 @@ export function createPageInDb(opts: {
 		opts.title,
 		JSON.stringify(opts.content ?? []),
 		opts.status,
+		opts.visibility ?? "public",
 		now,
 		now,
 	);

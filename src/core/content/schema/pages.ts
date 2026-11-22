@@ -4,6 +4,7 @@ import { sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { scopes } from "../../scopes/schema/scopes";
+import { VISIBILITIES } from "../../scopes/visibility";
 import type { BlockData } from "./shared";
 
 /**
@@ -24,6 +25,10 @@ export const pages = sqliteTable(
 		status: text("status", { enum: ["draft", "published"] })
 			.notNull()
 			.default("draft"),
+		// Who may open the published page (spec 4.2): public, members of the scope, role holders.
+		visibility: text("visibility", { enum: VISIBILITIES })
+			.notNull()
+			.default("public"),
 		createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 		updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 	},

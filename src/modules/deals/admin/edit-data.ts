@@ -1,5 +1,6 @@
 import type { RequestEventLoader } from "@qwik.dev/router";
 import {
+	allowedVisibilities,
 	publicImageUrlFromKey,
 	requireModuleAdmin,
 	requireWithinScope,
@@ -11,7 +12,7 @@ import { dealsService } from "../service";
  * logo URL; 404 when it does not exist or lies outside the URL scope's subtree.
  */
 export async function loadAdminDeal(event: RequestEventLoader) {
-	const { scope, adminBase } = await requireModuleAdmin(event, {
+	const { user, scope, adminBase } = await requireModuleAdmin(event, {
 		module: "deals",
 	});
 	const deal = await dealsService.getById(event.params.id);
@@ -20,6 +21,7 @@ export async function loadAdminDeal(event: RequestEventLoader) {
 		deal: deal!,
 		logoUrl: publicImageUrlFromKey(deal!.logo),
 		adminBase,
+		visibilities: await allowedVisibilities(user, deal!.scopeId),
 	};
 }
 

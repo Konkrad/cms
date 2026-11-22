@@ -88,11 +88,13 @@ export const useFeedLinks = routeLoader$(
 		activeFeeds.map(({ title, href, type }) => ({ title, href, type })),
 );
 
-export const useMenuItems = routeLoader$(async () => {
+export const useMenuItems = routeLoader$(async (event) => {
 	console.log("[Layout] useMenuItems - starting");
 	try {
+		// Links to members-only pages are shown only to people who may open them.
 		const menuTree = await resolveMenuUrls(
 			await menuItemsService.getMenuTree("main"),
+			await getServerSession(event),
 		);
 		console.log(
 			"[Layout] useMenuItems - completed, items count:",
@@ -105,9 +107,12 @@ export const useMenuItems = routeLoader$(async () => {
 	}
 });
 
-export const useFooterMenuItems = routeLoader$(async () => {
+export const useFooterMenuItems = routeLoader$(async (event) => {
 	try {
-		return await resolveMenuUrls(await menuItemsService.getAll("footer"));
+		return await resolveMenuUrls(
+			await menuItemsService.getAll("footer"),
+			await getServerSession(event),
+		);
 	} catch (error) {
 		console.error("[Layout] Failed to load footer items:", error);
 		return [];

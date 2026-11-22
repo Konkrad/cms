@@ -119,6 +119,32 @@ test.describe("Pages — create & edit", () => {
 	});
 });
 
+test.describe("Pages — members-only", () => {
+	test("a members-only page answers 404 to guests and is shown to role holders", async ({
+		adminPage,
+		guestPage,
+	}) => {
+		const ts = Date.now().toString(36);
+		const { pageId } = createPageInDb({
+			title: `E2E Members Page ${ts}`,
+			url: `/e2e-members-${ts}`,
+			menuName: "main",
+			status: "published",
+			visibility: "members",
+		});
+		try {
+			expect((await guestPage.goto(`/e2e-members-${ts}`))?.status()).toBe(404);
+			const res = await adminPage.goto(`/e2e-members-${ts}`);
+			expect(res?.status()).toBe(200);
+			await expect(adminPage.locator("h1")).toContainText(
+				`E2E Members Page ${ts}`,
+			);
+		} finally {
+			deletePageAndMenuItems(pageId);
+		}
+	});
+});
+
 // =============================================================================
 // Menu management
 // =============================================================================

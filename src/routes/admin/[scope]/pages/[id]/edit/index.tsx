@@ -4,6 +4,7 @@ import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
+import { VisibilitySelector } from "~/core/admin/VisibilitySelector";
 import { menuItemsService } from "~/core/content/menu-items.service";
 import {
 	PageError,
@@ -15,17 +16,20 @@ import { allModules } from "~/core/registry/manifests";
 import { adminUrl } from "~/core/router/scope-path";
 import {
 	ADMIN_ACCESS,
+	allowedVisibilities,
 	requireScopeRole,
 	requireWithinScope,
 } from "~/core/scopes/access";
+import { VISIBILITIES } from "~/core/scopes/visibility";
 
 /** The page must belong to the URL's scope or one below it (managers of the scope). */
 export const usePage = routeLoader$(async (event) => {
-	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
+	const { user, scope } = await requireScopeRole(event, ADMIN_ACCESS);
 	const page = await pagesService.getById(event.params.id);
 	await requireWithinScope(event, scope, page);
 	return {
 		...page!,
+		visibilities: await allowedVisibilities(user, page!.scopeId),
 		adminBase: adminUrl(scope.path),
 		isRootPage: page!.scopeId === scope.id && scope.parentId === null,
 	};
@@ -33,15 +37,26 @@ export const usePage = routeLoader$(async (event) => {
 
 export const useUpdatePage = routeAction$(
 	async (data, event) => {
-		const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
+		const { user, scope } = await requireScopeRole(event, ADMIN_ACCESS);
 		const page = await pagesService.getById(event.params.id);
 		await requireWithinScope(event, scope, page);
 		const slug = slugFromPath(data.url);
+		if (
+			!(await allowedVisibilities(user, page!.scopeId)).includes(
+				data.pageVisibility,
+			)
+		)
+			return { success: false, error: t("admin.pages.visibilityNotAllowed") };
 
 		try {
 			await pagesService.update(
 				page!.id,
-				{ title: data.title, slug, status: data.pageStatus },
+				{
+					title: data.title,
+					slug,
+					status: data.pageStatus,
+					visibility: data.pageVisibility,
+				},
 				allModules,
 			);
 		} catch (err) {
@@ -65,6 +80,8 @@ export const useUpdatePage = routeAction$(
 		title: z.string().min(1, t("admin.pages.titleRequired")),
 		url: z.string().min(1, "URL is required"),
 		pageStatus: z.enum(["draft", "published"]).default("draft"),
+		// Who may open the page; `visibility` below is the menu item's.
+		pageVisibility: z.enum(VISIBILITIES).default("public"),
 		visibility: z.enum(["visible", "hidden"]).default("hidden"),
 	}),
 );
@@ -130,6 +147,12 @@ export default component$(() => {
 							{t("admin.pages.edit.publishedPageIsPubliclyAccessible")}
 						</option>
 					</Select>
+
+					<VisibilitySelector
+						name="pageVisibility"
+						value={page.value.visibility}
+						options={page.value.visibilities}
+					/>
 
 					{page.value.menuItem && (
 						<Select

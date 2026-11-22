@@ -1,4 +1,9 @@
 {
+	"deals.admin.access.associated": "Assoziierter oder Vollmitgliedschaft",
+	"deals.admin.access.full": "Vollmitgliedschaft",
+	"deals.admin.access.noTier": "Keine Mitgliedschaft nötig",
+	"deals.admin.access.requiredTier": "Schritte nur für Mitglieder mit",
+	"deals.admin.access.requiredTierHint": "Alle, die das Angebot sehen dürfen, sehen Name und Beschreibung; die Schritte (Codes, Links) nur Personen mit dieser Mitgliedschaft.",
 	"deals.admin.edit.backToDeals": "Zurück zu den Angeboten",
 	"deals.admin.edit.currentLogo": "Aktuelles Logo",
 	"deals.admin.edit.description": "Beschreibung",

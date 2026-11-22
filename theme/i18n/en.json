@@ -144,6 +144,8 @@
 	"theme.checkout.youWillContinueToOur": "You will continue to our payment provider to pay securely. Your tickets are sent by email once the payment is confirmed.",
 	"theme.checkout.yourOrderWasNotPaid": "Your order was not paid, so no tickets were issued.",
 	"theme.contentCard.readMore": "Read more →",
+	"theme.deal.forAssociatedMembers": "This deal is for associated and full members. Its steps show once you have that membership.",
+	"theme.deal.forFullMembers": "This deal is for full members. Its steps show once you have that membership.",
 	"theme.deal.howToGetThisDeal": "How to get this deal",
 	"theme.deal.validUntil": "Valid until {validUntil}",
 	"theme.dealBox.goToTheWebsite": "Go to the Website",

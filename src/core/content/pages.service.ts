@@ -15,6 +15,7 @@ import { pageSlugProblem } from "~/core/router/reserved-slugs";
 import { scopeUrl } from "~/core/router/scope-path";
 import { scopes } from "~/core/scopes/schema/scopes";
 import { scopesService } from "~/core/scopes/scopes.service";
+import type { Visibility } from "~/core/scopes/visibility";
 
 export type PageWithMenuItem = Page & {
 	menuItem: Pick<MenuItem, "id" | "title" | "url" | "status"> | null;
@@ -94,7 +95,7 @@ async function withMenuItems(rows: Page[]): Promise<PageWithMenuItem[]> {
 }
 
 export const pagesService = {
-	/** Public URL and last update of every published page (sitemap). */
+	/** Public URL and last update of every published, public page (sitemap). */
 	async getPublishedUrls(): Promise<Array<{ url: string; updatedAt: string }>> {
 		const rows = await db
 			.select({
@@ -104,7 +105,9 @@ export const pagesService = {
 			})
 			.from(pages)
 			.innerJoin(scopes, eq(scopes.id, pages.scopeId))
-			.where(eq(pages.status, "published"));
+			.where(
+				and(eq(pages.status, "published"), eq(pages.visibility, "public")),
+			);
 		return rows.map((r) => ({
 			url: scopeUrl(r.scopePath, r.slug),
 			updatedAt: r.updatedAt,
@@ -127,11 +130,15 @@ export const pagesService = {
 		return (await withMenuItems(rows as Page[]))[0];
 	},
 
-	/** Owning scope and slug of the pages with these ids (reference resolution). */
-	async locate(
-		ids: readonly string[],
-	): Promise<
-		Array<{ id: string; scopeId: string; slug: string; title: string }>
+	/** Owning scope, slug and visibility of the pages with these ids (reference resolution). */
+	async locate(ids: readonly string[]): Promise<
+		Array<{
+			id: string;
+			scopeId: string;
+			slug: string;
+			title: string;
+			visibility: Visibility;
+		}>
 	> {
 		if (!ids.length) return [];
 		return db
@@ -140,6 +147,7 @@ export const pagesService = {
 				scopeId: pages.scopeId,
 				slug: pages.slug,
 				title: pages.title,
+				visibility: pages.visibility,
 			})
 			.from(pages)
 			.where(inArray(pages.id, [...ids]));
@@ -211,6 +219,7 @@ export const pagesService = {
 			slug: string;
 			title: string;
 			status?: "draft" | "published";
+			visibility?: Visibility;
 			content?: BlockData[];
 		},
 		modules: readonly ModuleDefinition[],
@@ -229,6 +238,7 @@ export const pagesService = {
 				title: input.title,
 				content: sanitizeBlocks(await blocksLinksToRefs(input.content ?? [])),
 				status: input.status ?? "draft",
+				visibility: input.visibility ?? "public",
 			})
 			.returning();
 		return inserted as Page;
@@ -244,6 +254,7 @@ export const pagesService = {
 			title?: string;
 			slug?: string;
 			status?: "draft" | "published";
+			visibility?: Visibility;
 			content?: BlockData[];
 		},
 		modules: readonly ModuleDefinition[] = [],

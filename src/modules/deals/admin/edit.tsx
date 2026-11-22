@@ -1,22 +1,30 @@
 import { $, component$, useSignal } from "@qwik.dev/core";
 import { routeAction$, z, zod$ } from "@qwik.dev/router";
 import { format } from "date-fns";
-import { requireModuleAdmin, requireWithinScope } from "~/core";
+import {
+	allowedVisibilities,
+	requireModuleAdmin,
+	requireWithinScope,
+} from "~/core";
 import { Button, ImageUploader, Input, TextArea, t } from "~/core/ui";
 import { dealsService } from "../service";
+import { AccessFields } from "./AccessFields";
 import type { AdminDealData } from "./edit-data";
 import { StepsEditor } from "./StepsEditor";
 
 export const useUpdateDeal = routeAction$(
 	async (data, event) => {
-		const { scope, adminBase } = await requireModuleAdmin(event, {
+		const { user, scope, adminBase } = await requireModuleAdmin(event, {
 			module: "deals",
 		});
-		await requireWithinScope(
-			event,
-			scope,
-			await dealsService.getById(event.params.id),
-		);
+		const deal = await dealsService.getById(event.params.id);
+		await requireWithinScope(event, scope, deal);
+		if (
+			!(await allowedVisibilities(user, deal!.scopeId)).includes(
+				data.visibility,
+			)
+		)
+			return { failed: true };
 
 		const steps = JSON.parse(data.steps || "[]");
 
@@ -28,6 +36,8 @@ export const useUpdateDeal = routeAction$(
 				? new Date(data.validUntil).toISOString()
 				: null,
 			steps,
+			visibility: data.visibility,
+			requiredMembershipTier: data.requiredMembershipTier || null,
 		} as any);
 
 		throw event.redirect(303, `${adminBase}/deals`);
@@ -37,6 +47,10 @@ export const useUpdateDeal = routeAction$(
 		description: z.string().optional(),
 		logo: z.string().optional(),
 		validUntil: z.string().optional(),
+		visibility: z
+			.enum(["public", "members", "representatives"])
+			.default("public"),
+		requiredMembershipTier: z.enum(["", "associated", "full"]).default(""),
 		steps: z.string().default("[]"),
 	}),
 );
@@ -140,6 +154,12 @@ export const AdminDealEdit = component$<{ data: AdminDealData }>(
 							label={t("deals.admin.edit.validUntilOptional")}
 							type="date"
 							value={validUntilDate}
+						/>
+
+						<AccessFields
+							visibilities={loaded.visibilities}
+							visibility={deal.visibility}
+							requiredMembershipTier={deal.requiredMembershipTier}
 						/>
 
 						<div>

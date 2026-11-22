@@ -1,0 +1,12 @@
+{
+	"userIgnoreFilters": [
+		"node_modules/",
+		"dist/",
+		"server/",
+		"data/",
+		"drizzle/",
+		"playwright/",
+		"test-results/",
+		"tmp/"
+	]
+}

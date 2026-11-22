@@ -64,3 +64,7 @@ test-results/
 playwright-report/
 .playwright-cli
 playwright/.auth/*.json
+# Obsidian (only the shared vault settings are committed)
+.obsidian/*
+!.obsidian/app.json
+!.obsidian/graph.json

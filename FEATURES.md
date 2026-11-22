@@ -18,6 +18,7 @@ Start page of the knowledge base: what the CMS does, why, and how it is built. E
 - [[notifications]]: email and Telegram through one outbox
 - [[payments]]: Stripe checkout, what counts as paid, expiry
 - [[admin-area]]: one admin area per scope, system sections
+- [[statistics]]: who the members are, who is active, who comes to events
 
 ## Content
 - [[notes-and-articles]]: short and long posts, updates about items

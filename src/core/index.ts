@@ -103,6 +103,19 @@ export { VISIBILITIES, type Visibility } from "~/core/scopes/visibility";
 // is not core; it lives in the events module (`src/modules/events/services/tag-rules.ts`).
 export { deleteS3Objects } from "~/core/media/image-processing.service";
 export { membershipsService } from "~/core/memberships/memberships.service";
+// Statistics: aggregates only, small groups hidden (statistics page, module sections).
+export {
+	type Demographics,
+	lastMonths,
+	perMonth,
+	statisticsService,
+} from "~/core/statistics/statistics.service";
+export {
+	MIN_GROUP_SIZE,
+	type StatBucket,
+	suppressCount,
+	suppressSmall,
+} from "~/core/statistics/suppress";
 export { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 export { slugify, uniqueSlug } from "~/core/shared/slug";
 export type { PageDirection } from "~/core/shared/pagination";

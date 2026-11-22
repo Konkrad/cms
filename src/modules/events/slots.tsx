@@ -1,7 +1,16 @@
 import { component$ } from "@qwik.dev/core";
 import type { SlotComponents, SlotProps } from "~/contracts/slots";
 import { useSubmitRequirement } from "~/core/setup-actions";
-import { Alert, Button, t } from "~/core/ui";
+import {
+	Alert,
+	Button,
+	DemographicsBars,
+	HomesBars,
+	monthRows,
+	StatBars,
+	StatTile,
+	t,
+} from "~/core/ui";
 import { ProfileEvents } from "~theme/routes/profile/ProfileEvents/ProfileEvents";
 import { ScopeEvents } from "~theme/routes/scopes/ScopeEvents";
 import { RequirementStep } from "~theme/shared/RequirementStep/RequirementStep";
@@ -9,6 +18,7 @@ import {
 	useDashboardEvents,
 	useEventSettings,
 	useProfileEvents,
+	useScopeEventStatistics,
 	useScopeEvents,
 } from "./useEventsSlots";
 
@@ -97,6 +107,72 @@ const DashboardEvents = component$<SlotProps["admin.dashboard.widgets"]>(
 	},
 );
 
+/** `admin.statistics.sections`: events of the scope and below, attendance, who came. */
+const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
+	() => {
+		const data = useScopeEventStatistics();
+		const s = data.value;
+		if (!s) return null;
+		return (
+			<section class="space-y-4" data-testid="statistics-events">
+				<h3 class="text-lg font-semibold text-gray-900">
+					{t("events.statistics.title")}
+				</h3>
+				<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+					<StatTile
+						label={t("events.statistics.attendedLast90Days")}
+						value={s.attendedLast90Days}
+					/>
+					<StatTile
+						label={t("events.statistics.ticketsScanned")}
+						value={s.ticketsScanned}
+						hint={t("events.statistics.ofIssued", { count: s.ticketsIssued })}
+					/>
+					<StatTile
+						label={t("events.statistics.noShows")}
+						value={s.ticketsIssued - s.ticketsScanned}
+						hint={t("events.statistics.last12Months")}
+					/>
+					<StatTile
+						label={t("events.statistics.regulars")}
+						value={s.visits.fivePlus}
+						hint={t("events.statistics.regularsHint")}
+					/>
+				</div>
+				<div class="grid gap-4 md:grid-cols-3">
+					<StatBars
+						title={t("events.statistics.eventsPerMonth")}
+						rows={monthRows(s.eventsPerMonth)}
+					/>
+					<StatBars
+						title={t("events.statistics.attendeesPerMonth")}
+						rows={monthRows(s.attendeesPerMonth)}
+					/>
+					<StatBars
+						title={t("events.statistics.visits")}
+						rows={[
+							{ label: t("events.statistics.once"), count: s.visits.once },
+							{
+								label: t("events.statistics.twoToFour"),
+								count: s.visits.twoToFour,
+							},
+							{
+								label: t("events.statistics.fivePlus"),
+								count: s.visits.fivePlus,
+							},
+						]}
+					/>
+				</div>
+				<h4 class="text-base font-semibold text-gray-900">
+					{t("events.statistics.whoCame")}
+				</h4>
+				<DemographicsBars demographics={s.whoCame} />
+				<HomesBars homes={s.homes} />
+			</section>
+		);
+	},
+);
+
 /** The events module's slot components (manifest `slots`; listed in the client-safe registry). */
 export const eventsSlots: SlotComponents = {
 	"profile.sections": OwnProfileEvents,
@@ -104,4 +180,5 @@ export const eventsSlots: SlotComponents = {
 	"userPage.sections": UserPageEvents,
 	"scopePage.sections": ScopeEventsSection,
 	"admin.dashboard.widgets": DashboardEvents,
+	"admin.statistics.sections": StatisticsEvents,
 };

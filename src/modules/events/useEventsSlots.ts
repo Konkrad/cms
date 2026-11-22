@@ -14,6 +14,10 @@ import {
 import { eventsRequirements } from "./requirements";
 import { eventsService } from "./services/events";
 import {
+	eventStatisticsService,
+	type ScopeEventStatistics,
+} from "./services/statistics";
+import {
 	type ProfileEventsData,
 	profileEventsOf,
 	scopeEventsFor,
@@ -100,6 +104,27 @@ export function useDashboardEvents() {
 	const data = useSignal<{ isRoot: boolean; count: number } | null>(null);
 	useTask$(async () => {
 		data.value = await fetchDashboardEvents();
+	});
+	return data;
+}
+
+const fetchScopeEventStatistics = server$(async function () {
+	const { scope } = await requireModuleAdmin(this as RequestEventCommon, {
+		module: MODULE,
+	});
+	return assertNoPrivateFields(
+		await eventStatisticsService.forScopes(
+			await getSubtreeIds(scope.id),
+			scope.id,
+		),
+	);
+});
+
+/** The events section of a scope's statistics page (`admin.statistics.sections`). */
+export function useScopeEventStatistics() {
+	const data = useSignal<ScopeEventStatistics | null>(null);
+	useTask$(async () => {
+		data.value = await fetchScopeEventStatistics();
 	});
 	return data;
 }

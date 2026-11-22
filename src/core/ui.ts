@@ -22,6 +22,15 @@ export {
 	Pagination,
 } from "~/core/admin/Pagination/Pagination";
 export { SearchBar } from "~/core/admin/SearchBar/SearchBar";
+export {
+	DemographicsBars,
+	HomesBars,
+	monthLabel,
+	monthRows,
+	StatBars,
+	type StatRow,
+	StatTile,
+} from "~/core/admin/StatBars/StatBars";
 export { VisibilitySelector } from "~/core/admin/VisibilitySelector";
 export { BlockNoteEditor } from "~/core/content/editor";
 export { FormRenderer } from "~/core/forms/FormRenderer";

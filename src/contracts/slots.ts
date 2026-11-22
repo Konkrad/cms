@@ -18,6 +18,11 @@ export interface SlotProps {
 	"scopePage.sections": { scopeId: string };
 	/** Widgets on a scope's admin dashboard (`/admin/<scope>`); `adminBase` = "/admin/germany.berlin". */
 	"admin.dashboard.widgets": { scopeId: string; adminBase: string };
+	/**
+	 * Sections of a scope's statistics page (`/admin/<scope>/statistics`): aggregates of the scope
+	 * and the scopes below it, small groups hidden (`suppressSmall` from `~/core`).
+	 */
+	"admin.statistics.sections": { scopeId: string; adminBase: string };
 }
 
 export type SlotName = keyof SlotProps;
@@ -33,4 +38,5 @@ export const SLOT_NAMES = [
 	"userPage.sections",
 	"scopePage.sections",
 	"admin.dashboard.widgets",
+	"admin.statistics.sections",
 ] as const satisfies readonly SlotName[];

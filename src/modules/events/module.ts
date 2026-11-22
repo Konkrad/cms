@@ -54,13 +54,15 @@ export const eventsModule = defineModule({
 		return entries;
 	},
 	// Profile events and settings (food preference, photo consent), the scope home page's
-	// events and the admin dashboard's event count; components in slots.tsx.
+	// events, the admin dashboard's event count and the statistics page's events section;
+	// components in slots.tsx.
 	slots: [
 		"profile.sections",
 		"profile.settings",
 		"userPage.sections",
 		"scopePage.sections",
 		"admin.dashboard.widgets",
+		"admin.statistics.sections",
 	],
 	notifications: [
 		ticketConfirmationNotification,

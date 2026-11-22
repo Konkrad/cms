@@ -35,7 +35,7 @@ flowchart LR
 ## Where events show up
 - **Public:** the Events page of each scope (its own and its parents' events, plus public events from scopes below: [[visibility]]), the event's own page, page-builder blocks, the scope's home page, the sitemap (public events only), a calendar file in the ticket email.
 - **Personal:** "My tickets" in the user menu, and the food preference / photo consent settings in the profile.
-- **Admin:** the Events section in every scope's admin area, including the root. Per event: details, tickets, orders, participants, attendance, scan, free tickets, photos, updates and review.
+- **Admin:** the Events section in every scope's admin area, including the root. Per event: details, tickets, orders, participants, attendance, scan, free tickets, photos, updates, review and statistics ([[statistics]]); the Statistics page of a scope adds an events section.
 
 ## Rules that hold everywhere
 - Every event belongs to one scope and has one address under it ([[urls-and-pages]]).

@@ -13,7 +13,7 @@ A general way to verify members against a criterion (e.g. "is a student", "compl
 
 ```mermaid
 sequenceDiagram
-    actor Admin
+    actor Admin as Root manager
     actor Member
     participant CMS
     Admin->>CMS: define a qualification (tier it grants)
@@ -25,7 +25,7 @@ sequenceDiagram
 ```
 
 ## Rules
-- Managed by platform admins only; qualifications are site-wide, not per scope.
+- Managed on the root only (qualifications are site-wide, not per scope), by anyone with a managing role there: admins, moderators **and representatives** of the root.
 - A member has one claim per qualification: pending, approved or rejected.
 - QR codes expire after the chosen number of hours and can be revoked. Scanning one only creates a pending claim; it never approves by itself.
 - Approval raises the tier if the qualification grants a higher one, never lowers it.

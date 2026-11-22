@@ -9,12 +9,12 @@ tags: [foundation, notifications]
 ---
 # Notifications
 
-Every email and Telegram message goes through one system. A feature only says *"send notification X to Y"*; the message is put into an outbox and a background worker delivers it.
+Every email and Telegram message goes through one system. A feature only says *"send notification X to Y"*; the message is written to an outbox in the database, and a timer in the server delivers it a few seconds later ([[background-jobs]]).
 
 ```mermaid
 flowchart LR
     F["A feature<br/>(e.g. ticket sold)"] --> O[("Outbox")]
-    O --> W["Worker<br/>(every 5 seconds)"]
+    O --> W["Timer<br/>(every 5 seconds)"]
     W --> E["Email to a user"]
     W --> T["Team Telegram channel"]
     W -- "failed" --> RETRY["Retry later:<br/>30 s, 1 min, 2 min … 1 h"] --> O

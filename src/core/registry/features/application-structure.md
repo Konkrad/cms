@@ -23,7 +23,7 @@ flowchart TB
             core["Core<br/>scopes, users, notes & articles, forms,<br/>reviews, payments, notifications, …"]
             modules["Modules<br/>events, jobs, deals, elections,<br/>qualifications, social web"]
         end
-        workers["Background workers<br/>(outbox, scheduler)"]
+        workers["Timers working off<br/>database queues"]
     end
     db[("SQLite database")]
     s3[("S3 storage<br/>(images)")]

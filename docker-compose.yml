@@ -26,21 +26,21 @@ services:
       - 8025:8025
       - 1025:1025
 
-  minio:
-    image: ghcr.io/coollabsio/minio
-    container_name: minio
+  # S3-compatible storage (Floci, a local AWS emulator; any non-empty credentials).
+  floci:
+    image: floci/floci:2.5.0
+    container_name: floci
     restart: unless-stopped
     networks:
       - cms-network
     volumes:
-      - ./data/minio:/data
+      - ./data/floci:/app/data
     ports:
-      - 9000:9000
-      - 9001:9001
+      - 4566:4566
     environment:
-      MINIO_ROOT_USER: test
-      MINIO_ROOT_PASSWORD: testtest
-    command: server /data --console-address ":9001"
+      # Keep uploads across restarts (the image defaults to in-memory storage).
+      FLOCI_STORAGE_MODE: hybrid
+      FLOCI_STORAGE_PERSISTENT_PATH: /app/data
 
   stripe-mock:
     image: stripe/stripe-mock:latest

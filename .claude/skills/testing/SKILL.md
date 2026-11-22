@@ -153,7 +153,7 @@ UI language: the default run is English. To check German, run the suite once wit
 
 ## Environment pitfalls
 
-- e2e needs the Docker services from `docker-compose.yml`: Mailpit (email, `:8025`), MinIO (S3), stripe-mock. Start them with `docker compose up -d` before running; without them login, upload and checkout tests fail for environmental reasons.
+- e2e needs the Docker services from `docker-compose.yml`: Mailpit (email, `:8025`), Floci (S3, `:4566`), stripe-mock. Start them with `docker compose up -d` before running; without them login, upload and checkout tests fail for environmental reasons.
 - In sandboxed environments without Docker or outbound network, S3 uploads can fail; those failures (image upload specs) are environmental, not regressions. Run the unaffected specs and say which were skipped.
 - Payments (spec 4.7): the checkout redirects to the provider (stripe-mock answers with a `checkout.stripe.com` URL; intercept it with `page.route`). Simulate the result with a signed webhook: `page.request.post("/api/payments/webhook/stripe", signedCheckoutEvent(paymentId))` (`tests/utils/stripe-webhook.ts`), then poll for the module's handler effect (it runs from `handler_calls` on the scheduler tick). Unit tests use `setPaymentProvider(fake | null)` and `applyPaymentChange` / `expireStalePayments` / `handlePaymentWebhook` from `~/core/payments/payments`.
 - The scheduler (`schedules`, review handlers) ticks every 500 ms in e2e (`SCHEDULER_POLL_INTERVAL_MS`); poll for the effect of a review decision (`expect.poll(() => getEventStatus(id))`). Unit tests call `runDueSchedules` / `processHandlerCallsOnce(resolveHandlerCall)`.

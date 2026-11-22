@@ -78,15 +78,15 @@ function resolveSeedPublicEndpoint(): string {
 	const forwardingDomain = process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN;
 
 	if (codespaceName && forwardingDomain) {
-		return `https://${codespaceName}-9000.${forwardingDomain}`;
+		return `https://${codespaceName}-4566.${forwardingDomain}`;
 	}
 
-	return process.env.AWS_ENDPOINT ?? "http://localhost:9000";
+	return process.env.AWS_ENDPOINT ?? "http://localhost:4566";
 }
 
 const seedStorageConfig = {
 	region: process.env.AWS_REGION ?? "us-east-1",
-	endpoint: process.env.AWS_ENDPOINT ?? "http://localhost:9000",
+	endpoint: process.env.AWS_ENDPOINT ?? "http://localhost:4566",
 	publicEndpoint: resolveSeedPublicEndpoint(),
 	accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? "test",
 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? "testtest",

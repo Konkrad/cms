@@ -68,7 +68,7 @@ function now() {
 
 const seedStorageConfig = {
 	region: process.env.AWS_REGION ?? "us-east-1",
-	endpoint: process.env.AWS_ENDPOINT ?? "http://localhost:9000",
+	endpoint: process.env.AWS_ENDPOINT ?? "http://localhost:4566",
 	accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? "test",
 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? "testtest",
 	bucket: process.env.S3_BUCKET ?? "data",

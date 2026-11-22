@@ -15,7 +15,7 @@
 
 ## Feature notes
 
-Business logic is described in feature notes next to the code: `<area>/features/<feature>.md` (e.g. `src/modules/events/features/`, `src/core/payments/features/`). Each note has frontmatter (`status`, `code:` paths, `tags`), the feature's rules, and a short `Decisions` section with the why. Write them for a person, in business language: no function, column or env names in the text (those belong in the frontmatter and the code); say what happens and why. Notes tagged `architecture` explain how the application is built. Link other notes with `[[note-name]]`. Diagrams as ` ```mermaid ` blocks (state, sequence, ER) where they explain a flow better than text. Read the notes of an area before changing its behaviour; a change to a rule or a new business decision updates the note in the same commit. `tests/unit/feature-notes.spec.ts` checks the `code:` paths and links. `FEATURES.md` at the repo root lists every note (the test checks it): add a new note there. The repo opens as an Obsidian vault; start at `FEATURES.md`.
+What the CMS does and why lives in feature notes next to the code (`<area>/features/<feature>.md`, start page `FEATURES.md`, an Obsidian vault). Load the `feature-notes` skill before changing a rule, a permission, a status flow or who is notified, and update the note in the same commit. A Stop hook and the pre-commit hook list notes whose code changed without them; `tests/unit/feature-notes.spec.ts` checks paths, links and coverage.
 
 ## Architecture map
 
@@ -43,6 +43,7 @@ Business logic is described in feature notes next to the code: `<area>/features/
 
 Load the matching skill (`.claude/skills/<name>/SKILL.md`) before working in its area:
 
+- `feature-notes` — changing what the CMS does or why, adding a module or core area, writing feature notes.
 - `testing` — writing or running tests, test plans, e2e fixtures, the pre-commit test run, verifying behavior at runtime.
 - `add-module` — creating or changing a feature module in `src/modules/`, its registration, pages, admin sections, actions, hooks, import boundary.
 - `theme` — anything in `theme/`, contracts, headless composables, design tokens, UI components, `qwikify$`, the theme/core license boundary.

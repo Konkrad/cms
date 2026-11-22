@@ -36,6 +36,25 @@ describe("feature notes", () => {
 		expect(names.length).toBe(new Set(names).size);
 	});
 
+	it("cover every module and core area", () => {
+		// Infrastructure without business rules of its own.
+		const exempt = ["src/core/db", "src/core/shared"];
+		const areas = ["src/core", "src/modules"].flatMap((dir) =>
+			readdirSync(join(root, dir))
+				.filter((name) => statSync(join(root, dir, name)).isDirectory())
+				.map((name) => `${dir}/${name}`),
+		);
+		const covered = notes.flatMap((n) => codePaths(readFileSync(n, "utf8")));
+		const missing = areas.filter(
+			(area) =>
+				!exempt.includes(area) &&
+				!covered.some((p) => p === area || p.startsWith(`${area}/`)),
+		);
+		expect(missing, "add a feature note whose code: points into these").toEqual(
+			[],
+		);
+	});
+
 	it("are all listed in FEATURES.md", () => {
 		const index = readFileSync(join(root, "FEATURES.md"), "utf8");
 		const listed = [...index.matchAll(/\[\[([^\]|#]+)/g)].map((m) => m[1]);

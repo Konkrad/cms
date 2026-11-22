@@ -23,6 +23,7 @@ Jobs (`src/modules/jobs/`) is the worked example throughout. Modules: deals, ele
 - `modules.config.ts`: add the id to `active`. An id in `allModules` but not in `active` is inactive (pages 404 via `requireActiveModule`, its blocks and slots are hidden, admin/menu entries disappear; see "Inactive modules" below). `selectActive` throws on unknown or duplicate ids. `CMS_MODULES` (comma-separated, empty = none) replaces the list for one build or run without editing the file: `CMS_MODULES=jobs,events npm start`, `CMS_MODULES= npm run build.client`. It is resolved at build time (`cms:modules` Vite plugin replaces `src/core/registry/active-modules.ts`, which client code such as block and slot gating reads) and by `src/env.ts` (`env.ACTIVE_MODULES`); build and run with the same value (the production server refuses to start otherwise).
 - Admin routes: add `src/routes/admin/[scope]/<id>/**` files that import the module's admin component + loader via RELATIVE paths and re-export its actions.
 - New tables: follow the `database` skill (`npm run db:generate`, commit the migration). Add the id to the seeds if useful.
+- Feature notes: an overview note `src/modules/<id>/features/<id>.md` listed in `FEATURES.md` (the coverage test fails without it); see the `feature-notes` skill.
 
 ## Manifest hooks (`ModuleDefinition` in `src/core/router/modules.ts`)
 

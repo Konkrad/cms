@@ -1,0 +1,16 @@
+{
+	"hooks": {
+		"Stop": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node \"$CLAUDE_PROJECT_DIR/scripts/feature-notes-drift.mjs\" --hook",
+						"timeout": 30,
+						"statusMessage": "Checking feature notes"
+					}
+				]
+			}
+		]
+	}
+}

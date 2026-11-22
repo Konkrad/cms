@@ -16,4 +16,7 @@ if [ -n "$staged" ]; then
   echo "$staged" | xargs npx biome check --no-errors-on-unmatched || exit 1
 fi
 
+# Reminder (never blocks): staged code described by a feature note whose note is not staged.
+node scripts/feature-notes-drift.mjs --staged
+
 npx vitest run --no-file-parallelism || exit 1

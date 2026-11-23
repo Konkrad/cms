@@ -51,4 +51,4 @@ flowchart TD
 - 2026-11: three levels (site, chapter, event) in the admin area. No page views or visitor tracking in the CMS: that is left to a third-party tool.
 - 2026-11: activity means coming to events, not logging in: what matters is whether members take part, whom we lost, and who only comes locally or only globally.
 - 2026-11: small groups hidden from 5, so the page can go to every chapter's managers without exposing anyone's private profile fields.
-- 2026-11: later, not now: a +1 on free-event RSVPs and a standard feedback email after events.
+- 2026-11: later, not now: a +1 on free-event RSVPs, a standard feedback email after events, and verifying who actually joined an online event (issue #137).

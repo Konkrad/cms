@@ -216,6 +216,64 @@ describe("eventStatisticsService.forEvent", () => {
 		expect(JSON.stringify(s)).not.toContain(a);
 	});
 
+	it("sorts members into active, lost and never, and chapter or global events", async () => {
+		const organizer = user();
+		const active = user();
+		const lost = user();
+		const never = user();
+		const root = ensureRootScope();
+		const chapterId = crypto.randomUUID();
+		const db = openDb();
+		db.prepare(
+			"INSERT INTO scopes (id, parent_id, kind, slug, name, path) VALUES (?, ?, 'chapter', ?, ?, ?)",
+		).run(chapterId, root, `c-${chapterId}`, "Chapter", `/c-${chapterId}`);
+		db.close();
+		cleanups.push(() => {
+			const db2 = openDb();
+			db2.prepare("DELETE FROM scopes WHERE id = ?").run(chapterId);
+			db2.close();
+		});
+		const day = 86400000;
+		const recentChapter = createTestEvent(organizer, { scopeId: chapterId });
+		const recentGlobal = createTestEvent(organizer, {
+			startDate: new Date(Date.now() - 20 * day).toISOString(),
+			endDate: new Date(Date.now() - 19 * day).toISOString(),
+		});
+		const oldChapter = createTestEvent(organizer, {
+			scopeId: chapterId,
+			startDate: new Date(Date.now() - 250 * day).toISOString(),
+			endDate: new Date(Date.now() - 249 * day).toISOString(),
+		});
+		cleanups.push(
+			recentChapter.cleanup,
+			recentGlobal.cleanup,
+			oldChapter.cleanup,
+		);
+		order(recentChapter.eventId, active, [active], true);
+		order(recentGlobal.eventId, active, [active], true);
+		order(oldChapter.eventId, lost, [lost], true);
+		order(recentChapter.eventId, never, [never], false); // ticket never scanned
+
+		const s = await eventStatisticsService.forScopes([chapterId], chapterId, [
+			active,
+			lost,
+			never,
+		]);
+		expect(s.lastCame).toEqual({
+			within3Months: 1,
+			within6Months: 0,
+			within12Months: 1,
+			longerAgo: 0,
+			never: 1,
+		});
+		expect(s.eventKinds).toEqual({
+			chapterOnly: 1,
+			globalOnly: 0,
+			both: 1,
+			never: 1,
+		});
+	});
+
 	it("summarizes a scope's events", async () => {
 		const organizer = user();
 		const a = user();
@@ -229,9 +287,11 @@ describe("eventStatisticsService.forEvent", () => {
 		const s = await eventStatisticsService.forScopes(
 			[ensureRootScope()],
 			ensureRootScope(),
+			[a],
 		);
 		expect(s.ticketsScanned).toBeGreaterThanOrEqual(1);
-		expect(s.attendedLast90Days).toBeGreaterThanOrEqual(1);
+		expect(s.lastCame.within3Months).toBe(1);
+		expect(s.eventKinds.globalOnly).toBe(1);
 		expect(
 			s.attendeesPerMonth.reduce((sum, b) => sum + (b.count ?? 0), 0),
 		).toBeGreaterThanOrEqual(1);

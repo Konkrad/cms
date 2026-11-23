@@ -1,7 +1,8 @@
-import { and, eq, inArray, isNotNull, lt } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, lt } from "drizzle-orm";
 import {
 	type Demographics,
 	db,
+	getRootScope,
 	lastMonths,
 	perMonth,
 	type StatBucket,
@@ -64,8 +65,24 @@ export interface ScopeEventStatistics {
 	/** Tickets of ended events of the last 12 months: issued and scanned. */
 	ticketsIssued: number;
 	ticketsScanned: number;
-	/** Distinct people (with an account) who came to an event in the last 90 days. */
-	attendedLast90Days: number;
+	/**
+	 * The scope's members by the last time they came to any event (anywhere): within 3, 6 or 12
+	 * months, longer ago ("lost"), or never.
+	 */
+	lastCame: {
+		within3Months: number;
+		within6Months: number;
+		within12Months: number;
+		longerAgo: number;
+		never: number;
+	};
+	/** The scope's members by which events they ever came to: chapter events, global (root) ones, both. */
+	eventKinds: {
+		chapterOnly: number;
+		globalOnly: number;
+		both: number;
+		never: number;
+	};
 	/** People with an account by how many of the subtree's events they came to (all time). */
 	visits: { once: number; twoToFour: number; fivePlus: number };
 	/** Who came to the subtree's events in the last 12 months. */
@@ -121,6 +138,60 @@ async function seatsOf(ticketIds: readonly string[]): Promise<number> {
 	const named = new Map<string, number>();
 	for (const r of rows) named.set(r.ticketId, (named.get(r.ticketId) ?? 0) + 1);
 	return ticketIds.reduce((sum, id) => sum + (named.get(id) ?? 1), 0);
+}
+
+/** Every event these people came to, anywhere: its start and whether it is a global (root) event. */
+async function attendanceOf(
+	userIds: readonly string[],
+): Promise<Array<{ userId: string; startDate: string; global: boolean }>> {
+	const root = await getRootScope();
+	const asParticipant = await inChunks(userIds, (chunk) =>
+		db
+			.select({
+				userId: ticketParticipants.userId,
+				startDate: events.startDate,
+				scopeId: events.scopeId,
+			})
+			.from(ticketParticipants)
+			.innerJoin(tickets, eq(tickets.id, ticketParticipants.ticketId))
+			.innerJoin(events, eq(events.id, tickets.eventId))
+			.where(
+				and(
+					inArray(ticketParticipants.userId, chunk),
+					isNotNull(tickets.scannedAt),
+				),
+			),
+	);
+	// A ticket that names no participants is the buyer's.
+	const asBuyer = await inChunks(userIds, (chunk) =>
+		db
+			.select({
+				userId: tickets.buyerId,
+				startDate: events.startDate,
+				scopeId: events.scopeId,
+			})
+			.from(tickets)
+			.innerJoin(events, eq(events.id, tickets.eventId))
+			.leftJoin(ticketParticipants, eq(ticketParticipants.ticketId, tickets.id))
+			.where(
+				and(
+					inArray(tickets.buyerId, chunk),
+					isNotNull(tickets.scannedAt),
+					isNull(ticketParticipants.id),
+				),
+			),
+	);
+	return [...asParticipant, ...asBuyer].flatMap((r) =>
+		r.userId
+			? [
+					{
+						userId: r.userId,
+						startDate: r.startDate,
+						global: r.scopeId === root?.id,
+					},
+				]
+			: [],
+	);
 }
 
 function distinctUsers(people: CheckedInPerson[]): string[] {
@@ -255,6 +326,7 @@ export const eventStatisticsService = {
 	async forScopes(
 		scopeIds: readonly string[],
 		homeScopeId: string,
+		memberIds: readonly string[],
 		now: Date = new Date(),
 	): Promise<ScopeEventStatistics> {
 		const months = lastMonths(now);
@@ -276,7 +348,7 @@ export const eventStatisticsService = {
 		const recent = scopeEvents.filter((e) => e.startDate >= yearAgo);
 		const ended = recent.filter((e) => e.endDate < nowIso);
 
-		const [came, endedTickets] = await Promise.all([
+		const [came, endedTickets, memberAttendance] = await Promise.all([
 			checkedInPeople(scopeEvents.map((e) => e.id)),
 			inChunks(
 				ended.map((e) => e.id),
@@ -286,12 +358,48 @@ export const eventStatisticsService = {
 						.from(tickets)
 						.where(inArray(tickets.eventId, chunk)),
 			),
+			attendanceOf(memberIds),
 		]);
+
+		// Per member: the last event they came to (that has started) and which kinds.
+		const monthsAgo = (n: number) =>
+			new Date(now.getTime() - n * 30.44 * DAY_MS).toISOString();
+		const lastStart = new Map<string, string>();
+		const kinds = new Map<string, { chapter: boolean; global: boolean }>();
+		for (const a of memberAttendance) {
+			if (a.startDate > nowIso) continue;
+			if ((lastStart.get(a.userId) ?? "") < a.startDate)
+				lastStart.set(a.userId, a.startDate);
+			const k = kinds.get(a.userId) ?? { chapter: false, global: false };
+			if (a.global) k.global = true;
+			else k.chapter = true;
+			kinds.set(a.userId, k);
+		}
+		const lastCame = {
+			within3Months: 0,
+			within6Months: 0,
+			within12Months: 0,
+			longerAgo: 0,
+			never: 0,
+		};
+		const eventKinds = { chapterOnly: 0, globalOnly: 0, both: 0, never: 0 };
+		for (const id of new Set(memberIds)) {
+			const last = lastStart.get(id);
+			if (!last) lastCame.never++;
+			else if (last >= monthsAgo(3)) lastCame.within3Months++;
+			else if (last >= monthsAgo(6)) lastCame.within6Months++;
+			else if (last >= monthsAgo(12)) lastCame.within12Months++;
+			else lastCame.longerAgo++;
+			const k = kinds.get(id);
+			if (!k) eventKinds.never++;
+			else if (k.chapter && k.global) eventKinds.both++;
+			else if (k.global) eventKinds.globalOnly++;
+			else eventKinds.chapterOnly++;
+		}
 
 		const cameRecently = came.filter(
 			(p) => (startOf.get(p.eventId) ?? "") >= yearAgo,
 		);
-		const since90 = new Date(now.getTime() - 90 * DAY_MS).toISOString();
 		const eventsPerUser = new Map<string, Set<string>>();
 		for (const p of came)
 			if (p.userId)
@@ -323,12 +431,8 @@ export const eventStatisticsService = {
 			),
 			ticketsIssued: endedTickets.length,
 			ticketsScanned: endedTickets.filter((t) => t.scannedAt).length,
-			attendedLast90Days: distinctUsers(
-				came.filter((p) => {
-					const start = startOf.get(p.eventId) ?? "";
-					return start >= since90 && start <= nowIso;
-				}),
-			).length,
+			lastCame,
+			eventKinds,
 			visits,
 			whoCame,
 			homes,

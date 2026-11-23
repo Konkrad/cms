@@ -1,5 +1,4 @@
-import { and, gte, inArray, isNotNull, max, min } from "drizzle-orm";
-import { sessions } from "~/core/auth/schema/sessions";
+import { and, gte, inArray, min } from "drizzle-orm";
 import { articles } from "~/core/content/schema/articles";
 import { notes } from "~/core/content/schema/notes";
 import { db } from "~/core/db/connection";
@@ -49,8 +48,6 @@ export interface Demographics {
 export interface ScopeOverview {
 	members: number;
 	newLast30Days: number;
-	activeLast30Days: number;
-	activeLast90Days: number;
 	/** New members per month, the last 12 months, oldest first (key `YYYY-MM`). */
 	joinedPerMonth: StatBucket[];
 	/** Published notes and articles per month, the last 12 months. */
@@ -249,6 +246,11 @@ export const statisticsService = {
 		);
 	},
 
+	/** Ids of the members of a scope and the scopes below it (on the root: every account). */
+	async memberIds(scope: Scope): Promise<string[]> {
+		return (await membersOf(scope)).map((m) => m.userId);
+	},
+
 	/** The statistics page of a scope: its members (the subtree's), activity and posts. */
 	async overview(scope: Scope, now: Date = new Date()): Promise<ScopeOverview> {
 		const members = await membersOf(scope);
@@ -259,17 +261,9 @@ export const statisticsService = {
 		const subtree =
 			scope.parentId === null ? null : await scopesService.subtreeIds(scope.id);
 
-		const [demographics, profiles, logins, posts] = await Promise.all([
+		const [demographics, profiles, posts] = await Promise.all([
 			this.demographicsOf(ids, now),
 			profilesOf(ids),
-			// The latest login per person (a logout removes it).
-			db
-				.select({ userId: sessions.userId, at: max(sessions.createdAt) })
-				.from(sessions)
-				.where(
-					and(isNotNull(sessions.userId), gte(sessions.createdAt, since(90))),
-				)
-				.groupBy(sessions.userId),
 			Promise.all(
 				[notes, articles].map((table) =>
 					db
@@ -285,13 +279,6 @@ export const statisticsService = {
 			),
 		]);
 
-		const memberSet = new Set(ids);
-		const lastLogin = logins.filter(
-			(l) => l.userId && memberSet.has(l.userId) && l.at,
-		);
-		const active = (days: number) =>
-			lastLogin.filter((l) => (l.at as string) >= since(days)).length;
-
 		const placeCounts = new Map<string, number>();
 		let unknownPlace = 0;
 		for (const p of profiles) {
@@ -306,8 +293,6 @@ export const statisticsService = {
 		return {
 			members: ids.length,
 			newLast30Days: members.filter((m) => m.joinedAt >= since(30)).length,
-			activeLast30Days: active(30),
-			activeLast90Days: active(90),
 			joinedPerMonth: perMonth(
 				members.map((m) => m.joinedAt),
 				months,

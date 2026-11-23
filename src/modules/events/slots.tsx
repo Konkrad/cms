@@ -107,7 +107,10 @@ const DashboardEvents = component$<SlotProps["admin.dashboard.widgets"]>(
 	},
 );
 
-/** `admin.statistics.sections`: events of the scope and below, attendance, who came. */
+/**
+ * `admin.statistics.sections`: whether the scope's members come to events (recently, lost, never;
+ * chapter or global events), then the events of the scope and below and who came.
+ */
 const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
 	() => {
 		const data = useScopeEventStatistics();
@@ -118,25 +121,79 @@ const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
 				<h3 class="text-lg font-semibold text-gray-900">
 					{t("events.statistics.title")}
 				</h3>
-				<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+				<p class="text-sm text-gray-600">
+					{t("events.statistics.membersIntro")}
+				</p>
+				<div
+					class="grid grid-cols-2 md:grid-cols-4 gap-4"
+					data-testid="statistics-members-activity"
+				>
 					<StatTile
-						label={t("events.statistics.attendedLast90Days")}
-						value={s.attendedLast90Days}
+						label={t("events.statistics.active")}
+						value={s.lastCame.within3Months + s.lastCame.within6Months}
+						hint={t("events.statistics.activeHint")}
 					/>
 					<StatTile
-						label={t("events.statistics.ticketsScanned")}
-						value={s.ticketsScanned}
-						hint={t("events.statistics.ofIssued", { count: s.ticketsIssued })}
+						label={t("events.statistics.lost")}
+						value={s.lastCame.within12Months + s.lastCame.longerAgo}
+						hint={t("events.statistics.lostHint")}
+					/>
+					<StatTile
+						label={t("events.statistics.neverCame")}
+						value={s.lastCame.never}
 					/>
 					<StatTile
 						label={t("events.statistics.noShows")}
 						value={s.ticketsIssued - s.ticketsScanned}
-						hint={t("events.statistics.last12Months")}
+						hint={t("events.statistics.ofIssued", { count: s.ticketsIssued })}
 					/>
-					<StatTile
-						label={t("events.statistics.regulars")}
-						value={s.visits.fivePlus}
-						hint={t("events.statistics.regularsHint")}
+				</div>
+				<div class="grid gap-4 md:grid-cols-2">
+					<StatBars
+						title={t("events.statistics.lastCame")}
+						rows={[
+							{
+								label: t("events.statistics.within3Months"),
+								count: s.lastCame.within3Months,
+							},
+							{
+								label: t("events.statistics.within6Months"),
+								count: s.lastCame.within6Months,
+							},
+							{
+								label: t("events.statistics.within12Months"),
+								count: s.lastCame.within12Months,
+							},
+							{
+								label: t("events.statistics.longerAgo"),
+								count: s.lastCame.longerAgo,
+							},
+							{
+								label: t("events.statistics.never"),
+								count: s.lastCame.never,
+							},
+						]}
+					/>
+					<StatBars
+						title={t("events.statistics.eventKinds")}
+						rows={[
+							{
+								label: t("events.statistics.chapterOnly"),
+								count: s.eventKinds.chapterOnly,
+							},
+							{
+								label: t("events.statistics.globalOnly"),
+								count: s.eventKinds.globalOnly,
+							},
+							{
+								label: t("events.statistics.both"),
+								count: s.eventKinds.both,
+							},
+							{
+								label: t("events.statistics.never"),
+								count: s.eventKinds.never,
+							},
+						]}
 					/>
 				</div>
 				<div class="grid gap-4 md:grid-cols-3">

@@ -36,7 +36,7 @@ export default component$(() => {
 				<p class="text-sm text-gray-600 mt-1">{t("admin.statistics.intro")}</p>
 			</div>
 
-			<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+			<div class="grid grid-cols-2 gap-4">
 				<StatTile
 					label={t("admin.statistics.members")}
 					value={o.members}
@@ -45,16 +45,6 @@ export default component$(() => {
 				<StatTile
 					label={t("admin.statistics.newLast30Days")}
 					value={o.newLast30Days}
-				/>
-				<StatTile
-					label={t("admin.statistics.activeLast30Days")}
-					value={o.activeLast30Days}
-					hint={t("admin.statistics.activeHint")}
-				/>
-				<StatTile
-					label={t("admin.statistics.activeLast90Days")}
-					value={o.activeLast90Days}
-					hint={t("admin.statistics.activeHint")}
 				/>
 			</div>
 

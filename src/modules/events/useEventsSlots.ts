@@ -10,6 +10,7 @@ import {
 	requireModuleAdmin,
 	requireModuleAuth,
 	requirements,
+	statisticsService,
 } from "~/core";
 import { eventsRequirements } from "./requirements";
 import { eventsService } from "./services/events";
@@ -116,6 +117,7 @@ const fetchScopeEventStatistics = server$(async function () {
 		await eventStatisticsService.forScopes(
 			await getSubtreeIds(scope.id),
 			scope.id,
+			await statisticsService.memberIds(scope),
 		),
 	);
 });

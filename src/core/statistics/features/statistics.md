@@ -11,7 +11,7 @@ tags: [admin, statistics]
 ---
 # Statistics
 
-Who the members are, who is active and who comes to events, as counts. Three levels: the whole site (root), a chapter (any scope, counting the scopes below it) and one event.
+Who the members are, whether they come to events (and whom we have lost), as counts. Three levels: the whole site (root), a chapter (any scope, counting the scopes below it) and one event.
 
 ```mermaid
 flowchart TD
@@ -25,9 +25,10 @@ flowchart TD
 - Modules add their own section to the scope page (the events module adds events).
 
 ## What a scope shows
-- Members, new members in the last 30 days, members active in the last 30 and 90 days.
+- Members and new members in the last 30 days.
 - New members and published notes and articles per month, the last 12 months.
 - Who the members are: age group, gender, membership tier ([[membership-tiers]]) and where they live.
+- **Do members come to events?** The scope's members, at any event anywhere: active (came in the last 6 months), lost (came before, not in the last 6 months), never came; the last time they came (3, 6, 12 months, longer ago, never); and which events they come to: only chapter events, only global events, both, none.
 - Events of the scope and below: events and people who came per month, tickets not used, how often people came (once, 2 to 4 times, 5 or more), who came in the last 12 months and from which chapter.
 
 ## What an event shows
@@ -40,11 +41,13 @@ flowchart TD
 - **Nobody is shown individually.** Only counts leave the server. In breakdowns of people (age, gender, tier, place, home chapter) a group of 1 to 4 people reads "fewer than 5"; when exactly one group would be hidden, the next smallest is hidden too, so it cannot be worked out from the total.
 - Plain counts that organisers already see in the attendance list (tickets, orders, party sizes) are shown as they are.
 - **Member of a scope** = member of it or of a scope below it, since the first join ([[scopes-and-roles]]). On the root: every account.
-- **Active** = logged in during the period. A logout ends the session, so a member who logged out since counts as inactive until they log in again.
+- **Active** = came to an event in the last 6 months; **lost** = came to one before, but not in the last 6 months. Logins do not count.
+- **Global events** are the root's events; **chapter events** are those of any other scope.
 - **Came** = on a scanned ticket. A scan checks in everyone on the ticket ([[rsvp-and-check-in]]), so companions count as having come with the buyer. Age, gender, tier and home chapter only count people with an account.
 - **Came before** = was on a scanned ticket of an event that started earlier.
 
 ## Decisions
 - 2026-11: three levels (site, chapter, event) in the admin area, not a separate analytics tool; no page-view tracking.
+- 2026-11: activity means coming to events, not logging in: what matters is whether members take part, whom we lost, and who only comes locally or only globally.
 - 2026-11: small groups hidden from 5, so the page can go to every chapter's managers without exposing anyone's private profile fields.
 - 2026-11: later, not now: a +1 on free-event RSVPs and a standard feedback email after events.

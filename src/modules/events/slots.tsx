@@ -109,7 +109,7 @@ const DashboardEvents = component$<SlotProps["admin.dashboard.widgets"]>(
 
 /**
  * `admin.statistics.sections`: whether the scope's members come to events (recently, lost, never;
- * chapter or global events), then the events of the scope and below and who came.
+ * chapter or global events, in person or online), then the events of the scope and below and who came.
  */
 const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
 	() => {
@@ -148,7 +148,7 @@ const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
 						hint={t("events.statistics.ofIssued", { count: s.ticketsIssued })}
 					/>
 				</div>
-				<div class="grid gap-4 md:grid-cols-2">
+				<div class="grid gap-4 md:grid-cols-3">
 					<StatBars
 						title={t("events.statistics.lastCame")}
 						rows={[
@@ -192,6 +192,27 @@ const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
 							{
 								label: t("events.statistics.never"),
 								count: s.eventKinds.never,
+							},
+						]}
+					/>
+					<StatBars
+						title={t("events.statistics.formats")}
+						rows={[
+							{
+								label: t("events.statistics.inPersonOnly"),
+								count: s.formats.inPersonOnly,
+							},
+							{
+								label: t("events.statistics.onlineOnly"),
+								count: s.formats.onlineOnly,
+							},
+							{
+								label: t("events.statistics.both"),
+								count: s.formats.both,
+							},
+							{
+								label: t("events.statistics.never"),
+								count: s.formats.never,
 							},
 						]}
 					/>

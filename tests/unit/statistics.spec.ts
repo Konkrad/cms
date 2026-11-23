@@ -5,6 +5,7 @@ import { suppressCount, suppressSmall } from "~/core/statistics/suppress";
 import { eventStatisticsService } from "~/modules/events/services/statistics";
 import {
 	createTestEvent,
+	createTestParticipation,
 	createTestUser,
 	ensureRootScope,
 	openDb,
@@ -271,6 +272,30 @@ describe("eventStatisticsService.forEvent", () => {
 			globalOnly: 0,
 			both: 1,
 			never: 1,
+		});
+	});
+
+	it("counts a yes to an online event as taking part online", async () => {
+		const organizer = user();
+		const onlineOnly = user();
+		const mixed = user();
+		const online = createTestEvent(organizer, { locationType: "online" });
+		const inPerson = createTestEvent(organizer);
+		cleanups.push(online.cleanup, inPerson.cleanup);
+		createTestParticipation(onlineOnly, online.eventId, "yes");
+		order(online.eventId, mixed, [mixed], false); // online: no scan needed
+		order(inPerson.eventId, mixed, [mixed], true);
+
+		const s = await eventStatisticsService.forScopes(
+			[ensureRootScope()],
+			ensureRootScope(),
+			[onlineOnly, mixed],
+		);
+		expect(s.formats).toEqual({
+			inPersonOnly: 0,
+			onlineOnly: 1,
+			both: 1,
+			never: 0,
 		});
 	});
 

@@ -28,7 +28,7 @@ flowchart TD
 - Members and new members in the last 30 days.
 - New members and published notes and articles per month, the last 12 months.
 - Who the members are: age group, gender, membership tier ([[membership-tiers]]) and where they live.
-- **Do members come to events?** The scope's members, at any event anywhere: active (came in the last 6 months), lost (came before, not in the last 6 months), never came; the last time they came (3, 6, 12 months, longer ago, never); and which events they come to: only chapter events, only global events, both, none.
+- **Do members come to events?** The scope's members, at any event anywhere: active (came in the last 6 months), lost (came before, not in the last 6 months), never came; the last time they came (3, 6, 12 months, longer ago, never); which events they come to: only chapter events, only global events, both, none; and how: only in person, only online, both, none.
 - Events of the scope and below: events and people who came per month, tickets not used, how often people came (once, 2 to 4 times, 5 or more), who came in the last 12 months and from which chapter.
 
 ## What an event shows
@@ -43,11 +43,12 @@ flowchart TD
 - **Member of a scope** = member of it or of a scope below it, since the first join ([[scopes-and-roles]]). On the root: every account.
 - **Active** = came to an event in the last 6 months; **lost** = came to one before, but not in the last 6 months. Logins do not count.
 - **Global events** are the root's events; **chapter events** are those of any other scope.
+- **Took part** = on a scanned ticket (in-person and hybrid events). Online events have no check-in, so there a ticket or a "yes" counts.
 - **Came** = on a scanned ticket. A scan checks in everyone on the ticket ([[rsvp-and-check-in]]), so companions count as having come with the buyer. Age, gender, tier and home chapter only count people with an account.
 - **Came before** = was on a scanned ticket of an event that started earlier.
 
 ## Decisions
-- 2026-11: three levels (site, chapter, event) in the admin area, not a separate analytics tool; no page-view tracking.
+- 2026-11: three levels (site, chapter, event) in the admin area. No page views or visitor tracking in the CMS: that is left to a third-party tool.
 - 2026-11: activity means coming to events, not logging in: what matters is whether members take part, whom we lost, and who only comes locally or only globally.
 - 2026-11: small groups hidden from 5, so the page can go to every chapter's managers without exposing anyone's private profile fields.
 - 2026-11: later, not now: a +1 on free-event RSVPs and a standard feedback email after events.

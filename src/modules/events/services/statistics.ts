@@ -83,6 +83,13 @@ export interface ScopeEventStatistics {
 		both: number;
 		never: number;
 	};
+	/** The scope's members by how they took part: only in person, only online, both. */
+	formats: {
+		inPersonOnly: number;
+		onlineOnly: number;
+		both: number;
+		never: number;
+	};
 	/** People with an account by how many of the subtree's events they came to (all time). */
 	visits: { once: number; twoToFour: number; fivePlus: number };
 	/** Who came to the subtree's events in the last 12 months. */
@@ -140,58 +147,78 @@ async function seatsOf(ticketIds: readonly string[]): Promise<number> {
 	return ticketIds.reduce((sum, id) => sum + (named.get(id) ?? 1), 0);
 }
 
-/** Every event these people came to, anywhere: its start and whether it is a global (root) event. */
+/**
+ * Every event these people took part in, anywhere: its start, whether it is a global (root)
+ * event and whether they took part online. In person = on a scanned ticket (in-person and hybrid
+ * events). Online events have no door scan: a ticket or a "yes" counts as taking part.
+ */
 async function attendanceOf(
 	userIds: readonly string[],
-): Promise<Array<{ userId: string; startDate: string; global: boolean }>> {
+): Promise<
+	Array<{ userId: string; startDate: string; global: boolean; online: boolean }>
+> {
 	const root = await getRootScope();
+	const eventColumns = {
+		startDate: events.startDate,
+		scopeId: events.scopeId,
+		locationType: events.locationType,
+	};
 	const asParticipant = await inChunks(userIds, (chunk) =>
 		db
 			.select({
 				userId: ticketParticipants.userId,
-				startDate: events.startDate,
-				scopeId: events.scopeId,
+				scannedAt: tickets.scannedAt,
+				...eventColumns,
 			})
 			.from(ticketParticipants)
 			.innerJoin(tickets, eq(tickets.id, ticketParticipants.ticketId))
 			.innerJoin(events, eq(events.id, tickets.eventId))
-			.where(
-				and(
-					inArray(ticketParticipants.userId, chunk),
-					isNotNull(tickets.scannedAt),
-				),
-			),
+			.where(inArray(ticketParticipants.userId, chunk)),
 	);
 	// A ticket that names no participants is the buyer's.
 	const asBuyer = await inChunks(userIds, (chunk) =>
 		db
 			.select({
 				userId: tickets.buyerId,
-				startDate: events.startDate,
-				scopeId: events.scopeId,
+				scannedAt: tickets.scannedAt,
+				...eventColumns,
 			})
 			.from(tickets)
 			.innerJoin(events, eq(events.id, tickets.eventId))
 			.leftJoin(ticketParticipants, eq(ticketParticipants.ticketId, tickets.id))
 			.where(
+				and(inArray(tickets.buyerId, chunk), isNull(ticketParticipants.id)),
+			),
+	);
+	const saidYesOnline = await inChunks(userIds, (chunk) =>
+		db
+			.select({
+				userId: participationStatus.userId,
+				scannedAt: participationStatus.updatedAt,
+				...eventColumns,
+			})
+			.from(participationStatus)
+			.innerJoin(events, eq(events.id, participationStatus.eventId))
+			.where(
 				and(
-					inArray(tickets.buyerId, chunk),
-					isNotNull(tickets.scannedAt),
-					isNull(ticketParticipants.id),
+					inArray(participationStatus.userId, chunk),
+					eq(participationStatus.status, "yes"),
+					eq(events.locationType, "online"),
 				),
 			),
 	);
-	return [...asParticipant, ...asBuyer].flatMap((r) =>
-		r.userId
-			? [
-					{
-						userId: r.userId,
-						startDate: r.startDate,
-						global: r.scopeId === root?.id,
-					},
-				]
-			: [],
-	);
+	return [...asParticipant, ...asBuyer, ...saidYesOnline].flatMap((r) => {
+		const online = r.locationType === "online";
+		if (!r.userId || (!online && !r.scannedAt)) return [];
+		return [
+			{
+				userId: r.userId,
+				startDate: r.startDate,
+				global: r.scopeId === root?.id,
+				online,
+			},
+		];
+	});
 }
 
 function distinctUsers(people: CheckedInPerson[]): string[] {
@@ -361,18 +388,28 @@ export const eventStatisticsService = {
 			attendanceOf(memberIds),
 		]);
 
-		// Per member: the last event they came to (that has started) and which kinds.
+		// Per member: the last event they took part in (that has started), which kinds, how.
 		const monthsAgo = (n: number) =>
 			new Date(now.getTime() - n * 30.44 * DAY_MS).toISOString();
 		const lastStart = new Map<string, string>();
-		const kinds = new Map<string, { chapter: boolean; global: boolean }>();
+		const kinds = new Map<
+			string,
+			{ chapter: boolean; global: boolean; online: boolean; inPerson: boolean }
+		>();
 		for (const a of memberAttendance) {
 			if (a.startDate > nowIso) continue;
 			if ((lastStart.get(a.userId) ?? "") < a.startDate)
 				lastStart.set(a.userId, a.startDate);
-			const k = kinds.get(a.userId) ?? { chapter: false, global: false };
+			const k = kinds.get(a.userId) ?? {
+				chapter: false,
+				global: false,
+				online: false,
+				inPerson: false,
+			};
 			if (a.global) k.global = true;
 			else k.chapter = true;
+			if (a.online) k.online = true;
+			else k.inPerson = true;
 			kinds.set(a.userId, k);
 		}
 		const lastCame = {
@@ -383,6 +420,7 @@ export const eventStatisticsService = {
 			never: 0,
 		};
 		const eventKinds = { chapterOnly: 0, globalOnly: 0, both: 0, never: 0 };
+		const formats = { inPersonOnly: 0, onlineOnly: 0, both: 0, never: 0 };
 		for (const id of new Set(memberIds)) {
 			const last = lastStart.get(id);
 			if (!last) lastCame.never++;
@@ -395,6 +433,10 @@ export const eventStatisticsService = {
 			else if (k.chapter && k.global) eventKinds.both++;
 			else if (k.global) eventKinds.globalOnly++;
 			else eventKinds.chapterOnly++;
+			if (!k) formats.never++;
+			else if (k.inPerson && k.online) formats.both++;
+			else if (k.online) formats.onlineOnly++;
+			else formats.inPersonOnly++;
 		}
 
 		const cameRecently = came.filter(
@@ -433,6 +475,7 @@ export const eventStatisticsService = {
 			ticketsScanned: endedTickets.filter((t) => t.scannedAt).length,
 			lastCame,
 			eventKinds,
+			formats,
 			visits,
 			whoCame,
 			homes,

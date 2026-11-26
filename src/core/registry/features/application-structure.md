@@ -70,6 +70,7 @@ mindmap
       notifications
       questions users must answer
       forms
+      statistics breakdowns
     Links
       addresses of its items
       sitemap and feeds

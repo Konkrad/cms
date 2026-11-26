@@ -200,7 +200,7 @@ function placeRows(buckets: StatBucket[]): StatRow[] {
 	return buckets.map((b) => ({
 		label:
 			b.key === "other"
-				? t("admin.statistics.place.other")
+				? t("admin.statistics.place.other", { count: b.groups ?? 0 })
 				: b.key === "unknown"
 					? t("admin.statistics.place.unknown")
 					: b.key,
@@ -214,6 +214,11 @@ export const PlacesBars = component$<{
 	testId?: string;
 }>(({ demographics, testId }) => (
 	<div class="grid gap-4 md:grid-cols-2" data-testid={testId}>
+		<p class="md:col-span-2 text-sm text-gray-700">
+			{t("admin.statistics.countryCount", {
+				count: demographics.countryCount,
+			})}
+		</p>
 		<StatBars
 			title={t("admin.statistics.countries")}
 			rows={placeRows(demographics.countries)}

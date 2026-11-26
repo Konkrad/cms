@@ -30,7 +30,7 @@ flowchart TD
 ## What a scope shows
 - Members and new members in the last 30 days.
 - New members and published notes and articles per month, the last 12 months.
-- Who the members are: age group, gender, membership tier ([[membership-tiers]]) and where they live (country and city, the 8 most common, then other places and not given).
+- Who the members are: age group, gender, membership tier ([[membership-tiers]]) and where they live (country and city).
 - By qualification ([[qualifications]]): how many members hold each one, and how many hold none. With one qualification per batch ("Graduate 2019", "Graduate 2020") this is the cohort breakdown.
 - **How engaged are the members?** The scope's members as core, regular, occasional, lost, new or never came (see *Engagement* below); which events they come to: only chapter events, only global events, both, none; and how: only in person, only online, both, none.
 - Events of the scope and below: events and people who came per month, tickets not used, how often people came (once, 2 to 4 times, 5 or more), who came in the last 12 months, where they live and from which chapter.
@@ -40,12 +40,13 @@ flowchart TD
 - With whom: per order, came alone, with one more person, or as a group of 3 or more; companions without an account.
 - By qualification, as for members.
 - How engaged the people who came were before this event: first event, new, came back after being lost, occasional, regular, core.
-- Where the people who came live: country and city. Useful for international events.
+- Where the people who came live: country and city, and from how many countries. Useful for international events.
 - Age group, gender, tier, and home chapter (this chapter, another chapter, none; not on the root, where everyone belongs).
 - Tickets sold and revenue per ticket type (paid orders).
 
 ## Rules
-- **Nobody is shown individually.** Only counts leave the server. In breakdowns of people (age, gender, tier, country, city, home chapter) a group of 1 to 4 people reads "fewer than 5"; when exactly one group would be hidden, the next smallest is hidden too, so it cannot be worked out from the total.
+- **Nobody is shown individually.** Only counts leave the server. In breakdowns of people (age, gender, tier, home chapter) a group of 1 to 4 people reads "fewer than 5"; when exactly one group would be hidden, the next smallest is hidden too, so it cannot be worked out from the total.
+- **Places** (country, city) are named only with 5 or more people; smaller ones are merged into "Other places (N places)", so a place with one or two people is never named. "Other places", "not given" and the number of different countries name no place, so they are shown as they are.
 - Plain counts that organisers already see in the attendance list (tickets, orders, party sizes) are shown as they are.
 - **Member of a scope** = member of it or of a scope below it, since the first join ([[scopes-and-roles]]). On the root: every account.
 - **Engagement** is measured against the events a person could have attended: those of their chapters and the chapters above, global events, and any event they did attend, since they joined. Of the last 12 of those:

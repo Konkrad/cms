@@ -175,7 +175,7 @@ describe("statisticsService.demographicsOf", () => {
 });
 
 describe("statisticsService.demographicsOf: where people live", () => {
-	it("counts countries and cities, hiding small groups", async () => {
+	it("names places with 5 or more people and merges the rest", async () => {
 		const place = (city: string | null, country: string | null) => {
 			const id = user();
 			const db = openDb();
@@ -198,8 +198,16 @@ describe("statisticsService.demographicsOf: where people live", () => {
 			list.find((b) => b.key === key)?.count;
 		expect(count(d.countries, "Germany")).toBe(6);
 		expect(count(d.countries, "France")).toBe(5);
-		expect(count(d.countries, "Austria")).toBeNull();
-		expect(count(d.countries, "unknown")).toBeNull();
+		// Austria has one person: not named, merged into "other" (which names no place, so its
+		// count is exact, like "not given").
+		expect(d.countries.some((b) => b.key === "Austria")).toBe(false);
+		expect(d.countries.find((b) => b.key === "other")).toEqual({
+			key: "other",
+			count: 1,
+			groups: 1,
+		});
+		expect(count(d.countries, "unknown")).toBe(1);
+		expect(d.countryCount).toBe(3);
 		expect(count(d.cities, "Berlin, Germany")).toBe(6);
 		expect(count(d.cities, "Paris, France")).toBe(5);
 	});

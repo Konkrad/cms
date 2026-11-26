@@ -5,7 +5,11 @@ import { db } from "~/core/db/connection";
 import { userMemberships } from "~/core/memberships/schema";
 import { type Scope, scopeMemberships } from "~/core/scopes/schema/scopes";
 import { scopesService } from "~/core/scopes/scopes.service";
-import { type StatBucket, suppressSmall } from "~/core/statistics/suppress";
+import {
+	MIN_GROUP_SIZE,
+	type StatBucket,
+	suppressSmall,
+} from "~/core/statistics/suppress";
 import { users } from "~/core/users/schema";
 
 /**
@@ -43,9 +47,14 @@ export interface Demographics {
 	ageGroups: StatBucket[];
 	gender: StatBucket[];
 	tier: StatBucket[];
-	/** Where they live: up to 8 countries / cities ("city, country"), then "other" and "unknown". */
+	/**
+	 * Where they live: countries / cities ("city, country") with at least `MIN_GROUP_SIZE`
+	 * people, then "other" (the smaller ones together) and "unknown" (`placesOf`).
+	 */
 	countries: StatBucket[];
 	cities: StatBucket[];
+	/** How many different countries they live in. */
+	countryCount: number;
 }
 
 export interface ScopeOverview {
@@ -105,11 +114,12 @@ function ageGroup(yearOfBirth: number | null, year: number) {
 	return "65plus";
 }
 
-/** The most common places (up to `top`), then "other" and "unknown"; small groups hidden. */
-function topPlaces(
-	places: ReadonlyArray<string | null>,
-	top = 8,
-): StatBucket[] {
+/**
+ * Places with at least `MIN_GROUP_SIZE` people by name, most first; all smaller ones merged into
+ * "other" (with how many places it holds), so no place with only a few people is named; then
+ * "unknown". The "other" and "unknown" counts are exact: they name no place.
+ */
+function placesOf(places: ReadonlyArray<string | null>): StatBucket[] {
 	const counts = new Map<string, number>();
 	let unknown = 0;
 	for (const place of places) {
@@ -117,12 +127,15 @@ function topPlaces(
 		else counts.set(place, (counts.get(place) ?? 0) + 1);
 	}
 	const ranked = [...counts].sort((a, b) => b[1] - a[1]);
-	const other = ranked.slice(top).reduce((sum, [, n]) => sum + n, 0);
-	return suppressSmall([
-		...ranked.slice(0, top).map(([key, count]) => ({ key, count })),
-		...(other ? [{ key: "other", count: other }] : []),
+	const named = ranked.filter(([, n]) => n >= MIN_GROUP_SIZE);
+	const small = ranked.filter(([, n]) => n < MIN_GROUP_SIZE);
+	const other = small.reduce((sum, [, n]) => sum + n, 0);
+	// No hiding needed: every named place has enough people, and "other" / "unknown" name none.
+	return [
+		...named.map(([key, count]) => ({ key, count })),
+		...(other ? [{ key: "other", count: other, groups: small.length }] : []),
 		{ key: "unknown", count: unknown },
-	]);
+	];
 }
 
 function tally<K extends string>(
@@ -222,8 +235,11 @@ export const statisticsService = {
 					profiles.map((p) => tiers.get(p.id) ?? "none"),
 				),
 			),
-			countries: topPlaces(profiles.map((p) => p.country || null)),
-			cities: topPlaces(
+			countries: placesOf(profiles.map((p) => p.country || null)),
+			countryCount: new Set(
+				profiles.flatMap((p) => (p.country ? [p.country] : [])),
+			).size,
+			cities: placesOf(
 				profiles.map((p) =>
 					p.city ? [p.city, p.country].filter(Boolean).join(", ") : null,
 				),

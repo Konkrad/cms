@@ -10,10 +10,12 @@ export const MIN_GROUP_SIZE = 5;
 export interface StatBucket {
 	key: string;
 	count: number | null;
+	/** For a merged group ("other"): how many different values it holds. */
+	groups?: number;
 }
 
 export function suppressSmall(
-	buckets: ReadonlyArray<{ key: string; count: number }>,
+	buckets: ReadonlyArray<{ key: string; count: number; groups?: number }>,
 	min: number = MIN_GROUP_SIZE,
 ): StatBucket[] {
 	const small = (n: number) => n > 0 && n < min;
@@ -27,7 +29,7 @@ export function suppressSmall(
 		if (next) hidden.add(next.key);
 	}
 	return buckets.map((b) => ({
-		key: b.key,
+		...b,
 		count: hidden.has(b.key) ? null : b.count,
 	}));
 }

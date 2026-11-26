@@ -4,6 +4,7 @@ import {
 	BreakdownBars,
 	DemographicsBars,
 	monthRows,
+	PlacesBars,
 	StatBars,
 	StatTile,
 } from "~/core/admin/StatBars/StatBars";
@@ -71,18 +72,7 @@ export default component$(() => {
 				</h3>
 				<DemographicsBars demographics={o.demographics} />
 				<BreakdownBars breakdowns={data.value.breakdowns} />
-				<StatBars
-					title={t("admin.statistics.places")}
-					rows={o.places.map((p) => ({
-						label:
-							p.key === "other"
-								? t("admin.statistics.place.other")
-								: p.key === "unknown"
-									? t("admin.statistics.place.unknown")
-									: p.key,
-						count: p.count,
-					}))}
-				/>
+				<PlacesBars demographics={o.demographics} />
 			</section>
 
 			{/* Sections of active modules (events, …) */}

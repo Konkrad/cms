@@ -8,6 +8,7 @@ import {
 	DemographicsBars,
 	HomesBars,
 	monthRows,
+	PlacesBars,
 	StatBars,
 	StatTile,
 	t,
@@ -248,6 +249,7 @@ const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
 					{t("events.statistics.whoCame")}
 				</h4>
 				<DemographicsBars demographics={s.whoCame} />
+				<PlacesBars demographics={s.whoCame} />
 				<BreakdownBars breakdowns={s.breakdowns} />
 				<HomesBars homes={s.homes} />
 			</section>

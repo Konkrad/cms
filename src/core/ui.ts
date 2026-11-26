@@ -28,6 +28,7 @@ export {
 	HomesBars,
 	monthLabel,
 	monthRows,
+	PlacesBars,
 	StatBars,
 	type StatRow,
 	StatTile,

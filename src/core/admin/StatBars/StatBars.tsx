@@ -194,3 +194,33 @@ export const BreakdownBars = component$<{
 		</div>
 	),
 );
+
+/** Rows of a place breakdown (`Demographics.countries` / `cities`). */
+function placeRows(buckets: StatBucket[]): StatRow[] {
+	return buckets.map((b) => ({
+		label:
+			b.key === "other"
+				? t("admin.statistics.place.other")
+				: b.key === "unknown"
+					? t("admin.statistics.place.unknown")
+					: b.key,
+		count: b.count,
+	}));
+}
+
+/** Where a group of people lives: countries and cities (`statisticsService.demographicsOf`). */
+export const PlacesBars = component$<{
+	demographics: Demographics;
+	testId?: string;
+}>(({ demographics, testId }) => (
+	<div class="grid gap-4 md:grid-cols-2" data-testid={testId}>
+		<StatBars
+			title={t("admin.statistics.countries")}
+			rows={placeRows(demographics.countries)}
+		/>
+		<StatBars
+			title={t("admin.statistics.cities")}
+			rows={placeRows(demographics.cities)}
+		/>
+	</div>
+));

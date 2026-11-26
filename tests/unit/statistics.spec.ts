@@ -174,6 +174,37 @@ describe("statisticsService.demographicsOf", () => {
 	});
 });
 
+describe("statisticsService.demographicsOf: where people live", () => {
+	it("counts countries and cities, hiding small groups", async () => {
+		const place = (city: string | null, country: string | null) => {
+			const id = user();
+			const db = openDb();
+			db.prepare("UPDATE users SET city = ?, country = ? WHERE id = ?").run(
+				city,
+				country,
+				id,
+			);
+			db.close();
+			return id;
+		};
+		const ids = [
+			...Array.from({ length: 6 }, () => place("Berlin", "Germany")),
+			...Array.from({ length: 5 }, () => place("Paris", "France")),
+			place("Vienna", "Austria"),
+			place(null, null),
+		];
+		const d = await statisticsService.demographicsOf(ids);
+		const count = (list: typeof d.countries, key: string) =>
+			list.find((b) => b.key === key)?.count;
+		expect(count(d.countries, "Germany")).toBe(6);
+		expect(count(d.countries, "France")).toBe(5);
+		expect(count(d.countries, "Austria")).toBeNull();
+		expect(count(d.countries, "unknown")).toBeNull();
+		expect(count(d.cities, "Berlin, Germany")).toBe(6);
+		expect(count(d.cities, "Paris, France")).toBe(5);
+	});
+});
+
 describe("eventStatisticsService.forEvent", () => {
 	it("counts who came, with whom, and who came before", async () => {
 		const organizer = user();

@@ -4,6 +4,7 @@ import {
 	DemographicsBars,
 	formatCurrency,
 	HomesBars,
+	PlacesBars,
 	StatBars,
 	StatTile,
 	t,
@@ -126,6 +127,7 @@ export const AdminEventStatistics = component$<Props>(({ data }) => {
 					{t("events.admin.statistics.whoCame")}
 				</h2>
 				<DemographicsBars demographics={stats.whoCame} />
+				<PlacesBars demographics={stats.whoCame} />
 				<BreakdownBars breakdowns={stats.breakdowns} />
 			</section>
 

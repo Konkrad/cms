@@ -43,6 +43,9 @@ export interface Demographics {
 	ageGroups: StatBucket[];
 	gender: StatBucket[];
 	tier: StatBucket[];
+	/** Where they live: up to 8 countries / cities ("city, country"), then "other" and "unknown". */
+	countries: StatBucket[];
+	cities: StatBucket[];
 }
 
 export interface ScopeOverview {
@@ -53,8 +56,6 @@ export interface ScopeOverview {
 	/** Published notes and articles per month, the last 12 months. */
 	postsPerMonth: StatBucket[];
 	demographics: Demographics;
-	/** Up to 8 places, most members first, then "other" and "unknown". */
-	places: StatBucket[];
 }
 
 async function inChunks<T>(
@@ -102,6 +103,26 @@ function ageGroup(yearOfBirth: number | null, year: number) {
 	if (age < 55) return "45to54";
 	if (age < 65) return "55to64";
 	return "65plus";
+}
+
+/** The most common places (up to `top`), then "other" and "unknown"; small groups hidden. */
+function topPlaces(
+	places: ReadonlyArray<string | null>,
+	top = 8,
+): StatBucket[] {
+	const counts = new Map<string, number>();
+	let unknown = 0;
+	for (const place of places) {
+		if (!place) unknown++;
+		else counts.set(place, (counts.get(place) ?? 0) + 1);
+	}
+	const ranked = [...counts].sort((a, b) => b[1] - a[1]);
+	const other = ranked.slice(top).reduce((sum, [, n]) => sum + n, 0);
+	return suppressSmall([
+		...ranked.slice(0, top).map(([key, count]) => ({ key, count })),
+		...(other ? [{ key: "other", count: other }] : []),
+		{ key: "unknown", count: unknown },
+	]);
 }
 
 function tally<K extends string>(
@@ -201,6 +222,12 @@ export const statisticsService = {
 					profiles.map((p) => tiers.get(p.id) ?? "none"),
 				),
 			),
+			countries: topPlaces(profiles.map((p) => p.country || null)),
+			cities: topPlaces(
+				profiles.map((p) =>
+					p.city ? [p.city, p.country].filter(Boolean).join(", ") : null,
+				),
+			),
 		};
 	},
 
@@ -261,9 +288,8 @@ export const statisticsService = {
 		const subtree =
 			scope.parentId === null ? null : await scopesService.subtreeIds(scope.id);
 
-		const [demographics, profiles, posts] = await Promise.all([
+		const [demographics, posts] = await Promise.all([
 			this.demographicsOf(ids, now),
-			profilesOf(ids),
 			Promise.all(
 				[notes, articles].map((table) =>
 					db
@@ -279,17 +305,6 @@ export const statisticsService = {
 			),
 		]);
 
-		const placeCounts = new Map<string, number>();
-		let unknownPlace = 0;
-		for (const p of profiles) {
-			const place = [p.city, p.country].filter(Boolean).join(", ");
-			if (!place) unknownPlace++;
-			else placeCounts.set(place, (placeCounts.get(place) ?? 0) + 1);
-		}
-		const ranked = [...placeCounts].sort((a, b) => b[1] - a[1]);
-		const top = ranked.slice(0, 8);
-		const other = ranked.slice(8).reduce((sum, [, n]) => sum + n, 0);
-
 		return {
 			members: ids.length,
 			newLast30Days: members.filter((m) => m.joinedAt >= since(30)).length,
@@ -302,11 +317,6 @@ export const statisticsService = {
 				months,
 			),
 			demographics,
-			places: suppressSmall([
-				...top.map(([key, count]) => ({ key, count })),
-				...(other ? [{ key: "other", count: other }] : []),
-				{ key: "unknown", count: unknownPlace },
-			]),
 		};
 	},
 };

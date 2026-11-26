@@ -16,4 +16,6 @@ export const eventsSettings = z.object({
 	corePercent: z.coerce.number().int().min(1).max(100).default(50),
 	/** Regular: came to at least this share (%), below core. */
 	regularPercent: z.coerce.number().int().min(1).max(100).default(25),
+	/** New: fewer events they could attend so far than this; not rated yet. */
+	engagementMinEvents: z.coerce.number().int().min(1).max(100).default(4),
 });

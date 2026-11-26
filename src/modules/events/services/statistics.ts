@@ -53,10 +53,12 @@ export interface EventStatistics {
 	party: { alone: number; plusOne: number; group: number };
 	/**
 	 * People with an account who came, by how engaged they were before this event: first event
-	 * ever, came back after being lost, occasional, regular, core (`engagementOf`).
+	 * ever, new (too little history to rate), came back after being lost, occasional, regular,
+	 * core (`engagementOf`).
 	 */
 	history: {
 		firstTime: number;
+		new: number;
 		cameBack: number;
 		occasional: number;
 		regular: number;
@@ -239,19 +241,22 @@ async function attendanceOf(userIds: readonly string[]): Promise<
  * before a date (the events of their chapters and the chapters above, global events, and any
  * event they did attend; only since they joined), the share they took part in. Core and
  * regular from the settings' thresholds, occasional below; lost = took part before, but in none
- * of those; never = never took part. Adapts to how often a chapter holds events.
+ * of those; new = took part, but had fewer than `minEvents` events to attend so far (too early
+ * to rate); never = never took part. Adapts to how often a chapter holds events.
  */
 export type EngagementLevel =
 	| "core"
 	| "regular"
 	| "occasional"
 	| "lost"
+	| "new"
 	| "never";
 
 export interface EngagementRule {
 	window: number;
 	corePercent: number;
 	regularPercent: number;
+	minEvents: number;
 }
 
 export function engagementRule(): EngagementRule {
@@ -260,6 +265,7 @@ export function engagementRule(): EngagementRule {
 		window: s.engagementWindow,
 		corePercent: s.corePercent,
 		regularPercent: s.regularPercent,
+		minEvents: s.engagementMinEvents,
 	};
 }
 
@@ -341,6 +347,10 @@ async function engagementOf(
 				(e) => went.has(e.id) || (could.has(e.scopeId) && e.startDate >= since),
 			)
 			.slice(0, rule.window);
+		if (window.length < rule.minEvents) {
+			levels.set(id, "new");
+			continue;
+		}
 		const share =
 			(window.filter((e) => went.has(e.id)).length / window.length) * 100;
 		levels.set(
@@ -425,6 +435,7 @@ export const eventStatisticsService = {
 		const levels = await engagementOf(userIds, event.startDate, rule, event.id);
 		const history = {
 			firstTime: 0,
+			new: 0,
 			cameBack: 0,
 			occasional: 0,
 			regular: 0,
@@ -515,6 +526,7 @@ export const eventStatisticsService = {
 			regular: 0,
 			occasional: 0,
 			lost: 0,
+			new: 0,
 			never: 0,
 		};
 		for (const level of levels.values()) engagement[level]++;

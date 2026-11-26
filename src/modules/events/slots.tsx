@@ -110,7 +110,7 @@ const DashboardEvents = component$<SlotProps["admin.dashboard.widgets"]>(
 
 /**
  * `admin.statistics.sections`: how engaged the scope's members are (core,
- * regular, occasional, lost, never; chapter or global events, in person or online), then the events of the scope and below and who came.
+ * regular, occasional, lost, new, never; chapter or global events, in person or online), then the events of the scope and below and who came.
  */
 const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
 	() => {
@@ -126,7 +126,7 @@ const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
 					{t("events.statistics.membersIntro")}
 				</p>
 				<div
-					class="grid grid-cols-2 md:grid-cols-5 gap-4"
+					class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"
 					data-testid="statistics-members-activity"
 				>
 					<StatTile
@@ -157,6 +157,13 @@ const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
 						value={s.engagement.lost}
 						hint={t("events.engagement.lostHint", {
 							count: s.engagementRule.window,
+						})}
+					/>
+					<StatTile
+						label={t("events.engagement.new")}
+						value={s.engagement.new}
+						hint={t("events.engagement.newHint", {
+							count: s.engagementRule.minEvents,
 						})}
 					/>
 					<StatTile

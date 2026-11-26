@@ -217,7 +217,8 @@ describe("eventStatisticsService.forEvent", () => {
 		// A came for the first time; C came before (how engaged depends on the other events).
 		expect(s.history.firstTime).toBe(1);
 		expect(
-			s.history.cameBack +
+			s.history.new +
+				s.history.cameBack +
 				s.history.occasional +
 				s.history.regular +
 				s.history.core,
@@ -281,7 +282,8 @@ describe("eventStatisticsService.forEvent", () => {
 	it("rates engagement against the last events a member could attend", async () => {
 		// In the year 2000, so the events of other tests (all recent) stay out of it.
 		const organizer = user();
-		const [core, regular, occasional, lost, never] = [
+		const [core, regular, occasional, lost, newcomer, never] = [
+			user(),
 			user(),
 			user(),
 			user(),
@@ -294,9 +296,12 @@ describe("eventStatisticsService.forEvent", () => {
 		db.prepare(
 			"INSERT INTO scopes (id, parent_id, kind, slug, name, path) VALUES (?, ?, 'chapter', ?, ?, ?)",
 		).run(chapterId, root, `c-${chapterId}`, "Chapter", `/c-${chapterId}`);
-		for (const id of [core, regular, occasional, lost, never]) {
+		for (const id of [core, regular, occasional, lost, newcomer, never]) {
 			db.prepare("UPDATE users SET created_at = ? WHERE id = ?").run(
-				"1997-01-01T00:00:00.000Z",
+				// The newcomer joined before the last two events only.
+				id === newcomer
+					? "2000-06-01T00:00:00.000Z"
+					: "1997-01-01T00:00:00.000Z",
 				id,
 			);
 			db.prepare(
@@ -338,11 +343,12 @@ describe("eventStatisticsService.forEvent", () => {
 		});
 		order(recent[12].eventId, occasional, [occasional], true);
 		order(old.eventId, lost, [lost], true);
+		order(recent[12].eventId, newcomer, [newcomer], true);
 
 		const s = await eventStatisticsService.forScopes(
 			[chapterId],
 			chapterId,
-			[core, regular, occasional, lost, never],
+			[core, regular, occasional, lost, newcomer, never],
 			new Date("2001-01-01T00:00:00.000Z"),
 		);
 		expect(s.engagement).toEqual({
@@ -350,12 +356,14 @@ describe("eventStatisticsService.forEvent", () => {
 			regular: 1,
 			occasional: 1,
 			lost: 1,
+			new: 1,
 			never: 1,
 		});
 		expect(s.engagementRule).toEqual({
 			window: 12,
 			corePercent: 50,
 			regularPercent: 25,
+			minEvents: 4,
 		});
 	});
 

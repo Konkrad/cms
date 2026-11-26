@@ -32,14 +32,14 @@ flowchart TD
 - New members and published notes and articles per month, the last 12 months.
 - Who the members are: age group, gender, membership tier ([[membership-tiers]]) and where they live.
 - By qualification ([[qualifications]]): how many members hold each one, and how many hold none. With one qualification per batch ("Graduate 2019", "Graduate 2020") this is the cohort breakdown.
-- **How engaged are the members?** The scope's members as core, regular, occasional, lost or never came (see *Engagement* below); which events they come to: only chapter events, only global events, both, none; and how: only in person, only online, both, none.
+- **How engaged are the members?** The scope's members as core, regular, occasional, lost, new or never came (see *Engagement* below); which events they come to: only chapter events, only global events, both, none; and how: only in person, only online, both, none.
 - Events of the scope and below: events and people who came per month, tickets not used, how often people came (once, 2 to 4 times, 5 or more), who came in the last 12 months and from which chapter.
 
 ## What an event shows
 - From RSVP to the door: said yes (maybe, no), tickets issued and for how many people, people who came, tickets not used once it is over.
 - With whom: per order, came alone, with one more person, or as a group of 3 or more; companions without an account.
 - By qualification, as for members.
-- How engaged the people who came were before this event: first event, came back after being lost, occasional, regular, core.
+- How engaged the people who came were before this event: first event, new, came back after being lost, occasional, regular, core.
 - Age group, gender, tier, and home chapter (this chapter, another chapter, none; not on the root, where everyone belongs).
 - Tickets sold and revenue per ticket type (paid orders).
 
@@ -52,9 +52,10 @@ flowchart TD
   - **regular** = at least a quarter,
   - **occasional** = less,
   - **lost** = none, but came to an event before,
+  - **new** = came, but has had fewer than 4 events to attend so far: too early to rate,
   - **never** = never came.
 
-  So it follows each chapter's own rhythm: 12 events can be three years in a small chapter and six months in a busy one. The number of events and both thresholds are settings of the site. Logins do not count. On the event tab it is measured just before the event.
+  So it follows each chapter's own rhythm: 12 events can be three years in a small chapter and six months in a busy one. The number of events, both thresholds and the minimum for "new" are settings of the site. Logins do not count. On the event tab it is measured just before the event.
 - **Global events** are the root's events; **chapter events** are those of any other scope.
 - **Took part** = on a scanned ticket (in-person and hybrid events). Online events have no check-in, so there a ticket or a "yes" counts.
 - **Came** = on a scanned ticket. A scan checks in everyone on the ticket ([[rsvp-and-check-in]]), so companions count as having come with the buyer. Age, gender, tier and home chapter only count people with an account.
@@ -62,7 +63,7 @@ flowchart TD
 
 ## Decisions
 - 2026-11: three levels (site, chapter, event) in the admin area. No page views or visitor tracking in the CMS: that is left to a third-party tool.
-- 2026-11: engagement is a share of the events a person could attend, not fixed months or years, so it fits small and busy chapters alike; the score is only counted, never shown or stored per person (no profiling).
+- 2026-11: engagement is a share of the events a person could attend, not fixed months or years, so it fits small and busy chapters alike; the score is only counted, never shown or stored per person (no profiling). Newcomers are "new" until they have had a few events to attend, so one event does not make anyone core.
 - 2026-11: activity means coming to events, not logging in: what matters is whether members take part, whom we lost, and who only comes locally or only globally.
 - 2026-11: small groups hidden from 5, so the page can go to every chapter's managers without exposing anyone's private profile fields.
 - 2026-11: cohorts (batch, graduation year) are one qualification per batch, grouped by qualification; no separate cohort field. A group field for qualification types (all graduates, periods) only if the list gets too long.

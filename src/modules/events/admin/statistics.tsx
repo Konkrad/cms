@@ -92,6 +92,10 @@ export const AdminEventStatistics = component$<Props>(({ data }) => {
 							count: stats.history.firstTime,
 						},
 						{
+							label: t("events.engagement.new"),
+							count: stats.history.new,
+						},
+						{
 							label: t("events.admin.statistics.cameBack"),
 							count: stats.history.cameBack,
 						},

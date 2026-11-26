@@ -23,6 +23,7 @@ export {
 } from "~/core/admin/Pagination/Pagination";
 export { SearchBar } from "~/core/admin/SearchBar/SearchBar";
 export {
+	BreakdownBars,
 	DemographicsBars,
 	HomesBars,
 	monthLabel,

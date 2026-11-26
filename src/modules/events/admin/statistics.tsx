@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import {
+	BreakdownBars,
 	DemographicsBars,
 	formatCurrency,
 	HomesBars,
@@ -108,6 +109,7 @@ export const AdminEventStatistics = component$<Props>(({ data }) => {
 					{t("events.admin.statistics.whoCame")}
 				</h2>
 				<DemographicsBars demographics={stats.whoCame} />
+				<BreakdownBars breakdowns={stats.breakdowns} />
 			</section>
 
 			{stats.products.length > 0 && (

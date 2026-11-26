@@ -29,8 +29,10 @@ sequenceDiagram
 - QR codes expire after the chosen number of hours and can be revoked. Scanning a valid one **approves the claim at once**, in the name of the admin who made the code: they vouched for it by handing it out.
 - A pending claim is decided in the **Reviews** queue ([[review-flow]]) by the root's managers; a rejection keeps the reviewer's comment on the claim.
 - Approval raises the tier if the qualification grants a higher one, never lowers it.
+- The statistics pages ([[statistics]]) count who holds which qualification: the members of a scope, who came to an event. Approved only.
 
 ## Decisions
 - QR codes for in-person checks (at an event or info desk) approve immediately; no second check.
 - 2026-11: pending claims moved from the qualifications admin page to the site-wide [[review-flow]].
+- 2026-11: a cohort (batch, graduation year) is one qualification per batch, e.g. "Graduate 2019"; the statistics group by qualification.
 - 2026-11: members do not claim qualifications themselves; this is not wanted. Qualifications come from QR codes; pending claims only from demo data.

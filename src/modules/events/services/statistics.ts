@@ -4,6 +4,8 @@ import {
 	db,
 	getRootScope,
 	lastMonths,
+	type PeopleBreakdownResult,
+	peopleBreakdowns,
 	perMonth,
 	type StatBucket,
 	statisticsService,
@@ -53,6 +55,8 @@ export interface EventStatistics {
 	returning: number;
 	whoCame: Demographics;
 	homes: StatBucket[];
+	/** Who came by what other modules know (e.g. qualifications); people with an account. */
+	breakdowns: PeopleBreakdownResult[];
 	/** Paid orders per product (tickets sold and revenue in EUR). */
 	products: Array<{ name: string; sold: number; revenue: number }>;
 }
@@ -95,6 +99,7 @@ export interface ScopeEventStatistics {
 	/** Who came to the subtree's events in the last 12 months. */
 	whoCame: Demographics;
 	homes: StatBucket[];
+	breakdowns: PeopleBreakdownResult[];
 }
 
 async function inChunks<T>(
@@ -325,10 +330,11 @@ export const eventStatisticsService = {
 			byProduct.set(s.name, row);
 		}
 
-		const [whoCame, homes, peopleOnTickets] = await Promise.all([
+		const [whoCame, homes, peopleOnTickets, breakdowns] = await Promise.all([
 			statisticsService.demographicsOf(userIds, now),
 			statisticsService.homesOf(userIds, event.scopeId),
 			seatsOf(eventTickets.map((t) => t.id)),
+			peopleBreakdowns(userIds),
 		]);
 
 		return {
@@ -345,6 +351,7 @@ export const eventStatisticsService = {
 			returning: userIds.filter((id) => before.has(id)).length,
 			whoCame,
 			homes,
+			breakdowns,
 			products: [...byProduct].map(([name, v]) => ({ name, ...v })),
 		};
 	},
@@ -457,9 +464,10 @@ export const eventStatisticsService = {
 		}
 
 		const recentUsers = distinctUsers(cameRecently);
-		const [whoCame, homes] = await Promise.all([
+		const [whoCame, homes, breakdowns] = await Promise.all([
 			statisticsService.demographicsOf(recentUsers, now),
 			statisticsService.homesOf(recentUsers, homeScopeId),
+			peopleBreakdowns(recentUsers),
 		]);
 
 		return {
@@ -479,6 +487,7 @@ export const eventStatisticsService = {
 			visits,
 			whoCame,
 			homes,
+			breakdowns,
 		};
 	},
 };

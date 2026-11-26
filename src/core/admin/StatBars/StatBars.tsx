@@ -1,7 +1,11 @@
 import { component$ } from "@qwik.dev/core";
 import { formatDate, formatNumber, t } from "~/core/i18n";
 import type { Demographics } from "~/core/statistics/statistics.service";
-import { MIN_GROUP_SIZE, type StatBucket } from "~/core/statistics/suppress";
+import {
+	MIN_GROUP_SIZE,
+	type PeopleBreakdownResult,
+	type StatBucket,
+} from "~/core/statistics/suppress";
 
 /** One row of a breakdown: its label and count (null = a small group, hidden). */
 export interface StatRow {
@@ -176,4 +180,17 @@ export const HomesBars = component$<{ homes: StatBucket[]; testId?: string }>(
 				testId={testId}
 			/>
 		),
+);
+
+/** The active modules' breakdowns of a group of people (`peopleBreakdowns`), e.g. by qualification. */
+export const BreakdownBars = component$<{
+	breakdowns: PeopleBreakdownResult[];
+}>(({ breakdowns }) =>
+	breakdowns.length === 0 ? null : (
+		<div class="grid gap-4 md:grid-cols-2" data-testid="stat-breakdowns">
+			{breakdowns.map((b) => (
+				<StatBars key={b.id} title={b.title} rows={b.rows} />
+			))}
+		</div>
+	),
 );

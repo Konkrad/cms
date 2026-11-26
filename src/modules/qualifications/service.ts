@@ -31,6 +31,51 @@ export type UserQualificationWithApplicant = UserQualificationWithType & {
 };
 
 export const qualificationsService = {
+	/**
+	 * Statistics: how many of these people hold each qualification (approved), by type label,
+	 * plus those with none. Counts only; a person with two qualifications counts in both.
+	 */
+	async countHoldersByType(
+		userIds: readonly string[],
+	): Promise<Array<{ key: string; label: string; count: number }>> {
+		const types = await this.getTypes();
+		const holders = new Map<string, Set<string>>();
+		const withAny = new Set<string>();
+		for (let i = 0; i < userIds.length; i += 500) {
+			const rows = await db
+				.select({
+					userId: userQualifications.userId,
+					typeId: userQualifications.typeId,
+				})
+				.from(userQualifications)
+				.where(
+					and(
+						inArray(userQualifications.userId, userIds.slice(i, i + 500)),
+						eq(userQualifications.status, "approved"),
+					),
+				);
+			for (const r of rows) {
+				holders.set(
+					r.typeId,
+					(holders.get(r.typeId) ?? new Set()).add(r.userId),
+				);
+				withAny.add(r.userId);
+			}
+		}
+		return [
+			...types.map((type) => ({
+				key: type.id,
+				label: type.label,
+				count: holders.get(type.id)?.size ?? 0,
+			})),
+			{
+				key: "none",
+				label: t("qualifications.statistics.none"),
+				count: new Set(userIds).size - withAny.size,
+			},
+		];
+	},
+
 	// Qualification types (admin-managed)
 
 	async getTypes(): Promise<QualificationType[]> {

@@ -112,6 +112,7 @@ export {
 } from "~/core/statistics/statistics.service";
 export {
 	MIN_GROUP_SIZE,
+	type PeopleBreakdownResult,
 	type StatBucket,
 	suppressCount,
 	suppressSmall,
@@ -160,6 +161,7 @@ export {
 // action (never trust the client); steps are submitted through core's single step action.
 export type { PendingRequirement } from "~/core/requirements/requirements";
 export { requirements } from "~/core/registry/requirements";
+export { peopleBreakdowns } from "~/core/registry/statistics";
 /** ADMIN ONLY: stored requirement values (private answers) by user id, then requirement id. */
 export const requirementValuesByUser = (
 	requirementIds: readonly string[],

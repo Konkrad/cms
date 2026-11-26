@@ -3,6 +3,7 @@ import type { SlotComponents, SlotProps } from "~/contracts/slots";
 import { useSubmitRequirement } from "~/core/setup-actions";
 import {
 	Alert,
+	BreakdownBars,
 	Button,
 	DemographicsBars,
 	HomesBars,
@@ -245,6 +246,7 @@ const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
 					{t("events.statistics.whoCame")}
 				</h4>
 				<DemographicsBars demographics={s.whoCame} />
+				<BreakdownBars breakdowns={s.breakdowns} />
 				<HomesBars homes={s.homes} />
 			</section>
 		);

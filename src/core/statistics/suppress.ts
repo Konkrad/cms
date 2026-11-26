@@ -39,3 +39,10 @@ export function suppressCount(
 ): number | null {
 	return count > 0 && count < min ? null : count;
 }
+
+/** A module's breakdown of a group of people (`PeopleBreakdown`), small groups hidden. */
+export interface PeopleBreakdownResult {
+	id: string;
+	title: string;
+	rows: Array<{ label: string; count: number | null }>;
+}

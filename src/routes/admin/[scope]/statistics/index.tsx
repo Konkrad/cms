@@ -1,12 +1,14 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import {
+	BreakdownBars,
 	DemographicsBars,
 	monthRows,
 	StatBars,
 	StatTile,
 } from "~/core/admin/StatBars/StatBars";
 import { t } from "~/core/i18n";
+import { peopleBreakdowns } from "~/core/registry/statistics";
 import { adminUrl } from "~/core/router/scope-path";
 import { ADMIN_ACCESS, requireScopeRole } from "~/core/scopes/access";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
@@ -21,6 +23,10 @@ export const useStatistics = routeLoader$(async (event) => {
 		scopeName: scope.name,
 		base: adminUrl(scope.path),
 		overview: await statisticsService.overview(scope),
+		// The members by what active modules know about them (e.g. qualifications).
+		breakdowns: await peopleBreakdowns(
+			await statisticsService.memberIds(scope),
+		),
 	});
 });
 
@@ -64,6 +70,7 @@ export default component$(() => {
 					{t("admin.statistics.whoAreMembers")}
 				</h3>
 				<DemographicsBars demographics={o.demographics} />
+				<BreakdownBars breakdowns={data.value.breakdowns} />
 				<StatBars
 					title={t("admin.statistics.places")}
 					rows={o.places.map((p) => ({

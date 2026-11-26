@@ -7,6 +7,8 @@ code:
   - src/routes/admin/[scope]/statistics/index.tsx
   - src/modules/events/services/statistics.ts
   - src/modules/events/admin/statistics.tsx
+  - src/core/registry/statistics.ts
+  - src/modules/qualifications/service.ts
 tags: [admin, statistics]
 ---
 # Statistics
@@ -22,18 +24,20 @@ flowchart TD
 ## Where
 - **Statistics** in the admin area of every scope ([[admin-area]]), for anyone with a managing role there.
 - The **Statistics** tab of an event in the events admin ([[events]]).
-- Modules add their own section to the scope page (the events module adds events).
+- Modules add their own section to the scope page (the events module adds events), and can add a breakdown of people wherever people are counted (the qualifications module adds "by qualification").
 
 ## What a scope shows
 - Members and new members in the last 30 days.
 - New members and published notes and articles per month, the last 12 months.
 - Who the members are: age group, gender, membership tier ([[membership-tiers]]) and where they live.
+- By qualification ([[qualifications]]): how many members hold each one, and how many hold none. With one qualification per batch ("Graduate 2019", "Graduate 2020") this is the cohort breakdown.
 - **Do members come to events?** The scope's members, at any event anywhere: active (came in the last 6 months), lost (came before, not in the last 6 months), never came; the last time they came (3, 6, 12 months, longer ago, never); which events they come to: only chapter events, only global events, both, none; and how: only in person, only online, both, none.
 - Events of the scope and below: events and people who came per month, tickets not used, how often people came (once, 2 to 4 times, 5 or more), who came in the last 12 months and from which chapter.
 
 ## What an event shows
 - From RSVP to the door: said yes (maybe, no), tickets issued and for how many people, people who came, tickets not used once it is over.
 - With whom: per order, came alone, with one more person, or as a group of 3 or more; companions without an account.
+- By qualification, as for members.
 - First event or came before, age group, gender, tier, and home chapter (this chapter, another chapter, none; not on the root, where everyone belongs).
 - Tickets sold and revenue per ticket type (paid orders).
 
@@ -45,10 +49,12 @@ flowchart TD
 - **Global events** are the root's events; **chapter events** are those of any other scope.
 - **Took part** = on a scanned ticket (in-person and hybrid events). Online events have no check-in, so there a ticket or a "yes" counts.
 - **Came** = on a scanned ticket. A scan checks in everyone on the ticket ([[rsvp-and-check-in]]), so companions count as having come with the buyer. Age, gender, tier and home chapter only count people with an account.
+- **By qualification** counts approved qualifications only; someone with two counts in both groups.
 - **Came before** = was on a scanned ticket of an event that started earlier.
 
 ## Decisions
 - 2026-11: three levels (site, chapter, event) in the admin area. No page views or visitor tracking in the CMS: that is left to a third-party tool.
 - 2026-11: activity means coming to events, not logging in: what matters is whether members take part, whom we lost, and who only comes locally or only globally.
 - 2026-11: small groups hidden from 5, so the page can go to every chapter's managers without exposing anyone's private profile fields.
+- 2026-11: cohorts (batch, graduation year) are one qualification per batch, grouped by qualification; no separate cohort field. A group field for qualification types (all graduates, periods) only if the list gets too long.
 - 2026-11: later, not now: a +1 on free-event RSVPs, a standard feedback email after events, and verifying who actually joined an online event (issue #137).

@@ -1,11 +1,15 @@
 import crypto from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
+import { peopleBreakdowns } from "~/core/registry/statistics";
 import { statisticsService } from "~/core/statistics/statistics.service";
 import { suppressCount, suppressSmall } from "~/core/statistics/suppress";
 import { eventStatisticsService } from "~/modules/events/services/statistics";
+import { qualificationsService } from "~/modules/qualifications/service";
 import {
 	createTestEvent,
 	createTestParticipation,
+	createTestQualification,
+	createTestQualificationType,
 	createTestUser,
 	ensureRootScope,
 	openDb,
@@ -320,5 +324,38 @@ describe("eventStatisticsService.forEvent", () => {
 		expect(
 			s.attendeesPerMonth.reduce((sum, b) => sum + (b.count ?? 0), 0),
 		).toBeGreaterThanOrEqual(1);
+	});
+});
+
+describe("statistics by qualification", () => {
+	it("counts approved holders per type and people with none", async () => {
+		const batch2019 = createTestQualificationType({ label: "Graduate 2019" });
+		const batch2020 = createTestQualificationType({ label: "Graduate 2020" });
+		cleanups.push(batch2019.cleanup, batch2020.cleanup);
+		const people = Array.from({ length: 12 }, () => user());
+		people.slice(0, 6).forEach((id) => {
+			createTestQualification(id, batch2019.typeId, { status: "approved" });
+		});
+		createTestQualification(people[6], batch2020.typeId, {
+			status: "approved",
+		});
+		createTestQualification(people[7], batch2020.typeId); // pending: not counted
+
+		const groups = await qualificationsService.countHoldersByType(people);
+		const count = (label: string) =>
+			groups.find((g) => g.label === label)?.count;
+		expect(count("Graduate 2019")).toBe(6);
+		expect(count("Graduate 2020")).toBe(1);
+		expect(groups.at(-1)).toMatchObject({ key: "none", count: 5 });
+
+		// On the statistics pages the single 2020 graduate is hidden, and so is the next smallest.
+		const [byType] = (await peopleBreakdowns(people)).filter(
+			(b) => b.id === "qualifications.byType",
+		);
+		const shown = (label: string) =>
+			byType.rows.find((r) => r.label === label)?.count;
+		expect(shown("Graduate 2019")).toBe(6);
+		expect(shown("Graduate 2020")).toBeNull();
+		expect(shown("No qualification")).toBeNull();
 	});
 });

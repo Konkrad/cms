@@ -109,8 +109,8 @@ const DashboardEvents = component$<SlotProps["admin.dashboard.widgets"]>(
 );
 
 /**
- * `admin.statistics.sections`: whether the scope's members come to events (recently, lost, never;
- * chapter or global events, in person or online), then the events of the scope and below and who came.
+ * `admin.statistics.sections`: how engaged the scope's members are (core,
+ * regular, occasional, lost, never; chapter or global events, in person or online), then the events of the scope and below and who came.
  */
 const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
 	() => {
@@ -126,55 +126,45 @@ const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
 					{t("events.statistics.membersIntro")}
 				</p>
 				<div
-					class="grid grid-cols-2 md:grid-cols-4 gap-4"
+					class="grid grid-cols-2 md:grid-cols-5 gap-4"
 					data-testid="statistics-members-activity"
 				>
 					<StatTile
-						label={t("events.statistics.active")}
-						value={s.lastCame.within3Months + s.lastCame.within6Months}
-						hint={t("events.statistics.activeHint")}
+						label={t("events.engagement.core")}
+						value={s.engagement.core}
+						hint={t("events.engagement.coreHint", {
+							percent: s.engagementRule.corePercent,
+							count: s.engagementRule.window,
+						})}
 					/>
 					<StatTile
-						label={t("events.statistics.lost")}
-						value={s.lastCame.within12Months + s.lastCame.longerAgo}
-						hint={t("events.statistics.lostHint")}
+						label={t("events.engagement.regular")}
+						value={s.engagement.regular}
+						hint={t("events.engagement.regularHint", {
+							percent: s.engagementRule.regularPercent,
+							count: s.engagementRule.window,
+						})}
 					/>
 					<StatTile
-						label={t("events.statistics.neverCame")}
-						value={s.lastCame.never}
+						label={t("events.engagement.occasional")}
+						value={s.engagement.occasional}
+						hint={t("events.engagement.occasionalHint", {
+							percent: s.engagementRule.regularPercent,
+						})}
 					/>
 					<StatTile
-						label={t("events.statistics.noShows")}
-						value={s.ticketsIssued - s.ticketsScanned}
-						hint={t("events.statistics.ofIssued", { count: s.ticketsIssued })}
+						label={t("events.engagement.lost")}
+						value={s.engagement.lost}
+						hint={t("events.engagement.lostHint", {
+							count: s.engagementRule.window,
+						})}
+					/>
+					<StatTile
+						label={t("events.engagement.never")}
+						value={s.engagement.never}
 					/>
 				</div>
 				<div class="grid gap-4 md:grid-cols-3">
-					<StatBars
-						title={t("events.statistics.lastCame")}
-						rows={[
-							{
-								label: t("events.statistics.within3Months"),
-								count: s.lastCame.within3Months,
-							},
-							{
-								label: t("events.statistics.within6Months"),
-								count: s.lastCame.within6Months,
-							},
-							{
-								label: t("events.statistics.within12Months"),
-								count: s.lastCame.within12Months,
-							},
-							{
-								label: t("events.statistics.longerAgo"),
-								count: s.lastCame.longerAgo,
-							},
-							{
-								label: t("events.statistics.never"),
-								count: s.lastCame.never,
-							},
-						]}
-					/>
 					<StatBars
 						title={t("events.statistics.eventKinds")}
 						rows={[
@@ -216,6 +206,11 @@ const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
 								count: s.formats.never,
 							},
 						]}
+					/>
+					<StatTile
+						label={t("events.statistics.noShows")}
+						value={s.ticketsIssued - s.ticketsScanned}
+						hint={t("events.statistics.ofIssued", { count: s.ticketsIssued })}
 					/>
 				</div>
 				<div class="grid gap-4 md:grid-cols-3">

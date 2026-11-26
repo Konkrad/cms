@@ -85,21 +85,34 @@ export const AdminEventStatistics = component$<Props>(({ data }) => {
 					testId="event-stat-party"
 				/>
 				<StatBars
-					title={t("events.admin.statistics.firstTimeOrReturning")}
+					title={t("events.admin.statistics.history")}
 					rows={[
 						{
 							label: t("events.admin.statistics.firstTime"),
-							count: stats.firstTime,
+							count: stats.history.firstTime,
 						},
 						{
-							label: t("events.admin.statistics.returning"),
-							count: stats.returning,
+							label: t("events.admin.statistics.cameBack"),
+							count: stats.history.cameBack,
+						},
+						{
+							label: t("events.engagement.occasional"),
+							count: stats.history.occasional,
+						},
+						{
+							label: t("events.engagement.regular"),
+							count: stats.history.regular,
+						},
+						{
+							label: t("events.engagement.core"),
+							count: stats.history.core,
 						},
 						{
 							label: t("events.admin.statistics.withoutAccount"),
 							count: stats.cameWithoutAccount,
 						},
 					]}
+					testId="event-stat-history"
 				/>
 				<HomesBars homes={stats.homes} />
 			</div>

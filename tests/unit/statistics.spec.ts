@@ -214,14 +214,20 @@ describe("eventStatisticsService.forEvent", () => {
 		expect(s.peopleCame).toBe(3);
 		expect(s.cameWithoutAccount).toBe(1);
 		expect(s.party).toEqual({ alone: 1, plusOne: 1, group: 0 });
-		expect(s.firstTime).toBe(1);
-		expect(s.returning).toBe(1);
+		// A came for the first time; C came before (how engaged depends on the other events).
+		expect(s.history.firstTime).toBe(1);
+		expect(
+			s.history.cameBack +
+				s.history.occasional +
+				s.history.regular +
+				s.history.core,
+		).toBe(1);
 		expect(s.products.reduce((sum, p) => sum + p.revenue, 0)).toBe(30);
 		// The output carries no person, only counts.
 		expect(JSON.stringify(s)).not.toContain(a);
 	});
 
-	it("sorts members into active, lost and never, and chapter or global events", async () => {
+	it("sorts members into chapter or global events", async () => {
 		const organizer = user();
 		const active = user();
 		const lost = user();
@@ -264,18 +270,92 @@ describe("eventStatisticsService.forEvent", () => {
 			lost,
 			never,
 		]);
-		expect(s.lastCame).toEqual({
-			within3Months: 1,
-			within6Months: 0,
-			within12Months: 1,
-			longerAgo: 0,
-			never: 1,
-		});
 		expect(s.eventKinds).toEqual({
 			chapterOnly: 1,
 			globalOnly: 0,
 			both: 1,
 			never: 1,
+		});
+	});
+
+	it("rates engagement against the last events a member could attend", async () => {
+		// In the year 2000, so the events of other tests (all recent) stay out of it.
+		const organizer = user();
+		const [core, regular, occasional, lost, never] = [
+			user(),
+			user(),
+			user(),
+			user(),
+			user(),
+		];
+		const root = ensureRootScope();
+		const chapterId = crypto.randomUUID();
+		const db = openDb();
+		db.prepare(
+			"INSERT INTO scopes (id, parent_id, kind, slug, name, path) VALUES (?, ?, 'chapter', ?, ?, ?)",
+		).run(chapterId, root, `c-${chapterId}`, "Chapter", `/c-${chapterId}`);
+		for (const id of [core, regular, occasional, lost, never]) {
+			db.prepare("UPDATE users SET created_at = ? WHERE id = ?").run(
+				"1997-01-01T00:00:00.000Z",
+				id,
+			);
+			db.prepare(
+				"INSERT INTO scope_memberships (user_id, scope_id) VALUES (?, ?)",
+			).run(id, chapterId);
+		}
+		db.close();
+		cleanups.push(() => {
+			const db2 = openDb();
+			db2.prepare("DELETE FROM scopes WHERE id = ?").run(chapterId);
+			db2.close();
+		});
+		const at = (iso: string) => ({
+			scopeId: chapterId,
+			startDate: iso,
+			endDate: iso,
+		});
+		// One event in 1998, then 13 in 2000: the last 12 leave the 1998 one out.
+		const old = createTestEvent(organizer, at("1998-06-01T18:00:00.000Z"));
+		const recent = Array.from({ length: 13 }, (_, i) =>
+			createTestEvent(
+				organizer,
+				at(new Date(Date.UTC(2000, 0, 1 + i * 14, 18)).toISOString()),
+			),
+		);
+		cleanups.push(old.cleanup, ...recent.map((e) => e.cleanup));
+		const sql = openDb();
+		for (const e of [old, ...recent])
+			sql
+				.prepare("UPDATE events SET status = 'published' WHERE id = ?")
+				.run(e.eventId);
+		sql.close();
+		// Core: 7 of the last 12 (58%); regular: 3 (25%); occasional: 1; lost: only in 1998.
+		recent.slice(6).forEach((e) => {
+			order(e.eventId, core, [core], true);
+		});
+		recent.slice(10).forEach((e) => {
+			order(e.eventId, regular, [regular], true);
+		});
+		order(recent[12].eventId, occasional, [occasional], true);
+		order(old.eventId, lost, [lost], true);
+
+		const s = await eventStatisticsService.forScopes(
+			[chapterId],
+			chapterId,
+			[core, regular, occasional, lost, never],
+			new Date("2001-01-01T00:00:00.000Z"),
+		);
+		expect(s.engagement).toEqual({
+			core: 1,
+			regular: 1,
+			occasional: 1,
+			lost: 1,
+			never: 1,
+		});
+		expect(s.engagementRule).toEqual({
+			window: 12,
+			corePercent: 50,
+			regularPercent: 25,
 		});
 	});
 
@@ -319,7 +399,7 @@ describe("eventStatisticsService.forEvent", () => {
 			[a],
 		);
 		expect(s.ticketsScanned).toBeGreaterThanOrEqual(1);
-		expect(s.lastCame.within3Months).toBe(1);
+		expect(s.engagement.never).toBe(0);
 		expect(s.eventKinds.globalOnly).toBe(1);
 		expect(
 			s.attendeesPerMonth.reduce((sum, b) => sum + (b.count ?? 0), 0),

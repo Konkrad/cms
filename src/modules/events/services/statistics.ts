@@ -4,12 +4,14 @@ import {
 	db,
 	getRootScope,
 	lastMonths,
+	moduleSettings,
 	type PeopleBreakdownResult,
 	peopleBreakdowns,
 	perMonth,
 	type StatBucket,
 	statisticsService,
 } from "~/core";
+import { scopeMemberships, scopes, users } from "~/core/schema";
 import { events } from "../schema/events";
 import { participationStatus } from "../schema/participation-status";
 import { products } from "../schema/products";
@@ -26,7 +28,6 @@ import { transactions } from "../schema/transactions";
  * attendance list the organizers already see.
  */
 
-const DAY_MS = 86_400_000;
 const CHUNK = 500;
 
 /** One person on a scanned ticket: an account, or a companion without one (`userId` null). */
@@ -50,9 +51,18 @@ export interface EventStatistics {
 	cameWithoutAccount: number;
 	/** Orders of the people who came, by how many came on it. */
 	party: { alone: number; plusOne: number; group: number };
-	/** People with an account who came: first event ever, or came before. */
-	firstTime: number;
-	returning: number;
+	/**
+	 * People with an account who came, by how engaged they were before this event: first event
+	 * ever, came back after being lost, occasional, regular, core (`engagementOf`).
+	 */
+	history: {
+		firstTime: number;
+		cameBack: number;
+		occasional: number;
+		regular: number;
+		core: number;
+	};
+	engagementRule: EngagementRule;
 	whoCame: Demographics;
 	homes: StatBucket[];
 	/** Who came by what other modules know (e.g. qualifications); people with an account. */
@@ -69,17 +79,9 @@ export interface ScopeEventStatistics {
 	/** Tickets of ended events of the last 12 months: issued and scanned. */
 	ticketsIssued: number;
 	ticketsScanned: number;
-	/**
-	 * The scope's members by the last time they came to any event (anywhere): within 3, 6 or 12
-	 * months, longer ago ("lost"), or never.
-	 */
-	lastCame: {
-		within3Months: number;
-		within6Months: number;
-		within12Months: number;
-		longerAgo: number;
-		never: number;
-	};
+	/** The scope's members by how engaged they are now (`engagementOf`). */
+	engagement: Record<EngagementLevel, number>;
+	engagementRule: EngagementRule;
 	/** The scope's members by which events they ever came to: chapter events, global (root) ones, both. */
 	eventKinds: {
 		chapterOnly: number;
@@ -157,13 +159,18 @@ async function seatsOf(ticketIds: readonly string[]): Promise<number> {
  * event and whether they took part online. In person = on a scanned ticket (in-person and hybrid
  * events). Online events have no door scan: a ticket or a "yes" counts as taking part.
  */
-async function attendanceOf(
-	userIds: readonly string[],
-): Promise<
-	Array<{ userId: string; startDate: string; global: boolean; online: boolean }>
+async function attendanceOf(userIds: readonly string[]): Promise<
+	Array<{
+		userId: string;
+		eventId: string;
+		startDate: string;
+		global: boolean;
+		online: boolean;
+	}>
 > {
 	const root = await getRootScope();
 	const eventColumns = {
+		eventId: events.id,
 		startDate: events.startDate,
 		scopeId: events.scopeId,
 		locationType: events.locationType,
@@ -218,12 +225,136 @@ async function attendanceOf(
 		return [
 			{
 				userId: r.userId,
+				eventId: r.eventId,
 				startDate: r.startDate,
 				global: r.scopeId === root?.id,
 				online,
 			},
 		];
 	});
+}
+
+/**
+ * How engaged a person is: of the last `engagementWindow` events they could have attended
+ * before a date (the events of their chapters and the chapters above, global events, and any
+ * event they did attend; only since they joined), the share they took part in. Core and
+ * regular from the settings' thresholds, occasional below; lost = took part before, but in none
+ * of those; never = never took part. Adapts to how often a chapter holds events.
+ */
+export type EngagementLevel =
+	| "core"
+	| "regular"
+	| "occasional"
+	| "lost"
+	| "never";
+
+export interface EngagementRule {
+	window: number;
+	corePercent: number;
+	regularPercent: number;
+}
+
+export function engagementRule(): EngagementRule {
+	const s = moduleSettings("events");
+	return {
+		window: s.engagementWindow,
+		corePercent: s.corePercent,
+		regularPercent: s.regularPercent,
+	};
+}
+
+/** Engagement levels of these people before `before` (ISO date), leaving out `skipEventId`. */
+async function engagementOf(
+	userIds: readonly string[],
+	before: string,
+	rule: EngagementRule,
+	skipEventId?: string,
+): Promise<Map<string, EngagementLevel>> {
+	const unique = [...new Set(userIds)];
+	const [attendance, memberships, scopeRows, joined, published] =
+		await Promise.all([
+			attendanceOf(unique),
+			inChunks(unique, (chunk) =>
+				db
+					.select({
+						userId: scopeMemberships.userId,
+						scopeId: scopeMemberships.scopeId,
+					})
+					.from(scopeMemberships)
+					.where(inArray(scopeMemberships.userId, chunk)),
+			),
+			db.select({ id: scopes.id, parentId: scopes.parentId }).from(scopes),
+			inChunks(unique, (chunk) =>
+				db
+					.select({ id: users.id, createdAt: users.createdAt })
+					.from(users)
+					.where(inArray(users.id, chunk)),
+			),
+			db
+				.select({
+					id: events.id,
+					scopeId: events.scopeId,
+					startDate: events.startDate,
+				})
+				.from(events)
+				.where(
+					and(eq(events.status, "published"), lt(events.startDate, before)),
+				),
+		]);
+	const parentOf = new Map(scopeRows.map((r) => [r.id, r.parentId]));
+	const root = scopeRows.find((r) => r.parentId === null)?.id;
+	const joinedAt = new Map(joined.map((r) => [r.id, r.createdAt]));
+	const candidates = published
+		.filter((e) => e.id !== skipEventId)
+		.sort((a, b) => (a.startDate < b.startDate ? 1 : -1));
+
+	const reachable = new Map<string, Set<string>>();
+	for (const m of memberships) {
+		const set = reachable.get(m.userId) ?? new Set(root ? [root] : []);
+		for (
+			let id: string | null | undefined = m.scopeId;
+			id;
+			id = parentOf.get(id)
+		)
+			set.add(id);
+		reachable.set(m.userId, set);
+	}
+	const attended = new Map<string, Set<string>>();
+	for (const a of attendance)
+		if (a.startDate < before && a.eventId !== skipEventId)
+			attended.set(
+				a.userId,
+				(attended.get(a.userId) ?? new Set()).add(a.eventId),
+			);
+
+	const levels = new Map<string, EngagementLevel>();
+	for (const id of unique) {
+		const went = attended.get(id);
+		if (!went?.size) {
+			levels.set(id, "never");
+			continue;
+		}
+		const could = reachable.get(id) ?? new Set(root ? [root] : []);
+		const since = joinedAt.get(id) ?? "";
+		const window = candidates
+			.filter(
+				(e) => went.has(e.id) || (could.has(e.scopeId) && e.startDate >= since),
+			)
+			.slice(0, rule.window);
+		const share =
+			(window.filter((e) => went.has(e.id)).length / window.length) * 100;
+		levels.set(
+			id,
+			share === 0
+				? "lost"
+				: share >= rule.corePercent
+					? "core"
+					: share >= rule.regularPercent
+						? "regular"
+						: "occasional",
+		);
+	}
+	return levels;
 }
 
 function distinctUsers(people: CheckedInPerson[]): string[] {
@@ -289,38 +420,21 @@ export const eventStatisticsService = {
 		}
 
 		const userIds = distinctUsers(came);
-		const before = new Set(
-			(
-				await inChunks(userIds, (chunk) =>
-					db
-						.selectDistinct({ userId: tickets.buyerId })
-						.from(tickets)
-						.innerJoin(events, eq(events.id, tickets.eventId))
-						.where(
-							and(
-								inArray(tickets.buyerId, chunk),
-								isNotNull(tickets.scannedAt),
-								lt(events.startDate, event.startDate),
-							),
-						),
-				)
-			).map((r) => r.userId),
-		);
-		const beforeAsCompanion = await inChunks(userIds, (chunk) =>
-			db
-				.selectDistinct({ userId: ticketParticipants.userId })
-				.from(ticketParticipants)
-				.innerJoin(tickets, eq(tickets.id, ticketParticipants.ticketId))
-				.innerJoin(events, eq(events.id, tickets.eventId))
-				.where(
-					and(
-						inArray(ticketParticipants.userId, chunk),
-						isNotNull(tickets.scannedAt),
-						lt(events.startDate, event.startDate),
-					),
-				),
-		);
-		for (const r of beforeAsCompanion) if (r.userId) before.add(r.userId);
+		// How engaged each person was before this event.
+		const rule = engagementRule();
+		const levels = await engagementOf(userIds, event.startDate, rule, event.id);
+		const history = {
+			firstTime: 0,
+			cameBack: 0,
+			occasional: 0,
+			regular: 0,
+			core: 0,
+		};
+		for (const level of levels.values()) {
+			if (level === "never") history.firstTime++;
+			else if (level === "lost") history.cameBack++;
+			else history[level]++;
+		}
 
 		const byProduct = new Map<string, { sold: number; revenue: number }>();
 		for (const s of sales) {
@@ -347,8 +461,8 @@ export const eventStatisticsService = {
 			peopleCame: came.length,
 			cameWithoutAccount: came.filter((p) => !p.userId).length,
 			party,
-			firstTime: userIds.filter((id) => !before.has(id)).length,
-			returning: userIds.filter((id) => before.has(id)).length,
+			history,
+			engagementRule: rule,
 			whoCame,
 			homes,
 			breakdowns,
@@ -382,7 +496,8 @@ export const eventStatisticsService = {
 		const recent = scopeEvents.filter((e) => e.startDate >= yearAgo);
 		const ended = recent.filter((e) => e.endDate < nowIso);
 
-		const [came, endedTickets, memberAttendance] = await Promise.all([
+		const rule = engagementRule();
+		const [came, endedTickets, memberAttendance, levels] = await Promise.all([
 			checkedInPeople(scopeEvents.map((e) => e.id)),
 			inChunks(
 				ended.map((e) => e.id),
@@ -393,20 +508,24 @@ export const eventStatisticsService = {
 						.where(inArray(tickets.eventId, chunk)),
 			),
 			attendanceOf(memberIds),
+			engagementOf(memberIds, nowIso, rule),
 		]);
+		const engagement: Record<EngagementLevel, number> = {
+			core: 0,
+			regular: 0,
+			occasional: 0,
+			lost: 0,
+			never: 0,
+		};
+		for (const level of levels.values()) engagement[level]++;
 
-		// Per member: the last event they took part in (that has started), which kinds, how.
-		const monthsAgo = (n: number) =>
-			new Date(now.getTime() - n * 30.44 * DAY_MS).toISOString();
-		const lastStart = new Map<string, string>();
+		// Per member: which kinds of events they took part in, and how.
 		const kinds = new Map<
 			string,
 			{ chapter: boolean; global: boolean; online: boolean; inPerson: boolean }
 		>();
 		for (const a of memberAttendance) {
 			if (a.startDate > nowIso) continue;
-			if ((lastStart.get(a.userId) ?? "") < a.startDate)
-				lastStart.set(a.userId, a.startDate);
 			const k = kinds.get(a.userId) ?? {
 				chapter: false,
 				global: false,
@@ -419,22 +538,9 @@ export const eventStatisticsService = {
 			else k.inPerson = true;
 			kinds.set(a.userId, k);
 		}
-		const lastCame = {
-			within3Months: 0,
-			within6Months: 0,
-			within12Months: 0,
-			longerAgo: 0,
-			never: 0,
-		};
 		const eventKinds = { chapterOnly: 0, globalOnly: 0, both: 0, never: 0 };
 		const formats = { inPersonOnly: 0, onlineOnly: 0, both: 0, never: 0 };
 		for (const id of new Set(memberIds)) {
-			const last = lastStart.get(id);
-			if (!last) lastCame.never++;
-			else if (last >= monthsAgo(3)) lastCame.within3Months++;
-			else if (last >= monthsAgo(6)) lastCame.within6Months++;
-			else if (last >= monthsAgo(12)) lastCame.within12Months++;
-			else lastCame.longerAgo++;
 			const k = kinds.get(id);
 			if (!k) eventKinds.never++;
 			else if (k.chapter && k.global) eventKinds.both++;
@@ -481,7 +587,8 @@ export const eventStatisticsService = {
 			),
 			ticketsIssued: endedTickets.length,
 			ticketsScanned: endedTickets.filter((t) => t.scannedAt).length,
-			lastCame,
+			engagement,
+			engagementRule: rule,
 			eventKinds,
 			formats,
 			visits,

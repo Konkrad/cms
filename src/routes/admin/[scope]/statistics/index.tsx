@@ -3,9 +3,8 @@ import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
 import {
 	BreakdownBars,
 	DemographicsBars,
-	monthRows,
 	PlacesBars,
-	StatBars,
+	StatColumns,
 	StatTile,
 } from "~/core/admin/StatBars/StatBars";
 import { t } from "~/core/i18n";
@@ -56,13 +55,13 @@ export default component$(() => {
 			</div>
 
 			<div class="grid gap-4 md:grid-cols-2">
-				<StatBars
+				<StatColumns
 					title={t("admin.statistics.joinedPerMonth")}
-					rows={monthRows(o.joinedPerMonth)}
+					buckets={o.joinedPerMonth}
 				/>
-				<StatBars
+				<StatColumns
 					title={t("admin.statistics.postsPerMonth")}
-					rows={monthRows(o.postsPerMonth)}
+					buckets={o.postsPerMonth}
 				/>
 			</div>
 

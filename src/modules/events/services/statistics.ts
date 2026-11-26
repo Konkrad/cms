@@ -1,8 +1,10 @@
 import { and, eq, inArray, isNotNull, isNull, lt } from "drizzle-orm";
 import {
+	adminUrl,
 	type Demographics,
 	db,
 	getRootScope,
+	getSubtreeIds,
 	lastMonths,
 	moduleSettings,
 	type PeopleBreakdownResult,
@@ -104,6 +106,23 @@ export interface ScopeEventStatistics {
 	whoCame: Demographics;
 	homes: StatBucket[];
 	breakdowns: PeopleBreakdownResult[];
+	/**
+	 * The scopes directly below this one (each with its own subtree), most people who came
+	 * first: members, events and people who came in the last 12 months, and engaged members
+	 * (core or regular).
+	 */
+	chapters: ChapterRow[];
+}
+
+export interface ChapterRow {
+	id: string;
+	name: string;
+	/** Its own statistics page. */
+	url: string;
+	members: number;
+	events: number;
+	came: number;
+	engaged: number;
 }
 
 async function inChunks<T>(
@@ -495,6 +514,7 @@ export const eventStatisticsService = {
 			db
 				.select({
 					id: events.id,
+					scopeId: events.scopeId,
 					startDate: events.startDate,
 					endDate: events.endDate,
 				})
@@ -581,6 +601,37 @@ export const eventStatisticsService = {
 			else visits.fivePlus++;
 		}
 
+		// The scopes directly below: their events, who came, their members' engagement.
+		const children = await db
+			.select()
+			.from(scopes)
+			.where(eq(scopes.parentId, homeScopeId));
+		const scopeOf = new Map(scopeEvents.map((e) => [e.id, e.scopeId]));
+		const chapters: ChapterRow[] = await Promise.all(
+			children.map(async (child) => {
+				const [subtree, members] = await Promise.all([
+					getSubtreeIds(child.id),
+					statisticsService.memberIds(child),
+				]);
+				const inChild = new Set(subtree);
+				return {
+					id: child.id,
+					name: child.name,
+					url: `${adminUrl(child.path)}/statistics`,
+					members: members.length,
+					events: recent.filter((e) => inChild.has(e.scopeId)).length,
+					came: cameRecently.filter((p) =>
+						inChild.has(scopeOf.get(p.eventId) ?? ""),
+					).length,
+					engaged: members.filter((id) => {
+						const level = levels.get(id);
+						return level === "core" || level === "regular";
+					}).length,
+				};
+			}),
+		);
+		chapters.sort((a, b) => b.came - a.came || b.members - a.members);
+
 		const recentUsers = distinctUsers(cameRecently);
 		const [whoCame, homes, breakdowns] = await Promise.all([
 			statisticsService.demographicsOf(recentUsers, now),
@@ -607,6 +658,7 @@ export const eventStatisticsService = {
 			whoCame,
 			homes,
 			breakdowns,
+			chapters,
 		};
 	},
 };

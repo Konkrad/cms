@@ -6,16 +6,19 @@ import {
 	BreakdownBars,
 	Button,
 	DemographicsBars,
+	formatNumber,
 	HomesBars,
-	monthRows,
 	PlacesBars,
 	StatBars,
+	StatColumns,
+	StatStack,
 	StatTile,
 	t,
 } from "~/core/ui";
 import { ProfileEvents } from "~theme/routes/profile/ProfileEvents/ProfileEvents";
 import { ScopeEvents } from "~theme/routes/scopes/ScopeEvents";
 import { RequirementStep } from "~theme/shared/RequirementStep/RequirementStep";
+import type { ChapterRow } from "./services/statistics";
 import {
 	useDashboardEvents,
 	useEventSettings,
@@ -109,6 +112,74 @@ const DashboardEvents = component$<SlotProps["admin.dashboard.widgets"]>(
 	},
 );
 
+/** The scopes directly below, most people who came first (`ScopeEventStatistics.chapters`). */
+const ChapterRanking = component$<{ rows: ChapterRow[] }>(({ rows }) =>
+	rows.length === 0 ? null : (
+		<section
+			class="bg-white rounded-lg shadow-sm p-5 overflow-x-auto"
+			data-testid="statistics-chapters"
+		>
+			<h3 class="text-sm font-semibold text-gray-700 mb-1">
+				{t("events.statistics.chapters.title")}
+			</h3>
+			<p class="text-xs text-gray-500 mb-3">
+				{t("events.statistics.chapters.intro")}
+			</p>
+			<table class="w-full text-sm">
+				<thead>
+					<tr class="text-left text-gray-500">
+						<th class="font-medium py-1">
+							{t("events.statistics.chapters.chapter")}
+						</th>
+						<th class="font-medium py-1 text-right">
+							{t("events.statistics.chapters.members")}
+						</th>
+						<th class="font-medium py-1 text-right">
+							{t("events.statistics.chapters.events")}
+						</th>
+						<th class="font-medium py-1 text-right">
+							{t("events.statistics.chapters.came")}
+						</th>
+						<th class="font-medium py-1 text-right">
+							{t("events.statistics.chapters.engaged")}
+						</th>
+					</tr>
+				</thead>
+				<tbody>
+					{rows.map((row) => (
+						<tr key={row.id} class="border-t border-gray-100">
+							<td class="py-1.5">
+								<a href={row.url} class="text-blue-700 hover:underline">
+									{row.name}
+								</a>
+							</td>
+							<td class="py-1.5 text-right tabular-nums">
+								{formatNumber(row.members)}
+							</td>
+							<td class="py-1.5 text-right tabular-nums">
+								{formatNumber(row.events)}
+							</td>
+							<td class="py-1.5 text-right tabular-nums">
+								{formatNumber(row.came)}
+							</td>
+							<td class="py-1.5 text-right tabular-nums">
+								{formatNumber(row.engaged)}
+								{row.members > 0 && (
+									<span class="text-xs text-gray-500 ml-1">
+										{formatNumber(row.engaged / row.members, {
+											style: "percent",
+										})}
+									</span>
+								)}
+							</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</section>
+	),
+);
+
 /**
  * `admin.statistics.sections`: how engaged the scope's members are (core,
  * regular, occasional, lost, new, never; chapter or global events, in person or online), then the events of the scope and below and who came.
@@ -126,110 +197,101 @@ const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
 				<p class="text-sm text-gray-600">
 					{t("events.statistics.membersIntro")}
 				</p>
-				<div
-					class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"
-					data-testid="statistics-members-activity"
-				>
-					<StatTile
-						label={t("events.engagement.core")}
-						value={s.engagement.core}
-						hint={t("events.engagement.coreHint", {
-							percent: s.engagementRule.corePercent,
-							count: s.engagementRule.window,
-						})}
-					/>
-					<StatTile
-						label={t("events.engagement.regular")}
-						value={s.engagement.regular}
-						hint={t("events.engagement.regularHint", {
-							percent: s.engagementRule.regularPercent,
-							count: s.engagementRule.window,
-						})}
-					/>
-					<StatTile
-						label={t("events.engagement.occasional")}
-						value={s.engagement.occasional}
-						hint={t("events.engagement.occasionalHint", {
-							percent: s.engagementRule.regularPercent,
-						})}
-					/>
-					<StatTile
-						label={t("events.engagement.lost")}
-						value={s.engagement.lost}
-						hint={t("events.engagement.lostHint", {
-							count: s.engagementRule.window,
-						})}
-					/>
-					<StatTile
-						label={t("events.engagement.new")}
-						value={s.engagement.new}
-						hint={t("events.engagement.newHint", {
-							count: s.engagementRule.minEvents,
-						})}
-					/>
-					<StatTile
-						label={t("events.engagement.never")}
-						value={s.engagement.never}
-					/>
+				<div class="grid gap-4 md:grid-cols-2">
+					<div class="space-y-2">
+						<StatStack
+							title={t("events.engagement.title")}
+							parts={[
+								{
+									label: t("events.engagement.core"),
+									count: s.engagement.core,
+								},
+								{
+									label: t("events.engagement.regular"),
+									count: s.engagement.regular,
+								},
+								{
+									label: t("events.engagement.occasional"),
+									count: s.engagement.occasional,
+								},
+								{ label: t("events.engagement.new"), count: s.engagement.new },
+								{
+									label: t("events.engagement.lost"),
+									count: s.engagement.lost,
+								},
+								{
+									label: t("events.engagement.never"),
+									count: s.engagement.never,
+								},
+							]}
+							testId="statistics-members-activity"
+						/>
+						<p class="text-xs text-gray-500">
+							{t("events.engagement.rule", {
+								count: s.engagementRule.window,
+								core: s.engagementRule.corePercent,
+								regular: s.engagementRule.regularPercent,
+								min: s.engagementRule.minEvents,
+							})}
+						</p>
+					</div>
+					<div class="space-y-4">
+						<StatStack
+							title={t("events.statistics.eventKinds")}
+							parts={[
+								{
+									label: t("events.statistics.chapterOnly"),
+									count: s.eventKinds.chapterOnly,
+								},
+								{
+									label: t("events.statistics.both"),
+									count: s.eventKinds.both,
+								},
+								{
+									label: t("events.statistics.globalOnly"),
+									count: s.eventKinds.globalOnly,
+								},
+								{
+									label: t("events.statistics.never"),
+									count: s.eventKinds.never,
+								},
+							]}
+						/>
+						<StatStack
+							title={t("events.statistics.formats")}
+							parts={[
+								{
+									label: t("events.statistics.inPersonOnly"),
+									count: s.formats.inPersonOnly,
+								},
+								{
+									label: t("events.statistics.both"),
+									count: s.formats.both,
+								},
+								{
+									label: t("events.statistics.onlineOnly"),
+									count: s.formats.onlineOnly,
+								},
+								{
+									label: t("events.statistics.never"),
+									count: s.formats.never,
+								},
+							]}
+						/>
+					</div>
 				</div>
-				<div class="grid gap-4 md:grid-cols-3">
-					<StatBars
-						title={t("events.statistics.eventKinds")}
-						rows={[
-							{
-								label: t("events.statistics.chapterOnly"),
-								count: s.eventKinds.chapterOnly,
-							},
-							{
-								label: t("events.statistics.globalOnly"),
-								count: s.eventKinds.globalOnly,
-							},
-							{
-								label: t("events.statistics.both"),
-								count: s.eventKinds.both,
-							},
-							{
-								label: t("events.statistics.never"),
-								count: s.eventKinds.never,
-							},
-						]}
-					/>
-					<StatBars
-						title={t("events.statistics.formats")}
-						rows={[
-							{
-								label: t("events.statistics.inPersonOnly"),
-								count: s.formats.inPersonOnly,
-							},
-							{
-								label: t("events.statistics.onlineOnly"),
-								count: s.formats.onlineOnly,
-							},
-							{
-								label: t("events.statistics.both"),
-								count: s.formats.both,
-							},
-							{
-								label: t("events.statistics.never"),
-								count: s.formats.never,
-							},
-						]}
-					/>
-					<StatTile
-						label={t("events.statistics.noShows")}
-						value={s.ticketsIssued - s.ticketsScanned}
-						hint={t("events.statistics.ofIssued", { count: s.ticketsIssued })}
-					/>
-				</div>
-				<div class="grid gap-4 md:grid-cols-3">
-					<StatBars
+				<ChapterRanking rows={s.chapters} />
+				<div class="grid gap-4 md:grid-cols-2">
+					<StatColumns
 						title={t("events.statistics.eventsPerMonth")}
-						rows={monthRows(s.eventsPerMonth)}
+						buckets={s.eventsPerMonth}
 					/>
-					<StatBars
+					<StatColumns
 						title={t("events.statistics.attendeesPerMonth")}
-						rows={monthRows(s.attendeesPerMonth)}
+						buckets={s.attendeesPerMonth}
 					/>
+				</div>
+				<div class="grid gap-4 md:grid-cols-2">
 					<StatBars
 						title={t("events.statistics.visits")}
 						rows={[
@@ -243,6 +305,11 @@ const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
 								count: s.visits.fivePlus,
 							},
 						]}
+					/>
+					<StatTile
+						label={t("events.statistics.noShows")}
+						value={s.ticketsIssued - s.ticketsScanned}
+						hint={t("events.statistics.ofIssued", { count: s.ticketsIssued })}
 					/>
 				</div>
 				<h4 class="text-base font-semibold text-gray-900">

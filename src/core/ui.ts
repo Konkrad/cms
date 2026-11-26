@@ -30,7 +30,9 @@ export {
 	monthRows,
 	PlacesBars,
 	StatBars,
+	StatColumns,
 	type StatRow,
+	StatStack,
 	StatTile,
 } from "~/core/admin/StatBars/StatBars";
 export { VisibilitySelector } from "~/core/admin/VisibilitySelector";

@@ -33,6 +33,7 @@ flowchart TD
 - Who the members are: age group, gender, membership tier ([[membership-tiers]]) and where they live (country and city).
 - By qualification ([[qualifications]]): how many members hold each one, and how many hold none. With one qualification per batch ("Graduate 2019", "Graduate 2020") this is the cohort breakdown.
 - **How engaged are the members?** The scope's members as core, regular, occasional, lost, new or never came (see *Engagement* below); which events they come to: only chapter events, only global events, both, none; and how: only in person, only online, both, none.
+- **Chapters:** the scopes directly below (each with the scopes below it), most people who came first: members, events and people who came in the last 12 months, and how many members are core or regular. On the site page these are the regions or chapters, on a region's page its chapters. Each links to its own statistics page.
 - Events of the scope and below: events and people who came per month, tickets not used, how often people came (once, 2 to 4 times, 5 or more), who came in the last 12 months, where they live and from which chapter.
 
 ## What an event shows
@@ -67,6 +68,7 @@ flowchart TD
 - 2026-11: three levels (site, chapter, event) in the admin area. No page views or visitor tracking in the CMS: that is left to a third-party tool.
 - 2026-11: engagement is a share of the events a person could attend, not fixed months or years, so it fits small and busy chapters alike; the score is only counted, never shown or stored per person (no profiling). Newcomers are "new" until they have had a few events to attend, so one event does not make anyone core.
 - 2026-11: activity means coming to events, not logging in: what matters is whether members take part, whom we lost, and who only comes locally or only globally.
+- 2026-11: monthly numbers as columns (time left to right), shares of a whole (engagement, chapter or global, in person or online, home chapter, party size) as one stacked bar with numbers, named groups as bar lists. No pies, no second scale.
 - 2026-11: small groups hidden from 5, so the page can go to every chapter's managers without exposing anyone's private profile fields.
 - 2026-11: "where they live" is the country and city of residence people give at sign-up. Nationality is not asked; if a community wants it, it belongs in its onboarding form.
 - 2026-11: cohorts (batch, graduation year) are one qualification per batch, grouped by qualification; no separate cohort field. A group field for qualification types (all graduates, periods) only if the list gets too long.

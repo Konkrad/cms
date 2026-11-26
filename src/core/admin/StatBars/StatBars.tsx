@@ -174,9 +174,9 @@ export const DemographicsBars = component$<{
 export const HomesBars = component$<{ homes: StatBucket[]; testId?: string }>(
 	({ homes, testId }) =>
 		homes.length === 0 ? null : (
-			<StatBars
+			<StatStack
 				title={t("admin.statistics.home.title")}
-				rows={labelled("home", homes)}
+				parts={labelled("home", homes)}
 				testId={testId}
 			/>
 		),
@@ -229,3 +229,131 @@ export const PlacesBars = component$<{
 		/>
 	</div>
 ));
+
+/**
+ * Counts per month as columns, oldest left (`perMonth` buckets, key `YYYY-MM`). One hue on a
+ * shared baseline; every value printed above its column, so nothing depends on reading heights.
+ */
+export const StatColumns = component$<{
+	title: string;
+	buckets: StatBucket[];
+	testId?: string;
+}>(({ title, buckets, testId }) => {
+	const maxCount = Math.max(1, ...buckets.map((b) => b.count ?? 0));
+	return (
+		<section class="bg-white rounded-lg shadow-sm p-5" data-testid={testId}>
+			<h3 class="text-sm font-semibold text-gray-700 mb-3">{title}</h3>
+			<div class="flex items-end gap-1 h-36">
+				{buckets.map((b) => (
+					<div
+						key={b.key}
+						class="flex-1 min-w-0 h-full flex flex-col justify-end items-center"
+						title={`${monthLabel(b.key)}: ${
+							b.count === null
+								? t("admin.statistics.fewerThanMin", { min: MIN_GROUP_SIZE })
+								: formatNumber(b.count)
+						}`}
+					>
+						<span class="text-[11px] tabular-nums text-gray-700 mb-0.5">
+							{b.count === null ? "–" : formatNumber(b.count)}
+						</span>
+						<span
+							class="w-full max-w-8 bg-blue-600 rounded-t-sm"
+							style={{
+								height: `${((b.count ?? 0) / maxCount) * 100}%`,
+								minHeight: b.count ? "2px" : "0",
+							}}
+						/>
+					</div>
+				))}
+			</div>
+			<div class="flex gap-1 border-t border-gray-200 pt-1">
+				{buckets.map((b) => (
+					<span
+						key={b.key}
+						class="flex-1 min-w-0 text-center text-[11px] text-gray-500 truncate"
+					>
+						{formatDate(`${b.key}-01T00:00:00Z`, {
+							month: "short",
+							timeZone: "UTC",
+						})}
+					</span>
+				))}
+			</div>
+		</section>
+	);
+});
+
+/** Shades for the parts of a stacked bar, darkest first (ordered groups read dark to light). */
+const STACK_SHADES = [
+	"bg-blue-800",
+	"bg-blue-600",
+	"bg-blue-400",
+	"bg-blue-300",
+	"bg-blue-200",
+	"bg-gray-300",
+	"bg-gray-200",
+] as const;
+
+/**
+ * Parts of a whole as one bar (e.g. engagement levels), in the given order, with a legend of
+ * label, number and share below. Parts that are hidden (null) or 0 draw no segment.
+ */
+export const StatStack = component$<{
+	title: string;
+	parts: StatRow[];
+	testId?: string;
+}>(({ title, parts, testId }) => {
+	const total = parts.reduce((sum, p) => sum + (p.count ?? 0), 0);
+	return (
+		<section class="bg-white rounded-lg shadow-sm p-5" data-testid={testId}>
+			<h3 class="text-sm font-semibold text-gray-700 mb-3">{title}</h3>
+			{total === 0 ? (
+				<p class="text-sm text-gray-500">{t("admin.statistics.noData")}</p>
+			) : (
+				<>
+					<div class="flex h-4 rounded-sm overflow-hidden gap-0.5 bg-white">
+						{parts.map((p, i) =>
+							p.count ? (
+								<span
+									key={p.label}
+									class={STACK_SHADES[i % STACK_SHADES.length]}
+									style={{ width: `${(p.count / total) * 100}%` }}
+									title={`${p.label}: ${formatNumber(p.count)}`}
+								/>
+							) : null,
+						)}
+					</div>
+					<ul class="mt-3 grid grid-cols-[auto_1fr_auto_auto] gap-x-3 gap-y-1 text-sm items-center">
+						{parts.map((p, i) => (
+							<li key={p.label} class="contents">
+								<span
+									class={`inline-block w-2.5 h-2.5 rounded-sm ${STACK_SHADES[i % STACK_SHADES.length]}`}
+								/>
+								<span class="text-gray-700 truncate">{p.label}</span>
+								<span
+									class={
+										p.count === null
+											? "text-xs text-gray-500 text-right whitespace-nowrap"
+											: "tabular-nums text-gray-900 text-right"
+									}
+								>
+									{p.count === null
+										? t("admin.statistics.fewerThanMin", {
+												min: MIN_GROUP_SIZE,
+											})
+										: formatNumber(p.count)}
+								</span>
+								<span class="tabular-nums text-xs text-gray-500 text-right w-10">
+									{p.count === null
+										? ""
+										: formatNumber(p.count / total, { style: "percent" })}
+								</span>
+							</li>
+						))}
+					</ul>
+				</>
+			)}
+		</section>
+	);
+});

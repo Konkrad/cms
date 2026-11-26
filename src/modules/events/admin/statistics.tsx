@@ -5,7 +5,7 @@ import {
 	formatCurrency,
 	HomesBars,
 	PlacesBars,
-	StatBars,
+	StatStack,
 	StatTile,
 	t,
 } from "~/core/ui";
@@ -67,9 +67,9 @@ export const AdminEventStatistics = component$<Props>(({ data }) => {
 			</div>
 
 			<div class="grid gap-4 md:grid-cols-3">
-				<StatBars
+				<StatStack
 					title={t("events.admin.statistics.party")}
-					rows={[
+					parts={[
 						{
 							label: t("events.admin.statistics.alone"),
 							count: stats.party.alone,
@@ -85,32 +85,32 @@ export const AdminEventStatistics = component$<Props>(({ data }) => {
 					]}
 					testId="event-stat-party"
 				/>
-				<StatBars
+				<StatStack
 					title={t("events.admin.statistics.history")}
-					rows={[
+					parts={[
 						{
-							label: t("events.admin.statistics.firstTime"),
-							count: stats.history.firstTime,
-						},
-						{
-							label: t("events.engagement.new"),
-							count: stats.history.new,
-						},
-						{
-							label: t("events.admin.statistics.cameBack"),
-							count: stats.history.cameBack,
-						},
-						{
-							label: t("events.engagement.occasional"),
-							count: stats.history.occasional,
+							label: t("events.engagement.core"),
+							count: stats.history.core,
 						},
 						{
 							label: t("events.engagement.regular"),
 							count: stats.history.regular,
 						},
 						{
-							label: t("events.engagement.core"),
-							count: stats.history.core,
+							label: t("events.engagement.occasional"),
+							count: stats.history.occasional,
+						},
+						{
+							label: t("events.admin.statistics.cameBack"),
+							count: stats.history.cameBack,
+						},
+						{
+							label: t("events.engagement.new"),
+							count: stats.history.new,
+						},
+						{
+							label: t("events.admin.statistics.firstTime"),
+							count: stats.history.firstTime,
 						},
 						{
 							label: t("events.admin.statistics.withoutAccount"),

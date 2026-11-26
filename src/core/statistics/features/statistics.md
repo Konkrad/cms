@@ -46,7 +46,7 @@ flowchart TD
 
 ## Rules
 - **Nobody is shown individually.** Only counts leave the server. In breakdowns of people (age, gender, tier, home chapter) a group of 1 to 4 people reads "fewer than 5"; when exactly one group would be hidden, the next smallest is hidden too, so it cannot be worked out from the total.
-- **Places** (country, city) are named only with 5 or more people; smaller ones are merged into "Other places (N places)", so a place with one or two people is never named. "Other places", "not given" and the number of different countries name no place, so they are shown as they are.
+- **Places** (country, city) are named only with 5 or more people; smaller ones are merged into "Other (N places)", so a place with one or two people is never named. "Other places", "not given" and the number of different countries name no place, so they are shown as they are.
 - Plain counts that organisers already see in the attendance list (tickets, orders, party sizes) are shown as they are.
 - **Member of a scope** = member of it or of a scope below it, since the first join ([[scopes-and-roles]]). On the root: every account.
 - **Engagement** is measured against the events a person could have attended: those of their chapters and the chapters above, global events, and any event they did attend, since they joined. Of the last 12 of those:

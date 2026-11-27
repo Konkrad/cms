@@ -38,7 +38,7 @@ sequenceDiagram
 - Nobody has a role by default; permissions come only from roles on scopes ([[scopes-and-roles]]).
 
 ## What others can see
-- Other people only ever see a person's **public profile**: name, public thumbnail picture, badges ([[badges]]). Email address, location, year of birth, gender, food preference, photo consent and the full-size picture are private.
+- Other people only ever see a person's **public profile**: name, public thumbnail picture, badges ([[badges]]). Email address, location, birth period, gender, food preference, photo consent and the full-size picture are private.
 - The member search in pickers returns names and thumbnails only, so the member list can't be harvested for email addresses.
 - Platform admins see email addresses in the users list; scope managers see members of their own scopes only.
 

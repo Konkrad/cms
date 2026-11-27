@@ -8,7 +8,13 @@ import {
 import { ONBOARDING_PURPOSE } from "~/core/forms/purposes";
 import { t } from "~/core/i18n";
 import { getRootScope } from "~/core/scopes/access";
+import {
+	birthPeriodOptions,
+	birthPeriodStart,
+	isBirthPeriod,
+} from "~/core/users/birth-period";
 import { usersService } from "~/core/users/users.service";
+import { env } from "~/env";
 import {
 	defineRequirement,
 	GLOBAL_CONTEXT,
@@ -30,7 +36,7 @@ export const SEX_OPTIONS = [
 
 const optionalText = (max: number) => z.string().trim().max(max).optional();
 
-/** Profile basics: name, birth year, gender and picture, written to the user's row. */
+/** Profile basics: name, birth period, gender and picture, written to the user's row. */
 export const profileRequirement = defineRequirement({
 	id: "core.profile",
 	version: 1,
@@ -49,16 +55,16 @@ export const profileRequirement = defineRequirement({
 			.trim()
 			.min(1, t("core.requirements.profile.lastNameRequired"))
 			.max(100),
-		yearOfBirth: z
+		// The period they were born in (its first year), never the exact year (`birth-period.ts`).
+		birthPeriod: z
 			.union([
 				z.literal(""),
 				z.coerce
 					.number()
 					.int()
-					.min(1900, t("core.requirements.profile.validYear"))
-					.max(
-						new Date().getFullYear(),
-						t("core.requirements.profile.validYear"),
+					.refine(
+						(v) => isBirthPeriod(v, env.BIRTH_PERIOD_YEARS),
+						t("core.requirements.profile.validBirthPeriod"),
 					),
 			])
 			.optional(),
@@ -73,9 +79,13 @@ export const profileRequirement = defineRequirement({
 			values: {
 				name: row?.name ?? "",
 				familyName: row?.familyName ?? "",
-				yearOfBirth: row?.yearOfBirth ?? null,
+				birthPeriod:
+					row?.birthPeriod != null
+						? birthPeriodStart(row.birthPeriod, env.BIRTH_PERIOD_YEARS)
+						: null,
 				sex: row?.sex ?? "",
 			},
+			data: { birthPeriods: birthPeriodOptions(env.BIRTH_PERIOD_YEARS) },
 		};
 	},
 	async save(user, input) {
@@ -83,10 +93,10 @@ export const profileRequirement = defineRequirement({
 		await usersService.update(user.id, {
 			name: input.name,
 			familyName: input.familyName,
-			yearOfBirth:
-				input.yearOfBirth === "" || input.yearOfBirth === undefined
+			birthPeriod:
+				input.birthPeriod === "" || input.birthPeriod === undefined
 					? null
-					: input.yearOfBirth,
+					: input.birthPeriod,
 			sex: input.sex || null,
 			...(input.profilePicture ? { profilePicture: input.profilePicture } : {}),
 			...(input.profilePictureSmall

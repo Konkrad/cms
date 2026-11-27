@@ -11,7 +11,7 @@ export const PRIVATE_FIELD_KEYS: readonly string[] = [
 	"email",
 	"loginId",
 	"consent",
-	"yearOfBirth",
+	"birthPeriod",
 	"sex",
 	"latitude",
 	"longitude",

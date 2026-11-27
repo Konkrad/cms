@@ -227,7 +227,7 @@
 	"events.admin.statistics.noShows": "Tickets not used",
 	"events.admin.statistics.noShowsHint": "Issued but never scanned",
 	"events.admin.statistics.notOverYet": "Known once the event is over",
-	"events.admin.statistics.note": "Age, gender, membership and home chapter only count people with an account; groups of fewer than 5 are hidden.",
+	"events.admin.statistics.note": "Birth period, gender, membership and home chapter only count people with an account; home chapter and qualifications hide groups of fewer than 5.",
 	"events.admin.statistics.party": "Came on one order",
 	"events.admin.statistics.peopleCame": "People who came",
 	"events.admin.statistics.plusOne": "With a +1",

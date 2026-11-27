@@ -138,6 +138,14 @@ const envSchema = z.object({
 	// time too (client bundle, i18n catalog): build and run with the same value.
 	CMS_MODULES: z.string().optional(),
 
+	// Profile: people give a birth period, not their year of birth; its length in years (spec
+	// 4.6). Changing 5 to 10 later keeps the stored answers (read as their decade); 10 to 5 only
+	// refines new answers.
+	BIRTH_PERIOD_YEARS: z
+		.enum(["5", "10"])
+		.default("5")
+		.transform((value) => Number(value) as 5 | 10),
+
 	// Scope tree: the kinds a group below the root can have (deployment configuration, spec
 	// 4.2), comma-separated, in the order the admin offers them. The root's kind is "root".
 	// Module admin sections may be limited to some of these kinds (`scopes` in the manifest).
@@ -243,6 +251,7 @@ export const env = {
 	LOGIN_IP_MAX_PER_WINDOW: _env.LOGIN_IP_MAX_PER_WINDOW,
 	LOGIN_IP_WINDOW_MINUTES: _env.LOGIN_IP_WINDOW_MINUTES,
 	SCOPE_KINDS: _env.SCOPE_KINDS as readonly string[],
+	BIRTH_PERIOD_YEARS: _env.BIRTH_PERIOD_YEARS,
 	/** Active module ids (see `src/core/registry/active-modules.ts`). */
 	ACTIVE_MODULES: activeModuleIds,
 	/** Validated settings of the active modules, by module id (read via `moduleSettings`). */

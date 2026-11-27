@@ -9,6 +9,7 @@ import { scopeUrl } from "~/core/router/scope-path";
 import { scopesService } from "~/core/scopes/scopes.service";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { formatAffiliationResultJson } from "~/core/users/affiliation";
+import { ownBirthPeriod } from "~/core/users/own-birth-period";
 import { usersService } from "~/core/users/users.service";
 import { PublicProfileView } from "~theme/routes/users/PublicProfileView";
 import { ModuleSlot } from "../../../core/registry/ModuleSlot";
@@ -77,7 +78,13 @@ export const usePublicProfile = routeLoader$(
 					url: scopeUrl(g.path),
 				})),
 				isOwner,
-				...(ownDetails ?? {}),
+				...(ownDetails
+					? {
+							email: ownDetails.email,
+							sex: ownDetails.sex,
+							...ownBirthPeriod(ownDetails.birthPeriod),
+						}
+					: {}),
 				affiliationEntries: (() => {
 					const onboarding = submittedFormRows.find(
 						(s) => s.formPurpose === ONBOARDING_PURPOSE,
@@ -102,8 +109,8 @@ export const usePublicProfile = routeLoader$(
 					: undefined,
 			},
 			{
-				// Owner only: the viewer's own email, birth year and gender (never another user's).
-				allow: isOwner ? ["email", "yearOfBirth", "sex"] : [],
+				// Owner only: the viewer's own email, birth period and gender (never another user's).
+				allow: isOwner ? ["email", "birthPeriod", "sex"] : [],
 			},
 		);
 	},

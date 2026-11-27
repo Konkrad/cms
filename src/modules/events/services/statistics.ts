@@ -471,7 +471,7 @@ export const eventStatisticsService = {
 		}
 
 		const [whoCame, homes, peopleOnTickets, breakdowns] = await Promise.all([
-			statisticsService.demographicsOf(userIds, now),
+			statisticsService.demographicsOf(userIds),
 			statisticsService.homesOf(userIds, event.scopeId),
 			seatsOf(eventTickets.map((t) => t.id)),
 			peopleBreakdowns(userIds),
@@ -599,7 +599,7 @@ export const eventStatisticsService = {
 
 		const recentUsers = distinctUsers(cameRecently);
 		const [whoCame, homes, breakdowns] = await Promise.all([
-			statisticsService.demographicsOf(recentUsers, now),
+			statisticsService.demographicsOf(recentUsers),
 			statisticsService.homesOf(recentUsers, homeScopeId),
 			peopleBreakdowns(recentUsers),
 		]);

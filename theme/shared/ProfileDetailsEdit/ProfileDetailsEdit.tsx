@@ -5,9 +5,11 @@ import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { t } from "~/contracts/i18n";
 import type { UpdateDetailsAction } from "~/contracts/profile";
+import type { BirthPeriodChoice } from "~/contracts/users";
 
 export interface ProfileDetailsEditProps {
-	yearOfBirth?: number | null;
+	birthPeriod?: BirthPeriodChoice | null;
+	birthPeriodOptions: BirthPeriodChoice[];
 	sex?: string | null;
 	updateAction: UpdateDetailsAction;
 }
@@ -19,10 +21,10 @@ const SEX_LABELS: Record<string, string> = {
 	prefer_not_to_say: t("theme.profileDetailsEdit.preferNotToSay"),
 };
 
-/** In-place editor for year of birth / gender, shown in the owner-only details bar. */
+/** In-place editor for birth period / gender, shown in the owner-only details bar. */
 export const ProfileDetailsEdit = component$<ProfileDetailsEditProps>(
 	(props) => {
-		const { yearOfBirth, sex, updateAction } = props;
+		const { birthPeriod, birthPeriodOptions, sex, updateAction } = props;
 		const isEditing = useSignal(false);
 
 		useTask$(({ track }) => {
@@ -39,12 +41,12 @@ export const ProfileDetailsEdit = component$<ProfileDetailsEditProps>(
 					}}
 					class="flex items-center gap-3 text-sm text-text-secondary hover:text-primary"
 				>
-					{yearOfBirth && (
+					{birthPeriod && (
 						<span>
 							<span class="font-medium">
-								{t("theme.profileDetailsEdit.yearOfBirth")}
+								{t("theme.profileDetailsEdit.birthPeriod")}
 							</span>{" "}
-							{yearOfBirth}
+							{birthPeriod.label}
 						</span>
 					)}
 					{sex && (
@@ -55,8 +57,8 @@ export const ProfileDetailsEdit = component$<ProfileDetailsEditProps>(
 							{SEX_LABELS[sex] ?? sex}
 						</span>
 					)}
-					{!yearOfBirth && !sex && (
-						<span>{t("theme.profileDetailsEdit.addYearOfBirthGender")}</span>
+					{!birthPeriod && !sex && (
+						<span>{t("theme.profileDetailsEdit.addBirthPeriodGender")}</span>
 					)}
 					<svg
 						aria-hidden="true"
@@ -83,13 +85,21 @@ export const ProfileDetailsEdit = component$<ProfileDetailsEditProps>(
 						{(updateAction.value as any).error}
 					</p>
 				)}
-				<Input
-					label={t("theme.profileDetailsEdit.yearOfBirth2")}
-					name="year_of_birth"
-					type="number"
-					value={yearOfBirth ?? ""}
-					class="w-28"
-				/>
+				<Select
+					label={t("theme.profileDetailsEdit.birthPeriod2")}
+					name="birth_period"
+					value={birthPeriod ? String(birthPeriod.value) : ""}
+					class="w-36"
+				>
+					<option value="">
+						{t("theme.profileDetailsEdit.selectBirthPeriod")}
+					</option>
+					{birthPeriodOptions.map((p) => (
+						<option key={p.value} value={String(p.value)}>
+							{p.label}
+						</option>
+					))}
+				</Select>
 				<Select
 					label={t("theme.profileDetailsEdit.gender2")}
 					name="sex"

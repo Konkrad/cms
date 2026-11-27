@@ -156,7 +156,7 @@ describe("toPublicUser", () => {
 			loginId: "ada-login",
 			city: "London",
 			country: "UK",
-			yearOfBirth: 1815,
+			birthPeriod: 1815,
 			consent: { photos: true },
 			profilePicture: "private/profile-pictures/x.png",
 		};

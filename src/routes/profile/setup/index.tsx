@@ -27,8 +27,8 @@ export const useSetupLoader = routeLoader$(
 		if (steps.length === 0) throw event.redirect(302, next);
 		return assertNoPrivateFields(
 			{ steps, next },
-			// The viewer's OWN birth year and gender, prefilled into the profile step.
-			{ allow: ["yearOfBirth", "sex"] },
+			// The viewer's OWN birth period and gender, prefilled into the profile step.
+			{ allow: ["birthPeriod", "sex"] },
 		);
 	},
 );

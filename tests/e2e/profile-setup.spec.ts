@@ -124,7 +124,9 @@ test.describe("setup flow", () => {
 				timeout: 15000,
 			});
 			await profile.locator("input[name='name']").fill("Alice");
-			await profile.locator("input[name='yearOfBirth']").fill("1990");
+			await profile
+				.locator("select[name='birthPeriod']")
+				.selectOption({ label: "1990–1994" });
 			await continueStep(page, "core.profile");
 
 			// Location: confirming without a geocoded address is allowed.
@@ -149,7 +151,7 @@ test.describe("setup flow", () => {
 			expect(getUserById(session.userId)).toMatchObject({
 				name: "Alice",
 				family_name: "Smith",
-				year_of_birth: 1990,
+				birth_period: 1990,
 			});
 			for (const id of GLOBAL_REQUIREMENTS)
 				expect(getUserRequirement(session.userId, id)?.version).toBe(1);

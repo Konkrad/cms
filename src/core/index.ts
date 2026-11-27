@@ -103,6 +103,20 @@ export { VISIBILITIES, type Visibility } from "~/core/scopes/visibility";
 // is not core; it lives in the events module (`src/modules/events/services/tag-rules.ts`).
 export { deleteS3Objects } from "~/core/media/image-processing.service";
 export { membershipsService } from "~/core/memberships/memberships.service";
+// Statistics: aggregates only, small groups hidden (statistics page, module sections).
+export {
+	type Demographics,
+	lastMonths,
+	perMonth,
+	statisticsService,
+} from "~/core/statistics/statistics.service";
+export {
+	MIN_GROUP_SIZE,
+	type PeopleBreakdownResult,
+	type StatBucket,
+	suppressCount,
+	suppressSmall,
+} from "~/core/statistics/suppress";
 export { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 export { slugify, uniqueSlug } from "~/core/shared/slug";
 export type { PageDirection } from "~/core/shared/pagination";
@@ -147,6 +161,7 @@ export {
 // action (never trust the client); steps are submitted through core's single step action.
 export type { PendingRequirement } from "~/core/requirements/requirements";
 export { requirements } from "~/core/registry/requirements";
+export { peopleBreakdowns } from "~/core/registry/statistics";
 /** ADMIN ONLY: stored requirement values (private answers) by user id, then requirement id. */
 export const requirementValuesByUser = (
 	requirementIds: readonly string[],

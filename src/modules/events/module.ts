@@ -11,6 +11,7 @@ import { eventsRequirements } from "./requirements";
 import eventsSchema from "./schema";
 import { eventsService } from "./services/events";
 import { tagRulesService } from "./services/tag-rules";
+import { eventsSettings } from "./settings";
 
 export const eventsModule = defineModule({
 	id: "events",
@@ -53,14 +54,18 @@ export const eventsModule = defineModule({
 		} while (cursor);
 		return entries;
 	},
+	// Statistics: how engaged people are (engagement window and thresholds).
+	settings: eventsSettings,
 	// Profile events and settings (food preference, photo consent), the scope home page's
-	// events and the admin dashboard's event count; components in slots.tsx.
+	// events, the admin dashboard's event count and the statistics page's events section;
+	// components in slots.tsx.
 	slots: [
 		"profile.sections",
 		"profile.settings",
 		"userPage.sections",
 		"scopePage.sections",
 		"admin.dashboard.widgets",
+		"admin.statistics.sections",
 	],
 	notifications: [
 		ticketConfirmationNotification,

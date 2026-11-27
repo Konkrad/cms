@@ -1,14 +1,33 @@
 import { component$ } from "@qwik.dev/core";
-import type { SlotComponents, SlotProps } from "~/contracts/slots";
+import type {
+	SlotComponents,
+	SlotProps,
+	StatisticsCompare,
+} from "~/contracts/slots";
 import { useSubmitRequirement } from "~/core/setup-actions";
-import { Alert, Button, t } from "~/core/ui";
+import {
+	Alert,
+	BreakdownBars,
+	Button,
+	DemographicsBars,
+	formatNumber,
+	HomesBars,
+	PlacesBars,
+	StatBars,
+	StatColumns,
+	StatStack,
+	StatTile,
+	t,
+} from "~/core/ui";
 import { ProfileEvents } from "~theme/routes/profile/ProfileEvents/ProfileEvents";
 import { ScopeEvents } from "~theme/routes/scopes/ScopeEvents";
 import { RequirementStep } from "~theme/shared/RequirementStep/RequirementStep";
+import type { ChapterRow } from "./services/statistics";
 import {
 	useDashboardEvents,
 	useEventSettings,
 	useProfileEvents,
+	useScopeEventStatistics,
 	useScopeEvents,
 } from "./useEventsSlots";
 
@@ -97,6 +116,247 @@ const DashboardEvents = component$<SlotProps["admin.dashboard.widgets"]>(
 	},
 );
 
+/** The scopes directly below, most people who came first (`ScopeEventStatistics.chapters`). */
+const ChapterRanking = component$<{
+	rows: ChapterRow[];
+	mode: StatisticsCompare;
+}>(({ rows, mode }) =>
+	rows.length === 0 ? null : (
+		<section
+			class="bg-white rounded-lg shadow-sm p-5 overflow-x-auto"
+			data-testid="statistics-chapters"
+		>
+			<h3 class="text-sm font-semibold text-gray-700 mb-1">
+				{mode === "leaves"
+					? t("events.statistics.chapters.title")
+					: t("events.statistics.chapters.titleChildren")}
+			</h3>
+			<p class="text-xs text-gray-500 mb-3">
+				{mode === "leaves"
+					? t("events.statistics.chapters.intro")
+					: t("events.statistics.chapters.introChildren")}
+			</p>
+			<table class="w-full text-sm">
+				<thead>
+					<tr class="text-left text-gray-500">
+						<th class="font-medium py-1">
+							{t("events.statistics.chapters.chapter")}
+						</th>
+						<th class="font-medium py-1 text-right">
+							{t("events.statistics.chapters.members")}
+						</th>
+						<th class="font-medium py-1 text-right">
+							{t("events.statistics.chapters.events")}
+						</th>
+						<th class="font-medium py-1 text-right">
+							{t("events.statistics.chapters.came")}
+						</th>
+						<th class="font-medium py-1 text-right">
+							{t("events.statistics.chapters.engaged")}
+						</th>
+					</tr>
+				</thead>
+				<tbody>
+					{rows.map((row) => (
+						<tr key={row.id} class="border-t border-gray-100">
+							<td class="py-1.5">
+								<a href={row.url} class="text-blue-700 hover:underline">
+									{row.name}
+								</a>
+								{row.parentName && (
+									<span class="text-xs text-gray-500 ml-1">
+										{row.parentName}
+									</span>
+								)}
+							</td>
+							<td class="py-1.5 text-right tabular-nums">
+								{formatNumber(row.members)}
+							</td>
+							<td class="py-1.5 text-right tabular-nums">
+								{formatNumber(row.events)}
+							</td>
+							<td class="py-1.5 text-right tabular-nums">
+								{formatNumber(row.came)}
+							</td>
+							<td class="py-1.5 text-right tabular-nums">
+								{formatNumber(row.engaged)}
+								{row.members > 0 && (
+									<span class="text-xs text-gray-500 ml-1">
+										{formatNumber(row.engaged / row.members, {
+											style: "percent",
+										})}
+									</span>
+								)}
+							</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</section>
+	),
+);
+
+/**
+ * `admin.statistics.sections`: how engaged the scope's members are (core,
+ * regular, occasional, lost, new, never; chapter or global events, in person or online), then the events of the scope and below and who came.
+ */
+const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
+	({ includeBelow, compare }) => {
+		const data = useScopeEventStatistics(includeBelow, compare);
+		const s = data.value;
+		if (!s) return null;
+		// Nothing happened in these events in the last 12 months: one line instead of empty charts.
+		const noEvents =
+			s.eventsPerMonth.every((b) => !b.count) && s.ticketsIssued === 0;
+		return (
+			<section class="space-y-4" data-testid="statistics-events">
+				{s.ranking && compare && (
+					<ChapterRanking rows={s.ranking} mode={compare} />
+				)}
+				<h3 class="text-lg font-semibold text-gray-900">
+					{t("events.statistics.title")}
+				</h3>
+				<p class="text-sm text-gray-600">
+					{t("events.statistics.membersIntro")}
+				</p>
+				<div class="grid gap-4 md:grid-cols-2">
+					<div class="space-y-2">
+						<StatStack
+							title={t("events.engagement.title")}
+							parts={[
+								{
+									label: t("events.engagement.core"),
+									count: s.engagement.core,
+								},
+								{
+									label: t("events.engagement.regular"),
+									count: s.engagement.regular,
+								},
+								{
+									label: t("events.engagement.occasional"),
+									count: s.engagement.occasional,
+								},
+								{ label: t("events.engagement.new"), count: s.engagement.new },
+								{
+									label: t("events.engagement.lost"),
+									count: s.engagement.lost,
+								},
+								{
+									label: t("events.engagement.never"),
+									count: s.engagement.never,
+								},
+							]}
+							testId="statistics-members-activity"
+						/>
+						<p class="text-xs text-gray-500">
+							{t("events.engagement.rule", {
+								count: s.engagementRule.window,
+								core: s.engagementRule.corePercent,
+								regular: s.engagementRule.regularPercent,
+								min: s.engagementRule.minEvents,
+							})}
+						</p>
+					</div>
+					<div class="space-y-4">
+						<StatStack
+							title={t("events.statistics.eventKinds")}
+							parts={[
+								{
+									label: t("events.statistics.chapterOnly"),
+									count: s.eventKinds.chapterOnly,
+								},
+								{
+									label: t("events.statistics.both"),
+									count: s.eventKinds.both,
+								},
+								{
+									label: t("events.statistics.globalOnly"),
+									count: s.eventKinds.globalOnly,
+								},
+								{
+									label: t("events.statistics.never"),
+									count: s.eventKinds.never,
+								},
+							]}
+						/>
+						<StatStack
+							title={t("events.statistics.formats")}
+							parts={[
+								{
+									label: t("events.statistics.inPersonOnly"),
+									count: s.formats.inPersonOnly,
+								},
+								{
+									label: t("events.statistics.both"),
+									count: s.formats.both,
+								},
+								{
+									label: t("events.statistics.onlineOnly"),
+									count: s.formats.onlineOnly,
+								},
+								{
+									label: t("events.statistics.never"),
+									count: s.formats.never,
+								},
+							]}
+						/>
+					</div>
+				</div>
+				{noEvents ? (
+					<p class="text-sm text-gray-600" data-testid="statistics-no-events">
+						{includeBelow
+							? t("events.statistics.noEvents")
+							: t("events.statistics.noEventsOnThisLevel")}
+					</p>
+				) : (
+					<>
+						<div class="grid gap-4 md:grid-cols-2">
+							<StatColumns
+								title={t("events.statistics.eventsPerMonth")}
+								buckets={s.eventsPerMonth}
+							/>
+							<StatColumns
+								title={t("events.statistics.attendeesPerMonth")}
+								buckets={s.attendeesPerMonth}
+							/>
+						</div>
+						<div class="grid gap-4 md:grid-cols-2">
+							<StatBars
+								title={t("events.statistics.visits")}
+								rows={[
+									{ label: t("events.statistics.once"), count: s.visits.once },
+									{
+										label: t("events.statistics.twoToFour"),
+										count: s.visits.twoToFour,
+									},
+									{
+										label: t("events.statistics.fivePlus"),
+										count: s.visits.fivePlus,
+									},
+								]}
+							/>
+							<StatTile
+								label={t("events.statistics.noShows")}
+								value={s.ticketsIssued - s.ticketsScanned}
+								hint={t("events.statistics.ofIssued", {
+									count: s.ticketsIssued,
+								})}
+							/>
+						</div>
+						<h4 class="text-base font-semibold text-gray-900">
+							{t("events.statistics.whoCame")}
+						</h4>
+						<DemographicsBars demographics={s.whoCame} />
+						<PlacesBars demographics={s.whoCame} />
+						<BreakdownBars breakdowns={s.breakdowns} />
+						<HomesBars homes={s.homes} />
+					</>
+				)}
+			</section>
+		);
+	},
+);
+
 /** The events module's slot components (manifest `slots`; listed in the client-safe registry). */
 export const eventsSlots: SlotComponents = {
 	"profile.sections": OwnProfileEvents,
@@ -104,4 +364,5 @@ export const eventsSlots: SlotComponents = {
 	"userPage.sections": UserPageEvents,
 	"scopePage.sections": ScopeEventsSection,
 	"admin.dashboard.widgets": DashboardEvents,
+	"admin.statistics.sections": StatisticsEvents,
 };

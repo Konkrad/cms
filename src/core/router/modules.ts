@@ -118,6 +118,22 @@ export interface RefTypeDefinition {
 	search?: (query: string, limit: number) => Promise<RefLocation[]>;
 }
 
+/**
+ * A breakdown of a group of people the module can count (statistics, spec 4.11), e.g. "by
+ * qualification". Core calls it for whoever a statistics page is about (who came to an event,
+ * the members of a scope), hides small groups and shows the result. Return every group, zeros
+ * included, in display order; a person may be in several groups. Never return a person.
+ */
+export interface PeopleBreakdown {
+	/** `<module id>.<name>`. */
+	id: string;
+	/** Heading on the statistics pages (translated when called). */
+	title: () => string;
+	count: (
+		userIds: readonly string[],
+	) => Promise<Array<{ key: string; label: string; count: number }>>;
+}
+
 export interface ModuleDefinition {
 	id: string;
 	/**
@@ -222,6 +238,11 @@ export interface ModuleDefinition {
 	 * core's single step action, never an action of your own.
 	 */
 	requirements?: RequirementDefinition[];
+	/**
+	 * Breakdowns of people for the statistics pages (`PeopleBreakdown`): who came to an event,
+	 * the members of a scope, grouped by something the module knows. Used only while active.
+	 */
+	statistics?: PeopleBreakdown[];
 }
 
 export function defineModule(module: ModuleDefinition): ModuleDefinition {

@@ -41,5 +41,7 @@
 	"qualifications.module.qualifications": "Qualifications",
 	"qualifications.service.invalidOrUnknownToken": "Invalid or unknown token.",
 	"qualifications.service.thisQrCodeHasBeen": "This QR code has been deactivated.",
-	"qualifications.service.thisQrCodeHasExpired": "This QR code has expired."
+	"qualifications.service.thisQrCodeHasExpired": "This QR code has expired.",
+	"qualifications.statistics.none": "No qualification",
+	"qualifications.statistics.title": "Qualifications"
 }

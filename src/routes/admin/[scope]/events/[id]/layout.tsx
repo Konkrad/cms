@@ -14,6 +14,7 @@ export default component$(() => {
 		{ path: "participation", label: t("admin.events.tabs.participants") },
 		{ path: "transactions", label: t("admin.events.tabs.transactions") },
 		{ path: "tickets", label: t("admin.events.tabs.tickets") },
+		{ path: "statistics", label: t("admin.events.tabs.statistics") },
 		{ path: "photos", label: t("admin.events.tabs.photos") },
 		{ path: "updates", label: t("admin.events.tabs.updates") },
 	];

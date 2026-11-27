@@ -34,6 +34,11 @@ export const AdminNav = component$<AdminNavProps>(
 				label: t("admin.nav.dashboard"),
 				exact: true,
 			},
+			{
+				order: 5,
+				href: `${basePath}/statistics`,
+				label: t("admin.nav.statistics"),
+			},
 			{ order: 20, href: `${basePath}/notes`, label: t("admin.nav.notes") },
 			{
 				order: 21,

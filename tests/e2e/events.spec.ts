@@ -515,6 +515,7 @@ test.describe("Events — admin scope", () => {
 				"photos",
 				"attendance",
 				"scan",
+				"statistics",
 			]) {
 				const res = await page.goto(
 					`/admin/${slugA}/events/${eventB.eventId}/${tab}`,

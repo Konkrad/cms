@@ -254,6 +254,22 @@ test.describe("Scope admin — representatives", () => {
 		}
 	});
 
+	test("a representative sees their chapter's statistics, not a sibling's", async ({
+		browser,
+	}) => {
+		const { ctx, page } = await pageAs(browser, rep);
+		try {
+			const own = await page.goto(`/admin/${SEG_A}/statistics`);
+			expect(own?.status()).toBe(200);
+			// Four filler members and the representative.
+			await expect(page.getByTestId("stat-members")).toContainText("5");
+			const sibling = await page.goto(`/admin/${SEG_B}/statistics`);
+			expect(sibling?.status()).toBe(403);
+		} finally {
+			await ctx.close();
+		}
+	});
+
 	test("a representative can grant only the representative role", async ({
 		browser,
 	}) => {

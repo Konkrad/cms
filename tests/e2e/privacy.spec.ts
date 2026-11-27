@@ -64,6 +64,7 @@ test.describe("Privacy — page payloads", () => {
 				"products",
 				"comp-tickets",
 				"scan",
+				"statistics",
 			]) {
 				const res = await page.goto(`/admin/root/events/${ev.eventId}/${sub}`);
 				expect(res?.status(), sub).toBeLessThan(400);

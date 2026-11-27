@@ -18,7 +18,15 @@ Update the note **in the same commit** as the code when any of these changes:
 
 A refactor, a bug fix that restores the documented behaviour, or styling changes nothing in the note: say so in one line and move on.
 
-The Stop hook (`scripts/feature-notes-drift.mjs --hook`) lists notes whose `code:` files changed while the note did not, once per stop. Review each listed note; don't edit it just to silence the hook.
+The Stop hook (`scripts/feature-notes-drift.mjs --hook`) lists notes whose `code:` files changed while the note did not, and the notes you edited. Each finding is reported once and comes back only when its files change again, so a reminder is always new. Review each listed note; don't edit it just to silence the hook.
+
+## Before you commit a note you edited
+
+Being edited is not the same as being current. Check:
+- The intro and the diagram still describe the feature as it is now, not as it was when you started.
+- Every rule matches the code; labels match what the screens say.
+- Decisions are dated; known gaps and planned work are listed as **Open:**.
+- No code names in the text.
 
 ## Where it goes
 

@@ -2,6 +2,7 @@ import { useSignal, useTask$ } from "@qwik.dev/core";
 import { type RequestEventCommon, server$ } from "@qwik.dev/router";
 import type { RequirementStepData } from "~/contracts/requirements";
 import type { ScopeEventsData } from "~/contracts/scopes";
+import type { StatisticsCompare } from "~/contracts/slots";
 import {
 	assertNoPrivateFields,
 	currentUser,
@@ -10,9 +11,15 @@ import {
 	requireModuleAdmin,
 	requireModuleAuth,
 	requirements,
+	statisticsService,
 } from "~/core";
 import { eventsRequirements } from "./requirements";
 import { eventsService } from "./services/events";
+import {
+	type ChapterRow,
+	eventStatisticsService,
+	type ScopeEventStatistics,
+} from "./services/statistics";
 import {
 	type ProfileEventsData,
 	profileEventsOf,
@@ -100,6 +107,45 @@ export function useDashboardEvents() {
 	const data = useSignal<{ isRoot: boolean; count: number } | null>(null);
 	useTask$(async () => {
 		data.value = await fetchDashboardEvents();
+	});
+	return data;
+}
+
+const fetchScopeEventStatistics = server$(async function (
+	includeBelow: boolean,
+	compare: StatisticsCompare | null,
+) {
+	const { scope } = await requireModuleAdmin(this as RequestEventCommon, {
+		module: MODULE,
+	});
+	const [stats, ranking] = await Promise.all([
+		eventStatisticsService.forScopes(
+			// This level's events only, or with every scope below (the page's switch).
+			includeBelow ? await getSubtreeIds(scope.id) : [scope.id],
+			scope.id,
+			// Members always count with everything below (membership counts upward).
+			await statisticsService.memberIds(scope),
+		),
+		compare
+			? eventStatisticsService.ranking(
+					scope.id,
+					compare === "children" ? "children" : "leaves",
+				)
+			: null,
+	]);
+	return assertNoPrivateFields({ ...stats, ranking });
+});
+
+/** The events section of a scope's statistics page (`admin.statistics.sections`). */
+export function useScopeEventStatistics(
+	includeBelow: boolean,
+	compare: StatisticsCompare | null,
+) {
+	const data = useSignal<
+		(ScopeEventStatistics & { ranking: ChapterRow[] | null }) | null
+	>(null);
+	useTask$(async () => {
+		data.value = await fetchScopeEventStatistics(includeBelow, compare);
 	});
 	return data;
 }

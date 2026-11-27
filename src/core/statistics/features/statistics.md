@@ -48,7 +48,8 @@ flowchart TD
 - Tickets sold and revenue per ticket type (paid orders).
 
 ## Rules
-- **Nobody is shown individually.** Only counts leave the server. In breakdowns of people (birth period, gender, tier, home chapter) a group of 1 to 4 people reads "fewer than 5"; when exactly one group would be hidden, the next smallest is hidden too, so it cannot be worked out from the total.
+- **Nobody is shown individually.** Only counts leave the server. In breakdowns of people (gender, tier, home chapter) a group of 1 to 4 people reads "fewer than 5"; when exactly one group would be hidden, the next smallest is hidden too, so it cannot be worked out from the total.
+- **Birth periods** are shown with exact counts, small ones included: the period is already coarse.
 - **Places** (country, city) are named only with 5 or more people; smaller ones are merged into "Other (N places)", so a place with one or two people is never named. "Other", "not given" and the number of different countries name no place, so they are shown as they are.
 - Plain counts that organisers already see in the attendance list (tickets, orders, party sizes) are shown as they are.
 - **Member of a scope** = member of it or of a scope below it, since the first join ([[scopes-and-roles]]). On the root: every account.
@@ -74,7 +75,7 @@ flowchart TD
 - 2026-11: small groups hidden from 5, so the page can go to every chapter's managers without exposing anyone's private profile fields.
 - 2026-11: "where they live" is the country and city of residence people give at sign-up. Nationality is not asked; if a community wants it, it belongs in its onboarding form.
 - 2026-11: cohorts (batch, graduation year) are one qualification per batch, grouped by qualification; no separate cohort field. A group field for qualification types (all graduates, periods) only if the list gets too long.
-- 2026-11: people are counted by the birth period they gave ([[user-requirements]]), not by age; the periods that occur are listed, oldest first.
+- 2026-11: people are counted by the birth period they gave ([[user-requirements]]), not by age; the periods that occur are listed, oldest first, with exact counts: a period of 5 or 10 years is anonymous enough, so small groups are not hidden there.
 - 2026-11: later, not now: a +1 on free-event RSVPs and a standard feedback email after events.
 - **Open:** online events count a ticket or a "yes" as taking part until there is a way to check who actually joined (#137).
 - **Open:** the country is stored as text from the address lookup; it should become a country code, shown in the site's language (#138).

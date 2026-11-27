@@ -39,7 +39,7 @@ export const HOMES = ["here", "elsewhere", "noChapter"] as const;
 /** Breakdowns of a group of people. */
 export interface Demographics {
 	people: number;
-	/** Birth periods (key: first year), oldest first, then "unknown" (`birth-period.ts`). */
+	/** Birth periods (key: first year), oldest first, then "unknown" (`birth-period.ts`); exact. */
 	birthPeriods: StatBucket[];
 	/** The site's period length, to label the periods. */
 	birthPeriodYears: BirthPeriodYears;
@@ -204,14 +204,13 @@ export const statisticsService = {
 		return {
 			people: profiles.length,
 			birthPeriodYears: size,
-			birthPeriods: suppressSmall(
-				tally(
-					[...periods.map(String), "unknown"],
-					profiles.map((p) =>
-						p.birthPeriod == null
-							? "unknown"
-							: String(birthPeriodStart(p.birthPeriod, size)),
-					),
+			// Exact counts: a birth period is already coarse (5 or 10 years), so it needs no hiding.
+			birthPeriods: tally(
+				[...periods.map(String), "unknown"],
+				profiles.map((p) =>
+					p.birthPeriod == null
+						? "unknown"
+						: String(birthPeriodStart(p.birthPeriod, size)),
 				),
 			),
 			gender: suppressSmall(

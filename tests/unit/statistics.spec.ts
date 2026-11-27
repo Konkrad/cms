@@ -168,10 +168,9 @@ describe("statisticsService.demographicsOf", () => {
 			"unknown",
 		]);
 		expect(count(d.birthPeriods, "1980")).toBe(6);
-		// One person without a birth period: hidden, and so is the next smallest group
-		// (else it could be worked out from the total).
-		expect(count(d.birthPeriods, "unknown")).toBeNull();
-		expect(count(d.birthPeriods, "1995")).toBeNull();
+		// Birth periods are coarse already: exact counts, nothing hidden.
+		expect(count(d.birthPeriods, "unknown")).toBe(1);
+		expect(count(d.birthPeriods, "1995")).toBe(5);
 		expect(count(d.gender, "other")).toBeNull();
 		expect(count(d.gender, "female")).toBeNull();
 		expect(count(d.gender, "male")).toBe(6);

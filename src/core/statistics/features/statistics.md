@@ -48,8 +48,8 @@ flowchart TD
 - Tickets sold and revenue per ticket type (paid orders).
 
 ## Rules
-- **Nobody is shown individually.** Only counts leave the server. In breakdowns of people (gender, tier, home chapter) a group of 1 to 4 people reads "fewer than 5"; when exactly one group would be hidden, the next smallest is hidden too, so it cannot be worked out from the total.
-- **Birth periods** are shown with exact counts, small ones included: the period is already coarse.
+- **Nobody is shown individually.** Only counts leave the server. In the home-chapter breakdown and the module breakdowns (e.g. qualifications) a group of 1 to 4 people reads "fewer than 5"; when exactly one group would be hidden, the next smallest is hidden too, so it cannot be worked out from the total.
+- **Birth period, gender and membership** are shown with exact counts, small groups included: the period is already coarse, and the pages are for the scope's managers only.
 - **Places** (country, city) are named only with 5 or more people; smaller ones are merged into "Other (N places)", so a place with one or two people is never named. "Other", "not given" and the number of different countries name no place, so they are shown as they are.
 - Plain counts that organisers already see in the attendance list (tickets, orders, party sizes) are shown as they are.
 - **Member of a scope** = member of it or of a scope below it, since the first join ([[scopes-and-roles]]). On the root: every account.
@@ -72,9 +72,10 @@ flowchart TD
 - 2026-11: engagement is a share of the events a person could attend, not fixed months or years, so it fits small and busy chapters alike; the score is only counted, never shown or stored per person (no profiling). Newcomers are "new" until they have had a few events to attend, so one event does not make anyone core.
 - 2026-11: activity means coming to events, not logging in: what matters is whether members take part, whom we lost, and who only comes locally or only globally.
 - 2026-11: monthly numbers as columns (time left to right), shares of a whole (engagement, chapter or global, in person or online, home chapter, party size) as one stacked bar with numbers, named groups as bar lists. No pies, no second scale.
-- 2026-11: small groups hidden from 5, so the page can go to every chapter's managers without exposing anyone's private profile fields.
+- 2026-11: small groups hidden from 5 where a group says something about a person beyond the profile (home chapter, module breakdowns such as qualifications); birth period, gender and membership are shown exactly (see below).
 - 2026-11: "where they live" is the country and city of residence people give at sign-up. Nationality is not asked; if a community wants it, it belongs in its onboarding form.
 - 2026-11: cohorts (batch, graduation year) are one qualification per batch, grouped by qualification; no separate cohort field. A group field for qualification types (all graduates, periods) only if the list gets too long.
+- 2026-11: gender and membership with exact counts too, accepted knowingly: at a small event "1 female" can point at one person for someone who knows the attendance list; the statistics are only for the scope's managers.
 - 2026-11: people are counted by the birth period they gave ([[user-requirements]]), not by age; the periods that occur are listed, oldest first, with exact counts: a period of 5 or 10 years is anonymous enough, so small groups are not hidden there.
 - 2026-11: later, not now: a +1 on free-event RSVPs and a standard feedback email after events.
 - **Open:** online events count a ticket or a "yes" as taking part until there is a way to check who actually joined (#137).

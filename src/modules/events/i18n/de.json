@@ -227,7 +227,7 @@
 	"events.admin.statistics.noShows": "Nicht genutzte Tickets",
 	"events.admin.statistics.noShowsHint": "Ausgestellt, aber nie gescannt",
 	"events.admin.statistics.notOverYet": "Bekannt, sobald die Veranstaltung vorbei ist",
-	"events.admin.statistics.note": "Alter, Geschlecht, Mitgliedschaft und Heimat-Ortsgruppe zählen nur Personen mit Konto; Gruppen unter 5 werden ausgeblendet.",
+	"events.admin.statistics.note": "Geburtszeitraum, Geschlecht, Mitgliedschaft und Heimat-Ortsgruppe zählen nur Personen mit Konto; Heimat-Ortsgruppe und Qualifikationen blenden Gruppen unter 5 aus.",
 	"events.admin.statistics.party": "Gemeinsam auf einer Bestellung",
 	"events.admin.statistics.peopleCame": "Gekommen",
 	"events.admin.statistics.plusOne": "Mit Begleitung",

@@ -471,7 +471,7 @@
 	"admin.statistics.place.other_other": "Andere ({count} Orte)",
 	"admin.statistics.place.unknown": "Keine Angabe",
 	"admin.statistics.postsPerMonth": "Veröffentlichte Notizen und Artikel pro Monat",
-	"admin.statistics.privacyNote": "Gruppen mit weniger als {min} Personen werden ausgeblendet, damit niemand erkennbar ist.",
+	"admin.statistics.privacyNote": "Nur Zahlen, niemand wird einzeln gezeigt. Heimat-Ortsgruppe und Auswertungen der Module (z. B. Qualifikationen) blenden Gruppen unter {min} Personen aus.",
 	"admin.statistics.tier.associated": "Assoziiertes Mitglied",
 	"admin.statistics.tier.full": "Vollmitglied",
 	"admin.statistics.tier.none": "Keine Mitgliedschaft",

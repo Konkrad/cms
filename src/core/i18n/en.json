@@ -471,7 +471,7 @@
 	"admin.statistics.place.other_other": "Other ({count} places)",
 	"admin.statistics.place.unknown": "Not given",
 	"admin.statistics.postsPerMonth": "Notes and articles published per month",
-	"admin.statistics.privacyNote": "Groups of fewer than {min} people are hidden, so no one can be picked out.",
+	"admin.statistics.privacyNote": "Counts only, nobody is shown individually. Home chapter and module breakdowns (e.g. qualifications) hide groups of fewer than {min} people.",
 	"admin.statistics.tier.associated": "Associated member",
 	"admin.statistics.tier.full": "Full member",
 	"admin.statistics.tier.none": "No membership",

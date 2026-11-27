@@ -213,21 +213,18 @@ export const statisticsService = {
 						: String(birthPeriodStart(p.birthPeriod, size)),
 				),
 			),
-			gender: suppressSmall(
-				tally(
-					GENDERS,
-					profiles.map((p) =>
-						(GENDERS as readonly string[]).includes(p.gender ?? "")
-							? (p.gender as string)
-							: "unknown",
-					),
+			// Exact counts, like birth periods: shown only to the scope's managers.
+			gender: tally(
+				GENDERS,
+				profiles.map((p) =>
+					(GENDERS as readonly string[]).includes(p.gender ?? "")
+						? (p.gender as string)
+						: "unknown",
 				),
 			),
-			tier: suppressSmall(
-				tally(
-					TIERS,
-					profiles.map((p) => tiers.get(p.id) ?? "none"),
-				),
+			tier: tally(
+				TIERS,
+				profiles.map((p) => tiers.get(p.id) ?? "none"),
 			),
 			countries: placesOf(profiles.map((p) => p.country || null)),
 			countryCount: new Set(

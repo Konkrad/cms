@@ -147,7 +147,7 @@ describe("suppressSmall", () => {
 });
 
 describe("statisticsService.demographicsOf", () => {
-	it("counts birth periods, gender and tier, hiding small groups", async () => {
+	it("counts birth periods, gender and tier exactly", async () => {
 		const ids = [
 			...Array.from({ length: 5 }, () =>
 				user({ birthPeriod: 1995, sex: "female" }),
@@ -171,8 +171,9 @@ describe("statisticsService.demographicsOf", () => {
 		// Birth periods are coarse already: exact counts, nothing hidden.
 		expect(count(d.birthPeriods, "unknown")).toBe(1);
 		expect(count(d.birthPeriods, "1995")).toBe(5);
-		expect(count(d.gender, "other")).toBeNull();
-		expect(count(d.gender, "female")).toBeNull();
+		// Exact counts: shown only to the scope's managers.
+		expect(count(d.gender, "other")).toBe(1);
+		expect(count(d.gender, "female")).toBe(5);
 		expect(count(d.gender, "male")).toBe(6);
 		expect(count(d.tier, "none")).toBe(12);
 	});

@@ -15,7 +15,7 @@
 
 ## Feature notes
 
-What the CMS does and why lives in feature notes next to the code (`<area>/features/<feature>.md`, start page `FEATURES.md`, an Obsidian vault). Load the `feature-notes` skill before changing a rule, a permission, a status flow or who is notified, and update the note in the same commit. A Stop hook and the pre-commit hook list notes whose code changed without them; `tests/unit/feature-notes.spec.ts` checks paths, links and coverage.
+What the CMS does and why lives in feature notes next to the code (`<area>/features/<feature>.md`, start page `FEATURES.md`, an Obsidian vault). Load the `feature-notes` skill before changing a rule, a permission, a status flow or who is notified, and update the note in the same commit. A Stop hook and the pre-commit hook list notes whose code changed without them (each finding once); `tests/unit/feature-notes.spec.ts` checks paths, links and coverage. Before committing an edited note, check: intro and diagram still true, rules match the code and the screens' labels, decisions dated and open points listed as **Open:**, no code names in the text.
 
 ## Architecture map
 

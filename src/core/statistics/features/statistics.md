@@ -75,7 +75,7 @@ flowchart TD
 - 2026-11: small groups hidden from 5 where a group says something about a person beyond the profile (home chapter, module breakdowns such as qualifications); birth period, gender and membership are shown exactly (see below).
 - 2026-11: "where they live" is the country and city of residence people give at sign-up. Nationality is not asked; if a community wants it, it belongs in its onboarding form.
 - 2026-11: cohorts (batch, graduation year) are one qualification per batch, grouped by qualification; no separate cohort field. A group field for qualification types (all graduates, periods) only if the list gets too long.
-- 2026-11: gender and membership with exact counts too, accepted knowingly: at a small event "1 female" can point at one person for someone who knows the attendance list; the statistics are only for the scope's managers.
+- 2026-11: gender and membership with exact counts too: gender is no secret to anyone who was there, and the statistics are only for the scope's managers.
 - 2026-11: people are counted by the birth period they gave ([[user-requirements]]), not by age; the periods that occur are listed, oldest first, with exact counts: a period of 5 or 10 years is anonymous enough, so small groups are not hidden there.
 - 2026-11: later, not now: a +1 on free-event RSVPs and a standard feedback email after events.
 - **Open:** online events count a ticket or a "yes" as taking part until there is a way to check who actually joined (#137).

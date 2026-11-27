@@ -10,10 +10,15 @@ import {
 	type StatBucket,
 	suppressSmall,
 } from "~/core/statistics/suppress";
+import {
+	type BirthPeriodYears,
+	birthPeriodStart,
+} from "~/core/users/birth-period";
 import { users } from "~/core/users/schema";
+import { env } from "~/env";
 
 /**
- * Statistics (aggregates only). The private profile fields (year of birth, gender, location,
+ * Statistics (aggregates only). The private profile fields (birth period, gender, location,
  * membership tier) are read here and leave this file only as counts per group, with small
  * groups hidden (`suppressSmall`). Never returns a person. Server-only.
  */
@@ -21,16 +26,6 @@ import { users } from "~/core/users/schema";
 const DAY_MS = 86_400_000;
 const CHUNK = 500;
 
-export const AGE_GROUPS = [
-	"under18",
-	"18to24",
-	"25to34",
-	"35to44",
-	"45to54",
-	"55to64",
-	"65plus",
-	"unknown",
-] as const;
 export const GENDERS = [
 	"female",
 	"male",
@@ -44,7 +39,10 @@ export const HOMES = ["here", "elsewhere", "noChapter"] as const;
 /** Breakdowns of a group of people. */
 export interface Demographics {
 	people: number;
-	ageGroups: StatBucket[];
+	/** Birth periods (key: first year), oldest first, then "unknown" (`birth-period.ts`). */
+	birthPeriods: StatBucket[];
+	/** The site's period length, to label the periods. */
+	birthPeriodYears: BirthPeriodYears;
 	gender: StatBucket[];
 	tier: StatBucket[];
 	/**
@@ -100,18 +98,6 @@ export function perMonth(
 		if (key && counts.has(key)) counts.set(key, (counts.get(key) ?? 0) + 1);
 	}
 	return months.map((key) => ({ key, count: counts.get(key) ?? 0 }));
-}
-
-function ageGroup(yearOfBirth: number | null, year: number) {
-	if (!yearOfBirth) return "unknown";
-	const age = year - yearOfBirth;
-	if (age < 18) return "under18";
-	if (age < 25) return "18to24";
-	if (age < 35) return "25to34";
-	if (age < 45) return "35to44";
-	if (age < 55) return "45to54";
-	if (age < 65) return "55to64";
-	return "65plus";
 }
 
 /**
@@ -176,7 +162,7 @@ async function profilesOf(userIds: readonly string[]) {
 		db
 			.select({
 				id: users.id,
-				yearOfBirth: users.yearOfBirth,
+				birthPeriod: users.birthPeriod,
 				gender: users.sex,
 				city: users.city,
 				country: users.country,
@@ -201,22 +187,31 @@ export const statisticsService = {
 	 * Age groups, gender and membership tier of these people (e.g. who came to an event), with
 	 * small groups hidden. Unknown ids are ignored.
 	 */
-	async demographicsOf(
-		userIds: readonly string[],
-		now: Date = new Date(),
-	): Promise<Demographics> {
+	async demographicsOf(userIds: readonly string[]): Promise<Demographics> {
 		const unique = [...new Set(userIds)];
 		const [profiles, tiers] = await Promise.all([
 			profilesOf(unique),
 			tiersOf(unique),
 		]);
-		const year = now.getUTCFullYear();
+		const size = env.BIRTH_PERIOD_YEARS;
+		const periods = [
+			...new Set(
+				profiles.flatMap((p) =>
+					p.birthPeriod == null ? [] : [birthPeriodStart(p.birthPeriod, size)],
+				),
+			),
+		].sort((a, b) => a - b);
 		return {
 			people: profiles.length,
-			ageGroups: suppressSmall(
+			birthPeriodYears: size,
+			birthPeriods: suppressSmall(
 				tally(
-					AGE_GROUPS,
-					profiles.map((p) => ageGroup(p.yearOfBirth, year)),
+					[...periods.map(String), "unknown"],
+					profiles.map((p) =>
+						p.birthPeriod == null
+							? "unknown"
+							: String(birthPeriodStart(p.birthPeriod, size)),
+					),
 				),
 			),
 			gender: suppressSmall(
@@ -305,7 +300,7 @@ export const statisticsService = {
 			scope.parentId === null ? null : await scopesService.subtreeIds(scope.id);
 
 		const [demographics, posts] = await Promise.all([
-			this.demographicsOf(ids, now),
+			this.demographicsOf(ids),
 			Promise.all(
 				[notes, articles].map((table) =>
 					db

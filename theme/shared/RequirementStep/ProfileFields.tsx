@@ -3,18 +3,21 @@ import { ImageUploader } from "~/components/ui/ImageUploader/ImageUploader";
 import { Input } from "~/components/ui/Input";
 import { Select } from "~/components/ui/Select";
 import { t } from "~/contracts/i18n";
+import type { BirthPeriodChoice } from "~/contracts/users";
 
 export type ProfileFieldsProps = {
 	/** The viewer's own current profile (prefill). */
 	values: Record<string, unknown>;
 	errors: Record<string, string>;
+	/** The birth periods to choose from (the site's period length). */
+	birthPeriods: BirthPeriodChoice[];
 };
 
 const text = (v: unknown) => (v == null ? "" : String(v));
 
 /** Fields of the `core.profile` requirement step (inside `RequirementStep`'s form). */
 export const ProfileFields = component$<ProfileFieldsProps>(
-	({ values, errors }) => {
+	({ values, errors, birthPeriods }) => {
 		const thumbnailPath = useSignal("");
 
 		return (
@@ -36,13 +39,21 @@ export const ProfileFields = component$<ProfileFieldsProps>(
 						error={errors.familyName}
 						required
 					/>
-					<Input
-						label={t("theme.profileFields.yearOfBirth")}
-						name="yearOfBirth"
-						type="number"
-						value={text(values.yearOfBirth)}
-						error={errors.yearOfBirth}
-					/>
+					<Select
+						label={t("theme.profileFields.birthPeriod")}
+						name="birthPeriod"
+						value={text(values.birthPeriod)}
+						error={errors.birthPeriod}
+					>
+						<option value="">
+							{t("theme.profileFields.selectBirthPeriod")}
+						</option>
+						{birthPeriods.map((p) => (
+							<option key={p.value} value={String(p.value)}>
+								{p.label}
+							</option>
+						))}
+					</Select>
 					<Select
 						label={t("theme.profileFields.gender")}
 						name="sex"

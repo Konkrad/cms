@@ -6,6 +6,7 @@ code:
   - src/core/requirements/requirements.ts
   - src/core/requirements/requirements.service.ts
   - src/modules/events/requirements.ts
+  - src/core/users/birth-period.ts
 tags: [foundation, accounts, privacy]
 ---
 # User requirements
@@ -23,17 +24,19 @@ flowchart LR
 
 | When | Requirement | Source |
 |---|---|---|
-| Using the site at all | Profile basics (name, year of birth, gender, picture) | core |
+| Using the site at all | Profile basics (name, birth period, gender, picture) | core |
 | Using the site at all | Location (city, country) | core |
 | Using the site at all | Onboarding survey, **only while one is set up** ([[forms]]) | core |
 | Buying a ticket / registering | Food preference, photo consent | [[ticket-checkout]] |
 
 ## Rules
+- People give the **period** they were born in (e.g. 1990–1994), never their year of birth. The period length is 5 or 10 years, set per site; it is optional ("prefer not to say").
 - A person with a missing site-wide requirement is sent to the setup page first, and back to where they wanted to go afterwards.
 - Answers are **private**. The person sees and changes their own in the profile; admins see them only where needed (organisers: the participant list of their event).
 - When a requirement's questions change in a way that needs new answers, it gets a new version and **everyone is asked again**.
 - A module's requirements apply only while the module is switched on.
 
 ## Decisions
+- 2026-11: a birth period instead of the year of birth: less personal, and enough for statistics ([[statistics]]). 5 years by default, so a site can later switch to 10 and keep every answer (the other way round only refines new answers). Years entered before were dropped, not converted, and nobody is asked again.
 - **Open:** after the setup steps, a new user sometimes lands on the home page instead of the page they wanted (seen locally, listed in #121).
 - Requirements are stored separately from the account, so a new module can ask for something without changing the account itself, and the site knows which version each person agreed to (important for consent).

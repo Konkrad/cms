@@ -16,9 +16,11 @@ export type PublicProfileViewData = {
 	tags: { id: string; label: string }[];
 	communities: { name: string; url: string }[];
 	isOwner: boolean;
-	/** Owner only: the viewer's own login email, birth year and gender. */
+	/** Owner only: the viewer's own login email, birth period and gender. */
 	email?: string | null;
-	yearOfBirth?: number | null;
+	birthPeriod?: BirthPeriodChoice | null;
+	/** Owner only: the periods to choose from (the site's period length). */
+	birthPeriodOptions?: BirthPeriodChoice[];
 	sex?: string | null;
 	/** Answers of the onboarding (affiliation) form. */
 	affiliationEntries: { question: string; answer: string }[];
@@ -31,3 +33,9 @@ export type PublicProfileViewData = {
 		responseEntries: { question: string; answer: string }[];
 	}[];
 } | null;
+
+/** A birth period (e.g. 1990–1994): its first year, as stored, and its label. */
+export interface BirthPeriodChoice {
+	value: number;
+	label: string;
+}

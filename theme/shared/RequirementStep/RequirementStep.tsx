@@ -8,6 +8,7 @@ import type {
 	RequirementStepData,
 	SubmitRequirementAction,
 } from "~/contracts/requirements";
+import type { BirthPeriodChoice } from "~/contracts/users";
 import { type FormQuestion, FormRenderer } from "~/core/forms/FormRenderer";
 import { GenericFields } from "./GenericFields";
 import { LocationFields } from "./LocationFields";
@@ -57,7 +58,14 @@ export const RequirementStep = component$<RequirementStepProps>(
 					{failure?.message && <Alert variant="error">{failure.message}</Alert>}
 
 					{step.view === "core.profile" ? (
-						<ProfileFields values={step.values} errors={errors} />
+						<ProfileFields
+							values={step.values}
+							errors={errors}
+							birthPeriods={
+								(step.data?.birthPeriods as BirthPeriodChoice[] | undefined) ??
+								[]
+							}
+						/>
 					) : step.view === "core.location" ? (
 						<LocationFields values={step.values} />
 					) : step.view === "core.form" ? (

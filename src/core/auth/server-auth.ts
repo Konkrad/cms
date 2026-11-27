@@ -92,7 +92,7 @@ export async function getCurrentUserData(
 			country: u.country,
 			longitude: u.longitude,
 			latitude: u.latitude,
-			yearOfBirth: u.yearOfBirth,
+			birthPeriod: u.birthPeriod,
 			sex: u.sex,
 			profilePicture: u.profilePicture,
 			profilePictureSmall: u.profilePictureSmall,

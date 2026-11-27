@@ -20,11 +20,11 @@ afterEach(() => {
 	for (const fn of cleanups.splice(0).reverse()) fn();
 });
 
-function user(profile: { yearOfBirth?: number; sex?: string } = {}) {
+function user(profile: { birthPeriod?: number; sex?: string } = {}) {
 	const u = createTestUser();
 	const db = openDb();
-	db.prepare("UPDATE users SET year_of_birth = ?, sex = ? WHERE id = ?").run(
-		profile.yearOfBirth ?? null,
+	db.prepare("UPDATE users SET birth_period = ?, sex = ? WHERE id = ?").run(
+		profile.birthPeriod ?? null,
 		profile.sex ?? null,
 		u.userId,
 	);
@@ -147,26 +147,31 @@ describe("suppressSmall", () => {
 });
 
 describe("statisticsService.demographicsOf", () => {
-	it("counts age groups, gender and tier, hiding small groups", async () => {
-		const now = new Date("2026-06-01T00:00:00Z");
+	it("counts birth periods, gender and tier, hiding small groups", async () => {
 		const ids = [
 			...Array.from({ length: 5 }, () =>
-				user({ yearOfBirth: 1996, sex: "female" }),
+				user({ birthPeriod: 1995, sex: "female" }),
 			),
 			...Array.from({ length: 6 }, () =>
-				user({ yearOfBirth: 1980, sex: "male" }),
+				user({ birthPeriod: 1980, sex: "male" }),
 			),
 			user({ sex: "other" }),
 		];
-		const d = await statisticsService.demographicsOf(ids, now);
+		const d = await statisticsService.demographicsOf(ids);
 		expect(d.people).toBe(12);
-		const count = (list: typeof d.ageGroups, key: string) =>
+		const count = (list: typeof d.birthPeriods, key: string) =>
 			list.find((b) => b.key === key)?.count;
-		expect(count(d.ageGroups, "45to54")).toBe(6);
-		// One person without a year of birth: hidden, and so is the next smallest group
+		// Oldest period first, then "unknown".
+		expect(d.birthPeriods.map((b) => b.key)).toEqual([
+			"1980",
+			"1995",
+			"unknown",
+		]);
+		expect(count(d.birthPeriods, "1980")).toBe(6);
+		// One person without a birth period: hidden, and so is the next smallest group
 		// (else it could be worked out from the total).
-		expect(count(d.ageGroups, "unknown")).toBeNull();
-		expect(count(d.ageGroups, "25to34")).toBeNull();
+		expect(count(d.birthPeriods, "unknown")).toBeNull();
+		expect(count(d.birthPeriods, "1995")).toBeNull();
 		expect(count(d.gender, "other")).toBeNull();
 		expect(count(d.gender, "female")).toBeNull();
 		expect(count(d.gender, "male")).toBe(6);

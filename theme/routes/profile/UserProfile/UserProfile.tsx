@@ -11,6 +11,7 @@ import type {
 	UpdateNameAction,
 	UpdatePictureAction,
 } from "~/contracts/profile";
+import type { BirthPeriodChoice } from "~/contracts/users";
 import { NotificationSettings } from "~theme/shared/NotificationSettings/NotificationSettings";
 import { PrivacyBadge } from "~theme/shared/PrivacyBadge/PrivacyBadge";
 import { ProfileAvatarEdit } from "~theme/shared/ProfileAvatarEdit/ProfileAvatarEdit";
@@ -47,7 +48,8 @@ export interface UserProfileProps {
 	// Owner-only
 	isOwner: boolean;
 	email?: string | null;
-	yearOfBirth?: number | null;
+	birthPeriod?: BirthPeriodChoice | null;
+	birthPeriodOptions?: BirthPeriodChoice[];
 	sex?: string | null;
 	submittedForms?: FormEntry[];
 	affiliationEntries?: { question: string; answer: string }[];
@@ -83,7 +85,8 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 		communities,
 		isOwner,
 		email,
-		yearOfBirth,
+		birthPeriod,
+		birthPeriodOptions,
 		sex,
 		submittedForms,
 		affiliationEntries,
@@ -103,7 +106,7 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 	const hasPrivateContent =
 		isOwner &&
 		(!!email ||
-			!!yearOfBirth ||
+			!!birthPeriod ||
 			!!sex ||
 			(submittedForms && submittedForms.length > 0) ||
 			(notificationSettings && notificationSettings.length > 0));
@@ -266,18 +269,19 @@ export const UserProfile = component$<UserProfileProps>((props) => {
 							)}
 							{updateDetailsAction ? (
 								<ProfileDetailsEdit
-									yearOfBirth={yearOfBirth}
+									birthPeriod={birthPeriod}
+									birthPeriodOptions={birthPeriodOptions ?? []}
 									sex={sex}
 									updateAction={updateDetailsAction}
 								/>
 							) : (
 								<>
-									{yearOfBirth && (
+									{birthPeriod && (
 										<span class="text-sm text-text-secondary">
 											<span class="font-medium">
-												{t("theme.userProfile.yearOfBirth")}
+												{t("theme.userProfile.birthPeriod")}
 											</span>{" "}
-											{yearOfBirth}
+											{birthPeriod.label}
 										</span>
 									)}
 									{sex && (

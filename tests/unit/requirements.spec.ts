@@ -358,7 +358,7 @@ describe("core requirements", () => {
 		await requirements.submit(user, "core.profile", {
 			name: "Ada",
 			familyName: "Lovelace",
-			yearOfBirth: "1990",
+			birthPeriod: "1990",
 			sex: "female",
 			profilePicture: "private/other/secret.png",
 		});
@@ -371,14 +371,14 @@ describe("core requirements", () => {
 		const db = openDb();
 		const row = db
 			.prepare(
-				"SELECT name, family_name, year_of_birth, sex, city, latitude, profile_picture FROM users WHERE id = ?",
+				"SELECT name, family_name, birth_period, sex, city, latitude, profile_picture FROM users WHERE id = ?",
 			)
 			.get(user.id);
 		db.close();
 		expect(row).toEqual({
 			name: "Ada",
 			family_name: "Lovelace",
-			year_of_birth: 1990,
+			birth_period: 1990,
 			sex: "female",
 			city: "Berlin",
 			latitude: "52.5",
@@ -390,6 +390,24 @@ describe("core requirements", () => {
 		);
 		expect(pending).not.toContain("core.profile");
 		expect(pending).not.toContain("core.location");
+	});
+
+	it("profile takes a birth period, never an exact year", async () => {
+		const user = newUser();
+		// 1987 is a year, not the first year of a period (5 years by default): refused.
+		await expect(
+			requirements.submit(user, "core.profile", {
+				name: "Ada",
+				familyName: "Lovelace",
+				birthPeriod: "1987",
+			}),
+		).rejects.toBeInstanceOf(RequirementInputError);
+		const [step] = await requirements.steps(user, GLOBAL_CONTEXT);
+		const periods = (step.data?.birthPeriods ?? []) as Array<{
+			value: number;
+			label: string;
+		}>;
+		expect(periods).toContainEqual({ value: 1985, label: "1985–1989" });
 	});
 
 	it("location rejects a bad coordinate", async () => {

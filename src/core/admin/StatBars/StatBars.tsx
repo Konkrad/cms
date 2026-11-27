@@ -6,6 +6,7 @@ import {
 	type PeopleBreakdownResult,
 	type StatBucket,
 } from "~/core/statistics/suppress";
+import { birthPeriodLabel } from "~/core/users/birth-period";
 
 /** One row of a breakdown: its label and count (null = a small group, hidden). */
 export interface StatRow {
@@ -108,16 +109,6 @@ export function monthRows(buckets: StatBucket[]): StatRow[] {
 }
 
 const GROUP_LABELS = {
-	age: () => ({
-		under18: t("admin.statistics.age.under18"),
-		"18to24": t("admin.statistics.age.18to24"),
-		"25to34": t("admin.statistics.age.25to34"),
-		"35to44": t("admin.statistics.age.35to44"),
-		"45to54": t("admin.statistics.age.45to54"),
-		"55to64": t("admin.statistics.age.55to64"),
-		"65plus": t("admin.statistics.age.65plus"),
-		unknown: t("admin.statistics.age.unknown"),
-	}),
 	gender: () => ({
 		female: t("admin.statistics.gender.female"),
 		male: t("admin.statistics.gender.male"),
@@ -149,15 +140,21 @@ function labelled(
 	}));
 }
 
-/** Age groups, gender and membership tier of a group of people (`statisticsService.demographicsOf`). */
+/** Birth period, gender and membership tier of a group of people (`statisticsService.demographicsOf`). */
 export const DemographicsBars = component$<{
 	demographics: Demographics;
 	testId?: string;
 }>(({ demographics, testId }) => (
 	<div class="grid gap-4 md:grid-cols-3" data-testid={testId}>
 		<StatBars
-			title={t("admin.statistics.ageGroups")}
-			rows={labelled("age", demographics.ageGroups)}
+			title={t("admin.statistics.birthPeriods")}
+			rows={demographics.birthPeriods.map((b) => ({
+				label:
+					b.key === "unknown"
+						? t("admin.statistics.birthPeriodUnknown")
+						: birthPeriodLabel(Number(b.key), demographics.birthPeriodYears),
+				count: b.count,
+			}))}
 		/>
 		<StatBars
 			title={t("admin.statistics.gender.title")}

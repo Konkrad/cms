@@ -53,7 +53,7 @@ describe("findPrivateFields", () => {
 
 	it("covers user, login, session and ticket secrets", () => {
 		const keys = [
-			"yearOfBirth",
+			"birthPeriod",
 			"sex",
 			"latitude",
 			"longitude",

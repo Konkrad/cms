@@ -84,16 +84,16 @@ export const usersService = {
 		}));
 	},
 
-	/** The user's OWN private details for their own profile page (login email, birth year, sex). */
+	/** The user's OWN private details for their own profile page (login email, birth period, sex). */
 	async getOwnPrivateDetails(id: string): Promise<{
 		email: string | null;
-		yearOfBirth: number | null;
+		birthPeriod: number | null;
 		sex: string | null;
 	} | null> {
 		const [row] = await db
 			.select({
 				email: logins.email,
-				yearOfBirth: users.yearOfBirth,
+				birthPeriod: users.birthPeriod,
 				sex: users.sex,
 			})
 			.from(users)

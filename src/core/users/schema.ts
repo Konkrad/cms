@@ -15,7 +15,8 @@ export const users = sqliteTable("users", {
 	country: text("country"),
 	longitude: text("longitude"),
 	latitude: text("latitude"),
-	yearOfBirth: integer("year_of_birth"),
+	/** First year of the birth period the person chose (`birth-period.ts`); never the exact year. */
+	birthPeriod: integer("birth_period"),
 	sex: text("sex"),
 	profilePicture: text("profile_picture"),
 	profilePictureSmall: text("profile_picture_small"),

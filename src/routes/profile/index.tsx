@@ -11,6 +11,7 @@ import { scopesService } from "~/core/scopes/scopes.service";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { userTagsService } from "~/core/tags/user-tags.service";
 import { formatAffiliationResultJson } from "~/core/users/affiliation";
+import { ownBirthPeriod } from "~/core/users/own-birth-period";
 import { UserProfile } from "~theme/routes/profile/UserProfile/UserProfile";
 import { useSetNotificationPreference } from "../../core/notifications/profile/useSetNotificationPreference";
 import { ModuleSlot } from "../../core/registry/ModuleSlot";
@@ -72,7 +73,7 @@ export const useProfile = routeLoader$(async (event) => {
 			isOwner: true,
 			notificationSettings,
 			email: (user.email as string | null) ?? null,
-			yearOfBirth: user.yearOfBirth ?? null,
+			...ownBirthPeriod(user.birthPeriod as number | null | undefined),
 			sex: user.sex ?? null,
 			affiliationEntries: (() => {
 				const onboarding = submittedForms.find(
@@ -103,8 +104,8 @@ export const useProfile = routeLoader$(async (event) => {
 				})),
 		},
 		{
-			// The viewer's OWN profile: their login email, birth year and gender are theirs to see.
-			allow: ["email", "yearOfBirth", "sex"],
+			// The viewer's OWN profile: their login email, birth period and gender are theirs to see.
+			allow: ["email", "birthPeriod", "sex"],
 		},
 	);
 });

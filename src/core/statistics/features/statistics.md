@@ -14,12 +14,13 @@ tags: [admin, statistics]
 ---
 # Statistics
 
-Who the members are, whether they come to events (and whom we have lost), as counts. Three levels: the whole site (root), a chapter (any scope, counting the scopes below it) and one event.
+Who the members are, whether they come to events (and whom we have lost), as counts. Three levels: the whole site (root), any scope below it (a region, a chapter) and one event. Each scope shows its own events or, with a switch, everything below it, and can compare the chapters below.
 
 ```mermaid
 flowchart TD
-    Root["Statistics on the root: everyone"] --> Chapter["Statistics of a chapter: its members and the chapters below"]
-    Chapter --> Event["Statistics tab of an event: who came"]
+    Root["Platform: everyone<br/>compare all chapters"] --> Region["Region: its members<br/>own events or everything below"]
+    Region --> Chapter["Chapter: its members<br/>and events"]
+    Chapter --> Event["Event tab: who came"]
 ```
 
 ## Where
@@ -48,7 +49,7 @@ flowchart TD
 
 ## Rules
 - **Nobody is shown individually.** Only counts leave the server. In breakdowns of people (age, gender, tier, home chapter) a group of 1 to 4 people reads "fewer than 5"; when exactly one group would be hidden, the next smallest is hidden too, so it cannot be worked out from the total.
-- **Places** (country, city) are named only with 5 or more people; smaller ones are merged into "Other (N places)", so a place with one or two people is never named. "Other places", "not given" and the number of different countries name no place, so they are shown as they are.
+- **Places** (country, city) are named only with 5 or more people; smaller ones are merged into "Other (N places)", so a place with one or two people is never named. "Other", "not given" and the number of different countries name no place, so they are shown as they are.
 - Plain counts that organisers already see in the attendance list (tickets, orders, party sizes) are shown as they are.
 - **Member of a scope** = member of it or of a scope below it, since the first join ([[scopes-and-roles]]). On the root: every account.
 - **Engagement** is measured against the events a person could have attended: those of their chapters and the chapters above, global events, and any event they did attend, since they joined. Of the last 12 of those:
@@ -73,4 +74,7 @@ flowchart TD
 - 2026-11: small groups hidden from 5, so the page can go to every chapter's managers without exposing anyone's private profile fields.
 - 2026-11: "where they live" is the country and city of residence people give at sign-up. Nationality is not asked; if a community wants it, it belongs in its onboarding form.
 - 2026-11: cohorts (batch, graduation year) are one qualification per batch, grouped by qualification; no separate cohort field. A group field for qualification types (all graduates, periods) only if the list gets too long.
-- 2026-11: later, not now: a +1 on free-event RSVPs, a standard feedback email after events, and verifying who actually joined an online event (issue #137).
+- 2026-11: later, not now: a +1 on free-event RSVPs and a standard feedback email after events.
+- **Open:** online events count a ticket or a "yes" as taking part until there is a way to check who actually joined (#137).
+- **Open:** the country is stored as text from the address lookup; it should become a country code, shown in the site's language (#138).
+- **Open:** ask for a birth period (5 or 10 years, set per site) instead of the exact year of birth, and show it instead of age groups; add how long people have been members.

@@ -19,10 +19,18 @@ export interface SlotProps {
 	/** Widgets on a scope's admin dashboard (`/admin/<scope>`); `adminBase` = "/admin/germany.berlin". */
 	"admin.dashboard.widgets": { scopeId: string; adminBase: string };
 	/**
-	 * Sections of a scope's statistics page (`/admin/<scope>/statistics`): aggregates of the scope
-	 * and the scopes below it, small groups hidden (`suppressSmall` from `~/core`).
+	 * Sections of a scope's statistics page (`/admin/<scope>/statistics`), small groups hidden
+	 * (`suppressSmall` from `~/core`). `includeBelow`: count the scope's own activity only
+	 * (false) or with every scope below it (true), as the page's switch says. `compare`: the
+	 * viewer asked to compare the scopes below: the lowest ones ("leaves", e.g. every chapter)
+	 * or those directly below ("children"); null = no comparison.
 	 */
-	"admin.statistics.sections": { scopeId: string; adminBase: string };
+	"admin.statistics.sections": {
+		scopeId: string;
+		adminBase: string;
+		includeBelow: boolean;
+		compare: StatisticsCompare | null;
+	};
 }
 
 export type SlotName = keyof SlotProps;
@@ -31,6 +39,9 @@ export type SlotName = keyof SlotProps;
 export type SlotComponents = {
 	[Name in SlotName]?: Component<SlotProps[Name]>;
 };
+
+/** Which scopes below a statistics page compares: the lowest ones, or those directly below. */
+export type StatisticsCompare = "leaves" | "children";
 
 export const SLOT_NAMES = [
 	"profile.sections",

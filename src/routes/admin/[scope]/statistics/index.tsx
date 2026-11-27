@@ -1,5 +1,6 @@
 import { component$ } from "@qwik.dev/core";
 import { type DocumentHead, routeLoader$ } from "@qwik.dev/router";
+import type { StatisticsCompare } from "~/contracts/slots";
 import {
 	BreakdownBars,
 	DemographicsBars,
@@ -11,6 +12,7 @@ import { t } from "~/core/i18n";
 import { peopleBreakdowns } from "~/core/registry/statistics";
 import { adminUrl } from "~/core/router/scope-path";
 import { ADMIN_ACCESS, requireScopeRole } from "~/core/scopes/access";
+import { scopesService } from "~/core/scopes/scopes.service";
 import { assertNoPrivateFields } from "~/core/shared/no-private-fields";
 import { statisticsService } from "~/core/statistics/statistics.service";
 import { MIN_GROUP_SIZE } from "~/core/statistics/suppress";
@@ -18,10 +20,24 @@ import { ModuleSlot } from "../../../../core/registry/ModuleSlot";
 
 export const useStatistics = routeLoader$(async (event) => {
 	const { scope } = await requireScopeRole(event, ADMIN_ACCESS);
+	const isRoot = scope.parentId === null;
+	// Activity of this level only, or with everything below (default: everything on the root,
+	// where the site's own events alone rarely tell the story; this level elsewhere).
+	const view = event.url.searchParams.get("view");
+	const includeBelow = view ? view === "all" : isRoot;
+	const compareParam = event.url.searchParams.get("compare");
+	const hasChildren = (await scopesService.getChildren(scope.id)).length > 0;
+	const compare: StatisticsCompare | null =
+		hasChildren && (compareParam === "leaves" || compareParam === "children")
+			? compareParam
+			: null;
 	return assertNoPrivateFields({
 		scopeId: scope.id,
 		scopeName: scope.name,
 		base: adminUrl(scope.path),
+		includeBelow,
+		compare,
+		hasChildren,
 		overview: await statisticsService.overview(scope),
 		// The members by what active modules know about them (e.g. qualifications).
 		breakdowns: await peopleBreakdowns(
@@ -29,6 +45,87 @@ export const useStatistics = routeLoader$(async (event) => {
 		),
 	});
 });
+
+/** Link to the statistics page with these view settings (kept in the address, so shareable). */
+function statisticsHref(
+	base: string,
+	includeBelow: boolean,
+	compare: StatisticsCompare | null,
+) {
+	const params = new URLSearchParams({ view: includeBelow ? "all" : "own" });
+	if (compare) params.set("compare", compare);
+	return `${base}/statistics?${params}`;
+}
+
+const choice = (active: boolean) =>
+	active
+		? "px-3 py-1.5 text-sm rounded-md bg-gray-900 text-white"
+		: "px-3 py-1.5 text-sm rounded-md text-gray-700 hover:bg-gray-100";
+
+/** Activity of this level only or with everything below; compare the scopes below. */
+const ActivityControls = component$<{
+	base: string;
+	includeBelow: boolean;
+	compare: StatisticsCompare | null;
+	hasChildren: boolean;
+}>(({ base, includeBelow, compare, hasChildren }) => (
+	<div
+		class="flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4"
+		data-testid="statistics-controls"
+	>
+		<span class="text-sm text-gray-600 mr-1">
+			{t("admin.statistics.view.label")}
+		</span>
+		<div class="flex gap-1 bg-white rounded-lg shadow-sm p-1">
+			<a
+				href={statisticsHref(base, false, compare)}
+				class={choice(!includeBelow)}
+			>
+				{t("admin.statistics.view.own")}
+			</a>
+			<a
+				href={statisticsHref(base, true, compare)}
+				class={choice(includeBelow)}
+			>
+				{t("admin.statistics.view.all")}
+			</a>
+		</div>
+		{hasChildren && (
+			<div class="flex gap-1 bg-white rounded-lg shadow-sm p-1 ml-auto">
+				{compare ? (
+					<>
+						<a
+							href={statisticsHref(base, includeBelow, "leaves")}
+							class={choice(compare === "leaves")}
+						>
+							{t("admin.statistics.compare.leaves")}
+						</a>
+						<a
+							href={statisticsHref(base, includeBelow, "children")}
+							class={choice(compare === "children")}
+						>
+							{t("admin.statistics.compare.children")}
+						</a>
+						<a
+							href={statisticsHref(base, includeBelow, null)}
+							class={choice(false)}
+						>
+							{t("admin.statistics.compare.hide")}
+						</a>
+					</>
+				) : (
+					<a
+						href={statisticsHref(base, includeBelow, "leaves")}
+						class={choice(false)}
+						data-testid="statistics-compare"
+					>
+						{t("admin.statistics.compare.show")}
+					</a>
+				)}
+			</div>
+		)}
+	</div>
+));
 
 export default component$(() => {
 	const data = useStatistics();
@@ -74,10 +171,22 @@ export default component$(() => {
 				<PlacesBars demographics={o.demographics} />
 			</section>
 
+			<ActivityControls
+				base={data.value.base}
+				includeBelow={data.value.includeBelow}
+				compare={data.value.compare}
+				hasChildren={data.value.hasChildren}
+			/>
+
 			{/* Sections of active modules (events, …) */}
 			<ModuleSlot
 				name="admin.statistics.sections"
-				props={{ scopeId: data.value.scopeId, adminBase: data.value.base }}
+				props={{
+					scopeId: data.value.scopeId,
+					adminBase: data.value.base,
+					includeBelow: data.value.includeBelow,
+					compare: data.value.compare,
+				}}
 			/>
 
 			<p class="text-xs text-gray-500">

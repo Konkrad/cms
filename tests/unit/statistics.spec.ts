@@ -1,7 +1,6 @@
 import crypto from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
 import { peopleBreakdowns } from "~/core/registry/statistics";
-import { getSubtreeIds } from "~/core/scopes/access";
 import { statisticsService } from "~/core/statistics/statistics.service";
 import { suppressCount, suppressSmall } from "~/core/statistics/suppress";
 import { eventStatisticsService } from "~/modules/events/services/statistics";
@@ -399,21 +398,28 @@ describe("eventStatisticsService.forEvent", () => {
 			new: 1,
 			never: 1,
 		});
-		// Seen from the root, the chapter is ranked with its own numbers (Feb 2000 to Jan 2001:
+		// Compared from the root, the chapter is ranked with its own numbers (Feb 2000 to Jan 2001:
 		// 10 of its events, the 3 in January are older; 12 people came; core and regular are engaged).
-		const fromRoot = await eventStatisticsService.forScopes(
-			await getSubtreeIds(root),
+		const fromRoot = await eventStatisticsService.ranking(
 			root,
-			[core, regular, occasional, lost, newcomer, never],
+			"leaves",
 			new Date("2001-01-01T00:00:00.000Z"),
 		);
-		expect(fromRoot.chapters.find((c) => c.id === chapterId)).toMatchObject({
+		expect(fromRoot.find((c) => c.id === chapterId)).toMatchObject({
 			name: "Chapter",
 			members: 6,
 			events: 10,
 			came: 12,
 			engaged: 2,
+			parentName: null,
 		});
+		// Directly below the root too, so "one level below" lists it the same way.
+		const children = await eventStatisticsService.ranking(
+			root,
+			"children",
+			new Date("2001-01-01T00:00:00.000Z"),
+		);
+		expect(children.find((c) => c.id === chapterId)?.came).toBe(12);
 		expect(s.engagementRule).toEqual({
 			window: 12,
 			corePercent: 50,

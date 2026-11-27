@@ -1,5 +1,9 @@
 import { component$ } from "@qwik.dev/core";
-import type { SlotComponents, SlotProps } from "~/contracts/slots";
+import type {
+	SlotComponents,
+	SlotProps,
+	StatisticsCompare,
+} from "~/contracts/slots";
 import { useSubmitRequirement } from "~/core/setup-actions";
 import {
 	Alert,
@@ -113,17 +117,24 @@ const DashboardEvents = component$<SlotProps["admin.dashboard.widgets"]>(
 );
 
 /** The scopes directly below, most people who came first (`ScopeEventStatistics.chapters`). */
-const ChapterRanking = component$<{ rows: ChapterRow[] }>(({ rows }) =>
+const ChapterRanking = component$<{
+	rows: ChapterRow[];
+	mode: StatisticsCompare;
+}>(({ rows, mode }) =>
 	rows.length === 0 ? null : (
 		<section
 			class="bg-white rounded-lg shadow-sm p-5 overflow-x-auto"
 			data-testid="statistics-chapters"
 		>
 			<h3 class="text-sm font-semibold text-gray-700 mb-1">
-				{t("events.statistics.chapters.title")}
+				{mode === "leaves"
+					? t("events.statistics.chapters.title")
+					: t("events.statistics.chapters.titleChildren")}
 			</h3>
 			<p class="text-xs text-gray-500 mb-3">
-				{t("events.statistics.chapters.intro")}
+				{mode === "leaves"
+					? t("events.statistics.chapters.intro")
+					: t("events.statistics.chapters.introChildren")}
 			</p>
 			<table class="w-full text-sm">
 				<thead>
@@ -152,6 +163,11 @@ const ChapterRanking = component$<{ rows: ChapterRow[] }>(({ rows }) =>
 								<a href={row.url} class="text-blue-700 hover:underline">
 									{row.name}
 								</a>
+								{row.parentName && (
+									<span class="text-xs text-gray-500 ml-1">
+										{row.parentName}
+									</span>
+								)}
 							</td>
 							<td class="py-1.5 text-right tabular-nums">
 								{formatNumber(row.members)}
@@ -185,12 +201,18 @@ const ChapterRanking = component$<{ rows: ChapterRow[] }>(({ rows }) =>
  * regular, occasional, lost, new, never; chapter or global events, in person or online), then the events of the scope and below and who came.
  */
 const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
-	() => {
-		const data = useScopeEventStatistics();
+	({ includeBelow, compare }) => {
+		const data = useScopeEventStatistics(includeBelow, compare);
 		const s = data.value;
 		if (!s) return null;
+		// Nothing happened in these events in the last 12 months: one line instead of empty charts.
+		const noEvents =
+			s.eventsPerMonth.every((b) => !b.count) && s.ticketsIssued === 0;
 		return (
 			<section class="space-y-4" data-testid="statistics-events">
+				{s.ranking && compare && (
+					<ChapterRanking rows={s.ranking} mode={compare} />
+				)}
 				<h3 class="text-lg font-semibold text-gray-900">
 					{t("events.statistics.title")}
 				</h3>
@@ -280,45 +302,56 @@ const StatisticsEvents = component$<SlotProps["admin.statistics.sections"]>(
 						/>
 					</div>
 				</div>
-				<ChapterRanking rows={s.chapters} />
-				<div class="grid gap-4 md:grid-cols-2">
-					<StatColumns
-						title={t("events.statistics.eventsPerMonth")}
-						buckets={s.eventsPerMonth}
-					/>
-					<StatColumns
-						title={t("events.statistics.attendeesPerMonth")}
-						buckets={s.attendeesPerMonth}
-					/>
-				</div>
-				<div class="grid gap-4 md:grid-cols-2">
-					<StatBars
-						title={t("events.statistics.visits")}
-						rows={[
-							{ label: t("events.statistics.once"), count: s.visits.once },
-							{
-								label: t("events.statistics.twoToFour"),
-								count: s.visits.twoToFour,
-							},
-							{
-								label: t("events.statistics.fivePlus"),
-								count: s.visits.fivePlus,
-							},
-						]}
-					/>
-					<StatTile
-						label={t("events.statistics.noShows")}
-						value={s.ticketsIssued - s.ticketsScanned}
-						hint={t("events.statistics.ofIssued", { count: s.ticketsIssued })}
-					/>
-				</div>
-				<h4 class="text-base font-semibold text-gray-900">
-					{t("events.statistics.whoCame")}
-				</h4>
-				<DemographicsBars demographics={s.whoCame} />
-				<PlacesBars demographics={s.whoCame} />
-				<BreakdownBars breakdowns={s.breakdowns} />
-				<HomesBars homes={s.homes} />
+				{noEvents ? (
+					<p class="text-sm text-gray-600" data-testid="statistics-no-events">
+						{includeBelow
+							? t("events.statistics.noEvents")
+							: t("events.statistics.noEventsOnThisLevel")}
+					</p>
+				) : (
+					<>
+						<div class="grid gap-4 md:grid-cols-2">
+							<StatColumns
+								title={t("events.statistics.eventsPerMonth")}
+								buckets={s.eventsPerMonth}
+							/>
+							<StatColumns
+								title={t("events.statistics.attendeesPerMonth")}
+								buckets={s.attendeesPerMonth}
+							/>
+						</div>
+						<div class="grid gap-4 md:grid-cols-2">
+							<StatBars
+								title={t("events.statistics.visits")}
+								rows={[
+									{ label: t("events.statistics.once"), count: s.visits.once },
+									{
+										label: t("events.statistics.twoToFour"),
+										count: s.visits.twoToFour,
+									},
+									{
+										label: t("events.statistics.fivePlus"),
+										count: s.visits.fivePlus,
+									},
+								]}
+							/>
+							<StatTile
+								label={t("events.statistics.noShows")}
+								value={s.ticketsIssued - s.ticketsScanned}
+								hint={t("events.statistics.ofIssued", {
+									count: s.ticketsIssued,
+								})}
+							/>
+						</div>
+						<h4 class="text-base font-semibold text-gray-900">
+							{t("events.statistics.whoCame")}
+						</h4>
+						<DemographicsBars demographics={s.whoCame} />
+						<PlacesBars demographics={s.whoCame} />
+						<BreakdownBars breakdowns={s.breakdowns} />
+						<HomesBars homes={s.homes} />
+					</>
+				)}
 			</section>
 		);
 	},

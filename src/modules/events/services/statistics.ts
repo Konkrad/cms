@@ -1,10 +1,9 @@
-import { and, eq, inArray, isNotNull, isNull, lt } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, isNull, lt } from "drizzle-orm";
 import {
 	adminUrl,
 	type Demographics,
 	db,
 	getRootScope,
-	getSubtreeIds,
 	lastMonths,
 	moduleSettings,
 	type PeopleBreakdownResult,
@@ -106,17 +105,14 @@ export interface ScopeEventStatistics {
 	whoCame: Demographics;
 	homes: StatBucket[];
 	breakdowns: PeopleBreakdownResult[];
-	/**
-	 * The scopes directly below this one (each with its own subtree), most people who came
-	 * first: members, events and people who came in the last 12 months, and engaged members
-	 * (core or regular).
-	 */
-	chapters: ChapterRow[];
 }
 
+/** One row of the comparison of scopes below (`eventStatisticsService.ranking`). */
 export interface ChapterRow {
 	id: string;
 	name: string;
+	/** The scope it belongs to, when not directly below the page's scope (e.g. its region). */
+	parentName: string | null;
 	/** Its own statistics page. */
 	url: string;
 	members: number;
@@ -601,37 +597,6 @@ export const eventStatisticsService = {
 			else visits.fivePlus++;
 		}
 
-		// The scopes directly below: their events, who came, their members' engagement.
-		const children = await db
-			.select()
-			.from(scopes)
-			.where(eq(scopes.parentId, homeScopeId));
-		const scopeOf = new Map(scopeEvents.map((e) => [e.id, e.scopeId]));
-		const chapters: ChapterRow[] = await Promise.all(
-			children.map(async (child) => {
-				const [subtree, members] = await Promise.all([
-					getSubtreeIds(child.id),
-					statisticsService.memberIds(child),
-				]);
-				const inChild = new Set(subtree);
-				return {
-					id: child.id,
-					name: child.name,
-					url: `${adminUrl(child.path)}/statistics`,
-					members: members.length,
-					events: recent.filter((e) => inChild.has(e.scopeId)).length,
-					came: cameRecently.filter((p) =>
-						inChild.has(scopeOf.get(p.eventId) ?? ""),
-					).length,
-					engaged: members.filter((id) => {
-						const level = levels.get(id);
-						return level === "core" || level === "regular";
-					}).length,
-				};
-			}),
-		);
-		chapters.sort((a, b) => b.came - a.came || b.members - a.members);
-
 		const recentUsers = distinctUsers(cameRecently);
 		const [whoCame, homes, breakdowns] = await Promise.all([
 			statisticsService.demographicsOf(recentUsers, now),
@@ -658,7 +623,92 @@ export const eventStatisticsService = {
 			whoCame,
 			homes,
 			breakdowns,
-			chapters,
 		};
+	},
+
+	/**
+	 * Compare the scopes below `homeScopeId`: the lowest ones at any depth ("leaves", e.g. every
+	 * chapter) or those directly below ("children"), each with the scopes below it. Last 12
+	 * months: events and people who came; members, and how many are core or regular. Most
+	 * people who came first.
+	 */
+	async ranking(
+		homeScopeId: string,
+		mode: "leaves" | "children",
+		now: Date = new Date(),
+	): Promise<ChapterRow[]> {
+		const all = await db.select().from(scopes);
+		const childrenOf = new Map<string, typeof all>();
+		for (const row of all)
+			if (row.parentId)
+				childrenOf.set(row.parentId, [
+					...(childrenOf.get(row.parentId) ?? []),
+					row,
+				]);
+		const below = (id: string): typeof all =>
+			(childrenOf.get(id) ?? []).flatMap((c) => [c, ...below(c.id)]);
+		const rows =
+			mode === "children"
+				? (childrenOf.get(homeScopeId) ?? [])
+				: below(homeScopeId).filter((r) => !childrenOf.has(r.id));
+		if (rows.length === 0) return [];
+		const nameOf = new Map(all.map((r) => [r.id, r.name]));
+		const subtreeOf = new Map(
+			rows.map((r) => [r.id, new Set([r.id, ...below(r.id).map((c) => c.id)])]),
+		);
+		const scopeIds = [
+			...new Set(rows.flatMap((r) => [...(subtreeOf.get(r.id) ?? [])])),
+		];
+
+		const months = lastMonths(now);
+		const yearAgo = `${months[0]}-01`;
+		const nowIso = now.toISOString();
+		const recent = await inChunks(scopeIds, (chunk) =>
+			db
+				.select({ id: events.id, scopeId: events.scopeId })
+				.from(events)
+				.where(
+					and(
+						inArray(events.scopeId, chunk),
+						eq(events.status, "published"),
+						gte(events.startDate, yearAgo),
+						lt(events.startDate, nowIso),
+					),
+				),
+		);
+		const scopeOf = new Map(recent.map((e) => [e.id, e.scopeId]));
+		const [came, membersPerRow] = await Promise.all([
+			checkedInPeople(recent.map((e) => e.id)),
+			Promise.all(rows.map((r) => statisticsService.memberIds(r))),
+		]);
+		const levels = await engagementOf(
+			membersPerRow.flat(),
+			nowIso,
+			engagementRule(),
+		);
+
+		return rows
+			.map((row, i) => {
+				const inRow = subtreeOf.get(row.id) ?? new Set<string>();
+				const members = membersPerRow[i];
+				return {
+					id: row.id,
+					name: row.name,
+					parentName:
+						row.parentId && row.parentId !== homeScopeId
+							? (nameOf.get(row.parentId) ?? null)
+							: null,
+					url: `${adminUrl(row.path)}/statistics`,
+					members: members.length,
+					events: recent.filter((e) => inRow.has(e.scopeId)).length,
+					came: came.filter((p) => inRow.has(scopeOf.get(p.eventId) ?? ""))
+						.length,
+					engaged: members.filter((id) => {
+						const level = levels.get(id);
+						return level === "core" || level === "regular";
+					}).length,
+				};
+			})
+			.sort((a, b) => b.came - a.came || b.members - a.members);
 	},
 };
